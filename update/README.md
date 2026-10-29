@@ -1,5 +1,14 @@
 # Database updates and maintenance
 
+The full updater reconciles legacy comment category snapshots after old picture
+moves. Preview separately with `--album-comment-parents-only`, then use the same
+`--apply --backup-confirmed --maintenance-confirmed` confirmations to apply.
+Only a comment with an existing picture and current category is changed; its
+category follows that picture. Missing pictures/categories, author spellings,
+text, edit history and custom data are preserved. The repair is transactional,
+idempotent and uses the shared Album writer lease. Custom triggers and incompatible
+storage require review. This mode cannot be combined with another scoped mode.
+
 The full updater also widens legacy signed HotOrNot score storage to SMALLINT,
 so configured scores through 255 fit. Preview this change separately with
 `php update/update_from_153a.php --album-rating-storage-only`; applying requires

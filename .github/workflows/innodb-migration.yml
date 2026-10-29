@@ -123,6 +123,12 @@ jobs:
         env:
           PHPBB_ALBUM_RATING_STORAGE_NATIVE: '1'
           PHPBB_ALBUM_RATING_STORAGE_PASSWORD: fixture-only
+      - name: Reconcile Album comment categories without changing content
+        run: php -d memory_limit=64M .github/scripts/check-album-comment-parents-native.php
+        env:
+          PHPBB_ALBUM_COMMENT_PARENTS_NATIVE: '1'
+          PHPBB_ALBUM_COMMENT_PARENTS_CLI: '1'
+          PHPBB_ALBUM_COMMENT_PARENTS_PASSWORD: fixture-only
       - name: Check Album file journal schema and real updater preservation
         run: |
           php .github/scripts/check-album-file-journal-native.php

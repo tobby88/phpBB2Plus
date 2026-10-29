@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album file recovery, comments and ratings
 
+- Reconcile old comment category snapshots against current existing picture
+  parents in the consolidated updater and a guarded scoped mode. Preserve
+  missing-parent comments, exact content/authors/edit metadata and custom bytes.
 - Widen legacy signed HotOrNot score storage losslessly to support configured
   values through 255. Include the change in new installations, the full updater
   and a separately guarded preview/apply mode; preserve all historical votes.

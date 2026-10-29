@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
@@ -39,6 +39,7 @@ require_once __DIR__ . '/post_author_storage_migration.php';
 require_once __DIR__ . '/album_text_storage_migration.php';
 require_once __DIR__ . '/album_file_journal_migration.php';
 require_once __DIR__ . '/album_rating_storage_migration.php';
+require_once __DIR__ . '/album_comment_parent_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
@@ -61,6 +62,7 @@ function update_usage()
 	echo "  --album-discussion-text-storage-only  Preserve comment author and UTF8/HTML text capacity\n";
 	echo "  --album-file-journal-only  Only create/verify durable Album journal tables; never clean image files\n";
 	echo "  --album-rating-storage-only  Widen legacy HotOrNot scores without rewriting votes\n";
+	echo "  --album-comment-parents-only  Reconcile comment categories to current existing parents\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
@@ -167,7 +169,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only'), $argv)) > 1)
+if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -667,6 +669,16 @@ try
 		} else { echo "Dry run only. No database changes made.\n"; }
 		mysqli_close($connection); exit(0);
 	}
+	if (in_array('--album-comment-parents-only', $argv, true))
+	{
+		$comment_parent_plan = plus_album_comment_parent_plan($connection, $table_prefix);
+		plus_album_comment_parent_print_plan($comment_parent_plan);
+		if ($apply) {
+			$count = plus_album_comment_parent_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Album comment category repair complete: $count snapshots. Other comment data preserved.\n";
+		} else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
 	if (in_array('--album-discussion-text-storage-only', $argv, true))
 	{
 		$discussion_text_plan = plus_album_discussion_text_plan($connection, $table_prefix, true);
@@ -804,6 +816,8 @@ catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update op
 try { $discussion_text_plan = plus_album_discussion_text_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 try { $album_rating_plan = plus_album_rating_plan($connection, $table_prefix); }
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
+try { $comment_parent_plan = plus_album_comment_parent_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 // Verify any existing journal definition before unrelated full-update DDL.
 // Missing tables are queued from the same canonical definitions below.
@@ -1355,6 +1369,14 @@ try
 	} else { foreach ($album_rating_plan as $item) { echo $item['sql'] . ";\n"; } }
 }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; DDL cannot be rolled back. Inspect before retrying.\n"); exit(3); }
+try
+{
+	if ($apply) {
+		$count = plus_album_comment_parent_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+		echo "Album comment category repair complete: $count snapshots. Other comment data preserved.\n";
+	} else { plus_album_comment_parent_print_plan($comment_parent_plan); }
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; inspect before retrying.\n"); exit(3); }
 foreach ($album_username_snapshot_operations as $sql)
 {
 	echo $sql . ";\n";
