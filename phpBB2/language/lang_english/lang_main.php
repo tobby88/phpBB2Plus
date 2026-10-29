@@ -1716,4 +1716,6 @@ $lang['Public_profile_storage_upgrade'] = 'Saving profiles requires InnoDB table
 $lang['Activation_save_failed'] = 'The activation or password reset could not be confirmed. If the connection was lost at completion, please try logging in before requesting another link.';
 $lang['Activation_storage_upgrade'] = 'Account activation requires InnoDB tables with modern UTF-8 storage. Please complete the documented storage and UTF-8 upgrades first.';
 $lang['Activation_mail_failed'] = 'The account is active, but the notification email could not be sent. Please inform the member separately; activation does not need to be repeated.';
+$lang['Former_member'] = 'Former member';
+$lang['Author_privacy_unavailable'] = 'Author information is temporarily unavailable. Please try again later.';
 ?>

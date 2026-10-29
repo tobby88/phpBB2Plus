@@ -83,7 +83,7 @@ if ($special_forums)
 {
 	$where_forums .= ' AND t.forum_id IN (' . phpbb_sql_id_list($forum_ids) . ')';
 }
-$sql_start = "SELECT t.*, p.poster_id, p.post_username AS last_poster_name, p.post_id, p.post_time, f.forum_name, f.forum_id, u.username AS last_poster, u.user_id AS last_poster_id, u2.username AS first_poster, u2.user_id AS first_poster_id, p2.post_username AS first_poster_name
+$sql_start = "SELECT t.*, p.poster_id, p.post_username AS last_poster_name, p.post_author_removed AS last_poster_removed, p.post_id, p.post_time, f.forum_name, f.forum_id, u.username AS last_poster, u.user_id AS last_poster_id, u2.username AS first_poster, u2.user_id AS first_poster_id, p2.post_username AS first_poster_name, p2.post_author_removed AS first_poster_removed
 	        FROM (". TOPICS_TABLE ." t, ". POSTS_TABLE ." p)
 		LEFT OUTER JOIN ". POSTS_TABLE ." p2 ON (p2.post_id = t.topic_first_post_id)
 		LEFT OUTER JOIN ". FORUMS_TABLE ." f ON (f.forum_id = p.forum_id )
@@ -300,10 +300,10 @@ for( $i = 0; $i < count($line); $i++ )
 			
 	$first_time = create_date($board_config['default_dateformat'], $line[$i]['topic_time'], $board_config['board_timezone']);
     $first_style_color = color_group_colorize_name($line[$i]['first_poster_id'], true);
-	$first_author = ( $line[$i]['first_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['first_poster_id']) .'" class="gensmall">' . $first_style_color . ' </a>' : ( ($line[$i]['first_poster_name'] != '' ) ? htmlspecialchars($line[$i]['first_poster_name'], ENT_QUOTES, 'UTF-8') : $lang['Guest'] );
+	$first_author = ( $line[$i]['first_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['first_poster_id']) .'" class="gensmall">' . $first_style_color . ' </a>' : phpbb_post_author_name($line[$i],'first_poster_name','first_poster_id','first_poster_removed');
 	$last_time = create_date($board_config['default_dateformat'], $line[$i]['post_time'], $board_config['board_timezone']);
     $last_style_color = color_group_colorize_name($line[$i]['last_poster_id'], true);
-	$last_author = ( $line[$i]['last_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['last_poster_id']) .'" class="gensmall">' . $last_style_color . ' </a>' : ( ($line[$i]['last_poster_name'] != '' ) ? htmlspecialchars($line[$i]['last_poster_name'], ENT_QUOTES, 'UTF-8') : $lang['Guest'] );
+	$last_author = ( $line[$i]['last_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['last_poster_id']) .'" class="gensmall">' . $last_style_color . ' </a>' : phpbb_post_author_name($line[$i],'last_poster_name','last_poster_id','last_poster_removed');
 	$last_url = '<a href="'. append_sid("viewtopic.$phpEx?". POST_POST_URL .'='. $line[$i]['topic_last_post_id']) .'#'. $line[$i]['topic_last_post_id'] .'"><img src="'. $images['icon_latest_reply'] .'" alt="'. $lang['View_latest_post'] .'" title="'. $lang['View_latest_post'] .'" border="0" /></a>';
 	$forum_name = htmlspecialchars($line[$i]['forum_name'], ENT_QUOTES, 'UTF-8');
 	if ( strlen($forum_name) > (intval($board_config['last_topic_title_length'])-3) ) $forum_name = substr($forum_name, 0, intval($board_config['last_topic_title_length'])) . '...';

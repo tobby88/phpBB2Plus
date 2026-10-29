@@ -444,7 +444,7 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 			default:
 				$view_topic_url		= append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id");
 				//$topic_author		= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $topic_rowset[$i]['user_id']) . '">' : '';
-				$topic_author		= ( $topic_rowset[$i]['user_id'] == ANONYMOUS ) ? (($topic_rowset[$i]['post_username'] != '' ) ? $topic_rowset[$i]['post_username'] : $lang['Guest'] ) : color_group_colorize_name($topic_rowset[$i]['user_id']);
+				$topic_author		= ( $topic_rowset[$i]['user_id'] == ANONYMOUS ) ? phpbb_post_author_name($topic_rowset[$i],'post_username','user_id') : color_group_colorize_name($topic_rowset[$i]['user_id']);
 				//$topic_author		.= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? $topic_rowset[$i]['username'] : ( ( $topic_rowset[$i]['post_username'] != '' ) ? $topic_rowset[$i]['post_username'] : $lang['Guest'] );
 				//$topic_author		.= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
 				//-- mod : today at   yesterday at ------------------------------------------------------------------------ 
@@ -457,10 +457,14 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 				{
 					$last_post_author = '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '='  . $topic_rowset[$i]['id2']) . '">'.color_group_colorize_name($topic_rowset[$i]['id2']).'</a>';
 				}
+				elseif (array_key_exists('post_username2',$topic_rowset[$i]))
+				{
+					$last_post_author=phpbb_post_author_name($topic_rowset[$i],'post_username2','id2','post_author_removed2');
+				}
 				else
 				{
-					$sql = "SELECT p.post_username FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p
-						WHERE t.topic_first_post_id = p.post_id
+					$sql = "SELECT p.poster_id,p.post_username,p.post_author_removed FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p
+						WHERE t.topic_last_post_id = p.post_id
 						AND t.topic_id = $topic_id";
 					if ( !$result = $db->sql_query($sql) )
 					{
@@ -468,7 +472,7 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 					}
 					$row = $db->sql_fetchrow($result);
 					$topic_author_name = $row['post_username'];
-					$last_post_author = ($topic_author_name != '' ) ? $topic_author_name : $lang['Guest'];
+					$last_post_author = phpbb_post_author_name($row);
 				}
 
 				$last_post_url		= '<a href="' . append_sid("viewtopic.$phpEx?"  . POST_POST_URL . '=' . $topic_rowset[$i]['topic_last_post_id']) . '#' . $topic_rowset[$i]['topic_last_post_id'] . '"><img src="' . $images['icon_latest_reply'] . '" alt="' . $lang['View_latest_post'] . '" title="' . $lang['View_latest_post'] . '" border="0" /></a>';

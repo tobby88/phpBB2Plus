@@ -166,7 +166,7 @@ if (!$rating_submitted)
 
 	if( ($thispic['pic_user_id'] == ALBUM_GUEST) or ($thispic['username'] == '') )
 	{
-		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : album_html_text($thispic['pic_username']);
+		$poster = phpbb_author_name($thispic['pic_user_id'],($thispic['pic_username']===''?$lang['Guest']:$thispic['pic_username']));
 	}
 	else
 	{

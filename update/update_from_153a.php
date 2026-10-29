@@ -854,6 +854,10 @@ update_queue_log_widths($operations, $connection, $dbname, $table_prefix . 'logs
 // Add nullable last-editor snapshots without attributing historical changes.
 update_queue_column($operations, $connection, $dbname, $table_prefix . 'posts', 'post_edit_user_id', 'MEDIUMINT(8) NULL DEFAULT NULL');
 update_queue_column($operations, $connection, $dbname, $table_prefix . 'posts', 'post_edit_username', 'VARCHAR(255) NULL DEFAULT NULL');
+// Historical guest identities remain unclassified; owners can classify them
+// explicitly. Future account removal records exact rows and retained aliases.
+update_queue_column($operations, $connection, $dbname, $table_prefix . 'posts', 'post_author_removed', 'TINYINT(1) NOT NULL DEFAULT 0');
+update_queue_column($operations, $connection, $dbname, $table_prefix . 'shout', 'shout_author_removed', 'TINYINT(1) NOT NULL DEFAULT 0');
 update_queue_user_id_sequence($operations, new UpdateUserIdDatabase($connection), $table_prefix, update_table_exists($connection, $dbname, $table_prefix . 'user_id_sequence'));
 
 $user_columns = array(

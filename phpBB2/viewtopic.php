@@ -1093,8 +1093,8 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	if ( $poster_id == ANONYMOUS && $postrow[$i]['post_username'] != '' )
 	{
-		$poster = $postrow[$i]['post_username'];
-		$poster_rank = $lang['Guest'];
+		$poster = phpbb_post_author_name($postrow[$i]);
+		$poster_rank = phpbb_author_privacy_guest() && !empty($postrow[$i]['post_author_removed']) ? phpbb_former_author_label() : $lang['Guest'];
 		// Start add - Birthday MOD
 		$poster_age = '';
 		// End add - Birthday MOD

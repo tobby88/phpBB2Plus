@@ -289,6 +289,7 @@ CREATE TABLE phpbb_posts (
    post_edit_count smallint(5) UNSIGNED default '0' NOT NULL,
    post_edit_user_id mediumint(8) default NULL,
    post_edit_username varchar(255) default NULL,
+   post_author_removed tinyint(1) NOT NULL default '0',
    post_attachment tinyint(1) default '0' NOT NULL,
    post_icon tinyint(2),
    post_bluecard tinyint(1),
@@ -1292,6 +1293,7 @@ CREATE TABLE phpbb_portal (
 CREATE TABLE phpbb_shout (
   shout_id mediumint(8) unsigned NOT NULL auto_increment,
   shout_username varchar(25) NOT NULL default '',
+  shout_author_removed tinyint(1) NOT NULL default '0',
   shout_user_id mediumint(8) NOT NULL default '0',
   shout_group_id mediumint(8) NOT NULL default '0',
   shout_session_time int(11) NOT NULL default '0',
@@ -1799,6 +1801,15 @@ CREATE TABLE phpbb_ina_tour_play (
   last_played_game varchar(50) DEFAULT NULL,
   gamedata text DEFAULT NULL,
   PRIMARY KEY (tour_id, user_id)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE phpbb_removed_author_names (
+  author_user_id mediumint(8) UNSIGNED NOT NULL default '0',
+  author_name_hash char(64) NOT NULL,
+  author_name varchar(255) NOT NULL,
+  recorded_at int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (author_user_id,author_name_hash),
+  KEY author_name (author_name)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_ina_user_data (

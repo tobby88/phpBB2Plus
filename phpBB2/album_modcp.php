@@ -428,7 +428,7 @@ if ($mode == '')
 		{
 			if( ($picrow[$i]['user_id'] == ALBUM_GUEST) or ($picrow[$i]['username'] == '') )
 			{
-				$pic_poster = ($picrow[$i]['pic_username'] == '') ? $lang['Guest'] : album_html_text($picrow[$i]['pic_username']);
+				$pic_poster = phpbb_author_name($picrow[$i]['pic_user_id'],($picrow[$i]['pic_username']===''?$lang['Guest']:$picrow[$i]['pic_username']));
 			}
 			else
 			{

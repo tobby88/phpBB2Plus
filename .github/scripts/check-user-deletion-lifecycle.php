@@ -31,10 +31,14 @@ class DeletionDatabase
 		$this->pdo->exec('INSERT INTO fixture_permissions VALUES(70,1),(80,1),(90,1),(100,1),(200,1)');
 		$this->pdo->exec('CREATE TABLE fixture_posts(poster_id INTEGER,post_username TEXT)');
 		$this->pdo->exec("INSERT INTO fixture_posts VALUES(7,''),(8,'')");
+		$this->pdo->exec('ALTER TABLE fixture_posts ADD post_author_removed INTEGER DEFAULT 0');
+		$this->pdo->exec('ALTER TABLE fixture_posts ADD post_edit_user_id INTEGER DEFAULT NULL');$this->pdo->exec('ALTER TABLE fixture_posts ADD post_edit_username TEXT DEFAULT NULL');
 		$this->pdo->exec('CREATE TABLE fixture_topics(topic_poster INTEGER)'); $this->pdo->exec('INSERT INTO fixture_topics VALUES(7),(8)');
 		$this->pdo->exec('CREATE TABLE fixture_votes(vote_user_id INTEGER)'); $this->pdo->exec('INSERT INTO fixture_votes VALUES(7),(8)');
 		$this->pdo->exec('CREATE TABLE fixture_shouts(shout_user_id INTEGER,shout_username TEXT)');
 		$this->pdo->exec("INSERT INTO fixture_shouts VALUES(7,''),(8,'')");
+		$this->pdo->exec('ALTER TABLE fixture_shouts ADD shout_author_removed INTEGER DEFAULT 0');
+		$this->pdo->exec('CREATE TABLE fixture_removed_author_names(author_user_id INTEGER,author_name_hash TEXT,author_name TEXT,recorded_at INTEGER,PRIMARY KEY(author_user_id,author_name_hash))');
 		foreach(deletion_reference_tables() as $table=>$column)
 		{
 			$extra=$table==='fixture_bans'?",ban_ip TEXT DEFAULT '',ban_email TEXT DEFAULT '',ban_ip_mask TEXT DEFAULT ''":'';
@@ -42,7 +46,7 @@ class DeletionDatabase
 			$this->pdo->exec('INSERT INTO '.$table.' ('.$column.') VALUES(0),(7),(8),(9)');
 		}
 	}
-	function sql_query($sql) { $this->queries[]=$sql; if (is_callable($this->hook)) { call_user_func($this->hook,$sql,$this); } if ($this->failure!=='' && strpos($sql,$this->failure)===0) { return false; } $r=$this->pdo->query($sql); $this->affected=$r->rowCount(); return $r; }
+	function sql_query($sql) { $this->queries[]=$sql; if (is_callable($this->hook)) { call_user_func($this->hook,$sql,$this); } if ($this->failure!=='' && strpos($sql,$this->failure)===0) { return false; } if(strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES')===0){return$this->pdo->query("SELECT 'InnoDB' ENGINE,'Dynamic' ROW_FORMAT,'utf8mb4_unicode_ci' TABLE_COLLATION");} $r=$this->pdo->query($sql); $this->affected=$r->rowCount(); return $r; }
 	function sql_fetchrow($r) { return $r->fetch(PDO::FETCH_ASSOC); }
 	function sql_fetchrowset($r) { return $r->fetchAll(PDO::FETCH_ASSOC); }
 	function sql_freeresult($r) { $r->closeCursor(); }

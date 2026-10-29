@@ -34,6 +34,35 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Former-account author display
+
+For logged-out visitors, classified deleted-account authors appear as **Former
+member** (German: **Ehemaliger Nutzer**), distinct from genuine guest authors.
+The policy covers author bylines, attributed quote headers and recorded edit
+captions. Logged-in members still see the retained original names. Stored names
+and post text are preserved. Guest author searches exclude classified posts;
+known former-name keyword queries and incompatible saved search results are
+rejected. This is an author-display policy, not a rewrite of names mentioned in
+ordinary post text.
+
+The consolidated updater creates the classification table and post/shout markers.
+Future account removals capture the deleted identity automatically. Old guest
+posts cannot reliably be distinguished from previously deleted accounts, so the
+updater leaves them unclassified. An administrator can explicitly classify
+reviewed old guest names after the update, with writers stopped and a fresh backup:
+
+```sh
+php update/classify_removed_authors.php --name="Reviewed former name"
+php update/classify_removed_authors.php --name="Reviewed former name" --apply --backup-confirmed --maintenance-confirmed
+```
+
+Preview is the default; repeat `--name` for multiple reviewed names. The command
+changes classification metadata only and refuses ambiguous current-account
+names. Genuine guests with other names remain unchanged. For future removals,
+same-spelling guest posts are distinguished by their original account identity.
+The `hide_removed_author_names` configuration setting defaults to enabled; an
+existing explicit setting is preserved by updates.
+
 ## Album file operations and recovery
 
 Picture uploads record a durable manifest before publishing files. Picture and

@@ -554,7 +554,7 @@ if ($total_pics > 0)
 
 			if( ($picrow[$j]['user_id'] == ALBUM_GUEST) or ($picrow[$j]['username'] == '') )
 			{
-				$pic_poster = ($picrow[$j]['pic_username'] == '') ? $lang['Guest'] : $picrow[$j]['pic_username'];
+				$pic_poster = phpbb_author_name($picrow[$j]['pic_user_id'],($picrow[$j]['pic_username']===''?$lang['Guest']:$picrow[$j]['pic_username']));
 			}
 			else
 			{

@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_author_visibility.php';
 
 // A guest byline is not an account identity. Keep the account helpers at 25;
 // guest text supports 255 raw UTF-8 characters, up to 1530 escaped characters.
@@ -54,7 +55,7 @@ function phpbb_post_author_search_sql($database, $column, $value, $prefix = fals
 		if ($prefix && (!$wildcards || substr($value, -1) !== '*')) { $pattern .= '%'; }
 		$patterns[$pattern] = $column . " LIKE '" . $database->sql_escape($pattern) . "' ESCAPE '!'";
 	}
-	return '(' . implode(' OR ', array_values($patterns)) . ')';
+	return '((' . implode(' OR ', array_values($patterns)) . ')' . phpbb_removed_author_search_sql($column) . ')';
 }
 function phpbb_post_author_search_allowed($value, $minimum)
 {

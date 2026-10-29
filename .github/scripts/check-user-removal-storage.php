@@ -32,8 +32,12 @@ function removal_fixture($actor=1)
 	$p->exec('INSERT INTO fixture_memberships VALUES (9,10,0),(9,11,0),(1,10,1)');
 	$p->exec('INSERT INTO fixture_auth VALUES (4,2,1),(10,2,1),(11,2,0),(12,2,1)');
 	$p->exec('ALTER TABLE fixture_posts ADD poster_id INTEGER DEFAULT 9'); $p->exec("ALTER TABLE fixture_posts ADD post_username VARCHAR(255) DEFAULT ''");
+	$p->exec('ALTER TABLE fixture_posts ADD post_author_removed INTEGER DEFAULT 0');
+	$p->exec('ALTER TABLE fixture_posts ADD post_edit_user_id INTEGER DEFAULT NULL');$p->exec('ALTER TABLE fixture_posts ADD post_edit_username VARCHAR(255) DEFAULT NULL');
 	$p->exec('ALTER TABLE fixture_topics ADD topic_poster INTEGER DEFAULT 9');
 	$p->exec('CREATE TABLE fixture_shouts (shout_user_id INTEGER,shout_username VARCHAR(255))'); $p->exec("INSERT INTO fixture_shouts VALUES (9,''),(8,'')");
+	$p->exec('ALTER TABLE fixture_shouts ADD shout_author_removed INTEGER DEFAULT 0');
+	$p->exec('CREATE TABLE fixture_removed_author_names(author_user_id INTEGER NOT NULL,author_name_hash CHAR(64) NOT NULL,author_name VARCHAR(255) NOT NULL,recorded_at INTEGER NOT NULL,PRIMARY KEY(author_user_id,author_name_hash))');
 	$p->exec('CREATE TABLE fixture_votes (vote_user_id INTEGER)'); $p->exec('INSERT INTO fixture_votes VALUES (9),(8)');
 	foreach (array('fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
 	{
@@ -69,7 +73,7 @@ function removal_failure($callback,$expected)
 	$caught=false; try { $callback(); } catch (PhpbbRemovalException $e) { $caught=$e->getMessage()===$expected; }
 	mutation_check($caught,'Expected removal failure: '.$expected); mutation_check($GLOBALS['mutation_server']->owner===null,'Failed removal releases owner');
 }
-class RemovalReader extends MutationForum
+class RemovalReader extends GroupLogicForum
 {
 	function sql_query($sql) { mutation_check(strpos($sql,'SELECT ')===0,'Controller must not retain unlocked mutations'); return $GLOBALS['mutation_server']->pdo->query($sql); }
 	function sql_fetchrow($r) { return $r->fetch(PDO::FETCH_ASSOC); }

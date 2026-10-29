@@ -272,7 +272,7 @@ if( $article_id <= 0 )
         $this->setBlockVariables( 'comments', array(
                     'L_TITLE' => $this->htmlText($comment['post_subject']),
                     'POST_DATE' => create_date( $dateformat, $comment['post_time'], $timezone),
-                    'L_POSTER' => $this->htmlText(($comment['username'] == '') ? $comment['post_username'] : $comment['username']),
+                    'L_POSTER' => (int)$comment['user_id']===ANONYMOUS ? phpbb_post_author_name($comment) : $this->htmlText($comment['username']),
                     'BODY' => $comment['post_text']
                     ) );
       }

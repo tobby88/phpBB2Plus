@@ -109,6 +109,10 @@ function phpbb_removal_pm_where($id, $mode = 'inactive')
 function phpbb_removal_capture($db, $job)
 {
 	$id = (int) $job['user_id']; $key = "job_id = '" . $job['job_id'] . "'";
+	try { phpbb_capture_removed_author($db,$id,$job['username'],$db->guard); }
+	catch (PhpbbRemovalException $error) { throw $error; }
+	catch (Exception $error) { phpbb_removal_error('Removal_storage_failed'); }
+	catch (Error $error) { phpbb_removal_error('Removal_storage_failed'); }
 	$db->sql_query('DELETE FROM ' . USER_REMOVAL_ITEMS_TABLE . ' WHERE ' . $key . " AND item_type <> 'prune_policy'");
 	$prefix = 'INSERT INTO ' . USER_REMOVAL_ITEMS_TABLE . ' (job_id,item_type,item_id,related_id,item_name) SELECT DISTINCT ' . "'" . $job['job_id'] . "',";
 	$db->sql_query($prefix . "'group',g.group_id,0,'' FROM " . GROUPS_TABLE . ' g,' . USER_GROUP_TABLE . ' ug WHERE ug.user_id = ' . $id . ' AND g.group_id = ug.group_id AND g.group_single_user = 1 AND ' . $db->guard);

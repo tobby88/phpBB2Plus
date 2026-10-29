@@ -5,6 +5,9 @@ $root=dirname(dirname(__DIR__)).'/phpBB2/';require $root.'includes/php_compat.ph
 // Keep the actual loader/cache/config validators. Replace only the terminal
 // full-page error renderer with the throwing boundary below for assertions.
 $function_source=file_get_contents($root.'includes/functions.php');
+require_once $root.'includes/functions_author_visibility.php';
+$function_source=str_replace("require_once dirname(__FILE__) . '/functions_author_visibility.php';", '', $function_source, $privacy_dependency_count);
+if($privacy_dependency_count!==1){throw new RuntimeException('Actual author visibility dependency missing');}
 $function_source=str_replace('function message_die(', 'function unused_style_fixture_message_die(', $function_source, $renderer_count);
 if($renderer_count!==1){throw new RuntimeException('Actual error-rendering boundary missing');}eval(substr($function_source,5));
 $category_source=file_get_contents($root.'includes/functions_categories_hierarchy.php');

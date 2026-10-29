@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Former-account author visibility
+
+- Distinguish classified former members from genuine guests for logged-out
+  visitors, including bylines, attributed quotes and last-editor captions.
+  Preserve original names and content for logged-in members.
+- Exclude classified posts from guest author searches and reject known former
+  names in keyword queries and incompatible saved search results.
+- Capture retired identities and editor-name snapshots during future account
+  removal. Add canonical classification storage and a preview-first CLI for
+  explicitly reviewed historical guest names; reserve retired numeric user IDs.
+  The automatic updater does not guess which historical guests were members.
+
 ### Forum category totals
 
 - Render collapsed categories without warnings when their authorized count

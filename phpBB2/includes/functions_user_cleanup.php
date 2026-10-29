@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
+require_once dirname(__FILE__) . '/functions_author_visibility.php';
 
 // Internal post-delete cleanup. Callers must authorize the operation and verify
 // a successful user DELETE first. This does not authorize account deletion.
@@ -53,6 +54,11 @@ function phpbb_anonymize_removed_user_content($database, $user_id, $username, $m
 		message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']);
 	}
 	$name = $database->sql_escape($username);
+	$author_guard='NOT EXISTS (SELECT 1 FROM '.USERS_TABLE.' u WHERE u.user_id='.$user_id.')';
+	if (isset($database->guard) && is_string($database->guard) && $database->guard!=='') { $author_guard.=' AND ('.$database->guard.')'; }
+	try { phpbb_capture_removed_author($database,$user_id,$username,$author_guard); }
+	catch (Exception $error) { message_die(GENERAL_ERROR,$lang['User_reference_cleanup_failed']); }
+	catch (Error $error) { message_die(GENERAL_ERROR,$lang['User_reference_cleanup_failed']); }
 	$targets = array(
 		array(POSTS_TABLE, 'poster_id', 'poster_id = ' . DELETED . ", post_username = '" . $name . "'"),
 		array(SHOUTBOX_TABLE, 'shout_user_id', 'shout_user_id = ' . DELETED . ", shout_username = '" . $name . "'"),

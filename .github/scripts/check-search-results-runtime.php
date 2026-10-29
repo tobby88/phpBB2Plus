@@ -50,7 +50,7 @@ $db = new SearchRuntimeDatabase();
 $db->sql_query('CREATE TABLE forums (forum_id INTEGER PRIMARY KEY, forum_name TEXT)');
 $db->sql_query('CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT, user_sig TEXT, user_sig_bbcode_uid TEXT)');
 $db->sql_query('CREATE TABLE topics (topic_id INTEGER PRIMARY KEY, forum_id INTEGER, topic_poster INTEGER, topic_first_post_id INTEGER, topic_last_post_id INTEGER, topic_title TEXT)');
-$db->sql_query('CREATE TABLE posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, forum_id INTEGER, poster_id INTEGER, post_username TEXT, post_time INTEGER)');
+$db->sql_query('CREATE TABLE posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, forum_id INTEGER, poster_id INTEGER, post_username TEXT, post_time INTEGER, post_author_removed INTEGER DEFAULT 0)');
 $db->sql_query('CREATE TABLE posts_text (post_id INTEGER PRIMARY KEY, post_text TEXT, bbcode_uid TEXT, post_subject TEXT)');
 $db->sql_query("INSERT INTO users VALUES (1, 'Author', '', '')");
 $db->sql_query("INSERT INTO forums VALUES (1, 'Public'), (2, 'Private'), (3, 'Hidden')");
@@ -58,7 +58,7 @@ $db->sql_query("INSERT INTO forums VALUES (1, 'Public'), (2, 'Private'), (3, 'Hi
 foreach (array(1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 2, 6 => 3, 7 => 1) as $id => $forum)
 {
 	$db->sql_query("INSERT INTO topics VALUES ($id, $forum, 1, $id, $id, 'Topic $id')");
-	$db->sql_query("INSERT INTO posts VALUES ($id, $id, $forum, 1, '', $id)");
+	$db->sql_query("INSERT INTO posts (post_id,topic_id,forum_id,poster_id,post_username,post_time) VALUES ($id, $id, $forum, 1, '', $id)");
 	if ($id !== 7)
 	{
 		$db->sql_query("INSERT INTO posts_text VALUES ($id, 'Text $id', '', 'Subject $id')");

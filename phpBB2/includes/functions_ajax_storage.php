@@ -136,7 +136,7 @@ function phpbb_ajax_edit_post($database, $post_id, $field, $value)
 	try
 	{
 		$db->begin();
-		$result = $db->sql_query('SELECT p.post_id, p.topic_id, p.forum_id, p.poster_id, p.post_username, p.post_edit_time, p.post_edit_count, p.post_edit_user_id, p.post_edit_username, p.enable_bbcode, p.enable_html, p.enable_smilies, t.topic_status, t.topic_title, f.forum_status, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username'
+		$result = $db->sql_query('SELECT p.post_id, p.topic_id, p.forum_id, p.poster_id, p.post_username, p.post_author_removed, p.post_edit_time, p.post_edit_count, p.post_edit_user_id, p.post_edit_username, p.enable_bbcode, p.enable_html, p.enable_smilies, t.topic_status, t.topic_title, f.forum_status, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username'
 			. ' FROM ' . POSTS_TABLE . ' p JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id = p.post_id'
 			. ' JOIN ' . TOPICS_TABLE . ' t ON t.topic_id = p.topic_id AND t.forum_id = p.forum_id AND t.topic_moved_id = 0'
 			. ' JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id = p.poster_id WHERE p.post_id = ' . $post_id . ' FOR UPDATE');

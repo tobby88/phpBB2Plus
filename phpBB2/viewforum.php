@@ -436,11 +436,12 @@ $select_topic_days .= '</select>';
 //	t.topic_type DESC,
 //-- modify
 
-$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_time, p.post_username
-	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . USERS_TABLE . " u2
+$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_time, p0.post_username, p0.post_author_removed, p.post_username AS post_username2, p.post_author_removed AS post_author_removed2
+	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p0, " . USERS_TABLE . " u2
 	WHERE (t.forum_id = $forum_id" . ( (intval($board_config['announcement_display_forum']) == 0) ? " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE : '' ) . ")
 		AND t.topic_poster = u.user_id
 		AND p.post_id = t.topic_last_post_id
+		AND p0.post_id = t.topic_first_post_id
 		AND p.poster_id = u2.user_id
 		AND (t.topic_type = " . POST_NEWS . " OR t.topic_type = " . POST_ANNOUNCE . " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE . ")
 	ORDER BY t.topic_type <> " . POST_NEWS . " DESC, t.topic_type = " .POST_NEWS . ", t.topic_last_post_id DESC ";
@@ -468,7 +469,7 @@ $db->sql_freeresult($result);
 //	AND t.topic_type <> " . POST_GLOBAL_ANNOUNCE . "
 //-- modify
 
-$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time
+$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p.post_author_removed, p2.post_username AS post_username2, p2.post_author_removed AS post_author_removed2, p2.post_time
 	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
 	WHERE t.forum_id = $forum_id
 		AND t.topic_poster = u.user_id
@@ -847,7 +848,7 @@ if( $total_topics )
 		$view_topic_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id");
 
 		$topic_author = ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $topic_rowset[$i]['user_id']) . '">' : '';
-		$topic_author .= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? $topic_rowset[$i]['username'] : ( ( $topic_rowset[$i]['post_username'] != '' ) ? $topic_rowset[$i]['post_username'] : $lang['Guest'] );
+		$topic_author .= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? $topic_rowset[$i]['username'] : phpbb_post_author_name($topic_rowset[$i],'post_username','user_id');
 
 		$topic_author .= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
 
@@ -855,7 +856,7 @@ if( $total_topics )
 
 		$last_post_time = create_date($board_config['default_dateformat'], $topic_rowset[$i]['post_time'], $board_config['board_timezone']);
 
-		$last_post_author = ( $topic_rowset[$i]['id2'] == ANONYMOUS ) ? ( ($topic_rowset[$i]['post_username2'] != '' ) ? $topic_rowset[$i]['post_username2'] . ' ' : $lang['Guest'] . ' ' ) : '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '='  . $topic_rowset[$i]['id2']) . '">' . $topic_rowset[$i]['user2'] . '</a>';
+		$last_post_author = ( $topic_rowset[$i]['id2'] == ANONYMOUS ) ? phpbb_post_author_name($topic_rowset[$i],'post_username2','id2','post_author_removed2').' ' : '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '='  . $topic_rowset[$i]['id2']) . '">' . $topic_rowset[$i]['user2'] . '</a>';
 
 		$last_post_url = '<a href="' . append_sid("viewtopic.$phpEx?"  . POST_POST_URL . '=' . $topic_rowset[$i]['topic_last_post_id']) . '#' . $topic_rowset[$i]['topic_last_post_id'] . '"><img src="' . $images['icon_latest_reply'] . '" alt="' . $lang['View_latest_post'] . '" title="' . $lang['View_latest_post'] . '" border="0" /></a>';
 

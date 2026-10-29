@@ -124,7 +124,7 @@ if ($mode == 'edit_post_subject')
 
 		if (($row['poster_id'] == ANONYMOUS) && !empty($row['post_username']))
 		{
-			$row['username'] = $row['post_username'];
+			$row['username'] = phpbb_post_author_name($row);
 		}
 		$editmessage = phpbb_post_edit_caption($row, phpbb_profile_text($row['username']));
 	}
@@ -211,7 +211,7 @@ else if ($mode == 'edit_post_text')
 
 		if (($row['poster_id'] == ANONYMOUS) && !empty($row['post_username']))
 		{
-			$row['username'] = $row['post_username'];
+			$row['username'] = phpbb_post_author_name($row);
 		}
 		$editmessage = phpbb_post_edit_caption($row, phpbb_profile_text($row['username']));
 	}
@@ -911,7 +911,7 @@ else if ($mode == 'post_preview')
 	$post_id = ajax_request_int(POST_POST_URL);
 	if (!empty($post_id))
 	{
-		$sql = 'SELECT p.poster_id, p.post_username, u.username, u.user_sig, u.user_sig_bbcode_uid, u.user_allowhtml, u.user_allowbbcode, u.user_allowsmile 
+		$sql = 'SELECT p.poster_id, p.post_username, p.post_author_removed, u.username, u.user_sig, u.user_sig_bbcode_uid, u.user_allowhtml, u.user_allowbbcode, u.user_allowsmile
 		        FROM '. POSTS_TABLE .' p, '. USERS_TABLE ." u 
 		        WHERE p.post_id = $post_id 
 		        AND p.poster_id = u.user_id";
@@ -937,7 +937,7 @@ else if ($mode == 'post_preview')
 		
 		$user_sig_bbcode_uid = $row['user_sig_bbcode_uid'];
 		$user_sig = $row['user_sig'];
-		$username = ($row['poster_id'] == ANONYMOUS) ? ((!empty($row['post_username'])) ? $row['post_username'] : '') : $row['username'];
+		$username = ($row['poster_id'] == ANONYMOUS) ? phpbb_post_author_name($row) : $row['username'];
 		$user_allowhtml = $row['user_allowhtml'];
 		$user_allowbbcode = $row['user_allowbbcode'];
 		$user_allowsmile = $row['user_allowsmile'];

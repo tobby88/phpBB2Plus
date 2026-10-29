@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__FILE__) . '/functions_author_visibility.php';
 /***************************************************************************
  *							functions_categories_hierarchy.php
  *							----------------------------------
@@ -562,7 +563,7 @@ function read_tree($force=false)
 
 	// read the last or unread posts
 	$user_lastvisit = $userdata['session_logged_in'] ? $userdata['user_lastvisit'] : 99999999999;
-	$sql = "SELECT p.forum_id, p.topic_id, p.post_time, p.post_username, p.poster_id as user_id, t.topic_last_post_id, t.topic_title, t.topic_icon, t.topic_type
+	$sql = "SELECT p.forum_id, p.topic_id, p.post_time, p.post_username, p.post_author_removed, p.poster_id as user_id, t.topic_last_post_id, t.topic_title, t.topic_icon, t.topic_type
 				FROM (" . POSTS_TABLE . " p
 					LEFT JOIN " . TOPICS_TABLE . " t ON t.topic_id = p.topic_id AND t.forum_id = p.forum_id AND t.topic_moved_id = 0)
 				WHERE ( p.post_time > $user_lastvisit $sql_last_posts )
@@ -789,7 +790,7 @@ function set_tree_user_auth()
 				$tree['data'][$i]['tree.topic_last_post_id']	= $tree['data'][$i]['topic_last_post_id'];
 				$tree['data'][$i]['tree.post_time']				= $tree['data'][$i]['post_time'];
 				$tree['data'][$i]['tree.post_user_id']			= $tree['data'][$i]['user_id'];
-				$tree['data'][$i]['tree.post_username']			= ($tree['data'][$i]['user_id'] != ANONYMOUS) ? (isset($tree['data'][$i]['username']) ? $tree['data'][$i]['username'] : '') : ( (!empty($tree['data'][$i]['post_username'])) ? $tree['data'][$i]['post_username'] : $lang['Guest'] );
+				$tree['data'][$i]['tree.post_username']			= ($tree['data'][$i]['user_id'] != ANONYMOUS) ? (isset($tree['data'][$i]['username']) ? $tree['data'][$i]['username'] : '') : phpbb_post_author_name($tree['data'][$i],'post_username','user_id');
 				$tree['data'][$i]['tree.topic_title']			= $tree['data'][$i]['topic_title'];
 				$tree['data'][$i]['tree.unread_topics']			= $tree['unread_topics'][$i];
 			}

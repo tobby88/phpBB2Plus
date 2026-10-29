@@ -603,7 +603,7 @@ obtain_word_list($orig_word, $replacement_word);
 			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 			$user_id = $shout_row['shout_user_id'];
-			$display_username = ($user_id == ANONYMOUS) ? (($shout_row['shout_username'] == '') ? $lang['Guest'] : $shout_row['shout_username']) : $shout_row['username'];
+			$display_username = ($user_id == ANONYMOUS) ? phpbb_post_author_name($shout_row,'shout_username','shout_user_id','shout_author_removed') : $shout_row['username'];
 			$display_username = phpbb_profile_text($display_username);
 			$shout_username = ($user_id == ANONYMOUS) ? $display_username : "<a href='" . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($shout_row['shout_user_id'])) . "' target='_top'>" . $display_username . "</a>";
 

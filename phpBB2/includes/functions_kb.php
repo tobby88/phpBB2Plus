@@ -1141,7 +1141,7 @@ function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 	//
 	// Fetch only this bounded reply page. A missing account is not a missing post.
 	//
-	$sql='SELECT u.username,u.user_id,u.user_from,p.post_id,p.poster_id,p.post_time,p.post_username,p.enable_html,p.enable_smilies,p.post_edit_time,p.post_edit_count,p.post_edit_user_id,p.post_edit_username,pt.post_text,pt.post_subject,pt.bbcode_uid FROM '.POSTS_TABLE.' p '
+	$sql='SELECT u.username,u.user_id,u.user_from,p.post_id,p.poster_id,p.post_time,p.post_username,p.post_author_removed,p.enable_html,p.enable_smilies,p.post_edit_time,p.post_edit_count,p.post_edit_user_id,p.post_edit_username,pt.post_text,pt.post_subject,pt.bbcode_uid FROM '.POSTS_TABLE.' p '
 		.'INNER JOIN '.TOPICS_TABLE.' t ON t.topic_id=p.topic_id INNER JOIN '.POSTS_TEXT_TABLE.' pt ON pt.post_id=p.post_id '
 		.'LEFT JOIN '.USERS_TABLE.' u ON u.user_id=p.poster_id WHERE '.kb_comment_relation_sql($topic_id,$visible_topic['forum_id'])
 		.' ORDER BY p.post_time ASC,p.post_id ASC LIMIT '.$start.','.$show_num_comments;
@@ -1179,7 +1179,7 @@ for($i = 0; $i < $total_posts; $i++)
 	$poster=$registered ? phpbb_profile_text($postrow[$i]['username']) : phpbb_profile_text($lang['Guest']);
 	if (!$registered && is_string($postrow[$i]['post_username']) && $postrow[$i]['post_username']!=='')
 	{
-		$poster=phpbb_stored_text($postrow[$i]['post_username']);
+		$poster=phpbb_post_author_name($postrow[$i]);
 	}
 
 	$post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);

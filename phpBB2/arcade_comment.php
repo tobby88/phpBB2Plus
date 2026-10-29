@@ -305,7 +305,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
   		'DATE_ADDED' => create_date($board_config['default_dateformat'], $thiscomment['date_added'], $board_config['board_timezone']),
 	   	'PLAYED' => $thisgame['played'],
 		  'GAME_COMMENTS' => $total_comments,
-		'POSTER' => phpbb_profile_text($thiscomment['comment_username']),
+		'POSTER' => phpbb_author_name($thiscomment['comment_user_id'],$thiscomment['comment_username']),
 
   		'U_GAME' => append_sid("activity.$phpEx?mode=game&amp;id=$game_id"),
   		'U_GAME_TITLE' => append_sid("activity.$phpEx?mode=game&amp;id=$game_id&amp;win=self"),
@@ -405,7 +405,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 
 		for ($i = 0; $i < count($commentrow); $i++)
 		{
-			$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $commentrow[$i]['user_id']) .'">'. phpbb_profile_text($commentrow[$i]['username']) .'</a>';
+			$poster = (int)$commentrow[$i]['user_id']>0 ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $commentrow[$i]['user_id']) .'">'. phpbb_profile_text($commentrow[$i]['username']) .'</a>' : phpbb_author_name($commentrow[$i]['comment_user_id'],$commentrow[$i]['comment_username']!==''?$commentrow[$i]['comment_username']:$lang['Guest']);
 
 			if ($commentrow[$i]['comment_edit_count'] > 0)
 			{
@@ -424,7 +424,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 
 				$edit_info = ($commentrow[$i]['comment_edit_count'] == 1) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
 
-				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, phpbb_profile_text($lastedit_row['username']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
+				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, phpbb_author_name($lastedit_row['comment_edit_user_id'],$lastedit_row['username']!==null?$lastedit_row['username']:$lang['Guest']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
 			}
 			else
 			{

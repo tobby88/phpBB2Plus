@@ -852,7 +852,7 @@ function album_get_last_pic_info($cats, &$last_pic_id)
     // Write username of last poster
     if (($row['user_id'] == ALBUM_GUEST) or ($row['username'] == ''))
 	{
-        $info .= ($row['pic_username'] == '') ? $lang['Guest'] : album_html_text($row['pic_username']);
+        $info .= phpbb_author_name($row['pic_user_id'],($row['pic_username']===''?$lang['Guest']:$row['pic_username']));
     }
 	else
 	{
@@ -941,7 +941,7 @@ function album_get_last_comment_info($cats)
 	$has_account = isset($row['user_id'], $row['username']) && album_user_id_value($row['user_id']) > 0 && $row['username'] !== '';
 	if (!$has_account)
     {
-		$info .= ($row['comment_username'] == '') ? $lang['Guest'] : album_html_text($row['comment_username']);
+		$info .= phpbb_author_name($row['comment_user_id'],($row['comment_username']===''?$lang['Guest']:$row['comment_username']));
     }
 	else
     {
@@ -1184,7 +1184,7 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 
 			if( ($picrow[$j]['user_id'] == ALBUM_GUEST) or ($picrow[$j]['username'] == '') )
 			{
-				$pic_poster = ($picrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($picrow[$j]['pic_username']);
+				$pic_poster = phpbb_author_name($picrow[$j]['pic_user_id'],($picrow[$j]['pic_username']===''?$lang['Guest']:$picrow[$j]['pic_username']));
 			}
 			else
 			{
@@ -1343,7 +1343,7 @@ function album_build_recent_pics($cats)
 
 					if( ($recentrow[$j]['user_id'] == ALBUM_GUEST) or ($recentrow[$j]['username'] == '') )
 					{
-						$recent_poster = ($recentrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($recentrow[$j]['pic_username']);
+						$recent_poster = phpbb_author_name($recentrow[$j]['pic_user_id'],($recentrow[$j]['pic_username']===''?$lang['Guest']:$recentrow[$j]['pic_username']));
 					}
 					else
 					{
@@ -1471,7 +1471,7 @@ function album_build_highest_rated_pics($cats)
 
 					if( ($highestrow[$j]['user_id'] == ALBUM_GUEST) or ($highestrow[$j]['username'] == '') )
 					{
-						$highest_poster = ($highestrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($highestrow[$j]['pic_username']);
+						$highest_poster = phpbb_author_name($highestrow[$j]['pic_user_id'],($highestrow[$j]['pic_username']===''?$lang['Guest']:$highestrow[$j]['pic_username']));
 					}
 					else
 					{
@@ -1599,7 +1599,7 @@ function album_build_random_pics($cats)
 
 					if( ($randrow[$j]['user_id'] == ALBUM_GUEST) or ($randrow[$j]['username'] == '') )
 					{
-						$rand_poster = ($randrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($randrow[$j]['pic_username']);
+						$rand_poster = phpbb_author_name($randrow[$j]['pic_user_id'],($randrow[$j]['pic_username']===''?$lang['Guest']:$randrow[$j]['pic_username']));
 					}
 					else
 					{

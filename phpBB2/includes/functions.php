@@ -22,6 +22,7 @@
  ***************************************************************************/
 
 define('STYLE_URL', 's');
+require_once dirname(__FILE__) . '/functions_author_visibility.php';
 
 if ( !defined('IN_PHPBB') )
 {

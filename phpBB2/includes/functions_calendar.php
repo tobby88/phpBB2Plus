@@ -369,12 +369,13 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 	}
 	$sql = "SELECT 
 					t.*,
-					p.poster_id, p.post_username, p.enable_bbcode, p.enable_html, p.enable_smilies,
+					p.poster_id, p.post_username, p.post_author_removed, p.enable_bbcode, p.enable_html, p.enable_smilies,
 					u.username,
 					pt.post_text, pt.bbcode_uid,
 					lp.poster_id AS lp_poster_id,
 					lu.username AS lp_username,
 					lp.post_username AS lp_post_username,
+					lp.post_author_removed AS lp_post_author_removed,
 					lp.post_time AS lp_post_time
 					$sql_forums_field
 			FROM " . TOPICS_TABLE . " AS t, " . POSTS_TABLE . " AS p, " . POSTS_TEXT_TABLE . " AS pt, " . USERS_TABLE . " AS u, " . POSTS_TABLE . " AS lp, " . USERS_TABLE . " lu $sql_forums_file
@@ -414,11 +415,11 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 	{
 		// prepare the message
 		$topic_author_id			= $row['poster_id'];
-		$topic_author 				= ($row['poster_id'] == ANONYMOUS) ? $row['post_username'] : $row['username'];
+		$topic_author 				= ($row['poster_id'] == ANONYMOUS) ? phpbb_post_author_name($row) : $row['username'];
 		$topic_time					= $row['topic_time'];
 
 		$topic_last_author_id		= $row['lp_poster_id'];
-		$topic_last_author			= ($row['lp_poster_id'] == ANONYMOUS) ? $row['lp_post_username'] : $row['lp_username'];
+		$topic_last_author			= ($row['lp_poster_id'] == ANONYMOUS) ? phpbb_post_author_name($row,'lp_post_username','lp_poster_id','lp_post_author_removed') : $row['lp_username'];
 		$topic_last_time			= $row['lp_post_time'];
 		
 		$topic_views				= $row['topic_views'];

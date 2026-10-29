@@ -25,6 +25,7 @@ if ( !defined('IN_PHPBB') )
 }
 
 define("BBCODE_UID_LEN", 10);
+require_once dirname(__FILE__) . '/functions_author_visibility.php';
 
 // global that holds loaded-and-prepared bbcode templates, so we only have to do
 // that stuff once.
@@ -782,6 +783,7 @@ function phpbb_bbcode_render_second_pass($text, $uid)
 			return $bbcode_tpl['quote_open'];
 		}
 		$username = str_replace(array('[', ']'), array('&#91;', '&#93;'), phpbb_bbcode_safe_text($matches[1], 255));
+		$username = phpbb_author_name(-1,$username);
 		return str_replace('\\1', $username, $bbcode_tpl['quote_username_open']);
 	}, $text);
 	/* BEGIN CMX ACRONYM MOD */

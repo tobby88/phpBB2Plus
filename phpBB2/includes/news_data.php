@@ -388,7 +388,7 @@ class NewsDataAccess
 
     // Begin SQL Construction.
     $sql = 'SELECT t.topic_icon, t.topic_type, t.topic_attachment,
-        p.post_id, p.post_username, p.post_time, p.post_edit_time, p.post_attachment,
+        p.post_id, p.poster_id, p.post_username, p.post_author_removed, p.post_time, p.post_edit_time, p.post_attachment,
         pt.*,
         u.user_id, u.username, u.user_email, u.user_website, u.user_level, u.user_posts, u.user_rank
       FROM

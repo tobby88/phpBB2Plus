@@ -436,7 +436,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			$comment_website_url = phpbb_profile_http_url($commentrow[$i]['user_website']);
 			if( ($commentrow[$i]['user_id'] == ALBUM_GUEST) or ($commentrow[$i]['username'] == '') )
 			{
-				$poster = ($commentrow[$i]['comment_username'] == '') ? $lang['Guest'] : album_html_text($commentrow[$i]['comment_username']);
+				$poster = phpbb_author_name($commentrow[$i]['comment_user_id'],($commentrow[$i]['comment_username']===''?$lang['Guest']:$commentrow[$i]['comment_username']));
 			}
 			else
 			{
@@ -460,7 +460,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 				$edit_info = ($commentrow[$i]['comment_edit_count'] == 1) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
 
-				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, album_html_text($lastedit_row['username']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
+				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, phpbb_author_name((int)$commentrow[$i]['comment_edit_user_id'],$lastedit_row['username']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
 			}
 			else
 			{
@@ -538,8 +538,8 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			//
 			if ( $commentrow[$i]['user_id'] == ANONYMOUS && $commentrow[$i]['comment_username'] != '' )
 			{
-				$poster = album_html_text($commentrow[$i]['comment_username']);
-				$poster_rank = $lang['Guest'];
+				$poster = phpbb_author_name((int)$commentrow[$i]['comment_user_id'],$commentrow[$i]['comment_username']);
+				$poster_rank = phpbb_author_privacy_guest() && phpbb_removed_author_known((int)$commentrow[$i]['comment_user_id'],$commentrow[$i]['comment_username']) ? phpbb_former_author_label() : $lang['Guest'];
 			}
 
 			$comment_id = (int) $commentrow[$i]['comment_id'];
@@ -604,7 +604,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 	if( ($thispic['pic_user_id'] == ALBUM_GUEST) or ($thispic['username'] == '') )
 	{
-		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : album_html_text($thispic['pic_username']);
+		$poster = phpbb_author_name($thispic['pic_user_id'],($thispic['pic_username']===''?$lang['Guest']:$thispic['pic_username']));
 	}
 	else
 	{

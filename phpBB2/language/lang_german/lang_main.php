@@ -1712,4 +1712,6 @@ $lang['Public_profile_storage_upgrade'] = 'Das Speichern von Profilen benötigt 
 $lang['Activation_save_failed'] = 'Die Aktivierung oder Passwortzurücksetzung konnte nicht bestätigt werden. Bei einem Verbindungsabbruch zum Abschluss versuche bitte zunächst, dich einzuloggen, bevor du einen neuen Link anforderst.';
 $lang['Activation_storage_upgrade'] = 'Die Kontoaktivierung benötigt InnoDB-Tabellen mit modernem UTF-8-Speicherformat. Bitte führe zunächst die dokumentierten Speicherformat- und UTF-8-Updates aus.';
 $lang['Activation_mail_failed'] = 'Das Konto ist aktiv, aber die Benachrichtigungs-E-Mail konnte nicht gesendet werden. Bitte informiere das Mitglied separat; die Aktivierung muss nicht wiederholt werden.';
+$lang['Former_member'] = 'Ehemaliger Nutzer';
+$lang['Author_privacy_unavailable'] = 'Die Autoreninformationen sind vorübergehend nicht verfügbar. Bitte versuche es später erneut.';
 ?>

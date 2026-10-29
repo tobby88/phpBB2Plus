@@ -159,8 +159,8 @@ function topic_review($topic_id, $is_inline_review)
 			//
 			if( $poster_id == ANONYMOUS && $row['post_username'] != '' )
 			{
-				$poster = $row['post_username'];
-				$poster_rank = $lang['Guest'];
+				$poster = phpbb_post_author_name($row);
+				$poster_rank = phpbb_author_privacy_guest() && !empty($row['post_author_removed']) ? phpbb_former_author_label() : $lang['Guest'];
 			}
 			elseif ( $poster_id == ANONYMOUS )
 			{

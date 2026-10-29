@@ -101,12 +101,14 @@ include($phpbb_root_path . 'common.'.$phpEx);
 		}
 		$where = $search_columns[$mode];
 		$search_sql = $db->sql_escape($search);
+		$author_visibility_sql = $mode==='user' ? phpbb_removed_author_metadata_sql('p.pic_user_id','p.pic_username') : '';
 
 		$sql = "SELECT p.*, c.*
 				FROM " . ALBUM_TABLE . " AS p
 				LEFT JOIN " . ALBUM_CAT_TABLE . " AS c ON c.cat_id = p.pic_cat_id
 				WHERE p.pic_approval = 1
 					AND " . $where . " LIKE '%" . $search_sql . "%'
+					" . $author_visibility_sql . "
 				ORDER BY p.pic_time DESC
 				LIMIT 500";
 
@@ -145,7 +147,7 @@ include($phpbb_root_path . 'common.'.$phpEx);
 					$is_personal = ($cat_id === PERSONAL_GALLERY || $album_user_id !== ALBUM_PUBLIC_GALLERY);
 
 					$template->assign_block_vars('switch_search_results.search_results', array(
-						'L_USERNAME' => htmlspecialchars((string) $row['pic_username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+						'L_USERNAME' => phpbb_author_name((int)$row['pic_user_id'],$row['pic_username']),
 						'U_PROFILE' => append_sid('profile.php?mode=viewprofile&u=' . intval($row['pic_user_id'])),
 
 						'L_CAT' => $is_personal ? $lang['Users_Personal_Galleries'] : htmlspecialchars((string) $row['cat_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),

@@ -771,7 +771,7 @@ if ( $CFG['pics_number'] > 0 )
 	
 					if( ($recentrow[$j]['user_id'] == ALBUM_GUEST) or ($recentrow[$j]['username'] == '') )
 					{
-						$recent_poster = ($recentrow[$j]['pic_username'] == '') ? $lang['Guest'] : $recentrow[$j]['pic_username'];
+						$recent_poster = phpbb_author_name($recentrow[$j]['pic_user_id'],($recentrow[$j]['pic_username'] == '') ? $lang['Guest'] : $recentrow[$j]['pic_username']);
 					}
 					else
 					{
@@ -855,7 +855,7 @@ $template->assign_vars(array(
 	'L_NEWEST_PIC' => $lang['Newest_pic'],
 	'PIC_IMAGE' => append_sid('album_thumbnail.'. $phpEx . '?pic_id=' . $picrow['pic_id']),
 	'PIC_TITLE' => $picrow['pic_title'],
-	'PIC_POSTER' => $picrow['pic_username'],
+	'PIC_POSTER' => phpbb_author_name(isset($picrow['pic_user_id'])?$picrow['pic_user_id']:-1,$picrow['pic_username']),
 	'U_PIC_LINK' => append_sid('album_showpage.' . $phpEx . '?pic_id=' . $picrow['pic_id']),
 	'PIC_TIME' => create_date($board_config['default_dateformat'], $picrow['pic_time'], $board_config['board_timezone']),
 	// Start add - Photo Album Block

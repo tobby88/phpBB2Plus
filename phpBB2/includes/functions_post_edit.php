@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_author_visibility.php';
 
 // Called on the edit's owned connection. Pin the actual editor name through
 // COMMIT instead of attributing a moderator's change to the original author.
@@ -20,15 +21,17 @@ function phpbb_post_edit_assignments($database, $editor)
 
 // The fallback is already escaped by its caller. NULL editor fields preserve
 // historical captions without guessing who made an old unrecorded change.
-// Include this identity/name boundary in the pending former-account privacy
-// rollout; that feature must remain disabled until the owner approves it.
+// The actual last editor has its own retained identity, distinct from the
+// original post author. Apply the same guest-only former-member policy here.
 function phpbb_post_edit_caption($post, $fallback)
 {
 	global $lang, $board_config;
 	if (empty($post['post_edit_count'])) { return ''; }
 	$name = $fallback;
 	if (isset($post['post_edit_user_id'], $post['post_edit_username']) && (int)$post['post_edit_user_id'] > 0 && is_string($post['post_edit_username'])) {
-		$name = htmlspecialchars($post['post_edit_username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
+		$name = phpbb_author_name((int)$post['post_edit_user_id'],$post['post_edit_username']);
+	} elseif (phpbb_author_privacy_guest() && !empty($post['post_author_removed'])) {
+		$name = phpbb_former_author_label();
 	}
 	$format = (int)$post['post_edit_count'] === 1 ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
 	return '<br /><br />' . sprintf($format, $name, create_date($board_config['default_dateformat'], $post['post_edit_time'], $board_config['board_timezone']), $post['post_edit_count']);

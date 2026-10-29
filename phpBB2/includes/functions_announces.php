@@ -224,11 +224,12 @@ function announces_from_forums($cur='Root', $force_prune=false)
 	}
 
 	// get topics data
-	$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_time, p.post_username, f.forum_name
-			FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . USERS_TABLE . " u2, " . FORUMS_TABLE . " f
+	$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_time, p0.post_username, p0.post_author_removed, p.post_username AS post_username2, p.post_author_removed AS post_author_removed2, f.forum_name
+			FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p0, " . USERS_TABLE . " u2, " . FORUMS_TABLE . " f
 			WHERE ($sql_where)
 				AND t.topic_poster = u.user_id
 				AND p.post_id = t.topic_last_post_id
+				AND p0.post_id = t.topic_first_post_id
 				AND p.poster_id = u2.user_id
 				AND f.forum_id = t.forum_id
 			ORDER BY t.topic_type DESC, t.topic_last_post_id DESC ";

@@ -309,7 +309,7 @@ for ($i = 0; $i < count($catrows); $i++)
 
 		if( ($lastrow['user_id'] == ALBUM_GUEST) or ($lastrow['username'] == '') )
 		{
-			$last_pic_info .= ($lastrow['pic_username'] == '') ? $lang['Guest'] : $lastrow['pic_username'];
+			$last_pic_info .= phpbb_author_name($lastrow['pic_user_id'],($lastrow['pic_username']===''?$lang['Guest']:$lastrow['pic_username']));
 		}
 		else
 		{
@@ -351,7 +351,7 @@ for ($i = 0; $i < count($catrows); $i++)
 			$last_comment_info .= '<br />' . $lang['Poster'] . ': ';
 
 			if( ($lastcrow['user_id'] == ALBUM_GUEST) or ($lastcrow['comment_username'] == '') )
-				$last_comment_info .= ($lastcrow['comment_username'] == '') ? $lang['Guest'] : $lastcrow['comment_username'];
+				$last_comment_info .= phpbb_author_name($lastcrow['comment_user_id'],($lastcrow['comment_username']===''?$lang['Guest']:$lastcrow['comment_username']));
 			else
 				$last_comment_info .= '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $lastcrow['user_id']) .'">'. $lastcrow['username'] .'</a>';
 		}
@@ -462,7 +462,7 @@ if ($album_sp_config['disp_late'] == 1)
 
 					if( ($recentrow[$j]['user_id'] == ALBUM_GUEST) or ($recentrow[$j]['username'] == '') )
 					{
-						$recent_poster = ($recentrow[$j]['pic_username'] == '') ? $lang['Guest'] : $recentrow[$j]['pic_username'];
+						$recent_poster = phpbb_author_name($recentrow[$j]['pic_user_id'],($recentrow[$j]['pic_username']===''?$lang['Guest']:$recentrow[$j]['pic_username']));
 					}
 					else
 					{
@@ -559,7 +559,7 @@ if ($album_sp_config['disp_high'] == 1)
 
 	            if( ($highestrow[$j]['user_id'] == ALBUM_GUEST) or ($highestrow[$j]['username'] == '') )
 	            {
-	               $highest_poster = ($highestrow[$j]['pic_username'] == '') ? $lang['Guest'] : $highestrow[$j]['pic_username'];
+	               $highest_poster = phpbb_author_name($highestrow[$j]['pic_user_id'],($highestrow[$j]['pic_username']===''?$lang['Guest']:$highestrow[$j]['pic_username']));
 	            }
 	            else
 	            {
@@ -657,7 +657,7 @@ if ($album_sp_config['disp_rand'] == 1)
 
 					if( ($randrow[$j]['user_id'] == ALBUM_GUEST) or ($randrow[$j]['username'] == '') )
 					{
-						$rand_poster = ($randrow[$j]['pic_username'] == '') ? $lang['Guest'] : $randrow[$j]['pic_username'];
+						$rand_poster = phpbb_author_name($randrow[$j]['pic_user_id'],($randrow[$j]['pic_username']===''?$lang['Guest']:$randrow[$j]['pic_username']));
 					}
 					else
 					{

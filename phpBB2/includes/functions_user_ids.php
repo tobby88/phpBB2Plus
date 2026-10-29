@@ -33,6 +33,7 @@ function phpbb_user_id_references()
 	return array(
 		'user_group' => array('user_id'),
 		'user_removals' => array('user_id','created_by'),
+		'removed_author_names' => array('author_user_id'),
 		'user_removal_items' => array('related_id'),
 		'groups' => array('group_moderator'),
 		'banlist' => array('ban_userid'),

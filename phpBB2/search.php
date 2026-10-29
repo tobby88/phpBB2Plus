@@ -75,6 +75,7 @@ $search_keywords = substr(phpbb_request_scalar($_POST, 'search_keywords', phpbb_
 $search_author_value = isset($_POST['search_author']) ? $_POST['search_author'] : (isset($_GET['search_author']) ? $_GET['search_author'] : '');
 if (!is_string($search_author_value)) { message_die(GENERAL_MESSAGE, $lang['No_search_match']); }
 $search_author = trim(phpbb_request_raw_value($search_author_value));
+if (phpbb_removed_author_keyword_search(phpbb_request_raw_value($search_keywords))) { message_die(GENERAL_MESSAGE,$lang['No_search_match']); }
 if ($search_author !== '' && !phpbb_post_author_search_allowed($search_author, $board_config['search_min_chars']))
 {
 	message_die(GENERAL_MESSAGE, $lang['No_search_match']);
@@ -891,6 +892,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			$store_search_data[$store_vars[$i]] = ${$store_vars[$i]};
 		}
 
+		$store_search_data['author_visibility'] = phpbb_author_search_cache_tag();
 		$result_array = serialize($store_search_data);
 		unset($store_search_data);
 		$result_array_sql = $db->sql_escape($result_array);
@@ -930,7 +932,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			if ( $row = $db->sql_fetchrow($result) )
 			{
 				$search_data = phpbb_safe_unserialize_array($row['search_array']);
-				if (!is_array($search_data))
+				if (!is_array($search_data) || !phpbb_author_search_cache_allowed($search_data))
 				{
 					message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 				}
@@ -995,7 +997,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		}
 		else
 		{
-			$result_select_sql = "SELECT t.*, f.forum_id, f.forum_name, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time";
+			$result_select_sql = "SELECT t.*, f.forum_id, f.forum_name, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p.post_author_removed, p2.post_username AS post_username2, p2.post_author_removed AS post_author_removed2, p2.post_time";
 			$result_from_sql = " FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
 				WHERE t.topic_id IN ($search_results) 
 					AND t.topic_poster = u.user_id
@@ -1329,7 +1331,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 				}
 
 				$poster = ( $searchset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $searchset[$i]['user_id']) . '">' : '';
-				$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? $searchset[$i]['username'] : ( ( $searchset[$i]['post_username'] != "" ) ? $searchset[$i]['post_username'] : $lang['Guest'] );
+				$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? $searchset[$i]['username'] : phpbb_post_author_name($searchset[$i],'post_username','user_id');
 				$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
 
 				if ( $userdata['session_logged_in'] && $searchset[$i]['post_time'] > $userdata['user_lastvisit'] )
@@ -1588,7 +1590,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 				}
 				else
 				{
-					$sql = "SELECT p.post_username FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p
+					$sql = "SELECT p.poster_id,p.post_username,p.post_author_removed FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p
 						WHERE t.topic_first_post_id = p.post_id
 						AND t.topic_id = " . $searchset[$i]['topic_id'];
 					if ( !$result = $db->sql_query($sql) )
@@ -1596,7 +1598,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 						message_die(GENERAL_ERROR, 'Could not get topic autor name', '', __LINE__, __FILE__, $sql);
 					}
 					$row = $db->sql_fetchrow($result);
-					$topic_author_name = $row['post_username'];
+					$topic_author_name = phpbb_post_author_name($row);
 					$topic_author = ($topic_author_name != '' ) ? $topic_author_name : $lang['Guest'];
 				}
 
@@ -1607,7 +1609,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
             $last_post_time = create_date_day($board_config['default_dateformat'], $searchset[$i]['post_time'], $board_config['board_timezone']); 
 //-- end mod : today at   yesterday at ------------------------------------------------------------------------
 
-				$last_post_author = ( $searchset[$i]['id2'] == ANONYMOUS ) ? ( ($searchset[$i]['post_username2'] != '' ) ? $searchset[$i]['post_username2'] . ' ' : $lang['Guest'] . ' ' ) : color_group_colorize_name($searchset[$i]['id2']);
+				$last_post_author = ( $searchset[$i]['id2'] == ANONYMOUS ) ? phpbb_post_author_name($searchset[$i],'post_username2','id2','post_author_removed2').' ' : color_group_colorize_name($searchset[$i]['id2']);
 
 				$last_post_url = '<a href="' . append_sid("viewtopic.$phpEx?"  . POST_POST_URL . '=' . $searchset[$i]['topic_last_post_id']) . '#' . $searchset[$i]['topic_last_post_id'] . '"><img src="' . $images['icon_latest_reply'] . '" alt="' . $lang['View_latest_post'] . '" title="' . $lang['View_latest_post'] . '" border="0" /></a>';
 

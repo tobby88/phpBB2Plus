@@ -362,7 +362,7 @@ switch ( $mode )
 //-- modify
 
 		$select_sql = ', t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.post_icon';
-		$select_sql .= (!$submit) ? ', t.topic_title, t.topic_desc, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, p.post_username, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
+		$select_sql .= (!$submit) ? ', t.topic_title, t.topic_desc, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, p.post_username, p.post_author_removed, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
 		$from_sql = ( !$submit ) ? ", " . POSTS_TEXT_TABLE . " pt, " . USERS_TABLE . " u" : '';
 		$where_sql = ( !$submit ) ? "AND pt.post_id = p.post_id AND u.user_id = p.poster_id" : '';
 
@@ -1239,6 +1239,8 @@ $poll_length = '';
 
 			// Use trim to get rid of spaces placed there by MS-SQL 2000
 			$quote_username = ( trim($post_info['post_username']) != '' ) ? $post_info['post_username'] : $post_info['username'];
+			if ((int)$post_info['user_id']===ANONYMOUS) { $quote_username=phpbb_post_author_name($post_info,'post_username','user_id'); }
+			$message=phpbb_author_filter_quote_headers($message);
 			$message = '[quote="' . $quote_username . '"]' . $message . '[/quote]';
 
 			if ( !empty($orig_word) )
