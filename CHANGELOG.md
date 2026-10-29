@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Administration, search and quick reply
 
+- Render legacy posts whose adjacent closing tags for font, size, color or
+  emphasis were saved in opening order. Reorder only complete inline groups;
+  keep structural boundaries and literal code examples protected, without
+  rewriting stored posts.
 - Skip inaccessible or missing categories before rendering their forum index,
   avoiding missing-level warnings and incomplete table rows. Stop split-category
   depth scans correctly at the next sibling.
