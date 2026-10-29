@@ -287,6 +287,8 @@ CREATE TABLE phpbb_posts (
    enable_sig tinyint(1) default '1' NOT NULL,
    post_edit_time int(11),
    post_edit_count smallint(5) UNSIGNED default '0' NOT NULL,
+   post_edit_user_id mediumint(8) default NULL,
+   post_edit_username varchar(255) default NULL,
    post_attachment tinyint(1) default '0' NOT NULL,
    post_icon tinyint(2),
    post_bluecard tinyint(1),

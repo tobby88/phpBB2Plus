@@ -27,6 +27,7 @@ if (!defined('IN_PHPBB'))
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once $phpbb_root_path . 'includes/functions_post_edit.' . $phpEx;
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_color_groups.'.$phpEx);
 phpbb_load_icon_config();
@@ -1416,16 +1417,7 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	// Editing information
 	//
-	if ( $postrow[$i]['post_edit_count'] )
-	{
-		$l_edit_time_total = ( $postrow[$i]['post_edit_count'] == 1 ) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
-
-		$l_edited_by = '<br /><br />' . sprintf($l_edit_time_total, $poster, create_date($board_config['default_dateformat'], $postrow[$i]['post_edit_time'], $board_config['board_timezone']), $postrow[$i]['post_edit_count']);
-	}
-	else
-	{
-		$l_edited_by = '';
-	}
+	$l_edited_by = phpbb_post_edit_caption($postrow[$i], $poster);
 	//-- mod : post icon -------------------------------------------------------------------------------
 	//-- add
 	$post_subject_pre = '';

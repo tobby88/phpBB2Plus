@@ -1,5 +1,13 @@
 # Database updates and maintenance
 
+The consolidated updater adds nullable `post_edit_user_id` and
+`post_edit_username` fields to existing posts. These record the actual editor of
+future changes made through either editor, including moderation. Existing text,
+author names, edit times/counts and unknown historical editor identities are
+preserved; no editor is inferred or backfilled. Repeat updates retain already
+recorded snapshots. Apply before deploying the corresponding editor code using
+the backup/maintenance procedure below.
+
 The full updater reconciles legacy comment category snapshots after old picture
 moves. Preview separately with `--album-comment-parents-only`, then use the same
 `--apply --backup-confirmed --maintenance-confirmed` confirmations to apply.

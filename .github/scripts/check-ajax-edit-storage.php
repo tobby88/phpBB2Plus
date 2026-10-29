@@ -30,6 +30,7 @@ function ajax_storage_fixture()
 	$userdata['session_id']='fixture';
 	$userdata['session_logged_in']=true; $userdata['user_allowhtml']=false;
 	$board_config['allow_html']=false; $board_config['allow_bbcode']=true; $board_config['allow_smilies']=false;
+	$board_config['default_dateformat']='d.m.Y H:i'; $board_config['board_timezone']=0;
 	$tree=array('data'=>array(array('forum_id'=>3,'auth_edit'=>0,'auth_view'=>0,'auth_read'=>0)),'keys'=>array('f3'=>0),'type'=>array('f'));
 }
 function ajax_storage_failure($callback,$expected)
@@ -47,6 +48,8 @@ class AjaxFixtureResponse extends RuntimeException
 }
 function AJAX_message_die($value) { throw new AjaxFixtureResponse($value); }
 function obtain_word_list(&$words,&$replacements) { $words=array(); $replacements=array(); }
+$lang['Edited_time_total']='Last edited by %s on %s; %d edit';
+$lang['Edited_times_total']='Last edited by %s on %s; %d edits';
 define('AJAX_ERROR',-1); define('AJAX_POST_SUBJECT_EDITED',2); define('AJAX_POST_TEXT_EDITED',3);
 set_error_handler(function($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try
@@ -146,7 +149,7 @@ try
 	mutation_check($helper_start!==false && $helper_end>$helper_start,'Locate actual AJAX request helpers');
 	eval(substr($ajax_source,$helper_start,$helper_end-$helper_start));
 	$functions_source=file_get_contents($forum_root.'includes/functions.php');
-	foreach(array('utf8_rawurldecode','unhtmlspecialchars') as $name)
+	foreach(array('utf8_rawurldecode','unhtmlspecialchars','phpbb_profile_text','create_date') as $name)
 	{
 		$start=strpos($functions_source,'function '.$name.'('); $end=strpos($functions_source,"\n}",$start);
 		mutation_check($start!==false && $end>$start,'Locate actual response/request text conversion');

@@ -563,6 +563,11 @@ jobs:
         env:
           PHPBB_VOTE_NATIVE: '1'
           PHPBB_VOTE_PASSWORD: fixture-only
+      - name: Preserve existing posts when adding last-editor snapshots
+        run: php .github/scripts/check-post-edit-migration-native.php
+        env:
+          PHPBB_POST_EDIT_NATIVE: '1'
+          PHPBB_POST_EDIT_PASSWORD: fixture-only
       - run: php .github/scripts/check-ajax-edit-native.php
         env:
           PHPBB_AJAX_EDIT_NATIVE: '1'

@@ -26,6 +26,7 @@ if ( !defined('IN_PHPBB') )
 }
 require_once dirname(__FILE__) . '/functions_kb_counter_policy.php';
 require_once dirname(__FILE__) . '/functions_post_author.php';
+require_once dirname(__FILE__) . '/functions_post_edit.php';
 
 //
 // get_quick_stats();
@@ -1140,7 +1141,7 @@ function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 	//
 	// Fetch only this bounded reply page. A missing account is not a missing post.
 	//
-	$sql='SELECT u.username,u.user_id,u.user_from,p.post_id,p.poster_id,p.post_time,p.post_username,p.enable_html,p.enable_smilies,p.post_edit_time,p.post_edit_count,pt.post_text,pt.post_subject,pt.bbcode_uid FROM '.POSTS_TABLE.' p '
+	$sql='SELECT u.username,u.user_id,u.user_from,p.post_id,p.poster_id,p.post_time,p.post_username,p.enable_html,p.enable_smilies,p.post_edit_time,p.post_edit_count,p.post_edit_user_id,p.post_edit_username,pt.post_text,pt.post_subject,pt.bbcode_uid FROM '.POSTS_TABLE.' p '
 		.'INNER JOIN '.TOPICS_TABLE.' t ON t.topic_id=p.topic_id INNER JOIN '.POSTS_TEXT_TABLE.' pt ON pt.post_id=p.post_id '
 		.'LEFT JOIN '.USERS_TABLE.' u ON u.user_id=p.poster_id WHERE '.kb_comment_relation_sql($topic_id,$visible_topic['forum_id'])
 		.' ORDER BY p.post_time ASC,p.post_id ASC LIMIT '.$start.','.$show_num_comments;
@@ -1227,16 +1228,7 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	// Editing information
 	//
-	if ( $postrow[$i]['post_edit_count'] )
-	{
-		$l_edit_time_total = ( $postrow[$i]['post_edit_count'] == 1 ) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
-
-		$l_edited_by = '<br /><br />' . sprintf($l_edit_time_total, $poster, create_date($board_config['default_dateformat'], $postrow[$i]['post_edit_time'], $board_config['board_timezone']), $postrow[$i]['post_edit_count']);
-	}
-	else
-	{
-		$l_edited_by = '';
-	}
+	$l_edited_by = phpbb_post_edit_caption($postrow[$i], $poster);
 	
 	$template->assign_block_vars('postrow', array(
 		'POSTER_NAME' => $poster,

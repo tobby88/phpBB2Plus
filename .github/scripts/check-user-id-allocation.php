@@ -79,6 +79,9 @@ try
     user_id_fixture(); $mutation_server->pdo->exec('CREATE TABLE fixture_user_removal_items (item_type VARCHAR(16),related_id INTEGER)');
     $mutation_server->pdo->exec("INSERT INTO fixture_user_removal_items VALUES ('pm',600),('group',7000000),('pm',-1)");
     mutation_check(phpbb_allocate_user_id($db,'fixture_')===601 && user_id_value('SELECT COUNT(*) FROM fixture_user_removal_items')===3,'Pending PM recipient identities are reserved without interpreting group IDs as users');
+    user_id_fixture(); $mutation_server->pdo->exec('ALTER TABLE fixture_posts ADD post_edit_user_id MEDIUMINT NULL DEFAULT NULL');
+    $mutation_server->pdo->exec('UPDATE fixture_posts SET post_edit_user_id=700 WHERE post_id=10');
+    mutation_check(phpbb_allocate_user_id($db,'fixture_')===701 && user_id_value('SELECT post_edit_user_id FROM fixture_posts WHERE post_id=10')===700,'A deleted editor identity is reserved independently of the original post author');
     user_id_fixture('custom_'); mutation_check(phpbb_allocate_user_id($db,'custom_')===121,'Configured custom prefix honored');
     foreach(array('',null,array('fixture_'),'fixture_;DROP TABLE users') as $prefix) { user_id_failure(function() use($db,$prefix) { phpbb_allocate_user_id($db,$prefix); }); }
     foreach(array('SET autocommit','SELECT last_id FROM','SELECT TABLE_NAME AS','SELECT MAX(value)','UPDATE `fixture_user_id_sequence`') as $failure)

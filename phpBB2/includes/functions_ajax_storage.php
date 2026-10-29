@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_moderator_identity.php';
+require_once dirname(__FILE__) . '/functions_post_edit.php';
 
 class PhpbbAjaxStorageException extends RuntimeException {}
 
@@ -135,7 +136,7 @@ function phpbb_ajax_edit_post($database, $post_id, $field, $value)
 	try
 	{
 		$db->begin();
-		$result = $db->sql_query('SELECT p.post_id, p.topic_id, p.forum_id, p.poster_id, p.post_username, p.post_edit_time, p.post_edit_count, p.enable_bbcode, p.enable_html, p.enable_smilies, t.topic_status, t.topic_title, f.forum_status, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username'
+		$result = $db->sql_query('SELECT p.post_id, p.topic_id, p.forum_id, p.poster_id, p.post_username, p.post_edit_time, p.post_edit_count, p.post_edit_user_id, p.post_edit_username, p.enable_bbcode, p.enable_html, p.enable_smilies, t.topic_status, t.topic_title, f.forum_status, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username'
 			. ' FROM ' . POSTS_TABLE . ' p JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id = p.post_id'
 			. ' JOIN ' . TOPICS_TABLE . ' t ON t.topic_id = p.topic_id AND t.forum_id = p.forum_id AND t.topic_moved_id = 0'
 			. ' JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id = p.poster_id WHERE p.post_id = ' . $post_id . ' FOR UPDATE');
@@ -177,12 +178,13 @@ function phpbb_ajax_edit_post($database, $post_id, $field, $value)
 		{
 			$db->sql_query('UPDATE ' . TOPICS_TABLE . " SET topic_title = '" . $db->sql_escape($value) . "' WHERE topic_id = $topic_id AND forum_id = $forum_id");
 		}
-		if ($changed && $poster_id === (int) $userdata['user_id'] && $post_id !== (int) $bounds['last_post'])
+		if ($changed)
 		{
-			$now = time();
-			$db->sql_query('UPDATE ' . POSTS_TABLE . " SET post_edit_time = $now, post_edit_count = COALESCE(post_edit_count, 0) + 1 WHERE post_id = $post_id AND topic_id = $topic_id AND forum_id = $forum_id AND poster_id = $poster_id");
+			$editor = phpbb_post_edit_snapshot($db, $db->actor());
+			if ($editor === false) { phpbb_ajax_storage_error('Edit_own_posts'); }
+			$db->sql_query('UPDATE ' . POSTS_TABLE . ' SET ' . phpbb_post_edit_assignments($db, $editor) . " WHERE post_id = $post_id AND topic_id = $topic_id AND forum_id = $forum_id AND poster_id = $poster_id");
 			if ((int) $db->sql_affectedrows() !== 1) { phpbb_ajax_storage_error('Posting_target_changed'); }
-			$row['post_edit_time'] = $now; $row['post_edit_count'] = (int) $row['post_edit_count'] + 1;
+			$row = array_merge($row, $editor); $row['post_edit_count'] = (int) $row['post_edit_count'] + 1;
 		}
 		require_once dirname(__FILE__) . '/functions_search.php';
 		remove_search_post($post_id, $field === 'subject', $field === 'text', $db);

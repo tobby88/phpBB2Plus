@@ -5,6 +5,7 @@ require_once dirname(__FILE__) . '/functions_username.php';
 require_once dirname(__FILE__) . '/functions_posting_storage.php';
 require_once dirname(__FILE__) . '/functions_post_submit_storage.php';
 require_once dirname(__FILE__) . '/functions_post_subject.php';
+require_once dirname(__FILE__) . '/functions_post_edit.php';
 
 class PhpbbFullEditorDatabase extends PhpbbPostSubmitDatabase
 {
@@ -163,7 +164,9 @@ function phpbb_submit_full_edit($database, $forum_id, $topic_id, $post_id, $inpu
 			if ($post_changed)
 			{
 				$assignments = array(); foreach ($post_values as $key => $value) { $assignments[] = $key . " = '" . $db->sql_escape((string)$value) . "'"; }
-				if ((int)$post['poster_id'] === (int)$GLOBALS['userdata']['user_id'] && !$last) { $assignments[] = 'post_edit_time = ' . time(); $assignments[] = 'post_edit_count = COALESCE(post_edit_count, 0) + 1'; }
+				$editor = phpbb_post_edit_snapshot($db, $db->actor());
+				if ($editor === false) { $db->fail('Edit_own_posts'); }
+				$assignments[] = phpbb_post_edit_assignments($db, $editor);
 				$db->sql_query('UPDATE ' . POSTS_TABLE . ' SET ' . implode(', ', $assignments) . ' WHERE post_id = ' . $db->post_id);
 				$db->sql_query('UPDATE ' . POSTS_TEXT_TABLE . " SET post_subject = '" . $db->sql_escape($subject) . "', post_text = '" . $db->sql_escape($text) . "', bbcode_uid = '" . $db->sql_escape($uid) . "' WHERE post_id = " . $db->post_id);
 			}
