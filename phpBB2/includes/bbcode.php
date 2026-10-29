@@ -480,6 +480,62 @@ function phpbb_bbcode_validate_tables($text, $uid)
 	return implode('', $parts);
 }
 
+/** Normalize complete adjacent legacy inline-style closers before validation. */
+function phpbb_bbcode_reorder_style_closers($text, $uid)
+{
+	$uid_pattern = preg_quote((string) $uid, '#');
+	$parts = preg_split('#(\[(?:quote|acronym):' . $uid_pattern . '=".*?"\]|\[[^\[\]]*?:' . $uid_pattern . '\])#is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR)
+	{
+		throw new PhpbbBbcodeParseException('BBCode style tokenization failed');
+	}
+	// Old editors sometimes closed a group of inline styles in opening order.
+	// Reorder only an adjacent, complete set of closers. Never repair across
+	// text, a structural container, an unknown tag, or an incomplete group.
+	$styles = array('b'=>'', 'i'=>'', 'u'=>'', 's'=>'',
+		'color'=>'=(?:\#[0-9A-F]{6}|[a-z]+)', 'size'=>'=[1-2]?[0-9]',
+		'font'=>'=[^\[\]]*');
+	$stack = array();
+	for ($index = 0, $length = count($parts); $index < $length; $index++)
+	{
+		if (($index % 2) === 0) { continue; }
+		$part = $parts[$index];
+		if (!phpbb_bbcode_match('#^\[(/?)([a-z]+)(.*):' . $uid_pattern . '\]$#is', $part, $tag)) { $stack = array(); continue; }
+		$name = strtolower($tag[2]); $closing = $tag[1] === '/';
+		if (!isset($styles[$name]) || !phpbb_bbcode_match('#^' . ($closing ? '' : $styles[$name]) . '$#is', $tag[3])) { $stack = array(); continue; }
+		if (!$closing)
+		{
+			$stack[] = $name;
+			if (count($stack) > 256) { throw new PhpbbBbcodeParseException('BBCode nesting limit exceeded'); }
+			continue;
+		}
+		if (!$stack) { continue; }
+		$positions = array(); $names = array();
+		for ($next = $index; $next < $length && count($names) < count($stack); $next += 2)
+		{
+			if ($next > $index && trim($parts[$next - 1]) !== '') { break; }
+			if (!phpbb_bbcode_match('#^\[/([a-z]+):' . $uid_pattern . '\]$#is', $parts[$next], $end) || !isset($styles[strtolower($end[1])])) { break; }
+			$positions[] = $next; $names[] = strtolower($end[1]);
+		}
+		$count = count($names);
+		if ($count <= count($stack))
+		{
+			$expected = array_reverse(array_slice($stack, -$count));
+			$sorted = $names; $sorted_expected = $expected; sort($sorted); sort($sorted_expected);
+			if ($sorted === $sorted_expected)
+			{
+				foreach ($positions as $offset => $position) { $parts[$position] = '[/' . $expected[$offset] . ':' . $uid . ']'; }
+				$stack = array_slice($stack, 0, count($stack) - $count);
+				$index = $positions[$count - 1];
+				continue;
+			}
+		}
+		if (end($stack) === $name) { array_pop($stack); }
+		else { $stack = array(); }
+	}
+	return implode('', $parts);
+}
+
 /**
  * Keep independently substituted container tags inside their own post. The
  * first pass normally pairs them, but legacy/crossed markup is not necessarily
@@ -709,6 +765,7 @@ function phpbb_bbcode_render_second_pass($text, $uid)
 	// table-based quote layout to consume the rest of the topic page.
 	$text = phpbb_bbcode_balance_quotes($text, $uid);
 	$text = phpbb_bbcode_validate_tables($text, $uid);
+	$text = phpbb_bbcode_reorder_style_closers($text, $uid);
 	$text = phpbb_bbcode_validate_containers($text, $uid);
 	
 	// [QUOTE] and [/QUOTE] for posting replies with quote, or just for quoting stuff.

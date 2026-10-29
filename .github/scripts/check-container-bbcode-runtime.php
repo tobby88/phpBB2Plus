@@ -58,6 +58,42 @@ $valid = '[align=center:abc][poet:abc][b:abc]Grüße[/b:abc][/poet:abc][/align:a
 $html = bbencode_second_pass($valid, 'abc');
 container_structure($html);
 container_assert(strpos($html, 'text-align:center') !== false && strpos($html, 'font-weight:bold') !== false && strpos($html, 'bbcode-poem') !== false, 'valid nested formatting must be retained');
+$legacy = '[color=indigo:abc][size=12:abc][font=Comic Sans MS:abc]Grüße[/color:abc][/size:abc][/font:abc]';
+$html = bbencode_second_pass($legacy, 'abc');
+container_structure($html);
+container_assert(strpos($html, 'color:indigo') !== false && strpos($html, 'Comic Sans MS') !== false && strpos($html, '&#91;') === false && strpos($html, ':abc') === false, 'legacy adjacent style closers must retain formatting');
+$permutations = array(array('b','i','u'),array('b','u','i'),array('i','b','u'),array('i','u','b'),array('u','b','i'),array('u','i','b'));
+foreach ($permutations as $closers)
+{
+	$source = '[b:abc][i:abc][u:abc]Grüße';
+	foreach ($closers as $closer) { $source .= '[/' . $closer . ':abc]'; }
+	$html = bbencode_second_pass($source, 'abc'); container_structure($html);
+	container_assert(strpos($html, '&#91;') === false && strip_tags($html) === 'Grüße', 'every complete adjacent closer permutation must render without changing body text');
+}
+foreach (array(
+	'[b:abc][i:abc]body[/b:abc]tail[/i:abc]',
+	'[b:abc][quote:abc][i:abc]body[/b:abc][/i:abc][/quote:abc]',
+	'[b:abc][quote:abc="name"][i:abc]body[/b:abc][/i:abc][/quote:abc]',
+	'[b:abc][acronym:abc="name"][i:abc]body[/b:abc][/i:abc][/acronym:abc]',
+	'[b:abc][i:abc]body[/b:abc]',
+	'[b:abc][i:abc]body[/b:abc][/u:abc]',
+	'[b:abc][i:abc]body[/b:other][/i:abc]',
+) as $source)
+{
+	container_assert(phpbb_bbcode_reorder_style_closers($source, 'abc') === $source, 'incomplete, foreign or structural markup must not be guessed');
+	container_structure(bbencode_second_pass($source, 'abc'));
+}
+$spaced = '[b:ABC][i:ABC]body[/b:ABC] \n[/i:ABC]';
+container_assert(phpbb_bbcode_reorder_style_closers($spaced, 'abc') === $spaced, 'literal non-whitespace between closers must remain unchanged');
+$spaced = "[b:ABC][i:ABC]body[/b:ABC] \n[/i:ABC]";
+container_assert(phpbb_bbcode_reorder_style_closers($spaced, 'abc') === "[b:ABC][i:ABC]body[/i:abc] \n[/b:abc]", 'mixed-case closers preserve all intervening whitespace');
+$orphans = str_repeat('[/b:abc]', 10000);
+container_assert(phpbb_bbcode_reorder_style_closers($orphans, 'abc') === $orphans, 'long orphan closer runs remain unchanged');
+$duplicates = '[b:abc][i:abc][b:abc]body[/b:abc][/b:abc][/i:abc]';
+container_structure(bbencode_second_pass($duplicates, 'abc'));
+container_assert(strpos(bbencode_second_pass($duplicates, 'abc'), '&#91;') === false, 'repeated styles retain a balanced nesting order');
+$code_example = bbencode_second_pass('[code:1:abc]' . $legacy . '[/code:1:abc]', 'abc');
+container_assert(strpos(html_entity_decode($code_example, ENT_QUOTES, 'UTF-8'), '[font=Comic Sans MS]') !== false && strpos($code_example, 'color:indigo') === false, 'code examples remain literal');
 $html = bbencode_second_pass('[/center:abc][b:abc]valid neighbor[/b:abc]', 'abc');
 container_structure($html);
 container_assert(strpos($html, 'font-weight:bold') !== false && strpos(html_entity_decode($html, ENT_QUOTES, 'UTF-8'), '[/center]') !== false, 'malformed tags must not disable independent valid formatting');
