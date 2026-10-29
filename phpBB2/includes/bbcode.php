@@ -484,7 +484,7 @@ function phpbb_bbcode_validate_tables($text, $uid)
 function phpbb_bbcode_reorder_style_closers($text, $uid)
 {
 	$uid_pattern = preg_quote((string) $uid, '#');
-	$parts = preg_split('#(\[[^\[\]]*?:' . $uid_pattern . '\])#is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	$parts = preg_split('#(\[(?:quote|acronym):' . $uid_pattern . '=".*?"\]|\[[^\[\]]*?:' . $uid_pattern . '\])#is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
 	if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR)
 	{
 		throw new PhpbbBbcodeParseException('BBCode style tokenization failed');

@@ -73,6 +73,8 @@ foreach ($permutations as $closers)
 foreach (array(
 	'[b:abc][i:abc]body[/b:abc]tail[/i:abc]',
 	'[b:abc][quote:abc][i:abc]body[/b:abc][/i:abc][/quote:abc]',
+	'[b:abc][quote:abc="name"][i:abc]body[/b:abc][/i:abc][/quote:abc]',
+	'[b:abc][acronym:abc="name"][i:abc]body[/b:abc][/i:abc][/acronym:abc]',
 	'[b:abc][i:abc]body[/b:abc]',
 	'[b:abc][i:abc]body[/b:abc][/u:abc]',
 	'[b:abc][i:abc]body[/b:other][/i:abc]',
