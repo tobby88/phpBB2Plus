@@ -93,16 +93,19 @@ $lang['Submiter'] = 'Submited by';
 
 // Statistics
 $lang['Statistics'] = 'Statistics';
+$lang['PA_stats_unavailable'] = 'The download statistics could not be loaded. Please try again later.';
+$lang['PA_stats_other'] = 'Other';
+$lang['Sorry_auth_stats'] = 'Sorry, only %s can view download statistics.';
 $lang['Stats_text'] = "There are {total_files} files in {total_categories} categories<br>";
 $lang['Stats_text'] .= "There have been {total_downloads} total downloads<br><br>";
-$lang['Stats_text'] .= "The newest file is <a href={u_newest_file}>{newest_file}</a><br>";
-$lang['Stats_text'] .= "The oldest file is <a href={u_oldest_file}>{oldest_file}</a><br><br>";
+$lang['Stats_text'] .= "The newest file is <a href=\"{u_newest_file}\">{newest_file}</a><br>";
+$lang['Stats_text'] .= "The oldest file is <a href=\"{u_oldest_file}\">{oldest_file}</a><br><br>";
 $lang['Stats_text'] .= "The average file rating is {average}/10<br>";
-$lang['Stats_text'] .= "The most popular file based on ratings is <a href={u_popular}>{popular}</a> with a rating of {most}/10<br>";
-$lang['Stats_text'] .= "The least popular file based on ratings is <a href={u_lpopular}>{lpopular}</a> with a rating of {least}/10<br><br>";
+$lang['Stats_text'] .= "The most popular file based on ratings is <a href=\"{u_popular}\">{popular}</a> with a rating of {most}/10<br>";
+$lang['Stats_text'] .= "The least popular file based on ratings is <a href=\"{u_lpopular}\">{lpopular}</a> with a rating of {least}/10<br><br>";
 $lang['Stats_text'] .= "The average amount of downloads each file has is {avg_dls}<br>";
-$lang['Stats_text'] .= "The most popular file based on downloads is <a href={u_most_dl}>{most_dl}</a> with {most_no} downloads<br>";
-$lang['Stats_text'] .= "The least popular file based on downloads is <a href={u_least_dl}>{least_dl}</a> with {least_no} downloads<br>";
+$lang['Stats_text'] .= "The most popular file based on downloads is <a href=\"{u_most_dl}\">{most_dl}</a> with {most_no} downloads<br>";
+$lang['Stats_text'] .= "The least popular file based on downloads is <a href=\"{u_least_dl}\">{least_dl}</a> with {least_no} downloads<br>";
 $lang['Select_chart_type'] = 'Select Chart Type';
 $lang['Bars'] = 'Bars';
 $lang['Lines'] = 'Lines';

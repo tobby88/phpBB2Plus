@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download statistics
+
+- Apply category view/read/file permissions and readable ancestry to statistics,
+  filename rankings and client charts. Exclude private, unapproved and orphaned
+  files before aggregation. Work with strict SQL grouping without row duplication.
+- Average all rated files, including the first/only file; treat missing download
+  counters as zero and put unknown browser/OS metadata into localized buckets.
+- Escape literal Unicode file titles and quote link attributes. Preserve the
+  current user's language and literal placeholder text in filenames. Handle
+  failed queries with a translated message and release every result.
+
 ### Download group permissions
 
 - Ignore grants from missing groups and pending memberships. Combine global
