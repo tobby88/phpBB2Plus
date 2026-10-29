@@ -16,13 +16,14 @@ class pafiledb_toplist extends pafiledb_public
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
 		global $_REQUEST, $phpbb_root_path, $userdata, $db;
+		require_once dirname(__DIR__) . '/includes/functions_toplist.php';
 
 
 		if(!$this->auth_global['auth_toplist'])
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
-				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=stats", true));
+				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=toplist", true));
 			}
 
 			$message = sprintf($lang['Sorry_auth_toplist'], $this->auth_global['auth_toplist_type']);
@@ -78,9 +79,11 @@ class pafiledb_toplist extends pafiledb_public
 			'FILE_LIST' => false)
 		);
 
+		$visible_categories = pafiledb_toplist_categories($this);
+		$visibility = pafiledb_toplist_scope_sql($visible_categories);
 		$sql = 'SELECT file_time, file_id, file_catid
-			FROM ' . PA_FILES_TABLE . "
-			WHERE file_approved = '1'
+			FROM ' . PA_FILES_TABLE . " f
+			WHERE file_approved = '1' AND $visibility
 			ORDER BY file_time DESC";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -193,37 +196,11 @@ class pafiledb_toplist extends pafiledb_public
 							$file_ids[] = $rowset[$i]['file_id'];
 						}
 					}
-					$file_ids = implode(', ', $file_ids);
+					$file_id_list = array_map('intval', $file_ids);
+					$file_ids = implode(', ', $file_id_list);
 					if(!empty($file_ids))
 					{
-						switch(SQL_LAYER)
-						{
-							case 'oracle':
-								$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name, COUNT(c.comments_id) AS total_comments
-									FROM " . PA_FILES_TABLE . " AS f1, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_CATEGORY_TABLE . " AS c, " . PA_COMMENTS_TABLE . " AS cm
-									WHERE f1.file_id = r.votes_file(+)
-									AND f1.user_id = u.user_id(+)
-									AND c.cat_id = f1.file_catid
-									AND f1.file_id IN ($file_ids)
-									AND f1.file_approved = '1'
-									AND f1.file_id = cm.file_id(+)
-									GROUP BY f1.file_id
-									ORDER BY file_time DESC";
-								break;
-
-							default:
-								$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name, COUNT(cm.comments_id) AS total_comments
-									FROM (" . PA_FILES_TABLE . " AS f1, " . PA_CATEGORY_TABLE . " AS c)
-										LEFT JOIN " . PA_VOTES_TABLE . " AS r ON (f1.file_id = r.votes_file)
-										LEFT JOIN ". USERS_TABLE ." AS u ON (f1.user_id = u.user_id)
-										LEFT JOIN " . PA_COMMENTS_TABLE . " AS cm ON (f1.file_id = cm.file_id)
-									WHERE c.cat_id = f1.file_catid
-									AND f1.file_id IN ($file_ids)
-									AND f1.file_approved = '1'
-									GROUP BY f1.file_id
-									ORDER BY file_time DESC";
-								break;
-						}
+						$sql = pafiledb_toplist_files_sql($visible_categories, 'file_time', $file_id_list);
 
 						if ( !($result = $db->sql_query($sql)) )
 						{
@@ -294,9 +271,7 @@ class pafiledb_toplist extends pafiledb_public
 							$posticon = '<img src="' . $images['folder_sticky'] . '" border="0" />';
 						}
 
-						$poster = ( $file_rowset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;' . POST_USERS_URL . '=' . $file_rowset[$i]['user_id']) . '">' : '';
-						$poster .= ( $file_rowset[$i]['user_id'] != ANONYMOUS ) ? $file_rowset[$i]['username'] : $lang['Guest'];
-						$poster .= ( $file_rowset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
+						$poster = pafiledb_toplist_submitter($file_rowset[$i]);
 
 						//===================================================
 						// Assign Vars
@@ -325,16 +300,9 @@ class pafiledb_toplist extends pafiledb_public
 				break;
 			case 'downloads':
 			case 'rating':
-				$rating_field = ($mode == 'rating') ? ', AVG(r.rate_point) AS rating' : '';
-				$join_statement = ($mode == 'rating') ? 'LEFT JOIN ' . PA_VOTES_TABLE . ' AS r ON f.file_id = r.votes_file' : '';
-				$group_statement = ($mode == 'rating') ? 'GROUP BY f.file_id' : '';
-
-				$sql = "SELECT file_id$rating_field
-					FROM " . PA_FILES_TABLE . " AS f
-					$join_statement
-					WHERE f.file_approved = '1'
-					$group_statement
-					ORDER BY f.file_time DESC";
+				$rating_field = ($mode == 'rating') ? ', (SELECT AVG(v.rate_point) FROM ' . PA_VOTES_TABLE . ' v WHERE v.votes_file=f.file_id) AS rating' : '';
+				$sql = "SELECT file_id$rating_field FROM " . PA_FILES_TABLE . " f
+					WHERE f.file_approved=1 AND $visibility ORDER BY f.file_time DESC";
 
 				if ( !($result = $db->sql_query($sql)) )
 				{
@@ -395,33 +363,7 @@ class pafiledb_toplist extends pafiledb_public
 				if ($limit)
 				{
 					$sort_method = ($mode == 'downloads') ? 'file_dls' : 'rating';
-					$sql_limit = "LIMIT 0, $limit ";
-					switch(SQL_LAYER)
-					{
-						case 'oracle':
-							$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name
-								FROM " . PA_FILES_TABLE . " AS f1, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_CATEGORY_TABLE . " AS c
-								WHERE f1.file_id = r.votes_file(+)
-								AND f1.user_id = u.user_id(+)
-								AND c.cat_id = f1.file_catid
-								AND f1.file_approved = '1'
-								GROUP BY f1.file_id
-								ORDER BY $sort_method DESC
-								$sql_limit";
-							break;
-
-						default:
-							$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name
-								FROM (" . PA_FILES_TABLE . " AS f1, " . PA_CATEGORY_TABLE . " AS c)
-								LEFT JOIN " . PA_VOTES_TABLE . " AS r ON (f1.file_id = r.votes_file)
-								LEFT JOIN ". USERS_TABLE ." AS u ON (f1.user_id = u.user_id)
-								WHERE c.cat_id = f1.file_catid
-								AND f1.file_approved = '1'
-								GROUP BY f1.file_id
-								ORDER BY $sort_method DESC
-								$sql_limit";
-							break;
-					}
+					$sql = pafiledb_toplist_files_sql($visible_categories, $sort_method, array(), (int)$limit, $mode === 'rating');
 
 					if ( !($result = $db->sql_query($sql)) )
 					{
@@ -487,9 +429,7 @@ class pafiledb_toplist extends pafiledb_public
 						$posticon = '<img src="' . $images['folder_sticky'] . '" border="0" />';
 					}
 
-					$poster = ( $searchset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;' . POST_USERS_URL . '=' . $searchset[$i]['user_id']) . '">' : '';
-					$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? $searchset[$i]['username'] : $lang['Guest'];
-					$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
+					$poster = pafiledb_toplist_submitter($searchset[$i]);
 
 					$pafiledb_template->assign_block_vars('files_row', array(
 						'CAT_NAME' => pafiledb_html($searchset[$i]['cat_name']),
@@ -513,4 +453,3 @@ class pafiledb_toplist extends pafiledb_public
 		$this->display($lang['Download'], 'pa_toplist_body.tpl');
 	}
 }
-?>

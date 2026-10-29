@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download toplists
+
+- Apply category view/read/file permissions and readable ancestry before
+  selecting, sorting or limiting download toplists. Keep private and unapproved
+  files out of ranking totals, date summaries and selected-day views.
+- Use independent vote/comment aggregates compatible with strict SQL grouping.
+  Preserve files with missing submitter accounts and render their attribution
+  through the common former-member/guest visibility helper.
+
 ### Download comments
 
 - Create and delete paFileDB comments through an owned transaction. Check the

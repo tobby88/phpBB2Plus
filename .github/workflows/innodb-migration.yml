@@ -738,6 +738,11 @@ jobs:
         env:
           PHPBB_PA_COMMENT_NATIVE: '1'
           PHPBB_PA_COMMENT_PASSWORD: fixture-only
+      - if: matrix.part == 3
+        run: php .github/scripts/check-pafiledb-toplist-native.php
+        env:
+          PHPBB_PA_TOPLIST_NATIVE: '1'
+          PHPBB_PA_TOPLIST_PASSWORD: fixture-only
       - if: matrix.part == 4
         run: php .github/scripts/check-public-profile-identity-native.php
         env:
