@@ -63,6 +63,11 @@ php update/recover_album_files.php
 php update/recover_album_files.php --apply --backup-confirmed --jobs=10 --items=100
 ```
 
+New deletion receipts contain at most 500 pictures and 2,500 distinct paths each,
+keeping manifest preparation/readback bounded in memory. Larger selected galleries
+span multiple receipts; the total picture selection is not capped. Previously
+recorded larger receipts remain valid.
+
 `--jobs` limits journal records to 1–100 per page; `--items` limits attempted
 manifest items to 1–1,000 across that run. An upload item includes its final file
 and deterministic unfinished stage. `--older-than-days` accepts 1–3,650; recent

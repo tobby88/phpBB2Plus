@@ -10,6 +10,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 - Resume interrupted committed file deletions in bounded batches, retaining
   unprocessed receipt items and the existing foreground cleanup behavior.
+- Bound new deletion manifests to 500 pictures / 2,500 paths each without limiting
+  the complete gallery selection. Retain larger existing receipts; verify real
+  multi-receipt rollback and lost-commit recovery under a 64 MiB memory limit.
 - Revoke old prepared uploads durably before abandoned-file recovery. Preserve
   current references and changed bytes; refuse ordinary publication/retry after
   revocation. Retain journals through uncertain commits and worker crashes.

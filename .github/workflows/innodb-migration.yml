@@ -88,6 +88,8 @@ jobs:
           php .github/scripts/check-album-picture-upload-native.php
           php .github/scripts/check-album-picture-delete-native.php
           PHPBB_ALBUM_DELETE_PART=recovery php .github/scripts/check-album-picture-delete-native.php
+          PHPBB_ALBUM_DELETE_PART=bulk-unique php -d memory_limit=64M .github/scripts/check-album-picture-delete-native.php
+          PHPBB_ALBUM_DELETE_PART=bulk-shared php -d memory_limit=64M .github/scripts/check-album-picture-delete-native.php
           php .github/scripts/check-album-file-recovery-native.php
         env:
           PHPBB_ALBUM_FILE_JOURNAL_NATIVE: '1'

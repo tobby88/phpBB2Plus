@@ -8,6 +8,7 @@ require_once __DIR__ . '/album_file_storage.php';
 // Resolution requires a previously committed receipt, never a posted pathname.
 class AlbumCleanupReceipt
 {
+	const MAX_PICTURES_PER_JOB = 500;
 	private $storage;
 	private $prefix;
 	private $root;
@@ -63,8 +64,9 @@ class AlbumCleanupReceipt
 		$ids = array(); foreach ($picture_ids as $id) { $id = self::integer($id, 1, 4294967295); $ids[$id] = $id; } sort($ids, SORT_NUMERIC);
 		$files = $this->files(); $jobs = array();
 		// This is a journal chunk size, never a limit on category/bulk deletion.
-		// Five possible paths per photo stay below the uint16 item count.
-		foreach (array_chunk($ids, 10000) as $chunk)
+		// At most 2500 distinct paths keep each manifest/readback bounded in
+		// memory. Existing larger committed receipts still remain recoverable.
+		foreach (array_chunk($ids, self::MAX_PICTURES_PER_JOB) as $chunk)
 		{
 			$photos = $this->rows('SELECT pic_id,pic_filename,pic_thumbnail FROM '.$this->prefix.'album WHERE pic_cat_id='.$category.' AND pic_id IN('.implode(',', $chunk).') ORDER BY pic_id FOR UPDATE');
 			if (count($photos) !== count($chunk)) { throw new AlbumFileCoordinatorFailure('Album cleanup pictures changed'); }
