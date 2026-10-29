@@ -1688,6 +1688,15 @@ The defaults are `0775` for writable directories and `0664` for writable
 files. See `folder+file-permissions.txt` before using the historical
 world-writable fallback modes.
 
+## Compatibility checks
+
+Runtime changes use PHP 5.6, 7.4 and 8.5 compatibility checks. The longer native
+MariaDB matrix runs for database code, updater/schema changes and other PHP
+changes. Changes limited to Markdown documentation, style templates/CSS/images,
+or the pure BBCode renderer and its listed regressions skip that database matrix.
+Template, CSS and BBCode changes still run the PHP compatibility workflow.
+Superseded native workflow runs are cancelled automatically.
+
 ## Credits and licensing
 
 phpBB2 is copyright the phpBB Group and is distributed under the GNU General

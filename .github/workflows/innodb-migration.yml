@@ -1,5 +1,45 @@
 name: Native InnoDB migration
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'phpBB2/templates/**/*.tpl'
+      - 'phpBB2/templates/**/*.css'
+      - 'phpBB2/templates/**/images/**/*.gif'
+      - 'phpBB2/templates/**/images/**/*.png'
+      - 'phpBB2/templates/**/images/**/*.jpg'
+      - 'phpBB2/templates/**/images/**/*.jpeg'
+      - 'phpBB2/templates/**/images/**/*.svg'
+      - 'phpBB2/templates/**/images/**/*.webp'
+      - 'phpBB2/templates/**/images/**/*.ico'
+      - 'phpBB2/includes/bbcode.php'
+      - '.github/scripts/check-bbcode-safety.php'
+      - '.github/scripts/check-bbcode-failure-runtime.php'
+      - '.github/scripts/check-bbcode-template-runtime.php'
+      - '.github/scripts/check-container-bbcode-runtime.php'
+      - '.github/scripts/check-table-bbcode-runtime.php'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'phpBB2/templates/**/*.tpl'
+      - 'phpBB2/templates/**/*.css'
+      - 'phpBB2/templates/**/images/**/*.gif'
+      - 'phpBB2/templates/**/images/**/*.png'
+      - 'phpBB2/templates/**/images/**/*.jpg'
+      - 'phpBB2/templates/**/images/**/*.jpeg'
+      - 'phpBB2/templates/**/images/**/*.svg'
+      - 'phpBB2/templates/**/images/**/*.webp'
+      - 'phpBB2/templates/**/images/**/*.ico'
+      - 'phpBB2/includes/bbcode.php'
+      - '.github/scripts/check-bbcode-safety.php'
+      - '.github/scripts/check-bbcode-failure-runtime.php'
+      - '.github/scripts/check-bbcode-template-runtime.php'
+      - '.github/scripts/check-container-bbcode-runtime.php'
+      - '.github/scripts/check-table-bbcode-runtime.php'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
