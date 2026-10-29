@@ -314,26 +314,16 @@ class pafiledb
 	
 	function generate_category_nav($cat_id)
 	{
-		global $pafiledb_template, $db;
-		
-		if($this->cat_rowset[$cat_id]['parents_data'] == '')
+		global $pafiledb_template;
+		$cat_id = is_scalar($cat_id) ? (int) $cat_id : 0;
+		if ($cat_id <= 0 || !isset($this->cat_rowset[$cat_id]) || empty($this->auth[$cat_id]['auth_view']))
 		{
-			$cat_nav = array();
-			$this->category_nav($this->cat_rowset[$cat_id]['cat_parent'], $cat_nav);
-
-			$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-				SET parents_data = '" . addslashes(serialize($cat_nav)) . "'
-				WHERE cat_parent = " . $this->cat_rowset[$cat_id]['cat_parent'];
-
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Query categories info', '', __LINE__, __FILE__, $sql);
-			}
+			return;
 		}
-		else
-		{
-			$cat_nav = phpbb_safe_unserialize_scalar_array(stripslashes($this->cat_rowset[$cat_id]['parents_data']));
-		}
+		// Cached paths may retain renamed or no-longer-visible ancestors. Build
+		// this viewer's path from current categories without writing on a GET.
+		$cat_nav = array();
+		$this->category_nav($this->cat_rowset[$cat_id]['cat_parent'], $cat_nav);
 		
 		if(!empty($cat_nav))
 		{
@@ -356,12 +346,27 @@ class pafiledb
 	
 	function category_nav($parent_id, &$cat_nav)
 	{
-		if(!empty($this->cat_rowset[$parent_id]))
+		$path = $seen = array();
+		$parent_id = is_scalar($parent_id) ? (int) $parent_id : 0;
+		while ($parent_id > 0)
 		{
-			$this->category_nav($this->cat_rowset[$parent_id]['cat_parent'], $cat_nav);
-			$cat_nav[$parent_id] = $this->cat_rowset[$parent_id]['cat_name'];
+			if (isset($seen[$parent_id]))
+			{
+				// An inconsistent hierarchy must not recurse or invent a path.
+				return;
+			}
+			if (!isset($this->cat_rowset[$parent_id]) || empty($this->auth[$parent_id]['auth_view']))
+			{
+				break;
+			}
+			$seen[$parent_id] = true;
+			$path[$parent_id] = $this->cat_rowset[$parent_id]['cat_name'];
+			$parent_id = (int) $this->cat_rowset[$parent_id]['cat_parent'];
 		}
-		return;		
+		foreach (array_reverse($path, true) as $id => $name)
+		{
+			$cat_nav[$id] = $name;
+		}
 	}
 	
 /*	function init_depth($cat_id = 0, $depth = 0)

@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download category navigation
+
+- Build breadcrumbs from current visible categories and current names, ignoring
+  stale cached ancestry. Keep visible folders in the path, prevent recursion on
+  cyclic hierarchies and avoid writing navigation caches during public views.
+
 ### Guest profile privacy
 
 - Hide complete contact fields, labels and buttons from guest profile views,

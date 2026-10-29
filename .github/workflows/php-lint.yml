@@ -404,6 +404,9 @@ jobs:
       - name: Test paFileDB template safety
         run: php .github/scripts/check-pafiledb-template-safety.php
 
+      - name: Build download navigation from current visible categories without cache writes
+        run: php .github/scripts/check-pafiledb-category-navigation.php
+
       - name: Test Arcade position safety
         run: php .github/scripts/check-arcade-position-safety.php
 

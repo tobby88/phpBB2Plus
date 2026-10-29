@@ -1,7 +1,12 @@
 <?php
 if(PHP_SAPI!=='cli'||getenv('PHPBB_PA_POLICY_NATIVE')!=='1'){echo "Native paFileDB policy fixture skipped.\n";return;}
 define('IN_PHPBB',true);$project=dirname(dirname(__DIR__));$phpbb_root_path=$project.'/phpBB2/';$phpEx='php';$table_prefix='fixture_';
-require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'pafiledb/includes/pafiledb_constants.php';require$phpbb_root_path.'db/mysqli.php';require$phpbb_root_path.'pafiledb/includes/functions_pafiledb.php';require$phpbb_root_path.'pafiledb/includes/functions_toplist.php';
+require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'pafiledb/includes/pafiledb_constants.php';require$phpbb_root_path.'db/mysqli.php';require$phpbb_root_path.'pafiledb/includes/functions.php';require$phpbb_root_path.'pafiledb/includes/functions_pafiledb.php';require$phpbb_root_path.'pafiledb/includes/functions_toplist.php';require$phpbb_root_path.'pafiledb/modules/pa_category.php';
+function append_sid($url,$html=true){return$url;}
+class PaPolicyNavTemplate{public $rows=array(),$data=array();function assign_block_vars($name,$data){$this->rows[$name][]=$data;}function assign_vars($data){$this->data=array_merge($this->data,$data);}}
+class PaPolicyNavController extends pafiledb_category{function display($title,$template){}}
+class PaPolicyNavReads{public $inner;function __construct($inner){$this->inner=$inner;}function __call($method,$args){return call_user_func_array(array($this->inner,$method),$args);}function sql_query($sql,$transaction=false){if(!preg_match('/^SELECT\b/i',$sql)){throw new RuntimeException('Actual category controller must perform SELECT only');}return$this->inner->sql_query($sql,$transaction);}}
+function pa_navigation($id){global$pafiledb_template;$_REQUEST=array('cat_id'=>$id);$pafiledb_template=new PaPolicyNavTemplate();$controller=new PaPolicyNavController();$controller->init();$controller->main();return isset($pafiledb_template->rows['navlinks'])?$pafiledb_template->rows['navlinks']:array();}
 function pa_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['pa_cases']++;}
 function message_die($level,$message){throw new RuntimeException($message);}
 function pa_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);if(!$r){throw new RuntimeException('Own comment fixture SQL failed: '.json_encode($GLOBALS['peer']->sql_error()));}return$r;}
@@ -12,7 +17,7 @@ $port=getenv('PHPBB_PA_POLICY_PORT')?:'3306';$password=getenv('PHPBB_PA_POLICY_P
 $fixture='codex_pa_auth_before_'.bin2hex(phpbb_random_bytes(6));$control=new sql_db($host,'root',$password,'',false);$db=$peer=null;$created=false;$warnings=array();$handler=false;
 try{
  if(!$control->sql_query('CREATE DATABASE '.$fixture.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')){throw new RuntimeException('Own policy fixture unavailable');}$created=true;$db=new sql_db($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
- $schema=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');foreach(array('pa_cat','pa_auth','users','user_group','groups')as$suffix){if(preg_match('/^CREATE TABLE phpbb_'.$suffix.'\s*\([\s\S]*?;/m',$schema,$m)!==1){throw new RuntimeException('Canonical policy participant missing');}pa_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]));}
+ $schema=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');foreach(array('pa_cat','pa_auth','users','user_group','groups','pa_files','pa_votes','pa_comments')as$suffix){if(preg_match('/^CREATE TABLE phpbb_'.$suffix.'\s*\([\s\S]*?;/m',$schema,$m)!==1){throw new RuntimeException('Canonical policy participant missing');}pa_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]));}
  $lang=array();require$phpbb_root_path.'language/lang_english/lang_main.php';require$phpbb_root_path.'language/lang_english/lang_pafiledb.php';$userdata=array('user_id'=>8,'user_level'=>USER,'session_logged_in'=>true);$pafiledb_config=array('auth_toplist'=>AUTH_ALL,'auth_search'=>AUTH_ALL,'auth_stats'=>AUTH_ALL,'auth_viewall'=>AUTH_ALL);
  pa_insert('fixture_users',array('user_id'=>8,'username'=>'Fixture member','user_active'=>1));pa_insert('fixture_pa_cat',array('cat_id'=>5,'cat_parent'=>0,'parents_data'=>'','auth_view'=>AUTH_ACL,'auth_read'=>AUTH_ACL,'auth_view_file'=>AUTH_ACL));
  pa_insert('fixture_user_group',array('user_id'=>8,'group_id'=>12,'user_pending'=>0));pa_insert('fixture_pa_auth',array('cat_id'=>5,'group_id'=>12,'auth_view'=>1,'auth_read'=>1,'auth_view_file'=>1));
@@ -37,6 +42,18 @@ try{
  pa_check($policy->global_auth_check_user(AUTH_ACL,'auth_toplist',array(array('auth_toplist'=>0),array('auth_toplist'=>1)),false),'New rowset grant caller retained');pa_check(!$policy->global_auth_check_user(AUTH_ADMIN,'auth_toplist',array(array('auth_toplist'=>1)),false),'ACL grant cannot become administrator');
  foreach(array(AUTH_ALL,AUTH_REG,AUTH_ACL,AUTH_MOD,AUTH_ADMIN)as$type){$pafiledb_config['auth_toplist']=$type;$userdata=array('user_id'=>ANONYMOUS,'user_level'=>ADMIN,'session_logged_in'=>false);$policy->init();pa_check((bool)$policy->auth_global['auth_toplist']===($type===AUTH_ALL),'Guest never inherits cached member/admin role');}
  $userdata=array('user_id'=>8,'user_level'=>USER,'session_logged_in'=>true);$pafiledb_config['auth_toplist']=AUTH_REG;$policy->init();pa_check(!empty($policy->auth_global['auth_toplist']),'Registered global permission retained');
+ // Real initialization filters hidden categories before the actual controller
+ // renders breadcrumbs. Its entire request must leave cached ancestry alone.
+ $db=new PaPolicyNavReads($db);$userdata=array('user_id'=>ANONYMOUS,'user_level'=>USER,'session_logged_in'=>false);$board_config=array('sitename'=>'Fixture');
+ $pafiledb_config=array('sort_method'=>'file_time','sort_order'=>'DESC','settings_file_page'=>10,'settings_dbname'=>'Fixture','auth_search'=>0,'auth_stats'=>0,'auth_toplist'=>0,'auth_viewall'=>0);
+ pa_insert('fixture_pa_cat',array('cat_id'=>6,'cat_parent'=>0,'cat_name'=>'Hidden ancestor','parents_data'=>'','auth_view'=>AUTH_REG,'auth_read'=>AUTH_REG));
+ pa_insert('fixture_pa_cat',array('cat_id'=>5,'cat_parent'=>6,'cat_name'=>'Current leaf','parents_data'=>serialize(array(6=>'Hidden ancestor')),'auth_view'=>AUTH_ALL,'auth_read'=>AUTH_ALL,'auth_view_file'=>AUTH_ALL));
+ $rows=pa_navigation(5);pa_check(count($rows)===1&&$rows[0]['CAT_NAME']==='Current leaf','Actual initialized guest controller omits hidden cached ancestor');
+ $caught=null;try{pa_navigation(6);}catch(RuntimeException$error){$caught=$error;}pa_check($caught&&$caught->getMessage()===$lang['Cat_not_exist'],'Direct hidden category remains denied');
+ pa_sql("UPDATE fixture_pa_cat SET auth_view=0,cat_name='Renamed visible folder',auth_read=1 WHERE cat_id=6");$rows=pa_navigation(5);pa_check(count($rows)===2&&$rows[0]['CAT_NAME']==='Renamed visible folder','Visible folder retained despite no guest read grant; current name replaces cache');
+ pa_sql("UPDATE fixture_pa_cat SET cat_parent=0,parents_data='' WHERE cat_id=5");$rows=pa_navigation(5);pa_check(count($rows)===1,'Actual moved category with empty cache needs no cache write');
+ $stored=pa_rows('SELECT parents_data FROM fixture_pa_cat WHERE cat_id=5');pa_check($stored[0]['parents_data']==='','Real public controller leaves stored empty ancestry unchanged');
+ pa_sql('UPDATE fixture_pa_cat SET cat_parent=5 WHERE cat_id=5');$rows=pa_navigation(5);pa_check(count($rows)===1,'Actual cyclic category terminates safely');
  restore_error_handler();$handler=false;
  echo 'Native paFileDB policy: ',$pa_cases," actual-init/real-group/pending/union/moderator/admin/guest/reinitialization cases PASS; own disposable schema only.\n";
 }finally{if($handler){restore_error_handler();}foreach(array($peer,$db)as$connection){if($connection){$connection->sql_close();}}if(!preg_match('/^codex_pa_auth_before_[a-f0-9]{12}$/D',$fixture)){throw new RuntimeException('Own policy schema identity required');}if($created){$control->sql_query('DROP DATABASE '.$fixture);}$control->sql_close();}
