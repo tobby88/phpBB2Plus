@@ -41,9 +41,10 @@ class AlbumLifecycleAuthority
 		return $this->locked && $this->expires !== null && $this->expires > time() && $this->storage->publication_ready();
 	}
 
-	private function admin_allowed($fresh)
+	private function admin_allowed($fresh, $module)
 	{
 		global $phpEx;
+		if (!in_array($module, array('admin_album_cat', 'admin_album_clearcache'), true)) { return false; }
 		if (!$fresh['session_logged_in'] || $fresh['session_admin'] !== 1) { return false; }
 		if ($fresh['user_level'] === ADMIN) { return true; }
 		if (!defined('JR_ADMIN_TABLE') || JR_ADMIN_TABLE !== $this->prefix . 'jr_admin_users' || !is_string($phpEx) || !preg_match('/^[a-z0-9]{1,8}$/D',$phpEx)) { return false; }
@@ -54,7 +55,7 @@ class AlbumLifecycleAuthority
 		$routes = jr_admin_authorization_routes();
 		if (!is_array($routes)) { return false; }
 		// Internal exact module, never a posted filename or claimed module hash.
-		$route = 'admin_album_cat.' . $phpEx;
+		$route = $module . '.' . $phpEx;
 		foreach (explode(EXPLODE_SEPERATOR_CHAR,$grants[0]['user_jr_admin']) as $hash)
 		{
 			if (isset($routes[$hash]) && jr_admin_route_matches_file($routes[$hash],$route)) { return true; }
@@ -67,10 +68,21 @@ class AlbumLifecycleAuthority
 		return $this->lock($snapshot, 0, $category, ALBUM_AUTH_MODERATOR, true);
 	}
 
+	function lock_cache_admin($snapshot)
+	{
+		return $this->lock_context($snapshot, 0, null, ALBUM_AUTH_MODERATOR, true, true);
+	}
+
 	function lock($snapshot, $owner, $category, $checks, $administration = false)
 	{
+		return $this->lock_context($snapshot, $owner, $category, $checks, $administration, false);
+	}
+
+	private function lock_context($snapshot, $owner, $category, $checks, $administration, $cache_management)
+	{
 		global $db, $userdata, $album_config, $album_data;
-		if ($this->locked || !$this->storage->publication_ready() || !is_array($snapshot) || !is_int($owner) || $owner < 0 || $owner > 8388607 || !is_int($category) || $category < 1 || $category > 16777215 ||
+		if ($this->locked || !$this->storage->publication_ready() || !is_array($snapshot) || !is_int($owner) || $owner < 0 || $owner > 8388607 ||
+			($cache_management ? ($category !== null || $owner !== 0 || $administration !== true) : (!is_int($category) || $category < 1 || $category > 16777215)) ||
 			!is_int($checks) || $checks < 1 || ($checks & ~ALBUM_AUTH_ALL) !== 0 || !is_bool($administration) || ($administration && $owner !== 0) || !isset($snapshot['user_id'], $snapshot['session_id'], $snapshot['session_logged_in'])) { return $this->storage->abort(); }
 		$actor_id = self::integer($snapshot['user_id'], -1, 8388607); $sid = $snapshot['session_id'];
 		$logged = in_array($snapshot['session_logged_in'], array(true,1,'1'), true);
@@ -109,7 +121,7 @@ class AlbumLifecycleAuthority
 			}
 			foreach (array('rate','comment','personal_gallery','personal_gallery_view','personal_gallery_private','personal_allow_gallery_mod','personal_allow_sub_categories','personal_sub_category_limit') as $name) { if (!isset($settings[$name])) { return $this->storage->abort(); } }
 			if ((($checks & ALBUM_AUTH_RATE) !== 0 && $settings['rate'] !== '1') || (($checks & ALBUM_AUTH_COMMENT) !== 0 && $settings['comment'] !== '1')) { return $this->storage->abort(); }
-			$categories = $this->rows('SELECT * FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_id=' . $category . ' AND cat_user_id=' . $owner . ' LOCK IN SHARE MODE');
+			$categories = $cache_management ? array(null) : $this->rows('SELECT * FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_id=' . $category . ' AND cat_user_id=' . $owner . ' LOCK IN SHARE MODE');
 			if (count($categories) !== 1) { return $this->storage->abort(); }
 			$fresh = $snapshot; $fresh['user_id'] = $actor_id; $fresh['username'] = $actor['username']; $fresh['user_level'] = $logged ? (int) $actor['user_level'] : 0; $fresh['user_active'] = $logged ? 1 : 0;
 			$fresh['session_id'] = $sid; $fresh['session_logged_in'] = $logged; $fresh['session_time'] = $session_time; $fresh['session_ip'] = $session['session_ip']; $fresh['session_admin'] = (int) $session['session_admin'];
@@ -119,7 +131,7 @@ class AlbumLifecycleAuthority
 				$db = $this->storage; $userdata = $fresh; $album_config = $settings; $album_data = array();
 				if ($administration)
 				{
-					$allowed = $this->admin_allowed($fresh); $access = $allowed ? array('manage'=>1) : array();
+					$allowed = $this->admin_allowed($fresh, $cache_management ? 'admin_album_clearcache' : 'admin_album_cat'); $access = $allowed ? array('manage'=>1) : array();
 				}
 				else
 				{

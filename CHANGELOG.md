@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album file recovery, comments and ratings
 
+- Clear both Album preview caches under the shared writer lease and current
+  exact ACP module/session permissions. Preserve original images, staged work,
+  index files, nested directories and links; refuse aliased cache roots. Retain
+  JPEG/PNG/GIF/WebP cache support and delegated administration.
 - Reconcile old comment category snapshots against current existing picture
   parents in the consolidated updater and a guarded scoped mode. Preserve
   missing-parent comments, exact content/authors/edit metadata and custom bytes.

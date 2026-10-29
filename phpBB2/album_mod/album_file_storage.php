@@ -4,7 +4,7 @@ if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 class AlbumFileStorageFailure extends RuntimeException {}
 
 // Filesystem primitive for a durable Album operation, NOT an authorization
-// decision. The guard must prove the owned DB lock and committed journal item
+// decision. The guard must prove the owned DB lock and operation capability
 // before every mutation. No caller input may select the application root.
 // Callers must retain prepared receipts through failed/uncertain publication;
 // this class deliberately never unlinks a published file in a failure handler.
@@ -37,6 +37,11 @@ class AlbumFileStorage
 		if (!is_array($value) || count($value) !== 3 || !array_key_exists('present', $value) || !array_key_exists('bytes', $value) || !array_key_exists('sha256', $value)) { return false; }
 		if ($value['present'] === false) { return $value['bytes'] === 0 && $value['sha256'] === null; }
 		return $value['present'] === true && is_int($value['bytes']) && $value['bytes'] >= 0 && $value['bytes'] <= self::MAX_BYTES && is_string($value['sha256']) && preg_match('/^[a-f0-9]{64}$/D', $value['sha256']) === 1;
+	}
+
+	static function cache_filename($name)
+	{
+		return self::filename($name) || (is_string($name) && strlen($name) <= 255 && preg_match('/\.webp$/iD', $name) && self::filename(substr($name, 0, -5) . '.png'));
 	}
 
 	private function same_metadata($left, $right)
@@ -98,7 +103,18 @@ class AlbumFileStorage
 	function snapshot($scope, $name)
 	{
 		if (!self::filename($name)) { throw new AlbumFileStorageFailure('Invalid Album basename'); }
-		$this->check('snapshot', $scope, $name); $path = $this->path($scope, $name); $before = $this->stat($path);
+		return $this->snapshot_file($scope, $name, 'snapshot');
+	}
+
+	function snapshot_cache($scope, $name)
+	{
+		if (!in_array($scope, array('small', 'medium'), true) || !self::cache_filename($name)) { throw new AlbumFileStorageFailure('Invalid Album cache basename'); }
+		return $this->snapshot_file($scope, $name, 'cache-snapshot');
+	}
+
+	private function snapshot_file($scope, $name, $action)
+	{
+		$this->check($action, $scope, $name); $path = $this->path($scope, $name); $before = $this->stat($path);
 		if ($before === false) { return array('present' => false, 'bytes' => 0, 'sha256' => null); }
 		$handle = @fopen($path, 'rb'); if (!$handle) { throw new AlbumFileStorageFailure('Album snapshot unavailable'); }
 		try
@@ -111,7 +127,7 @@ class AlbumFileStorage
 				$chunk = fread($handle, 65536); if ($chunk === false || ($chunk === '' && !feof($handle))) { throw new AlbumFileStorageFailure('Album snapshot read failed'); }
 				$bytes += strlen($chunk); if ($bytes > self::MAX_BYTES) { throw new AlbumFileStorageFailure('Album snapshot grew'); } hash_update($hash, $chunk);
 			}
-			$this->check('snapshot', $scope, $name);
+			$this->check($action, $scope, $name);
 			if ($bytes !== $before['size'] || !$this->same_stat($opened, fstat($handle)) || !$this->same_stat($before, $this->stat($path))) { throw new AlbumFileStorageFailure('Album snapshot changed during read'); }
 			return array('present' => true, 'bytes' => $bytes, 'sha256' => hash_final($hash));
 		}
@@ -155,11 +171,22 @@ class AlbumFileStorage
 
 	function remove_exact($scope, $name, $expected)
 	{
+		return $this->remove_snapshot($scope, $name, $expected, false);
+	}
+
+	function remove_cache_exact($scope, $name, $expected)
+	{
+		if (!in_array($scope, array('small', 'medium'), true) || !self::cache_filename($name)) { throw new AlbumFileStorageFailure('Invalid Album cache removal scope'); }
+		return $this->remove_snapshot($scope, $name, $expected, true);
+	}
+
+	private function remove_snapshot($scope, $name, $expected, $cache)
+	{
 		if (!self::metadata($expected)) { throw new AlbumFileStorageFailure('Invalid Album cleanup receipt'); }
-		$current = $this->snapshot($scope, $name);
+		$current = $cache ? $this->snapshot_cache($scope, $name) : $this->snapshot($scope, $name);
 		if ($current['present'] === false) { return 'missing'; }
 		if ($expected['present'] === false || !$this->same_metadata($current, $expected)) { return 'changed'; }
-		$this->check('remove', $scope, $name, null, $expected); $path = $this->path($scope, $name); $stat = $this->stat($path);
+		$this->check($cache ? 'cache-remove' : 'remove', $scope, $name, null, $expected); $path = $this->path($scope, $name); $stat = $this->stat($path);
 		if ($stat === false) { return 'missing'; }
 		if ($stat['size'] !== $expected['bytes']) { return 'changed'; }
 		if (!@unlink($path)) { return 'busy'; }
