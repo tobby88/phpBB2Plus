@@ -25,10 +25,10 @@ class pafiledb_rate extends pafiledb_public
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
 
-		$rating = (isset($_POST['rating']) && is_scalar($_POST['rating'])) ? intval($_POST['rating']) : 0;
+		$rating = (isset($_POST['rating']) && (is_string($_POST['rating']) || is_int($_POST['rating'])) && preg_match('/^(?:[1-9]|10)$/D',(string)$_POST['rating'])) ? (int)$_POST['rating'] : 0;
 
 
-		$sql = 'SELECT file_name, file_catid
+		$sql = 'SELECT file_name, file_catid, file_approved
 			FROM ' . PA_FILES_TABLE . "
 			WHERE file_id = $file_id";
 
@@ -44,14 +44,14 @@ class pafiledb_rate extends pafiledb_public
 
 		$db->sql_freeresult($result);
 
-		if( (!$this->auth[$file_data['file_catid']]['auth_rate']) )
+		if((int)$file_data['file_approved']!==1 || empty($this->auth[$file_data['file_catid']]['auth_view']) || empty($this->auth[$file_data['file_catid']]['auth_read']) || empty($this->auth[$file_data['file_catid']]['auth_view_file']) || empty($this->auth[$file_data['file_catid']]['auth_rate']) || empty($this->cat_rowset[$file_data['file_catid']]['cat_allow_ratings']))
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=rate&file_id=$file_id", true));
 			}
 
-			$message = sprintf($lang['Sorry_auth_rate'], $this->auth[$file_data['file_catid']]['auth_rate_type']);
+			$message = $lang['Not_Authorised'];
 			message_die(GENERAL_MESSAGE, $message);
 		}
 
@@ -75,18 +75,14 @@ class pafiledb_rate extends pafiledb_public
 				message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 			}
 
-			$result_msg = str_replace("{filename}", $file_data['file_name'], $lang['Rconf']);
-
-			$result_msg = str_replace("{rate}", $rating, $result_msg);
-
 			if( ($rating <= 0) or ($rating > 10) )
 			{
-				message_die(GENERAL_ERROR, 'Bad submited value');
+				message_die(GENERAL_ERROR, $lang['PA_rating_invalid']);
 			}
 
-			$pafiledb_user->update_voter_info($file_id, $rating);
-
-			$rate_info = $pafiledb_functions->get_rating($file_id);
+			$saved = $pafiledb_user->update_voter_info($file_id, $rating);
+			$result_msg = str_replace(array('{filename}','{rate}'),array(pafiledb_html($saved['file_name']),$rating),$lang['Rconf']);
+			$rate_info = round((float)$saved['average'],2) . ' / 10';
 
 			$result_msg = str_replace("{newrating}", $rate_info, $result_msg);
 
@@ -96,7 +92,7 @@ class pafiledb_rate extends pafiledb_public
 		}
 		else
 		{
-			$rate_info = str_replace("{filename}", $file_data['file_name'], $lang['Rateinfo']);
+			$rate_info = str_replace("{filename}", pafiledb_html($file_data['file_name']), $lang['Rateinfo']);
 
 			$pafiledb_template->assign_vars(array(
 				'S_RATE_ACTION' => append_sid('dload.php?action=rate&file_id=' . $file_id),

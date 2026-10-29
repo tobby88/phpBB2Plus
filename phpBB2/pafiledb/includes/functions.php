@@ -669,6 +669,17 @@ function pafiledb_html($value)
 	return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8', false);
 }
 
+function pafiledb_file_info_sql($file_id)
+{
+	$file_id=(int)$file_id;
+	return 'SELECT f.*, r.rating, COALESCE(r.total_votes,0) AS total_votes, u.user_id, u.username, COALESCE(c.total_comments,0) AS total_comments'
+		.' FROM '.PA_FILES_TABLE.' f'
+		.' LEFT JOIN (SELECT votes_file,AVG(rate_point) AS rating,COUNT(*) AS total_votes FROM '.PA_VOTES_TABLE.' WHERE votes_file='.$file_id.' GROUP BY votes_file) r ON r.votes_file=f.file_id'
+		.' LEFT JOIN '.USERS_TABLE.' u ON u.user_id=f.user_id'
+		.' LEFT JOIN (SELECT file_id,COUNT(*) AS total_comments FROM '.PA_COMMENTS_TABLE.' WHERE file_id='.$file_id.' GROUP BY file_id) c ON c.file_id=f.file_id'
+		.' WHERE f.file_id='.$file_id.' AND f.file_approved=1';
+}
+
 
 
 function pafiledb_page_header($page_title)
@@ -924,27 +935,12 @@ class user_info
 	
 	function update_voter_info($file_id, $rating)
 	{
-		global $user_ip, $db, $userdata, $lang;
-
-		$file_id = intval($file_id);
-		$rating = intval($rating);
-		$user_id = intval($userdata['user_id']);
-		$ip = $db->sql_escape((string) $user_ip);
-		$platform = $db->sql_escape((string) $this->platform);
-		$agent = $db->sql_escape((string) $this->agent);
-		$version = $db->sql_escape((string) $this->ver);
-		$duplicate_sql = ($user_id != ANONYMOUS) ? "user_id = $user_id" : "votes_ip = '$ip'";
-
-		$sql = "INSERT INTO " . PA_VOTES_TABLE . " (user_id, votes_ip, votes_file, rate_point, voter_os, voter_browser, browser_version)
-			SELECT $user_id, '$ip', $file_id, $rating, '$platform', '$agent', '$version'
-			WHERE NOT EXISTS (SELECT 1 FROM " . PA_VOTES_TABLE . " WHERE $duplicate_sql AND votes_file = $file_id)";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Update Votes Table Info', '', __LINE__, __FILE__, $sql);
-		}
-		if (!$db->sql_affectedrows())
-		{
-			message_die(GENERAL_MESSAGE, $lang['Rerror']);
+		global $db, $lang;
+		require_once dirname(__FILE__) . '/functions_rating_storage.php';
+		try { return pafiledb_submit_rating($db,$file_id,$rating,array((string)$this->platform,(string)$this->agent,(string)$this->ver)); }
+		catch (PaFileDbRatingFailure $error) {
+			$key=$error->getMessage();
+			message_die($key==='Rerror'?GENERAL_MESSAGE:GENERAL_ERROR,isset($lang[$key])?$lang[$key]:$lang['PA_rating_failed']);
 		}
 	}	
 }

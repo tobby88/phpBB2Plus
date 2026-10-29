@@ -117,6 +117,9 @@ $lang['Y_label'] = 'Number of Files';
 // Rate
 $lang['Rate'] = 'Rate File';
 $lang['Rerror'] = 'Sorry, you have already rated this file.';
+$lang['PA_rating_failed'] = 'The rating could not be saved. Please reload the file page and try again.';
+$lang['PA_rating_upgrade'] = 'The download database needs the consolidated database update before ratings can be saved.';
+$lang['PA_rating_invalid'] = 'Please choose a rating from 1 to 10.';
 $lang['Rateinfo'] = 'You are about to rate the file <i>{filename}</i>.<br>Please select a rating below. 1 is the worst, 10 is the best.';
 $lang['Rconf'] = 'You have given <i>{filename}</i> a rating of {rate}.<br>This makes the files new rating {newrating}.';
 $lang['R1'] = '1';

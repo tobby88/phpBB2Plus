@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download ratings
+
+- Save paFileDB ratings with an owned transaction and shared writer lease.
+  Recheck the current session, active account, group/category grants, category
+  ancestry, rating toggle and approved file before recording the vote.
+- Keep duplicate detection and the resulting average in the same transaction;
+  roll back failed writes and preserve an acknowledged or uncertain committed
+  vote on retry. Guest IP and registered-account vote rules remain distinct.
+- Display literal Unicode file titles safely in the rating form and result.
+  Keep the file's rating link consistent with its current approval/rating toggle.
+- Aggregate votes and comments independently on the download detail page, so
+  two votes and three comments appear as two and three, rather than six each.
+
 ### Former-account author visibility
 
 - Distinguish classified former members from genuine guests for logged-out

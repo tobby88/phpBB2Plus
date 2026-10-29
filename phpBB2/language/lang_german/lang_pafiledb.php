@@ -117,6 +117,9 @@ $lang['Y_label'] = 'Anzahl Dateien';
 // Rate
 $lang['Rate'] = 'Datei bewerten';
 $lang['Rerror'] = 'Sorry, Du hast diese Datei bereits bewertet.';
+$lang['PA_rating_failed'] = 'Die Bewertung konnte nicht gespeichert werden. Bitte lade die Dateiseite neu und versuche es erneut.';
+$lang['PA_rating_upgrade'] = 'Vor dem Speichern von Bewertungen muss die Download-Datenbank mit dem gebündelten Datenbank-Update aktualisiert werden.';
+$lang['PA_rating_invalid'] = 'Bitte wähle eine Bewertung von 1 bis 10.';
 $lang['Rateinfo'] = 'Du bist dabei, die Datei <i>{filename}</i> zu bewerten.<br>Bitte wähle die Bewertung unten aus. 1 ist die schlechteste, 10 die beste.';
 $lang['Rconf'] = 'Du hast der Datei <i>{filename}</i> eine Bewertung von {rate} gegeben.<br>Das gibt der Datei die neue Bewertung von {newrating}.';
 $lang['R1'] = '1';

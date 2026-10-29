@@ -34,30 +34,7 @@ class pafiledb_file extends pafiledb_public
 		// file id is not set, give him/her a nice error message
 		// =======================================================
 
-		switch(SQL_LAYER)
-		{
-			case 'oracle':
-				$sql = "SELECT f.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, COUNT(c.comments_id) as total_comments
-					FROM " . PA_FILES_TABLE . " AS f, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_COMMENTS_TABLE . " AS c
-					WHERE f.file_id = r.votes_file(+)
-					AND f.user_id = u.user_id(+)
-					AND f.file_id = c.file_id(+)
-					AND f.file_id = $file_id
-					AND f.file_approved = 1
-					GROUP BY f.file_id ";
-				break;
-
-			default:
-				$sql = "SELECT f.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, COUNT(c.comments_id) as total_comments
-					FROM " . PA_FILES_TABLE . " AS f
-						LEFT JOIN " . PA_VOTES_TABLE . " AS r ON f.file_id = r.votes_file
-						LEFT JOIN ". USERS_TABLE ." AS u ON f.user_id = u.user_id
-						LEFT JOIN " . PA_COMMENTS_TABLE . " AS c ON f.file_id = c.file_id
-					WHERE f.file_id = $file_id
-					AND f.file_approved = 1
-					GROUP BY f.file_id ";
-				break;
-		}
+		$sql = pafiledb_file_info_sql($file_id);
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -172,7 +149,7 @@ class pafiledb_file extends pafiledb_public
 			'AUTH_DELETE' => ( ($this->auth[$file_data['file_catid']]['auth_delete_file'] && $file_data['user_id'] == $userdata['user_id']) || $this->auth[$file_data['file_catid']]['auth_mod']) ? TRUE : FALSE,
 
 			'AUTH_DOWNLOAD' => ($this->auth[$file_data['file_catid']]['auth_download']) ? TRUE : FALSE,
-			'AUTH_RATE' => ($this->auth[$file_data['file_catid']]['auth_rate']) ? TRUE : FALSE,
+			'AUTH_RATE' => (!empty($this->auth[$file_data['file_catid']]['auth_view']) && !empty($this->auth[$file_data['file_catid']]['auth_read']) && !empty($this->auth[$file_data['file_catid']]['auth_view_file']) && !empty($this->auth[$file_data['file_catid']]['auth_rate']) && !empty($this->cat_rowset[$file_data['file_catid']]['cat_allow_ratings']) && (int)$file_data['file_approved']===1) ? TRUE : FALSE,
 			'AUTH_EMAIL' => ($this->auth[$file_data['file_catid']]['auth_email']) ? TRUE : FALSE,
 			'INCLUDE_COMMENTS' => ($this->auth[$file_data['file_catid']]['auth_view_comment']) ? TRUE : FALSE,
 // MX Addon
