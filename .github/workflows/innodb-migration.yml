@@ -743,6 +743,11 @@ jobs:
         env:
           PHPBB_PA_TOPLIST_NATIVE: '1'
           PHPBB_PA_TOPLIST_PASSWORD: fixture-only
+      - if: matrix.part == 1
+        run: php .github/scripts/check-pafiledb-policy-native.php
+        env:
+          PHPBB_PA_POLICY_NATIVE: '1'
+          PHPBB_PA_POLICY_PASSWORD: fixture-only
       - if: matrix.part == 4
         run: php .github/scripts/check-public-profile-identity-native.php
         env:

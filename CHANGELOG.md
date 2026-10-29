@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download group permissions
+
+- Ignore grants from missing groups and pending memberships. Combine global
+  grants across all real groups rather than retaining only the last row.
+- Recognize category moderators for global moderator/ACL permissions while
+  preserving administrator-only restrictions. Reset category and authorization
+  state during reinitialization, including installations with no categories.
+
 ### Download toplists
 
 - Apply category view/read/file permissions and readable ancestry before

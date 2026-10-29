@@ -115,8 +115,9 @@ class pafiledb
 	{
 		global $db, $userdata, $debug;
 		
-		unset($this->cat_rowset);
-		unset($this->subcat_rowset);
+		$this->cat_rowset = array();
+		$this->subcat_rowset = array();
+		$this->total_cat = 0;
 
 		$sql = 'SELECT * 
 			FROM ' . PA_CATEGORY_TABLE . '
@@ -491,6 +492,8 @@ class pafiledb
 	function auth($c_access)
 	{
 		global $db, $db, $lang, $userdata, $pafiledb_config;
+		$this->auth = array();
+		$this->auth_global = array();
 // Mx Addon
 		$a_sql = 'a.auth_view, a.auth_read, a.auth_view_file, a.auth_edit_file, a.auth_delete_file, a.auth_upload, a.auth_download, a.auth_rate, a.auth_email, a.auth_view_comment, a.auth_post_comment, a.auth_edit_comment, a.auth_delete_comment, a.auth_mod, a.auth_search, a.auth_stats, a.auth_toplist, a.auth_viewall';
 		$auth_fields = array('auth_view', 'auth_read', 'auth_view_file', 'auth_edit_file', 'auth_delete_file', 'auth_upload', 'auth_download', 'auth_rate', 'auth_email', 'auth_view_comment', 'auth_post_comment', 'auth_edit_comment', 'auth_delete_comment');
@@ -506,10 +509,11 @@ class pafiledb
 		if ( $userdata['session_logged_in'] )
 		{
 			$sql = "SELECT a.cat_id, a.group_id, $a_sql 
-				FROM " . PA_AUTH_ACCESS_TABLE . " a, " . USER_GROUP_TABLE . " ug 
+				FROM " . PA_AUTH_ACCESS_TABLE . " a
+				INNER JOIN " . USER_GROUP_TABLE . " ug ON ug.group_id = a.group_id
+				INNER JOIN " . GROUPS_TABLE . " g ON g.group_id = ug.group_id
 				WHERE ug.user_id = {$userdata['user_id']}
-					AND ug.user_pending = 0 
-					AND a.group_id = ug.group_id";
+					AND ug.user_pending = 0";
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Failed obtaining category access control lists', '', __LINE__, __FILE__, $sql);
@@ -525,7 +529,7 @@ class pafiledb
 					}
 					else
 					{
-						$global_u_access = $row;
+						$global_u_access[] = $row;
 					}
 				}
 				while( $row = $db->sql_fetchrow($result) );
@@ -670,32 +674,19 @@ class pafiledb
 
 	function global_auth_check_user($type, $key, $global_u_access, $is_admin)
 	{
-		$auth_user = 0;
-
-		if ( !empty($global_u_access) )
+		if (!in_array((int)$type, array(AUTH_ACL, AUTH_MOD, AUTH_ADMIN), true)) { return false; }
+		if ($is_admin) { return true; }
+		if ((int)$type === AUTH_ADMIN) { return false; }
+		if ($this->is_moderator()) { return true; }
+		if ((int)$type === AUTH_MOD) { return false; }
+		// Retain compatibility for callers supplying one old flat grant row.
+		$grants = is_array($global_u_access) ? $global_u_access : array();
+		if (array_key_exists($key, $grants)) { $grants = array($grants); }
+		foreach ($grants as $grant)
 		{
-			$result = 0;
-			switch($type)
-			{
-				case AUTH_ACL:
-					$result = $global_u_access[$key];
-
-				case AUTH_MOD:
-					$result = $result || $this->is_moderator();
-
-				case AUTH_ADMIN:
-					$result = $result || $is_admin;
-					break;
-			}
-
-			$auth_user = $auth_user || $result;
+			if (is_array($grant) && !empty($grant[$key])) { return true; }
 		}
-		else
-		{
-			$auth_user = $is_admin;
-		}
-
-		return $auth_user;
+		return false;
 	}
 	
 	function is_moderator()
@@ -704,7 +695,7 @@ class pafiledb
 		{
 			foreach($this->auth as $cat_id => $auth_fields)
 			{
-				if($auth_fileds['auth_mod'])
+				if(!empty($auth_fields['auth_mod']))
 				{
 					return true;
 				}
