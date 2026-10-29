@@ -6,7 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
-### Album comments and ratings
+### Album file recovery, comments and ratings
+
+- Resume interrupted committed file deletions in bounded batches, retaining
+  unprocessed receipt items and the existing foreground cleanup behavior.
+- Revoke old prepared uploads durably before abandoned-file recovery. Preserve
+  current references and changed bytes; refuse ordinary publication/retry after
+  revocation. Retain journals through uncertain commits and worker crashes.
+- Add the CLI `update/recover_album_files.php`, with preview as its default,
+  explicit apply/backup confirmation, total item and job budgets, continuation
+  cursors and further-work reporting. Keep configuration and Album paths tied to
+  one installation; support repository and flat webroot layouts. Include native
+  subprocess recovery coverage in the PHP 5.6/7.4/8.5 CI checks.
 
 - Revalidate current picture identity, permissions and cache policy under the
   shared Album writer lease before publishing regenerated small/medium previews.

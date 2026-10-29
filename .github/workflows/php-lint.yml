@@ -61,6 +61,9 @@ jobs:
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
 
+      - name: Keep Album recovery preview-only without explicit bounded apply
+        run: php .github/scripts/check-album-file-recovery.php
+
       - name: Preserve wide Knowledge Base rating counters in both list renderers
         run: php .github/scripts/check-kb-rating-rendering.php
 

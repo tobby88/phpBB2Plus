@@ -83,9 +83,12 @@ jobs:
           php .github/scripts/check-album-file-journal-native.php
           php .github/scripts/check-album-file-coordinator-native.php
           php .github/scripts/check-album-upload-receipt-native.php
+          PHPBB_ALBUM_UPLOAD_RECEIPT_PART=recovery php .github/scripts/check-album-upload-receipt-native.php
           php .github/scripts/check-album-lifecycle-authority-native.php
           php .github/scripts/check-album-picture-upload-native.php
           php .github/scripts/check-album-picture-delete-native.php
+          PHPBB_ALBUM_DELETE_PART=recovery php .github/scripts/check-album-picture-delete-native.php
+          php .github/scripts/check-album-file-recovery-native.php
         env:
           PHPBB_ALBUM_FILE_JOURNAL_NATIVE: '1'
           PHPBB_ALBUM_FILE_JOURNAL_PASSWORD: fixture-only
@@ -99,6 +102,8 @@ jobs:
           PHPBB_ALBUM_PICTURE_UPLOAD_PASSWORD: fixture-only
           PHPBB_ALBUM_PICTURE_DELETE_NATIVE: '1'
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
+          PHPBB_ALBUM_RECOVERY_NATIVE: '1'
+          PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         run: php .github/scripts/check-ranks-native.php
         env:
