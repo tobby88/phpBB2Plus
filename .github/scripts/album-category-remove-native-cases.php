@@ -113,7 +113,9 @@ function acat_cases()
         acat_denied(function(){acat_remove(2);},'A changed later chunk rolls back every earlier picture/comment move');acd_sql('DROP TRIGGER own_category_late');
         acat_reset();$values=array();for($id=21;$id<=10020;$id++){$values[]="(".$id.",'a.png','t.png','Bulk category delete',7,1)";}
         acd_sql('INSERT INTO fixture_album(pic_id,pic_filename,pic_thumbnail,pic_title,pic_user_id,pic_time) VALUES'.implode(',',$values));$before=acat_snapshot();$result=acat_remove();
-        acd_check($result['deleted']===10001&&count($result['jobs'])===2&&$result['pending']===0,'Category deletion spans journal chunks without a total photo cap');acat_consistent($before,ALBUM_JUMPBOX_DELETE);$cases++;
+        acd_check($result['deleted']===10001&&count($result['jobs'])===21&&$result['pending']===0,'Category deletion spans bounded journals without a total photo cap');
+        foreach(acd_rows('SELECT picture_count,item_count,operation_state FROM fixture_album_file_jobs')as$job){acd_check((int)$job['picture_count']>=1&&(int)$job['picture_count']<=500&&(int)$job['item_count']<=2500&&$job['operation_state']==='complete','Every category cleanup receipt stays bounded and completes');}
+        acat_consistent($before,ALBUM_JUMPBOX_DELETE);$cases++;
         foreach(array('before-commit','deleted','unlinked','complete')as$boundary){
             acat_reset();$before=acat_snapshot();acd_crash_worker($boundary,'category');acat_consistent($before,ALBUM_JUMPBOX_DELETE);
             if($boundary==='before-commit'){acd_check(acat_snapshot()===$before,'Killed category transaction preserves hierarchy and all picture metadata');acat_remove();}
