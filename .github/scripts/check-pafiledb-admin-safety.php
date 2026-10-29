@@ -23,6 +23,7 @@ $pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/funct
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
 $pafiledb_search = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_search.php');
+$search_helpers = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_search.php');
 $pafiledb_upload = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_user_upload.php');
 $pafiledb_mcp = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_mcp.php');
 
@@ -100,8 +101,11 @@ pafiledb_admin_assert(strpos($pafiledb_search, '$db->sql_escape(') !== false, 'p
 pafiledb_admin_assert(strpos($pafiledb_search, 'each($result_list)') === false, 'paFileDB search must not use the removed each() iterator');
 pafiledb_admin_assert(strpos($pafiledb_search, 'global $_REQUEST') === false, 'paFileDB search must not accept cookie-backed request values');
 pafiledb_admin_assert(strpos($pafiledb_search, "preg_match('/^[1-9][0-9]*\$/D', \$search_id_value)") !== false, 'paFileDB cached search IDs must be positive integers');
-pafiledb_admin_assert(strpos($pafiledb_search, "preg_match('/^[1-9][0-9]*\$/D', (string) \$cached_id)") !== false, 'cached paFileDB file IDs must be validated');
-pafiledb_admin_assert(strpos($pafiledb_search, "\$db->sql_escape(\$search_author)") !== false, 'paFileDB author searches must use driver escaping');
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+require_once $root . '/phpBB2/pafiledb/includes/functions_search.php';
+pafiledb_admin_assert(pafiledb_search_ids('42,42,0,-1,2147483648,1 OR 1=1,43') === array(42,43), 'cached file IDs must reject duplicates, overflow and non-identifiers');
+pafiledb_admin_assert(strpos($pafiledb_search, 'pafiledb_search_ids(isset($search_data[') !== false && strpos($pafiledb_search, 'pafiledb_search_refresh_ids($db, $search_categories, $search_results)') !== false, 'cached candidates must be validated and rechecked against current access');
+pafiledb_admin_assert(strpos($pafiledb_search, 'pafiledb_search_author_sql($db, $search_author)') !== false && strpos($search_helpers, '$database->sql_escape($pattern)') !== false, 'author predicates must use the driver-escaped shared builder');
 pafiledb_admin_assert(strpos($pafiledb_search, "\$db->sql_escape(serialize(\$store_search_data))") !== false, 'serialized paFileDB search state must use driver escaping');
 pafiledb_admin_assert(strpos($pafiledb_search, "\$db->sql_escape(\$userdata['session_id'])") !== false, 'paFileDB search sessions must use driver escaping');
 pafiledb_admin_assert(strpos($pafiledb_search, "'pafiledb' => 1") !== false, 'paFileDB cached results must be namespaced');

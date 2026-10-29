@@ -764,6 +764,11 @@ jobs:
         env:
           PHPBB_PA_LISTING_NATIVE: '1'
           PHPBB_PA_LISTING_PASSWORD: fixture-only
+      - if: matrix.part == 3
+        run: php .github/scripts/check-pafiledb-search-native.php
+        env:
+          PHPBB_PA_SEARCH_NATIVE: '1'
+          PHPBB_PA_SEARCH_PASSWORD: fixture-only
       - if: matrix.part == 4
         run: php .github/scripts/check-public-profile-identity-native.php
         env:

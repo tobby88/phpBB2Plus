@@ -97,6 +97,7 @@ $lang['PA_stats_unavailable'] = 'The download statistics could not be loaded. Pl
 $lang['PA_stats_other'] = 'Other';
 $lang['Sorry_auth_stats'] = 'Sorry, only %s can view download statistics.';
 $lang['PA_list_unavailable'] = 'The download list could not be loaded. Please try again later.';
+$lang['PA_search_unavailable'] = 'The download search could not be completed. Please try again later.';
 $lang['Sorry_auth_viewall'] = 'Sorry, only %s can view the complete download list.';
 $lang['Sorry_auth_toplist'] = 'Sorry, only %s can view download toplists.';
 $lang['Sorry_auth_search'] = 'Sorry, only %s can search downloads.';

@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download search
+
+- Apply current category view/read/file and ancestor permissions, approval and
+  author/category filters before candidate limits. Search comment text only
+  where comments may be read. Recheck cached identities before counting,
+  sorting and paging; discard removed or newly inaccessible files.
+- Remove invalid SQL grouping, preserve UTF8 character boundaries and support
+  repeated controller calls. Honor leading NOT and explicit Boolean operators;
+  stopword-only input no longer becomes a match-all search.
+- Render submitters through the common former-member/guest helper, escape icon
+  attributes and treat missing download counters as zero. Keep native result
+  resources and caller read-only transactions intact on cached reads.
+
 ### Native test fixture timings
 
 - Detect synchronous contention immediately on modern MariaDB fixture peers,
