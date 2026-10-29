@@ -136,6 +136,7 @@ jobs:
           php .github/scripts/check-album-upload-receipt-native.php
           PHPBB_ALBUM_UPLOAD_RECEIPT_PART=recovery php .github/scripts/check-album-upload-receipt-native.php
           php .github/scripts/check-album-lifecycle-authority-native.php
+          PHPBB_ALBUM_AUTHORITY_PART=category-write php .github/scripts/check-album-lifecycle-authority-native.php
           php .github/scripts/check-album-cache-maintenance-native.php
           php .github/scripts/check-album-picture-upload-native.php
           php .github/scripts/check-album-picture-delete-native.php

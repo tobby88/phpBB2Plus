@@ -134,5 +134,6 @@ $lang['image_resizing'] = 'Bildskalierung aktivieren';
 $lang['image_width'] = 'Bildbreite';
 $lang['image_height'] = 'Bildhöhe';
 $lang['image_quality'] = 'Bildqualität';
+$lang['Album_category_save_failed'] = 'Die Kategorie konnte nicht geändert werden. Bitte lade die Seite neu und prüfe Kategorie, Berechtigungen und Eingaben.';
 
 ?>

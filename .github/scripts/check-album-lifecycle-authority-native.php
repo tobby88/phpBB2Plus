@@ -23,7 +23,7 @@ ala_check(preg_match('/^[0-9]{1,5}$/D', $port) && (int) $port > 0 && (int) $port
 $host = '127.0.0.1:' . $port; $schema = 'codex_album_live_auth_' . bin2hex(phpbb_random_bytes(8));
 $control = new sql_db($host, 'root', $password, '', false); $db = null; $storage = null; $created = false; $cases = 0; $worker = null; $worker_pipes = array(); $directory = sys_get_temp_dir() . '/' . $schema;
 $userdata = array(); $album_config = array(); $album_data = array(); $board_config = array('session_length'=>999999,'marker'=>'preserve'); $lang = array('Category_not_exist'=>'missing');
-function ala_sql($sql) { $result = $GLOBALS['control']->sql_query($sql); ala_check($result !== false, 'Own native authority fixture SQL'); return $result; }
+function ala_sql($sql) { $result = $GLOBALS['control']->sql_query($sql); if($result === false){$error=$GLOBALS['control']->sql_error();throw new RuntimeException('Own native authority fixture SQL: '.$error['message']);} return $result; }
 function ala_rows($sql) { $result = ala_sql($sql); try { return $GLOBALS['control']->sql_fetchrowset($result); } finally { $GLOBALS['control']->sql_freeresult($result); } }
 function ala_literal($value) { return 'CONVERT(0x' . bin2hex($value) . ' USING utf8mb4)'; }
 function ala_globals() { return array($GLOBALS['db'],$GLOBALS['userdata'],$GLOBALS['album_config'],$GLOBALS['album_data'],$GLOBALS['board_config']); }
@@ -96,6 +96,7 @@ try {
     preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m', file_get_contents($source_root . 'install/schemas/mysql_basic.sql'), $seed_matches); $album_seeds = array(); foreach ($seed_matches[0] as $sql) { $album_seeds[] = str_replace('phpbb_album_config','fixture_album_config',$sql); } ala_check(count($album_seeds) > 40, 'Actual canonical Album config seeds');
     $db = new AlbumLifecycleAuthoritySource($host, 'root', $password, $schema, false); ala_check($db->db_connect_id, 'Own request source');
     if(getenv('PHPBB_ALBUM_AUTHORITY_PART')==='admin'){require __DIR__.'/album-admin-authority-native-cases.php';ala_admin_cases();return;}
+    if(getenv('PHPBB_ALBUM_AUTHORITY_PART')==='category-write'){require __DIR__.'/album-admin-authority-native-cases.php';require __DIR__.'/album-admin-category-write-native-cases.php';aaw_cases();return;}
     foreach (array(false,true) as $guest) { ala_reset($guest); $result = ala_authorize(); ala_check($result[1] !== false && $result[0]->current() && $result[1]['userdata']['user_id'] === ($guest ? -1 : 7) && $result[1]['userdata']['user_level'] === 0 && $result[1]['userdata']['session_ip'] === '7f000001', 'Guest/public and registered authority use current identity'); if (!$guest) { ala_check($result[1]['userdata']['username'] === "O'Connor \ 😀", 'Current Unicode account name, not stale snapshot'); } $storage->commit(); ala_release(); $cases++; }
     foreach (array(array(8,2),array(0,3),array(0,4)) as $target) { ala_reset(); $result = ala_authorize($target[0],$target[1]); ala_check($result[1] !== false, 'Current private/moderator membership grants preserved'); $storage->commit(); ala_release(); $cases++; }
     ala_reset(); ala_sql('UPDATE fixture_users SET user_level=1 WHERE user_id=7'); $result = ala_authorize(8,2); ala_check($result[1] !== false && $result[1]['userdata']['user_level'] === ADMIN, 'Current admin grant preserved'); $storage->commit(); ala_release(); $cases++;

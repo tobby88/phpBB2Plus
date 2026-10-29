@@ -12,6 +12,14 @@ changes consolidated after that baseline without implying active maintenance.
   fields are absent. Initialize post and topic totals independently in partial
   hierarchy data; retain existing totals and exclude inaccessible child forums.
 
+### Public Album category administration
+
+- Create, edit and reorder public categories using the shared Album writer
+  lease, an owned transaction and the current exact ACP module/session grant.
+  Preserve private galleries and unrelated category data, validate current
+  parent ancestry and Unicode lengths, and make sibling ordering atomic.
+  Return a controlled localized error when authority or storage changes.
+
 ### Album file recovery, comments and ratings
 
 - Clear both Album preview caches under the shared writer lease and current
