@@ -24,6 +24,7 @@
 // in the 2.0 release but we can probable find some way of using it in a future
 // release
 //
+require_once __DIR__ . '/functions_mail_headers.php';
 class PhpbbMailException extends RuntimeException {}
 
 class emailer
@@ -59,7 +60,7 @@ class emailer
 
 	function php_mail($to)
 	{
-		try { return @mail($to, $this->subject, $this->msg, $this->extra_headers); }
+		try { return @mail($to, phpbb_mail_header_value($this->subject), phpbb_mail_transport_body($this->msg), phpbb_mail_transport_headers($this->extra_headers)); }
 		catch (\Exception $error) { return false; }
 		catch (\Throwable $error) { return false; }
 	}
@@ -283,9 +284,9 @@ class emailer
 		$bcc = (count($this->addresses['bcc'])) ? implode(', ', $this->addresses['bcc']) : '';
 
 		// Build header
-		$this->extra_headers = (($this->reply_to != '') ? "Reply-to: $this->reply_to\n" : '') . (($this->from != '') ? "From: $this->from\n" : "From: " . $board_email . "\n") . "Return-Path: " . $board_email . "\nMessage-ID: <" . bin2hex(phpbb_random_bytes(16)) . "@" . $server_name . ">\nMIME-Version: 1.0\nContent-type: text/plain; charset=" . $this->encoding . "\nContent-transfer-encoding: 8bit\nDate: " . date('r', time()) . "\nX-Priority: 3\nX-MSMail-Priority: Normal\nX-Mailer: PHP\nX-MimeOLE: Produced By phpBB2\n" . $this->extra_headers . (($cc != '') ? "Cc: $cc\n" : '')  . (($bcc != '') ? "Bcc: $bcc\n" : '');
+		$this->extra_headers = (($this->reply_to != '') ? "Reply-to: $this->reply_to\n" : '') . (($this->from != '') ? "From: $this->from\n" : "From: " . $board_email . "\n") . "Return-Path: " . $board_email . "\nMessage-ID: <" . bin2hex(phpbb_random_bytes(16)) . "@" . $server_name . ">\nMIME-Version: 1.0\nContent-type: text/plain; charset=" . $this->encoding . "\nContent-transfer-encoding: quoted-printable\nDate: " . date('r', time()) . "\nX-Priority: 3\nX-MSMail-Priority: Normal\nX-Mailer: PHP\nX-MimeOLE: Produced By phpBB2\n" . $this->extra_headers . (($cc != '') ? "Cc: $cc\n" : '')  . (($bcc != '') ? "Bcc: $bcc\n" : '');
 
-		// Send message ... removed $this->encode() from subject for time being
+		// Encode only at the transport boundary; form/template text stays UTF-8.
 		if ( $this->use_smtp )
 		{
 			if ( !defined('SMTP_INCLUDED') ) 
@@ -293,7 +294,7 @@ class emailer
 				include($phpbb_root_path . 'includes/smtp.' . $phpEx);
 			}
 
-			try { $result = smtpmail($to, $this->subject, $this->msg, $this->extra_headers, true); }
+			try { $result = smtpmail($to, $this->subject, phpbb_mail_transport_body($this->msg), $this->extra_headers, true); }
 			catch (PhpbbSmtpException $error) { $this->fail($error->getMessage()); }
 		}
 		else
@@ -328,33 +329,10 @@ class emailer
 		return true;
 	}
 
-	// Encodes the given string for proper display for this encoding ... nabbed 
-	// from php.net and modified. There is an alternative encoding method which 
-	// may produce lesd output but it's questionable as to its worth in this 
-	// scenario IMO
+	// Retain the historical API with the same UTF-8-safe encoder as transport.
 	function encode($str)
 	{
-		if ($this->encoding == '')
-		{
-			return $str;
-		}
-
-		// define start delimimter, end delimiter and spacer
-		$end = "?=";
-		$start = "=?$this->encoding?B?";
-		$spacer = "$end\r\n $start";
-
-		// determine length of encoded text within chunks and ensure length is even
-		$length = 75 - strlen($start) - strlen($end);
-		$length = floor($length / 2) * 2;
-
-		// encode the string and split it into chunks with spacers after each chunk
-		$str = chunk_split(base64_encode($str), $length, $spacer);
-
-		// remove trailing spacer and add start and end delimiters
-		$str = preg_replace('#' . preg_quote($spacer, '#') . '$#', '', $str);
-
-		return $start . $str . $end;
+		return phpbb_mail_header_value($str);
 	}
 
 } // class emailer

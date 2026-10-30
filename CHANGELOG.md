@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Unicode mail transport
+
+- Encode Unicode subjects and diagnostic header text as independently valid
+  MIME encoded words, with complete characters and bounded folded lines.
+  Preserve literal text that resembles an encoded word and keep structured
+  recipient headers unchanged. Use the same encoder for PHP mail and SMTP.
+- Transport message bodies as quoted-printable with canonical text line breaks,
+  matching their MIME declaration and preserving Unicode, spaces and SMTP dot
+  lines without requiring eight-bit transport capabilities. Keep application
+  drafts, templates, delivery acknowledgements and sender-copy privacy intact.
+
 ### Storage metadata and native checks
 
 - Bound attachment-setting column metadata to its current database and table,

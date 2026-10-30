@@ -20,6 +20,7 @@
  ***************************************************************************/
 
 // Tell the Security Scanner that this constant is allowed
+require_once __DIR__ . '/functions_mail_headers.php';
 define('SMTP_INCLUDED', 1);
 
 function smtp_envelope_address($address)
@@ -118,6 +119,8 @@ function phpbb_smtp_deliver($mail_to, $subject, $message, $headers)
 	global $board_config;
 	$subject = trim(preg_replace('/[\\x00\\r\\n]+/', '', (string) $subject));
 	if ($subject === '') { throw new PhpbbSmtpException('No email subject specified'); }
+	try { $subject = phpbb_mail_header_value($subject); }
+	catch (\RuntimeException $error) { throw new PhpbbSmtpException('Invalid email subject text'); }
 	if (trim((string) $message) === '') { throw new PhpbbSmtpException('Email message was blank'); }
 	$from_address = smtp_envelope_address($board_config['board_email']);
 	if ($from_address === '') { throw new PhpbbSmtpException('Invalid board email address'); }
@@ -141,6 +144,8 @@ function phpbb_smtp_deliver($mail_to, $subject, $message, $headers)
 		if ($header !== '') { $visible_headers[] = $header; }
 	}
 	$recipients = array_values(array_unique($recipients));
+	try { $visible_headers = explode("\r\n", phpbb_mail_transport_headers(implode("\r\n", $visible_headers))); }
+	catch (\RuntimeException $error) { throw new PhpbbSmtpException('Invalid email header text'); }
 	if (!$recipients) { throw new PhpbbSmtpException('No valid email recipient specified'); }
 	$smtp_host = trim((string) $board_config['smtp_host']);
 	if ($smtp_host === '' || preg_match('/[\\x00-\\x20\\x7f]/', $smtp_host)) { throw new PhpbbSmtpException('No SMTP host configured'); }

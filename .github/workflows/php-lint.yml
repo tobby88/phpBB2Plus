@@ -646,6 +646,8 @@ jobs:
 
       - name: Test mail failure boundaries and SMTP protocol runtime
         run: php .github/scripts/check-mail-delivery-runtime.php
+      - name: Preserve Unicode mail headers and seven-bit MIME transport
+        run: php .github/scripts/check-mail-mime.php
 
       - name: Test merge picker and preview authorization
         run: php .github/scripts/check-topic-merge-access.php

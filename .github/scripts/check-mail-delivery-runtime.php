@@ -42,6 +42,7 @@ define('GENERAL_ERROR',1); define('CONFIG_TABLE','fixture_config');
 foreach(array('smtp.php','emailer.php') as $file)
 {
 	$source=file_get_contents($root.'includes/'.$file);
+	$source=str_replace('__DIR__',var_export($root.'includes',true),$source);
 	eval('namespace MailDeliveryFixture; use \\RuntimeException;'.substr($source,5));
 }
 function mail_fixture($replies="220 Ready\r\n250 Hello\r\n250 Sender\r\n250 Recipient\r\n354 Data\r\n250 Accepted\r\n")
@@ -60,6 +61,16 @@ function expected_failure($callback,$class,$contains)
 		mail_check(strpos($error->getMessage(),'FIXTURE_SECRET')===false && strpos($error->getMessage(),'<script>')===false,'Errors never echo remote text or secrets');
 	}
 	mail_check($caught,'Expected controlled failure: '.$contains);
+}
+function decoded_header($headers,$field)
+{
+ $headers=preg_replace('/\r\n[ \t]+/',' ',$headers);$value=null;
+ foreach(preg_split('/\r\n|\r|\n/',$headers)as$line){if(stripos($line,$field.': ')===0){$value=substr($line,strlen($field)+2);break;}}
+ mail_check($value!==null,'Actual wire header present');
+ if(strpos($value,'=?UTF-8?B?')!==0){return$value;}
+ preg_match_all('/=\?UTF-8\?B\?([A-Za-z0-9+\/=]+)\?=/',$value,$words);$decoded='';
+ foreach($words[1]as$word){$bytes=base64_decode($word,true);mail_check($bytes!==false&&preg_match('//u',$bytes)===1,'Actual wire words independently decode as UTF-8');$decoded.=$bytes;}
+ return$decoded;
 }
 function fixture_mailer($smtp=false,$optional=false)
 {
@@ -122,8 +133,19 @@ try
 		expected_failure(function() use($mailer) { $mailer->send(); },$class,'Invalid email sender or recipient');
 	}
 	mail_fixture(); $mail_results=array(true); $mailer=fixture_mailer(false,true);
-	mail_check($mailer->send()===true && strpos($mail_calls[0][2],'Grüße 😀')!==false,'Optional successful PHP mail still transmits Unicode');
+	mail_check($mailer->send()===true && strpos(quoted_printable_decode($mail_calls[0][2]),'Grüße 😀')!==false,'Optional successful PHP mail still transmits Unicode');
 	mail_fixture(); $mailer=fixture_mailer(true,true); mail_check($mailer->send()===true,'Actual mailer to actual SMTP protocol success');
+	foreach(array(str_repeat('Änne 😀 ',30),'=?UTF-8?B?R3LDvMOfZQ==?=',str_repeat('long ASCII ',30))as$title){foreach(array(false,true)as$smtp){
+	 mail_fixture();$mail_results=array(true);$mailer=fixture_mailer($smtp,true);$mailer->assign_vars(array('TITLE'=>$title));$mailer->extra_headers('X-AntiAbuse: Username - '.$title);
+	 mail_check($mailer->send()===true,'Actual Unicode MIME delivery accepted');
+	 if($smtp){$start=strpos($smtp_written,"DATA\r\n")+6;$data=substr($smtp_written,$start,strpos($smtp_written,"\r\n.\r\n",$start)-$start);$parts=explode("\r\n\r\n",$data,2);$headers=$parts[0];$body=preg_replace('/^\.\./m','.',$parts[1]);}
+	 else{$headers='Subject: '.$mail_calls[0][1]."\r\n".$mail_calls[0][3];$body=$mail_calls[0][2];}
+	 mail_check(decoded_header($headers,'Subject')==='Fixture '.rtrim($title),'Actual PHP/SMTP subject remains exact Unicode/literal encoded-word text after existing outer trim');
+	 mail_check(decoded_header($headers,'X-AntiAbuse')==='Username - '.rtrim($title),'Actual PHP/SMTP diagnostic value remains exact after existing outer trim');
+	 mail_check(stripos($headers,'Content-transfer-encoding: quoted-printable')!==false&&quoted_printable_decode($body)==="Grüße 😀\r\n.\r\nEnd",'Actual MIME body and transfer declaration agree, including SMTP dot stuffing');
+	 mail_check(!preg_match('/[^\x09\x0a\x0d\x20-\x7e]/',$headers.$body),'Actual generated wire message is seven-bit safe');
+	 foreach(explode("\r\n",$headers)as$line){if(strpos($line,'=?UTF-8?B?')!==false){mail_check(strlen($line)<=76,'Actual encoded header lines satisfy MIME bound');}}
+	}}
 	mail_fixture(); $mail_results=array(false,true); $mailer=fixture_mailer(); $mailer->email_address(''); $mailer->bcc('hidden@example.invalid');
 	mail_check($mailer->send()===true && $delivery_events===array('mail','mail','sql'),'Persist sendmail fallback only after accepted retry');
 	mail_fixture(); $mail_results=array(false,false); $mailer=fixture_mailer(false,true); $mailer->email_address(''); $mailer->bcc('hidden@example.invalid');
