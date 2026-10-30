@@ -38,6 +38,7 @@ try{
   pc_check($row['file_approved']==='1'&&$row['file_pin']==='1'&&$row['file_dls']==='5'&&$row['user_id']==='7','Actual ACP approval, pin, counter and actor selections are applied');
   $updated=pu_request(pu_post($legacy,array('sid'=>'files-7','fixture_acp'=>'1','file_id'=>(string)$admin_id,'approved'=>'0','download_url'=>'')));$row=pc_rows('SELECT * FROM fixture_pa_files WHERE file_id='.$admin_id)[0];pc_check($updated['saved']===$admin_id&&empty($updated['errors'])&&$row['file_approved']==='0'&&count(pu_assets())===2,'Actual ACP edit can withdraw approval without replacing bytes');
  }
+ if(getenv('PHPBB_PA_MIRROR_HTTP_NATIVE')==='1'){require __DIR__.'/pafiledb-mirror-upload-fixture.php';}
  echo 'Native download multipart upload: ',$pc_checks-$pu_before," actual is_uploaded_file/source bytes/screenshot/replace/rollback/lost-ack/raw/legacy checks PASS.\n";
 }finally{
  if(is_resource($pu_process)){$status=proc_get_status($pu_process);if($status['running']){proc_terminate($pu_process);}proc_close($pu_process);}

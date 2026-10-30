@@ -3,6 +3,7 @@ define('IN_PHPBB',true);if(isset($argv[1])&&$argv[1]==='legacy'){define('PHPBB_L
 $root=dirname(dirname(__DIR__));$phpbb_root_path=$root.'/phpBB2/';$table_prefix='fixture_';$phpEx='php';
 require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'pafiledb/includes/pafiledb_constants.php';
 require$phpbb_root_path.'pafiledb/includes/functions.php';require$phpbb_root_path.'pafiledb/includes/functions_file_actions.php';require$phpbb_root_path.'pafiledb/includes/template.php';require$phpbb_root_path.'pafiledb/modules/pa_user_upload.php';
+require$phpbb_root_path.'pafiledb/includes/functions_mirror_storage.php';
 function append_sid($url,$html=true){return$url;}
 function phpbb_admin_require_post_session(){$GLOBALS['pf_sessions']++;}
 function phpbb_admin_session_field(){return'<input type="hidden" name="sid" value="file-form-fixture" />';}
@@ -16,6 +17,7 @@ class FileFormDatabase{
   elseif(strpos($sql,'fixture_pa_customdata')!==false){$this->rows=array();}
   elseif(strpos($sql,'fixture_pa_custom')!==false){$this->rows=array(array('custom_id'=>1,'custom_name'=>'Custom field','custom_description'=>'Custom description','data'=>'','field_type'=>INPUT,'regex'=>'','field_order'=>1));}
   elseif(strpos($sql,'fixture_pa_license')!==false){$this->rows=array(array('license_id'=>2,'license_name'=>'Synthetic license'));}
+  elseif(strpos($sql,'fixture_pa_mirrors')!==false){$this->rows=isset($GLOBALS['pf_mirrors'])?$GLOBALS['pf_mirrors']:array();}
   else{$this->rows=array();}return true;
  }
  function sql_fetchrow($result){return array_shift($this->rows);}
@@ -29,6 +31,7 @@ trait FileFormPolicy{
   $this->auth=array(9=>array('auth_upload'=>false,'auth_edit_file'=>true,'auth_mod'=>false));
  }
  function update_add_file($id=false,$fields=null){$this->calls[]=array($id,$fields instanceof custom_field);$this->error[]=$GLOBALS['lang']['PA_file_failed'];return null;}
+ function mirror_request($id){$this->calls[]=array($id,pafiledb_mirror_request_data());$this->error[]=$GLOBALS['lang']['PA_file_failed'];return null;}
  function jumpmenu_option($parent=0,$depth=0,$selected=array(),$files=false,$upload=false){return'<option value="9"'.(isset($selected[9])?' selected':'').'>Synthetic</option>';}
  function _pafiledb(){}
 }
@@ -67,6 +70,23 @@ try{
    pf_check((strpos($html,'name="file_id" value="42"')!==false)===($kind==='edit'),'Actual '.$surface.' rejected edit never becomes create');
    pf_check(strpos($html,'name="sid" value="file-form-fixture"')!==false,'Actual '.$surface.' retry keeps session');
   }}}
+ }
+ foreach(array('english','german')as$locale){$lang=array();foreach(array('lang_main','lang_pafiledb','lang_admin_pafiledb')as$file){require$phpbb_root_path.'language/lang_'.$locale.'/'.$file.'.php';}
+  foreach(array('add_new'=>'create','modify'=>'modify','delete_mirrors'=>'delete')as$button=>$action){foreach(array('0',"O'Reilly \\ &amp; <script>bad</script> Grüße 😀")as$draft){
+   $url='https://downloads.example.invalid/file.zip?literal=&amp;';$pf_mirrors=array();foreach(array(1,2)as$id){$pf_mirrors[]=array('mirror_id'=>$id,'file_id'=>42,'unique_name'=>'','file_dir'=>'downloads/','file_dlurl'=>$url,'mirror_location'=>$draft);}
+   $db=new FileFormDatabase();$pafiledb_functions=new pafiledb_functions();$pafiledb=new FileFormAdmin();$pafiledb->init();$pafiledb_config=array('max_file_size'=>1000,'settings_dbname'=>'Synthetic','sort_method'=>'file_time','sort_order'=>'DESC','settings_file_page'=>20);$_SERVER['REQUEST_METHOD']='POST';$_GET=array();$_POST=array('mode'=>'mirrors','file_id'=>'42','sid'=>'file-form-fixture',$button=>'1');$_FILES=array();
+   if($action==='create'){$_POST['new_location']=$draft;$_POST['new_download_url']=$url;$_FILES['new_userfile']=array('error'=>UPLOAD_ERR_NO_FILE);}
+   elseif($action==='modify'){$_POST['location']=array(1=>$draft,2=>$draft);$_POST['download_url']=array(1=>$url,2=>$url);$_FILES['userfile']=array('name'=>array(1=>'',2=>''),'tmp_name'=>array(1=>'',2=>''),'error'=>array(1=>UPLOAD_ERR_NO_FILE,2=>UPLOAD_ERR_NO_FILE));}
+   else{$_POST['mirror_ids']=array('1','2');}
+   if(defined('PHPBB_LEGACY_REQUEST_ESCAPED')){$_POST=phpbb_addslashes_recursive($_POST);}$_REQUEST=$_POST;$pafiledb_template=new FileFormTemplate();$pafiledb_template->root=$phpbb_root_path.'templates/fisubsilversh';$pafiledb_template->cachedir=sys_get_temp_dir().'/codex_file_form_no_cache/';$pafiledb_template->force_recompile=true;$pf_sessions=0;eval($admin);
+   pf_check(count($pafiledb->calls)===1&&$pafiledb->calls[0][0]===42&&$pafiledb->calls[0][1][0]===$action&&$pf_sessions>=1,'Actual mirror controller validates POST and delegates one complete parent-scoped action');
+   $parsed=$pafiledb->calls[0][1][1];if($action==='create'){pf_check($parsed[0]['location']===$draft&&$parsed[0]['url']===$url,'Actual create parser decodes raw mirror input exactly once');}elseif($action==='modify'){pf_check(count($parsed)===2&&$parsed[1]['location']===$draft&&$parsed[2]['upload']['error']===UPLOAD_ERR_NO_FILE,'Actual modify parser retains both rows and SAPI upload errors');}else{pf_check($parsed===array('1','2'),'Actual delete parser keeps complete selected scope');}
+   ob_start();try{$pafiledb_template->display('admin');$html=ob_get_contents();}finally{ob_end_clean();}
+   pf_check($db->writes===0&&strpos($html,$lang['PA_file_failed'])!==false,'Rejected mirror batch performs no separate writes and displays its failure');
+   foreach(array(1,2)as$id){pf_check(preg_match_all('/name="location\['.$id.'\]"[^>]*value="([^"]*)"/',$html,$m)===1&&html_entity_decode($m[1][0],ENT_QUOTES,'UTF-8')===$draft,'Actual mirror template renders each row once and preserves raw draft '.$id);}
+   pf_check(strpos($html,'<script>bad</script>')===false&&strpos($html,'name="file_id" value="42"')!==false,'Mirror retry escapes draft and retains parent identity');
+   if($action==='create'){pf_check(preg_match('/name="new_location"[^>]*value="([^"]*)"/',$html,$m)===1&&html_entity_decode($m[1],ENT_QUOTES,'UTF-8')===$draft,'Rejected mirror create keeps its new location field');}
+  }}
  }
  $pafiledb_template=new FileFormTemplate();$pafiledb_template->root=$phpbb_root_path.'templates/fisubsilversh';$pafiledb_template->cachedir=sys_get_temp_dir().'/codex_file_form_no_cache/';$pafiledb_template->force_recompile=true;$pafiledb_template->set_filenames(array('body'=>'pa_mcp.tpl'));
  $failure=$lang['PA_file_failed'].' <script>bad</script>';$pafiledb_template->assign_vars(array('ERROR'=>pafiledb_html($failure)));ob_start();try{$pafiledb_template->display('body');$html=ob_get_contents();}finally{ob_end_clean();}

@@ -103,10 +103,10 @@ class PaFileDbFileAuthority
 
     function select($action, $ids, $destination = 0)
     {
-        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','category','download'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
+        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','mirror-delete','category','download'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
         $unique = array(); foreach ($ids as $id) { $id = self::id($id); if (isset($unique[$id])) { pafiledb_file_fail('PA_file_invalid'); } $unique[$id] = $id; }
         $this->destination = self::id($destination, true); $this->action = $action;
-        if (($action === 'create' && ($unique || !$this->destination)) || ($action === 'edit' && (count($unique) !== 1 || !$this->destination)) || (in_array($action, array('delete','approve','mirror','download'), true) && !$unique) || (in_array($action,array('mirror','download'),true) && count($unique) !== 1) || ($action === 'download' && $this->mode !== 'public') || ($action === 'category' && ($this->mode !== 'categories' || $unique))) { pafiledb_file_fail('PA_file_invalid'); }
+        if (($action === 'create' && ($unique || !$this->destination)) || ($action === 'edit' && (count($unique) !== 1 || !$this->destination)) || (in_array($action, array('delete','approve','mirror','mirror-delete','download'), true) && !$unique) || (in_array($action,array('mirror','mirror-delete','download'),true) && count($unique) !== 1) || ($action === 'download' && $this->mode !== 'public') || ($action === 'category' && ($this->mode !== 'categories' || $unique))) { pafiledb_file_fail('PA_file_invalid'); }
         $this->current();
         if ($unique) { foreach ($this->rows('SELECT * FROM ' . PA_FILES_TABLE . ' WHERE file_id IN(' . implode(',', $unique) . ') ORDER BY file_id FOR UPDATE') as $row) { $this->files[(int)$row['file_id']] = $row; } if (count($this->files) !== count($unique)) { pafiledb_file_fail('File_not_exist'); } }
         $this->check(); return $this->files;
@@ -118,9 +118,10 @@ class PaFileDbFileAuthority
         if ($this->mode === 'categories') { if ($this->action !== 'category') { pafiledb_file_fail('Not_Authorised'); } return true; }
         if ($this->mode === 'files') {
             if (in_array($this->action, array('create','edit'), true)) { $this->category($this->destination, array(), true, false, false); }
+            if ($this->action === 'mirror') { foreach ($this->files as $file) { $this->category(self::id($file['file_catid']),array(),true,false,false); } }
             return true;
         }
-        if (in_array($this->action, array('mirror','category'), true)) { pafiledb_file_fail('Not_Authorised'); }
+        if (in_array($this->action, array('mirror','mirror-delete','category'), true)) { pafiledb_file_fail('Not_Authorised'); }
         $grants = $this->grants();
         if ($this->action === 'create') { $this->category($this->destination, $grants, true); return true; }
         $policy = new pafiledb();

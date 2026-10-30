@@ -1704,213 +1704,32 @@ class pafiledb
 		}
 	}
 	
+	function mirror_request($file_id)
+	{
+		global $lang;
+		require_once dirname(__FILE__) . '/functions_mirror_storage.php';
+		try { list($action,$payload)=pafiledb_mirror_request_data(); }
+		catch (PaFileDbFileActionFailure $error) { $key=$error->getMessage();$this->error[]=isset($lang[$key])?$lang[$key]:$lang['PA_file_failed'];return null; }
+		return pafiledb_mirror_change($this,$file_id,$action,$payload);
+	}
+
+	function mirror_batch($file_id, $action, $payload)
+	{
+		require_once dirname(__FILE__) . '/functions_mirror_storage.php';
+		return pafiledb_mirror_change($this,$file_id,$action,$payload);
+	}
+
 	function mirror_add_update($file_id, $file_upload, $file_remote_url, $file_local, $file_realname, $file_size, $file_type, $mirror_location, $mirror_id = false)
 	{
-		global $db, $phpbb_root_path, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions, $lang;
-		$file_id = (int) $file_id;
-		$mirror_id = (int) $mirror_id;
-		if ($file_id <= 0)
-		{
-			$this->error[] = $lang['File_not_exist'];
-			return;
-		}
-		$file_remote_url = is_scalar($file_remote_url) ? (string) $file_remote_url : '';
-		$file_local = is_scalar($file_local) ? (string) $file_local : '';
-		$file_realname = is_scalar($file_realname) ? basename(str_replace('\\', '/', (string) $file_realname)) : '';
-		$file_size = max(0, (int) $file_size);
-		$mirror_location = is_scalar($mirror_location) ? (string) $mirror_location : '';
-		$sql = 'SELECT file_id FROM ' . PA_FILES_TABLE . " WHERE file_id = $file_id";
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Couldnt validate mirror download', '', __LINE__, __FILE__, $sql);
-		}
-		$file_exists = (bool) $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);
-		if (!$file_exists)
-		{
-			$this->error[] = $lang['File_not_exist'];
-			return;
-		}
-		
-		if(empty($file_remote_url) && empty($file_local) && !$file_id)
-		{
-			$this->error[] = $lang['Missing_field'];
-		}
-		if (!empty($file_remote_url))
-		{
-			$normalized_url = pafiledb_normalize_remote_url($file_remote_url);
-			if ($normalized_url === false)
-			{
-				$this->error[] = 'The remote download URL must use HTTP or HTTPS.';
-			}
-			else
-			{
-				$file_remote_url = $normalized_url;
-			}
-		}
-		if (strlen($file_remote_url) > 255 || strlen($mirror_location) > 255)
-		{
-			$this->error[] = 'Mirror URLs and locations may not exceed 255 bytes.';
-		}
-			
-		$forbidden_extensions = array_map('strtolower', array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions'])));
-
-		$file_extension = $pafiledb_functions->get_extension($file_realname);
-
-			
-		if($file_upload && (phpbb_forbidden_upload_extension($file_extension) || in_array($file_extension, $forbidden_extensions, true)))
-		{
-			$this->error[] = 'You are not allowed to upload this type of files';
-		}
-		
-		if(sizeof($this->error))
-		{
-			return;
-		}
-
-		$physical_file_name = '';
-		$old_physical_path = '';
-		
-		if($mirror_id)
-		{
-			$sql = 'SELECT file_dlurl, unique_name, file_dir
-				FROM ' . PA_MIRRORS_TABLE . " 
-				WHERE mirror_id = $mirror_id
-					AND file_id = $file_id";
-	
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt query Download URL', '', __LINE__, __FILE__, $sql);
-			}
-
-			$mirror_data = $db->sql_fetchrow($result);
-
-			$db->sql_freeresult($result);
-			if (!$mirror_data)
-			{
-				$this->error[] = $lang['File_not_exist'];
-				return;
-			}
-			
-			if(!empty($file_remote_url) || !empty($file_local))
-			{
-				if(!empty($mirror_data['unique_name']))
-				{
-					$old_physical_path = $phpbb_root_path . $mirror_data['file_dir'] . $mirror_data['unique_name'];
-				}
-			}
-			else
-			{
-				$file_remote_url = $mirror_data['file_dlurl'];
-				$physical_file_name = $mirror_data['unique_name'];
-				$file_dir = $mirror_data['file_dir'];
-				
-				if(empty($file_local))
-				{
-					$file_upload = false;
-				}
-			}
-		}
-
-		if($file_upload)
-		{
-			$physical_file_name = $pafiledb_functions->gen_unique_name('.' . $file_extension);
-
-			$file_info = $pafiledb_functions->upload_file($file_local, $physical_file_name, $file_size, $pafiledb_config['upload_dir']);
-				
-			if($file_info['error'])
-			{
-				message_die(GENERAL_ERROR, $file_info['message']);
-			}
-			$file_size = (int) $file_info['size'];
-		}
-		
-		$physical_file_name_sql = $db->sql_escape($physical_file_name);
-		$file_dir_sql = $db->sql_escape($pafiledb_config['upload_dir']);
-		$file_remote_url_sql = $db->sql_escape(stripslashes($file_remote_url));
-		$mirror_location_sql = $db->sql_escape(stripslashes($mirror_location));
-
-		if(!$mirror_id)
-		{
-			$sql = 'INSERT INTO ' . PA_MIRRORS_TABLE . " (file_id, unique_name, file_dir, file_dlurl, mirror_location)
-					VALUES($file_id, '$physical_file_name_sql', '$file_dir_sql', '$file_remote_url_sql', '$mirror_location_sql')";
-		}
-		else
-		{
-			$sql = "UPDATE " . PA_MIRRORS_TABLE . " 
-				SET file_id = $file_id,
-				unique_name = '$physical_file_name_sql',
-				file_dir = '$file_dir_sql',
-				file_dlurl = '$file_remote_url_sql',
-				mirror_location = '$mirror_location_sql'
-				WHERE mirror_id = $mirror_id
-					AND file_id = $file_id";
-		}
-
-		if ( !($db->sql_query($sql)) )
-		{
-			if ($file_upload && $physical_file_name !== '')
-			{
-				$pafiledb_functions->pafiledb_unlink($phpbb_root_path . $pafiledb_config['upload_dir'] . $physical_file_name);
-			}
-			message_die(GENERAL_ERROR, 'Couldnt Add the file information to the database', '', __LINE__, __FILE__, $sql);
-		}
-
-		// Keep the previous mirror available until both its replacement and the
-		// database update have completed successfully.
-		if ($old_physical_path !== '')
-		{
-			$pafiledb_functions->pafiledb_unlink($old_physical_path);
-		}
+		require_once dirname(__FILE__) . '/functions_mirror_storage.php';
+		$upload=pafiledb_mirror_legacy_upload($file_local);
+		$create=$mirror_id===false||$mirror_id===0||$mirror_id==='0';
+		return $this->mirror_batch($file_id,$create?'create':'modify',array($create?0:$mirror_id=>array('url'=>$file_remote_url,'location'=>$mirror_location,'upload'=>$upload)));
 	}
-	
+
 	function delete_mirror($mirror_id, $file_id = 0)
 	{
-		global $db, $phpbb_root_path, $pafiledb_functions;
-		$mirror_ids = is_array($mirror_id) ? $mirror_id : array($mirror_id);
-		$normalized_ids = array();
-		foreach ($mirror_ids as $selected_id)
-		{
-			$selected_id = (int) $selected_id;
-			if ($selected_id > 0)
-			{
-				$normalized_ids[$selected_id] = $selected_id;
-			}
-		}
-		if (!$normalized_ids)
-		{
-			return;
-		}
-		$file_id = (int) $file_id;
-		$where_sql = 'IN (' . implode(', ', $normalized_ids) . ')';
-		$file_sql = ($file_id > 0) ? " AND file_id = $file_id" : '';
-		$sql = 'SELECT unique_name, file_dir FROM ' . PA_MIRRORS_TABLE . "
-			WHERE mirror_id $where_sql$file_sql";
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Couldnt select mirror files', '', __LINE__, __FILE__, $sql);
-		}
-		$physical_paths = array();
-		while ($row = $db->sql_fetchrow($result))
-		{
-			if (!empty($row['unique_name']))
-			{
-				$physical_paths[] = $phpbb_root_path . $row['file_dir'] . $row['unique_name'];
-			}
-		}
-		$db->sql_freeresult($result);
-		
-		$sql = 'DELETE FROM ' . PA_MIRRORS_TABLE . "
-			WHERE mirror_id $where_sql$file_sql";
-			
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt delete mirror for this file', '', __LINE__, __FILE__, $sql);
-		}
-		foreach ($physical_paths as $physical_path)
-		{
-			$pafiledb_functions->pafiledb_unlink($physical_path);
-		}
+		return $this->mirror_batch($file_id,'delete',is_array($mirror_id)?$mirror_id:array($mirror_id));
 	}
 	
 	function file_mainenance()

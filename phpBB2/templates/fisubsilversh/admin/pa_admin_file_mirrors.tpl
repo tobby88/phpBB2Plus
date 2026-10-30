@@ -122,7 +122,7 @@
   <tr>
 	<td colspan="2" class="row3" height="2"></td>
   </tr>
-<!-- END cat_row -->
+<!-- END row -->
 <!-- IF ROW_NOT_EMPTY -->  
   <tr>
 	<td align="center" class="cat" colspan="2"><input class="mainoption" type="submit" value="{L_MODIFY}" name="modify" onClick="set_check_delete(false); set_add_file(false);" />&nbsp;<input class="mainoption" type="submit" value="{L_DELETE}" name="delete_mirrors" onClick="set_check_delete(true);" /></td>
@@ -136,7 +136,7 @@
   </tr>  
   <tr>
 	<td width="50%" class="row1">{L_MIRROR_LOCATION}</td>
-	<td class="row2"><input type="text" class="post" size="50" name="new_location" /></td>
+	<td class="row2"><input type="text" class="post" size="50" name="new_location" value="{NEW_LOCATION}" /></td>
   </tr>
   <tr>
 	<td class="row1"><span class="genmed">{L_FILE_UPLOAD}</span><br><span class="gensmall">{L_FILEINFO_UPLOAD}</span></td>
@@ -147,7 +147,7 @@
   <tr>
 	<td class="row1"><span class="genmed">{L_FILE_URL}</span><br><span class="gensmall">{L_FILE_URL_INFO}</span></td>
 	<td class="row2">
-		<input type="text" class="post" size="50" name="new_download_url" />
+		<input type="text" class="post" size="50" name="new_download_url" value="{NEW_DOWNLOAD_URL}" />
 	</td>
   </tr>
   <tr>

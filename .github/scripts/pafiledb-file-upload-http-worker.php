@@ -15,10 +15,13 @@ try{
  $db=new PaCoordinatorDatabase('127.0.0.1:'.$port,'root',getenv('PHPBB_PA_FILE_COORDINATOR_PASSWORD')?:'',$schema,false);$pafiledb_config=array();$r=$db->sql_query('SELECT * FROM fixture_pa_config');if(!$r){throw new RuntimeException('Missing own upload config');}foreach($db->sql_fetchrowset($r)as$row){$pafiledb_config[$row['config_name']]=$row['config_value'];}$db->sql_freeresult($r);foreach(array('auth_search','auth_stats','auth_toplist','auth_viewall')as$key){$pafiledb_config[$key]=AUTH_ALL;}
  $fault=isset($_POST['fixture_failure'])&&is_string($_POST['fixture_failure'])?$_POST['fixture_failure']:'';
  if($fault==='custom'){$db->on_query=function($sql){if(strpos($sql,'INSERT INTO fixture_pa_customdata')===0){return false;}};}
+ elseif($fault==='second-mirror'){$mirror_writes=0;$db->on_query=function($sql)use(&$mirror_writes){if(strpos($sql,'UPDATE fixture_pa_mirrors')===0){$mirror_writes++;if($mirror_writes===2){return false;}}};}
+ elseif($fault==='mirror-delete'){$db->on_query=function($sql){if(strpos($sql,'DELETE FROM fixture_pa_mirrors')===0){return false;}};}
  elseif($fault==='metadata-ack'){$db->lost=1;}elseif($fault==='intent-ack'){$db->lost=2;}
  if(isset($_POST['fixture_legacy'])&&$_POST['fixture_legacy']==='1'){define('PHPBB_LEGACY_REQUEST_ESCAPED',true);$_POST=phpbb_addslashes_recursive($_POST);}
- $pafiledb_functions=new pafiledb_functions();$model=new pafiledb();$file=isset($_POST['file_id'])?(int)$_POST['file_id']:false;$fields=new custom_field();$saved=$model->update_add_file($file,$fields);
- header('Content-Type: application/json');echo json_encode(array('saved'=>$saved,'errors'=>$model->error,'actual_upload'=>isset($_FILES['userfile']['tmp_name'])&&is_uploaded_file($_FILES['userfile']['tmp_name']),'actual_screenshot'=>isset($_FILES['screen_shot']['tmp_name'])&&is_uploaded_file($_FILES['screen_shot']['tmp_name'])));
+ $pafiledb_functions=new pafiledb_functions();$model=new pafiledb();$file=isset($_POST['file_id'])?(int)$_POST['file_id']:false;$fields=new custom_field();
+ $saved=isset($_POST['fixture_action'])&&$_POST['fixture_action']==='mirror'?$model->mirror_request($file):$model->update_add_file($file,$fields);
+ header('Content-Type: application/json');echo json_encode(array('saved'=>$saved,'errors'=>$model->error,'actual_upload'=>isset($_FILES['userfile']['tmp_name'])&&is_string($_FILES['userfile']['tmp_name'])&&is_uploaded_file($_FILES['userfile']['tmp_name']),'actual_screenshot'=>isset($_FILES['screen_shot']['tmp_name'])&&is_string($_FILES['screen_shot']['tmp_name'])&&is_uploaded_file($_FILES['screen_shot']['tmp_name'])));
 }catch(Exception$error){http_response_code(500);echo json_encode(array('fixture_error'=>$error->getMessage()));}
 catch(Error$error){http_response_code(500);echo json_encode(array('fixture_error'=>$error->getMessage()));}
 finally{restore_error_handler();if($db){$db->sql_close();}}

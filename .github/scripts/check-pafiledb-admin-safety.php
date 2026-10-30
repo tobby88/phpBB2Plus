@@ -10,6 +10,7 @@ function pafiledb_admin_assert($condition, $message)
 }
 
 $root = dirname(dirname(__DIR__));
+$mirror_storage = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_mirror_storage.php');
 $admin_category = file_get_contents($root . '/phpBB2/admin/admin_pa_category.php');
 $admin_custom = file_get_contents($root . '/phpBB2/admin/admin_pa_custom.php');
 $admin_flags = file_get_contents($root . '/phpBB2/admin/admin_flags.php');
@@ -79,10 +80,10 @@ pafiledb_admin_assert(strpos($admin_file, 'function pa_admin_file_request_scalar
 pafiledb_admin_assert(strpos($admin_file, "\$_REQUEST") === false, 'file administration must not merge GET and POST input');
 pafiledb_admin_assert(strpos($admin_file, '$allowed_modes = array(') !== false, 'file administration modes must use an allowlist');
 pafiledb_admin_assert(strpos($admin_file, 'phpbb_admin_require_post_session();') !== false, 'file mutations must require a POST token');
-pafiledb_admin_assert(strpos($admin_file, '$pafiledb->delete_mirror($mirror_ids, $file_id)') !== false, 'mirror deletion must stay scoped to its download');
-pafiledb_admin_assert(strpos($admin_file, "'MIRROR_URL' => pafiledb_html") !== false, 'mirror values must be escaped in administration output');
+pafiledb_admin_assert(strpos($admin_file, '$pafiledb->mirror_request($file_id)') !== false && strpos($mirror_storage, 'DELETE FROM ') !== false, 'mirror deletion must stay scoped to its download through the owning batch writer');
+pafiledb_admin_assert(strpos($admin_file, "'MIRROR_URL' => \$mirror_url") !== false && strpos($admin_file, "htmlspecialchars(\$mirror_data['file_dlurl']") !== false, 'raw mirror values must be escaped in administration output');
 pafiledb_admin_assert(strpos($category_functions, "\$mode = (\$mode === 'category') ? 'category' : 'file';") !== false, 'file deletion modes must be normalized');
-pafiledb_admin_assert(strpos($category_functions, 'AND file_id = $file_id') !== false, 'mirror updates must verify their parent download');
+pafiledb_admin_assert(strpos($mirror_storage, "' WHERE file_id='") !== false && strpos($mirror_storage, "' AND mirror_id='") !== false, 'mirror updates must verify their parent download');
 pafiledb_admin_assert(strpos($category_functions, 'function delete_mirror($mirror_id, $file_id = 0)') !== false, 'mirror deletion must accept a parent scope');
 pafiledb_admin_assert(strpos($category_functions, '$db->sql_escape($file_long_desc)') !== false, 'download text must use database-driver escaping');
 

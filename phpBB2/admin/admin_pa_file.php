@@ -44,11 +44,6 @@ function pa_admin_file_request_scalar($key, $default = '')
 	return (string) $default;
 }
 
-function pa_admin_file_post_upload($field, $key, $default = '')
-{
-	return (isset($_FILES[$field]) && is_array($_FILES[$field]) && isset($_FILES[$field][$key]) && is_scalar($_FILES[$field][$key])) ? (string) $_FILES[$field][$key] : $default;
-}
-
 $cat_id = max(0, intval(pa_admin_file_request_scalar('cat_id', 0)));
 if ($cat_id && !isset($pafiledb->cat_rowset[$cat_id]))
 {
@@ -687,90 +682,9 @@ elseif($mode == 'mirrors')
 	{
 		phpbb_admin_require_post_session();
 	}
-	if(isset($_POST['delete_mirrors']))
+	if (isset($_POST['delete_mirrors']) || isset($_POST['add_new']) || isset($_POST['modify']))
 	{
-		$mirror_ids = (isset($_POST['mirror_ids']) && is_array($_POST['mirror_ids'])) ? array_map('intval', $_POST['mirror_ids']) : array();
-
-		if(!empty($mirror_ids))
-		{
-			$pafiledb->delete_mirror($mirror_ids, $file_id);
-		}
-	}
-	if(isset($_POST['add_new']))
-	{
-		$file_remote_url = phpbb_admin_post_string('new_download_url');
-		$file_upload = ($file_remote_url === '');
-		$file_local = pa_admin_file_post_upload('new_userfile', 'tmp_name');
-		$file_realname = basename(str_replace('\\', '/', pa_admin_file_post_upload('new_userfile', 'name')));
-		$file_size = max(0, intval(pa_admin_file_post_upload('new_userfile', 'size', 0)));
-		$file_type = pa_admin_file_post_upload('new_userfile', 'type');
-		$mirror_location = phpbb_admin_post_string('new_location');
-
-		$pafiledb->mirror_add_update($file_id, $file_upload, $file_remote_url, $file_local, $file_realname, $file_size, $file_type, $mirror_location);
-	}
-
-	if(isset($_POST['modify']))
-	{
-		$file_urls = (isset($_POST['download_url']) && is_array($_POST['download_url'])) ? $_POST['download_url'] : array();
-		$userfiles = (isset($_FILES['userfile']) && is_array($_FILES['userfile'])) ? $_FILES['userfile'] : array();
-		$locations = (isset($_POST['location']) && is_array($_POST['location'])) ? $_POST['location'] : array();
-
-		$data = array();
-
-		foreach($file_urls as $mirror_id => $file_url)
-		{
-			$mirror_id = intval($mirror_id);
-			if ($mirror_id > 0 && is_scalar($file_url))
-			{
-				$data[$mirror_id]['download_url'] = stripslashes((string) $file_url);
-			}
-		}
-
-		foreach(array_keys($userfiles) as $key)
-		{
-			if (!is_array($userfiles[$key]))
-			{
-				continue;
-			}
-			foreach($userfiles[$key] as $mirror_id => $userfile)
-			{
-				$mirror_id = intval($mirror_id);
-				if ($mirror_id > 0 && is_scalar($userfile))
-				{
-					$data[$mirror_id][$key] = (string) $userfile;
-				}
-			}
-		}
-
-		foreach($locations as $mirror_id => $location)
-		{
-			$mirror_id = intval($mirror_id);
-			if ($mirror_id > 0 && is_scalar($location))
-			{
-				$data[$mirror_id]['location'] = stripslashes((string) $location);
-			}
-		}
-
-
-		unset($file_urls);
-		unset($userfiles);
-		unset($locations);
-
-		foreach($data as $mirror_id => $mirror_data)
-		{
-			$file_upload = empty($mirror_data['download_url']);
-			$file_remote_url = (!empty($mirror_data['download_url'])) ? $mirror_data['download_url'] : '';
-			$file_local = (isset($mirror_data['tmp_name']) && $mirror_data['tmp_name'] !== 'none') ? $mirror_data['tmp_name'] : '';
-			$file_realname = (isset($mirror_data['name']) && $mirror_data['name'] !== 'none') ? basename(str_replace('\\', '/', $mirror_data['name'])) : '';
-			$file_size = ( !empty($mirror_data['size']) ) ? $mirror_data['size'] : '';
-			$file_type = ( !empty($mirror_data['type']) ) ? $mirror_data['type'] : '';
-
-			$mirror_location = (!empty($mirror_data['location'])) ? $mirror_data['location'] : '';
-
-			$pafiledb->mirror_add_update($file_id, $file_upload, $file_remote_url, $file_local, $file_realname, $file_size, $file_type, $mirror_location, $mirror_id);
-		}
-
-		unset($data);
+		$pafiledb->mirror_request($file_id);
 	}
 
 	$sql = 'SELECT f.*
@@ -788,10 +702,14 @@ elseif($mode == 'mirrors')
 	{
 		$mirrors_data[$row['mirror_id']] = $row;
 	}
+	$db->sql_freeresult($result);
+	$mirror_draft = function($value) { return htmlspecialchars(is_string($value) ? phpbb_request_raw_value($value) : '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); };
 
 	$pafiledb_template->assign_vars(array(
 		'ROW_NOT_EMPTY' => (empty($mirrors_data)) ? FALSE : TRUE,
 		'FILESIZE' => intval($pafiledb_config['max_file_size']),
+		'NEW_LOCATION' => !empty($pafiledb->error) && isset($_POST['new_location']) ? $mirror_draft($_POST['new_location']) : '',
+		'NEW_DOWNLOAD_URL' => !empty($pafiledb->error) && isset($_POST['new_download_url']) ? $mirror_draft($_POST['new_download_url']) : '',
 
 		'L_MIRROR_LOCATION' => $lang['Mirror_location'],
 		'L_FILE_UPLOAD' => $lang['File_upload'],
@@ -808,10 +726,12 @@ elseif($mode == 'mirrors')
 
 	foreach($mirrors_data as $mirror_id => $mirror_data)
 	{
+		$location = !empty($pafiledb->error) && isset($_POST['location'][$mirror_id]) ? $mirror_draft($_POST['location'][$mirror_id]) : htmlspecialchars($mirror_data['mirror_location'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+		$mirror_url = !empty($pafiledb->error) && isset($_POST['download_url'][$mirror_id]) ? $mirror_draft($_POST['download_url'][$mirror_id]) : htmlspecialchars($mirror_data['file_dlurl'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 		$pafiledb_template->assign_block_vars('row', array(
-			'LOCATION' => pafiledb_html($mirror_data['mirror_location']),
+			'LOCATION' => $location,
 			'MIRROR_ID' => intval($mirror_id),
-			'MIRROR_URL' => pafiledb_html($mirror_data['file_dlurl']),
+			'MIRROR_URL' => $mirror_url,
 			'MIRROR_FILE' => pafiledb_html($mirror_data['unique_name']),
 			'U_UPLOADED_MIRROR' => pafiledb_html(get_formated_url() . '/' . $mirror_data['file_dir'] . $mirror_data['unique_name']))
 		);
