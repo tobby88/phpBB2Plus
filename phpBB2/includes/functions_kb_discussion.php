@@ -43,7 +43,7 @@ function kb_insert_discussion_post($message, $subject, $forum, $poster, $usernam
 	$forum = kb_counter_category_id($forum); $first = 0;
 	if ($topic !== null) {
 		$topic = kb_counter_category_id($topic);
-		$rows = $db->rows('SELECT p.post_id FROM ' . TOPICS_TABLE . ' t INNER JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_first_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id WHERE t.topic_id=' . $topic . ' AND t.forum_id=' . $forum . ' FOR UPDATE');
+		$rows = $db->rows('SELECT p.post_id FROM ' . TOPICS_TABLE . ' t INNER JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_first_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id WHERE t.topic_id=' . $topic . ' AND t.forum_id=' . $forum . ' AND p.post_deleted=0 FOR UPDATE');
 		if (count($rows) !== 1) { kb_publication_fail('KB_deletion_relation'); }
 		$first = kb_counter_category_id($rows[0]['post_id']);
 	}
