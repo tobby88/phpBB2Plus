@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download category maintenance
 
+- Delete whole file selections in one owning transaction under current account,
+  session and source-category authority. Remove associated comments, votes,
+  visitor records, custom values and mirrors with the selected file identities.
+  Queue exact main-file, mirror and screenshot cleanup with that transaction;
+  protect shared references and report uncertain commits without blind undo.
+  Keep ACP row actions bound to their clicked target and show public failures.
 - Read category counts and latest visible files from one current read view,
   without writing persistent caches during page display. Respect descendant
   read/file-view permissions and safely shorten Unicode file labels. Add the

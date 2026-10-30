@@ -106,7 +106,10 @@ class pafiledb_user_upload extends pafiledb_public
 					message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 				}
 
-				$this->delete_files($file_id);
+				if ($this->delete_files($file_id) !== true || !empty($this->error))
+				{
+					message_die(GENERAL_MESSAGE, implode('<br />', array_map('pafiledb_html', $this->error)));
+				}
 				$this->_pafiledb();
 				$message = $lang['Filedeleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid('dload.php') . '">', '</a>');
 				message_die(GENERAL_MESSAGE, $message);

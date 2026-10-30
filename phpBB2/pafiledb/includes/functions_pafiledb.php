@@ -1007,6 +1007,11 @@ class pafiledb
 
 	function delete_files($id, $mode = 'file')
 	{
+		if ($mode === 'file')
+		{
+			require_once dirname(__FILE__) . '/functions_file_delete.php';
+			return pafiledb_file_delete($this, $id);
+		}
 		global $db, $phpbb_root_path, $pafiledb_functions;
 		$id = (int) $id;
 		$mode = ($mode === 'category') ? 'category' : 'file';

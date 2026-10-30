@@ -51,18 +51,10 @@ if ($cat_id && !isset($pafiledb->cat_rowset[$cat_id]))
 }
 $file_id = max(0, intval(pa_admin_file_request_scalar('file_id', 0)));
 $file_ids = array();
-if (isset($_POST['file_ids']) && is_array($_POST['file_ids']))
-{
-	foreach ($_POST['file_ids'] as $selected_file_id)
-	{
-		$selected_file_id = intval($selected_file_id);
-		if ($selected_file_id > 0)
-		{
-			$file_ids[$selected_file_id] = $selected_file_id;
-		}
-	}
-	$file_ids = array_values($file_ids);
-}
+// Preserve the submitted identities for the owning batch validator. Filtering
+// malformed or duplicate IDs here could silently turn a rejected selection
+// into a partially accepted operation.
+if (isset($_POST['file_ids'])) { $file_ids = is_array($_POST['file_ids']) ? $_POST['file_ids'] : array(false); }
 $start = max(0, intval(pa_admin_file_request_scalar('start', 0)));
 $s_hidden_fields = '';
 $approved_file_rowset = array();
@@ -91,6 +83,7 @@ if (isset($_POST['file_action']) && is_scalar($_POST['file_action']) &&
 {
 	$mode = $file_action_match[1];
 	$file_id = (int) $file_action_match[2];
+	$file_ids = array($file_id);
 }
 
 if (in_array($mode, array('do_add', 'delete', 'do_maintenance', 'do_approve', 'do_unapprove'), true))
@@ -260,20 +253,7 @@ elseif($mode == 'do_add' && $file_id)
 }
 elseif($mode == 'delete')
 {
-	if(is_array($file_ids) && !empty($file_ids))
-	{
-		foreach($file_ids as $temp_file_id)
-		{
-			$pafiledb->delete_files($temp_file_id);
-		}
-	}
-	else
-	{
-		if ($file_id > 0)
-		{
-			$pafiledb->delete_files($file_id);
-		}
-	}
+	$pafiledb->delete_files(isset($_POST['file_ids']) ? $file_ids : array($file_id));
 	$pafiledb->_pafiledb();
 }
 elseif($mode == 'do_maintenance')
@@ -282,17 +262,7 @@ elseif($mode == 'do_maintenance')
 }
 elseif($mode == 'do_approve' || $mode == 'do_unapprove')
 {
-	if(is_array($file_ids) && !empty($file_ids))
-	{
-		$pafiledb->file_approve($mode, $file_ids);
-	}
-	else
-	{
-		if ($file_id > 0)
-		{
-			$pafiledb->file_approve($mode, $file_id);
-		}
-	}
+	$pafiledb->file_approve($mode, isset($_POST['file_ids']) ? $file_ids : array($file_id));
 	$pafiledb->_pafiledb();
 }
 

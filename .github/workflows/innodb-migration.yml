@@ -855,6 +855,14 @@ jobs:
           PHPBB_PA_FILE_UPLOAD_NATIVE: '1'
           PHPBB_PA_MIRROR_HTTP_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Delete complete download selections with exact deferred asset cleanup
+        if: matrix.part == 4
+        run: |
+          php .github/scripts/check-pafiledb-file-delete-native.php
+          php .github/scripts/check-pafiledb-file-delete-native.php acp
+        env:
+          PHPBB_PA_FILE_DELETE_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - name: Commit complete mirror batches and exact deferred file cleanup
         if: matrix.part == 4
         run: |

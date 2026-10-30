@@ -32,6 +32,8 @@ trait FileFormPolicy{
  }
  function update_add_file($id=false,$fields=null){$this->calls[]=array($id,$fields instanceof custom_field);$this->error[]=$GLOBALS['lang']['PA_file_failed'];return null;}
  function mirror_request($id){$this->calls[]=array($id,pafiledb_mirror_request_data());$this->error[]=$GLOBALS['lang']['PA_file_failed'];return null;}
+ function delete_files($ids,$mode='file'){$this->calls[]=array('delete',$ids);$this->error[]=$GLOBALS['lang']['PA_file_failed'];return null;}
+ function file_approve($mode='do_approve',$ids=0){$this->calls[]=array($mode,$ids);$this->error[]=$GLOBALS['lang']['PA_file_failed'];return null;}
  function jumpmenu_option($parent=0,$depth=0,$selected=array(),$files=false,$upload=false){return'<option value="9"'.(isset($selected[9])?' selected':'').'>Synthetic</option>';}
  function _pafiledb(){}
 }
@@ -88,6 +90,14 @@ try{
    if($action==='create'){pf_check(preg_match('/name="new_location"[^>]*value="([^"]*)"/',$html,$m)===1&&html_entity_decode($m[1],ENT_QUOTES,'UTF-8')===$draft,'Rejected mirror create keeps its new location field');}
   }}
  }
+ $dispatch_end=strpos($admin,'$pafiledb_template->set_filenames');pf_check($dispatch_end!==false,'Actual admin action dispatch boundary');$dispatch=substr($admin,0,$dispatch_end);
+ foreach(array('delete','do_approve')as$action){foreach(array(array('file_ids'=>array('42','43')),array('file_ids'=>array('42','42')),array('file_ids'=>array('42','43x')),array('file_ids'=>'42'),array('file_ids'=>array('42','43'),'file_action'=>$action.':44'))as$extra){
+  $_POST=array_merge(array('mode'=>$action,'sid'=>'file-form-fixture'),$extra);$_GET=array();$db=new FileFormDatabase();$pafiledb=new FileFormAdmin();$pafiledb->init();$pf_sessions=0;eval($dispatch);
+  $expected=isset($extra['file_action'])?array(44):(is_array($extra['file_ids'])?$extra['file_ids']:array(false));
+  pf_check($pafiledb->calls===array(array($action,$expected))&&$pf_sessions===1&&$db->writes===0,'Actual ACP dispatch preserves whole selection, rejects scalar shape and binds row actions to their own target');
+ }}
+ $_POST=array('sid'=>'file-form-fixture','confirm_delete'=>'1');$_REQUEST=array('do'=>'delete','file_id'=>'42');$_GET=array();$db=new FileFormDatabase();$pafiledb=new FileFormPublic();$pafiledb->init();$pafiledb->auth[9]['auth_delete_file']=true;$failure='';try{$pafiledb->main();}catch(RuntimeException$error){$failure=$error->getMessage();}
+ pf_check($pafiledb->calls===array(array('delete',42))&&strpos($failure,$lang['PA_file_failed'])!==false&&strpos($failure,$lang['Filedeleted'])===false&&$db->writes===0,'Actual public deletion controller displays failure instead of confirming a rejected deletion');
  $pafiledb_template=new FileFormTemplate();$pafiledb_template->root=$phpbb_root_path.'templates/fisubsilversh';$pafiledb_template->cachedir=sys_get_temp_dir().'/codex_file_form_no_cache/';$pafiledb_template->force_recompile=true;$pafiledb_template->set_filenames(array('body'=>'pa_mcp.tpl'));
  $failure=$lang['PA_file_failed'].' <script>bad</script>';$pafiledb_template->assign_vars(array('ERROR'=>pafiledb_html($failure)));ob_start();try{$pafiledb_template->display('body');$html=ob_get_contents();}finally{ob_end_clean();}
  pf_check(strpos($html,$lang['PA_file_failed'])!==false&&strpos($html,'<script>bad</script>')===false,'Actual moderation template displays an escaped failed-batch message');
