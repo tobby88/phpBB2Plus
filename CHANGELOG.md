@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Deleted-post storage
+
+- Add explicit deleted-post state through fresh installations and the idempotent
+  full/targeted updater (`--post-tombstones-only`). Preserve every existing post,
+  byline, constraint and identity floor; refuse conflicting custom definitions,
+  borrowed transactions/leases and unconfirmed maintenance. Permanent deletion
+  defaults to disabled and requires an explicit current policy and request choice.
+
 ### Download category maintenance
 
 - Treat file removal from an empty category as a no-op. A category ID must never
