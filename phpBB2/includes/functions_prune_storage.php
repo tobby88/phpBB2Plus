@@ -120,7 +120,7 @@ function phpbb_prune_forum($database,$forum_id,$cutoff=null,&$schedule_updated=n
 		elseif(!phpbb_prune_admin_allowed($db,$user)) { phpbb_prune_error('Not_Authorised'); }
 		$db->policy_guard = $schedule_guard;
 		$guard=phpbb_prune_topic_guard($forum_id,$cutoff).$schedule_guard;
-		$rows=phpbb_prune_rows($db,'SELECT topic_id FROM '.TOPICS_TABLE.' WHERE forum_id = '.$forum_id.$guard.' ORDER BY topic_id');
+		$rows=phpbb_prune_rows($db,'SELECT topic_id FROM '.TOPICS_TABLE.' WHERE forum_id = '.$forum_id.$guard.' AND EXISTS(SELECT 1 FROM '.POSTS_TABLE.' active_post WHERE active_post.topic_id='.TOPICS_TABLE.'.topic_id AND active_post.forum_id='.$forum_id.' AND active_post.post_deleted=0) ORDER BY topic_id');
 		$ids=array(); foreach($rows as $row) { $ids[]=phpbb_prune_id($row['topic_id']); }
 		$removed=$ids ? phpbb_delete_moderated_topics_owned($db,$forum_id,$ids,$guard) : array('topic_ids'=>array(),'post_ids'=>array());
 		if($automatic)

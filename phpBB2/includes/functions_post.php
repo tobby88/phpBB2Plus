@@ -516,61 +516,15 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 //
 // Delete a post/poll
 //
-// Delete storage only after the authorized parent selection succeeds. All
-// queries here share the attachment publisher's owning connection, so a late
-// upload cannot create a reference between parent deletion and file cleanup.
-// This is not a transaction for the entire topic/search/statistics lifecycle.
+// Obsolete partial-deletion APIs cannot bypass the complete authorized worker.
 function phpbb_delete_post_storage($database, $post_id, $topic_id, $forum_id)
 {
-	global $lang;
-	$scope = array();
-	foreach (array($post_id, $topic_id, $forum_id) as $id)
-	{
-		if ((!is_int($id) && !is_string($id)) || !preg_match('/^[0-9]+$/D', (string) $id))
-		{
-			message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
-		}
-		$ids = attach_delete_id_array($id);
-		if ($ids === false || count($ids) !== 1)
-		{
-			message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
-		}
-		$scope[] = $ids[0];
-	}
-
-	$lock = attach_require_mutation_lock($database);
-	try
-	{
-		phpbb_delete_post_storage_owned($lock->connection, $scope[0], $scope[1], $scope[2]);
-	}
-	finally { $lock->release(); }
+    throw new RuntimeException('Use phpbb_submit_post_delete for complete authorized deletion');
 }
-
-// Internal worker: the caller has validated the IDs and owns the mutation lock.
 function phpbb_delete_post_storage_owned($storage_db, $post_id, $topic_id, $forum_id, $poster_id = null)
 {
-	global $lang;
-	$sql = 'DELETE FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $post_id .
-		' AND topic_id = ' . $topic_id . ' AND forum_id = ' . $forum_id . ($poster_id !== null ? ' AND poster_id = ' . (int) $poster_id : '');
-	if (!$storage_db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-	}
-	if ((int) $storage_db->sql_affectedrows() !== 1)
-	{
-		message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
-	}
-
-	$sql = 'DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $post_id;
-	if (!$storage_db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-	}
-	attach_delete_selected($storage_db, array($post_id), array(), 0, 0, false, true);
-	// The deleted parent can no longer identify its topic during attachment sync.
-	attachment_sync_topic($topic_id, $storage_db);
+    throw new RuntimeException('Use phpbb_submit_post_delete for complete authorized deletion');
 }
-
 // Topic preferences belong to the topic, not to its most recent reply.
 // Each write verifies actual topic absence instead of trusting form flags.
 function phpbb_cleanup_removed_topic_preferences($database, $topic_id)
@@ -614,7 +568,7 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	}
 	$post_data = array_merge($post_data, $out['post_data']); $poll_id = $out['poll_id'];
 
-	if ($mode == 'delete' && $post_data['first_post'] && $post_data['last_post'])
+	if ($mode == 'delete' && $post_data['first_post'] && $post_data['last_post'] && empty($post_data['_delete_tombstone']))
 	{
 		$meta = '<meta http-equiv="refresh" content="3;url=' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $forum_id) . '">';
 		$message = $lang['Deleted'];

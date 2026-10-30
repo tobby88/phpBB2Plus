@@ -719,6 +719,8 @@ if ( ( $delete || $poll_delete || $mode == 'delete' ) && !$confirm )
 	$s_hidden_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
 
 	$l_confirm = ( $delete || $mode == 'delete' ) ? $lang['Confirm_delete'] : $lang['Confirm_delete_poll'];
+	require_once $phpbb_root_path.'includes/functions_post_tombstone.php';
+	$delete_option=phpbb_post_tombstone_option($delete||$mode==='delete');
 
 	//
 	// Output confirmation page
@@ -731,7 +733,7 @@ if ( ( $delete || $poll_delete || $mode == 'delete' ) && !$confirm )
 
 	$template->assign_vars(array(
 		'MESSAGE_TITLE' => $lang['Information'],
-		'MESSAGE_TEXT' => $l_confirm,
+		'MESSAGE_TEXT' => $l_confirm . $delete_option,
 
 		'L_YES' => $lang['Yes'],
 		'L_NO' => $lang['No'],
@@ -943,7 +945,7 @@ if ($lock_subject)
 	if ( $error_msg == '' )
 	{
 		// Core storage and counters have completed on the owning writer connection.
-		$attachment_mod['posting']->insert_attachment($post_id);
+		if(in_array($mode,array('newtopic','reply','editpost'),true)){$attachment_mod['posting']->insert_attachment($post_id);}
 		if ($error_msg == '' && $mode != 'poll_delete')
 		{
 			user_notification($mode, $post_data, $post_info['topic_title'], $forum_id, $topic_id, $post_id, $notify_user, (bool) $setbm);

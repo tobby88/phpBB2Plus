@@ -1094,3 +1094,4 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('sub_level_links_ov
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('use_ajax_edit_over', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('use_ajax_preview_over', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('hide_removed_author_names', '1');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('post_delete_allow_permanent', '0');

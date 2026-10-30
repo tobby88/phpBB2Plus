@@ -1,0 +1,14 @@
+<?php
+define('IN_PHPBB',true);define('CONFIG_TABLE','fixture_config');class PhpbbPostSubmitException extends RuntimeException{}
+require dirname(dirname(__DIR__)).'/phpBB2/includes/functions_post_tombstone.php';
+function tp_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['tp_checks']++;}
+class TombstonePolicyFixture{public$values=array();function rows($sql){tp_check($sql==="SELECT config_value FROM fixture_config WHERE config_name='post_delete_allow_permanent' FOR UPDATE",'Choice reads and locks current policy');return$this->values;}}
+$db=new TombstonePolicyFixture();$tp_checks=0;
+foreach(array(array(),array(array('config_value'=>'0')),array(array('config_value'=>'1')))as$rows){$db->values=$rows;$_POST=array();tp_check(phpbb_post_tombstone_choice($db)===true,'A missing or enabled permanent policy still defaults to a placeholder');}
+foreach(array(array(),array(array('config_value'=>'0')))as$rows){$db->values=$rows;$_POST=array('delete_permanently'=>'1');$key='';try{phpbb_post_tombstone_choice($db);}catch(PhpbbPostSubmitException$error){$key=$error->getMessage();}tp_check($key==='Post_delete_permanent_disabled','Forged hard-delete choice cannot bypass a disabled live feature');}
+$db->values=array(array('config_value'=>'1'));$_POST=array('delete_permanently'=>'1');tp_check(phpbb_post_tombstone_choice($db)===false,'Explicit per-deletion hard removal is available only under an enabled current policy');
+foreach(array(array(),true,null,'yes','01',2)as$value){$_POST=array('delete_permanently'=>$value);$key='';try{$keep=phpbb_post_tombstone_choice($db);}catch(PhpbbPostSubmitException$error){$key=$error->getMessage();}tp_check($value===null?$keep===true:$key==='Post_delete_invalid_choice','Malformed choice never silently enables hard deletion');}
+foreach(array(array(array('config_value'=>'bad')),array(array('config_value'=>'1'),array('config_value'=>'0')))as$rows){$db->values=$rows;$_POST=array();$key='';try{phpbb_post_tombstone_choice($db);}catch(PhpbbPostSubmitException$error){$key=$error->getMessage();}tp_check($key==='Posting_submit_upgrade','Ambiguous policy never grants deletion authority');}
+tp_check(phpbb_post_is_deleted(array('post_deleted'=>'1'))&&!phpbb_post_is_deleted(array('post_deleted'=>'0'))&&!phpbb_post_is_deleted(array()),'Placeholder detection follows stored deletion state');
+$lang=array('Post_delete_permanently'=>'Permanently remove');$board_config=array('post_delete_allow_permanent'=>'0');tp_check(phpbb_post_tombstone_option(true)==='','Disabled initial rollout exposes no permanent option');$board_config['post_delete_allow_permanent']='1';tp_check(strpos(phpbb_post_tombstone_option(true),'name="delete_permanently"')!==false&&phpbb_post_tombstone_option(false)==='','Optional explicit hard-removal choice belongs only to post deletion');
+echo 'Post tombstone policy: ',$tp_checks," default/current-policy/tamper/choice checks PASS.\n";

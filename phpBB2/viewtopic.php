@@ -965,8 +965,14 @@ $this_year = create_date('Y', time(), $board_config['board_timezone']);
 $this_date = create_date('md', time(), $board_config['board_timezone']);
 // End add - Birthday MOD
 
+require_once $phpbb_root_path.'includes/functions_post_tombstone.php';
 for($i = 0; $i < $total_posts; $i++)
 {
+	if(phpbb_post_is_deleted($postrow[$i]))
+	{
+		$template->assign_block_vars('postrow',array('IS_DELETED'=>true,'U_POST_ID'=>(int)$postrow[$i]['post_id'],'ROW_CLASS'=>$i%2?'row2':'row1','DELETED_MESSAGE'=>htmlspecialchars($lang['Post_deleted_placeholder'],ENT_QUOTES,'UTF-8')));
+		continue;
+	}
 	$poster_id = $postrow[$i]['user_id'];
 	$poster = ( $poster_id == ANONYMOUS ) ? $lang['Guest'] : color_group_colorize_name($postrow[$i]['user_id']);
 	

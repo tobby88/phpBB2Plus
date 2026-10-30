@@ -28,12 +28,13 @@ class PhpbbFullEditorDatabase extends PhpbbPostSubmitDatabase
 	function authorize()
 	{
 		$user = $this->actor();
-		$rows = $this->rows('SELECT p.poster_id, f.forum_status, t.topic_status FROM ' . POSTS_TABLE . ' p'
+		$rows = $this->rows('SELECT p.poster_id,p.post_deleted, f.forum_status, t.topic_status FROM ' . POSTS_TABLE . ' p'
 			. ' JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id = p.post_id'
 			. ' JOIN ' . TOPICS_TABLE . ' t ON t.topic_id = p.topic_id AND t.forum_id = p.forum_id AND t.topic_moved_id = 0'
 			. ' JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id WHERE p.post_id = ' . $this->post_id
 			. ' AND p.topic_id = ' . $this->topic_id . ' AND p.forum_id = ' . $this->forum_id);
 		if (count($rows) !== 1 || ($this->poster_id !== null && $this->poster_id !== (int)$rows[0]['poster_id'])) { $this->fail('Posting_target_changed'); }
+		if((string)$rows[0]['post_deleted']==='1'){$this->fail('Post_deleted_not_editable');}
 		$auth = auth(AUTH_ALL, $this->forum_id, $user, '', $this);
 		if (empty($auth['auth_view']) || empty($auth['auth_read']) || (empty($auth['auth_mod']) && (empty($auth['auth_edit']) || (int)$rows[0]['poster_id'] !== (int)$user['user_id']))) { $this->fail('Edit_own_posts'); }
 		foreach ($this->required as $key) { if (empty($auth[$key])) { $this->fail('Posting_submit_denied'); } }

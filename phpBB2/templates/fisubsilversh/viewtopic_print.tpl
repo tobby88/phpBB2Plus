@@ -42,9 +42,13 @@ hr.sep	{ height: 0px; border: solid #D1D7DC 0px; border-top-width: 1px;}
 
   <!-- BEGIN postrow -->
    <hr />
+  <!-- IF !empty(postrow.IS_DELETED) -->
+  <em>{postrow.MESSAGE}</em>
+  <!-- ELSE -->
   <b>{postrow.POSTER_NAME}</b> - {postrow.POST_DATE}<br />
   <b>{L_POST_SUBJECT}: </b>{postrow.POST_SUBJECT}<hr width=95% class="sep"/>
   {postrow.MESSAGE}
+  <!-- ENDIF -->
   <!-- END postrow -->
   <hr />
 <div align="center">{S_TIMEZONE}<br />

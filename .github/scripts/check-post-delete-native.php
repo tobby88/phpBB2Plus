@@ -13,6 +13,7 @@ function pd_files($reset=false)
 function pd_fixture($actor='member',$kind='reply')
 {
  ps_fixture($actor);pd_files(true);ae_sql('ALTER TABLE fixture_logs AUTO_INCREMENT=1');$GLOBALS['client_ip']='2001:db8::42';
+ if(getenv('PHPBB_POST_DELETE_TOMBSTONE_ONLY')!=='1'){ae_sql("INSERT INTO fixture_config(config_name,config_value)VALUES('post_delete_allow_permanent','1') ON DUPLICATE KEY UPDATE config_value='1'");$_POST['delete_permanently']='1';}
  ae_sql('UPDATE fixture_forums SET auth_delete=1');
  if($kind==='single'){ae_sql('DELETE FROM fixture_posts WHERE post_id=20');ae_sql('DELETE FROM fixture_posts_text WHERE post_id=20');ae_sql('DELETE FROM fixture_search_wordmatch WHERE post_id=20');ae_sql('UPDATE fixture_forums SET forum_posts=1,forum_last_post_id=10');ae_sql('UPDATE fixture_topics SET topic_replies=0,topic_last_post_id=10');}
  $post=$kind==='reply'?20:10;
@@ -49,6 +50,9 @@ $body= <<<'PHP'
  $upload_dir=sys_get_temp_dir().'/phpbb-delete-owned-'.bin2hex(phpbb_random_bytes(8));$attach_config=array('allow_ftp_upload'=>'0');
  ae_check(mkdir($upload_dir,0700)&&mkdir($upload_dir.'/'.THUMB_DIR,0700),'Owned file directories');
  try{
+ if(getenv('PHPBB_POST_DELETE_TOMBSTONE_ONLY')==='1'){
+  require $phpbb_root_path.'../.github/scripts/post-tombstone-native-cases.php';
+ }else{
  if(getenv('PHPBB_POST_DELETE_TAIL')!=='1'&&getenv('PHPBB_POST_DELETE_EXTRA_ONLY')!=='1'){
  foreach(array('member','moderator','root') as $actor){foreach(array('reply','single','poll') as $kind){
   pd_fixture($actor,$kind);$before=pd_snapshot();$out=pd_submit($kind);ae_check(is_array($out),'Successful delete '.$actor.'/'.$kind.' '.(isset($pd_exception)?$pd_exception:'').' '.json_encode($ae_error));$after=pd_snapshot();$queries=$ae_queries;
@@ -105,6 +109,7 @@ $body= <<<'PHP'
  foreach(array('english','german') as $locale){require $phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';pd_fixture('moderator');$out=pd_submit('reply',array('controller'=>true));ae_check(is_array($out)&&count(ae_rows('SELECT * FROM fixture_logs'))===1,'Actual controller avoids duplicate audit '.$locale);$cases++;}
  }
  echo 'Native post deletion: '.$cases.' failure/authority/storage/recovery cases, '.$serialized." serialized changes passed.\n";
+ }
  }finally{foreach(array($upload_dir.'/owned.txt',$upload_dir.'/'.THUMB_DIR.'/t_owned.txt') as $path){if(is_file($path)){unlink($path);}elseif(is_dir($path)){rmdir($path);}}rmdir($upload_dir.'/'.THUMB_DIR);rmdir($upload_dir);}
 }finally{$ae_hook=null;$ae_fail='';$ae_ack=false;$ae_failwrite=0;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
 PHP;

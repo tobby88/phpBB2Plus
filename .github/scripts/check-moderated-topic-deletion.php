@@ -55,7 +55,7 @@ function moderation_fixture($count_posts = 1)
 	$pdo->exec('INSERT INTO fixture_forums (forum_id,count_posts) VALUES (3,'.(int)$count_posts.'),(4,0)');
 	$pdo->exec('INSERT INTO fixture_users VALUES (8,5),(9,0),(-1,77)');
 	$pdo->exec('INSERT INTO fixture_topics VALUES (101,1,4,0),(200,0,4,100),(201,0,4,100)');
-	$pdo->exec('INSERT INTO fixture_posts VALUES (11,100,0,3,9),(12,100,0,3,-1),(13,101,1,4,8),(14,201,0,4,8)');
+	$pdo->exec('INSERT INTO fixture_posts(post_id,topic_id,post_attachment,forum_id,poster_id) VALUES (11,100,0,3,9),(12,100,0,3,-1),(13,101,1,4,8),(14,201,0,4,8)');
 	$pdo->exec("INSERT INTO fixture_post_text VALUES (10,'Grüße'),(11,'second'),(12,'guest'),(13,'foreign'),(14,'nonempty shadow')");
 	$pdo->exec('INSERT INTO fixture_votes VALUES (1000,100),(1001,101)');
 	$pdo->exec('INSERT INTO fixture_vote_results VALUES (1000,2),(1001,7)');
@@ -75,7 +75,7 @@ function moderation_fixture($count_posts = 1)
 	$pdo->exec('ALTER TABLE fixture_descriptions ADD download_count INTEGER DEFAULT 0');
 	$pdo->exec('ALTER TABLE fixture_messages ADD privmsgs_write_token TEXT');
 	$pdo->exec('ALTER TABLE fixture_messages ADD privmsgs_write_payload TEXT');
-	$mutation_server->pdo = new ModerationFixturePDO($pdo);
+	$pdo->exec("INSERT INTO fixture_config VALUES ('post_delete_allow_permanent','1')");$_POST['delete_permanently']='1';$mutation_server->pdo = new ModerationFixturePDO($pdo);
 }
 function moderation_scalar($sql) { return (int)$GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
 function moderation_untouched()

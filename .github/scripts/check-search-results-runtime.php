@@ -50,7 +50,7 @@ $db = new SearchRuntimeDatabase();
 $db->sql_query('CREATE TABLE forums (forum_id INTEGER PRIMARY KEY, forum_name TEXT)');
 $db->sql_query('CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT, user_sig TEXT, user_sig_bbcode_uid TEXT)');
 $db->sql_query('CREATE TABLE topics (topic_id INTEGER PRIMARY KEY, forum_id INTEGER, topic_poster INTEGER, topic_first_post_id INTEGER, topic_last_post_id INTEGER, topic_title TEXT)');
-$db->sql_query('CREATE TABLE posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, forum_id INTEGER, poster_id INTEGER, post_username TEXT, post_time INTEGER, post_author_removed INTEGER DEFAULT 0)');
+$db->sql_query('CREATE TABLE posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, forum_id INTEGER, poster_id INTEGER, post_username TEXT, post_time INTEGER, post_author_removed INTEGER DEFAULT 0, post_deleted INTEGER DEFAULT 0)');
 $db->sql_query('CREATE TABLE posts_text (post_id INTEGER PRIMARY KEY, post_text TEXT, bbcode_uid TEXT, post_subject TEXT)');
 $db->sql_query("INSERT INTO users VALUES (1, 'Author', '', '')");
 $db->sql_query("INSERT INTO forums VALUES (1, 'Public'), (2, 'Private'), (3, 'Hidden')");

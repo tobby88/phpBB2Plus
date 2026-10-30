@@ -60,6 +60,10 @@ jobs:
 
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
+      - name: Check deletion choice and actual retained-post template
+        run: |
+          php .github/scripts/check-post-tombstone-policy.php
+          php .github/scripts/check-post-tombstone-template.php
 
       - name: Distinguish former accounts from real guests in author displays and searches
         run: php .github/scripts/check-former-author-visibility.php

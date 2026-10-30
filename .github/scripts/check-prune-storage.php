@@ -31,7 +31,7 @@ function prune_fixture()
 	$userdata['session_id']='fixture-session'; $userdata['session_admin']=true;
 	$p->exec('ALTER TABLE fixture_sessions ADD session_admin INTEGER DEFAULT 1');
 	$p->exec("UPDATE fixture_sessions SET session_id='fixture-session',session_user_id=8,session_logged_in=1,session_admin=1");
-	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture-session');
+	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture-session','delete_permanently'=>'1');$p->exec("INSERT OR REPLACE INTO fixture_config VALUES ('post_delete_allow_permanent','1')");
 }
 function prune_expect_failure($callback,$expected)
 {
@@ -93,11 +93,11 @@ try
 	foreach(array("UPDATE fixture_config SET config_value='0'",'UPDATE fixture_prune SET prune_days=30','INSERT INTO fixture_prune VALUES (2,3,7,1)') as $change)
 	{
 		prune_fixture(); $changed=false;
-		$mutation_server->hook=function($sql) use($change,&$changed){ if(!$changed && strpos($sql,'DELETE FROM fixture_topics')===0) { $changed=true; $GLOBALS['mutation_server']->pdo->exec($change); } };
+		$mutation_server->hook=function($sql) use($change,&$changed){ if(!$changed && strpos($sql,'UPDATE fixture_posts SET post_deleted=1')===0) { $changed=true; $GLOBALS['mutation_server']->pdo->exec($change); } };
 		prune_expect_failure(function() use($db){ phpbb_prune_forum($db,3); },'Prune_selection_changed');
 		mutation_check($changed && (int)posting_value('SELECT COUNT(*) FROM fixture_posts')===9 && (int)posting_value('SELECT prune_next FROM fixture_forums WHERE forum_id=3')===0,'Changed automatic policy protects posts and does not advance old schedule');
 	}
-	foreach(array('DELETE FROM fixture_topics','DELETE FROM fixture_post_text','DELETE FROM fixture_views','UPDATE fixture_forums SET prune_next') as $failure)
+	foreach(array('UPDATE fixture_posts SET post_deleted=1','UPDATE fixture_post_text SET bbcode_uid','UPDATE fixture_topics SET topic_title','UPDATE fixture_forums SET prune_next') as $failure)
 	{
 		prune_fixture(); $mutation_server->failure=$failure;
 		prune_expect_failure(function() use($db){ phpbb_prune_forum($db,3); },'Prune_atomic_unconfirmed');

@@ -58,7 +58,8 @@ function kp_delete_suite() {
    $last_sql='';$kp_hook=function($event,$sql)use(&$last_sql){if($event==='before'&&$sql!=='ROLLBACK'&&strpos($sql,'SELECT CONNECTION_ID()')!==0){$last_sql=$sql;}};
    $result=kd_run($actor[1]);$kp_hook=null;kp_check(is_array($result),'Authorized complete KB deletion '.$actor[0].'/'.$actor[1].'/'.(int)$comments.'/'.(int)$remove_topic.': '.($result instanceof Exception?$result->getMessage():'unexpected').' last fixture SQL '.$last_sql);
    kp_check(kp_counts(0)&&!kp_rows('SELECT * FROM fixture_kb_articles')&&!kp_rows('SELECT * FROM fixture_kb_wordmatch')&&count(kp_rows('SELECT * FROM fixture_kb_votes'))===1,'Article/counters/index/owned votes deleted together');
-   $remaining=$comments&&!$remove_topic?1:0;kp_check(count(kp_rows('SELECT * FROM fixture_topics'))===$remaining&&count(kp_rows('SELECT * FROM fixture_posts'))===$remaining,'Only configured stored discussion is removed');
+   $remaining=$comments?1:0;kp_check(count(kp_rows('SELECT * FROM fixture_topics'))===$remaining&&count(kp_rows('SELECT * FROM fixture_posts'))===$remaining,'Discussion positions remain; article deletion cannot bypass placeholders');
+   kp_check(count(kp_rows('SELECT post_id FROM fixture_posts WHERE post_deleted=1'))===($comments&&$remove_topic?1:0),'Only configured discussion bodies become anonymous markers');
    kp_check(empty($result['cleanup_pending']),'No-file deletion confirms complete cleanup');$cases++;
   }}
  }
@@ -71,8 +72,8 @@ function kp_delete_suite() {
  kp_sql("UPDATE fixture_kb_config SET config_value='1' WHERE config_name='del_topic'");kp_check(is_array(kd_run())&&kp_rows('SELECT user_posts FROM fixture_users WHERE user_id=1')===array(array('user_posts'=>'0')),'Delete cannot leave a user counter for a non-counting discussion');$cases++;
  $topic=kd_relational_fixture();$mutations=0;$kp_hook=function($event,$sql)use(&$mutations){if($event==='before'&&preg_match('/^\s*(UPDATE|INSERT|DELETE)\b/i',$sql)){$mutations++;}};
  $out=kd_run();$kp_hook=null;kp_check(is_array($out)&&$mutations>0,'Collect actual complete deletion mutation inventory');$total=$mutations;
- kp_check(kp_rows('SELECT topic_id FROM fixture_topics')===array(array('topic_id'=>'9999'))&&kp_rows('SELECT vote_id FROM fixture_vote_desc')===array(array('vote_id'=>'2')),'Only bound discussion/poll removed');
- foreach(array('topics_watch','bookmarks','topic_view')as$table){kp_check(kp_rows('SELECT topic_id FROM fixture_'.$table)===array(array('topic_id'=>'9999')),'Unrelated topic preference preserved');}$cases++;
+ kp_check(kp_rows('SELECT topic_id FROM fixture_topics WHERE topic_id<>'.$topic)===array(array('topic_id'=>'9999'))&&count(kp_rows('SELECT post_id FROM fixture_posts WHERE topic_id='.$topic.' AND post_deleted=1'))===2&&kp_rows('SELECT vote_id FROM fixture_vote_desc')===array(array('vote_id'=>'2')),'Only bound discussion/poll removed');
+ foreach(array('topics_watch','bookmarks','topic_view')as$table){kp_check(kp_rows('SELECT topic_id FROM fixture_'.$table.' WHERE topic_id<>'.$topic)===array(array('topic_id'=>'9999'))&&count(kp_rows('SELECT topic_id FROM fixture_'.$table.' WHERE topic_id='.$topic))===1,'Unrelated topic preference preserved');}$cases++;
  for($fail=1;$fail<=$total;$fail++){
   kd_relational_fixture();$before=kp_snapshot();$seen=0;$kp_hook=function($event,$sql)use(&$seen,$fail){if($event==='before'&&preg_match('/^\s*(UPDATE|INSERT|DELETE)\b/i',$sql)){return ++$seen===$fail?false:null;}};
   $out=kd_run();$kp_hook=null;kp_check($out instanceof PhpbbKbPublicationException&&$seen===$fail&&kp_snapshot()===$before,'Every deletion mutation failure rolls back article/topics/posts/polls/preferences/audit/index/votes/counters');$cases++;
@@ -97,7 +98,7 @@ function kp_delete_suite() {
   $topic=kd_relational_fixture();if($relation==='shared'){kp_sql("INSERT INTO fixture_kb_articles(article_id,article_category_id,article_title,article_body,topic_id) VALUES(2,2,'Other article','Keep',".$topic.')');}elseif($relation==='redirect'){kp_sql('UPDATE fixture_topics SET topic_moved_id=9999 WHERE topic_id='.$topic);}elseif($relation==='foreign-child'){kp_sql('UPDATE fixture_posts SET forum_id=2 WHERE topic_id='.$topic);}else{kp_sql("UPDATE fixture_forums SET count_posts='Y' WHERE forum_id=1");}
   $before=kp_snapshot();kp_check(kd_run() instanceof PhpbbKbPublicationException&&kp_snapshot()===$before,'Ambiguous stored discussion relations refuse all deletion effects');$cases++;
  }
- kd_relational_fixture();$_POST['topic']='9999';$_POST['forum_id']='2';kp_check(is_array(kd_run())&&kp_rows('SELECT topic_id FROM fixture_topics')===array(array('topic_id'=>'9999')),'Posted topic/forum fields cannot broaden stored relation');$cases++;
+ $topic=kd_relational_fixture();$_POST['topic']='9999';$_POST['forum_id']='2';kp_check(is_array(kd_run())&&kp_rows('SELECT topic_id FROM fixture_topics WHERE topic_id<>'.$topic)===array(array('topic_id'=>'9999'))&&count(kp_rows('SELECT post_id FROM fixture_posts WHERE topic_id='.$topic.' AND post_deleted=1'))===2,'Posted topic/forum fields cannot broaden stored relation');$cases++;
  kp_reset();kp_check(is_array(kp_run(1)),'Seed standalone article');kp_sql("UPDATE fixture_kb_config SET config_value='1' WHERE config_name='del_topic'");kp_sql('DELETE FROM fixture_forums');kp_check(is_array(kd_run())&&kp_counts(0),'Standalone KB deletion never invents a forum requirement');$cases++;
  require $kp_source.'attach_mod/includes/functions_admin.php';require $kp_source.'attach_mod/includes/functions_shadow.php';
  $GLOBALS['upload_dir']=sys_get_temp_dir().'/phpbb-kb-delete-owned-'.bin2hex(phpbb_random_bytes(8));$GLOBALS['attach_config']=array('allow_ftp_upload'=>'0');
@@ -156,7 +157,7 @@ function kp_delete_suite() {
   kc_seed($actor,$comments,$remove);$out=kc_controller();kp_check($out->level===GENERAL_MESSAGE,'Actual category purge root/exact delegated grant: '.$out->getMessage());
   kp_check(kp_rows('SELECT article_id FROM fixture_kb_articles')===array(array('article_id'=>'999'))&&!kp_rows('SELECT * FROM fixture_kb_wordmatch')&&kp_rows('SELECT votes_file FROM fixture_kb_votes')===array(array('votes_file'=>'999')),'Category purge reaches owned article/index/votes without retired helper and preserves unrelated article');
   kp_check(kp_rows('SELECT parent FROM fixture_kb_categories WHERE category_id=3')===array(array('parent'=>'1'))&&!kp_rows('SELECT category_id FROM fixture_kb_categories WHERE category_id=2'),'Category children remain reachable');
-  kp_check(count(kp_rows('SELECT * FROM fixture_topics'))===($comments&&!$remove?1:0),'Category article deletion honors current discussion policy');$cases++;
+  kp_check(count(kp_rows('SELECT * FROM fixture_topics'))===($comments?1:0),'Category article deletion honors current discussion policy');$cases++;
  }}}
  foreach(array('article','group')as$actor){kc_seed($actor);$before=kp_snapshot();kp_check(kc_controller()->level===GENERAL_ERROR&&kp_snapshot()===$before,'Article-only ACP grant or frontend KB group cannot authorize category purge');$cases++;}
  kc_seed();kp_sql('UPDATE fixture_users SET user_active=0 WHERE user_id=1');$before=kp_snapshot();kp_check(kc_controller()->level===GENERAL_ERROR&&kp_snapshot()===$before,'Current inactive ACP account denies actual category body');$cases++;

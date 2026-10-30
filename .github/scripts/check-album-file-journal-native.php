@@ -6,6 +6,7 @@ require $root . '/update/album_rating_storage_migration.php';
 require $root . '/update/album_comment_parent_migration.php';
 require $root . '/update/pafiledb_file_journal_migration.php';
 require $root . '/update/pafiledb_download_storage_migration.php';
+require $root . '/update/post_tombstone_migration.php';
 mysqli_report(MYSQLI_REPORT_OFF);
 function ajm_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 function ajm_sql($sql) { return plus_storage_query($GLOBALS['db'], $sql); }
@@ -129,6 +130,10 @@ try {
         ajm_sql(preg_replace('/\bphpbb_/', 'legacy_', $sql)); $imported++;
     }
     ajm_check($imported > 80, 'Complete existing-forum schema fixture'); ajm_config('legacy_'); $before = ajm_snapshot();
+    foreach (array_keys(plus_post_tombstone_columns()) as $column) { ajm_sql('ALTER TABLE legacy_posts DROP COLUMN ' . plus_storage_identifier($column)); }
+    ajm_sql("INSERT INTO legacy_posts(post_id,topic_id,forum_id,poster_ip,post_username)VALUES(42,9,3,'7f000001','Preserved legacy byline')");
+    $post_columns = array(); foreach (plus_storage_rows($db,'SHOW COLUMNS FROM legacy_posts') as $column) { $post_columns[]=$column['Field']; }
+    $posts_before=plus_post_tombstone_digest($db,'legacy_posts',$post_columns);
     ajm_sql("ALTER TABLE legacy_album_rate MODIFY rate_hon_point TINYINT NOT NULL DEFAULT 0");
     ajm_sql("INSERT INTO legacy_album_rate VALUES(1,7,'7f000001',255,-128),(1,7,'7f000001',255,-128),(2,-1,'7f000002',0,127)");
     $votes_before = plus_album_rating_digest($db, 'legacy_album_rate');
@@ -150,11 +155,13 @@ try {
     ajm_check(plus_pa_download_digest($db, 'legacy_pa_files') === $download_files_before && isset(plus_pa_download_indexes($db, 'legacy_pa_files')['file_category_time']), 'Real full updater adds category lookup index without altering file metadata'); $cases++;
     ajm_check(!plus_album_rating_plan($db, 'legacy_', true) && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before, 'Real full updater widens legacy HotOrNot scores and preserves duplicate/negative votes'); $cases++;
     ajm_check(!plus_album_comment_parent_plan($db, 'legacy_')['changes'] && plus_album_comment_parent_digest($db, 'legacy_', false) === $comments_expected, 'Real full updater reconciles current comment parents and preserves orphan/content rows'); $cases++;
+    ajm_check(!plus_post_tombstone_plan($db,'legacy_',true) && plus_post_tombstone_digest($db,'legacy_posts',$post_columns)===$posts_before && ajm_rows('SELECT post_deleted,post_deleted_time,post_deleted_by FROM legacy_posts')[0]===array('post_deleted'=>'0','post_deleted_time'=>'0','post_deleted_by'=>'0'), 'Actual full updater adds placeholder state without blanking or deleting historical posts'); $cases++;
     $cli = ajm_cli(array('--apply','--backup-confirmed','--maintenance-confirmed'));
     ajm_check($cli[0] === 0 && $cli[2] === '' && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before && ajm_snapshot() === $before, 'Repeated full updater preserves widened scores and unrelated journals'); $cases++;
     ajm_check(plus_album_comment_parent_digest($db, 'legacy_', false) === $comments_expected, 'Repeated full updater preserves repaired and orphan comment snapshots'); $cases++;
     ajm_check(!plus_pa_download_plan($db, 'legacy_') && plus_pa_download_digest($db, 'legacy_pa_download_info') === $download_rows_before, 'Repeated full updater preserves migrated download statistics'); $cases++;
     ajm_check(plus_pa_download_digest($db, 'legacy_pa_files') === $download_files_before, 'Repeated full updater preserves indexed download file metadata'); $cases++;
+    ajm_check(plus_post_tombstone_digest($db,'legacy_posts',$post_columns)===$posts_before && !plus_post_tombstone_plan($db,'legacy_',true), 'Repeated full updater preserves post contents and deletion state'); $cases++;
     echo 'Native Album file journal migration: ', $cases, " dry/apply/idempotence/modern-schema/guest/Unicode/row-preservation/caller-TX/locks/custom-refusal/partial-resume/real-scoped-and-full-updater cases PASS; own loopback schemas only, no image operations or live data.\n";
 } finally {
     if ($peer) { mysqli_close($peer); }
