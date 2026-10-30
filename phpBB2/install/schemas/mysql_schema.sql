@@ -1120,6 +1120,28 @@ CREATE TABLE phpbb_pa_votes (
   KEY user_id (user_id)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+# Durable download file intents. New uploads are recorded before publication;
+# cleanup intents are committed with the metadata deletion/replacement.
+CREATE TABLE phpbb_pa_file_journal (
+  operation_id char(32) NOT NULL,
+  item_index int UNSIGNED NOT NULL,
+  schema_version smallint UNSIGNED NOT NULL default '1',
+  operation_kind varchar(16) NOT NULL,
+  actor_id mediumint(8) NOT NULL,
+  file_scope varchar(16) NOT NULL,
+  file_dir varchar(255) NOT NULL,
+  filename varchar(255) NOT NULL,
+  file_bytes bigint UNSIGNED NOT NULL,
+  file_sha256 char(64) NOT NULL,
+  binding_hash char(64) NOT NULL,
+  item_state tinyint UNSIGNED NOT NULL default '0',
+  created_at int UNSIGNED NOT NULL,
+  completed_at int UNSIGNED NOT NULL default '0',
+  PRIMARY KEY (operation_id,item_index),
+  UNIQUE KEY operation_item (operation_id,binding_hash),
+  KEY pending_created (item_state,created_at)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_album (
 	pic_id int(11) UNSIGNED NOT NULL auto_increment,
 	pic_filename varchar(255) NOT NULL,

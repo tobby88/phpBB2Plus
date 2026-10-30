@@ -814,6 +814,18 @@ jobs:
         env:
           PHPBB_PA_CATEGORY_WRITE_NATIVE: '1'
           PHPBB_PA_CATEGORY_WRITE_PASSWORD: fixture-only
+      - name: Own download metadata and durable file intent connections
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-file-coordinator-native.php
+        env:
+          PHPBB_PA_FILE_COORDINATOR_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Migrate durable download file intents without changing existing rows
+        if: matrix.part == 1
+        run: php .github/scripts/check-pafiledb-file-journal-native.php
+        env:
+          PHPBB_PA_FILE_JOURNAL_NATIVE: '1'
+          PHPBB_PA_FILE_JOURNAL_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-pafiledb-stats-native.php
         env:

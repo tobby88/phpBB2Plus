@@ -4,6 +4,7 @@ define('IN_PHPBB', true); $root = dirname(dirname(__DIR__));
 require $root . '/phpBB2/includes/php_compat.php'; require $root . '/update/album_file_journal_migration.php'; require $root . '/phpBB2/includes/sql_parse.php';
 require $root . '/update/album_rating_storage_migration.php';
 require $root . '/update/album_comment_parent_migration.php';
+require $root . '/update/pafiledb_file_journal_migration.php';
 mysqli_report(MYSQLI_REPORT_OFF);
 function ajm_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 function ajm_sql($sql) { return plus_storage_query($GLOBALS['db'], $sql); }
@@ -123,7 +124,7 @@ try {
         $sql = trim($sql); if ($sql === '') { continue; }
         if (preg_match('/^ALTER TABLE\s+`?phpbb_users`?\s+ADD\b/i', $sql)) { ajm_sql(preg_replace('/\bphpbb_/', 'legacy_', $sql)); continue; }
         ajm_check(preg_match('/^CREATE TABLE\s+`?phpbb_([A-Za-z0-9_]+)`?\s*\(/', $sql, $table), 'Full-updater fixture imports only canonical CREATE statements and the users ADD extension: ' . substr($sql, 0, 160));
-        if (in_array($table[1], array('album_file_jobs','album_file_items'), true)) { continue; }
+        if (in_array($table[1], array('album_file_jobs','album_file_items','pa_file_journal'), true)) { continue; }
         ajm_sql(preg_replace('/\bphpbb_/', 'legacy_', $sql)); $imported++;
     }
     ajm_check($imported > 80, 'Complete existing-forum schema fixture'); ajm_config('legacy_'); $before = ajm_snapshot();
@@ -136,6 +137,7 @@ try {
     $comments_expected = plus_album_comment_parent_digest($db, 'legacy_', true);
     $cli = ajm_cli(array('--apply','--backup-confirmed','--maintenance-confirmed'));
     ajm_check($cli[0] === 0 && $cli[2] === '' && !plus_album_file_journal_plan($db, 'legacy_') && ajm_snapshot() === $before, 'Real full updater integrates journal schema while preserving other-prefix rows: ' . substr($cli[2], 0, 1400)); $cases++;
+    ajm_check(!plus_pa_file_journal_plan($db, 'legacy_'), 'Real full updater also creates the canonical download file journal'); $cases++;
     ajm_check(!plus_album_rating_plan($db, 'legacy_', true) && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before, 'Real full updater widens legacy HotOrNot scores and preserves duplicate/negative votes'); $cases++;
     ajm_check(!plus_album_comment_parent_plan($db, 'legacy_')['changes'] && plus_album_comment_parent_digest($db, 'legacy_', false) === $comments_expected, 'Real full updater reconciles current comment parents and preserves orphan/content rows'); $cases++;
     $cli = ajm_cli(array('--apply','--backup-confirmed','--maintenance-confirmed'));

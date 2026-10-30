@@ -64,6 +64,7 @@ define('PA_CATEGORY_TABLE', $table_prefix.'pa_cat');
 define('PA_COMMENTS_TABLE', $table_prefix.'pa_comments');
 define('PA_CUSTOM_TABLE', $table_prefix.'pa_custom');
 define('PA_CUSTOM_DATA_TABLE', $table_prefix.'pa_customdata');
+define('PA_FILE_JOURNAL_TABLE', $table_prefix.'pa_file_journal');
 define('PA_DOWNLOAD_INFO_TABLE', $table_prefix.'pa_download_info');
 define('PA_FILES_TABLE', $table_prefix.'pa_files');
 define('PA_LICENSE_TABLE', $table_prefix.'pa_license');

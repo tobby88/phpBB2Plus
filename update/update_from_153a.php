@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
@@ -38,6 +38,7 @@ require_once __DIR__ . '/kb_rating_storage_migration.php';
 require_once __DIR__ . '/post_author_storage_migration.php';
 require_once __DIR__ . '/album_text_storage_migration.php';
 require_once __DIR__ . '/album_file_journal_migration.php';
+require_once __DIR__ . '/pafiledb_file_journal_migration.php';
 require_once __DIR__ . '/album_rating_storage_migration.php';
 require_once __DIR__ . '/album_comment_parent_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
@@ -61,6 +62,7 @@ function update_usage()
 	echo "  --album-photo-text-storage-only  Preserve picture title, description and author text capacity\n";
 	echo "  --album-discussion-text-storage-only  Preserve comment author and UTF8/HTML text capacity\n";
 	echo "  --album-file-journal-only  Only create/verify durable Album journal tables; never clean image files\n";
+	echo "  --pafiledb-file-journal-only Only create/verify durable download file intents; never delete files\n";
 	echo "  --album-rating-storage-only  Widen legacy HotOrNot scores without rewriting votes\n";
 	echo "  --album-comment-parents-only  Reconcile comment categories to current existing parents\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
@@ -69,7 +71,7 @@ function update_usage()
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts|profile_field_jobs|profile_field_actions|album_file_jobs|album_file_items))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts|profile_field_jobs|profile_field_actions|album_file_jobs|album_file_items|pa_file_journal))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)
@@ -112,9 +114,11 @@ $seed_statements = update_extract_seed_statements($basic_source);
 if (in_array('--self-test', $argv, true))
 {
 	try {
+		$download_journal = plus_pa_file_journal_definitions('phpbb_', $schema_source);
+		if (count($download_journal) !== 1 || !isset($create_statements['phpbb_pa_file_journal'])) { throw new RuntimeException('Download file journal missing from full updater'); }
 		$journal_definitions = plus_album_file_journal_definitions('phpbb_', $schema_source);
 		if (count($journal_definitions) !== 2 || !isset($create_statements['phpbb_album_file_jobs'], $create_statements['phpbb_album_file_items'])) { throw new RuntimeException('Album journal tables missing from full updater'); }
-	} catch (Exception $error) { fwrite(STDERR, "Album file journal schema self-test failed: " . $error->getMessage() . "\n"); exit(3); }
+	} catch (Exception $error) { fwrite(STDERR, "File journal schema self-test failed: " . $error->getMessage() . "\n"); exit(3); }
 	if (!preg_match('/post_username\s+varchar\(1530\)/i', $schema_source)) { fwrite(STDERR, "Post author capacity schema self-test failed.\n"); exit(3); }
 	if (!preg_match('/CREATE TABLE phpbb_album_rate\s*\([^;]*rate_hon_point\s+smallint\s+default\s+\x270\x27\s+NOT NULL/is', $schema_source)) { fwrite(STDERR, "Album HotOrNot score capacity schema self-test failed.\n"); exit(3); }
 	if (!preg_match('/CREATE TABLE phpbb_album_cat\s*\([^;]*cat_title\s+varchar\(1530\)[^;]*cat_desc\s+mediumtext/is', $schema_source)) { fwrite(STDERR, "Album text capacity schema self-test failed.\n"); exit(3); }
@@ -169,7 +173,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only'), $argv)) > 1)
+if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -689,6 +693,16 @@ try
 		} else { echo "Dry run only. No database changes made.\n"; }
 		mysqli_close($connection); exit(0);
 	}
+	if (in_array('--pafiledb-file-journal-only', $argv, true))
+	{
+		$download_journal_plan = plus_pa_file_journal_plan($connection, $table_prefix);
+		foreach ($download_journal_plan as $sql) { echo $sql . ";\n"; }
+		if ($apply) {
+			$count = plus_pa_file_journal_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Download file journal migration complete: $count tables. Existing rows and physical files preserved.\n";
+		} else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
 	if (in_array('--album-file-journal-only', $argv, true))
 	{
 		$file_journal_plan = plus_album_file_journal_plan($connection, $table_prefix);
@@ -818,6 +832,8 @@ catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update op
 try { $album_rating_plan = plus_album_rating_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 try { $comment_parent_plan = plus_album_comment_parent_plan($connection, $table_prefix); }
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
+try { $download_journal_plan = plus_pa_file_journal_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 // Verify any existing journal definition before unrelated full-update DDL.
 // Missing tables are queued from the same canonical definitions below.
@@ -1325,6 +1341,7 @@ if ($apply)
 		plus_storage_apply($connection, $storage_tables, in_array('--backup-confirmed', $argv, true), in_array('--maintenance-confirmed', $argv, true));
 		if (plus_ip_ban_plan($connection, $table_prefix . 'banlist')) { throw new RuntimeException('IP ban schema migration was not completed'); }
 		if (plus_album_file_journal_plan($connection, $table_prefix)) { throw new RuntimeException('Album file journal schema migration was not completed'); }
+		if (plus_pa_file_journal_plan($connection, $table_prefix)) { throw new RuntimeException('Download file journal schema migration was not completed'); }
 	}
 	catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; verify backup before retry.\n"); exit(3); }
 }
