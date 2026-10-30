@@ -68,5 +68,8 @@ try{
    pf_check(strpos($html,'name="sid" value="file-form-fixture"')!==false,'Actual '.$surface.' retry keeps session');
   }}}
  }
+ $pafiledb_template=new FileFormTemplate();$pafiledb_template->root=$phpbb_root_path.'templates/fisubsilversh';$pafiledb_template->cachedir=sys_get_temp_dir().'/codex_file_form_no_cache/';$pafiledb_template->force_recompile=true;$pafiledb_template->set_filenames(array('body'=>'pa_mcp.tpl'));
+ $failure=$lang['PA_file_failed'].' <script>bad</script>';$pafiledb_template->assign_vars(array('ERROR'=>pafiledb_html($failure)));ob_start();try{$pafiledb_template->display('body');$html=ob_get_contents();}finally{ob_end_clean();}
+ pf_check(strpos($html,$lang['PA_file_failed'])!==false&&strpos($html,'<script>bad</script>')===false,'Actual moderation template displays an escaped failed-batch message');
  echo 'Download file form: ',$pf_checks," actual public/ACP controller/template/rejected draft/custom-field/no-write checks PASS (",defined('PHPBB_LEGACY_REQUEST_ESCAPED')?'legacy':'raw',").\n";
 }finally{restore_error_handler();}

@@ -127,7 +127,9 @@ class PaFileDbFileAuthority
         foreach ($this->files as $file) {
             $category = self::id($file['file_catid']); $cat = $this->category($category, $grants, false, true); $access = isset($grants[$category]) ? $grants[$category] : array();
             $moderator = $this->actor['logged'] && $policy->auth_check_user(AUTH_MOD, 'auth_mod', $access, (int)$this->user['user_level'] === ADMIN);
-            if ($this->action === 'approve') { if (!$moderator) { pafiledb_file_fail('Not_Authorised'); } }
+            if ($this->action === 'approve') {
+                if (!$moderator || ((int)$this->user['user_level'] !== ADMIN && (!isset($this->config['validator']) || $this->config['validator'] !== 'validator_mod'))) { pafiledb_file_fail('Not_Authorised'); }
+            }
             else {
                 $field = $this->action === 'edit' ? 'auth_edit_file' : 'auth_delete_file';
                 if (!$moderator && (!$this->actor['logged'] || (int)$file['user_id'] !== $this->actor['id'] || !$this->allowed($cat[$field], $field, $access))) { pafiledb_file_fail('Not_Authorised'); }

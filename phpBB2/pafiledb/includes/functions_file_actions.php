@@ -105,6 +105,38 @@ function pafiledb_file_recover($database, $prefix, $operation, $root, $url)
     finally { if ($storage) { $storage->release(); } }
 }
 
+// Metadata-only actions still own their connection and the same namespace as
+// upload/category changes. The complete batch is authorized before any write.
+function pafiledb_file_metadata_action($model, $action, $ids, $body)
+{
+    global $db,$userdata,$pafiledb_config,$table_prefix,$lang;
+    $original_db=$db; $original_user=$userdata; $original_settings=$pafiledb_config; $storage=null; $result=null;
+    try {
+        if (!is_callable($body) || !is_array($ids) || !$ids || count($ids)>500 || !in_array($action,array('approve'),true)) { pafiledb_file_fail('PA_file_invalid'); }
+        $actor=pafiledb_mutation_actor(); $storage=new PaFileDbFileCoordinator($original_db,$table_prefix); $storage->begin();
+        $authority=new PaFileDbFileAuthority($storage,$table_prefix,$actor,defined('IN_ADMIN')&&IN_ADMIN?'files':'public');
+        $selected=$authority->select($action,$ids); $storage->guard_commit(function()use($authority){return$authority->check();});
+        $db=$storage;foreach($authority->user() as$key=>$value){if(!is_int($key)){$userdata[$key]=$value;}}$pafiledb_config=array_merge($original_settings,$authority->settings());
+        $model->init(); $saved=call_user_func($body,$storage,$selected); if(!empty($model->error)||$saved!==true){pafiledb_file_fail();}
+        $model->sync_all();$model->modified(false);$authority->check();$storage->commit();$result=true;
+    } catch(PaFileDbFileActionFailure$error){$key=$error->getMessage();$model->error[]=isset($lang[$key])?$lang[$key]:(isset($lang['PA_file_failed'])?$lang['PA_file_failed']:'The file operation could not be confirmed.');}
+    catch(PaFileDbMutationFailure$error){$key=$error->getMessage();$model->error[]=isset($lang[$key])?$lang[$key]:(isset($lang['PA_file_failed'])?$lang['PA_file_failed']:'The file operation could not be confirmed.');}
+    catch(Exception$error){$model->error[]=isset($lang['PA_file_failed'])?$lang['PA_file_failed']:'The file operation could not be confirmed.';}
+    catch(Error$error){$model->error[]=isset($lang['PA_file_failed'])?$lang['PA_file_failed']:'The file operation could not be confirmed.';}
+    finally{$db=$original_db;$userdata=$original_user;$pafiledb_config=$original_settings;$model->modified(false);if($storage){$storage->release();}}
+    return$result;
+}
+
+function pafiledb_file_set_approval($model, $mode, $ids)
+{
+    if(!is_array($ids)){$ids=array($ids);}
+    $body=function($storage,$selected)use($mode){
+        if(!in_array($mode,array('do_approve','do_unapprove'),true)){pafiledb_file_fail('PA_file_invalid');}
+        $storage->sql_query('UPDATE '.PA_FILES_TABLE.' SET file_approved='.($mode==='do_approve'?1:0).' WHERE file_id IN('.implode(',',array_keys($selected)).')');return true;
+    };
+    return pafiledb_file_metadata_action($model,'approve',$ids,$body);
+}
+
 function pafiledb_file_save($model, $file_id, $fields, $body)
 {
     global $db,$userdata,$pafiledb_config,$pafiledb_functions,$phpbb_root_path,$table_prefix,$lang;

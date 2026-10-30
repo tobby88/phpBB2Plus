@@ -1920,24 +1920,8 @@ class pafiledb
 	
 	function file_approve($mode = 'do_approve', $file_id = 0)
 	{
-		global $db;
-		
-		$file_id = (int) $file_id;
-		if ($file_id <= 0 || !in_array($mode, array('do_approve', 'do_unapprove'), true))
-		{
-			return;
-		}
-		$file_approved = ($mode == 'do_approve') ? 1 : 0;
-		
-		$sql = 'UPDATE ' . PA_FILES_TABLE . "
-			SET file_approved = $file_approved
-			WHERE file_id = $file_id";
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Add the file information to the database', '', __LINE__, __FILE__, $sql);
-		}
-		$this->modified(TRUE);
+		require_once dirname(__FILE__) . '/functions_file_actions.php';
+		return pafiledb_file_set_approval($this, $mode, $file_id);
 	}
 	
 	function _pafiledb()

@@ -289,10 +289,7 @@ elseif($mode == 'do_approve' || $mode == 'do_unapprove')
 {
 	if(is_array($file_ids) && !empty($file_ids))
 	{
-		foreach($file_ids as $temp_file_id)
-		{
-			$pafiledb->file_approve($mode, $temp_file_id);
-		}
+		$pafiledb->file_approve($mode, $file_ids);
 	}
 	else
 	{

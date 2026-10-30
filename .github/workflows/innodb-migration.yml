@@ -840,6 +840,14 @@ jobs:
         env:
           PHPBB_PA_FILE_SAVE_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Approve complete download batches under current validator policy
+        if: matrix.part == 4
+        run: |
+          php .github/scripts/check-pafiledb-file-metadata-native.php
+          php .github/scripts/check-pafiledb-file-metadata-native.php acp
+        env:
+          PHPBB_PA_FILE_METADATA_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - name: Publish and replace actual multipart downloads and screenshots
         if: matrix.part == 4
         run: php .github/scripts/check-pafiledb-file-upload-native.php

@@ -79,6 +79,13 @@
 	}
 	-->
 </script>
+
+<!-- IF ERROR neq '' -->
+<table width="100%" cellpadding="3" cellspacing="1" class="forumline">
+<tr><td class="row2" align="center"><span class="gen">{ERROR}</span></td></tr>
+</table>
+<br />
+<!-- ENDIF -->
 <!-- INCLUDE pa_header.tpl -->
 <table width="100%" cellpadding="2" cellspacing="2">
   <tr>

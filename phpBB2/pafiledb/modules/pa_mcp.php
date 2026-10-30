@@ -198,8 +198,8 @@ if( $mode == 'do_approve' || $mode == 'do_unapprove' )
 				{
 					message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 				}
-				$this->file_approve($mode, $temp_file_id);
 			}
+			$this->file_approve($mode, $file_ids);
 		}
 		$this->_pafiledb();
 	}
@@ -469,7 +469,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 }
 
 $pafiledb_template->assign_vars(array(
-	'ERROR' => (sizeof($this->error)) ? implode('<br />', $this->error) : '')
+	'ERROR' => implode('<br />', array_map('pafiledb_html', $this->error)))
 );
 
 
