@@ -240,11 +240,14 @@ $s_hidden_fields .= phpbb_admin_session_field();
 
 if($mode == 'do_add' && !$file_id)
 {
-	$file_id = $pafiledb->update_add_file();
-	$custom_field->file_update_data($file_id);
-	$pafiledb->_pafiledb();
-	$mode = 'edit';
-	if(!$mirrors)
+	$saved_id = $pafiledb->update_add_file(false, $custom_field);
+	$mode = empty($pafiledb->error) ? 'edit' : 'add';
+	$l_title = $lang[$mode === 'add' ? 'Afiletitle' : 'Efiletitle'];
+	if (empty($pafiledb->error)) {
+		$file_id = $saved_id;
+		$s_hidden_fields = '<input type="hidden" name="mode" value="do_add"><input type="hidden" name="file_id" value="' . $file_id . '">' . phpbb_admin_session_field();
+	}
+	if(!$mirrors && empty($pafiledb->error))
 	{
 		$message = $lang['Fileadded'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_file.php") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
@@ -252,11 +255,9 @@ if($mode == 'do_add' && !$file_id)
 }
 elseif($mode == 'do_add' && $file_id)
 {
-	$file_id = $pafiledb->update_add_file($file_id);
-	$custom_field->file_update_data($file_id);
-	$pafiledb->_pafiledb();
+	$pafiledb->update_add_file($file_id, $custom_field);
 	$mode = 'edit';
-	if(!$mirrors)
+	if(!$mirrors && empty($pafiledb->error))
 	{
 		$message = $lang['Fileedited'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_file.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
@@ -563,7 +564,6 @@ elseif($mode == 'add' || $mode == 'edit' || $mirrors)
 		$file_url = '';
 		$file_unique_name = '';
 		$file_dir = '';
-		$custom_exist = $custom_field->display_edit();
 	}
 	else
 	{
@@ -601,9 +601,13 @@ elseif($mode == 'add' || $mode == 'edit' || $mirrors)
 		$file_url = $file_info['file_dlurl'];
 		$file_unique_name = $file_info['unique_name'];
 		$file_dir = $file_info['file_dir'];
-		$custom_exist = $custom_field->display_edit($file_id);
 	}
 
+	if (!empty($pafiledb->error)) {
+		foreach (pafiledb_file_form_draft($pafiledb, $pafiledb_functions) as $draft_name => $draft_value) { ${$draft_name} = $draft_value; }
+		$custom_field->adopt_file_draft($file_id);
+	}
+	$custom_exist = $custom_field->display_edit($file_id);
 	$pafiledb_template->assign_vars(array(
 		'U_MIRRORS_PAGE' => append_sid("admin_pa_file.$phpEx?mode=mirrors&file_id=$file_id"),
 
@@ -651,7 +655,7 @@ elseif($mode == 'add' || $mode == 'edit' || $mirrors)
 		'L_FILESSINFO_UPLOAD' => $lang['Filessinfo_upload'],
 		'L_FILE_SSLINK' => $lang['Filess_link'],
 		'L_FILE_SSLINK_INFO' => $lang['Filess_link_info'],
-		'L_FILESSUPLOAD' => $lang['Filessupload'],
+		'L_FILESSUPLOAD' => $lang['Filess_upload'],
 		'L_FILE_WEBSITE' => $lang['Filedocs'],
 		'L_FILE_WEBSITE_INFO' => $lang['Filedocsinfo'],
 		'L_FILE_URL' => $lang['Fileurl'],
@@ -818,7 +822,8 @@ elseif($mode == 'mirrors')
 }
 
 $pafiledb_template->assign_vars(array(
-	'ERROR' => (sizeof($pafiledb->error)) ? implode('<br />', $pafiledb->error) : '')
+	'ERROR' => implode('<br />', array_map('pafiledb_html', $pafiledb->error))
+	)
 );
 
 $pafiledb_template->display('admin');

@@ -1356,14 +1356,21 @@ class pafiledb
 		$this->init();
 	}
 	
-	function update_add_file($file_id = false)
+	function update_add_file($file_id = false, $custom_field = null)
+	{
+		require_once dirname(__FILE__) . '/functions_file_actions.php';
+		$body = function()use($file_id){return $this->update_add_file_owned_body($file_id);};
+		return pafiledb_file_save($this, $file_id, $custom_field, $body);
+	}
+
+	protected function update_add_file_owned_body($file_id = false)
 	{
 		global $db, $phpbb_root_path, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions, $user_ip, $lang;
 		$file_id = (int) $file_id;
 
 		$posted = function ($key, $default = '')
 		{
-			return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? (string) $_POST[$key] : $default;
+			return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? (string) phpbb_request_raw_value($_POST[$key]) : $default;
 		};
 		$uploaded = function ($field, $key, $default = '')
 		{
@@ -1391,7 +1398,7 @@ class pafiledb
 
 		$file_name = trim($posted('name'));
 		$file_long_desc = $posted('long_desc');
-		$file_short_desc = $posted('short_desc', ($file_long_desc !== '') ? substr($file_long_desc, 0, 50) . '...' : '');
+		$file_short_desc = $posted('short_desc', ($file_long_desc !== '') ? pafiledb_file_prefix($file_long_desc, 50) . '...' : '');
 		$file_author = trim($posted('author', ($userdata['user_id'] != ANONYMOUS) ? $userdata['username'] : ''));
 		$file_version = trim($posted('version'));
 		$file_website = trim($posted('website'));
@@ -1429,12 +1436,12 @@ class pafiledb
 			$this->error[] = $lang['Missing_field'];
 		}
 			
-		if(empty($file_name))
+		if($file_name === '')
 		{
 			$this->error[] = $lang['Missing_field'];
 		}
 			
-		if(empty($file_long_desc))
+		if($file_long_desc === '')
 		{
 			$this->error[] = $lang['Missing_field'];
 		}
@@ -1504,7 +1511,7 @@ class pafiledb
 
 		$file_extension = $pafiledb_functions->get_extension($file_realname);
 			
-		if($file_upload && (phpbb_forbidden_upload_extension($file_extension) || in_array($file_extension, $forbidden_extensions, true)))
+		if($file_upload && $file_local !== '' && (phpbb_forbidden_upload_extension($file_extension) || in_array($file_extension, $forbidden_extensions, true)))
 		{
 			$this->error[] = 'You are not allowed to upload this type of files';
 		}
@@ -1550,6 +1557,7 @@ class pafiledb
 				$file_remote_url = $file_data['file_dlurl'];
 				$physical_file_name = $file_data['unique_name'];
 				$file_realname = $file_data['real_name'];
+				$file_size = (int) $file_data['file_size'];
 
 				if(empty($file_local))
 				{
@@ -1621,12 +1629,13 @@ class pafiledb
 			}
 		}
 		
+		if (defined('IN_ADMIN') && IN_ADMIN) { $file_approved = (int)$posted('approved', 0); }
 		$user_id_sql = intval($userdata['user_id']);
 		$user_ip_sql = $db->sql_escape((string) $user_ip);
 		$file_name_sql = $db->sql_escape($file_name);
 		$physical_file_name_sql = $db->sql_escape($physical_file_name);
 		$file_realname_sql = $db->sql_escape($file_realname);
-		$file_dir_sql = $db->sql_escape($pafiledb_config['upload_dir']);
+		$file_dir_sql = $db->sql_escape($file_id && !$file_upload && $old_physical_path === '' ? $file_data['file_dir'] : $pafiledb_config['upload_dir']);
 		$file_short_desc_sql = $db->sql_escape($file_short_desc);
 		$file_author_sql = $db->sql_escape($file_author);
 		$file_version_sql = $db->sql_escape($file_version);

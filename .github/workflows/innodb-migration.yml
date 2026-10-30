@@ -820,6 +820,40 @@ jobs:
         env:
           PHPBB_PA_FILE_COORDINATOR_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Recover exact download files after interrupted and uncertain operations
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-file-recovery-native.php
+        env:
+          PHPBB_PA_FILE_RECOVERY_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Recheck current download file ownership and ACP authority
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-file-authority-native.php
+        env:
+          PHPBB_PA_FILE_AUTHORITY_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Commit file metadata, custom fields and caches atomically
+        if: matrix.part == 4
+        run: |
+          php .github/scripts/check-pafiledb-file-save-native.php
+          php .github/scripts/check-pafiledb-file-save-native.php legacy
+        env:
+          PHPBB_PA_FILE_SAVE_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Publish and replace actual multipart downloads and screenshots
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-file-upload-native.php
+        env:
+          PHPBB_PA_FILE_UPLOAD_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Preserve custom-field values across SQL and request escaping modes
+        if: matrix.part == 4
+        run: |
+          php .github/scripts/check-pafiledb-custom-fields-native.php
+          php .github/scripts/check-pafiledb-custom-fields-native.php legacy
+        env:
+          PHPBB_PA_CUSTOM_FIELDS_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - name: Migrate durable download file intents without changing existing rows
         if: matrix.part == 1
         run: php .github/scripts/check-pafiledb-file-journal-native.php

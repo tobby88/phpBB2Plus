@@ -4,30 +4,10 @@ define('IN_PHPBB',true);$root=dirname(dirname(__DIR__));
 require$root.'/phpBB2/includes/php_compat.php';require$root.'/phpBB2/db/mysqli.php';require$root.'/phpBB2/pafiledb/includes/functions_file_coordinator.php';require$root.'/update/pafiledb_file_journal_migration.php';
 function pc_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['pc_checks']++;}
 function pc_denied($callback,$message){$denied=false;try{$callback();}catch(Exception$error){$denied=true;}pc_check($denied,$message);}
-class PaCoordinatorConnection{
- public$inner,$db_connect_id,$role,$source,$writable=false;
- function __construct($inner,$source,$role){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;$this->source=$source;$this->role=$role;}
- function __call($method,$args){return call_user_func_array(array($this->inner,$method),$args);}
- function sql_query($sql,$transaction=false){
-  if($sql==='START TRANSACTION'){$this->writable=true;}
-  if($sql==='COMMIT'&&$this->writable&&$this->source->lost===$this->role){$this->source->lost=0;$r=$this->inner->sql_query($sql,$transaction);pc_check($r!==false,'Actual own lost-ack COMMIT');$this->writable=false;return false;}
-  if($sql===$this->source->fail){$this->source->fail='';return false;}
-  $r=$this->inner->sql_query($sql,$transaction);if($r&&($sql==='COMMIT'||$sql==='ROLLBACK')){$this->writable=false;}return$r;
- }
- function sql_close(){$this->source->closed++;return$this->inner->sql_close();}
-}
-class PaCoordinatorDatabase extends sql_db{
- public$factories=0,$closed=0,$kind='',$first=null,$fail='',$lost=0;
- function sql_dedicated_connection(){
-  $this->factories++;if($this->kind==='same'){return$this;}if($this->kind==='second-same'&&$this->factories===2){return$this->first;}
-  $db=parent::sql_dedicated_connection();
-  if($this->kind==='foreign-transaction'){$db->sql_query('START TRANSACTION');$db->sql_query("INSERT INTO fixture_pa_files(file_id,file_catid,real_name,file_dir,file_name)VALUES(99,9,'pending.txt','fixture/','Foreign pending work')");}
-  $result=new PaCoordinatorConnection($db,$this,$this->factories);if($this->factories===1){$this->first=$result;}return$result;
- }
-}
+require __DIR__.'/pafiledb-file-native-connections.php';
 function pc_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);if(!$r){throw new RuntimeException('Own coordinator SQL failed');}return$r;}
 function pc_rows($sql){$r=pc_sql($sql);try{return$GLOBALS['peer']->sql_fetchrowset($r);}finally{$GLOBALS['peer']->sql_freeresult($r);}}
-function pc_reset(){pc_sql('DELETE FROM fixture_pa_file_journal');pc_sql('DELETE FROM fixture_pa_files');pc_sql("INSERT INTO fixture_pa_files(file_id,file_catid,real_name,file_dir,file_name)VALUES(42,9,'fixture.txt','fixture/','Preserved Grüße 😀')");$GLOBALS['source']->fail='';$GLOBALS['source']->lost=0;$GLOBALS['source']->kind='';$GLOBALS['source']->factories=$GLOBALS['source']->closed=0;}
+function pc_reset(){pc_sql('DELETE FROM fixture_pa_file_journal');pc_sql('DELETE FROM fixture_pa_files');pc_sql("INSERT INTO fixture_pa_files(file_id,file_catid,real_name,file_dir,file_name)VALUES(42,9,'fixture.txt','fixture/','Preserved Grüße 😀')");$GLOBALS['source']->fail='';$GLOBALS['source']->lost=0;$GLOBALS['source']->kind='';$GLOBALS['source']->on_query=null;$GLOBALS['source']->factories=$GLOBALS['source']->closed=0;}
 function pc_coordinator($guard=true){$c=new PaFileDbFileCoordinator($GLOBALS['source'],'fixture_',0);$c->begin();if($guard){$c->guard_commit(function(){return true;});}return$c;}
 function pc_prepare($c){$hash=str_repeat('b',64);$c->durable_begin();$c->durable_query("INSERT INTO fixture_pa_file_journal(operation_id,item_index,operation_kind,actor_id,file_scope,file_dir,filename,file_bytes,file_sha256,binding_hash,created_at)VALUES('".str_repeat('a',32)."',0,'upload',7,'download','fixture/','new.txt',3,'".$hash."','".$hash."',123)");$c->durable_commit();}
 $port=getenv('PHPBB_PA_FILE_COORDINATOR_PORT')?:'3306';$password=getenv('PHPBB_PA_FILE_COORDINATOR_PASSWORD')?:'';if(!preg_match('/^[0-9]{1,5}$/D',$port)||(int)$port<1||(int)$port>65535){throw new RuntimeException('Own loopback port required');}
@@ -44,5 +24,11 @@ try{
  pc_reset();$coordinator=pc_coordinator();$valid=true;$coordinator->guard_commit(function()use(&$valid){return$valid;});$coordinator->sql_query('DELETE FROM fixture_pa_files WHERE file_id=42');$valid=false;pc_denied(function()use($coordinator){$coordinator->commit();},'Expired capability prevents commit');$coordinator->release();$coordinator=null;pc_check(count(pc_rows('SELECT * FROM fixture_pa_files'))===1,'Expired capability rolls metadata back');
  foreach(array('ALTER TABLE fixture_pa_file_journal ENGINE=MyISAM','ALTER TABLE fixture_pa_file_journal ADD extra int NOT NULL DEFAULT 0','ALTER TABLE fixture_pa_file_journal DROP INDEX operation_item')as$change){pc_reset();pc_sql($change);pc_denied(function()use(&$coordinator){$coordinator=new PaFileDbFileCoordinator($GLOBALS['source'],'fixture_',0);$coordinator->begin();},'Noncanonical journal cannot be adopted');if($coordinator){$coordinator->release();$coordinator=null;}pc_sql('DROP TABLE fixture_pa_file_journal');$definition=plus_pa_file_journal_definitions('fixture_');pc_sql($definition['fixture_pa_file_journal']['sql']);}
  pc_reset();$coordinator=pc_coordinator();$lock='attachment:'.md5($schema."\0fixture_attachments");$r=pc_rows("SELECT GET_LOCK('".$lock."',0) held");pc_check((string)$r[0]['held']==='0','Download files and category metadata share the actual owning mutation lease');$coordinator->release();$coordinator=null;
+ if(getenv('PHPBB_PA_FILE_RECOVERY_NATIVE')==='1'){require __DIR__.'/pafiledb-file-recovery-fixture.php';}
+ if(getenv('PHPBB_PA_FILE_AUTHORITY_NATIVE')==='1'){require __DIR__.'/pafiledb-file-authority-fixture.php';}
+ elseif(getenv('PHPBB_PA_FILE_SAVE_NATIVE')==='1'||getenv('PHPBB_PA_FILE_UPLOAD_NATIVE')==='1'){require __DIR__.'/pafiledb-file-authority-native-support.php';}
+ if(getenv('PHPBB_PA_CUSTOM_FIELDS_NATIVE')==='1'){require __DIR__.'/pafiledb-custom-fields-fixture.php';}
+ if(getenv('PHPBB_PA_FILE_SAVE_NATIVE')==='1'){require __DIR__.'/pafiledb-file-save-fixture.php';}
+ if(getenv('PHPBB_PA_FILE_UPLOAD_NATIVE')==='1'){require __DIR__.'/pafiledb-file-upload-fixture.php';}
  echo 'Native download file coordinator: ',$pc_checks," ownership/durable-intent/lost-ack/capability/schema/shared-lease checks PASS.\n";
 }finally{restore_error_handler();if($coordinator){$coordinator->release();}if($source){$source->sql_close();}if($peer){$peer->sql_close();}if(!preg_match('/^codex_pa_file_coord_[a-f0-9]{16}$/D',$schema)){throw new RuntimeException('Own schema identity required');}if($created){$control->sql_query('DROP DATABASE '.$schema);}$control->sql_close();}

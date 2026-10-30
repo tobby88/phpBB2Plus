@@ -1,0 +1,17 @@
+<?php
+$phpbb_root_path=$root.'/phpBB2/';$table_prefix='fixture_';$phpEx='php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'pafiledb/includes/pafiledb_constants.php';require$phpbb_root_path.'pafiledb/includes/functions_file_authority.php';require __DIR__.'/native-fixture-locks.php';
+function pa_insert($table,$values){foreach(pc_rows('SHOW COLUMNS FROM '.$table)as$column){if(!array_key_exists($column['Field'],$values)&&$column['Null']==='NO'&&$column['Default']===null&&strpos($column['Extra'],'auto_increment')===false){$values[$column['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$column['Type'])?0:'';}}$encoded=array();foreach($values as$value){$encoded[]=$value===null?'NULL':"'".$GLOBALS['peer']->sql_escape((string)$value)."'";}pc_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).')VALUES('.implode(',',$encoded).')');}
+function pa_reset($id,$mode){
+ global$userdata;
+ pc_reset();foreach(array('users','sessions','groups','user_group','pa_auth','pa_cat','config','pa_config','jr_admin_users')as$suffix){pc_sql('DELETE FROM fixture_'.$suffix);}
+ foreach(array(-1,7,8,9,10,11)as$user){pa_insert('fixture_users',array('user_id'=>$user,'username'=>'Synthetic '.$user,'user_active'=>$user===-1?0:1,'user_level'=>$user===7?ADMIN:($user===9?MOD:USER)));}
+ pa_insert('fixture_sessions',array('session_id'=>'files-'.$id,'session_user_id'=>$id,'session_logged_in'=>$id===-1?0:1,'session_admin'=>$mode==='public'?0:1,'session_time'=>time()));pa_insert('fixture_config',array('config_name'=>'session_length','config_value'=>'3600'));
+ foreach(array('upload_dir'=>'downloads/','screenshots_dir'=>'screenshots/','max_file_size'=>'100000','need_validation'=>'1','forbidden_extensions'=>'php')as$name=>$value){pa_insert('fixture_pa_config',array('config_name'=>$name,'config_value'=>$value));}
+ foreach(array(1=>0,9=>1,10=>1)as$category=>$parent){pa_insert('fixture_pa_cat',array('cat_id'=>$category,'cat_parent'=>$parent,'cat_name'=>'Synthetic '.$category,'parents_data'=>'','cat_allow_file'=>1,'auth_view'=>AUTH_ALL,'auth_read'=>AUTH_ALL,'auth_view_file'=>AUTH_ALL,'auth_upload'=>AUTH_ALL,'auth_edit_file'=>AUTH_ALL,'auth_delete_file'=>AUTH_ALL));}
+ pa_insert('fixture_groups',array('group_id'=>22,'group_name'=>'Synthetic moderators','group_single_user'=>0));pa_insert('fixture_user_group',array('user_id'=>9,'group_id'=>22,'user_pending'=>0));pa_insert('fixture_pa_auth',array('cat_id'=>9,'group_id'=>22,'auth_mod'=>1));
+ $routes=jr_admin_authorization_routes();$hash=array_search('admin_pa_file.php',$routes,true);pc_check($hash!==false,'Exact file ACP module is registered');pa_insert('fixture_jr_admin_users',array('user_id'=>11,'user_jr_admin'=>$hash));
+ pc_sql('UPDATE fixture_pa_files SET user_id=8,file_catid=9,file_approved=0 WHERE file_id=42');$userdata=array('user_id'=>$id,'user_level'=>$id===7?ADMIN:($id===9?MOD:USER),'session_id'=>'files-'.$id,'session_logged_in'=>$id!==-1,'session_admin'=>$mode!=='public');
+ $GLOBALS['pa_actor']=array('id'=>$id,'sid'=>'files-'.$id,'logged'=>$id!==-1);$GLOBALS['pa_mode']=$mode;
+}
+function pa_open(){return new PaFileDbFileCoordinator($GLOBALS['source'],'fixture_',0);}
+function pa_authorize($c,$action,$destination=0){$authority=new PaFileDbFileAuthority($c,'fixture_',$GLOBALS['pa_actor'],$GLOBALS['pa_mode']);$authority->select($action,in_array($action,array('create','category'),true)?array():array(42),$destination);$c->guard_commit(function()use($authority){return$authority->check();});return$authority;}

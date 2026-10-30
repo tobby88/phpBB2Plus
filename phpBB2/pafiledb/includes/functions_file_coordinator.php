@@ -26,6 +26,7 @@ class PaFileDbFileCoordinator
 	private $affected = false;
 	private $insert_id = false;
 	private $commit_guards = array();
+	private $operation_mode = '';
 
 	function __construct($database, $prefix, $wait = 3)
 	{
@@ -145,6 +146,12 @@ class PaFileDbFileCoordinator
 		return $this->ready && $this->transaction && !$this->journal_transaction && !$this->finished;
 	}
 
+	function claim_recovery()
+	{
+		if (!$this->publication_ready() || $this->operation_mode !== '') { throw new PaFileDbFileCoordinatorFailure('Recovery requires a fresh owning download transaction'); }
+		$this->operation_mode = 'recovery';
+	}
+
 	function abort()
 	{
 		$this->failed = true;
@@ -233,7 +240,11 @@ class PaFileDbFileCoordinator
 	{
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $transaction !== false || !$this->allowed_statement($sql, false)) { throw new PaFileDbFileCoordinatorFailure('Statement outside Download metadata transaction'); }
-		if (!preg_match('/^SELECT\b/i', $sql) && !$this->can_publish()) { throw new PaFileDbFileCoordinatorFailure('Missing current download mutation capability'); }
+		if (!preg_match('/^SELECT\b/i', $sql)) {
+			if (!$this->can_publish()) { throw new PaFileDbFileCoordinatorFailure('Missing current download mutation capability'); }
+			if ($this->operation_mode === 'recovery' && !preg_match('/^UPDATE ' . preg_quote($this->prefix . 'pa_file_journal', '/') . '\b/', $sql)) { throw new PaFileDbFileCoordinatorFailure('Recovery cannot mutate download metadata'); }
+			if ($this->operation_mode === '') { $this->operation_mode = 'producer'; }
+		}
 		$this->last_result = $this->query($this->writer, $sql);
 		if (is_object($this->last_result)) { $this->results[spl_object_hash($this->last_result)] = $this->last_result; }
 		// Ownership SELECTs must not overwrite the statement's driver metadata.
@@ -275,7 +286,9 @@ class PaFileDbFileCoordinator
 	{
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $this->journal_transaction) { throw new PaFileDbFileCoordinatorFailure('Invalid prepared Download receipt transaction'); }
+		if ($this->operation_mode === 'recovery') { throw new PaFileDbFileCoordinatorFailure('Recovery cannot prepare a new download publication'); }
 		if (!$this->can_publish()) { throw new PaFileDbFileCoordinatorFailure('Missing download preparation capability'); }
+		$this->operation_mode = 'producer';
 		$this->query($this->journal, 'START TRANSACTION'); $this->journal_transaction = true;
 		foreach (array('pa_file_journal') as $suffix) { $this->pin($this->journal, $this->prefix . $suffix); }
 	}

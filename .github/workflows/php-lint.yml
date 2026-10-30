@@ -908,6 +908,12 @@ jobs:
           php .github/scripts/check-pafiledb-category-form.php legacy
       - name: Preserve download file bytes, roots and recoverable stages
         run: php .github/scripts/check-pafiledb-file-storage.php
+      - name: Preserve rejected download file drafts and custom-field rendering
+        run: |
+          php .github/scripts/check-pafiledb-file-form.php
+          php .github/scripts/check-pafiledb-file-form.php legacy
+          php .github/scripts/check-pafiledb-custom-fields.php
+          php .github/scripts/check-pafiledb-custom-fields.php legacy
       - name: Check recommendation mail Unicode and request boundaries
         run: |
           php .github/scripts/check-pafiledb-mail-input.php

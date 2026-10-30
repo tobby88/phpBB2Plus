@@ -1,5 +1,9 @@
 <?php
 
+$lang['PA_file_invalid'] = 'The file or the submitted file details are invalid. Please check the form.';
+$lang['PA_file_upgrade'] = 'The download manager must be fully updated first.';
+$lang['PA_file_failed'] = 'Saving could not be confirmed. Reload the file list before trying again.';
+
 // Toplist
 $lang['Toplist'] = 'Toplist';
 $lang['Select_list'] = 'Select the type of list to show';

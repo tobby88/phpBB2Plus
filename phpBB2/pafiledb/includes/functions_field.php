@@ -34,9 +34,11 @@ class custom_field
 	//===================================================
 	//prepare data
 	//===================================================
-	function init()
+	function init($file_id = null)
 	{
 		global $db;
+		$this->field_rowset = array(); $this->field_data_rowset = array();
+		if ($file_id !== null && (!is_int($file_id) || $file_id < 0 || $file_id > 2147483647)) { $this->invalid_file_data(); }
 		
 		$sql = "SELECT * 
 			FROM " . PA_CUSTOM_TABLE . "
@@ -55,7 +57,7 @@ class custom_field
 		$db->sql_freeresult($result);
 		
 		$sql = "SELECT * 
-			FROM " . PA_CUSTOM_DATA_TABLE;
+			FROM " . PA_CUSTOM_DATA_TABLE . ($file_id === null ? '' : ' WHERE customdata_file=' . $file_id);
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -106,7 +108,8 @@ class custom_field
 			{
 				foreach($this->field_data_rowset[$file_id] as $field_id => $data)
 				{
-					if(!empty($data['data']))
+					if (!isset($this->field_rowset[$field_id])) { continue; }
+					if(isset($data['data']) && $data['data'] !== '')
 					{
 						switch($this->field_rowset[$field_id]['field_type'])
 						{
@@ -118,27 +121,16 @@ class custom_field
 								break;
 							case SELECT_MULTIPLE:
 							case CHECKBOX:
-								$field_data = implode(', ', phpbb_safe_unserialize_scalar_array($data['data']));
+								$field_data = htmlspecialchars(implode(', ', phpbb_safe_unserialize_scalar_array($data['data'])), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 								break;
+							default:
+							continue 2;
 						}
 					
 						$pafiledb_template->assign_block_vars('custom_field', array(
 							'CUSTOM_NAME' => $this->field_rowset[$field_id]['custom_name'],
 							'DATA' => $field_data) 
 						);
-					}
-					else
-					{
-						global $db;
-		
-						$sql = "DELETE FROM " . PA_CUSTOM_DATA_TABLE . " 
-							WHERE customdata_file = '$file_id' 
-							AND customdata_custom = '$field_id'";
-
-						if ( !($db->sql_query($sql)) )
-						{
-							message_die(GENERAL_ERROR, 'Could not delete custom data', '', __LINE__, __FILE__, $sql);
-						}
 					}
 				}
 			}
@@ -199,7 +191,7 @@ class custom_field
 			'FIELD_NAME' => $field_data['custom_name'],
 			'FIELD_ID' => $field_data['custom_id'],
 			'FIELD_DESCRIPTION' => $field_data['custom_description'],
-			'FIELD_VALUE' => (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? $this->field_data_rowset[$file_id][$field_id]['data'] : '')
+			'FIELD_VALUE' => isset($this->field_data_rowset[$file_id][$field_id]['data']) ? $this->field_data_rowset[$file_id][$field_id]['data'] : '')
 		);
 	}
 
@@ -210,7 +202,7 @@ class custom_field
 			'FIELD_NAME' => $field_data['custom_name'],
 			'FIELD_ID' => $field_data['custom_id'],
 			'FIELD_DESCRIPTION' => $field_data['custom_description'],
-			'FIELD_VALUE' => (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? $this->field_data_rowset[$file_id][$field_id]['data'] : '')
+			'FIELD_VALUE' => isset($this->field_data_rowset[$file_id][$field_id]['data']) ? $this->field_data_rowset[$file_id][$field_id]['data'] : '')
 		);
 	}
 	
@@ -223,8 +215,8 @@ class custom_field
 			'FIELD_DESCRIPTION' => $field_data['custom_description'])
 		);
 		
-		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? $this->field_data_rowset[$file_id][$field_id]['data'] : array();
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
+		$data = isset($this->field_data_rowset[$file_id][$field_id]['data']) ? $this->field_data_rowset[$file_id][$field_id]['data'] : null;
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array($field_data['data']) : array();
 
 		if(!empty($field_datas))
 		{
@@ -247,8 +239,8 @@ class custom_field
 			'FIELD_DESCRIPTION' => $field_data['custom_description'])
 		);
 		
-		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? $this->field_data_rowset[$file_id][$field_id]['data'] : '';
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
+		$data = isset($this->field_data_rowset[$file_id][$field_id]['data']) ? $this->field_data_rowset[$file_id][$field_id]['data'] : null;
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array($field_data['data']) : array();
 
 		if(!empty($field_datas))
 		{
@@ -272,7 +264,7 @@ class custom_field
 		);
 		
 		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? phpbb_safe_unserialize_scalar_array($this->field_data_rowset[$file_id][$field_id]['data']) : array();
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array($field_data['data']) : array();
 		
 		if(!empty($field_datas))
 		{
@@ -281,7 +273,7 @@ class custom_field
 				$selected = '';
 				foreach($data as $field_value)
 				{
-					if($field_value == $value)
+					if((string)$field_value === html_entity_decode((string)$value, ENT_QUOTES, 'UTF-8'))
 					{
 						$selected = '  selected="selected"';
 						break;
@@ -305,7 +297,7 @@ class custom_field
 		);
 		
 		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? phpbb_safe_unserialize_scalar_array($this->field_data_rowset[$file_id][$field_id]['data']) : array();
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array($field_data['data']) : array();
 
 		if(!empty($field_datas))
 		{
@@ -314,7 +306,7 @@ class custom_field
 				$checked = '';
 				foreach($data as $field_value)
 				{
-					if($field_value == $value)
+					if((string)$field_value === html_entity_decode((string)$value, ENT_QUOTES, 'UTF-8'))
 					{
 						$checked = ' checked';
 						break;
@@ -427,7 +419,7 @@ class custom_field
 	function get_field_data($field_id)
 	{
 		$return_array = $this->field_rowset[$field_id];
-		$return_array['data'] = implode("\n", phpbb_safe_unserialize_scalar_array(stripslashes($return_array['data'])));
+		$return_array['data'] = implode("\n", phpbb_safe_unserialize_scalar_array($return_array['data']));
 		return $return_array;
 	}
 	
@@ -435,85 +427,87 @@ class custom_field
 	//file data in custom field operations
 	//===================================================
 	
+	private function invalid_file_data()
+	{
+		global $lang;
+		if (function_exists('pafiledb_file_fail')) { pafiledb_file_fail('PA_file_invalid'); }
+		message_die(GENERAL_ERROR, isset($lang['PA_file_invalid']) ? $lang['PA_file_invalid'] : 'Invalid download field data.');
+	}
+
+	// Redisplay rejected input without validating it a second time or writing.
+	// Definitions remain authoritative; unknown fields and nested values cannot
+	// introduce template bindings. Scalars are stored as HTML, choices as raw data.
+	function adopt_file_draft($file_id)
+	{
+		$posted = isset($_POST['field']) && is_array($_POST['field']) ? $_POST['field'] : array();
+		foreach ($this->field_rowset as $id => $definition)
+		{
+			$multiple = in_array((int)$definition['field_type'], array(SELECT_MULTIPLE,CHECKBOX), true);
+			if (!array_key_exists($id, $posted) && !$multiple) { continue; }
+			$value = array_key_exists($id, $posted) ? $posted[$id] : array();
+			if ($multiple)
+			{
+				$values = array();
+				foreach (is_array($value) ? $value : array() as $item) { if (is_string($item) || is_int($item)) { $values[] = (string)phpbb_request_raw_value($item); } }
+				$data = $values ? serialize($values) : '';
+			}
+			else { $data = is_string($value) || is_int($value) ? htmlspecialchars((string)phpbb_request_raw_value($value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : ''; }
+			$this->field_data_rowset[$file_id][$id] = array('customdata_file'=>$file_id,'customdata_custom'=>$id,'data'=>$data);
+		}
+	}
+
+	// Validate every field before the first write. Request escaping and SQL
+	// escaping are separate boundaries; serialized values contain raw strings.
+	function file_data_values()
+	{
+		global $_POST;
+		if (isset($_POST['field']) && !is_array($_POST['field'])) { $this->invalid_file_data(); }
+		$fields = isset($_POST['field']) ? $_POST['field'] : array();
+		foreach ($this->field_rowset as $id => $definition)
+		{
+			if (in_array((int)$definition['field_type'], array(SELECT_MULTIPLE, CHECKBOX), true) && !array_key_exists($id, $fields)) { $fields[$id] = array(); }
+		}
+		$values = array();
+		foreach ($fields as $field_id => $input)
+		{
+			if (!(is_int($field_id) || is_string($field_id)) || !preg_match('/^[1-9][0-9]*$/D', (string)$field_id) || (float)$field_id > 2147483647) { $this->invalid_file_data(); }
+			$field_id = (int)$field_id; if (!isset($this->field_rowset[$field_id])) { continue; }
+			$definition = $this->field_rowset[$field_id]; $type = (int)$definition['field_type'];
+			if (!in_array($type, array(INPUT,TEXTAREA,RADIO,SELECT,SELECT_MULTIPLE,CHECKBOX), true)) { $this->invalid_file_data(); }
+			$multiple = in_array($type, array(SELECT_MULTIPLE,CHECKBOX), true);
+			if ($multiple ? !is_array($input) : !(is_string($input) || is_int($input))) { $this->invalid_file_data(); }
+			$raw = array();
+			foreach ($multiple ? array_values($input) : array($input) as $value)
+			{
+				if (!(is_string($value) || is_int($value))) { $this->invalid_file_data(); }
+				$value = (string)phpbb_request_raw_value($value);
+				if (strlen($value)>65535 || preg_match('//u',$value)!==1 || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$value)) { $this->invalid_file_data(); }
+				if (!empty($definition['regex']) && @preg_match('#'.$definition['regex'].'#siU',$value)!==1) { $this->invalid_file_data(); }
+				$raw[] = $value;
+			}
+			$data = $multiple ? ($raw ? serialize($raw) : '') : htmlspecialchars($raw[0], ENT_QUOTES, 'UTF-8');
+			if (strlen($data)>65535) { $this->invalid_file_data(); } $values[$field_id] = $data;
+		}
+		return $values;
+	}
+
 	function file_update_data($file_id)
 	{
-		global $_POST, $db;
-		$file_id = intval($file_id);
-		$field = (isset($_POST['field']) && is_array($_POST['field'])) ? $_POST['field'] : array();
-		if(!empty($field))
+		global $db;
+		if (!(is_int($file_id) || is_string($file_id)) || !preg_match('/^[1-9][0-9]*$/D',(string)$file_id) || (float)$file_id>2147483647) { $this->invalid_file_data(); }
+		$file_id = (int)$file_id; $values = $this->file_data_values();
+		foreach ($values as $field_id => $data)
 		{
-			foreach($field as $field_id => $field_data)
+			$sql = 'DELETE FROM '.PA_CUSTOM_DATA_TABLE.' WHERE customdata_file='.$file_id.' AND customdata_custom='.$field_id;
+			if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not delete download custom data'); }
+			if ($data !== '')
 			{
-				$field_id = intval($field_id);
-				if (!$field_id || !isset($this->field_rowset[$field_id]))
-				{
-					continue;
-				}
-
-				$field_type = intval($this->field_rowset[$field_id]['field_type']);
-				if (in_array($field_type, array(SELECT_MULTIPLE, CHECKBOX), true))
-				{
-					if (!is_array($field_data))
-					{
-						$field_data = array();
-					}
-					else
-					{
-						$field_data = array_values(array_filter($field_data, 'is_scalar'));
-					}
-				}
-				elseif (!is_scalar($field_data))
-				{
-					$field_data = '';
-				}
-				else
-				{
-					$field_data = (string) $field_data;
-				}
-
-				if(!empty($this->field_rowset[$field_id]['regex']))
-				{
-					if (is_array($field_data) || @preg_match('#' . $this->field_rowset[$field_id]['regex'] . '#siU', $field_data) !== 1)
-					{
-						$field_data = '';
-					}
-				}
-
-				switch($field_type)
-				{
-					case INPUT:
-					case TEXTAREA:
-					case RADIO:
-					case SELECT:
-						$data = htmlspecialchars($field_data);
-						break;
-					case SELECT_MULTIPLE:
-					case CHECKBOX:
-						$data = addslashes(serialize($field_data));
-						break;
-				}
-				
-				$sql = "DELETE FROM " . PA_CUSTOM_DATA_TABLE . " 
-					WHERE customdata_file = '$file_id' 
-					AND customdata_custom = '$field_id'";
-
-				if(!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Could not delete data from custom data table', '', __LINE__, __FILE__, $sql);
-				}
-
-				if(!empty($data))
-				{
-					$sql = "INSERT INTO " . PA_CUSTOM_DATA_TABLE . " (customdata_file, customdata_custom, data) 
-						VALUES('$file_id', '$field_id', '$data')";
-
-					if(!$db->sql_query($sql))
-					{
-						message_die(GENERAL_ERROR, 'Could not add additional data', '', __LINE__, __FILE__, $sql);
-					}
-				}
+				$sql = 'INSERT INTO '.PA_CUSTOM_DATA_TABLE." (customdata_file,customdata_custom,data)VALUES(".$file_id.','.$field_id.",'".$db->sql_escape($data)."')";
+				if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not save download custom data'); }
 			}
-		}	
+		}
+		return true;
 	}
+
 }
 ?>

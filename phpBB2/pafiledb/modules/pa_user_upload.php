@@ -20,7 +20,7 @@ class pafiledb_user_upload extends pafiledb_public
 		// Get Vars
 		// =======================================================
 
-		include($phpbb_root_path . 'pafiledb/includes/functions_field.'.$phpEx);
+		require_once($phpbb_root_path . 'pafiledb/includes/functions_field.'.$phpEx);
 
 		$custom_field = new custom_field();
 		$custom_field->init();
@@ -39,7 +39,7 @@ class pafiledb_user_upload extends pafiledb_public
 			message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
 		}
 
-		if(!empty($cat_id))
+		if(!$file_id && !empty($cat_id))
 		{
 			if(!$this->auth[$cat_id]['auth_upload'])
 			{
@@ -52,7 +52,7 @@ class pafiledb_user_upload extends pafiledb_public
 				message_die(GENERAL_MESSAGE, $message);
 			}
 		}
-		else
+		elseif (!$file_id)
 		{
 			if(empty($dropmenu))
 			{
@@ -130,9 +130,7 @@ class pafiledb_user_upload extends pafiledb_public
 
 			if(!$file_id)
 			{
-				$temp_id = $this->update_add_file();
-				$custom_field->file_update_data($temp_id);
-				$this->_pafiledb();
+				$temp_id = $this->update_add_file(false, $custom_field);
 				if ( $pafiledb_config['need_validation'] == '0')
 				{
 					$message = $lang['Fileadded'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("dload.php?action=file&file_id=" . $temp_id) . '">', '</a>');
@@ -172,16 +170,13 @@ class pafiledb_user_upload extends pafiledb_public
 					message_die(GENERAL_MESSAGE, $message);
 				}
 
-				$file_id = $this->update_add_file($file_id);
-				$custom_field->file_update_data($file_id);
-				$this->_pafiledb();
+				$this->update_add_file($file_id, $custom_field);
 				$message = $lang['Fileedited'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("dload.php?action=file&file_id=" . $file_id) . '">', '</a>');
 //				$mode = 'edit';
 			}
-			$message = $lang['Fileadded'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("dload.php?action=user_upload") . '">', '</a>');
-			message_die(GENERAL_MESSAGE, $message);
+			if (empty($this->error)) { message_die(GENERAL_MESSAGE, $message); }
 		}
-		else
+		if (!isset($_POST['submit']) || !empty($this->error))
 		// =======================================================
 		// IF not submit then load data form
 		// =======================================================
@@ -207,7 +202,7 @@ class pafiledb_user_upload extends pafiledb_public
 				$ss_checked_yes = '';
 				$ss_checked_no = ' checked';
 				$file_url = '';
-				$custom_exist = $custom_field->display_edit();
+				$file_unique_name = $file_dir = '';
 				$mode = 'ADD';
 				$l_title = $lang['Afiletitle'];
 			}
@@ -261,7 +256,6 @@ class pafiledb_user_upload extends pafiledb_public
 					$file_url = $file_info['file_dlurl'];
 					$file_unique_name = $file_info['unique_name'];
 					$file_dir = $file_info['file_dir'];
-					$custom_exist = $custom_field->display_edit($file_id);
 					$mode = 'EDIT';
 					$l_title = $lang['Efiletitle'];
 					$s_hidden_fields .= '<input type="hidden" name="file_id" value="' . $file_id . '" />';
@@ -270,7 +264,13 @@ class pafiledb_user_upload extends pafiledb_public
 				$s_hidden_fields .= '<input type="hidden" name="action" value="user_upload" />';
 
 
+			if (!empty($this->error)) {
+				foreach (pafiledb_file_form_draft($this, $pafiledb_functions) as $draft_name => $draft_value) { ${$draft_name} = $draft_value; }
+				$custom_field->adopt_file_draft($file_id);
+			}
+			$custom_exist = $custom_field->display_edit($file_id);
 			$pafiledb_template->assign_vars(array(
+				'ERROR' => implode('<br />', array_map('pafiledb_html', $this->error)),
 				'S_ADD_FILE_ACTION' => append_sid("dload.$phpEx"),
 
 				'DOWNLOAD' => $pafiledb_config['settings_dbname'],
