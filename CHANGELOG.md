@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Direct download access
+
+- Apply the same current category and ancestor view/read permissions to direct
+  file and download URLs as to lists and searches. Retain download-specific
+  grants and authenticated owner/moderator/administrator approval exceptions.
+- Apply those boundaries to email recommendations, license display and the
+  rating/comment forms. Require the license assigned to the requested file;
+  email recommendations expose only approved files.
+
 ### Download category navigation
 
 - Build breadcrumbs from current visible categories and current names, ignoring

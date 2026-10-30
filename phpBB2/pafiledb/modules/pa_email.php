@@ -10,6 +10,7 @@
 */
 
 
+require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
 class pafiledb_email extends pafiledb_public
 {
 	function main($action = false)
@@ -28,7 +29,7 @@ class pafiledb_email extends pafiledb_public
 
 		$sql = 'SELECT file_catid, file_name
 			FROM ' . PA_FILES_TABLE . "
-			WHERE file_id = $file_id";
+			WHERE file_id = $file_id AND file_approved = 1";
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -42,14 +43,14 @@ class pafiledb_email extends pafiledb_public
 
 		$db->sql_freeresult($result);
 
-		if( (!$this->auth[$file_data['file_catid']]['auth_email']) )
+		if (!pafiledb_file_category_accessible($this, $file_data['file_catid']) || empty($this->auth[$file_data['file_catid']]['auth_email']))
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=email&file_id=" . $file_id, true));
 			}
 
-			$message = sprintf($lang['Sorry_auth_email'], $this->auth[$file_data['file_catid']]['auth_email_type']);
+			$message = $lang['File_not_exist'];
 			message_die(GENERAL_MESSAGE, $message);
 		}
 

@@ -9,6 +9,7 @@
   Please read the license included with this script for more information.
 */
 
+require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
 class pafiledb_download extends pafiledb_public
 {
 	function main($action = false)
@@ -53,10 +54,7 @@ class pafiledb_download extends pafiledb_public
 
 		$db->sql_freeresult($result);
 
-		$can_view_unapproved = $userdata['user_level'] == ADMIN ||
-			!empty($this->auth[$file_data['file_catid']]['auth_mod']) ||
-			($userdata['session_logged_in'] && intval($file_data['user_id']) === intval($userdata['user_id']));
-		if (empty($file_data['file_approved']) && !$can_view_unapproved)
+		if (!pafiledb_download_approval_allowed($this, $file_data, $userdata))
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
@@ -65,14 +63,14 @@ class pafiledb_download extends pafiledb_public
 		// Check if the user is authorized to download the file
 		//=========================================================================
 
-		if( (!$this->auth[$file_data['file_catid']]['auth_download']) )
+		if (!pafiledb_file_category_accessible($this, $file_data['file_catid']) || empty($this->auth[$file_data['file_catid']]['auth_download']))
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=download&file_id=$file_id", true));
 			}
 
-			$message = sprintf($lang['Sorry_auth_download'], $this->auth[$file_data['file_catid']]['auth_download_type']);
+			$message = $lang['File_not_exist'];
 			message_die(GENERAL_MESSAGE, $message);
 		}
 

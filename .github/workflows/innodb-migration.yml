@@ -744,6 +744,16 @@ jobs:
         env:
           PHPBB_PA_COMMENT_NATIVE: '1'
           PHPBB_PA_COMMENT_PASSWORD: fixture-only
+      - if: matrix.part == 2
+        run: php .github/scripts/check-pafiledb-direct-access-native.php
+        env:
+          PHPBB_PA_DIRECT_NATIVE: '1'
+          PHPBB_PA_DIRECT_PASSWORD: fixture-only
+      - if: matrix.part == 2
+        run: php .github/scripts/check-pafiledb-read-forms-native.php
+        env:
+          PHPBB_PA_READ_FORMS_NATIVE: '1'
+          PHPBB_PA_READ_FORMS_PASSWORD: fixture-only
       - if: matrix.part == 3
         run: php .github/scripts/check-pafiledb-toplist-native.php
         env:

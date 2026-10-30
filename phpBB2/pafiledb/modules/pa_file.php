@@ -8,6 +8,7 @@
   Keep all copyright links on the script visible
   Please read the license included with this script for more information.
 */
+require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
 class pafiledb_file extends pafiledb_public
 {
 	function main($action = false)
@@ -54,14 +55,14 @@ class pafiledb_file extends pafiledb_public
 		// Pafiledb auth for viewing file
 		//===================================================
 
-		if( (!$this->auth[$file_data['file_catid']]['auth_view_file']) )
+		if (!pafiledb_file_category_accessible($this, $file_data['file_catid']))
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=file&file_id=" . $file_id, true));
 			}
 
-			$message = sprintf($lang['Sorry_auth_view'], $this->auth[$file_data['file_catid']]['auth_view_file_type']);
+			$message = $lang['File_not_exist'];
 			message_die(GENERAL_MESSAGE, $message);
 		}
 

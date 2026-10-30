@@ -4,30 +4,45 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/functions_author_v
 
 // Limit both the result list and its counts before sorting or pagination.
 // A visible child does not grant access through an unreadable/missing parent.
+function pafiledb_file_category_accessible($module, $id)
+{
+	if ((!is_int($id) && !is_string($id)) || !preg_match('/^[1-9][0-9]{0,9}$/D', (string)$id) || (float)$id > 2147483647) { return false; }
+	$cursor = (int)$id; $leaf = true; $seen = array();
+	while ($cursor !== 0)
+	{
+		if (isset($seen[$cursor]) || !isset($module->cat_rowset[$cursor], $module->auth[$cursor])) { return false; }
+		$seen[$cursor] = true;
+		$row = $module->cat_rowset[$cursor]; $auth = $module->auth[$cursor];
+		foreach ($leaf ? array('auth_view', 'auth_read', 'auth_view_file') : array('auth_view', 'auth_read') as $permission)
+		{
+			if (empty($auth[$permission])) { return false; }
+		}
+		if (!array_key_exists('cat_parent', $row)) { return false; }
+		$parent = $row['cat_parent'] === null ? '0' : (string)$row['cat_parent'];
+		if (!preg_match('/^[0-9]+$/D', $parent) || (float)$parent > 2147483647) { return false; }
+		$cursor = (int)$parent; $leaf = false;
+	}
+	return true;
+}
+
 function pafiledb_toplist_categories($module)
 {
 	$allowed = array();
 	foreach ($module->cat_rowset as $id => $category)
 	{
-		if (!preg_match('/^[1-9][0-9]{0,9}$/D', (string)$id) || (float)$id > 2147483647) { continue; }
-		$cursor = (int)$id; $leaf = true; $seen = array(); $visible = true;
-		while ($cursor !== 0)
-		{
-			if (isset($seen[$cursor]) || !isset($module->cat_rowset[$cursor], $module->auth[$cursor])) { $visible = false; break; }
-			$seen[$cursor] = true;
-			$row = $module->cat_rowset[$cursor]; $auth = $module->auth[$cursor];
-			foreach ($leaf ? array('auth_view', 'auth_read', 'auth_view_file') : array('auth_view', 'auth_read') as $permission)
-			{
-				if (empty($auth[$permission])) { $visible = false; break 2; }
-			}
-			if (!array_key_exists('cat_parent', $row)) { $visible = false; break; }
-			$parent = $row['cat_parent'] === null ? '0' : (string)$row['cat_parent'];
-			if (!preg_match('/^[0-9]+$/D', $parent) || (float)$parent > 2147483647) { $visible = false; break; }
-			$cursor = (int)$parent; $leaf = false;
-		}
-		if ($visible) { $allowed[] = (int)$id; }
+		if (pafiledb_file_category_accessible($module, $id)) { $allowed[] = (int)$id; }
 	}
 	return $allowed;
+}
+
+function pafiledb_download_approval_allowed($module, $file, $viewer)
+{
+	if ((int)$file['file_approved'] === 1) { return true; }
+	$id = isset($viewer['user_id']) ? $viewer['user_id'] : null;
+	if (!isset($viewer['session_logged_in']) || !in_array($viewer['session_logged_in'], array(true, 1, '1'), true) ||
+		(!is_int($id) && !is_string($id)) || !preg_match('/^[1-9][0-9]{0,9}$/D', (string)$id) || (float)$id > 2147483647) { return false; }
+	return (isset($viewer['user_level']) && in_array($viewer['user_level'], array(ADMIN, (string)ADMIN), true)) ||
+		!empty($module->auth[$file['file_catid']]['auth_mod']) || (int)$file['user_id'] === (int)$id;
 }
 
 function pafiledb_toplist_scope_sql($categories)

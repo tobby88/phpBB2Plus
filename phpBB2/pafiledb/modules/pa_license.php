@@ -9,6 +9,7 @@
   Please read the license included with this script for more information.
 */
 
+require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
 class pafiledb_license extends pafiledb_public
 {
 	function main($action = false)
@@ -35,7 +36,7 @@ class pafiledb_license extends pafiledb_public
 		}
 
 
-		$sql = 'SELECT file_catid, file_name
+		$sql = 'SELECT file_catid, file_name, file_approved, file_license, user_id
 			FROM ' . PA_FILES_TABLE . "
 			WHERE file_id = $file_id";
 
@@ -51,18 +52,26 @@ class pafiledb_license extends pafiledb_public
 
 		$db->sql_freeresult($result);
 
-		if( (!$this->auth[$file_data['file_catid']]['auth_download']) )
+		if (!pafiledb_download_approval_allowed($this, $file_data, $userdata))
+		{
+			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
+		}
+		if (!pafiledb_file_category_accessible($this, $file_data['file_catid']) || empty($this->auth[$file_data['file_catid']]['auth_download']))
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
 				redirect(append_sid('login.'.$phpEx.'?redirect=dload.'.$phpEx.'?action=license&license_id=' . $license_id . '&file_id=' . $file_id, true));
 			}
 
-			$message = sprintf($lang['Sorry_auth_download'], $this->auth[$file_data['file_catid']]['auth_download_type']);
+			$message = $lang['File_not_exist'];
 			message_die(GENERAL_MESSAGE, $message);
 		}
 
 
+		if ($license_id <= 0 || (int)$file_data['file_license'] !== $license_id)
+		{
+			message_die(GENERAL_MESSAGE, $lang['License_not_exist']);
+		}
 		$sql = 'SELECT *
 			FROM ' . PA_LICENSE_TABLE . "
 			WHERE license_id = $license_id";

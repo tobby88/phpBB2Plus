@@ -19,6 +19,7 @@
  *
  ***************************************************************************/
 
+require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
 class pafiledb_post_comment extends pafiledb_public
 {
 	function main($action = false)
@@ -64,10 +65,8 @@ class pafiledb_post_comment extends pafiledb_public
 		$db->sql_freeresult($result);
 		if (!$file_data) { message_die(GENERAL_MESSAGE, $lang['File_not_exist']); return; }
 		$auth = isset($this->auth[$file_data['file_catid']]) ? $this->auth[$file_data['file_catid']] : array();
-		foreach (array('auth_view', 'auth_read', 'auth_view_file') as $field)
-		{
-			if (empty($auth[$field])) { message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); return; }
-		}
+		if (!pafiledb_file_category_accessible($this, $file_data['file_catid']))
+		{ message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); return; }
 		if ($delete)
 		{
 			try { $cid = pafiledb_mutation_id($cid); }

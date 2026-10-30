@@ -9,6 +9,7 @@
   Please read the license included with this script for more information.
 */
 
+require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
 class pafiledb_rate extends pafiledb_public
 {
 	function main($action = false)
@@ -44,7 +45,7 @@ class pafiledb_rate extends pafiledb_public
 
 		$db->sql_freeresult($result);
 
-		if((int)$file_data['file_approved']!==1 || empty($this->auth[$file_data['file_catid']]['auth_view']) || empty($this->auth[$file_data['file_catid']]['auth_read']) || empty($this->auth[$file_data['file_catid']]['auth_view_file']) || empty($this->auth[$file_data['file_catid']]['auth_rate']) || empty($this->cat_rowset[$file_data['file_catid']]['cat_allow_ratings']))
+		if((int)$file_data['file_approved']!==1 || !pafiledb_file_category_accessible($this, $file_data['file_catid']) || empty($this->auth[$file_data['file_catid']]['auth_rate']) || empty($this->cat_rowset[$file_data['file_catid']]['cat_allow_ratings']))
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
