@@ -1117,6 +1117,13 @@ class pafiledb
 				$file_ids[] = $row['file_id'];
 				$files_data[] = $row;
 			}
+			$db->sql_freeresult($result);
+			// An empty category has no file identities. Never substitute its
+			// category ID for a file ID when deleting related metadata.
+			if (empty($file_ids))
+			{
+				return;
+			}
 
 			$where_sql = "WHERE file_catid = $id";
 		}

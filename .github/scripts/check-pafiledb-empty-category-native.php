@@ -1,0 +1,33 @@
+<?php
+if(PHP_SAPI!=='cli'||getenv('PHPBB_PA_EMPTY_CATEGORY_NATIVE')!=='1'){echo "Empty download category fixture requires an explicitly enabled disposable database.\n";return;}
+define('IN_PHPBB',true);$phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';$phpEx='php';$table_prefix='fixture_';
+require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'pafiledb/includes/pafiledb_constants.php';require$phpbb_root_path.'db/mysqli.php';require$phpbb_root_path.'pafiledb/includes/functions_pafiledb.php';
+function message_die($level,$message){throw new RuntimeException($message);}
+function ec_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['ec_checks']++;}
+class EmptyCategoryDatabase extends sql_db{
+ public$writes=array(),$after_empty_read=null,$fail_read=false;
+ function sql_query($sql='',$transaction=false){if(preg_match('/^(?:INSERT|UPDATE|DELETE)\b/',$sql)){$this->writes[]=$sql;}if($this->fail_read&&strpos($sql,'FROM '.PA_FILES_TABLE)!==false){return false;}return parent::sql_query($sql,$transaction);}
+ function sql_fetchrow($result=null){$row=parent::sql_fetchrow($result);if(!$row&&is_callable($this->after_empty_read)){$callback=$this->after_empty_read;$this->after_empty_read=null;call_user_func($callback);}return$row;}
+}
+class EmptyCategoryFiles{public$unlinks=array();function pafiledb_unlink($path){$this->unlinks[]=$path;}}
+function ec_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);if(!$r){throw new RuntimeException('Own category fixture SQL failed');}return$r;}
+function ec_rows($sql){$r=ec_sql($sql);try{return$GLOBALS['peer']->sql_fetchrowset($r);}finally{$GLOBALS['peer']->sql_freeresult($r);}}
+function ec_insert($table,$values){
+ foreach($GLOBALS['ec_columns'][$table]as$c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
+ $encoded=array();foreach($values as$v){$encoded[]="'".$GLOBALS['peer']->sql_escape((string)$v)."'";}ec_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).')VALUES('.implode(',',$encoded).')');
+}
+function ec_file($id,$category){ec_insert('fixture_pa_files',array('file_id'=>$id,'file_catid'=>$category,'file_name'=>'Unrelated Grüße 😀','file_dir'=>'fixture/','unique_name'=>'file'.$id.'.bin'));ec_insert('fixture_pa_customdata',array('customdata_file'=>$id,'data'=>'Preserved ä metadata'));ec_insert('fixture_pa_mirrors',array('file_id'=>$id,'file_dlurl'=>'https://example.invalid/fixture/'.$id));}
+function ec_snapshot(){return array(ec_rows('SELECT * FROM fixture_pa_files ORDER BY file_id'),ec_rows('SELECT * FROM fixture_pa_customdata ORDER BY customdata_file'),ec_rows('SELECT * FROM fixture_pa_mirrors ORDER BY mirror_id'));}
+function ec_reset(){foreach(array('pa_files','pa_customdata','pa_mirrors')as$suffix){ec_sql('DELETE FROM fixture_'.$suffix);}ec_file(42,9);ec_file(43,10);$GLOBALS['db']->writes=array();$GLOBALS['db']->fail_read=false;$GLOBALS['db']->after_empty_read=null;$GLOBALS['pafiledb_functions']->unlinks=array();}
+$port=getenv('PHPBB_PA_EMPTY_CATEGORY_PORT')?:'3306';$password=getenv('PHPBB_PA_EMPTY_CATEGORY_PASSWORD')?:'';if(!preg_match('/^[0-9]{1,5}$/D',$port)||(int)$port<1||(int)$port>65535){throw new RuntimeException('Own loopback port required');}
+$host='127.0.0.1:'.$port;$name='codex_pa_empty_category_'.bin2hex(phpbb_random_bytes(8));$control=new sql_db($host,'root',$password,'',false);$db=$peer=null;$created=false;$ec_checks=0;$ec_columns=array();$pafiledb_functions=new EmptyCategoryFiles();
+set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
+try{
+ ec_check($control->sql_query('CREATE DATABASE '.$name.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')!==false,'Own disposable schema');$created=true;$db=new EmptyCategoryDatabase($host,'root',$password,$name,false);$peer=new sql_db($host,'root',$password,$name,false);
+ $schema=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');foreach(array('pa_files','pa_customdata','pa_mirrors')as$suffix){ec_check(preg_match('/^CREATE TABLE phpbb_'.$suffix.'\s*\([\s\S]*?;/m',$schema,$m)===1,'Canonical source');ec_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]));$ec_columns['fixture_'.$suffix]=ec_rows('SHOW COLUMNS FROM fixture_'.$suffix);}
+ foreach(array(42,43,999)as$category){ec_reset();$before=ec_snapshot();$model=new pafiledb();$model->delete_files($category,'category');ec_check(ec_snapshot()===$before,'Empty category preserves unrelated file IDs and all metadata');ec_check(!$db->writes&&!$pafiledb_functions->unlinks,'Empty category issues no DML or unlink calls');}
+ ec_reset();$before=ec_snapshot();$db->after_empty_read=function(){ec_file(44,42);};$model=new pafiledb();$model->delete_files(42,'category');$after=ec_snapshot();ec_check(count($after[0])===3&&count($after[1])===3&&count($after[2])===3,'Upload arriving after an empty read remains intact');ec_check($after[0][0]===$before[0][0]&&$after[1][0]===$before[1][0]&&$after[2][0]===$before[2][0],'Concurrent upload does not affect unrelated metadata');ec_check(!$db->writes&&!$pafiledb_functions->unlinks,'Empty-read path never deletes an unobserved upload');
+ foreach(array('category','file')as$mode){ec_reset();$model=new pafiledb();$model->delete_files($mode==='category'?9:42,$mode);$after=ec_snapshot();ec_check(count($after[0])===1&&(int)$after[0][0]['file_id']===43,'Existing target file is removed in '.$mode.' mode');ec_check(count($after[1])===1&&(int)$after[1][0]['customdata_file']===43&&count($after[2])===1&&(int)$after[2][0]['file_id']===43,'Related metadata is removed only for the existing target');ec_check($pafiledb_functions->unlinks===array($phpbb_root_path.'fixture/file42.bin'),'Only the target file reaches the unlink boundary');}
+ ec_reset();$before=ec_snapshot();$db->fail_read=true;$failed=false;try{(new pafiledb())->delete_files(42,'category');}catch(RuntimeException$error){$failed=true;}ec_check($failed&&ec_snapshot()===$before&&!$db->writes&&!$pafiledb_functions->unlinks,'Failed category read cannot remove data or physical files');
+ echo 'Native empty download categories: ',$ec_checks," exact-method/canonical-schema/identity/metadata/concurrent-upload/no-unlink checks PASS.\n";
+}finally{restore_error_handler();if($db){$db->sql_close();}if($peer){$peer->sql_close();}if(!preg_match('/^codex_pa_empty_category_[a-f0-9]{16}$/D',$name)){throw new RuntimeException('Own schema identity required');}if($created){$control->sql_query('DROP DATABASE '.$name);}$control->sql_close();}

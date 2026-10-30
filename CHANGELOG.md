@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download category maintenance
 
+- Treat file removal from an empty category as a no-op. A category ID must never
+  become a file ID when cleaning up mirrors or custom fields; unrelated files
+  and uploads arriving after an empty read retain their metadata and contents.
 - Save new and edited categories, sibling ordering and file-cache invalidation
   together on an owning transaction. Recheck current ACP sessions and delegated
   category permissions; refuse noncanonical storage without partial writes.

@@ -782,6 +782,12 @@ jobs:
         env:
           PHPBB_PA_READ_FORMS_NATIVE: '1'
           PHPBB_PA_READ_FORMS_PASSWORD: fixture-only
+      - name: Preserve unrelated file metadata when deleting an empty category
+        if: matrix.part == 2
+        run: php .github/scripts/check-pafiledb-empty-category-native.php
+        env:
+          PHPBB_PA_EMPTY_CATEGORY_NATIVE: '1'
+          PHPBB_PA_EMPTY_CATEGORY_PASSWORD: fixture-only
       - if: matrix.part == 3
         run: php .github/scripts/check-pafiledb-toplist-native.php
         env:
