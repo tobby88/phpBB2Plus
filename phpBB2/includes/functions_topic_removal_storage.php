@@ -79,7 +79,9 @@ class PhpbbTopicRemovalDatabase extends PhpbbPostSubmitDatabase
 		if ($this->policy === 'prune_auto')
 		{
 			$this->rows('SELECT config_value FROM ' . CONFIG_TABLE . " WHERE config_name = 'prune_enable' LOCK IN SHARE MODE");
-			$this->rows('SELECT prune_id FROM ' . PRUNE_TABLE . ' WHERE forum_id = ' . $this->forum_id . ' ORDER BY prune_id LOCK IN SHARE MODE');
+			// Read the policy values too: a covering forum_id/prune_id index can
+			// otherwise leave the clustered settings row unlocked for updates.
+			$this->rows('SELECT prune_id,prune_days,prune_freq FROM ' . PRUNE_TABLE . ' WHERE forum_id = ' . $this->forum_id . ' ORDER BY prune_id LOCK IN SHARE MODE');
 		}
 		parent::commit();
 	}

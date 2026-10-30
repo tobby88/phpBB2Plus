@@ -55,12 +55,13 @@ class PhpbbAjaxStorageDatabase
 		$user = $this->actor();
 		if (!$this->context) { phpbb_ajax_storage_error('Posting_target_changed'); }
 		$c = $this->context;
-		$rows = $this->rows('SELECT p.poster_id, t.topic_status, f.forum_status FROM ' . POSTS_TABLE . ' p'
+		$rows = $this->rows('SELECT p.poster_id,p.post_deleted, t.topic_status, f.forum_status FROM ' . POSTS_TABLE . ' p'
 			. ' JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id = p.post_id'
 			. ' JOIN ' . TOPICS_TABLE . ' t ON t.topic_id = p.topic_id AND t.forum_id = p.forum_id AND t.topic_moved_id = 0'
 			. ' JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id WHERE p.post_id = ' . $c['post_id']
 			. ' AND p.topic_id = ' . $c['topic_id'] . ' AND p.forum_id = ' . $c['forum_id'] . ' AND p.poster_id = ' . $c['poster_id']);
 		if (count($rows) !== 1) { phpbb_ajax_storage_error('Posting_target_changed'); }
+		if((string)$rows[0]['post_deleted']==='1'){phpbb_ajax_storage_error('Post_deleted_not_editable');}
 		$auth = auth(AUTH_ALL, $c['forum_id'], $user, '', $this);
 		if (empty($auth['auth_view']) || empty($auth['auth_read']) || (empty($auth['auth_mod']) && (empty($auth['auth_edit']) || $c['poster_id'] !== (int)$user['user_id']))) { phpbb_ajax_storage_error('Edit_own_posts'); }
 		if (empty($auth['auth_mod']) && (int)$rows[0]['forum_status'] === FORUM_LOCKED) { phpbb_ajax_storage_error('Forum_locked'); }

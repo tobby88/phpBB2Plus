@@ -1,5 +1,14 @@
 # Database updates and maintenance
 
+Deleted posts now retain a compact placeholder by default. Before publishing the
+corresponding application code, preview `--post-tombstones-only` and apply it with
+`--apply --backup-confirmed --maintenance-confirmed`. The full updater includes the
+same additive migration. It preserves all historical contributions and adds only
+the deletion-state fields and `post_delete_allow_permanent=0`. Permanent removal
+stays disabled; if explicitly enabled later, its per-deletion checkbox is unchecked
+by default. Automatic pruning always retains placeholders. To remove a forum
+without losing markers, move its contributions to another forum first.
+
 The consolidated updater adds nullable `post_edit_user_id` and
 `post_edit_username` fields to existing posts. These record the actual editor of
 future changes made through either editor, including moderation. Existing text,

@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_posting_storage.php';
 require_once dirname(__FILE__) . '/functions_post_submit_storage.php';
+require_once dirname(__FILE__) . '/functions_post_tombstone.php';
 
 // SQL deletion commits before any file is unlinked. The existing description
 // reserves detached files until cleanup succeeds (ACP: Shadow attachments).
@@ -16,6 +17,10 @@ class PhpbbPostDeleteDatabase extends PhpbbPostSubmitDatabase
 	var $topic_status = 0;
 	var $poll_ids = array();
 	var $poll_voted = false;
+	var $post_tombstoned = false;
+	var $topic_tombstone_locked = false;
+	var $tombstone_actor = null;
+	var $tombstone_time = null;
 	function fail($key)
 	{
 		if ($key === 'Posting_submit_unconfirmed') { $key = 'Posting_delete_unconfirmed'; }
@@ -37,14 +42,19 @@ class PhpbbPostDeleteDatabase extends PhpbbPostSubmitDatabase
 		if ((int)$user['user_id'] === ANONYMOUS) { $this->fail('Delete_own_posts'); }
 		$forums = $this->rows('SELECT forum_status FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $this->forum_id);
 		$topics = $this->rows('SELECT topic_status, forum_id, topic_moved_id FROM ' . TOPICS_TABLE . ' WHERE topic_id = ' . $this->topic_id);
-		$posts = $this->rows('SELECT poster_id, topic_id, forum_id FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $this->post_id);
+		$posts = $this->rows('SELECT poster_id, topic_id, forum_id, post_deleted,post_deleted_by,post_deleted_time FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $this->post_id);
 		if (count($forums) !== 1) { $this->fail('Posting_target_changed'); }
 		if ($this->topic_deleted)
 		{
 			if ($topics || $this->rows('SELECT post_id FROM ' . POSTS_TABLE . ' WHERE topic_id = ' . $this->topic_id . ' LIMIT 1')) { $this->fail('Posting_target_changed'); }
 		}
 		else if (count($topics) !== 1 || (int)$topics[0]['forum_id'] !== $this->forum_id || !empty($topics[0]['topic_moved_id'])) { $this->fail('Posting_target_changed'); }
-		if ($this->post_deleted)
+		if ($this->post_tombstoned)
+		{
+			if(count($posts)!==1||(int)$posts[0]['topic_id']!==$this->topic_id||(int)$posts[0]['forum_id']!==$this->forum_id||(int)$posts[0]['poster_id']!==ANONYMOUS||!phpbb_post_is_deleted($posts[0])||(int)$posts[0]['post_deleted_by']!==$this->tombstone_actor||(int)$posts[0]['post_deleted_time']!==$this->tombstone_time){$this->fail('Posting_target_changed');}
+			$owner=$this->poster_id;$last=$this->was_last;
+		}
+		else if ($this->post_deleted)
 		{
 			if ($posts || $this->poster_id === null) { $this->fail('Posting_target_changed'); }
 			$owner = $this->poster_id; $last = $this->was_last;
@@ -64,7 +74,7 @@ class PhpbbPostDeleteDatabase extends PhpbbPostSubmitDatabase
 			if ($owner !== (int)$user['user_id'] || empty($auth['auth_delete'])) { $this->fail('Delete_own_posts'); }
 			if ($this->mode === 'delete' && !$last) { $this->fail('Cannot_delete_replied'); }
 			if ((int)$forums[0]['forum_status'] === FORUM_LOCKED) { $this->fail('Forum_locked'); }
-			$status = $this->topic_deleted ? $this->topic_status : (int)$topics[0]['topic_status'];
+			$status = ($this->topic_deleted || ($this->post_tombstoned && $this->topic_tombstone_locked && (int)$topics[0]['topic_status'] === TOPIC_LOCKED)) ? $this->topic_status : (int)$topics[0]['topic_status'];
 			if ($status === TOPIC_LOCKED) { $this->fail('Topic_locked'); }
 			if ($this->mode === 'poll_delete' || ($this->was_first && $this->was_last))
 			{
@@ -77,6 +87,14 @@ class PhpbbPostDeleteDatabase extends PhpbbPostSubmitDatabase
 			}
 		}
 		return $auth;
+	}
+	function tombstone_post($user)
+	{
+		$this->tombstone_actor=(int)$user['user_id'];$this->tombstone_time=time();
+		$this->sql_query('UPDATE '.POSTS_TABLE.' SET '.phpbb_post_tombstone_assignments($this->tombstone_actor,$this->tombstone_time).' WHERE post_id='.$this->post_id.' AND topic_id='.$this->topic_id.' AND forum_id='.$this->forum_id.' AND poster_id='.$this->poster_id.' AND post_deleted=0');
+		if((int)$this->sql_affectedrows()!==1){$this->fail('Posting_target_changed');}
+		$this->post_tombstoned=true;$this->post_deleted=true;
+		phpbb_post_tombstone_clear_text($this,$this->post_id);
 	}
 	function remove_post()
 	{
@@ -147,8 +165,9 @@ function phpbb_submit_post_delete($database, $mode, $forum_id, $topic_id, $post_
 	{
 		$db = new PhpbbPostDeleteDatabase($lock->connection, $mode, $forum_id, $topic_id, $post_id);
 		$db->begin();
-		$posts = $db->rows('SELECT post_id, poster_id FROM ' . POSTS_TABLE . ' WHERE topic_id = ' . $db->topic_id . ' ORDER BY post_id FOR UPDATE');
-		foreach ($posts as $post) { if ((int)$post['post_id'] === $db->post_id) { $db->poster_id = (int)$post['poster_id']; } }
+		$posts = $db->rows('SELECT post_id, poster_id,post_deleted,post_deleted_by,post_deleted_time FROM ' . POSTS_TABLE . ' WHERE topic_id = ' . $db->topic_id . ' ORDER BY post_id FOR UPDATE');
+		$selected=null;foreach ($posts as $post) { if ((int)$post['post_id'] === $db->post_id) { $db->poster_id = (int)$post['poster_id'];$selected=$post; } }
+		if($selected===null||!$posts){$db->fail('Posting_target_changed');}
 		$db->was_last = (int)$posts[count($posts)-1]['post_id'] === $db->post_id;
 		$first = (int)$posts[0]['post_id'] === $db->post_id;
 		$db->was_first = $first;
@@ -165,15 +184,20 @@ function phpbb_submit_post_delete($database, $mode, $forum_id, $topic_id, $post_
 		}
 		if ($mode === 'poll_delete' && (count($polls) !== 1 || phpbb_posting_scope_id($poll_id) !== $db->poll_ids[0])) { $db->fail('Posting_target_changed'); }
 		$db->authorize(); $attachments = array();
+		$keep=$mode==='delete'?phpbb_post_tombstone_choice($db):false;
 		$data = array('first_post'=>$first, 'last_post'=>$db->was_last, 'last_topic'=>false, 'poster_id'=>$db->poster_id, 'poster_post'=>$db->poster_id === (int)$GLOBALS['userdata']['user_id'], 'has_poll'=>(bool)$polls);
+		$data['_delete_tombstone']=$keep;
+		if($keep&&phpbb_post_is_deleted($selected)){
+			$db->post_deleted=true;$db->post_tombstoned=true;$db->tombstone_actor=(int)$selected['post_deleted_by'];$db->tombstone_time=(int)$selected['post_deleted_time'];$db->commit();$data['_delete_audit_completed']=true;$data['_delete_cleanup_pending']=false;return array('post_data'=>$data,'poll_id'=>0);
+		}
 		if ($mode === 'delete')
 		{
 			$attachments = $db->rows('SELECT d.* FROM ' . ATTACHMENTS_DESC_TABLE . ' d WHERE EXISTS (SELECT 1 FROM ' . ATTACHMENTS_TABLE . ' a WHERE a.attach_id = d.attach_id AND a.post_id = ' . $db->post_id . ' AND a.privmsgs_id = 0) ORDER BY d.attach_id FOR UPDATE');
-			$db->remove_post();
-			$db->sql_query('DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $db->post_id);
+			if($keep){$db->tombstone_post($db->actor());}
+			else{$db->remove_post();$db->sql_query('DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $db->post_id);}
 			// A malformed mixed PM/post link is not authority to delete PM data.
 			$db->sql_query('DELETE FROM ' . ATTACHMENTS_TABLE . ' WHERE post_id = ' . $db->post_id . ' AND privmsgs_id = 0');
-			if ($first && $db->was_last)
+			if (!$keep && $first && $db->was_last)
 			{
 				$db->remove_topic();
 				phpbb_cleanup_removed_topic_preferences($db, $db->topic_id);
@@ -183,7 +207,7 @@ function phpbb_submit_post_delete($database, $mode, $forum_id, $topic_id, $post_
 			require_once dirname(__FILE__) . '/functions_search.php';
 			remove_search_post($db->post_id, true, true, $db);
 		}
-		if ($mode === 'poll_delete' || $db->topic_deleted)
+		if ($mode === 'poll_delete' || $db->topic_deleted || ($keep && $first))
 		{
 			foreach ($db->poll_ids as $id)
 			{
@@ -191,9 +215,15 @@ function phpbb_submit_post_delete($database, $mode, $forum_id, $topic_id, $post_
 				$db->sql_query('DELETE FROM ' . VOTE_USERS_TABLE . ' WHERE vote_id = ' . $id);
 				$db->sql_query('DELETE FROM ' . VOTE_DESC_TABLE . ' WHERE vote_id = ' . $id . ' AND topic_id = ' . $db->topic_id);
 			}
+			if($keep){$db->sql_query('UPDATE '.TOPICS_TABLE.' SET topic_vote=0 WHERE topic_id='.$db->topic_id.' AND forum_id='.$db->forum_id);}
 		}
 		$user_id = $db->poster_id;
-		update_post_stats($mode, $data, $db->forum_id, $db->topic_id, $db->post_id, $user_id, $db, false);
+		if($keep){
+			phpbb_post_tombstone_recount_user($db,$user_id);
+			$db->sql_query('UPDATE '.TOPICS_TABLE.' SET topic_poster=(SELECT poster_id FROM '.POSTS_TABLE.' WHERE topic_id='.$db->topic_id.' AND forum_id='.$db->forum_id.' ORDER BY post_id LIMIT 1) WHERE topic_id='.$db->topic_id.' AND forum_id='.$db->forum_id);
+			$data['_stats_completed']='delete:'.$db->post_id;
+			$db->topic_tombstone_locked=phpbb_post_tombstone_topic_caption($db,$db->topic_id,$db->forum_id);
+		}else{update_post_stats($mode, $data, $db->forum_id, $db->topic_id, $db->post_id, $user_id, $db, false);}
 		if ($mode === 'delete') { phpbb_posting_sync_forum($db, $db->forum_id); }
 		$auth = $db->authorize();
 		if (!empty($auth['auth_mod']))

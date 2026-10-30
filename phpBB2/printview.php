@@ -168,8 +168,13 @@ if( count($orig_word) )
 //
 // Loop through the posts
 //
+require_once dirname(__FILE__).'/includes/functions_post_tombstone.php';
 for($i = 0; $i < $total_posts; $i++)
 {
+	if(phpbb_post_is_deleted($postrow[$i])){
+		$template->assign_block_vars('postrow',array('IS_DELETED'=>true,'MESSAGE'=>htmlspecialchars($lang['Post_deleted_placeholder'],ENT_QUOTES,'UTF-8')));
+		continue;
+	}
 	$poster_id = $postrow[$i]['user_id'];
 	$poster = $postrow[$i]['username'];
 

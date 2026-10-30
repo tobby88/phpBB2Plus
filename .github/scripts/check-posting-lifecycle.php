@@ -8,6 +8,7 @@ require $forum_root . 'includes/functions_post.php';
 require $forum_root . 'includes/functions_moderation.php';
 foreach (array('Topic_post_not_exist','Forum_locked','Topic_locked','No_valid_mode','Delete_own_posts','Edit_own_posts','Cannot_delete_replied','Cannot_delete_poll','Posting_storage_failed','Posting_target_changed','Flood_Error','Stored','Deleted','Poll_delete','None_selected','Moderation_delete_failed','Moderation_delete_changed','Click_view_message','Click_return_forum','Click_return_topic') as $key) { $lang[$key] = $key; }
 function board_stats() { mutation_check($GLOBALS['mutation_server']->owner === null, 'Board metadata is refreshed after releasing storage lock'); }
+$lang['Topic_deleted_placeholder']='Deleted topic';
 function cache_tree($force = false) { board_stats(); }
 function append_sid($url) { return $url; }
 foreach (array('SESSIONS_TABLE'=>'fixture_sessions','LOGS_TABLE'=>'fixture_action_log','POST_NORMAL'=>0,'POST_STICKY'=>1,'POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3) as $key=>$value) { if (!defined($key)) { define($key,$value); } }
@@ -33,7 +34,8 @@ function posting_fixture()
 	$mutation_server = new MutationServer(); $db = new MutationForum();
 	$mutation_server->pdo = new PostingFixturePDO($mutation_server->pdo); $p = $mutation_server->pdo;
 	$p->exec('CREATE TABLE fixture_config (config_name VARCHAR(64) PRIMARY KEY, config_value VARCHAR(255))');
-	foreach (array('forum_id INTEGER DEFAULT 3','poster_id INTEGER DEFAULT 8','post_username TEXT','post_author_removed INTEGER DEFAULT 0','post_time INTEGER DEFAULT 1','poster_ip TEXT','enable_bbcode INTEGER DEFAULT 1','enable_html INTEGER DEFAULT 0','enable_smilies INTEGER DEFAULT 1','enable_sig INTEGER DEFAULT 0','post_icon INTEGER DEFAULT 0','post_edit_time INTEGER DEFAULT 0','post_edit_count INTEGER DEFAULT 0','post_edit_user_id INTEGER DEFAULT NULL','post_edit_username TEXT DEFAULT NULL') as $column) { $p->exec('ALTER TABLE fixture_posts ADD ' . $column); }
+	$p->exec("INSERT INTO fixture_config VALUES ('post_delete_allow_permanent','1')");
+	foreach (array('forum_id INTEGER DEFAULT 3','poster_id INTEGER DEFAULT 8','post_username TEXT','post_author_removed INTEGER DEFAULT 0','post_deleted_time INTEGER DEFAULT 0','post_deleted_by INTEGER DEFAULT 0','post_time INTEGER DEFAULT 1','poster_ip TEXT','enable_bbcode INTEGER DEFAULT 1','enable_html INTEGER DEFAULT 0','enable_smilies INTEGER DEFAULT 1','enable_sig INTEGER DEFAULT 0','post_icon INTEGER DEFAULT 0','post_bluecard INTEGER DEFAULT 0','post_edit_time INTEGER DEFAULT 0','post_edit_count INTEGER DEFAULT 0','post_edit_user_id INTEGER DEFAULT NULL','post_edit_username TEXT DEFAULT NULL') as $column) { $p->exec('ALTER TABLE fixture_posts ADD ' . $column); }
 	foreach (array('forum_id INTEGER DEFAULT 3','topic_status INTEGER DEFAULT 0','topic_moved_id INTEGER DEFAULT 0','topic_title TEXT','topic_desc TEXT','topic_poster INTEGER DEFAULT 8','topic_time INTEGER DEFAULT 1','news_id INTEGER DEFAULT 0','topic_type INTEGER DEFAULT 0','topic_calendar_time INTEGER DEFAULT 0','topic_calendar_duration INTEGER DEFAULT 0','topic_icon INTEGER DEFAULT 0','topic_announce_duration INTEGER DEFAULT 0','topic_vote INTEGER DEFAULT 0','topic_replies INTEGER DEFAULT 0','topic_first_post_id INTEGER DEFAULT 10','topic_last_post_id INTEGER DEFAULT 10') as $column) { $p->exec('ALTER TABLE fixture_topics ADD ' . $column); }
 	$p->exec('CREATE TABLE fixture_forums (forum_id INTEGER PRIMARY KEY, forum_status INTEGER, count_posts INTEGER, forum_posts INTEGER, forum_topics INTEGER, forum_last_post_id INTEGER)');
 	$p->exec('INSERT INTO fixture_forums VALUES (3,0,1,1,1,10),(4,0,1,0,0,0)');
@@ -77,7 +79,7 @@ function posting_submit($mode, $post_id = 10, $topic_id = 100, $forum_id = 3, $p
 function posting_delete($post_id = 10, $topic_id = 100, $mode = 'delete', $poll = false)
 {
 	$forum_id=3; $poll_id=$poll ? 1 : 0; $message=''; $meta='';
-	$post_data=array('first_post'=>true,'last_post'=>true,'last_topic'=>true,'poster_post'=>true,'poster_id'=>8,'has_poll'=>$poll,'edit_poll'=>true);
+	$_POST['delete_permanently']='1';$GLOBALS['mutation_server']->pdo->exec("INSERT OR REPLACE INTO fixture_config VALUES ('post_delete_allow_permanent','1')");$post_data=array('first_post'=>true,'last_post'=>true,'last_topic'=>true,'poster_post'=>true,'poster_id'=>8,'has_poll'=>$poll,'edit_poll'=>true);
 	delete_post($mode,$post_data,$message,$meta,$forum_id,$topic_id,$post_id,$poll_id);
 	return $post_data;
 }
@@ -135,7 +137,7 @@ try
 	posting_submit('reply'); $mutation_server->hook=null;
 	mutation_check($interleaved && !$mutation_server->owner,'Parent deletion cannot interleave with text/index/counter publication');
 	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
-	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture');
+	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture','delete_permanently'=>'1');
 	phpbb_delete_moderated_topics($db,3,array(100));
 	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_matches')===0 && (int)posting_value('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')===0,'Moderator cleanup includes search and forum totals on owning connection');
 	mutation_expect_failure(function () { posting_submit('reply'); }, 'Topic_post_not_exist');

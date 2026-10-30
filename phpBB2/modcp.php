@@ -359,7 +359,7 @@ switch( $mode )
 
 			$template->assign_vars(array(
 				'MESSAGE_TITLE' => $lang['Confirm'],
-				'MESSAGE_TEXT' => $lang['Confirm_delete_topic'],
+				'MESSAGE_TEXT' => $lang['Confirm_delete_topic'] . phpbb_post_tombstone_option(true),
 
 				'L_YES' => $lang['Yes'],
 				'L_NO' => $lang['No'],

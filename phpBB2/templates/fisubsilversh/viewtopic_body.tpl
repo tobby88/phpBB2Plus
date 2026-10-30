@@ -39,6 +39,9 @@ highlight = '{HIGHLIGHT}';
 <th width="100%">{L_MESSAGE}</th>
 </tr>
 <!-- BEGIN postrow -->
+<!-- IF postrow.IS_DELETED -->
+<tr><td class="{postrow.ROW_CLASS}" colspan="2"><a name="{postrow.U_POST_ID}" id="{postrow.U_POST_ID}"></a><span class="genmed"><em>{postrow.DELETED_MESSAGE}</em></span></td></tr>
+<!-- ELSE -->
 <tr>
 <td valign="top" class="{postrow.ROW_CLASS}"> 
 <span class="name"><a name="{postrow.U_POST_ID}" id="{postrow.U_POST_ID}"></a><strong>{postrow.POSTER_NAME}</strong>{postrow.CARD_IMG}<br /></span>
@@ -112,6 +115,7 @@ highlight = '{HIGHLIGHT}';
 <tr>
 <td class="spacerow" colspan="2" height="1"><img src="images/spacer.gif" alt="" width="1" height="1" /></td>
 </tr>
+<!-- ENDIF -->
 <!-- END postrow -->
 <!-- BEGIN bookmark_state -->
 <tr align="right">

@@ -64,6 +64,11 @@ function phpbb_delete_moderated_topics_owned($storage, $forum_id, $topics, $topi
 	require_once dirname(__FILE__) . '/functions_search.php';
 	$removed = array('topic_ids' => array(), 'post_ids' => array());
 	$topic_guard .= ' AND NOT EXISTS (SELECT 1 FROM ' . POSTS_TABLE . ' foreign_post WHERE foreign_post.topic_id = ' . TOPICS_TABLE . '.topic_id AND foreign_post.forum_id <> ' . (int)$forum_id . ')';
+	if(phpbb_post_tombstone_choice($storage,$storage->policy!=='prune_auto'))
+	{
+		require_once dirname(__FILE__).'/functions_topic_tombstone.php';
+		return phpbb_tombstone_topics_owned($storage,$forum_id,$topics,$topic_guard);
+	}
 	$result = phpbb_moderation_query($storage, 'SELECT count_posts FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $forum_id);
 	$forum = $storage->sql_fetchrow($result); $storage->sql_freeresult($result);
 	if (!$forum) { message_die(GENERAL_MESSAGE, $lang['None_selected']); }

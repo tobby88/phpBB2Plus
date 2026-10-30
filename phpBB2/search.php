@@ -989,6 +989,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			$result_select_sql = "SELECT pt.post_text, pt.bbcode_uid, pt.post_subject, p.*, f.forum_id, f.forum_name, t.*, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid";
 			$result_from_sql = " FROM " . FORUMS_TABLE . " f, " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TEXT_TABLE . " pt
 				WHERE p.post_id IN ($search_results)
+					AND p.post_deleted = 0
 					AND pt.post_id = p.post_id
 					AND f.forum_id = p.forum_id
 					AND p.topic_id = t.topic_id
@@ -1000,6 +1001,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			$result_select_sql = "SELECT t.*, f.forum_id, f.forum_name, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p.post_author_removed, p2.post_username AS post_username2, p2.post_author_removed AS post_author_removed2, p2.post_time";
 			$result_from_sql = " FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
 				WHERE t.topic_id IN ($search_results) 
+					AND EXISTS (SELECT 1 FROM " . POSTS_TABLE . " live_post WHERE live_post.topic_id = t.topic_id AND live_post.forum_id = t.forum_id AND live_post.post_deleted = 0)
 					AND t.topic_poster = u.user_id
 					AND f.forum_id = t.forum_id 
 					AND p.post_id = t.topic_first_post_id

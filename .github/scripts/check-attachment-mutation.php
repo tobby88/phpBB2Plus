@@ -36,10 +36,10 @@ class MutationServer
 		$this->pdo = new PDO('sqlite::memory:'); $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		$this->pdo->exec('CREATE TABLE fixture_links (attach_id INTEGER, post_id INTEGER, privmsgs_id INTEGER, user_id_1 INTEGER, user_id_2 INTEGER)');
 		$this->pdo->exec('CREATE TABLE fixture_descriptions (attach_id INTEGER PRIMARY KEY AUTOINCREMENT, physical_filename TEXT, real_filename TEXT, comment TEXT, extension TEXT, mimetype TEXT, filesize INTEGER, filetime INTEGER, thumbnail INTEGER)');
-		$this->pdo->exec('CREATE TABLE fixture_posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, post_attachment INTEGER)');
+		$this->pdo->exec('CREATE TABLE fixture_posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, post_attachment INTEGER, post_deleted INTEGER DEFAULT 0)');
 		$this->pdo->exec('CREATE TABLE fixture_topics (topic_id INTEGER PRIMARY KEY, topic_attachment INTEGER)');
 		$this->pdo->exec('CREATE TABLE fixture_messages (privmsgs_id INTEGER PRIMARY KEY, privmsgs_type INTEGER, privmsgs_to_userid INTEGER, privmsgs_from_userid INTEGER, privmsgs_attachment INTEGER)');
-		$this->pdo->exec('INSERT INTO fixture_posts VALUES (10,100,1)');
+		$this->pdo->exec('INSERT INTO fixture_posts(post_id,topic_id,post_attachment) VALUES (10,100,1)');
 		$this->pdo->exec('INSERT INTO fixture_topics VALUES (100,1)');
 		$this->pdo->exec('INSERT INTO fixture_messages VALUES (20,1,7,8,1),(21,2,7,8,0)');
 	}

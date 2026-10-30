@@ -18,10 +18,11 @@ function tr_fixture($policy,$actor='root')
  if($actor==='delegate'){ae_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=8');$module=$policy==='prune_admin'?md5('ForumsPruneadmin_forum_prune.php'):md5('ForumsManageadmin_forums.php');ae_insert('fixture_jr_admin_users',array('user_id'=>8,'user_jr_admin'=>$module));}
  $admin=in_array($policy,array('prune_admin','forum_purge','forum_move'),true);$GLOBALS['userdata']['session_admin']=$admin;ae_sql('UPDATE fixture_sessions SET session_admin='.($admin?1:0));
  $_SERVER['REQUEST_METHOD']=$policy==='prune_auto'?'GET':'POST';$_POST=$policy==='prune_auto'?array():array('sid'=>'edit-sid');
+ if(getenv('PHPBB_TOPIC_TOMBSTONE_NATIVE')!=='1'&&$policy!=='prune_auto'){$_POST['delete_permanently']='1';}
 }
 function tr_snapshot()
 {
- $out=pd_snapshot();foreach($out['forums'] as &$row){if((int)$row['prune_next']>1){$row['prune_next']='scheduled';}}unset($row);return $out;
+ $out=pd_snapshot();foreach($out['posts']as&$post){if((int)$post['post_deleted_time']>0){$post['post_deleted_time']='deleted';}}unset($post);foreach($out['forums'] as &$row){if((int)$row['prune_next']>1){$row['prune_next']='scheduled';}}unset($row);return $out;
 }
 function tr_submit($policy,$controller=false)
 {
@@ -50,17 +51,20 @@ $body= <<<'PHP'
  require $phpbb_root_path.'attach_mod/includes/functions_attach.php';require $phpbb_root_path.'attach_mod/includes/functions_admin.php';require $phpbb_root_path.'attach_mod/includes/functions_shadow.php';require $phpbb_root_path.'includes/functions_forum_maintenance.php';
  $upload_dir=sys_get_temp_dir().'/phpbb-topic-removal-owned-'.bin2hex(phpbb_random_bytes(8));$attach_config=array('allow_ftp_upload'=>'0');ae_check(mkdir($upload_dir,0700)&&mkdir($upload_dir.'/'.THUMB_DIR,0700),'Owned directories');
  try{
+ if(getenv('PHPBB_TOPIC_TOMBSTONE_NATIVE')==='1'){
+  require $phpbb_root_path.'../.github/scripts/topic-tombstone-native-cases.php';
+ }else{
  $matrix=array(array('moderator','root'),array('moderator','moderator'),array('prune_auto','root'),array('prune_auto','moderator'),array('prune_admin','root'),array('prune_admin','delegate'),array('forum_purge','root'),array('forum_purge','delegate'),array('forum_move','root'),array('forum_move','delegate'));
  if(getenv('PHPBB_TOPIC_REMOVAL_TAIL')!=='1' && getenv('PHPBB_TOPIC_REMOVAL_EXTRA')!=='1'){
  foreach($matrix as $entry){list($policy,$actor)=$entry;tr_fixture($policy,$actor);$before=tr_snapshot();$out=tr_submit($policy);ae_check(is_array($out),'Success '.$policy.'/'.$actor.' '.$br_exception.' '.json_encode($ae_error));$after=tr_snapshot();$queries=$ae_queries;
   ae_check(empty($out['cleanup_pending'])&&pd_files()===($policy==='forum_move'?array(true,true):array(false,false)),'Confirmed physical cleanup only after deleting content');
-  $expected_topics=$policy==='forum_move'?7:($policy==='forum_purge'?1:5);ae_check(count($after['topics'])===$expected_topics,'Correct topic selection '.$policy);ae_check(count($after['logs'])===($policy==='forum_move'?0:($policy==='forum_purge'?6:2)),'Atomic audit for actual removals');
+  $expected_topics=($policy==='forum_move'||$policy==='prune_auto')?7:($policy==='forum_purge'?1:5);ae_check(count($after['topics'])===$expected_topics,'Correct topic selection '.$policy);ae_check(count($after['logs'])===($policy==='forum_move'?0:($policy==='forum_purge'?6:2)),'Atomic audit for actual removals');
   if($policy==='forum_move'){foreach(array('posts_text','attachments','attachments_desc','vote_desc','vote_results','vote_voters','topics_watch','bookmarks','topic_view') as $table){ae_check($before[$table]===$after[$table],'Move preserves '.$table);}}
   if(getenv('PHPBB_TOPIC_REMOVAL_SMOKE')==='1'){echo $policy.'/'.$actor." native complete operation passed\n";continue;}
   $commit=array_search('COMMIT',$queries,true);ae_check($commit!==false,'Explicit transaction commit');$writes=0;foreach(array_slice($queries,0,$commit) as $sql){if(preg_match('/^(INSERT|UPDATE|DELETE)\b/',$sql)){$writes++;}}
   for($nth=1;$nth<=$writes;$nth++){tr_fixture($policy,$actor);$before=tr_snapshot();$ae_failwrite=$nth;ae_check(tr_submit($policy)==='error'&&tr_snapshot()===$before&&pd_files()===array(true,true)&&!$tr_scheduled,'Every core write rolls back selection/counters/schedule/audit '.$policy.'/'.$actor.'/'.$nth);$cases++;}
   foreach(array(false,true) as $ack){tr_fixture($policy,$actor);$before=tr_snapshot();$ae_ack=$ack;$ae_fail=$ack?'':'COMMIT';$expected=$ack?$after:$before;if($ack&&$policy!=='forum_move'){$expected['attachments_desc']=$before['attachments_desc'];}ae_check(tr_submit($policy)==='error'&&tr_snapshot()===$expected&&pd_files()===array(true,true)&&!$tr_scheduled,'Failed/lost COMMIT never unlinks files or confirms scheduling');$cases++;}
-  $write_boundary=$policy==='forum_move'?'UPDATE fixture_topics t LEFT JOIN':'DELETE FROM fixture_topics';
+  $write_boundary=$policy==='forum_move'?'UPDATE fixture_topics t LEFT JOIN':($policy==='prune_auto'?'UPDATE fixture_posts SET post_deleted=1':'DELETE FROM fixture_topics');
   foreach(array(ae_revoke('session'),tr_revoke($policy,$actor)) as $revoke){foreach(array($write_boundary,'COMMIT') as $boundary){tr_fixture($policy,$actor);$reached=$blocked=false;$independent=null;$ae_hook=function($sql)use($revoke,$boundary,&$reached,&$blocked,&$independent){if(strpos($sql,$boundary)!==0){return;}$GLOBALS['ae_hook']=null;$reached=true;$probe=native_fixture_conflict_query($GLOBALS['peer'],$revoke);if(!$probe[0]){$e=$probe[1];ae_check((int)$e['code']===1205,'Independent revoke blocked only by DB row lock');$blocked=true;}else{$independent=tr_snapshot();}};$out=tr_submit($policy);ae_check($reached,'Actual authority boundary');if($blocked){ae_check(is_array($out)&&tr_snapshot()===$after,'Authority change serializes with full transaction');$serialized++;}else{ae_check($out==='error'&&tr_snapshot()===$independent&&pd_files()===array(true,true),'Effective authority loss rolls back every change');}$cases++;}}
   tr_fixture($policy,$actor);$before=tr_snapshot();$reached=false;$kill=$policy==='forum_move'?'DELETE f FROM':'DELETE FROM fixture_search_wordmatch';$ae_hook=function($sql)use($kill,&$reached){if(strpos($sql,$kill)!==0){return;}$GLOBALS['ae_hook']=null;$reached=true;ae_sql('KILL CONNECTION '.(int)mysqli_thread_id($GLOBALS['ae_writer']->db_connect_id));};ae_check(tr_submit($policy)==='error'&&$reached&&tr_snapshot()===$before&&pd_files()===array(true,true),'Actual disconnect rolls back content and preserves bytes');$cases++;
   echo $policy.'/'.$actor." native transaction/failure/authority checks passed\n";
@@ -82,7 +86,7 @@ $body= <<<'PHP'
  if(getenv('PHPBB_TOPIC_REMOVAL_SMOKE')!=='1'){
   // Independent changes, not edits made on the transaction's own connection.
   foreach(array("UPDATE fixture_config SET config_value='0' WHERE config_name='prune_enable'",'UPDATE fixture_forum_prune SET prune_days=30') as $change){
-   foreach(array('DELETE FROM fixture_topics','COMMIT') as $boundary){
+   foreach(array('UPDATE fixture_posts SET post_deleted=1','COMMIT') as $boundary){
     tr_fixture('prune_auto');$reached=$blocked=false;$independent=null;
     $ae_hook=function($sql)use($change,$boundary,&$reached,&$blocked,&$independent){
      if(strpos($sql,$boundary)!==0){return;}$GLOBALS['ae_hook']=null;$reached=true;
@@ -91,7 +95,7 @@ $body= <<<'PHP'
     };
     $out=tr_submit('prune_auto');ae_check($reached,'Independent automatic policy boundary reached');
     if($blocked){ae_check(is_array($out)&&$tr_scheduled,'Locked policy serializes with successful prune');$serialized++;}
-    else{ae_check($out==='error'&&tr_snapshot()===$independent&&pd_files()===array(true,true)&&!$tr_scheduled,'Changed policy rolls back all content and scheduling');}
+    else{$actual=tr_snapshot();$different=array();foreach($actual as$table=>$rows){if($rows!==$independent[$table]){$different[]=$table;}}ae_check($out==='error'&&$actual===$independent&&pd_files()===array(true,true)&&!$tr_scheduled,'Changed policy rolls back all content and scheduling '.json_encode(array('change'=>$change,'boundary'=>$boundary,'error'=>$br_exception,'out'=>$out,'different'=>$different,'files'=>pd_files(),'scheduled'=>$tr_scheduled)));}
     $cases++;
    }
   }
@@ -119,6 +123,7 @@ $body= <<<'PHP'
   ae_check(!ae_rows('SELECT * FROM fixture_topics WHERE topic_id IN (100,200)')&&count(ae_rows('SELECT * FROM fixture_topics WHERE topic_id=900'))===1&&pd_files()===array(false,false),'Separate forum commits preserve prior confirmed deletion and roll back only failed forum');$cases++;
  }
  echo 'Native topic/forum removal: '.$cases.' failure/authority/storage/recovery cases, '.$serialized." serialized changes passed.\n";
+ }
  }finally{foreach(array($upload_dir.'/owned.txt',$upload_dir.'/'.THUMB_DIR.'/t_owned.txt') as $path){if(is_file($path)){unlink($path);}elseif(is_dir($path)){rmdir($path);}}rmdir($upload_dir.'/'.THUMB_DIR);rmdir($upload_dir);}
 }finally{$ae_hook=null;$ae_fail='';$ae_ack=false;$ae_failwrite=0;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
 PHP;

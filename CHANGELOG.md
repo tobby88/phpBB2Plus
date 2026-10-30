@@ -13,6 +13,14 @@ changes consolidated after that baseline without implying active maintenance.
   byline, constraint and identity floor; refuse conflicting custom definitions,
   borrowed transactions/leases and unconfirmed maintenance. Permanent deletion
   defaults to disabled and requires an explicit current policy and request choice.
+- Keep a compact, translated placeholder at the original post link and position
+  after individual or whole-topic deletion. Erase content, old bylines, edit
+  snapshots and attachment references in the same transaction; preserve shared
+  files and defer physical cleanup until confirmed commit. Pruning retains
+  placeholders, skips previously deleted topics and keeps its existing scope.
+- Exclude deleted posts and wholly deleted topics from current and cached search
+  results. Refuse edits and new attachments to retained markers. Forum removal
+  must move existing contributions elsewhere while permanent deletion is disabled.
 
 ### Download category maintenance
 

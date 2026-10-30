@@ -69,7 +69,7 @@ function attach_message_exists($database, $type, $id)
 	if ((int) $id <= 0 || !in_array($type, array('post', 'pm'), true)) { return false; }
 	$table = $type === 'pm' ? PRIVMSGS_TABLE : POSTS_TABLE;
 	$key = $type === 'pm' ? 'privmsgs_id' : 'post_id';
-	$result = $database->sql_query('SELECT ' . $key . ' FROM ' . $table . ' WHERE ' . $key . ' = ' . (int) $id);
+	$result = $database->sql_query('SELECT ' . $key . ' FROM ' . $table . ' WHERE ' . $key . ' = ' . (int) $id . ($type === 'post' ? ' AND post_deleted=0' : ''));
 	if (!$result) { message_die(GENERAL_ERROR, $lang['Attachment_publish_unavailable']); }
 	$exists = $database->sql_numrows($result) > 0;
 	$database->sql_freeresult($result);

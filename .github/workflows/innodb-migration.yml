@@ -711,6 +711,18 @@ jobs:
         env:
           PHPBB_POST_DELETE_NATIVE: '1'
           PHPBB_POST_DELETE_PASSWORD: fixture-only
+      - name: Retain deleted post positions without content, identity or attachments
+        if: matrix.part == 3
+        run: php .github/scripts/check-post-tombstone-native.php
+        env:
+          PHPBB_POST_TOMBSTONE_NATIVE: '1'
+          PHPBB_POST_DELETE_PASSWORD: fixture-only
+      - name: Retain whole deleted topics atomically and preserve prune policy
+        if: matrix.part == 2
+        run: php .github/scripts/check-topic-tombstone-native.php
+        env:
+          PHPBB_TOPIC_TOMBSTONE_NATIVE: '1'
+          PHPBB_TOPIC_REMOVAL_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-topic-removal-native.php
         env:
