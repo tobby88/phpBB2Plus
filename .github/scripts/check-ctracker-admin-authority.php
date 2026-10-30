@@ -1,5 +1,6 @@
 <?php
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_CT_RECOVERY_NATIVE') !== '1') { echo "Native CrackerTracker authority fixture skipped.\n"; return; }
+require_once __DIR__.'/native-fixture-locks.php';
 define('IN_PHPBB',true);define('CTRACKER_ACP',true);define('ADMIN',1);
 define('CONFIG_TABLE','fixture_config');define('CTRACKER_BACKUP','fixture_backup');
 define('CTRACKER_FILECHK','fixture_filechk');define('CTRACKER_FILESCANNER','fixture_filescanner');
@@ -109,7 +110,9 @@ try{
  ca_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,user_level INT,user_active INT) ENGINE=InnoDB');
  ca_sql('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT) ENGINE=InnoDB');
  ca_sql('CREATE TABLE fixture_jr (user_id INT PRIMARY KEY,user_jr_admin TEXT) ENGINE=InnoDB');
- ca_sql('SET SESSION innodb_lock_wait_timeout=1');
+ // Revocation probes run synchronously inside their lock holder. Waiting
+ // cannot let that caller progress; retain the real 1205 conflict immediately.
+ native_fixture_peer_nowait($peer);
  $cases=0;$serialized=0;
  foreach(array('backup','auto','restore','hash','scan') as $operation){foreach(array('root','delegated') as $actor){
   ca_reset($operation,$actor);$before=ca_snapshot();ca_run($operation);ca_check(ca_snapshot()!==$before,'Authorized operation publishes');

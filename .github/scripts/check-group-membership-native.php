@@ -8,6 +8,7 @@ foreach(array('USER'=>0,'MOD'=>2,'GROUP_OPEN'=>0,'GROUP_CLOSED'=>1,'GROUP_HIDDEN
 require $ats_source.'includes/functions_group_storage.php';
 ats_load_function($ats_source.'groupcp.php','groupcp_change');
 if(PHP_SAPI!=='cli'||getenv('PHPBB_GROUP_MEMBERSHIP_NATIVE')!=='1'){echo "Native group storage checks require an explicitly enabled disposable MySQL/MariaDB fixture.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 require $ats_source.'db/mysqli.php';
 $port=getenv('PHPBB_GROUP_MEMBERSHIP_PORT')?:'3306';$password=getenv('PHPBB_GROUP_MEMBERSHIP_PASSWORD')?:'';
 ats_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Loopback fixture port');
@@ -89,7 +90,9 @@ try{
  foreach(array('users'=>"user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255),user_email VARCHAR(255) DEFAULT 'fixture@example.invalid',user_lang VARCHAR(20) DEFAULT 'german'",
   'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT',
   'jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT','pa_auth'=>'group_id INT,cat_id INT') as $s=>$columns){gmn_sql('CREATE TABLE fixture_'.$s.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
- gmn_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
+ // A synchronous revoker cannot release its caller's lock while waiting.
+ // Keep genuine serialization checks with the guarded fixture-only timeout.
+ native_fixture_peer_nowait($peer);$cases=$serialized=0;
  $scenarios=array();foreach(array('root','leader') as $actor){foreach(array('status'=>1,'add'=>'unrelated','approve'=>array(3),'deny'=>array(3),'remove'=>array(4)) as $action=>$value){$scenarios[]=array($actor,$action,$value);}}
  foreach(array('join'=>'outsider','unsubscribe'=>'member','unsubscribe_pending'=>'pending') as $action=>$actor){$scenarios[]=array($actor,$action,null);}
  foreach($scenarios as $scenario){list($actor,$action,$value)=$scenario;

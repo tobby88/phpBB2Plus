@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### CrackerTracker storage checks
+
+- Bound the column metadata lookup to the current database and requested table,
+  retaining the existing correlation and every engine, row-format, charset and
+  collation check. Avoid scanning unrelated databases for each backup/scan step.
+- Remove artificial waits from synchronous native-fixture revocation probes,
+  retaining every case and real lock-conflict assertion. Report storage,
+  authority and commit checks separately in CI so durations are attributable.
+
 ### Download recommendation email
 
 - Share current-session/account checks, sender identity, per-sender leases,

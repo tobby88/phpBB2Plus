@@ -531,11 +531,27 @@ jobs:
         env:
           PHPBB_RATE_NATIVE: '1'
           PHPBB_RATE_TEST_PASSWORD: fixture-only
-      - if: matrix.part == 3
-        run: |
-          php .github/scripts/check-ctracker-recovery-storage.php
-          php .github/scripts/check-ctracker-admin-authority.php
-          php .github/scripts/check-ctracker-commit-native.php
+      - name: Check CrackerTracker metadata scope and canonical storage
+        if: matrix.part == 3
+        run: php .github/scripts/check-ctracker-metadata-scope-native.php
+        env:
+          PHPBB_CT_RECOVERY_NATIVE: '1'
+          PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only
+      - name: Check CrackerTracker recovery storage
+        if: matrix.part == 3
+        run: php .github/scripts/check-ctracker-recovery-storage.php
+        env:
+          PHPBB_CT_RECOVERY_NATIVE: '1'
+          PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only
+      - name: Check CrackerTracker authority boundaries
+        if: matrix.part == 3
+        run: php .github/scripts/check-ctracker-admin-authority.php
+        env:
+          PHPBB_CT_RECOVERY_NATIVE: '1'
+          PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only
+      - name: Check CrackerTracker commit acknowledgements
+        if: matrix.part == 3
+        run: php .github/scripts/check-ctracker-commit-native.php
         env:
           PHPBB_CT_RECOVERY_NATIVE: '1'
           PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only

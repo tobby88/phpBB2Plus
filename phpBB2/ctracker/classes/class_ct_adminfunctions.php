@@ -432,7 +432,10 @@ class ct_adminfunctions
 			"WHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_NAME = '" . $name . "' " .
 			"AND t.TABLE_TYPE = 'BASE TABLE' AND t.ENGINE = 'InnoDB' AND t.ROW_FORMAT = 'Dynamic' " .
 			"AND t.TABLE_COLLATION = 'utf8mb4_unicode_ci' AND NOT EXISTS (" .
-			"SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA " .
+			// Constant predicates let metadata engines open only this table;
+			// retain the original correlation and all storage checks as well.
+			"SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA = DATABASE() " .
+			"AND c.TABLE_NAME = '" . $name . "' AND c.TABLE_SCHEMA = t.TABLE_SCHEMA " .
 			"AND c.TABLE_NAME = t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL " .
 			"AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))";
 		$result = $db->sql_query($sql);
