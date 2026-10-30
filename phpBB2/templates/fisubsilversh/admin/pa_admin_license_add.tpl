@@ -2,6 +2,7 @@
 <h1>{L_ALICENSETITLE}</h1>
 
 <p>{L_LICENSEEXPLAIN}</p>
+<!-- BEGIN license_error --><p class="errorline">{license_error.MESSAGE}</p><!-- END license_error -->
 
 <form action="{S_ADD_LIC_ACTION}" method="post">{S_FORM_TOKEN}<table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr>
@@ -9,11 +10,11 @@
   </tr>
   <tr>	
 	<td width="50%" class="row1">{L_LNAME}</td>
-	<td class="row2"><input type="text" class="post" size="50" name="form[name]" /></td>
+	<td class="row2"><input type="text" class="post" size="50" name="form[name]" value="{LICENSE_NAME}" /></td>
   </tr>
   <tr>
 	<td class="row1">{L_LTEXT}</td>
-	<td class="row2"><textarea name="form[text]" cols="50" rows="10" class="forminput"></textarea>	</td>
+	<td class="row2"><textarea name="form[text]" cols="50" rows="10" class="forminput">{TEXT}</textarea>	</td>
   </tr>
   <tr>
 	<td align="center" class="cat" colspan="2"><input class="liteoption" type="submit" value="{L_ALICENSETITLE}" name="B1"><input type="hidden" name="action" value="admin"><input type="hidden" name="ad" value="license"><input type="hidden" name="license" value="add"><input type="hidden" name="add" value="do"></td>

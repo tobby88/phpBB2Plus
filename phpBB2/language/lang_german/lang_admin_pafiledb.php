@@ -1,4 +1,6 @@
 <?php
+$lang['PA_license_invalid'] = 'Lizenzname oder Lizenztext sind ungültig. Bitte überprüfe die Auswahl und das Formular.';
+$lang['PA_license_failed'] = 'Die Lizenzänderung konnte nicht bestätigt werden. Bitte lade die Lizenzliste vor einem erneuten Versuch neu.';
 $lang['PA_settings_invalid'] = 'Eine Download-Einstellung ist ungültig. Bitte überprüfe das Formular.';
 $lang['PA_settings_size'] = 'Die maximale Dateigröße darf 2.147.483.647 Byte nicht überschreiten.';
 $lang['PA_settings_directory'] = 'Die Download- und Screenshot-Verzeichnisse müssen vorhanden und beschreibbar sein.';

@@ -5,7 +5,7 @@ $ps_before=$pc_checks;$ps_real_root=$phpbb_root_path;
 $ps_base=sys_get_temp_dir().'/codex_pa_save_'.bin2hex(phpbb_random_bytes(8));$ps_made=false;
 function ps_reset($id=8){
  global$db,$source,$pafiledb_functions,$pafiledb_config,$board_config,$user_ip,$lang,$phpbb_root_path,$ps_base;
- pa_reset($id,'public');$db=$source;$phpbb_root_path=$ps_base.'/';$_SERVER['REQUEST_METHOD']='POST';$user_ip='7f000001';
+ pa_reset($id,'public');pc_sql('DELETE FROM fixture_pa_license');$db=$source;$phpbb_root_path=$ps_base.'/';$_SERVER['REQUEST_METHOD']='POST';$user_ip='7f000001';
  $board_config=array('server_name'=>'board.example.invalid','cookie_secure'=>1,'server_port'=>443,'script_path'=>'/forum');
  $pafiledb_config=array();foreach(pc_rows('SELECT * FROM fixture_pa_config')as$row){$pafiledb_config[$row['config_name']]=$row['config_value'];}
  foreach(array('auth_search','auth_stats','auth_toplist','auth_viewall')as$key){$pafiledb_config[$key]=AUTH_ALL;}
@@ -24,7 +24,10 @@ try{
  pc_check(mkdir($ps_base,0700),'Own save root');$ps_made=true;mkdir($ps_base.'/downloads',0700);mkdir($ps_base.'/screenshots',0700);
  foreach(array('ordinary','no-backslash')as$mode){
   ps_reset();$source->kind=$mode==='no-backslash'?'no-backslash':'';$original_post=$_POST;$original_db=$db;$original_user=$userdata;$original_functions=$pafiledb_functions;$original_config=$pafiledb_config;
+  pa_insert('fixture_pa_license',array('license_id'=>4,'license_name'=>'Current license','license_text'=>'Preserved'));$_POST=ps_post(array('license'=>'4'));$original_post=$_POST;
   list($id,$model)=ps_save();pc_check(is_int($id)&&$id!==42&&empty($model->error),'Actual remote create succeeds: '.$mode.' '.implode(';',$model->error));$rows=pc_rows('SELECT * FROM fixture_pa_files WHERE file_id='.$id);
+  pc_check($rows[0]['file_license']==='4','Actual save retains the selected existing license');
+  $before=ps_snapshot();$_POST=ps_post(array('license'=>'999'));list($missing,$rejected)=ps_save(42);pc_check($missing===null&&!empty($rejected->error)&&ps_snapshot()===$before,'A license removed since rendering cannot leave a dangling file reference');$_POST=$original_post;
   $raw=phpbb_request_raw_value($_POST['name']);pc_check(count($rows)===1&&$rows[0]['file_name']===$raw&&$rows[0]['file_approved']==='0'&&$rows[0]['user_id']==='8','Actual save preserves raw name/owner/current approval policy');
   $custom=pc_rows('SELECT data FROM fixture_pa_customdata WHERE customdata_file='.$id);pc_check(count($custom)===1&&$custom[0]['data']===htmlspecialchars(phpbb_request_raw_value($_POST['field'][1]),ENT_QUOTES,'UTF-8'),'File and actual custom-field data commit together');
   pc_check($_POST===$original_post&&$db===$original_db&&$userdata===$original_user&&$pafiledb_functions===$original_functions&&$pafiledb_config===$original_config&&!$model->modified,'Globals restored and deferred writes suppressed after success');

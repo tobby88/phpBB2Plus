@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download license consistency
+
+- Create, edit and remove download licenses in an owned transaction under the
+  current session and exact ACP module authority. Removing several licenses
+  clears all corresponding file references atomically, including on write errors.
+- Reject vanished license selections before any file upload or durable intent;
+  retain rejected license drafts and selections with translated error messages.
+  Verify these paths on real MariaDB and multipart HTTP, and check that executable
+  upload types remain blocked even when the configurable extension list is empty.
+
 ### Download settings and test infrastructure
 
 - Commit complete download settings atomically under current ACP/session/module

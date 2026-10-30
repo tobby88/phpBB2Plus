@@ -151,6 +151,8 @@ function pafiledb_file_save($model, $file_id, $fields, $body)
         $storage=new PaFileDbFileCoordinator($original_db,$table_prefix); $storage->begin();
         $mode=defined('IN_ADMIN')&&IN_ADMIN?'files':'public'; $authority=new PaFileDbFileAuthority($storage,$table_prefix,$actor,$mode);
         $selected=$authority->select($id?'edit':'create',$id?array($id):array(),$destination); $storage->guard_commit(function()use($authority){return$authority->check();});
+        $license=isset($_POST['license'])?PaFileDbFileAuthority::id($_POST['license'],true):0;
+        if($license){$r=$storage->sql_query('SELECT license_id FROM '.PA_LICENSE_TABLE.' WHERE license_id='.$license.' FOR UPDATE');try{$exists=$storage->sql_fetchrow($r);}finally{$storage->sql_freeresult($r);}if(!$exists){pafiledb_file_fail('License_not_exist');}}
         $db=$storage; $fresh=$authority->user(); foreach ($fresh as $key=>$value) { if (!is_int($key)) { $userdata[$key]=$value; } }
         $pafiledb_config=array_merge($original_settings,$authority->settings()); $directories=pafiledb_file_directories($pafiledb_config);
         $journal=new PaFileDbFileJournal($storage,$table_prefix,$actor['id'],$directories,$url,$root); $operation=$journal->operation_id();

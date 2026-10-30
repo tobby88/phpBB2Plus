@@ -237,12 +237,22 @@ class PaFileDbFileCoordinator
 		$this->operation_mode = 'settings';
 	}
 
+	function begin_licenses()
+	{
+		$this->begin(true);
+		$this->operation_mode = 'licenses';
+	}
+
 	private function allowed_statement($sql, $journal)
 	{
 		if (!is_string($sql)) { return false; }
 		if (preg_match('/^SELECT\b/i', $sql)) { return true; }
 		if (!preg_match('/^(?:INSERT INTO|UPDATE|DELETE FROM) ([A-Za-z0-9_]+)\b/i', $sql, $match)) { return false; }
 		if ($this->operation_mode === 'settings') { return !$journal && strpos($sql, 'UPDATE ') === 0 && $match[1] === $this->prefix . 'pa_config' && isset($this->tables[$match[1]]); }
+		if ($this->operation_mode === 'licenses') {
+			if ($journal || !isset($this->tables[$match[1]])) { return false; }
+			return $match[1] === $this->prefix . 'pa_license' || preg_match('/^UPDATE '.preg_quote($this->prefix.'pa_files','/').' SET file_license=0 WHERE file_license IN\([1-9][0-9]*(?:,[1-9][0-9]*)*\)$/D',$sql)===1;
+		}
 		$writable = $journal ? array('pa_file_journal') : array('pa_files','pa_cat','pa_comments','pa_votes','pa_customdata','pa_mirrors','pa_auth','pa_file_journal','pa_download_info');
 		foreach ($writable as $suffix) { if ($match[1] === $this->prefix . $suffix && isset($this->tables[$match[1]])) { return true; } }
 		return false;
@@ -298,7 +308,7 @@ class PaFileDbFileCoordinator
 	{
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $this->journal_transaction) { throw new PaFileDbFileCoordinatorFailure('Invalid prepared Download receipt transaction'); }
-		if ($this->operation_mode === 'recovery' || $this->operation_mode === 'settings') { throw new PaFileDbFileCoordinatorFailure('This operation cannot prepare a new download publication'); }
+		if (in_array($this->operation_mode,array('recovery','settings','licenses'),true)) { throw new PaFileDbFileCoordinatorFailure('This operation cannot prepare a new download publication'); }
 		if (!$this->can_publish()) { throw new PaFileDbFileCoordinatorFailure('Missing download preparation capability'); }
 		$this->operation_mode = 'producer';
 		$this->query($this->journal, 'START TRANSACTION'); $this->journal_transaction = true;

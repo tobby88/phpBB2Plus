@@ -92,7 +92,7 @@ pafiledb_admin_assert(strpos($category_functions, '$db->sql_escape($file_long_de
 pafiledb_admin_assert(strpos($admin_license, 'phpbb_admin_session_field()') !== false, 'license forms must use the central session token');
 pafiledb_admin_assert(substr_count($admin_license, 'phpbb_admin_require_post_session();') >= 3, 'all license writes must verify the POST token');
 pafiledb_admin_assert(strpos($admin_license, "in_array(\$license_action, array('add', 'edit', 'delete'), true)") !== false, 'license actions must use an allowlist');
-pafiledb_admin_assert(strpos($admin_license, 'function pa_license_form_scalar') !== false, 'license form values must be scalar-normalized');
+pafiledb_admin_assert(strpos($admin_license, 'function pa_license_form_scalar') !== false && strpos($admin_license, 'pafiledb_license_save($action, $_POST)') !== false, 'license writes must use the owned batch writer and preserve rejected drafts');
 pafiledb_admin_assert(strpos($admin_license, 'phpbb_admin_html($license[\'license_name\'])') !== false, 'license names must be escaped in output');
 
 pafiledb_admin_assert(strpos($admin_fchecker, "\$pafiledb_config['upload_dir']") !== false, 'file checker must use the configured upload directory');

@@ -1,4 +1,6 @@
 <?php
+$lang['PA_license_invalid'] = 'The license name or text is invalid. Please check your selection and the form.';
+$lang['PA_license_failed'] = 'The license operation could not be confirmed. Reload the license list before trying again.';
 $lang['PA_settings_invalid'] = 'A download setting is invalid. Please check the form.';
 $lang['PA_settings_size'] = 'The maximum file size must not exceed 2,147,483,647 bytes.';
 $lang['PA_settings_directory'] = 'The configured download and screenshot directories must exist and be writable.';
