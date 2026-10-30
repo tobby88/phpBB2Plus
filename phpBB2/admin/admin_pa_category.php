@@ -71,7 +71,7 @@ elseif($mode == 'do_add' && $cat_id)
 }
 elseif($mode == 'do_delete')
 {
-	$pafiledb->delete_cat($cat_id);
+	$pafiledb->delete_cat(isset($_POST['cat_id']) ? $_POST['cat_id'] : null);
 	if(!sizeof($pafiledb->error))
 	{
 		$pafiledb->_pafiledb();
@@ -85,7 +85,7 @@ elseif($mode == 'cat_order')
 	{
 		message_die(GENERAL_ERROR, 'Invalid paFileDB category move.');
 	}
-	$pafiledb->order_cat($cat_id_other, $move);
+	$pafiledb->order_cat(isset($_POST['cat_id_other']) ? $_POST['cat_id_other'] : null, isset($_POST['move']) ? $_POST['move'] : null);
 }
 elseif($mode == 'sync')
 {

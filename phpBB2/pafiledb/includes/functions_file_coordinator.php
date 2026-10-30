@@ -212,10 +212,15 @@ class PaFileDbFileCoordinator
 		if($indexes!==$keys){throw new PaFileDbFileCoordinatorFailure('Download journal exact identity indexes differ');}
 	}
 
-	function begin()
+	function begin($stable_ranges = false)
 	{
 		$this->assert_lock();
+		if (!is_bool($stable_ranges)) { throw new PaFileDbFileCoordinatorFailure('Invalid Download transaction isolation'); }
 		if ($this->transaction || $this->journal_transaction || $this->finished) { throw new PaFileDbFileCoordinatorFailure('Download operation already started or finished'); }
+		// Structural category operations must also hold gaps in their captured
+		// category/file inventory. Row locks alone permit new matching records
+		// under READ COMMITTED while an existing subtree is being removed.
+		if ($stable_ranges) { $this->query($this->writer, 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ'); }
 		$this->query($this->writer, 'START TRANSACTION'); $this->transaction = true;
 		foreach (array('users','sessions','user_group','groups','config','jr_admin_users','pa_config','pa_cat','pa_files','pa_votes','pa_comments','pa_custom','pa_customdata','pa_mirrors','pa_license','pa_auth','pa_file_journal','pa_download_info') as $suffix)
 		{

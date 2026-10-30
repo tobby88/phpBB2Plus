@@ -804,6 +804,12 @@ jobs:
         env:
           PHPBB_PA_CATEGORY_NATIVE: '1'
           PHPBB_PA_CATEGORY_PASSWORD: fixture-only
+      - name: Delete or move current download subtrees and order categories atomically
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-category-action-native.php
+        env:
+          PHPBB_PA_CATEGORY_ACTION_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - name: Commit category edits atomically under current ACP authority
         if: matrix.part == 4
         run: |

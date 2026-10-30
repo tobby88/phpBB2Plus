@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download category maintenance
 
+- Remove or move a complete current category subtree in one owning transaction,
+  including its files, mirrors, comments, votes and permission rows. Keep captured
+  category and file ranges stable against concurrent additions; a waiting upload
+  must recheck that its destination still exists before publishing a file.
+  Commit metadata before physical cleanup and preserve independently shared assets.
+- Order categories under the same current ACP authority, normalize sibling order
+  deterministically and keep NULL and zero roots together. Refresh category
+  summaries in memory without deferred or write-on-read database mutations.
 - Delete whole file selections in one owning transaction under current account,
   session and source-category authority. Remove associated comments, votes,
   visitor records, custom values and mirrors with the selected file identities.

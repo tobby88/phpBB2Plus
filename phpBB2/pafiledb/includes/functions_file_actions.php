@@ -118,6 +118,7 @@ function pafiledb_file_metadata_action($model, $action, $ids, $body)
         $selected=$authority->select($action,$ids); $storage->guard_commit(function()use($authority){return$authority->check();});
         $db=$storage;foreach($authority->user() as$key=>$value){if(!is_int($key)){$userdata[$key]=$value;}}$pafiledb_config=array_merge($original_settings,$authority->settings());
         $model->init(); $saved=call_user_func($body,$storage,$selected); if(!empty($model->error)||$saved!==true){pafiledb_file_fail();}
+        $storage->sql_query('UPDATE '.PA_CATEGORY_TABLE." SET cat_files=-1,cat_last_file_id=0,cat_last_file_name='',cat_last_file_time=0");
         $model->sync_all();$model->modified(false);$authority->check();$storage->commit();$result=true;
     } catch(PaFileDbFileActionFailure$error){$key=$error->getMessage();$model->error[]=isset($lang[$key])?$lang[$key]:(isset($lang['PA_file_failed'])?$lang['PA_file_failed']:'The file operation could not be confirmed.');}
     catch(PaFileDbMutationFailure$error){$key=$error->getMessage();$model->error[]=isset($lang[$key])?$lang[$key]:(isset($lang['PA_file_failed'])?$lang['PA_file_failed']:'The file operation could not be confirmed.');}
@@ -163,7 +164,9 @@ function pafiledb_file_save($model, $file_id, $fields, $body)
         try { $rows=$storage->sql_fetchrowset($r); } finally { $storage->sql_freeresult($r); }
         if (count($rows)!==1 || (int)$rows[0]['file_catid']!==$destination || (int)$rows[0]['user_id']!==($id?(int)$selected[$id]['user_id']:$actor['id'])) { pafiledb_file_fail(); }
         if ($id && (string)$selected[$id]['file_ssurl']!==(string)$rows[0]['file_ssurl']) { $journal->queue_url($selected[$id]['file_ssurl']); }
-        $fields->file_update_data($saved); $model->sync_all(); $model->modified(false); $authority->check(); $storage->commit(); $result=$saved;
+        $fields->file_update_data($saved);
+        $storage->sql_query('UPDATE '.PA_CATEGORY_TABLE." SET cat_files=-1,cat_last_file_id=0,cat_last_file_name='',cat_last_file_time=0");
+        $model->sync_all(); $model->modified(false); $authority->check(); $storage->commit(); $result=$saved;
     } catch (PaFileDbFileActionFailure $error) {
         if (empty($model->error)) { $key=$error->getMessage(); $model->error[]=isset($lang[$key])?$lang[$key]:(isset($lang['PA_file_failed'])?$lang['PA_file_failed']:'The file operation could not be confirmed. Reload the file list before retrying.'); }
     } catch (PaFileDbMutationFailure $error) {

@@ -943,66 +943,8 @@ class pafiledb
 	
 	function delete_cat($cat_id = false)
 	{
-		global $db, $_POST, $lang;
-		$cat_id = (int) $cat_id;
-		
-		$file_to_cat_id = ( isset($_POST['file_to_cat_id']) ) ? intval($_POST['file_to_cat_id']) : '';
-		$subcat_to_cat_id = ( isset($_POST['subcat_to_cat_id']) ) ? intval($_POST['subcat_to_cat_id']) : '';
-		$file_mode = (isset($_POST['file_mode']) && is_scalar($_POST['file_mode']) && in_array((string) $_POST['file_mode'], array('move', 'delete'), true)) ? (string) $_POST['file_mode'] : 'move';
-		$subcat_mode = (isset($_POST['subcat_mode']) && is_scalar($_POST['subcat_mode']) && in_array((string) $_POST['subcat_mode'], array('move', 'delete'), true)) ? (string) $_POST['subcat_mode'] : 'move';
-		
-		
-		
-		if (empty($cat_id))
-		{
-			$this->error[] = $lang['Cdelerror'];
-		}
-		else
-		{
-			if ( ($file_to_cat_id == -1 || empty($file_to_cat_id)) && $file_mode == 'move')
-			{
-				$this->error[] = $lang['Cdelerror'];
-			}
-
-			if($subcat_mode == 'move' && empty($subcat_to_cat_id))
-			{
-				$this->error[] = $lang['Cdelerror'];
-			}
-			
-			if(sizeof($this->error))
-			{
-				return;
-			}
-
-			$sql = 'DELETE FROM ' . PA_CATEGORY_TABLE . " 
-				WHERE cat_id = $cat_id";
-
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Query Info', '', __LINE__, __FILE__, $sql);
-			}
-
-			$this->reorder_cat($this->cat_rowset[$cat_id]['cat_parent']);
-
-			if ($file_mode == 'delete')
-			{
-				$this->delete_files($cat_id, 'category');
-			}
-			else
-			{
-				$this->move_files($cat_id, $file_to_cat_id);
-			}
-					
-			if($subcat_mode == 'delete')
-			{
-				$this->delete_subcat($cat_id, $file_mode, $file_to_cat_id);
-			}
-			else
-			{
-				$this->move_subcat($cat_id, $subcat_to_cat_id);
-			}
-			$this->modified(TRUE);
-		}
+		require_once dirname(__FILE__) . '/functions_category_actions.php';
+		return pafiledb_category_mutate($this, 'delete', $cat_id, $_POST);
 	}
 
 	function delete_files($id, $mode = 'file')
@@ -1012,268 +954,27 @@ class pafiledb
 			require_once dirname(__FILE__) . '/functions_file_delete.php';
 			return pafiledb_file_delete($this, $id);
 		}
-		global $db, $phpbb_root_path, $pafiledb_functions;
-		$id = (int) $id;
-		$mode = ($mode === 'category') ? 'category' : 'file';
-		if ($id <= 0)
-		{
-			return;
-		}
-
-		if($mode == 'category')
-		{
-			$file_ids = array();
-			$files_data = array();
-			$sql = 'SELECT file_id, unique_name, file_dir 
-				FROM ' . PA_FILES_TABLE . "
-				WHERE file_catid = $id";
-
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt select files', '', __LINE__, __FILE__, $sql);
-			}
-
-			while($row = $db->sql_fetchrow($result))
-			{
-				$file_ids[] = $row['file_id'];
-				$files_data[] = $row;
-			}
-			$db->sql_freeresult($result);
-			// An empty category has no file identities. Never substitute its
-			// category ID for a file ID when deleting related metadata.
-			if (empty($file_ids))
-			{
-				return;
-			}
-
-			$where_sql = "WHERE file_catid = $id";
-		}
-		else
-		{
-			$sql = 'SELECT file_id, unique_name, file_dir 
-				FROM ' . PA_FILES_TABLE . "
-				WHERE file_id = $id";
-
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt select files', '', __LINE__, __FILE__, $sql);
-			}
-			
-			$file_data = $db->sql_fetchrow($result);
-			
-			$where_sql = "WHERE file_id = $id";
-		}
-	
-		$sql = 'DELETE FROM ' . PA_FILES_TABLE . "
-			$where_sql";
-	
-		unset($where_sql);
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt delete files', '', __LINE__, __FILE__, $sql);
-		}
-
-		$where_sql = ($mode != 'file' && !empty($file_ids)) ? ' IN (' . implode(', ', $file_ids) . ') ' : " = $id";
-	
-		$sql = 'DELETE FROM ' . PA_CUSTOM_DATA_TABLE . "
-			WHERE customdata_file$where_sql";
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt delete custom data', '', __LINE__, __FILE__, $sql);
-		}
-		
-		$sql = 'DELETE FROM ' . PA_MIRRORS_TABLE . "
-			WHERE file_id$where_sql";
-			
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt delete mirror for this file', '', __LINE__, __FILE__, $sql);
-		}
-		
-		if($mode == 'category')
-		{
-			foreach($files_data as $file_data)
-			{
-				if(!empty($file_data['unique_name']))
-				{
-					$pafiledb_functions->pafiledb_unlink($phpbb_root_path . $file_data['file_dir'] . $file_data['unique_name']);
-					
-				}
-			}
-		}
-		else
-		{
-			if(!empty($file_data['unique_name']))
-			{
-				$pafiledb_functions->pafiledb_unlink($phpbb_root_path . $file_data['file_dir'] . $file_data['unique_name']);					
-			}
-		}
-		
-		
-		if($mode == 'file')
-		{
-			$this->modified(TRUE);
-		}
-
-		return;
+		require_once dirname(__FILE__) . '/functions_category_actions.php';
+		return pafiledb_category_mutate($this, $mode === 'category' ? 'clear-files' : 'invalid', $id);
 	}
 
-	function move_files($from_cat, $to_cat)
-	{
-		global $db;
-
-		$sql = 'UPDATE ' . PA_FILES_TABLE . "
-			SET file_catid = $to_cat
-			WHERE file_catid = $from_cat";
-		
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt move files', '', __LINE__, __FILE__, $sql);
-		}
-		$this->modified(TRUE);
-		return;	
-	}
-	
-	function delete_subcat($cat_id, $file_mode = 'delete', $to_cat = false)
-	{
-		global $db;
-	
-		if (!empty($this->subcat_rowset[$cat_id]))
-		{
-		foreach($this->subcat_rowset[$cat_id] as $sub_cat_id => $subcat_data)
-		{
-			$this->delete_subcat($sub_cat_id, $file_mode, $to_cat);
-
-			$sql = 'DELETE FROM ' . PA_CATEGORY_TABLE . " 
-				WHERE cat_id = $sub_cat_id";
-
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Query Info', '', __LINE__, __FILE__, $sql);
-			}
-		
-			if($file_mode == 'delete')
-			{
-				$this->delete_files($sub_cat_id, 'category');
-			}
-			else
-			{
-				$this->move_files($sub_cat_id, $to_cat);
-			}
-		}
-		}
-		$this->modified(TRUE);
-		return;
-	}
-	
-	function move_subcat($from_cat, $to_cat)
-	{
-		global $db;
-
-		$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-			SET cat_parent = $to_cat
-			WHERE cat_parent = $from_cat";
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt move Sub Category', '', __LINE__, __FILE__, $sql);
-		}
-		$this->modified(TRUE);
-		return;	
-	}
-	
-	function reorder_cat($cat_parent)
-	{
-		global $db;
-		$cat_parent = (int) $cat_parent;
-		$parent_where = $cat_parent === 0 ? '(cat_parent = 0 OR cat_parent IS NULL)' : 'cat_parent = ' . $cat_parent;
-
-		$sql = 'SELECT cat_id, cat_order
-			FROM '. PA_CATEGORY_TABLE ."
-			WHERE $parent_where
-			ORDER BY cat_order ASC, cat_id ASC";
-
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not get list of Categories', '', __LINE__, __FILE__, $sql);
-		}
-
-		$i = 10;
-		while($row = $db->sql_fetchrow($result))
-		{
-			$cat_id = $row['cat_id'];
-
-			$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-					SET cat_order = $i
-					WHERE cat_id = $cat_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update order fields', '', __LINE__, __FILE__, $sql);
-			}
-			$i += 10;
-		}
-	}
-	
 	function order_cat($cat_id, $move)
 	{
-		global $db;
-
-		$cat_id = (int) $cat_id;
-		$move = (int) $move;
-		if (!isset($this->cat_rowset[$cat_id]) || !in_array($move, array(-15, 15), true))
-		{
-			return;
-		}
-		$cat_parent = $this->cat_rowset[$cat_id]['cat_parent'];
-
-		$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-				SET cat_order = cat_order + $move
-				WHERE cat_id = $cat_id";
-
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not change category order', '', __LINE__, __FILE__, $sql);
-		}
-
-		$this->reorder_cat($cat_parent);
-		$this->init();
+		require_once dirname(__FILE__) . '/functions_category_actions.php';
+		return pafiledb_category_mutate($this, 'order', $cat_id, array('move'=>$move));
 	}
-	
+
 	function sync($cat_id, $init = true)
 	{
-		global $db;
-		$cat_id = (int) $cat_id;
-		if (!isset($this->cat_rowset[$cat_id]))
-		{
-			return;
-		}
-
-		$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-				SET cat_files = '-1',
-				cat_last_file_id = '0', 
-				cat_last_file_name = '', 
-				cat_last_file_time = '0'
-				WHERE cat_id = '" . $cat_id . "'";
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Query Files info', '', __LINE__, __FILE__, $sql);
-		}
-		if($init)
-		{
-			$this->init();
-		}
-		return;
+		if (!(is_int($cat_id)||is_string($cat_id)) || !preg_match('/^[1-9][0-9]*$/D',(string)$cat_id) || !isset($this->cat_rowset[$cat_id])) { return; }
+		// Counts/latest files are request-only reads now. A refresh must not
+		// invalidate persistent caches outside an owning mutation transaction.
+		$this->category_file_summaries = array();
+		if ($init) { $this->init(); }
 	}
-	
+
 	function sync_all()
 	{
-		foreach($this->cat_rowset as $cat_id => $void)
-		{
-			$this->sync($cat_id, false);
-		}
 		$this->init();
 	}
 	
