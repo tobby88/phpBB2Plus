@@ -27,6 +27,9 @@ class RuntimeException extends Exception {}
 function plus_storage_apply($connection,$tables,$backup,$maintenance){if($GLOBALS['fixture_case']==='storage-failure'){throw new Exception('Injected storage failure');}return 0;}
 function plus_ip_ban_plan($connection,$table){return $GLOBALS['fixture_case']==='ip-mask-failure'?array('pending'):array();}
 function plus_album_file_journal_plan($connection,$prefix){return $GLOBALS['fixture_case']==='album-file-journal-failure'?array('pending'):array();}
+function plus_pa_file_journal_plan($connection,$prefix){return $GLOBALS['fixture_case']==='download-file-journal-failure'?array('pending'):array();}
+function plus_pa_download_apply($connection,$prefix,$backup,$maintenance){if($GLOBALS['fixture_case']==='download-storage-failure'){throw new Exception('Injected download capacity failure');}return 0;}
+$download_storage_plan=array();
 function plus_kb_counter_apply($connection,$prefix,$backup,$maintenance){if($GLOBALS['fixture_case']==='kb-counter-failure'){throw new Exception('Injected counter failure');}return 0;}
 function plus_kb_counter_print_plan($plan){}
 $kb_counter_plan=array('changes'=>array());$backup_confirmed=true;
@@ -65,7 +68,7 @@ if(DIRECTORY_SEPARATOR==='\\'){$version_command.=' -d '.escapeshellarg('extensio
 // Older Windows CLI versions parse only the first stdin buffer when the script
 // itself is piped. Read the entire actual updater tail before evaluating it.
 $version_command.=' -r '.escapeshellarg('$fixture=stream_get_contents(STDIN);if(substr($fixture,0,5)===\'<?php\'){eval(substr($fixture,5));}else{exit(4);}');
-foreach(array('success','dry','schema-failure','engine-failure','session-engine-failure','storage-failure','ip-mask-failure','album-file-journal-failure','kb-counter-failure','user-counter-failure','kb-rating-capacity-failure','post-author-capacity-failure','album-text-capacity-failure','album-photo-text-capacity-failure','album-discussion-capacity-failure','album-rating-capacity-failure','album-comment-parent-failure','post-tombstone-failure','identity-ack') as $version_case){
+foreach(array('success','dry','schema-failure','engine-failure','session-engine-failure','storage-failure','ip-mask-failure','album-file-journal-failure','download-file-journal-failure','download-storage-failure','kb-counter-failure','user-counter-failure','kb-rating-capacity-failure','post-author-capacity-failure','album-text-capacity-failure','album-photo-text-capacity-failure','album-discussion-capacity-failure','album-rating-capacity-failure','album-comment-parent-failure','post-tombstone-failure','identity-ack') as $version_case){
  $input=str_replace("namespace VersionPipelineFixture;","namespace VersionPipelineFixture;\n\$GLOBALS['fixture_case']='".$version_case."';",$version_prelude)."\n".$version_helpers."\n\$version_operations=update_version_identity_sql('fixture_config',null);\n".$version_tail;
  $pipes=array();$process=proc_open($version_command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));version_check(is_resource($process),'Child fixture process available');fwrite($pipes[0],$input);fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($process);
  version_check(preg_match('/FIXTURE_STATE=(\{[^\r\n]+\})/',$out,$m)===1,'Actual execution tail reported final state: '.$err);$state=json_decode($m[1],true);
