@@ -2231,7 +2231,7 @@ function create_absence_mode($absence_mode, &$pm_img, &$pm, &$email_img, &$email
 
 function allow_send_to_absent()
 {
-	global $userdata;
+	global $userdata, $board_config;
 	switch ( $userdata['user_level'] )
 	{
 		case ADMIN:

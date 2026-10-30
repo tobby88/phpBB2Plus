@@ -12,6 +12,7 @@ require $phpbb_root_path . 'pafiledb/includes/functions.php';
 require $phpbb_root_path . 'pafiledb/modules/pa_email.php';
 require $phpbb_root_path . 'includes/emailer.php';
 require $phpbb_root_path . 'includes/template.php';
+require $phpbb_root_path . 'includes/functions_board_mail.php';
 class PaMailMessage extends RuntimeException {}
 function message_die($level, $text) { throw new PaMailMessage($text); }
 function append_sid($url, $html = true) { return $url; }
@@ -204,6 +205,21 @@ try {
     pm_check(strpos($html, 'name="femail" value="bad"') !== false && strpos($html, 'name="subject" value="Draft"') !== false, 'Actual Extreme Styles form retains recipient and subject');
     pm_check(strpos($html, '&lt;/textarea&gt;&lt;script&gt;') !== false && strpos($html, '<script>fixture()') === false && strpos($html, 'role="alert"') !== false, 'Actual rendered textarea escapes draft and displays feedback');
     pm_check(strpos($html, 'name="sname"') === false && strpos($html, 'Sender &amp; Änne') !== false, 'Member template displays account sender without requiring posted name');
+    // All three entry points must share the same lease, not only timestamps.
+    pm_reset(); $pm_transport_hook = function() {
+        $GLOBALS['pm_transport_hook'] = null; $previous = $_POST;
+        $_POST = pm_post(array('submit'=>'Send','sid'=>'fixture-member','friendemail'=>'friend@example.invalid','friendname'=>'Friend','topic'=>'Topic','message'=>'Body'));
+        $caught = null; $controller = new PaMailController();
+        try { phpbb_send_board_mail($GLOBALS['db'],'friend',0,$_POST,array($controller,'create_mailer')); }
+        catch (PhpbbMailFailure $error) { $caught = $error->getMessage(); }
+        finally { $_POST = $previous; }
+        pm_check($caught === 'Mail_busy', 'Active download mail lease blocks overlapping core recommendation');
+    }; pm_send(); pm_check(count($pm_capture) === 1, 'Download to core overlap cannot double-send');
+    pm_reset(); $pa_post = $_POST; $_POST = pm_post(array('submit'=>'Send','sid'=>'fixture-member','friendemail'=>'friend@example.invalid','friendname'=>'Friend','topic'=>'Topic','message'=>'Body'));
+    $pm_transport_hook = function() use ($pa_post) { $GLOBALS['pm_transport_hook'] = null; $previous = $_POST; $_POST = $pa_post; try { pm_denied(function() { pm_send(); },'PA_mail_busy'); } finally { $_POST = $previous; } };
+    $controller = new PaMailController(); phpbb_send_board_mail($db,'friend',0,$_POST,array($controller,'create_mailer'));
+    pm_check(count($pm_capture) === 1, 'Core to download overlap shares the same lease');
+    $_POST = $pa_post; pm_denied(function() { pm_send(); },'PA_mail_wait');
     echo 'Native paFileDB mail: ', $pm_cases, ' cases PASS (', defined('PHPBB_LEGACY_REQUEST_ESCAPED') ? 'legacy' : 'raw', "); real mail sent: 0; own disposable schema only.\n";
 } finally {
     unset($GLOBALS['pm_borrowed']); foreach (array($peer,$db) as $connection) { if ($connection) { $connection->sql_close(); } }

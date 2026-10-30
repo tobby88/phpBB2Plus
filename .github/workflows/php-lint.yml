@@ -904,3 +904,6 @@ jobs:
         run: |
           php .github/scripts/check-pafiledb-mail-input.php
           php .github/scripts/check-pafiledb-mail-input.php legacy
+          php .github/scripts/check-board-mail-input.php
+          php .github/scripts/check-board-mail-input.php legacy
+          node .github/scripts/check-board-mail-form.js

@@ -1,0 +1,100 @@
+<?php
+if (PHP_SAPI !== 'cli' || getenv('PHPBB_BOARD_MAIL_NATIVE') !== '1') { echo "Native board mail fixture skipped.\n"; return; }
+define('IN_PHPBB',true); if (isset($argv[1]) && $argv[1] === 'legacy') { define('PHPBB_LEGACY_REQUEST_ESCAPED',true); }
+$project=dirname(dirname(__DIR__));$phpbb_root_path=$project.'/phpBB2/';$phpEx='php';$table_prefix='fixture_';
+require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'attach_mod/includes/constants.php';require$phpbb_root_path.'db/mysqli.php';
+require$phpbb_root_path.'includes/functions_board_mail.php';require$phpbb_root_path.'includes/emailer.php';require$phpbb_root_path.'includes/template.php';
+class BoardMailMessage extends RuntimeException{}
+function message_die($level,$text){throw new BoardMailMessage($text);}
+function redirect($url){throw new BoardMailMessage('login');}
+function append_sid($url,$html=true){return$url;}
+function make_jumpbox($url){}
+function session_pagestart($ip,$page){return$GLOBALS['userdata'];}
+function init_userprefs($data){}
+function bm_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['bm_cases']++;}
+class BoardMailTemplate{
+ public$data=array();function assign_vars($values){$this->data=array_merge($this->data,$values);}function set_filenames($files){}function assign_var_from_handle($var,$file){$this->data[$var]=$this->data['ERROR_MESSAGE'];}function pparse($name){$GLOBALS['bm_display']=$name;}
+}
+class BoardMailConnection{
+ public$inner,$db_connect_id;function __construct($inner){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;}function __call($method,$args){return call_user_func_array(array($this->inner,$method),$args);}
+ function sql_query($sql,$transaction=false){if($GLOBALS['bm_fail']!==''&&strpos($sql,$GLOBALS['bm_fail'])===0){return false;}return$this->inner->sql_query($sql,$transaction);}
+}
+class BoardMailSource extends sql_db{
+ function sql_dedicated_connection(){$GLOBALS['bm_factories']++;if(isset($GLOBALS['bm_borrowed'])){return$GLOBALS['bm_borrowed'];}$owner=new BoardMailConnection(parent::sql_dedicated_connection());$GLOBALS['bm_owner']=$owner;return$owner;}
+}
+class BoardMailCapture extends emailer{
+ function php_mail($to){$GLOBALS['bm_capture'][]=array('to'=>$to,'subject'=>$this->subject,'body'=>$this->msg,'headers'=>$this->extra_headers,'vars'=>$this->vars);if(is_callable($GLOBALS['bm_hook'])){call_user_func($GLOBALS['bm_hook']);}if($GLOBALS['bm_transport']==='throw'){throw new RuntimeException('Own transport fault');}return$GLOBALS['bm_transport']==='accept';}
+}
+class BoardMailController extends PhpbbBoardMailController{function create_mailer($smtp){bm_check((string)$smtp==='0','No fixture may use SMTP');return new BoardMailCapture(false,true);}}
+function bm_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);if(!$r){throw new RuntimeException('Own board-mail SQL failed: '.json_encode($GLOBALS['peer']->sql_error()));}return$r;}
+function bm_rows($sql){$r=bm_sql($sql);try{return$GLOBALS['peer']->sql_fetchrowset($r);}finally{$GLOBALS['peer']->sql_freeresult($r);}}
+function bm_insert($table,$values){foreach(bm_rows('SHOW COLUMNS FROM '.$table)as$c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}$parts=array();foreach($values as$value){$parts[]="'".$GLOBALS['peer']->sql_escape((string)$value)."'";}bm_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).')VALUES('.implode(',',$parts).')');}
+function bm_post($values){return defined('PHPBB_LEGACY_REQUEST_ESCAPED')?phpbb_addslashes_recursive($values):$values;}
+function bm_reset($kind='profile'){
+ global$userdata,$board_config,$template,$user_ip;
+ $GLOBALS['bm_capture']=array();$GLOBALS['bm_transport']='accept';$GLOBALS['bm_hook']=null;$GLOBALS['bm_fail']=$GLOBALS['bm_display']='';unset($GLOBALS['bm_borrowed']);
+ foreach(array('users','sessions','config','ctracker_config','ctracker_rate_limits','banlist')as$table){bm_sql('DELETE FROM fixture_'.$table);}
+ $board_config=array('session_length'=>'3600','flood_interval'=>'60','smtp_delivery'=>'0','smtp_host'=>'','smtp_username'=>'','smtp_password'=>'','board_email'=>'board@example.invalid','server_name'=>'fixture.invalid','server_port'=>'443','script_path'=>'','cookie_secure'=>1,'sitename'=>'Native mail','default_lang'=>'english','sendmail_fix'=>'0','board_email_form'=>'1','mod_able_sent_absent'=>'0');
+ foreach($board_config as$name=>$value){bm_insert('fixture_config',array('config_name'=>$name,'config_value'=>$value));}
+ foreach(array('massmail_protection'=>'1','massmail_time'=>'5')as$name=>$value){bm_insert('fixture_ctracker_config',array('ct_config_name'=>$name,'ct_config_value'=>$value));}
+ foreach(array(8,9,10)as$id){bm_insert('fixture_users',array('user_id'=>$id,'username'=>$id===8?'Sender &amp; Änne':'Recipient '.$id,'user_email'=>'member'.$id.'@example.invalid','user_level'=>USER,'user_active'=>1,'user_viewemail'=>1,'user_absence'=>0,'user_lang'=>'english','user_emailtime'=>0,'user_blocktime'=>0));bm_insert('fixture_sessions',array('session_id'=>'fixture-'.$id,'session_user_id'=>$id,'session_logged_in'=>1,'session_time'=>time()));}
+ $userdata=array('user_id'=>8,'user_level'=>USER,'session_id'=>'fixture-8','session_logged_in'=>true,'username'=>'Sender &amp; Änne','user_email'=>'member8@example.invalid');
+ $template=new BoardMailTemplate();$user_ip='7f000001';$_SERVER['REQUEST_METHOD']='POST';$_SERVER['REMOTE_ADDR']='127.0.0.1';$_GET=array('u'=>9);
+ $_POST=bm_post($kind==='profile'?array('submit'=>'Send','sid'=>'fixture-8','email_subject'=>'Grüße 😀','email_message'=>"C:\\Pfad\\Grüße O'Reilly &amp;"):
+ array('submit'=>'Send','sid'=>'fixture-8','friendname'=>'Friend Änne','friendemail'=>'friend@example.invalid','topic'=>'Grüße 😀','link'=>'viewtopic.php?t=1','message'=>"C:\\Pfad\\Grüße O'Reilly &amp;"));
+}
+function bm_send($kind='profile',$id=9){$service=new BoardMailController();return$service->send($GLOBALS['db'],$kind,$id,$_POST);}
+function bm_denied($call,$key=null){$caught=null;try{$call();}catch(PhpbbMailFailure$e){$caught=$e->getMessage();}bm_check($caught!==null&&($key===null||$caught===$key),'Expected mail failure '.$key.', got '.$caught);}
+function bm_controller($kind){
+ global$db,$userdata,$board_config,$lang,$template,$phpbb_root_path,$phpEx,$user_ip;
+ try{eval($GLOBALS['bm_code'][$kind]);}catch(BoardMailMessage$e){return$e->getMessage();}return null;
+}
+$bm_cases=0;$bm_code=array();foreach(array('profile'=>'includes/usercp_email.php','friend'=>'tellafriend.php')as$kind=>$file){
+ $source=file_get_contents($phpbb_root_path.$file);$source=str_replace('new PhpbbBoardMailController()','new BoardMailController()',$source);
+ if($kind==='profile'){$needle="require_once dirname(__FILE__) . '/functions_board_mail.php';";bm_check(substr_count($source,$needle)===1,'Actual profile include boundary');$source=str_replace($needle,'/* Helper already loaded. */',substr($source,5));}
+ else{$start=strpos($source,"\$PHP_SELF = 'tellafriend.'");bm_check($start!==false,'Actual friend bootstrap boundary');$source=substr($source,$start);}
+ foreach(array('header','tail')as$part){$needle="include(\$phpbb_root_path . 'includes/page_".$part.".' . \$phpEx);";bm_check(substr_count($source,$needle)===1,'Exact actual rendering boundary: '.$kind.'/'.$part);$source=str_replace($needle,'/* Render framing omitted; actual bindings remain. */',$source);}$bm_code[$kind]=$source;
+}
+set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
+$port=getenv('PHPBB_BOARD_MAIL_PORT')?:'3306';$password=getenv('PHPBB_BOARD_MAIL_PASSWORD')?:'';if(!preg_match('/^[0-9]{1,5}$/D',$port)||(int)$port<1||(int)$port>65535){throw new RuntimeException('Owned loopback port required');}
+$fixture='codex_board_mail_'.bin2hex(phpbb_random_bytes(8));$host='127.0.0.1:'.$port;$control=new sql_db($host,'root',$password,'',false);$db=$peer=null;$created=false;$bm_cases=$bm_factories=0;
+try{
+ bm_check($control->sql_query('CREATE DATABASE '.$fixture.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Own disposable board-mail schema');$created=true;$db=new BoardMailSource($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
+ $schema=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');foreach(array('users','sessions','config','ctracker_config','ctracker_rate_limits','banlist')as$table){bm_check(preg_match('/^CREATE TABLE `?phpbb_'.$table.'`?\s*\([\s\S]*?;/m',$schema,$m)===1,'Canonical mail participant');bm_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}
+ foreach(array('english','german')as$locale){$lang=array();require$phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';foreach(array('Mail_invalid','Mail_too_long','Mail_busy','Mail_wait','Mail_failed','Mail_upgrade','Mail_absent','Mail_recommendation_subject')as$key){bm_check(isset($lang[$key])&&preg_match('//u',$lang[$key])===1,'Complete UTF8 feedback');}}
+ bm_check(!defined('PA_FILES_TABLE'),'Core mail works without paFileDB constants, tables or bootstrap');
+ foreach(array('profile','friend')as$kind){
+  bm_reset($kind);$message=bm_controller($kind);bm_check($message!==null&&count($bm_capture)===1,'Actual '.$kind.' controller uses captured real transport');bm_check($bm_capture[0]['vars']['MESSAGE']==="C:\\Pfad\\Grüße O'Reilly &amp;",'Actual '.$kind.' raw/legacy text retained');
+  bm_check($bm_capture[0]['vars']['FROM_USERNAME']==='Sender & Änne'&&strpos($bm_capture[0]['headers'],'Reply-to: member8@example.invalid')!==false,'Current account decoded once for actual mail');bm_check(strpos($bm_capture[0]['headers'],'X-AntiAbuse: User_id - 8')!==false&&strpos($bm_capture[0]['headers'],'X-AntiAbuse: User IP - 127.0.0.1')!==false,'Existing core audit headers retain current actor and verified peer');bm_denied(function()use($kind){bm_send($kind);},'Mail_wait');
+  foreach(array('UPDATE fixture_sessions SET session_time=1','DELETE FROM fixture_sessions','UPDATE fixture_sessions SET session_user_id=10','UPDATE fixture_users SET user_active=0 WHERE user_id=8','DELETE FROM fixture_users WHERE user_id=8','UPDATE fixture_users SET user_blocktime='.(time()+3600).' WHERE user_id=8')as$change){bm_reset($kind);bm_sql($change);bm_denied(function()use($kind){bm_send($kind);});bm_check(count($bm_capture)===0&&!bm_rows('SELECT * FROM fixture_ctracker_rate_limits'),'Revoked current actor cannot send/consume quota');}
+  foreach(array('', 'wrong',array())as$sid){bm_reset($kind);$_POST['sid']=$sid;$before=$bm_factories;bm_denied(function()use($kind){bm_send($kind);},'Session_invalid');bm_check($before===$bm_factories,'Bad token never opens an owner');}
+  bm_reset($kind);$userdata['session_id']=$_POST['sid']='';bm_denied(function()use($kind){bm_send($kind);},'Session_invalid');
+  bm_reset($kind);$mismatch=$_POST;$mismatch['sid']='wrong';$controller=new BoardMailController();$before=$bm_factories;bm_denied(function()use($kind,$mismatch,$controller){phpbb_send_board_mail($GLOBALS['db'],$kind,9,$mismatch,array($controller,'create_mailer'));},'Session_invalid');bm_check($before===$bm_factories,'Gateway validates the supplied payload token, not a different global request');
+  bm_reset($kind);bm_sql("UPDATE fixture_users SET username='Fresh Sender',user_email='fresh@example.invalid' WHERE user_id=8");bm_send($kind);bm_check($bm_capture[0]['vars']['FROM_USERNAME']==='Fresh Sender'&&strpos($bm_capture[0]['headers'],'Reply-to: fresh@example.invalid')!==false,'Fresh account replaces cached sender');
+  bm_reset($kind);$field=$kind==='profile'?'email_message':'message';$_POST[$field]=bm_post(array('v'=>str_repeat('😀',10000)))['v'];bm_send($kind);bm_check($bm_capture[0]['vars']['MESSAGE']===str_repeat('😀',10000),'Full Unicode body character capacity');
+  bm_reset($kind);$_POST[$field]=bm_post(array('v'=>str_repeat('ä',10001)))['v'];$before=$bm_factories;bm_denied(function()use($kind){bm_send($kind);},'Mail_too_long');bm_check($bm_factories===$before,'Oversized draft rejected before quota');
+  bm_reset($kind);$bm_hook=function()use($kind,$fixture){$r=$GLOBALS['bm_owner']->inner->sql_query('SELECT @@in_transaction active');$row=$GLOBALS['bm_owner']->inner->sql_fetchrow($r);$GLOBALS['bm_owner']->inner->sql_freeresult($r);bm_check((string)$row['active']==='0','No transaction during transport');$lock='attachment:'.md5($fixture."\0".ATTACHMENTS_TABLE);bm_check((string)bm_rows("SELECT GET_LOCK('".$lock."',0) held")[0]['held']==='1','No global lock during transport');bm_rows("SELECT RELEASE_LOCK('".$lock."') released");bm_denied(function()use($kind){bm_send($kind);},'Mail_busy');$GLOBALS['bm_hook']=null;};bm_send($kind);bm_check(count($bm_capture)===1,'Overlapping '.$kind.' request cannot double-send');
+  foreach(array('fail','throw')as$fault){bm_reset($kind);$bm_transport=$fault;bm_denied(function()use($kind){bm_send($kind);},'Mail_failed');$row=bm_rows('SELECT * FROM fixture_ctracker_rate_limits')[0];bm_check((int)$row['updated_at']===0&&(int)$row['window_start']>=time()-2,'Failed send keeps short attempt without long success penalty');bm_denied(function()use($kind){bm_send($kind);},'Mail_wait');}
+  bm_reset($kind);$bm_fail='INSERT INTO fixture_ctracker_rate_limits';bm_denied(function()use($kind){bm_send($kind);});bm_check(count($bm_capture)===0,'Failed reservation never reaches transport');
+  bm_reset($kind);$bm_hook=function(){$GLOBALS['bm_fail']='UPDATE fixture_ctracker_rate_limits';};bm_send($kind);$bm_fail='';$bm_hook=null;bm_check(count($bm_capture)===1,'Accepted delivery stays successful after acknowledgement failure');bm_denied(function()use($kind){bm_send($kind);},'Mail_wait');
+ }
+ foreach(array('UPDATE fixture_users SET user_viewemail=0 WHERE user_id=9','UPDATE fixture_users SET user_active=0 WHERE user_id=9','DELETE FROM fixture_users WHERE user_id=9',"UPDATE fixture_config SET config_value='0' WHERE config_name='board_email_form'")as$change){bm_reset();bm_sql($change);bm_denied(function(){bm_send();});bm_check(count($bm_capture)===0,'Current recipient opt-out/account/board setting prevents delivery');}
+ bm_reset();bm_sql('UPDATE fixture_users SET user_viewemail=0 WHERE user_id=9');bm_sql('UPDATE fixture_users SET user_level='.ADMIN.' WHERE user_id=8');bm_send();bm_check(count($bm_capture)===1,'Current administrator retains opt-out exception');
+ bm_sql('UPDATE fixture_users SET user_level='.USER.' WHERE user_id=8');$userdata['user_level']=ADMIN;bm_denied(function(){bm_send();},'User_prevent_email');
+ foreach(array(array(USER,0,false),array(MOD,0,false),array(MOD,1,true),array(ADMIN,0,true))as$policy){bm_reset();bm_sql('UPDATE fixture_users SET user_absence=1 WHERE user_id=9');bm_sql('UPDATE fixture_users SET user_level='.$policy[0].' WHERE user_id=8');bm_sql("UPDATE fixture_config SET config_value='".$policy[1]."' WHERE config_name='mod_able_sent_absent'");if($policy[2]){bm_send();}else{bm_denied(function(){bm_send();},'Mail_absent');}bm_check(count($bm_capture)===($policy[2]?1:0),'Current role and absence policy preserved');}
+ bm_reset();$_POST['cc_email']='1';bm_send();bm_check(count($bm_capture)===1&&strpos($bm_capture[0]['headers'],'Bcc: member8@example.invalid')!==false,'Own copy shares one transport acceptance rather than a second main send');
+ bm_reset();$_POST['cc_email']='1';bm_sql("UPDATE fixture_users SET user_email='member8@example.invalid' WHERE user_id=9");bm_send();bm_check(count($bm_capture)===1&&strpos($bm_capture[0]['headers'],'Bcc:')===false,'Already addressed sender does not need a duplicate own copy');
+ bm_reset();$_POST['cc_email']='1';bm_sql("UPDATE fixture_users SET user_email='Member8@example.invalid' WHERE user_id=9");bm_send();bm_check(strpos($bm_capture[0]['headers'],'Bcc: member8@example.invalid')!==false,'Distinct case-sensitive address local parts are not silently merged');
+ bm_reset();bm_sql("UPDATE fixture_users SET username='Fresh Recipient',user_email='recipient@example.invalid',user_lang='german' WHERE user_id=9");bm_send();bm_check($bm_capture[0]['to']==='recipient@example.invalid'&&$bm_capture[0]['vars']['TO_USERNAME']==='Fresh Recipient'&&strpos($bm_capture[0]['body'],'Hallo')!==false,'Current target name/address/language used');
+ bm_reset('friend');$_POST['topic']=bm_post(array('v'=>str_repeat('😀',255)))['v'];bm_send('friend');bm_check($bm_capture[0]['subject']===str_repeat('😀',200),'Suggested friend subject truncates on character boundaries');
+ bm_reset();$bm_hook=function(){$GLOBALS['bm_hook']=null;$old_post=$_POST;$_POST=bm_post(array('submit'=>'Send','sid'=>'fixture-8','friendname'=>'Friend','friendemail'=>'friend@example.invalid','topic'=>'Topic','message'=>'Body'));try{bm_denied(function(){bm_send('friend');},'Mail_busy');}finally{$_POST=$old_post;}};bm_send();bm_check(count($bm_capture)===1,'Profile and friend share the same live sender lease');
+ bm_reset();$bm_borrowed=$db;bm_denied(function(){bm_send();});unset($bm_borrowed);bm_check($db->sql_query('SELECT 1')!==false,'Caller cannot be borrowed or closed');
+ bm_reset();$db->sql_query('START TRANSACTION');$db->sql_query("UPDATE fixture_users SET username='Caller pending' WHERE user_id=10");bm_send();$db->sql_query('ROLLBACK');bm_check(bm_rows('SELECT username FROM fixture_users WHERE user_id=10')[0]['username']==='Recipient 10','Foreign caller transaction survives unchanged');
+ bm_reset();bm_sql('ALTER TABLE fixture_ctracker_rate_limits ENGINE=MyISAM');bm_denied(function(){bm_send();},'Mail_upgrade');bm_check(count($bm_capture)===0,'Legacy storage fails closed with updater guidance');bm_sql('ALTER TABLE fixture_ctracker_rate_limits ENGINE=InnoDB ROW_FORMAT=DYNAMIC');
+ foreach(array('profile','friend')as$kind){bm_reset($kind);$field=$kind==='profile'?'email_subject':'friendemail';$_POST[$field]=array();$raw='</textarea><script>fixture()</script> Änne \\ Pfad';$_POST[$kind==='profile'?'email_message':'message']=bm_post(array('v'=>$raw))['v'];$_POST['cc_email']='0';bm_controller($kind);bm_check($bm_display==='body'&&isset($template->data['ERROR_BOX'])&&count($bm_capture)===0,'Actual '.$kind.' error keeps editable form');$draft=$template->data[$kind==='profile'?'EMAIL_MESSAGE':'MESSAGE'];bm_check(html_entity_decode($draft,ENT_QUOTES,'UTF-8')===$raw&&strpos($draft,'<script>')===false,'Actual form bindings retain escaped Unicode draft');
+  $theme=array('template_name'=>'fisubsilversh');$board_config['xs_use_cache']=$board_config['xs_auto_compile']=$board_config['xs_auto_recompile']=0;$render=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$render->vars=&$render->_tpldata['.'][0];$render->load_config($phpbb_root_path.'templates/fisubsilversh',false);$render->set_filenames(array('body'=>$kind==='profile'?'profile_send_email.tpl':'tellafriend_body.tpl'));$render->assign_vars($template->data);ob_start();try{$render->pparse('body');$html=ob_get_contents();}finally{ob_end_clean();}bm_check(strpos($html,'&lt;/textarea&gt;&lt;script&gt;')!==false&&strpos($html,'<script>fixture()')===false,'Actual Extreme Styles textarea safely retains draft');if($kind==='profile'){bm_check(strpos($html,'name="cc_email" value="1"  />')!==false,'Unchecked own-copy choice survives validation failure');}
+ }
+ echo 'Native board mail: ',$bm_cases,' actual-controller/current-account/recipient/Unicode/overlap/transaction/transport/form cases PASS (',defined('PHPBB_LEGACY_REQUEST_ESCAPED')?'legacy':'raw',"); real mail sent: 0; own disposable schema only.\n";
+}finally{
+ unset($GLOBALS['bm_borrowed']);foreach(array($peer,$db)as$c){if($c){$c->sql_close();}}if(!preg_match('/^codex_board_mail_[a-f0-9]{16}$/D',$fixture)){throw new RuntimeException('Own board-mail schema required');}if($created){$control->sql_query('DROP DATABASE '.$fixture);}$control->sql_close();restore_error_handler();
+}

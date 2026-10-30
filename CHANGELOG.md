@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download recommendation email
 
+- Share current-session/account checks, sender identity, per-sender leases,
+  CrackerTracker cooldowns and delivery acknowledgements with profile email and
+  topic recommendations. Keep core email independent of paFileDB tables and
+  preserve profile recipient opt-out, administrator and absence permissions.
+- Send the optional sender copy with the primary delivery, retain escaped
+  drafts and copy selections after errors, and fix profile JavaScript referring
+  to the wrong form fields. Use Unicode character limits throughout the forms
+  and topic subject suggestions. Fix the shared absence helper reading the
+  moderator setting outside its scope.
+
 - Preserve UTF-8 text and literal backslashes at the legacy request boundary;
   enforce character limits without truncating names, subjects or messages.
   Use the current account as the member sender and keep escaped form drafts

@@ -4,10 +4,10 @@ function checkForm(formObj) {
 
 	formErrors = false;
 
-	if (formObj.message.value.length < 2) {
+	if (!formObj.email_message.value.replace(/\s/g, '').length) {
 		formErrors = "{L_EMPTY_MESSAGE_EMAIL}";
 	}
-	else if ( formObj.subject.value.length < 2)
+	else if (!formObj.email_subject.value.replace(/\s/g, '').length)
 	{
 		formErrors = "{L_EMPTY_SUBJECT_EMAIL}";
 	}
@@ -40,14 +40,14 @@ function checkForm(formObj) {
 <tr>
 <td class="row1"><span class="explaintitle">{L_SUBJECT}:</span></td>
 <td class="row2">
-<input type="text" name="email_subject" size="45" maxlength="100" style="width:450px" tabindex="2" class="post" value="{EMAIL_SUBJECT}" />
+<input type="text" name="email_subject" size="45" maxlength="800" style="width:450px" tabindex="2" class="post" value="{EMAIL_SUBJECT}" />
 </td>
 </tr>
 <tr>
 <td class="row1" valign="top"><span class="explaintitle">{L_MESSAGE_BODY}:</span><br />
 <span class="gensmall">{L_MESSAGE_BODY_DESC}</span></td>
 <td class="row2">
-<textarea name="email_message" rows="25" cols="40" style="width:500px" tabindex="3" class="post">{EMAIL_MESSAGE}</textarea>
+<textarea name="email_message" rows="25" cols="40" maxlength="40000" style="width:500px" tabindex="3" class="post">{EMAIL_MESSAGE}</textarea>
 </td>
 </tr>
 <tr>
@@ -56,7 +56,7 @@ function checkForm(formObj) {
 <table cellspacing="0" cellpadding="1" border="0">
 <tr>
 <td>
-<input type="checkbox" name="cc_email"  value="1" checked="checked" />
+<input type="checkbox" name="cc_email" value="1" {CC_EMAIL_CHECKED} />
 </td>
 <td class="gensmall">{L_CC_EMAIL}</td>
 </tr>

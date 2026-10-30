@@ -1,147 +1,52 @@
 <?php
-
 define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.' . $phpEx);
-
-$topic = isset($_POST['topic']) && is_string($_POST['topic']) ? $_POST['topic'] : (isset($_GET['topic']) && is_string($_GET['topic']) ? $_GET['topic'] : '');
-$link = isset($_POST['link']) && is_string($_POST['link']) ? $_POST['link'] : (isset($_GET['link']) && is_string($_GET['link']) ? $_GET['link'] : '');
+require_once $phpbb_root_path . 'includes/functions_board_mail.' . $phpEx;
 $PHP_SELF = 'tellafriend.' . $phpEx;
-
 $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
-
-if (!$userdata['session_logged_in'])
-{
-	redirect(append_sid("login.$phpEx?redirect=$PHP_SELF", true));
+if (!isset($userdata['session_logged_in']) || !in_array($userdata['session_logged_in'], array(true,1,'1'), true)) {
+    redirect(append_sid('login.' . $phpEx . '?redirect=' . $PHP_SELF, true)); return;
 }
-
-$topic_plain = trim(stripslashes($topic));
-if (strlen($topic_plain) > 200)
-{
-	$topic_plain = substr($topic_plain, 0, 200);
+$submitted = isset($_POST['submit']); $error_msg = '';
+if ($submitted) {
+    try {
+        $mail_service = new PhpbbBoardMailController();
+        $mail_service->send($db, 'friend', 0, $_POST);
+        message_die(GENERAL_MESSAGE, $lang['Email_sent'] . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid('index.' . $phpEx) . '">', '</a>')); return;
+    } catch (PhpbbMailFailure $error) {
+        if (!phpbb_mail_form_error($error->getMessage())) { message_die(GENERAL_MESSAGE, phpbb_mail_error($error)); return; }
+        $error_msg = phpbb_mail_error($error);
+    }
 }
-
-$link_plain = trim(stripslashes($link));
-$board_url = rtrim(phpbb_board_url(), '/');
-if ($link_plain !== '' && !preg_match('#^https?://#i', $link_plain))
-{
-	$link_plain = $board_url . '/' . ltrim($link_plain, '/');
-}
-$link_parts = @parse_url($link_plain);
-$board_parts = @parse_url($board_url);
-if (strlen($link_plain) > 2048 || !$link_parts || !$board_parts || empty($link_parts['scheme']) || empty($link_parts['host']) || strtolower($link_parts['scheme']) !== strtolower($board_parts['scheme']) || strtolower($link_parts['host']) !== strtolower($board_parts['host']))
-{
-	$link_plain = $board_url;
-}
-else
-{
-	$link_port = isset($link_parts['port']) ? (int) $link_parts['port'] : (strtolower($link_parts['scheme']) === 'https' ? 443 : 80);
-	$board_port = isset($board_parts['port']) ? (int) $board_parts['port'] : (strtolower($board_parts['scheme']) === 'https' ? 443 : 80);
-	if ($link_port !== $board_port || isset($link_parts['user']) || isset($link_parts['pass']))
-	{
-		$link_plain = $board_url;
-	}
-}
-
-$mail_body = str_replace(array('{TOPIC}', '{LINK}', '{SITENAME}'), array($topic_plain, $link_plain, $board_config['sitename']), $lang['Tell_Friend_Body']);
-
+$topic = isset($_POST['topic']) ? $_POST['topic'] : (isset($_GET['topic']) ? $_GET['topic'] : '');
+$link = isset($_POST['link']) ? $_POST['link'] : (isset($_GET['link']) ? $_GET['link'] : '');
+try { $topic_plain = phpbb_mail_suggested_subject(is_string($topic) ? phpbb_request_raw_value($topic) : null); }
+catch (PhpbbMailFailure $error) { $topic_plain = $lang['Mail_recommendation_subject']; if ($error_msg === '') { $error_msg = phpbb_mail_error($error); } }
+$link_plain = phpbb_mail_board_link(is_string($link) ? phpbb_request_raw_value($link) : '');
+$mail_body = str_replace(array('{TOPIC}','{LINK}','{SITENAME}'), array($topic_plain,$link_plain,$board_config['sitename']), $lang['Tell_Friend_Body']);
+$values = array('friendname'=>'','friendemail'=>'','message'=>$mail_body);
+if ($submitted) { foreach ($values as $name=>$default) { $values[$name] = isset($_POST[$name]) && is_string($_POST[$name]) ? phpbb_request_raw_value($_POST[$name]) : ''; } }
+$safe = array(); foreach ($values as $name=>$value) { $safe[strtoupper($name)] = htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+$page_title = $lang['Tell_Friend_Title'];
 include($phpbb_root_path . 'includes/page_header.' . $phpEx);
-
-$template->assign_vars(array(
-	'L_TELL_FRIEND_TITLE' => $lang['Tell_Friend_Title'],
-	'L_TELL_FRIEND_EMAIL_MESSAGE' => $lang['Tell_Friend_Email_Message'],
-	'L_TELL_FRIEND_SENDER_USER' => $lang['Tell_Friend_Sender_User'],
-	'L_TELL_FRIEND_SENDER_EMAIL' => $lang['Tell_Friend_Sender_Email'],
-	'L_TELL_FRIEND_RECIEVER_USER' => $lang['Tell_Friend_Reciever_User'],
-	'L_TELL_FRIEND_RECIEVER_EMAIL' => $lang['Tell_Friend_Reciever_Email'],
-	'L_TELL_FRIEND_MSG' => $lang['Tell_Friend_Msg'],
-	'L_TELL_FRIEND_BODY' => htmlspecialchars($mail_body, ENT_QUOTES, 'UTF-8'),
-	'SUBMIT_ACTION' => append_sid($PHP_SELF, true),
-	'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
-	'L_SUBMIT' => $lang['Send_email'],
-	'SITENAME' => htmlspecialchars($board_config['sitename'], ENT_QUOTES, 'UTF-8'),
-	'TOPIC' => htmlspecialchars($topic_plain, ENT_QUOTES, 'UTF-8'),
-	'LINK' => htmlspecialchars($link_plain, ENT_QUOTES, 'UTF-8'),
-	'SENDER_NAME' => htmlspecialchars($userdata['username'], ENT_QUOTES, 'UTF-8'),
-	'SENDER_MAIL' => htmlspecialchars($userdata['user_email'], ENT_QUOTES, 'UTF-8')
-));
-
-if (isset($_POST['submit']))
-{
-	$error = false;
-	$error_msg = '';
-	if (time() - (int) $userdata['user_emailtime'] < (int) $board_config['flood_interval'])
-	{
-		message_die(GENERAL_MESSAGE, $lang['Flood_email_limit']);
-	}
-	$sid = isset($_POST['sid']) && is_string($_POST['sid']) ? $_POST['sid'] : '';
-	$friendemail = isset($_POST['friendemail']) && is_string($_POST['friendemail']) ? trim(stripslashes($_POST['friendemail'])) : '';
-	$friendname = isset($_POST['friendname']) && is_string($_POST['friendname']) ? trim(stripslashes($_POST['friendname'])) : '';
-	$user_message = isset($_POST['message']) && is_string($_POST['message']) ? trim(stripslashes($_POST['message'])) : '';
-
-	$friendemail = preg_replace('/[\r\n\x00]+/', '', $friendemail);
-	$friendname = trim(preg_replace('/[<>"\x00-\x1f\x7f]+/', ' ', $friendname));
-	if ($friendname === '' && filter_var($friendemail, FILTER_VALIDATE_EMAIL))
-	{
-		$friendname = substr($friendemail, 0, strpos($friendemail, '@'));
-	}
-
-	if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid) || !filter_var($friendemail, FILTER_VALIDATE_EMAIL) || strlen($friendemail) > 254 || $friendname === '' || strlen($friendname) > 100 || $user_message === '' || strlen($user_message) > 10000)
-	{
-		$error = true;
-		$error_msg = isset($lang['Email_invalid']) ? $lang['Email_invalid'] : 'Invalid email request.';
-	}
-
-	if (!$error)
-	{
-		if (isset($ctracker_config) && is_object($ctracker_config) && !empty($ctracker_config->settings['massmail_protection']) && function_exists('ctracker_rate_limit_cooldown_remaining'))
-		{
-			$mail_minutes = max(1, min(180, intval($ctracker_config->settings['massmail_time'])));
-			$mail_remaining = ctracker_rate_limit_cooldown_remaining('mail-user', 'user:' . intval($userdata['user_id']), $mail_minutes * 60);
-			if ($mail_remaining !== false && $mail_remaining > 0)
-			{
-				message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_sendmail_info'], $mail_minutes, intval($mail_remaining)));
-			}
-		}
-		include($phpbb_root_path . 'includes/emailer.' . $phpEx);
-		$emailer = new emailer($board_config['smtp_delivery']);
-		$emailer->from($board_config['board_email']);
-		$emailer->replyto($userdata['user_email']);
-		$emailer->use_template('tellafriend_email', $userdata['user_lang']);
-		$emailer->email_address($friendemail);
-		$emailer->set_subject($topic_plain);
-		$emailer->extra_headers('X-AntiAbuse: User_id - ' . (int) $userdata['user_id'] . "\nX-AntiAbuse: User IP - " . decode_ip($user_ip));
-		$emailer->assign_vars(array(
-			'SITENAME' => $board_config['sitename'],
-			'BOARD_EMAIL' => $board_config['board_email'],
-			'FROM_USERNAME' => $userdata['username'],
-			'TO_USERNAME' => $friendname,
-			'MESSAGE' => $user_message
-		));
-		$emailer->send();
-		$emailer->reset();
-		if (isset($ctracker_config) && is_object($ctracker_config) && !empty($ctracker_config->settings['massmail_protection']) && function_exists('ctracker_rate_limit_mark_success'))
-		{
-			ctracker_rate_limit_mark_success('mail-user', 'user:' . intval($userdata['user_id']));
-		}
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET user_emailtime = ' . time() . ' WHERE user_id = ' . intval($userdata['user_id']);
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Unable to update email rate limit.', '', __LINE__, __FILE__, $sql);
-		}
-		message_die(GENERAL_MESSAGE, $lang['Email_sent'] . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>'));
-	}
-
-	$template->set_filenames(array('reg_header' => 'error_body.tpl'));
-	$template->assign_vars(array('ERROR_MESSAGE' => htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8')));
-	$template->assign_var_from_handle('ERROR_BOX', 'reg_header');
+if ($error_msg !== '') {
+    $template->set_filenames(array('reg_header'=>'error_body.tpl'));
+    $template->assign_vars(array('ERROR_MESSAGE'=>htmlspecialchars($error_msg, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')));
+    $template->assign_var_from_handle('ERROR_BOX','reg_header');
 }
-
-$template->set_filenames(array('body' => 'tellafriend_body.tpl'));
+$template->assign_vars(array_merge($safe,array(
+    'L_TELL_FRIEND_TITLE'=>$lang['Tell_Friend_Title'],
+    'L_TELL_FRIEND_SENDER_USER'=>$lang['Tell_Friend_Sender_User'],'L_TELL_FRIEND_SENDER_EMAIL'=>$lang['Tell_Friend_Sender_Email'],
+    'L_TELL_FRIEND_RECIEVER_USER'=>$lang['Tell_Friend_Reciever_User'],'L_TELL_FRIEND_RECIEVER_EMAIL'=>$lang['Tell_Friend_Reciever_Email'],
+    'L_TELL_FRIEND_MSG'=>$lang['Tell_Friend_Msg'],'SUBMIT_ACTION'=>append_sid($PHP_SELF,true),
+    'S_HIDDEN_FIELDS'=>'<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'],ENT_QUOTES,'UTF-8') . '" />',
+    'L_SUBMIT'=>$lang['Send_email'],'SITENAME'=>htmlspecialchars($board_config['sitename'],ENT_QUOTES,'UTF-8'),
+    'TOPIC'=>htmlspecialchars($topic_plain,ENT_QUOTES,'UTF-8'),'LINK'=>htmlspecialchars($link_plain,ENT_QUOTES,'UTF-8'),
+    'SENDER_NAME'=>htmlspecialchars(html_entity_decode($userdata['username'],ENT_QUOTES,'UTF-8'),ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8'),
+    'SENDER_MAIL'=>htmlspecialchars($userdata['user_email'],ENT_QUOTES,'UTF-8'))));
+$template->set_filenames(array('body'=>'tellafriend_body.tpl'));
 $template->pparse('body');
-
 include($phpbb_root_path . 'includes/page_tail.' . $phpEx);
-
-?>

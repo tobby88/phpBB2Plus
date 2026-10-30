@@ -1718,4 +1718,14 @@ $lang['Activation_storage_upgrade'] = 'Account activation requires InnoDB tables
 $lang['Activation_mail_failed'] = 'The account is active, but the notification email could not be sent. Please inform the member separately; activation does not need to be repeated.';
 $lang['Former_member'] = 'Former member';
 $lang['Author_privacy_unavailable'] = 'Author information is temporarily unavailable. Please try again later.';
+// Common board/profile/recommendation delivery feedback.
+$lang['Mail_invalid'] = 'Please enter a valid recipient, subject and message.';
+$lang['Mail_too_long'] = 'Please shorten the name (100 characters), subject (200) or message (10000). Your input has been preserved.';
+$lang['Mail_sender_invalid'] = 'Please choose a valid sender name that does not belong to an existing account or group.';
+$lang['Mail_busy'] = 'An email from this sender is already being processed. Please wait.';
+$lang['Mail_wait'] = 'Please wait before sending another email. Your input has been preserved.';
+$lang['Mail_failed'] = 'The email could not be sent or confirmed. Please wait before trying again. Your input has been preserved.';
+$lang['Mail_upgrade'] = 'The email storage needs updating. Please ask the administrator to run update_from_153a.php.';
+$lang['Mail_absent'] = 'This member is currently unavailable for email contact.';
+$lang['Mail_recommendation_subject'] = 'Forum recommendation';
 ?>

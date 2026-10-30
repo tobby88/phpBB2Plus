@@ -74,9 +74,13 @@ jobs:
         run: |
           php .github/scripts/check-pafiledb-mail-native.php
           php .github/scripts/check-pafiledb-mail-native.php legacy
+          php .github/scripts/check-board-mail-native.php
+          php .github/scripts/check-board-mail-native.php legacy
         env:
           PHPBB_PA_MAIL_NATIVE: '1'
           PHPBB_PA_MAIL_PASSWORD: fixture-only
+          PHPBB_BOARD_MAIL_NATIVE: '1'
+          PHPBB_BOARD_MAIL_PASSWORD: fixture-only
       - name: Check real native fixture conflict behavior
         if: matrix.part == 2
         run: php .github/scripts/check-native-fixture-locks.php

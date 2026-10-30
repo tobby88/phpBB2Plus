@@ -2,8 +2,6 @@
 
 $root = dirname(dirname(__DIR__));
 $emailer = (string) file_get_contents($root . '/phpBB2/includes/emailer.php');
-$profile_email = (string) file_get_contents($root . '/phpBB2/includes/usercp_email.php');
-$friend = (string) file_get_contents($root . '/phpBB2/tellafriend.php');
 $contact = (string) file_get_contents($root . '/phpBB2/kontakt_post.php');
 $errors = array();
 
@@ -37,61 +35,11 @@ foreach (array(
 	}
 }
 
-foreach (array(
-	'strlen($submitted_subject) <= 200',
-	'strlen($submitted_message) <= 10000',
-	"ctracker_rate_limit_cooldown_remaining('mail-user'",
-	"ctracker_rate_limit_mark_success('mail-user'",
-	"\$emailer->from(\$board_config['board_email'])",
-	"htmlspecialchars(\$row['user_absence_text'], ENT_QUOTES, 'UTF-8')",
-	"\$board_config['server_name']"
-) as $marker)
-{
-	if (strpos($profile_email, $marker) === false)
-	{
-		$errors[] = 'Missing board-email marker: ' . $marker;
-	}
-}
-
-foreach (array(
-	'$link_port !== $board_port',
-	"ctracker_rate_limit_cooldown_remaining('mail-user'",
-	"ctracker_rate_limit_mark_success('mail-user'",
-	"\$emailer->from(\$board_config['board_email'])",
-	'$emailer->email_address($friendemail)'
-) as $marker)
-{
-	if (strpos($friend, $marker) === false)
-	{
-		$errors[] = 'Missing tell-a-friend marker: ' . $marker;
-	}
-}
-if (strpos($profile_email, 'ct_last_mail') !== false || strpos($friend, 'ct_last_mail') !== false)
-{
-	$errors[] = 'Mail workflows still use the pre-send user timestamp.';
-}
-$profile_submit = strpos($profile_email, "if ( isset(\$_POST['submit']) )");
-$profile_cooldown = strpos($profile_email, "ctracker_rate_limit_cooldown_remaining('mail-user'");
-$profile_send = strpos($profile_email, '$emailer->send()');
-$profile_mark = strpos($profile_email, "ctracker_rate_limit_mark_success('mail-user'");
-$friend_send = strpos($friend, '$emailer->send()');
-$friend_mark = strpos($friend, "ctracker_rate_limit_mark_success('mail-user'");
-if ($profile_submit === false || $profile_cooldown < $profile_submit ||
-	$profile_send === false || $profile_mark < $profile_send ||
-	$friend_send === false || $friend_mark < $friend_send)
-{
-	$errors[] = 'Mail cooldown is not scoped to submission and successful primary delivery.';
-}
-
 $schema = (string) file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
 $updater = (string) file_get_contents($root . '/update/update_from_153a.php');
 if (strpos($schema, 'ct_last_mail') !== false || strpos($updater, "'ct_last_mail'") === false)
 {
 	$errors[] = 'Obsolete mail-cooldown column is not removed by the schema migration.';
-}
-if (strpos($friend, '$friendname . \' <\' . $friendemail') !== false)
-{
-	$errors[] = 'Tell-a-friend still embeds an untrusted display name in the recipient header.';
 }
 
 if (strpos($contact, "preg_replace('/[\\x00-\\x1f\\x7f]+/', ' ', \$name)") === false)
@@ -99,9 +47,9 @@ if (strpos($contact, "preg_replace('/[\\x00-\\x1f\\x7f]+/', ' ', \$name)") === f
 	$errors[] = 'Contact control-character filtering is not byte-safe.';
 }
 
-// paFileDB recommendation input and actual delivery are covered by the
-// dedicated mail-input and native controller/transport fixtures. Do not assert
-// the old byte-substr implementation here: it corrupts valid UTF-8 text.
+// Profile, friend and paFileDB mail policies are exercised by the actual
+// shared input/native controller/transport fixtures, including overlaps and
+// failure recovery. Avoid asserting obsolete implementation strings here.
 
 if ($errors)
 {

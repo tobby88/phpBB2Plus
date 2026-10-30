@@ -1714,4 +1714,14 @@ $lang['Activation_storage_upgrade'] = 'Die Kontoaktivierung benötigt InnoDB-Tab
 $lang['Activation_mail_failed'] = 'Das Konto ist aktiv, aber die Benachrichtigungs-E-Mail konnte nicht gesendet werden. Bitte informiere das Mitglied separat; die Aktivierung muss nicht wiederholt werden.';
 $lang['Former_member'] = 'Ehemaliger Nutzer';
 $lang['Author_privacy_unavailable'] = 'Die Autoreninformationen sind vorübergehend nicht verfügbar. Bitte versuche es später erneut.';
+// Common board/profile/recommendation delivery feedback.
+$lang['Mail_invalid'] = 'Bitte gültigen Empfänger, Betreff und Nachricht eingeben.';
+$lang['Mail_too_long'] = 'Bitte Namen (100 Zeichen), Betreff (200) oder Nachricht (10000) kürzen. Deine Eingaben sind erhalten geblieben.';
+$lang['Mail_sender_invalid'] = 'Bitte einen gültigen Absendernamen wählen, der nicht zu einem bestehenden Konto oder einer Gruppe gehört.';
+$lang['Mail_busy'] = 'Eine E-Mail dieses Absenders wird bereits verarbeitet. Bitte warten.';
+$lang['Mail_wait'] = 'Bitte vor dem nächsten E-Mail-Versand warten. Deine Eingaben sind erhalten geblieben.';
+$lang['Mail_failed'] = 'Die E-Mail konnte nicht versendet oder bestätigt werden. Bitte vor einem erneuten Versuch warten. Deine Eingaben sind erhalten geblieben.';
+$lang['Mail_upgrade'] = 'Der E-Mail-Speicher muss aktualisiert werden. Bitte den Administrator bitten, update_from_153a.php auszuführen.';
+$lang['Mail_absent'] = 'Dieses Mitglied ist momentan nicht per E-Mail erreichbar.';
+$lang['Mail_recommendation_subject'] = 'Forum-Empfehlung';
 ?>

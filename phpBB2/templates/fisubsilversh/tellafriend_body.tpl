@@ -40,7 +40,7 @@
 			<span class="nav">{L_TELL_FRIEND_RECIEVER_USER}</span>
 			</td>
 			<td>
-			<input type="text" name="friendname" size="25" maxlength="100">
+			<input type="text" name="friendname" size="25" maxlength="400" value="{FRIENDNAME}">
 			</td>
 			</tr>
 			<tr>
@@ -48,7 +48,7 @@
 			<span class="nav">{L_TELL_FRIEND_RECIEVER_EMAIL}</span>
 			</td>
 			<td>
-			<input type="text" name="friendemail" size="25" maxlength="100">
+			<input type="text" name="friendemail" size="25" maxlength="254" value="{FRIENDEMAIL}">
 			</td>
 			</tr>
 			<tr>
@@ -56,8 +56,7 @@
 			<span class="nav">{L_TELL_FRIEND_MSG}</span>
 			</td>
 			<td>
-			<textarea name="message" rows="10" cols="50">{L_TELL_FRIEND_BODY}
-			</textarea>
+			<textarea name="message" rows="10" cols="50" maxlength="40000">{MESSAGE}</textarea>
 			</td>
 			</tr>
 		</table>
