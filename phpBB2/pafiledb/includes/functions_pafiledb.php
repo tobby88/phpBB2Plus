@@ -131,6 +131,13 @@ class pafiledb
 
 		$db->sql_freeresult($result);
 		
+		// Both historical NULL and zero identify a root. Keep their database
+		// values intact while using one root key for navigation and grouping.
+		foreach ($cat_rowset as &$category)
+		{
+			if ($category['cat_parent'] === null) { $category['cat_parent'] = 0; }
+		}
+		unset($category);
 		$this->auth($cat_rowset);
 
 		for( $i = 0; $i < count($cat_rowset); $i++ )
@@ -1323,11 +1330,13 @@ class pafiledb
 	function reorder_cat($cat_parent)
 	{
 		global $db;
+		$cat_parent = (int) $cat_parent;
+		$parent_where = $cat_parent === 0 ? '(cat_parent = 0 OR cat_parent IS NULL)' : 'cat_parent = ' . $cat_parent;
 
 		$sql = 'SELECT cat_id, cat_order
 			FROM '. PA_CATEGORY_TABLE ."
-			WHERE cat_parent = $cat_parent
-			ORDER BY cat_order ASC";
+			WHERE $parent_where
+			ORDER BY cat_order ASC, cat_id ASC";
 
 		if( !$result = $db->sql_query($sql) )
 		{
@@ -1382,18 +1391,6 @@ class pafiledb
 		if (!isset($this->cat_rowset[$cat_id]))
 		{
 			return;
-		}
-
-		$cat_nav = array();
-		$this->category_nav($this->cat_rowset[$cat_id]['cat_parent'], $cat_nav);
-
-		$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-			SET parents_data = ''
-			WHERE cat_parent = " . $this->cat_rowset[$cat_id]['cat_parent'];
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Query categories info', '', __LINE__, __FILE__, $sql);
 		}
 
 		$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "

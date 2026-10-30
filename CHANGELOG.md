@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download category maintenance
+
+- Treat historical NULL and zero parent values as the same root in category
+  grouping and ordering, while retaining stored parent values and permissions.
+  Keep root and child ordering separate and resolve ordering ties consistently.
+- Remove an unused navigation calculation and obsolete ancestry-cache writes
+  from category synchronization. A NULL root could otherwise produce invalid
+  SQL and prevent file-cache invalidation. Preserve category data, file-cache
+  refreshes and single-refresh behavior for full synchronization.
+
 ### Unicode mail transport
 
 - Encode Unicode subjects and diagnostic header text as independently valid

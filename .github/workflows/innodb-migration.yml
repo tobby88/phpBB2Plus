@@ -792,6 +792,12 @@ jobs:
         env:
           PHPBB_PA_POLICY_NATIVE: '1'
           PHPBB_PA_POLICY_PASSWORD: fixture-only
+      - name: Preserve nullable download roots, category sync and ordering
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-category-sync-native.php
+        env:
+          PHPBB_PA_CATEGORY_NATIVE: '1'
+          PHPBB_PA_CATEGORY_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-pafiledb-stats-native.php
         env:
