@@ -33,8 +33,10 @@ $error_msg = ''; $submitted = isset($_POST['submit']);
 if ($submitted) {
     try {
         $mail_service = new PhpbbBoardMailController();
-        $mail_service->send($db, 'profile', $user_id, $_POST);
-        message_die(GENERAL_MESSAGE, $lang['Email_sent'] . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid('index.' . $phpEx) . '">', '</a>')); return;
+        $delivery = $mail_service->send($db, 'profile', $user_id, $_POST);
+        $notice = $delivery['copy_sent'] === false ? '<br /><br />' . $lang['Mail_copy_failed'] : '';
+        if ($delivery['copy_sent'] !== false) { $template->assign_vars(array('META'=>'<meta http-equiv="refresh" content="5;url=' . append_sid('index.' . $phpEx) . '">')); }
+        message_die(GENERAL_MESSAGE, $lang['Email_sent'] . $notice . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid('index.' . $phpEx) . '">', '</a>')); return;
     } catch (PhpbbMailFailure $error) {
         if (!phpbb_mail_form_error($error->getMessage())) { message_die(GENERAL_MESSAGE, phpbb_mail_error($error)); return; }
         $error_msg = phpbb_mail_error($error);

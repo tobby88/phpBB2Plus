@@ -12,8 +12,10 @@ changes consolidated after that baseline without implying active maintenance.
   CrackerTracker cooldowns and delivery acknowledgements with profile email and
   topic recommendations. Keep core email independent of paFileDB tables and
   preserve profile recipient opt-out, administrator and absence permissions.
-- Send the optional sender copy with the primary delivery, retain escaped
-  drafts and copy selections after errors, and fix profile JavaScript referring
+- Keep sender copies in separate envelopes so they do not disclose the profile
+  recipient address. Keep the same sender lease and report copy failure without
+  retrying an accepted primary message. Retain escaped drafts and copy selections
+  after errors, and fix profile JavaScript referring
   to the wrong form fields. Use Unicode character limits throughout the forms
   and topic subject suggestions. Fix the shared absence helper reading the
   moderator setting outside its scope.

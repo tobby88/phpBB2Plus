@@ -161,27 +161,36 @@ abstract class PhpbbMailStore extends PhpbbOwnedStore
         }
         $this->delivery_query('COMMIT'); $this->transaction = false;
     }
+    protected function send_message($factory, $recipient)
+    {
+        $mailer = call_user_func($factory, $this->settings['smtp_delivery']);
+        $data = $this->sender;
+        $mailer->use_template(isset($data['template']) ? $data['template'] : 'profile_send_email', isset($data['language']) ? $data['language'] : $this->settings['default_lang']);
+        $mailer->email_address($recipient); $mailer->from($this->settings['board_email']); $mailer->replyto($data['semail']);
+        $mailer->set_subject($data['subject']);
+        $server = preg_replace('/[\x00-\x1f\x7f]+/', ' ', $this->settings['server_name']);
+        $headers = 'X-AntiAbuse: Board servername - ' . $server . "\nX-AntiAbuse: Username - " . $data['sname'] . "\n";
+        if (!empty($data['actor_headers'])) { $headers .= 'X-AntiAbuse: User_id - ' . $this->actor['id'] . "\nX-AntiAbuse: User IP - " . $this->sender_address . "\n"; }
+        $mailer->extra_headers($headers);
+        $mailer->assign_vars(array('SITENAME'=>$this->settings['sitename'],'BOARD_EMAIL'=>$this->settings['board_email'],
+            'FROM_USERNAME'=>$data['sname'],'TO_USERNAME'=>$data['fname'],'MESSAGE'=>$data['message']));
+        return $mailer->send() === true;
+    }
     function deliver($factory)
     {
         global $board_config;
-        $previous = $board_config; $accepted = false;
+        $previous = $board_config; $accepted = false; $copy_sent = null;
         try {
             $board_config = array_merge($board_config, $this->settings);
-            $mailer = call_user_func($factory, $this->settings['smtp_delivery']);
             $data = $this->sender;
-            $mailer->use_template(isset($data['template']) ? $data['template'] : 'profile_send_email', isset($data['language']) ? $data['language'] : $this->settings['default_lang']);
-            $mailer->email_address($data['femail']); $mailer->from($this->settings['board_email']); $mailer->replyto($data['semail']);
-            $mailer->set_subject($data['subject']);
-            if (!empty($data['copy']) && $data['femail'] !== $data['semail']) { $mailer->bcc($data['semail']); }
-            $server = preg_replace('/[\x00-\x1f\x7f]+/', ' ', $this->settings['server_name']);
-            $headers = 'X-AntiAbuse: Board servername - ' . $server . "\nX-AntiAbuse: Username - " . $data['sname'] . "\n";
-            if (!empty($data['actor_headers'])) { $headers .= 'X-AntiAbuse: User_id - ' . $this->actor['id'] . "\nX-AntiAbuse: User IP - " . $this->sender_address . "\n"; }
-            $mailer->extra_headers($headers);
-            $mailer->assign_vars(array('SITENAME'=>$this->settings['sitename'],'BOARD_EMAIL'=>$this->settings['board_email'],
-                'FROM_USERNAME'=>$data['sname'],'TO_USERNAME'=>$data['fname'],'MESSAGE'=>$data['message']));
-            $accepted = $mailer->send() === true;
-        } catch (Exception $error) { $accepted = false; }
-        catch (Error $error) { $accepted = false; }
+            $accepted = $this->send_message($factory, $data['femail']);
+            if ($accepted && !empty($data['copy'])) {
+                // A BCC copy would reveal the profile recipient's address in
+                // its To header. Keep separate envelopes and the same lease.
+                $copy_sent = $data['femail'] === $data['semail'] || $this->send_message($factory, $data['semail']);
+            }
+        } catch (Exception $error) { if ($accepted) { $copy_sent = false; } }
+        catch (Error $error) { if ($accepted) { $copy_sent = false; } }
         finally { $board_config = $previous; }
         try { $this->settle($accepted); }
         catch (Exception $error) { error_log('phpBB mail delivery reservation could not be finalized'); }
@@ -189,7 +198,7 @@ abstract class PhpbbMailStore extends PhpbbOwnedStore
         // Once transport accepted the message, never invite a duplicate retry
         // just because the acknowledgement timestamp could not be finalized.
         if (!$accepted) { phpbb_mail_fail(); }
-        return true;
+        return array('sent'=>true, 'copy_sent'=>$copy_sent);
     }
 }
 function phpbb_mail_actor($allow_guest = false, $post = null)
