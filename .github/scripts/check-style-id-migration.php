@@ -50,6 +50,10 @@ try{
   $other=mysqli_connect('127.0.0.1','root',$password,$database,(int)$port);
   $lock='plus_innodb_'.sha1($database);mysqli_query($other,"DO GET_LOCK('".$lock."',0)");
   sid_refuses(function()use($db){plus_style_ids_apply($db,'fixture_',true,true);},'Concurrent migration refused');mysqli_close($other);
+  // COM_QUIT cleanup may finish just after close returns. Observe release of
+  // this fixture's own lock before testing the next independent migration.
+  sid_check((int)sid_rows("SELECT GET_LOCK('".$lock."',5) AS acquired")[0]['acquired']===1,'Closed fixture owner releases migration lock within bounded wait');
+  sid_check((int)sid_rows("SELECT RELEASE_LOCK('".$lock."') AS released")[0]['released']===1,'Release only this connection own observation lock');
   $session=sid_rows('SELECT @@SESSION.sql_mode AS mode,@@SESSION.lock_wait_timeout AS timeout');
   sid_check(plus_style_ids_apply($db,'fixture_',true,true)===2,'Legacy migration applied');
   sid_check($session===sid_rows('SELECT @@SESSION.sql_mode AS mode,@@SESSION.lock_wait_timeout AS timeout'),'Session options restored');
