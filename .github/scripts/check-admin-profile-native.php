@@ -14,6 +14,7 @@ foreach(array('admin_user_sql_value'=>'admin/admin_users.php','session_reset_key
  'phpbb_sync_username_references'=>'includes/functions.php','user_avatar_delete'=>'includes/usercp_avatar.php') as $name=>$file){ats_load_function($ats_source.$file,$name);}
 ats_load_function($ats_source.'admin/admin_users.php','admin_user_post_string');
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ADMIN_PROFILE_NATIVE')!=='1'){echo "Native ACP profile checks require an explicitly enabled disposable MySQL/MariaDB fixture.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 require $ats_source.'db/mysqli.php';
 $port=getenv('PHPBB_ADMIN_PROFILE_PORT')?:'3306';$password=getenv('PHPBB_ADMIN_PROFILE_PASSWORD')?:'';
 ats_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Loopback fixture port');
@@ -205,7 +206,7 @@ try{
    foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
     ap_reset($actor,$scenario);$before=ap_snap();$seen=0;$reached=$blocked=false;
     $ap_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked){if(!ap_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['ap_hook']=null;$reached=true;
-     ap_sql('SET SESSION innodb_lock_wait_timeout=0');
+     native_fixture_peer_nowait($GLOBALS['peer']);
      try{if(!$GLOBALS['peer']->sql_query(ap_revoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Real peer lock timeout');$blocked=true;}}
      finally{ap_sql('SET SESSION innodb_lock_wait_timeout=1');}};
     $result=ap_run($scenario);ats_check($reached,'Every write/commit/authority-lock boundary reached');

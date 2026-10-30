@@ -56,6 +56,7 @@ $board_config=array('default_lang'=>'english');$db=new AttachSettingsReadFixture
 ats_check($loaded['ftp_user']===$ats_user&&$loaded['ftp_pass']===$ats_secret&&$loaded['upload_dir']==='files','Actual runtime reader preserves credentials, normalizes ordinary settings');
 echo "Attachment settings inventories (22 + 9), byte-exact inputs/readers/units passed\n";
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ATTACH_SETTINGS_NATIVE')!=='1'){return;}
+require_once __DIR__.'/native-fixture-locks.php';
 require $ats_source.'db/mysqli.php';$port=getenv('PHPBB_ATTACH_SETTINGS_PORT')?:'3306';$password=getenv('PHPBB_ATTACH_SETTINGS_PASSWORD')?:'';
 ats_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Loopback port');$host='127.0.0.1:'.$port;
 $control=new sql_db($host,'root',$password,'',false);$fixture='codex_attach_settings_'.bin2hex(function_exists('random_bytes')?random_bytes(8):openssl_random_pseudo_bytes(8));
@@ -85,6 +86,15 @@ class AttachSettingsTemplate {
 $db=new AttachSettingsDatabase($host,'root',$password,$fixture,false);unset($db->password);$peer=new sql_db($host,'root',$password,$fixture,false);
 $ats_queries=array();$ats_hook=null;$ats_failure='';$ats_after_commit=null;$ats_acknowledged=false;$ats_after_ack_queries=array();$userdata=array();$attach_config=array();
 function ats_sql($sql){$result=$GLOBALS['peer']->sql_query($sql);ats_check($result,'Fixture SQL');return $result;}
+function ats_metadata_scope($queries,$expected){
+ $version=phpbb_acl_rows($GLOBALS['peer'],'SELECT VERSION() AS version');$maria=stripos($version[0]['version'],'MariaDB')!==false;$count=0;
+ foreach($queries as$sql){if(strpos($sql,'FROM information_schema.TABLES t')===false){continue;}$count++;
+  if(!$maria){continue;}$columns=array();foreach(phpbb_acl_rows($GLOBALS['peer'],'EXPLAIN '.$sql)as$row){if(isset($row['table'])&&$row['table']==='c'){$columns[]=$row;}}
+  ats_check(count($columns)===1,'Actual attachment column metadata plan identified');$row=$columns[0];
+  ats_check(stripos($row['Extra'],'Scanned all databases')===false&&strpos((string)$row['key'],'TABLE_SCHEMA')!==false&&strpos((string)$row['key'],'TABLE_NAME')!==false,'Actual attachment metadata lookup bounded to current schema/table');
+ }
+ ats_check($count===$expected,'Every attachment transaction participant checked');
+}
 function ats_snapshot(){return array('config'=>phpbb_attach_settings_read($GLOBALS['peer']),'groups'=>phpbb_acl_rows($GLOBALS['peer'],'SELECT group_id,max_filesize FROM '.EXTENSION_GROUPS_TABLE.' ORDER BY group_id'));}
 function ats_reset($actor,$mode){
  global $ats_queries,$ats_hook,$ats_failure,$userdata,$attach_config;
@@ -119,12 +129,13 @@ try{
  foreach(array('cats','manage') as $mode){foreach(array('root','delegated') as $actor){
   $payload=$mode==='manage'?array('max_filesize'=>'1.5','size'=>'kb','ftp_pass'=>addslashes($ats_secret),'ftp_user'=>addslashes($ats_user)):array('img_display_inlined'=>'0','img_max_width'=>'640');
   ats_reset($actor,$mode);$outcome=ats_run($mode,$payload);ats_check(strpos($outcome,'saved')===0,'Actual save '.$actor.' '.$mode.': '.$outcome.' queries='.count($ats_queries));$after=ats_snapshot();$boundaries=array_values(array_filter($ats_queries,'ats_boundary'));
+  ats_metadata_scope($ats_queries,$mode==='manage'?6:4);
   if($mode==='manage'){$loaded=get_config();ats_check($after['config']['ftp_pass']===$ats_secret&&$loaded['ftp_pass']===$ats_secret&&$loaded['ftp_user']===$ats_user,'Save-to-runtime exact credentials');ats_check($after['groups'][0]['max_filesize']==1536&&$after['groups'][1]['max_filesize']==1536&&$after['groups'][2]['max_filesize']==4096,'Matching limits change, custom group preserved');}
   else{ats_check($after['config']['img_max_width']==='640'&&$after['config']['ftp_pass']==='','Cats only changes image controls');}
   foreach(array('inactive','missing','admin-off','foreign','logout','case',$actor==='root'?'role':'grant') as $kind){ats_reset($actor,$mode);ats_sql(ats_revoke($kind));$before=ats_snapshot();ats_check(ats_run($mode,$payload)==='Not_Authorised'&&ats_snapshot()===$before,'Entry revocation preserves both tables');$cases++;}
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($boundary=1;$boundary<=count($boundaries);$boundary++){
    ats_reset($actor,$mode);$before=ats_snapshot();$seen=0;$reached=false;$blocked=false;
-   $ats_hook=function($sql)use($boundary,$kind,&$seen,&$reached,&$blocked){if(!ats_boundary($sql)||++$seen!==$boundary){return;}$GLOBALS['ats_hook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(ats_revoke($kind))){$error=$GLOBALS['peer']->sql_error();ats_check((int)$error['code']===1205,'Only real lock timeout serializes');$blocked=true;}};
+   $ats_hook=function($sql)use($boundary,$kind,&$seen,&$reached,&$blocked){if(!ats_boundary($sql)||++$seen!==$boundary){return;}$GLOBALS['ats_hook']=null;$reached=true;$probe=native_fixture_conflict_query($GLOBALS['peer'],ats_revoke($kind));if(!$probe[0]){$error=$probe[1];ats_check((int)$error['code']===1205,'Only real lock timeout serializes');$blocked=true;}};
    $outcome=ats_run($mode,$payload);ats_check($reached,'Every write/commit boundary exercised');
    if($blocked){ats_check(strpos($outcome,'saved')===0,'Save commits before serialized revocation');ats_sql(ats_revoke($kind));$serialized++;}
    else{ats_check($outcome==='Not_Authorised'&&ats_snapshot()===$before,'Revocation rolls back config and matching limits');}
@@ -172,7 +183,7 @@ try{
  ats_check(ats_run('manage',array(),true)==='rendered','Actual manage rendering');ats_check($template->vars['FTP_PASS']===phpbb_admin_html($ats_secret),'Stored credential escaped only in HTML output');
  ats_check(strpos($template->vars['S_DEFAULT_UPLOAD_LIMIT'],'&lt;quota &amp;&gt;')!==false,'Quota description is escaped in generated select');
  ats_check(ats_run('cats',array(),true)==='rendered'&&$template->vars['S_ASSIGNED_GROUP_IMAGES']==='&lt;group &amp;&gt;','Image group names escaped');
- foreach(array('ENGINE=MyISAM','ROW_FORMAT=COMPACT','CONVERT TO CHARACTER SET latin1','MODIFY config_value VARCHAR(255) CHARACTER SET latin1 NOT NULL') as $legacy){ats_reset('root','manage');ats_sql('ALTER TABLE '.ATTACH_CONFIG_TABLE.' '.$legacy);$before=ats_snapshot();ats_check(ats_run('manage',array('ftp_pass'=>'after'))==='storage'&&ats_snapshot()===$before,'Reject legacy storage');ats_sql('DROP TABLE '.ATTACH_CONFIG_TABLE);ats_sql($ddl['attachments_config']);}
+ foreach(array('ENGINE=MyISAM','ROW_FORMAT=COMPACT','CONVERT TO CHARACTER SET latin1','CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin','MODIFY config_value VARCHAR(255) CHARACTER SET latin1 NOT NULL') as $legacy){ats_reset('root','manage');ats_sql('ALTER TABLE '.ATTACH_CONFIG_TABLE.' '.$legacy);$before=ats_snapshot();ats_check(ats_run('manage',array('ftp_pass'=>'after'))==='storage'&&ats_snapshot()===$before,'Reject legacy storage');ats_sql('DROP TABLE '.ATTACH_CONFIG_TABLE);ats_sql($ddl['attachments_config']);}
  ats_reset('root','manage');$ats_hook=function($sql){if($sql==='START TRANSACTION'){$GLOBALS['ats_hook']=null;ats_sql("DELETE FROM ".ATTACH_CONFIG_TABLE." WHERE config_name='ftp_pass'");}};
  ats_check(ats_run('manage',array('ftp_pass'=>'after'))==='storage','Missing config row during transaction rejected');
  echo 'Native attachment settings: '.$cases.' cases; '.$serialized." serialized before revocation; render/readback checks passed\n";

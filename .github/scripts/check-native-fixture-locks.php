@@ -36,6 +36,15 @@ try {
  nfl_check((int)$transaction[0]['active']===1,'Timeout setup preserves caller transaction');
  nfl_check($peer->sql_query('ROLLBACK')&&$owner->sql_query('START TRANSACTION'),'Own source transaction');
  nfl_rows($owner,'SELECT * FROM fixture_probe WHERE id=1 FOR UPDATE');
+ nfl_check($peer->sql_query('SET SESSION innodb_lock_wait_timeout=7')&&$peer->sql_query('START TRANSACTION'),'Scoped probe retains an ordinary caller timeout');
+ $probe=native_fixture_conflict_query($peer,'UPDATE fixture_probe SET value=9 WHERE id=1');
+ nfl_check($probe[0]===false&&(int)$probe[1]['code']===1205,'Scoped probe preserves original native conflict errno');
+ $settings=nfl_rows($peer,'SELECT @@SESSION.innodb_lock_wait_timeout wait_time,@@in_transaction active');
+ nfl_check((int)$settings[0]['wait_time']===7&&(int)$settings[0]['active']===1,'Scoped conflict restores caller wait without ending its transaction');
+ $probe=native_fixture_conflict_query($peer,'UPDATE fixture_probe SET value=2 WHERE id=2');
+ nfl_check($probe[0]===true&&(int)$probe[1]['code']===0,'Scoped unlocked write still succeeds');
+ nfl_check((int)nfl_rows($peer,'SELECT @@SESSION.innodb_lock_wait_timeout wait_time')[0]['wait_time']===7,'Successful probe also restores caller wait');
+ nfl_check($peer->sql_query('ROLLBACK'),'Own scoped probe rollback');native_fixture_peer_nowait($peer);
  $started=microtime(true);$result=$peer->sql_query('UPDATE fixture_probe SET value=1 WHERE id=1');$elapsed=microtime(true)-$started;$error=$peer->sql_error();
  nfl_check($result===false&&(int)$error['code']===1205,'Real conflicting peer write reports native lock timeout');
  if($expected===0){nfl_check($elapsed<1,'Immediate conflict avoids a compulsory one-second wait');}

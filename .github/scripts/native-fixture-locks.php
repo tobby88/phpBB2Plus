@@ -31,3 +31,24 @@ function native_fixture_peer_nowait($database)
  return $wait;
 }
 
+// DDL/reset work must retain its ordinary wait. Capture the real conflict error
+// before restoring the timeout, since the successful SET clears driver errno.
+function native_fixture_conflict_query($database, $sql)
+{
+ if (PHP_SAPI !== 'cli' || !is_object($database)) { throw new RuntimeException('Native fixture connection required'); }
+ $result = $database->sql_query('SELECT @@SESSION.innodb_lock_wait_timeout AS fixture_wait');
+ if (!$result) { throw new RuntimeException('Native fixture previous timeout unavailable'); }
+ try { $row = $database->sql_fetchrow($result); }
+ finally { $database->sql_freeresult($result); }
+ if (!is_array($row) || !isset($row['fixture_wait']) || !preg_match('/^[0-9]{1,10}$/D', (string)$row['fixture_wait']))
+ { throw new RuntimeException('Native fixture previous timeout invalid'); }
+ $previous = (int)$row['fixture_wait'];
+ native_fixture_peer_nowait($database);
+ try { $result = $database->sql_query($sql); return array($result, $database->sql_error()); }
+ finally
+ {
+  if (!$database->sql_query('SET SESSION innodb_lock_wait_timeout=' . $previous))
+  { throw new RuntimeException('Native fixture previous timeout could not be restored'); }
+ }
+}
+

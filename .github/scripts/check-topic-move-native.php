@@ -1,6 +1,7 @@
 <?php
 // Actual mysqli driver, canonical owned tables and an independent peer.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_MOVE_NATIVE')!=='1'){echo "Native topic move checks require an explicitly enabled disposable database.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 define('IN_PHPBB',true);$phpEx='php';$table_prefix='fixture_';
 $phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';
 require $phpbb_root_path.'includes/constants.php';require $phpbb_root_path.'attach_mod/includes/constants.php';
@@ -87,7 +88,7 @@ try{
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    mn_reset($actor);$seen=0;$reached=$blocked=false;$revoked=null;
    $mn_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!mn_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['mn_hook']=null;$reached=true;
-    if(!$GLOBALS['peer']->sql_query(mn_revoke($kind))){$e=$GLOBALS['peer']->sql_error();mn_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=mn_snap();}};
+    $probe=native_fixture_conflict_query($GLOBALS['peer'],mn_revoke($kind));if(!$probe[0]){$e=$probe[1];mn_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=mn_snap();}};
    $out=mn_run();mn_check($reached,'Every write/commit boundary reached');
    if($blocked){mn_check($out===array(100,101)&&mn_snap()===$after,'Revocation serializes after complete move');mn_sql(mn_revoke($kind));$serialized++;}
    else{mn_check($out==='error'&&mn_snap()===$revoked,'Effective revocation rolls back complete move, retains peer change');}$cases++;
@@ -100,13 +101,13 @@ try{
  foreach(array('membership','source','target') as $kind){
   mn_reset('moderator');$reached=$blocked=false;$revoked=null;
   $mn_hook=function($sql)use($kind,&$reached,&$blocked,&$revoked){if(strpos($sql,'UPDATE fixture_topics t JOIN')!==0){return;}$GLOBALS['mn_hook']=null;$reached=true;
-   if(!$GLOBALS['peer']->sql_query(mn_revoke($kind))){$e=$GLOBALS['peer']->sql_error();mn_check((int)$e['code']===1205,'Real forum/membership lock');$blocked=true;}else{$revoked=mn_snap();}};
+   $probe=native_fixture_conflict_query($GLOBALS['peer'],mn_revoke($kind));if(!$probe[0]){$e=$probe[1];mn_check((int)$e['code']===1205,'Real forum/membership lock');$blocked=true;}else{$revoked=mn_snap();}};
   $out=mn_run();mn_check($reached,'Independent forum/membership change reached');mn_check($blocked?$out===array(100,101):$out==='error'&&mn_snap()===$revoked,'Effective permission change aborts, locked forum change serializes');$cases++;
  }
  foreach(array('changed-before-lock','changed-after-lock') as $kind){
   mn_reset();$reached=$blocked=false;$changed=null;$before=mn_snap();
   $mn_hook=function($sql)use($kind,&$reached,&$blocked,&$changed){$prefix=$kind==='changed-before-lock'?'SELECT topic_id, forum_id, topic_type':'UPDATE fixture_topics t JOIN';if(strpos($sql,$prefix)!==0){return;}$GLOBALS['mn_hook']=null;$reached=true;
-   if(!$GLOBALS['peer']->sql_query('UPDATE fixture_topics SET forum_id=4 WHERE topic_id=100')){$e=$GLOBALS['peer']->sql_error();mn_check((int)$e['code']===1205,'Real target lock');$blocked=true;}else{$changed=mn_snap();}};
+   $probe=native_fixture_conflict_query($GLOBALS['peer'],'UPDATE fixture_topics SET forum_id=4 WHERE topic_id=100');if(!$probe[0]){$e=$probe[1];mn_check((int)$e['code']===1205,'Real target lock');$blocked=true;}else{$changed=mn_snap();}};
   $out=mn_run();mn_check($reached&&($blocked?$out===array(100,101):$out==='error'&&mn_snap()===$changed),'Changed/locked topic selection never silently overwrites a peer');$cases++;
  }
  foreach($mn_tables as $s){mn_reset();mn_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=mn_snap();mn_check(mn_run()==='error'&&mn_snap()===$before,'Reject legacy participant '.$s);mn_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}

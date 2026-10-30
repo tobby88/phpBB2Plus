@@ -1,6 +1,7 @@
 <?php
 // Actual mysqli driver, canonical owned tables and an independent peer.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_MERGE_NATIVE')!=='1'){echo "Native topic merge checks require an explicitly enabled disposable database.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 define('IN_PHPBB',true);$phpEx='php';$table_prefix='fixture_';
 $phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';
 require $phpbb_root_path.'includes/constants.php';require $phpbb_root_path.'attach_mod/includes/constants.php';
@@ -121,14 +122,14 @@ try{
   if($polls==='both'&&$shadow){foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    mg_fixture($actor,$polls);$seen=0;$reached=$blocked=false;$revoked=null;
    $mg_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!mg_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['mg_hook']=null;$reached=true;
-    if(!$GLOBALS['peer']->sql_query(mg_revoke($kind))){$e=$GLOBALS['peer']->sql_error();mg_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=mg_snap();}};
+    $probe=native_fixture_conflict_query($GLOBALS['peer'],mg_revoke($kind));if(!$probe[0]){$e=$probe[1];mg_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=mg_snap();}};
    $out=mg_run($shadow);mg_check($reached,'Every write/commit boundary reached');
    if($blocked){mg_check($out===200&&mg_snap()===$after,'Revocation serializes after whole merge');mg_sql(mg_revoke($kind));$serialized++;}
    else{mg_check($out==='error'&&mg_snap()===$revoked,'Effective revocation restores all merge data and retains peer change');}$cases++;
   }}}
  }echo $actor.'/'.$polls." native merge topology/failure/authority checks passed\n";}}
  foreach(array('missing','foreign','logout','case','inactive','role') as $kind){mg_fixture();$token=mg_token();mg_sql(mg_revoke($kind));$before=mg_snap();mg_check(mg_run(false,$token)==='error'&&mg_snap()===$before,'Exact current entry authority '.$kind);$denied=false;try{mg_token();}catch(PhpbbTopicMergeException $e){$denied=true;}mg_check($denied,'Preview also refuses revoked current session/authority');$cases++;}
- foreach(array('targetgrant','membership','read') as $kind){mg_fixture('moderator');$blocked=false;$revoked=null;$mg_hook=function($sql)use($kind,&$blocked,&$revoked){if(strpos($sql,'INSERT INTO fixture_bookmarks')!==0){return;}$GLOBALS['mg_hook']=null;if(!$GLOBALS['peer']->sql_query(mg_revoke($kind))){$e=$GLOBALS['peer']->sql_error();mg_check((int)$e['code']===1205,'Permission row lock');$blocked=true;}else{$revoked=mg_snap();}};$out=mg_run();mg_check($blocked?$out===200:$out==='error'&&mg_snap()===$revoked,'Both-forum/membership authority after post move');$cases++;}
+ foreach(array('targetgrant','membership','read') as $kind){mg_fixture('moderator');$blocked=false;$revoked=null;$mg_hook=function($sql)use($kind,&$blocked,&$revoked){if(strpos($sql,'INSERT INTO fixture_bookmarks')!==0){return;}$GLOBALS['mg_hook']=null;$probe=native_fixture_conflict_query($GLOBALS['peer'],mg_revoke($kind));if(!$probe[0]){$e=$probe[1];mg_check((int)$e['code']===1205,'Permission row lock');$blocked=true;}else{$revoked=mg_snap();}};$out=mg_run();mg_check($blocked?$out===200:$out==='error'&&mg_snap()===$revoked,'Both-forum/membership authority after post move');$cases++;}
  foreach(array("UPDATE fixture_vote_desc SET vote_text='changed' WHERE vote_id=1","UPDATE fixture_vote_results SET vote_option_text='changed' WHERE vote_id=2","DELETE FROM fixture_vote_desc WHERE vote_id=2","UPDATE fixture_topics SET topic_title='changed' WHERE topic_id=200") as $change){mg_fixture();$token=mg_token();mg_sql($change);$before=mg_snap();mg_check(mg_run(false,$token)==='error'&&mg_snap()===$before,'Stale confirmation cannot delete changed polls/topics');$cases++;}
  foreach($mg_participants as $s){mg_fixture();mg_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=mg_snap();mg_check(mg_run()==='error'&&mg_snap()===$before,'Reject legacy participant '.$s);mg_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
  foreach(array('row','table-charset','column-charset') as $kind){mg_fixture();$ddl=$kind==='row'?'ROW_FORMAT=COMPACT':($kind==='table-charset'?'DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci':'MODIFY session_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL');mg_sql('ALTER TABLE fixture_sessions '.$ddl);$before=mg_snap();mg_check(mg_run()==='error'&&mg_snap()===$before,'Reject alternate storage '.$kind);mg_sql('ALTER TABLE fixture_sessions ROW_FORMAT=DYNAMIC, DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, MODIFY session_id CHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL');$cases++;}

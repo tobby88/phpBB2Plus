@@ -4,6 +4,7 @@ putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-sett
 foreach(array('ANONYMOUS'=>-1,'CONFIG_TABLE'=>'fixture_config','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','POST_USERS_URL'=>'u','USER_ACTIVATION_ADMIN'=>2,'PHPBB_PASSWORD_RESET_PENDING'=>'!reset-pending!') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_account_activation.php';require $ats_source.'includes/functions_validate.php';
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ACTIVATION_NATIVE')!=='1'){echo "Native activation checks require an explicitly enabled disposable database.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 require $ats_source.'db/mysqli.php';
 $port=getenv('PHPBB_ACTIVATION_PORT')?:'3306';$password=getenv('PHPBB_ACTIVATION_PASSWORD')?:'';
 ats_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Loopback port');
@@ -79,7 +80,7 @@ try{
   if(strpos($mode,'reset')===0){$changes['inactive']='UPDATE fixture_users SET user_active=0 WHERE user_id=2';$changes['sid']="DELETE FROM fixture_sessions WHERE session_id='fixture-sid'";}
   foreach($changes as $kind=>$change){for($nth=1;$nth<=count($boundaries);$nth++){
    an_reset($mode);$before=an_snap();$seen=0;$reached=$blocked=false;$revoked=null;
-   $an_hook=function($sql)use($change,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!an_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['an_hook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query($change)){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Real lock timeout');$blocked=true;}else{$revoked=an_snap();}};
+   $an_hook=function($sql)use($change,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!an_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['an_hook']=null;$reached=true;$probe=native_fixture_conflict_query($GLOBALS['peer'],$change);if(!$probe[0]){$e=$probe[1];ats_check((int)$e['code']===1205,'Real lock timeout');$blocked=true;}else{$revoked=an_snap();}};
    $out=an_run();ats_check($reached,'Every authority/write/commit boundary reached');if($blocked){ats_check(an_success($out,$mode)&&an_snap()===$after,'Concurrent change serializes after whole publication');$serialized++;}else{ats_check(!an_success($out,$mode)&&an_snap()===$revoked&&!$an_cookies&&!$an_mail,'Effective concurrent change rejects whole publication');}$cases++;
   }}
   echo $mode." native token/authority/atomic publication passed\n";

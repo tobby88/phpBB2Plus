@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Storage metadata and native checks
+
+- Bound attachment-setting column metadata to its current database and table,
+  preserving every canonical format check and adding actual query-plan coverage
+  for all transaction participants and rejection of noncanonical collations.
+- Apply the guarded immediate-conflict setting to additional synchronous native
+  peers for attachment settings, account activation, profile administration,
+  post editing/submission/deletion and topic move/merge fixtures. Keep real
+  conflicts, serialized-revocation checks and production wait settings intact.
+  Restore the fixture's ordinary wait after each probe so DDL remains tolerant
+  of short internal database locks; preserve the original conflict error code.
+
 ### CrackerTracker storage checks
 
 - Bound the column metadata lookup to the current database and requested table,

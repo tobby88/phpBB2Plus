@@ -1,6 +1,7 @@
 <?php
 // Canonical owned InnoDB tables, actual driver/parser/index and independent peer.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_AJAX_EDIT_NATIVE')!=='1'){echo "Native AJAX edit checks require an explicitly enabled disposable database.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 define('IN_PHPBB',true);$phpEx='php';$table_prefix='fixture_';$phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';
 require $phpbb_root_path.'includes/constants.php';require $phpbb_root_path.'attach_mod/includes/constants.php';require $phpbb_root_path.'includes/php_compat.php';require $phpbb_root_path.'db/mysqli.php';
 require $phpbb_root_path.'attach_mod/includes/functions_includes.php';require $phpbb_root_path.'attach_mod/includes/functions_mutation.php';require $phpbb_root_path.'attach_mod/includes/functions_delete.php';require $phpbb_root_path.'includes/auth.php';
@@ -76,7 +77,7 @@ try{
   for($nth=1;$nth<=$writes;$nth++){ae_fixture($actor);$before=ae_snapshot();$ae_failwrite=$nth;ae_check(ae_edit($field)==='error'&&ae_snapshot()===$before,'Rollback every content/index write '.$nth);$cases++;}
   foreach(array(false,true) as $ack){ae_fixture($actor);$before=ae_snapshot();$ae_ack=$ack;$ae_fail=$ack?'':'COMMIT';ae_check(ae_edit($field)==='error'&&ae_snapshot()===($ack?$after:$before),'Failed/lost COMMIT all-before or all-after');$ae_ack=false;$ae_fail='';if($ack){ae_check(is_array(ae_edit($field))&&ae_snapshot()===$after,'Lost acknowledgement retry does not count/reindex');}$cases++;}
   foreach(array('session',$actor==='root'?'role':($actor==='moderator'?'grant':'edit')) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
-   ae_fixture($actor);$seen=0;$reached=$blocked=false;$revoked=null;$ae_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!ae_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['ae_hook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(ae_revoke($kind))){$e=$GLOBALS['peer']->sql_error();ae_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=ae_snapshot();}};
+   ae_fixture($actor);$seen=0;$reached=$blocked=false;$revoked=null;$ae_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!ae_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['ae_hook']=null;$reached=true;$probe=native_fixture_conflict_query($GLOBALS['peer'],ae_revoke($kind));if(!$probe[0]){$e=$probe[1];ae_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=ae_snapshot();}};
    $out=ae_edit($field);ae_check($reached,'Every write/commit authority boundary reached');if($blocked){ae_check(is_array($out)&&ae_snapshot()===$after,'Authority revocation serializes after complete edit');ae_sql(ae_revoke($kind));$serialized++;}else{ae_check($out==='error'&&ae_snapshot()===$revoked,'Effective revocation leaves only independent change');}$cases++;
   }}
   ae_fixture($actor);$before=ae_snapshot();$reached=false;$ae_hook=function($sql)use(&$reached){if(strpos($sql,'DELETE FROM fixture_search_wordmatch')!==0){return;}$GLOBALS['ae_hook']=null;$reached=true;ae_sql('KILL CONNECTION '.(int)mysqli_thread_id($GLOBALS['ae_writer']->db_connect_id));};ae_check(ae_edit($field)==='error'&&$reached&&ae_snapshot()===$before,'Real disconnect restores content/title/count/index');
