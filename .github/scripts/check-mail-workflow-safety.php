@@ -5,7 +5,6 @@ $emailer = (string) file_get_contents($root . '/phpBB2/includes/emailer.php');
 $profile_email = (string) file_get_contents($root . '/phpBB2/includes/usercp_email.php');
 $friend = (string) file_get_contents($root . '/phpBB2/tellafriend.php');
 $contact = (string) file_get_contents($root . '/phpBB2/kontakt_post.php');
-$pafiledb_email = (string) file_get_contents($root . '/phpBB2/pafiledb/modules/pa_email.php');
 $errors = array();
 
 require_once $root . '/phpBB2/includes/emailer.php';
@@ -100,18 +99,9 @@ if (strpos($contact, "preg_replace('/[\\x00-\\x1f\\x7f]+/', ' ', \$name)") === f
 	$errors[] = 'Contact control-character filtering is not byte-safe.';
 }
 
-foreach (array(
-	"substr(trim((string) \$_POST['subject']), 0, 200)",
-	"substr(trim((string) \$_POST['message']), 0, 10000)",
-	"\$emailer->from(\$board_config['board_email'])",
-	'$emailer->replyto($sender_email)'
-) as $marker)
-{
-	if (strpos($pafiledb_email, $marker) === false)
-	{
-		$errors[] = 'Missing paFileDB mail marker: ' . $marker;
-	}
-}
+// paFileDB recommendation input and actual delivery are covered by the
+// dedicated mail-input and native controller/transport fixtures. Do not assert
+// the old byte-substr implementation here: it corrupts valid UTF-8 text.
 
 if ($errors)
 {

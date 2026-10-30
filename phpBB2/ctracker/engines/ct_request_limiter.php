@@ -136,7 +136,9 @@ function ctracker_rate_limit_increment($bucket, $identity, $window_seconds, $lim
 
 	if (mt_rand(1, 100) === 1)
 	{
-		$db->sql_query('DELETE FROM ' . CTRACKER_RATE_LIMITS . ' WHERE updated_at < ' . ($now - 172800));
+		// A failed mail delivery retains a recent attempt window but restores the
+		// previous success timestamp. Do not garbage-collect that retry guard.
+		$db->sql_query('DELETE FROM ' . CTRACKER_RATE_LIMITS . ' WHERE updated_at < ' . ($now - 172800) . ' AND window_start < ' . ($now - 172800));
 	}
 
 	if (!$row || !isset($row['request_count'], $row['window_start'])) { return false; }

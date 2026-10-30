@@ -238,4 +238,12 @@ $lang['File_delete_confirm'] = 'Möchtest Du diese Datei wirklich löschen?';
 $lang['Editfile'] = 'Datei bearbeiten';
 $lang['pa_MCP'] = '[ModeratorCP]';
 $lang['Click_return_not_validated'] = 'Klicke %shier%s um zur vorherigen Seite zurückzukehren';
+// Download recommendation delivery and retry feedback.
+$lang['PA_mail_invalid'] = 'Bitte gültigen Empfänger, Betreff und Nachricht eingeben.';
+$lang['PA_mail_too_long'] = 'Bitte Namen (100 Zeichen), Betreff (200) oder Nachricht (10000) kürzen. Deine Eingaben sind erhalten geblieben.';
+$lang['PA_mail_sender_invalid'] = 'Bitte einen gültigen Absendernamen wählen, der nicht zu einem bestehenden Konto oder einer Gruppe gehört.';
+$lang['PA_mail_busy'] = 'Eine E-Mail dieses Absenders wird bereits verarbeitet. Bitte warten.';
+$lang['PA_mail_wait'] = 'Bitte vor dem nächsten E-Mail-Versand warten. Deine Eingaben sind erhalten geblieben.';
+$lang['PA_mail_failed'] = 'Die E-Mail konnte nicht versendet oder bestätigt werden. Bitte vor einem erneuten Versuch warten. Deine Eingaben sind erhalten geblieben.';
+$lang['PA_mail_upgrade'] = 'Der E-Mail-Speicher muss aktualisiert werden. Bitte den Administrator bitten, update_from_153a.php auszuführen.';
 ?>

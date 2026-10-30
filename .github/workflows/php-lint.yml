@@ -900,3 +900,7 @@ jobs:
         run: php .github/scripts/check-native-fixture-locks.php
       - name: Check guest profile contact and location privacy
         run: php .github/scripts/check-profile-guest-visibility.php
+      - name: Check recommendation mail Unicode and request boundaries
+        run: |
+          php .github/scripts/check-pafiledb-mail-input.php
+          php .github/scripts/check-pafiledb-mail-input.php legacy

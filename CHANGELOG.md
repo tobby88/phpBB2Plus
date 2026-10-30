@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download recommendation email
+
+- Preserve UTF-8 text and literal backslashes at the legacy request boundary;
+  enforce character limits without truncating names, subjects or messages.
+  Use the current account as the member sender and keep escaped form drafts
+  available after input errors or failed delivery.
+- Check the current session, account, bans, file approval, category ancestry
+  and email permission before sending. Serialize each sender's delivery and
+  share existing member email/CrackerTracker cooldowns without keeping a row
+  transaction or the forum-wide attachment lock open during network delivery.
+- Retain a short retry interval after a failed send; keep accepted delivery
+  successful if its later timestamp acknowledgement fails. Reuse the existing
+  canonical CrackerTracker tables; no additional schema migration is needed.
+
 ### Direct download access
 
 - Apply the same current category and ancestor view/read permissions to direct

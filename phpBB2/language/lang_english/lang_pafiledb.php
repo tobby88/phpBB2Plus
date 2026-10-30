@@ -239,4 +239,12 @@ $lang['Editfile'] = 'Edit file';
 $lang['pa_MCP'] = '[ModeratorCP]';
 $lang['Click_return_not_validated'] = 'Click %sHere%s to return to the previous page';
 
+// Download recommendation delivery and retry feedback.
+$lang['PA_mail_invalid'] = 'Please enter a valid recipient, subject and message.';
+$lang['PA_mail_too_long'] = 'Please shorten the name (100 characters), subject (200) or message (10000). Your input has been preserved.';
+$lang['PA_mail_sender_invalid'] = 'Please choose a valid sender name that does not belong to an existing account or group.';
+$lang['PA_mail_busy'] = 'An email from this sender is already being processed. Please wait.';
+$lang['PA_mail_wait'] = 'Please wait before sending another email. Your input has been preserved.';
+$lang['PA_mail_failed'] = 'The email could not be sent or confirmed. Please wait before trying again. Your input has been preserved.';
+$lang['PA_mail_upgrade'] = 'The email storage needs updating. Please ask the administrator to run update_from_153a.php.';
 ?>
