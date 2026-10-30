@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
@@ -39,6 +39,7 @@ require_once __DIR__ . '/post_author_storage_migration.php';
 require_once __DIR__ . '/album_text_storage_migration.php';
 require_once __DIR__ . '/album_file_journal_migration.php';
 require_once __DIR__ . '/pafiledb_file_journal_migration.php';
+require_once __DIR__ . '/pafiledb_download_storage_migration.php';
 require_once __DIR__ . '/album_rating_storage_migration.php';
 require_once __DIR__ . '/album_comment_parent_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
@@ -63,6 +64,7 @@ function update_usage()
 	echo "  --album-discussion-text-storage-only  Preserve comment author and UTF8/HTML text capacity\n";
 	echo "  --album-file-journal-only  Only create/verify durable Album journal tables; never clean image files\n";
 	echo "  --pafiledb-file-journal-only Only create/verify durable download file intents; never delete files\n";
+	echo "  --pafiledb-download-storage-only Widen download references/counters and index visitor records\n";
 	echo "  --album-rating-storage-only  Widen legacy HotOrNot scores without rewriting votes\n";
 	echo "  --album-comment-parents-only  Reconcile comment categories to current existing parents\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
@@ -173,7 +175,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--album-rating-storage-only', '--album-comment-parents-only'), $argv)) > 1)
+if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -703,6 +705,16 @@ try
 		} else { echo "Dry run only. No database changes made.\n"; }
 		mysqli_close($connection); exit(0);
 	}
+	if (in_array('--pafiledb-download-storage-only', $argv, true))
+	{
+		$download_storage_plan = plus_pa_download_plan($connection, $table_prefix);
+		foreach ($download_storage_plan as $item) { echo $item['sql'] . ";\n"; }
+		if ($apply) {
+			$count = plus_pa_download_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Download storage capacity migration complete: $count tables. Historical rows and constraints preserved.\n";
+		} else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
 	if (in_array('--album-file-journal-only', $argv, true))
 	{
 		$file_journal_plan = plus_album_file_journal_plan($connection, $table_prefix);
@@ -834,6 +846,8 @@ catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update op
 try { $comment_parent_plan = plus_album_comment_parent_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 try { $download_journal_plan = plus_pa_file_journal_plan($connection, $table_prefix); }
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
+try { $download_storage_plan = plus_pa_download_plan($connection, $table_prefix, false); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 // Verify any existing journal definition before unrelated full-update DDL.
 // Missing tables are queued from the same canonical definitions below.
@@ -1345,6 +1359,14 @@ if ($apply)
 	}
 	catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; verify backup before retry.\n"); exit(3); }
 }
+try
+{
+	if ($apply) {
+		$count = plus_pa_download_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+		echo "Download storage capacity migration complete: $count tables. Historical rows preserved.\n";
+	} else { foreach ($download_storage_plan as $item) { echo $item['sql'] . ";\n"; } }
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; DDL cannot be rolled back. Inspect before retrying.\n"); exit(3); }
 try
 {
 	if ($apply) {

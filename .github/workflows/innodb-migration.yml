@@ -868,6 +868,18 @@ jobs:
         env:
           PHPBB_PA_FILE_JOURNAL_NATIVE: '1'
           PHPBB_PA_FILE_JOURNAL_PASSWORD: fixture-only
+      - name: Migrate download reference capacity and statistics lookup indexes
+        if: matrix.part == 1
+        run: php .github/scripts/check-pafiledb-download-migration-native.php
+        env:
+          PHPBB_PA_DOWNLOAD_MIGRATION_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Record downloads atomically against current targets and permissions
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-download-native.php
+        env:
+          PHPBB_PA_DOWNLOAD_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-pafiledb-stats-native.php
         env:

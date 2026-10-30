@@ -103,10 +103,10 @@ class PaFileDbFileAuthority
 
     function select($action, $ids, $destination = 0)
     {
-        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','category'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
+        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','category','download'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
         $unique = array(); foreach ($ids as $id) { $id = self::id($id); if (isset($unique[$id])) { pafiledb_file_fail('PA_file_invalid'); } $unique[$id] = $id; }
         $this->destination = self::id($destination, true); $this->action = $action;
-        if (($action === 'create' && ($unique || !$this->destination)) || ($action === 'edit' && (count($unique) !== 1 || !$this->destination)) || (in_array($action, array('delete','approve','mirror'), true) && !$unique) || ($action === 'mirror' && count($unique) !== 1) || ($action === 'category' && ($this->mode !== 'categories' || $unique))) { pafiledb_file_fail('PA_file_invalid'); }
+        if (($action === 'create' && ($unique || !$this->destination)) || ($action === 'edit' && (count($unique) !== 1 || !$this->destination)) || (in_array($action, array('delete','approve','mirror','download'), true) && !$unique) || (in_array($action,array('mirror','download'),true) && count($unique) !== 1) || ($action === 'download' && $this->mode !== 'public') || ($action === 'category' && ($this->mode !== 'categories' || $unique))) { pafiledb_file_fail('PA_file_invalid'); }
         $this->current();
         if ($unique) { foreach ($this->rows('SELECT * FROM ' . PA_FILES_TABLE . ' WHERE file_id IN(' . implode(',', $unique) . ') ORDER BY file_id FOR UPDATE') as $row) { $this->files[(int)$row['file_id']] = $row; } if (count($this->files) !== count($unique)) { pafiledb_file_fail('File_not_exist'); } }
         $this->check(); return $this->files;
@@ -127,7 +127,10 @@ class PaFileDbFileAuthority
         foreach ($this->files as $file) {
             $category = self::id($file['file_catid']); $cat = $this->category($category, $grants, false, true); $access = isset($grants[$category]) ? $grants[$category] : array();
             $moderator = $this->actor['logged'] && $policy->auth_check_user(AUTH_MOD, 'auth_mod', $access, (int)$this->user['user_level'] === ADMIN);
-            if ($this->action === 'approve') {
+            if ($this->action === 'download') {
+                if (!$this->allowed($cat['auth_download'],'auth_download',$access) || ((string)$file['file_approved'] !== '1' && (!$this->actor['logged'] || (!$moderator && (int)$file['user_id'] !== $this->actor['id'])))) { pafiledb_file_fail('File_not_exist'); }
+            }
+            elseif ($this->action === 'approve') {
                 if (!$moderator || ((int)$this->user['user_level'] !== ADMIN && (!isset($this->config['validator']) || $this->config['validator'] !== 'validator_mod'))) { pafiledb_file_fail('Not_Authorised'); }
             }
             else {

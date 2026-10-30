@@ -912,26 +912,6 @@ class user_info
 		}
 	}
 	
-	function update_downloader_info($file_id)
-	{
-		global $user_ip, $db, $userdata;
-
-		$file_id = intval($file_id);
-		$user_id = intval($userdata['user_id']);
-		$ip = $db->sql_escape((string) $user_ip);
-		$platform = $db->sql_escape((string) $this->platform);
-		$agent = $db->sql_escape((string) $this->agent);
-		$version = $db->sql_escape((string) $this->ver);
-		$duplicate_sql = ($user_id != ANONYMOUS) ? "user_id = $user_id" : "downloader_ip = '$ip'";
-
-		$sql = "INSERT INTO " . PA_DOWNLOAD_INFO_TABLE . " (file_id, user_id, downloader_ip, downloader_os, downloader_browser, browser_version)
-			SELECT $file_id, $user_id, '$ip', '$platform', '$agent', '$version'
-			WHERE NOT EXISTS (SELECT 1 FROM " . PA_DOWNLOAD_INFO_TABLE . " WHERE $duplicate_sql AND file_id = $file_id)";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Update Downloader Table Info', '', __LINE__, __FILE__, $sql);
-		}
-	}
 	
 	function update_voter_info($file_id, $rating)
 	{

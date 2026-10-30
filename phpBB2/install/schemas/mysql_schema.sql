@@ -971,8 +971,8 @@ CREATE TABLE phpbb_pa_cat (
   cat_allow_file tinyint(2) NOT NULL default '0',
   cat_allow_ratings tinyint(2) NOT NULL default '1',
   cat_allow_comments tinyint(2) NOT NULL default '1',
-  cat_files mediumint(8) NOT NULL default '-1',
-  cat_last_file_id mediumint(8) unsigned NOT NULL default '0',
+  cat_files int(10) NOT NULL default '-1',
+  cat_last_file_id int(10) unsigned NOT NULL default '0',
   cat_last_file_name varchar(255) NOT NULL default '',
   cat_last_file_time int(50) UNSIGNED default '0' NOT NULL,
   auth_view tinyint(2) NOT NULL default '0',
@@ -1053,12 +1053,14 @@ CREATE TABLE phpbb_pa_customdata (
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_pa_download_info (
-  file_id mediumint(8) NOT NULL default '0',
+  file_id int(10) NOT NULL default '0',
   user_id mediumint(8) NOT NULL default '0',
   downloader_ip varchar(8) NOT NULL default '',
   downloader_os varchar(255) NOT NULL default '',
   downloader_browser varchar(255) NOT NULL default '',
-  browser_version varchar(255) NOT NULL default ''
+  browser_version varchar(255) NOT NULL default '',
+  KEY file_actor (file_id,user_id),
+  KEY file_address (file_id,downloader_ip)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_pa_files (

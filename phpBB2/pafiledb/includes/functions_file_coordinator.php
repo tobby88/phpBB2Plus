@@ -217,7 +217,7 @@ class PaFileDbFileCoordinator
 		$this->assert_lock();
 		if ($this->transaction || $this->journal_transaction || $this->finished) { throw new PaFileDbFileCoordinatorFailure('Download operation already started or finished'); }
 		$this->query($this->writer, 'START TRANSACTION'); $this->transaction = true;
-		foreach (array('users','sessions','user_group','groups','config','jr_admin_users','pa_config','pa_cat','pa_files','pa_votes','pa_comments','pa_custom','pa_customdata','pa_mirrors','pa_license','pa_auth','pa_file_journal') as $suffix)
+		foreach (array('users','sessions','user_group','groups','config','jr_admin_users','pa_config','pa_cat','pa_files','pa_votes','pa_comments','pa_custom','pa_customdata','pa_mirrors','pa_license','pa_auth','pa_file_journal','pa_download_info') as $suffix)
 		{
 			$table = $this->prefix . $suffix; $this->pin($this->writer, $table); $this->tables[$table] = true;
 		}
@@ -231,7 +231,7 @@ class PaFileDbFileCoordinator
 		if (!is_string($sql)) { return false; }
 		if (preg_match('/^SELECT\b/i', $sql)) { return true; }
 		if (!preg_match('/^(?:INSERT INTO|UPDATE|DELETE FROM) ([A-Za-z0-9_]+)\b/i', $sql, $match)) { return false; }
-		$writable = $journal ? array('pa_file_journal') : array('pa_files','pa_cat','pa_comments','pa_votes','pa_customdata','pa_mirrors','pa_auth','pa_file_journal');
+		$writable = $journal ? array('pa_file_journal') : array('pa_files','pa_cat','pa_comments','pa_votes','pa_customdata','pa_mirrors','pa_auth','pa_file_journal','pa_download_info');
 		foreach ($writable as $suffix) { if ($match[1] === $this->prefix . $suffix && isset($this->tables[$match[1]])) { return true; } }
 		return false;
 	}

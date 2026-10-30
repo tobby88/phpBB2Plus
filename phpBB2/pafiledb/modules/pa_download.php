@@ -10,12 +10,13 @@
 */
 
 require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
+require_once dirname(dirname(__FILE__)) . '/includes/functions_download_storage.php';
 class pafiledb_download extends pafiledb_public
 {
 	function main($action = false)
 	{
 		global $_REQUEST, $lang, $db, $pafiledb_user, $pafiledb_config, $board_config, $phpEx, $userdata;
-		global $phpbb_root_path, $_SERVER, $pafiledb_functions;
+		global $phpbb_root_path, $_SERVER, $pafiledb_functions, $user_ip;
 
 		$file_id = 0;
 		if (isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id']))
@@ -151,45 +152,19 @@ class pafiledb_download extends pafiledb_public
 				include_once($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 				return;
 		}
-		elseif((!empty($mirrors_data) && $mirror_id == -1) || (empty($mirrors_data)))
-		{
-			$real_filename = $file_data['real_name'];
-			$physical_filename = $file_data['unique_name'];
-			$upload_dir = (!empty($file_data['upload_dir'])) ? $file_data['upload_dir'] : $pafiledb_config['upload_dir'];
-			$file_url = $file_data['file_dlurl'];
+		try {
+			$current = pafiledb_record_download($db, $file_id, $mirror_id, $user_ip, array((string)$pafiledb_user->platform, (string)$pafiledb_user->agent, (string)$pafiledb_user->ver));
+		} catch (PaFileDbFileActionFailure $error) {
+			$key = $error->getMessage();
+			message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['PA_file_failed']);
+			return;
 		}
-		elseif($mirror_id > 0 && !empty($mirrors_data[$mirror_id]))
-		{
-			$real_filename = $mirrors_data[$mirror_id]['real_name'];
-			$physical_filename = $mirrors_data[$mirror_id]['unique_name'];
-			$upload_dir = (!empty($mirrors_data[$mirror_id]['upload_dir'])) ? $mirrors_data[$mirror_id]['upload_dir'] : $pafiledb_config['upload_dir'];
-			$file_url = $mirrors_data[$mirror_id]['file_dlurl'];
-		}
-		else
-		{
-			message_die(GENERAL_MESSAGE, 'Mirror doesn\'t exist');
-		}
-
-
-		//=========================================================================
-		// Update download counter and the last downloaded date
-		//=========================================================================
-
-		$current_time = time();
-		$sql = 'UPDATE ' . PA_FILES_TABLE . "
-			SET file_dls = file_dls + 1, file_last = $current_time
-			WHERE file_id = $file_id";
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Update Files table', '', __LINE__, __FILE__, $sql);
-		}
-
-		//=========================================================================
-		// Update downloader Info for the given file
-		//=========================================================================
-
-		$pafiledb_user->update_downloader_info($file_id);
+		$file_data = $current['file'];
+		$target = $current['mirror'] === null ? $file_data : $current['mirror'];
+		$real_filename = !empty($file_data['real_name']) ? $file_data['real_name'] : $target['unique_name'];
+		$physical_filename = $target['unique_name'];
+		$upload_dir = $current['directory'];
+		$file_url = $target['file_dlurl'];
 
 		if (!empty($file_url))
 		{

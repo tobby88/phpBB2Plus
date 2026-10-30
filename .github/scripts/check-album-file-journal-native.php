@@ -5,6 +5,7 @@ require $root . '/phpBB2/includes/php_compat.php'; require $root . '/update/albu
 require $root . '/update/album_rating_storage_migration.php';
 require $root . '/update/album_comment_parent_migration.php';
 require $root . '/update/pafiledb_file_journal_migration.php';
+require $root . '/update/pafiledb_download_storage_migration.php';
 mysqli_report(MYSQLI_REPORT_OFF);
 function ajm_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 function ajm_sql($sql) { return plus_storage_query($GLOBALS['db'], $sql); }
@@ -131,6 +132,10 @@ try {
     ajm_sql("ALTER TABLE legacy_album_rate MODIFY rate_hon_point TINYINT NOT NULL DEFAULT 0");
     ajm_sql("INSERT INTO legacy_album_rate VALUES(1,7,'7f000001',255,-128),(1,7,'7f000001',255,-128),(2,-1,'7f000002',0,127)");
     $votes_before = plus_album_rating_digest($db, 'legacy_album_rate');
+    ajm_sql('ALTER TABLE legacy_pa_download_info MODIFY file_id MEDIUMINT NOT NULL DEFAULT 0,DROP INDEX file_actor,DROP INDEX file_address');
+    ajm_sql('ALTER TABLE legacy_pa_cat MODIFY cat_files MEDIUMINT NOT NULL DEFAULT -1,MODIFY cat_last_file_id MEDIUMINT UNSIGNED NOT NULL DEFAULT 0');
+    ajm_sql("INSERT INTO legacy_pa_download_info(file_id,user_id,downloader_ip,downloader_os)VALUES(42,7,'7f000001','Preserved download'),(42,7,'7f000001','Preserved download')");
+    $download_rows_before = plus_pa_download_digest($db, 'legacy_pa_download_info');
     ajm_sql("INSERT INTO legacy_album_cat(cat_id,cat_title,cat_desc,cat_order) VALUES(1,'One','Original category',1),(2,'Two','Current category',2)");
     ajm_sql("INSERT INTO legacy_album(pic_id,pic_filename,pic_title,pic_user_id,pic_user_ip,pic_time,pic_cat_id) VALUES(1,'owned.jpg','Moved',7,'7f000001',1,2),(2,'orphan.jpg','Missing category',7,'7f000001',1,999)");
     ajm_sql("INSERT INTO legacy_album_comment(comment_id,comment_pic_id,comment_cat_id,comment_user_id,comment_username,comment_user_ip,comment_time,comment_text) VALUES(1,1,1,-1,'Exact Guest','7f000001',1,'Original text'),(2,999,77,-1,'Orphan Guest','7f000001',2,'Missing picture'),(3,2,1,-1,'Unknown category','7f000001',3,'Missing category')");
@@ -138,11 +143,13 @@ try {
     $cli = ajm_cli(array('--apply','--backup-confirmed','--maintenance-confirmed'));
     ajm_check($cli[0] === 0 && $cli[2] === '' && !plus_album_file_journal_plan($db, 'legacy_') && ajm_snapshot() === $before, 'Real full updater integrates journal schema while preserving other-prefix rows: ' . substr($cli[2], 0, 1400)); $cases++;
     ajm_check(!plus_pa_file_journal_plan($db, 'legacy_'), 'Real full updater also creates the canonical download file journal'); $cases++;
+    ajm_check(!plus_pa_download_plan($db, 'legacy_') && plus_pa_download_digest($db, 'legacy_pa_download_info') === $download_rows_before, 'Real full updater widens download references/counters and preserves duplicate visitor rows'); $cases++;
     ajm_check(!plus_album_rating_plan($db, 'legacy_', true) && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before, 'Real full updater widens legacy HotOrNot scores and preserves duplicate/negative votes'); $cases++;
     ajm_check(!plus_album_comment_parent_plan($db, 'legacy_')['changes'] && plus_album_comment_parent_digest($db, 'legacy_', false) === $comments_expected, 'Real full updater reconciles current comment parents and preserves orphan/content rows'); $cases++;
     $cli = ajm_cli(array('--apply','--backup-confirmed','--maintenance-confirmed'));
     ajm_check($cli[0] === 0 && $cli[2] === '' && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before && ajm_snapshot() === $before, 'Repeated full updater preserves widened scores and unrelated journals'); $cases++;
     ajm_check(plus_album_comment_parent_digest($db, 'legacy_', false) === $comments_expected, 'Repeated full updater preserves repaired and orphan comment snapshots'); $cases++;
+    ajm_check(!plus_pa_download_plan($db, 'legacy_') && plus_pa_download_digest($db, 'legacy_pa_download_info') === $download_rows_before, 'Repeated full updater preserves migrated download statistics'); $cases++;
     echo 'Native Album file journal migration: ', $cases, " dry/apply/idempotence/modern-schema/guest/Unicode/row-preservation/caller-TX/locks/custom-refusal/partial-resume/real-scoped-and-full-updater cases PASS; own loopback schemas only, no image operations or live data.\n";
 } finally {
     if ($peer) { mysqli_close($peer); }
