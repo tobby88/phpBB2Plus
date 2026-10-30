@@ -39,7 +39,7 @@ highlight = '{HIGHLIGHT}';
 <th width="100%">{L_MESSAGE}</th>
 </tr>
 <!-- BEGIN postrow -->
-<!-- IF postrow.IS_DELETED -->
+<!-- IF !empty(postrow.IS_DELETED) -->
 <tr><td class="{postrow.ROW_CLASS}" colspan="2"><a name="{postrow.U_POST_ID}" id="{postrow.U_POST_ID}"></a><span class="genmed"><em>{postrow.DELETED_MESSAGE}</em></span></td></tr>
 <!-- ELSE -->
 <tr>

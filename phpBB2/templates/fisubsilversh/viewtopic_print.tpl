@@ -42,7 +42,7 @@ hr.sep	{ height: 0px; border: solid #D1D7DC 0px; border-top-width: 1px;}
 
   <!-- BEGIN postrow -->
    <hr />
-  <!-- IF postrow.IS_DELETED -->
+  <!-- IF !empty(postrow.IS_DELETED) -->
   <em>{postrow.MESSAGE}</em>
   <!-- ELSE -->
   <b>{postrow.POSTER_NAME}</b> - {postrow.POST_DATE}<br />
