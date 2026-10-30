@@ -22,6 +22,7 @@ $admin_license = file_get_contents($root . '/phpBB2/admin/admin_pa_license.php')
 $admin_fchecker = file_get_contents($root . '/phpBB2/admin/admin_pa_fchecker.php');
 $pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions.php');
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
+$category_actions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_category_actions.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
 $pafiledb_search = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_search.php');
 $search_helpers = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_search.php');
@@ -40,9 +41,9 @@ pafiledb_admin_assert(strpos($admin_custom, "\$module['Download']['Mfieldtitle']
 
 pafiledb_admin_assert(strpos($field_functions, '$field_id = (int) $field_id;') !== false, 'custom-field IDs must be integers');
 pafiledb_admin_assert(strpos($field_functions, '$db->sql_escape(serialize($data))') !== false, 'serialized custom-field data must be escaped at the SQL boundary');
-pafiledb_admin_assert(strpos($category_functions, '$cat_id = (int) $cat_id;') !== false, 'category IDs must be integers');
+pafiledb_admin_assert(strpos($category_actions, '$id=PaFileDbFileAuthority::id($id);') !== false, 'category mutation IDs must use the strict shared identifier validator');
 pafiledb_admin_assert(strpos($category_functions, 'function order_cat($cat_id, $move)') !== false, 'category ordering must receive a validated move value');
-pafiledb_admin_assert(strpos($category_functions, "array('move', 'delete'), true") !== false, 'category delete modes must use a strict allowlist');
+pafiledb_admin_assert(strpos($category_actions, "in_array(\$values[\$key],array('delete','move'),true)") !== false, 'category delete modes must use a strict allowlist');
 // Parent existence and cycle checks now run against the current locked tree,
 // not the request's cached rowset; exercised by the native category writer test.
 
@@ -82,7 +83,7 @@ pafiledb_admin_assert(strpos($admin_file, '$allowed_modes = array(') !== false, 
 pafiledb_admin_assert(strpos($admin_file, 'phpbb_admin_require_post_session();') !== false, 'file mutations must require a POST token');
 pafiledb_admin_assert(strpos($admin_file, '$pafiledb->mirror_request($file_id)') !== false && strpos($mirror_storage, 'DELETE FROM ') !== false, 'mirror deletion must stay scoped to its download through the owning batch writer');
 pafiledb_admin_assert(strpos($admin_file, "'MIRROR_URL' => \$mirror_url") !== false && strpos($admin_file, "htmlspecialchars(\$mirror_data['file_dlurl']") !== false, 'raw mirror values must be escaped in administration output');
-pafiledb_admin_assert(strpos($category_functions, "\$mode = (\$mode === 'category') ? 'category' : 'file';") !== false, 'file deletion modes must be normalized');
+pafiledb_admin_assert(strpos($category_functions, "\$mode === 'category' ? 'clear-files' : 'invalid'") !== false, 'unknown file deletion modes must be rejected rather than converted to file deletion');
 pafiledb_admin_assert(strpos($mirror_storage, "' WHERE file_id='") !== false && strpos($mirror_storage, "' AND mirror_id='") !== false, 'mirror updates must verify their parent download');
 pafiledb_admin_assert(strpos($category_functions, 'function delete_mirror($mirror_id, $file_id = 0)') !== false, 'mirror deletion must accept a parent scope');
 pafiledb_admin_assert(strpos($category_functions, '$db->sql_escape($file_long_desc)') !== false, 'download text must use database-driver escaping');
