@@ -31,10 +31,10 @@ foreach (array(array(),array('restore_start'=>'1','sql'=>'DROP TABLE users;')) a
 policy_check(strpos($admin, "\$_FILES['backup_file']") === false && strpos($admin, 'split_sql_file($sql_query') === false, 'No hidden upload executor');
 $schema=file_get_contents($root.'/phpBB2/install/schemas/mysql_schema.sql');
 preg_match_all('/CREATE TABLE\s+.*?;(?=\s*(?:#|CREATE|$))/s', $schema, $definitions);
-policy_check(count($definitions[0])===121, 'Review inventory when adding fresh-install tables');
-foreach (array('album_file_jobs','album_file_items','removed_author_names') as $journal) {
- policy_check(preg_match_all('/^CREATE TABLE phpbb_'. $journal .'\s*\([\s\S]*?;/m', $schema, $journal_definitions)===1, 'One reviewed Album journal definition per fresh install');
- policy_check(strpos($journal_definitions[0][0], 'ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')!==false, 'New Album journals never inherit legacy storage defaults');
+policy_check(count($definitions[0])===122, 'Review inventory when adding fresh-install tables');
+foreach (array('album_file_jobs','album_file_items','removed_author_names','pa_file_journal') as $journal) {
+ policy_check(preg_match_all('/^CREATE TABLE phpbb_'. $journal .'\s*\([\s\S]*?;/m', $schema, $journal_definitions)===1, 'One reviewed auxiliary table definition per fresh install');
+ policy_check(strpos($journal_definitions[0][0], 'ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')!==false, 'New auxiliary tables never inherit legacy storage defaults');
 }
 foreach ($definitions[0] as $sql) { policy_check(strpos($sql,'ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')!==false, 'Explicit fresh storage and charset'); }
 $ct=file_get_contents($root.'/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
