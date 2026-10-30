@@ -902,6 +902,10 @@ jobs:
         run: php .github/scripts/check-native-fixture-locks.php
       - name: Check guest profile contact and location privacy
         run: php .github/scripts/check-profile-guest-visibility.php
+      - name: Preserve rejected download category drafts and edit targets
+        run: |
+          php .github/scripts/check-pafiledb-category-form.php
+          php .github/scripts/check-pafiledb-category-form.php legacy
       - name: Check recommendation mail Unicode and request boundaries
         run: |
           php .github/scripts/check-pafiledb-mail-input.php

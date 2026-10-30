@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download category maintenance
 
+- Save new and edited categories, sibling ordering and file-cache invalidation
+  together on an owning transaction. Recheck current ACP sessions and delegated
+  category permissions; refuse noncanonical storage without partial writes.
+- Validate the current locked ancestry before accepting a parent. Prevent self,
+  descendant and concurrent inverse moves from introducing cycles, and reject
+  broken ancestry while allowing a valid root move to repair a cycle.
+- Preserve rejected form drafts, parent selections and edit targets, including
+  Unicode, backslashes and literal entities. Initialize required legacy ancestry
+  data explicitly when creating a category on a strict database.
 - Treat historical NULL and zero parent values as the same root in category
   grouping and ordering, while retaining stored parent values and permissions.
   Keep root and child ordering separate and resolve ordering ties consistently.

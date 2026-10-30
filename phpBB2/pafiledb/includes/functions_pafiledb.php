@@ -1012,88 +1012,17 @@ class pafiledb
 	function update_add_cat($cat_id = false)
 	{
 		global $db, $_POST, $lang;
-		
-		$cat_id = (int) $cat_id;
-		$cat_name = (isset($_POST['cat_name']) && is_scalar($_POST['cat_name'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_name']), ENT_QUOTES, 'UTF-8') : '';
-		$cat_desc = (isset($_POST['cat_desc']) && is_scalar($_POST['cat_desc'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_desc']), ENT_QUOTES, 'UTF-8') : '';
-		$cat_parent = ( isset($_POST['cat_parent']) ) ? intval($_POST['cat_parent']) : 0;
-		$cat_allow_file = ( isset($_POST['cat_allow_file']) ) ? intval($_POST['cat_allow_file']) : 0;
-// MX Addon
-		$cat_allow_ratings = ( isset($_POST['cat_allow_ratings']) ) ? intval($_POST['cat_allow_ratings']) : 0;
-		$cat_allow_comments = ( isset($_POST['cat_allow_comments']) ) ? intval($_POST['cat_allow_comments']) : 0;
-		
-		if(empty($cat_name))
+		require_once dirname(__FILE__) . '/functions_category_storage.php';
+		try { $saved_id = pafiledb_category_save($db, $cat_id, $_POST); }
+		catch (PaFileDbCategoryFailure $error)
 		{
-			$this->error[] = $lang['Cat_name_missing'];
-		}
-		
-		if($cat_parent)
-		{
-			if(!isset($this->cat_rowset[$cat_parent]) || (!$this->cat_rowset[$cat_parent]['cat_allow_file'] && !$cat_allow_file))
-			{
-				$this->error[] = $lang['Cat_conflict'];
-			}
-		}
-		
-		if(sizeof($this->error))
-		{
+			$key = $error->getMessage();
+			$this->error[] = isset($lang[$key]) ? $lang[$key] : (isset($lang['PA_category_failed']) ? $lang['PA_category_failed'] : 'The category could not be saved. Please reload the category list.');
 			return;
 		}
-
-		$cat_name = $db->sql_escape($cat_name);
-		$cat_desc = $db->sql_escape($cat_desc);
-		
-		if(!$cat_id)
-		{		
-			$cat_order = 0;
-			if(!empty($this->subcat_rowset[$cat_parent]))
-			{
-				foreach($this->subcat_rowset[$cat_parent] as $cat_data)
-				{
-					if($cat_order < $cat_data['cat_order'])
-					{
-						$cat_order = $cat_data['cat_order'];
-					}
-				}
-			}
-		
-			$cat_order += 10;
-
-			$sql = 'INSERT INTO ' . PA_CATEGORY_TABLE . " (cat_name, cat_desc, cat_parent, cat_order, cat_allow_file, cat_allow_ratings, cat_allow_comments) 
-				VALUES('$cat_name', '$cat_desc', $cat_parent, $cat_order, $cat_allow_file, $cat_allow_ratings, $cat_allow_comments)";
-
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldn\'t add a new category', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else
-		{
-			$sql = 'UPDATE ' . PA_CATEGORY_TABLE . " 
-				SET cat_name = '$cat_name', cat_desc = '$cat_desc', cat_parent = $cat_parent, cat_allow_file = $cat_allow_file, cat_allow_ratings = $cat_allow_ratings, cat_allow_comments = $cat_allow_comments 
-				WHERE cat_id = $cat_id";
-
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldn\'t Edit this category', '', __LINE__, __FILE__, $sql);
-			}
-			
-			if($cat_parent != $this->cat_rowset[$cat_id]['cat_parent'])
-			{
-				$this->reorder_cat($this->cat_rowset[$cat_id]['cat_parent']);
-				$this->reorder_cat($cat_parent);				
-			}
-			$this->modified(TRUE);
-		}
-		
-		if($cat_id)
-		{
-			return $cat_id;
-		}
-		else
-		{
-			return $db->sql_nextid();
-		}
+		// The owned save already invalidated file metadata before COMMIT.
+		$this->modified(false);
+		return $saved_id;
 	}
 	
 	function delete_cat($cat_id = false)

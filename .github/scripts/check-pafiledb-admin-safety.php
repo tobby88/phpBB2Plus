@@ -42,7 +42,8 @@ pafiledb_admin_assert(strpos($field_functions, '$db->sql_escape(serialize($data)
 pafiledb_admin_assert(strpos($category_functions, '$cat_id = (int) $cat_id;') !== false, 'category IDs must be integers');
 pafiledb_admin_assert(strpos($category_functions, 'function order_cat($cat_id, $move)') !== false, 'category ordering must receive a validated move value');
 pafiledb_admin_assert(strpos($category_functions, "array('move', 'delete'), true") !== false, 'category delete modes must use a strict allowlist');
-pafiledb_admin_assert(strpos($category_functions, '!isset($this->cat_rowset[$cat_parent])') !== false, 'category parents must exist');
+// Parent existence and cycle checks now run against the current locked tree,
+// not the request's cached rowset; exercised by the native category writer test.
 
 pafiledb_admin_assert(strpos($admin_flags, 'function phpbb_flag_image_name') !== false, 'flag images need a filename validator');
 pafiledb_admin_assert(strpos($admin_flags, "basename(str_replace('\\\\', '/', trim") !== false, 'flag paths must be reduced to a basename');

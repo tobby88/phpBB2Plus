@@ -798,6 +798,16 @@ jobs:
         env:
           PHPBB_PA_CATEGORY_NATIVE: '1'
           PHPBB_PA_CATEGORY_PASSWORD: fixture-only
+      - name: Commit category edits atomically under current ACP authority
+        if: matrix.part == 4
+        run: |
+          php .github/scripts/check-pafiledb-category-write-native.php
+          php .github/scripts/check-pafiledb-category-write-native.php legacy
+          php .github/scripts/check-pafiledb-category-concurrency-native.php
+          php .github/scripts/check-pafiledb-category-concurrency-native.php legacy
+        env:
+          PHPBB_PA_CATEGORY_WRITE_NATIVE: '1'
+          PHPBB_PA_CATEGORY_WRITE_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-pafiledb-stats-native.php
         env:

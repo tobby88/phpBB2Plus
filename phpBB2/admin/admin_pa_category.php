@@ -56,12 +56,17 @@ if($mode == 'do_add' && !$cat_id)
 }
 elseif($mode == 'do_add' && $cat_id)
 {
-	$cat_id = $pafiledb->update_add_cat($cat_id);
+	$saved_cat_id = $pafiledb->update_add_cat($cat_id);
 	if(!sizeof($pafiledb->error))
 	{
+		$cat_id = $saved_cat_id;
 		$pafiledb->_pafiledb();
 		$message = $lang['Catedited'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_category.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_edit_permissions'], '<a href="' . append_sid("admin_pa_catauth.$phpEx?cat_id=$cat_id") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
+	}
+	else
+	{
+		$mode = 'edit';
 	}
 }
 elseif($mode == 'do_delete')
@@ -153,7 +158,8 @@ if($mode == '' || $mode == 'cat_order' || $mode == 'sync' || $mode == 'sync_all'
 }
 elseif($mode == 'add' || $mode == 'edit')
 {
-	if($mode == 'add')
+	$cat_list = '';
+	if($mode == 'add' || !empty($pafiledb->error))
 	{
 		$posted_cat_parent = (isset($_POST['cat_parent']) && is_scalar($_POST['cat_parent'])) ? intval($_POST['cat_parent']) : 0;
 		$posted_cat_allow_file = !empty($_POST['cat_allow_file']);
@@ -176,8 +182,8 @@ elseif($mode == 'add' || $mode == 'edit')
 		$checked_ratings_yes = $posted_cat_allow_ratings ? ' checked' : '';
 		$checked_ratings_no = !$posted_cat_allow_ratings ? ' checked' : '';
 		// End
-		$cat_name = (isset($_POST['cat_name']) && is_scalar($_POST['cat_name'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_name']), ENT_QUOTES, 'UTF-8') : '';
-		$cat_desc = (isset($_POST['cat_desc']) && is_scalar($_POST['cat_desc'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_desc']), ENT_QUOTES, 'UTF-8') : '';
+		$cat_name = (isset($_POST['cat_name']) && is_scalar($_POST['cat_name'])) ? htmlspecialchars((string) phpbb_request_raw_value($_POST['cat_name']), ENT_QUOTES, 'UTF-8') : '';
+		$cat_desc = (isset($_POST['cat_desc']) && is_scalar($_POST['cat_desc'])) ? htmlspecialchars((string) phpbb_request_raw_value($_POST['cat_desc']), ENT_QUOTES, 'UTF-8') : '';
 	}
 	else
 	{

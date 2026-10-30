@@ -263,6 +263,11 @@ $lang['Click_edit_permissions'] = 'Klicke %shier%s um die Befugnisse für diese 
 //Java script messages and php errors
 $lang['Cat_name_missing'] = 'Bitte fülle das Feld \'Kategorie\' Name aus';
 $lang['Cat_conflict'] = 'Du kannst keine Kategorie ohne Datei in einer Kategorie die keine Dateien erlaubt haben';
+$lang['PA_category_invalid'] = 'Bitte prüfe die Kategoriefelder und wähle eine gültige übergeordnete Kategorie.';
+$lang['PA_category_tree_invalid'] = 'Eine Kategorie kann nicht sich selbst oder einer eigenen Unterkategorie untergeordnet werden. Der gewählte Elternpfad muss vollständig und frei von Schleifen sein.';
+$lang['PA_category_changed'] = 'Die Kategorie existiert nicht mehr. Bitte lade die Kategorienliste neu.';
+$lang['PA_category_failed'] = 'Das Speichern der Kategorie konnte nicht bestätigt werden. Bitte lade vor einem erneuten Versuch die Kategorienliste neu.';
+$lang['PA_category_upgrade'] = 'Der Kategoriespeicher muss aktualisiert werden. Bitte vor dem Speichern update_from_153a.php ausführen.';
 $lang['Cat_id_missing'] = 'Bitte wähle eine Kategorie';
 $lang['Missing_field'] = 'Bitte fülle alle benötigten Felder aus';
 
