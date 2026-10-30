@@ -246,8 +246,35 @@ class PaFileDbFileJournal
     {
         if (!is_string($operation) || !preg_match('/^[a-f0-9]{32}$/D', $operation) || !is_int($maximum) || $maximum < 1 || $maximum > 500) { throw new PaFileDbFileJournalFailure('Invalid download recovery selection'); }
         $this->storage->claim_recovery();
-        $this->references = null; $result = array('complete'=>0,'pending'=>0,'items'=>array());
         $rows = $this->rows("SELECT * FROM " . $this->table . " WHERE HEX(operation_id)='" . strtoupper(bin2hex($operation)) . "' AND item_state=0 ORDER BY item_index LIMIT " . $maximum . ' FOR UPDATE');
+        return $this->resolve_rows($rows);
+    }
+
+    // The cursor advances past attempted receipts as well as completed ones.
+    // A changed file must stay pending without starving later operations.
+    static function pending_query($prefix, $maximum, $after = '')
+    {
+        if (!is_string($prefix) || !preg_match('/^[A-Za-z0-9_]{1,40}$/D',$prefix) || !is_int($maximum) || $maximum<1 || $maximum>500 || !is_string($after)) { throw new PaFileDbFileJournalFailure('Invalid download recovery page'); }
+        $where='';
+        if ($after!=='') {
+            if (!preg_match('/^([a-f0-9]{32}):(0|[1-9][0-9]{0,6})$/D',$after,$match) || (int)$match[2]>1000000) { throw new PaFileDbFileJournalFailure('Invalid download recovery cursor'); }
+            $where=" AND (operation_id>'".$match[1]."' OR (operation_id='".$match[1]."' AND item_index>".$match[2].'))';
+        }
+        return 'SELECT * FROM '.$prefix.'pa_file_journal WHERE item_state=0'.$where.' ORDER BY operation_id,item_index LIMIT '.$maximum;
+    }
+
+    function resolve_pending($maximum = 50, $after = '')
+    {
+        $sql=self::pending_query($this->prefix,$maximum,$after);$this->storage->claim_recovery();
+        $rows=$this->rows($sql.' FOR UPDATE');$result=$this->resolve_rows($rows);
+        $result['next_after']=$after;
+        if ($rows) { $last=$this->parse($rows[count($rows)-1]);$result['next_after']=$last['operation_id'].':'.$last['item_index']; }
+        return $result;
+    }
+
+    private function resolve_rows($rows)
+    {
+        $this->references = null; $result = array('complete'=>0,'pending'=>0,'items'=>array());
         $result['selected'] = count($rows);
         foreach ($rows as $value) {
             $row = $this->parse($value); $self = $this;

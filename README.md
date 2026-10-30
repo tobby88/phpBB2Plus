@@ -92,6 +92,24 @@ php update/recover_album_files.php
 php update/recover_album_files.php --apply --backup-confirmed --jobs=10 --items=100
 ```
 
+Download-file receipts have a separate recovery command. It previews pending
+receipts without filesystem operations by default:
+
+```sh
+php update/recover_pafiledb_files.php
+php update/recover_pafiledb_files.php --apply --backup-confirmed --items=50
+```
+
+Use its `next_after` as `--after=<operation-id>:<item-index>` for subsequent
+pages (1–500 attempted items each). The cursor advances past changed files which
+remain protected and pending, so they cannot block later receipts. A short page
+ends the scan; start again without `--after` to retry earlier pending items.
+Back up both the database and download files before applying. Recovery uses only
+this installation's configuration, checks current file/mirror references and
+exact recorded bytes, and leaves completion receipts in place. It does not scan
+directories for guessed orphans. After an uncertain run, retry from the preceding
+cursor; an already committed completion is safe to revisit.
+
 New deletion receipts contain at most 500 pictures and 2,500 distinct paths each,
 keeping manifest preparation/readback bounded in memory. Larger selected galleries
 span multiple receipts; the total picture selection is not capped. Previously

@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download category maintenance
 
+- Read category counts and latest visible files from one current read view,
+  without writing persistent caches during page display. Respect descendant
+  read/file-view permissions and safely shorten Unicode file labels. Add the
+  category/time lookup index through the existing installation updater.
+- Add a CLI preview and resumable pending download-file journal recovery.
+  Keep changed or referenced assets protected, advance past pending conflicts
+  with a bounded cursor, and retain receipts across interrupted or uncertain
+  completions. The command cannot override the configured database or file root.
 - Treat file removal from an empty category as a no-op. A category ID must never
   become a file ID when cleaning up mirrors or custom fields; unrelated files
   and uploads arriving after an empty read retain their metadata and contents.
