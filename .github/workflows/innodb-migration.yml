@@ -889,6 +889,12 @@ jobs:
         env:
           PHPBB_PA_DOWNLOAD_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Read current visible category summaries without persistent cache writes
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-category-read-native.php
+        env:
+          PHPBB_PA_CATEGORY_READ_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-pafiledb-stats-native.php
         env:

@@ -1090,7 +1090,8 @@ CREATE TABLE phpbb_pa_files (
   file_docsurl text,
   file_approved tinyint(1) default '1' NOT NULL,
   file_broken tinyint(1) default '0' NOT NULL,
-  PRIMARY KEY  (file_id)
+  PRIMARY KEY  (file_id),
+  KEY file_category_time (file_catid,file_approved,file_time,file_id)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_pa_license (

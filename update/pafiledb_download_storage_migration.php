@@ -21,7 +21,7 @@ function plus_pa_download_index_matches($rows,$columns)
 function plus_pa_download_plan($db,$prefix,$canonical=true)
 {
     plus_pa_download_prefix($prefix);if(mysqli_character_set_name($db)!=='utf8mb4'){throw new RuntimeException('Download storage migration requires utf8mb4');}$plan=array();
-    foreach(array('pa_download_info'=>array('file_id'),'pa_cat'=>array('cat_last_file_id','cat_files'))as$suffix=>$required){
+    foreach(array('pa_download_info'=>array('file_id'),'pa_cat'=>array('cat_last_file_id','cat_files'),'pa_files'=>array())as$suffix=>$required){
         $table=$prefix.$suffix;$meta=plus_storage_metadata($db,$table);if($meta===null){continue;}
         if($canonical&&($meta['ENGINE']!=='InnoDB'||strtolower($meta['ROW_FORMAT'])!=='dynamic'||$meta['TABLE_COLLATION']!=='utf8mb4_unicode_ci')){throw new RuntimeException('Complete modern storage migration before widening download identities');}
         $columns=array();foreach(plus_storage_rows($db,'SHOW FULL COLUMNS FROM '.plus_storage_identifier($table))as$column){if($canonical&&$column['Collation']!==null&&$column['Collation']!=='utf8mb4_unicode_ci'){throw new RuntimeException('Download column encoding requires migration first');}$columns[$column['Field']]=$column;}
@@ -34,10 +34,11 @@ function plus_pa_download_plan($db,$prefix,$canonical=true)
             $comment=$no_slashes?str_replace("'","''",$c['Comment']):mysqli_real_escape_string($db,$c['Comment']);$definition.=" COMMENT '".$comment."'";
             $parts[]='MODIFY '.plus_storage_identifier($name).' '.$definition;$modified[$name]=$target;
         }
-        if($suffix==='pa_download_info'){
-            foreach(array('file_id','user_id','downloader_ip')as$field){if(!isset($columns[$field])){throw new RuntimeException('Missing visitor identity field');}}
+        if($suffix==='pa_download_info'||$suffix==='pa_files'){
+            $wanted=$suffix==='pa_files'?array('file_category_time'=>array('file_catid','file_approved','file_time','file_id')):array('file_actor'=>array('file_id','user_id'),'file_address'=>array('file_id','downloader_ip'));
+            foreach($wanted as$fields){foreach($fields as$field){if(!isset($columns[$field])){throw new RuntimeException('Missing download lookup field');}}}
             $existing=plus_pa_download_indexes($db,$table);
-            foreach(array('file_actor'=>array('file_id','user_id'),'file_address'=>array('file_id','downloader_ip'))as$name=>$fields){
+            foreach($wanted as$name=>$fields){
                 if(isset($existing[$name])&&(!plus_pa_download_index_matches($existing[$name],$fields)||count($existing[$name])!==count($fields))){throw new RuntimeException('Conflicting download statistics index; no existing key is replaced');}
                 $covered=false;foreach($existing as$rows){if(plus_pa_download_index_matches($rows,$fields)){$covered=true;break;}}if($covered){continue;}
                 $parts[]='ADD KEY '.plus_storage_identifier($name).' ('.implode(',',array_map('plus_storage_identifier',$fields)).')';$added[$name]=$fields;

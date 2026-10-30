@@ -105,6 +105,7 @@ class pafiledb
 //	var $depth_info = array();
 	
 	var $error = array();
+	private $category_file_summaries = array();
 	
 	//===================================================
 	// Prepare data
@@ -114,6 +115,7 @@ class pafiledb
 	function init()
 	{
 		global $db, $userdata, $debug;
+		$this->category_file_summaries = array();
 		
 		$this->cat_rowset = array();
 		$this->subcat_rowset = array();
@@ -238,6 +240,7 @@ class pafiledb
 	function modified($true_false = false)
 	{
 		$this->modified = $true_false;
+		if ($true_false) { $this->category_file_summaries = array(); }
 	}
 	
 	//===================================================
@@ -274,49 +277,28 @@ class pafiledb
 		return $cat_sub;
 	}
 	
+	private function category_file_summary($cat_id)
+	{
+		global $db,$pafiledb_config;
+		require_once dirname(__FILE__) . '/functions_category_read.php';
+		$scope=pafiledb_category_file_scope($this,$cat_id);$empty=array('total'=>0,'new'=>0,'last'=>array());
+		if(!$scope){return $empty;}
+		$days=isset($pafiledb_config['settings_newdays'])?$pafiledb_config['settings_newdays']:'0';
+		if(!(is_int($days)||is_string($days))||!preg_match('/^[0-9]{1,10}$/D',(string)$days)||(float)$days>2147483647){$days='0';}
+		$key=(int)$cat_id.':'.(string)$days;
+		if(isset($this->category_file_summaries[$key])){return $this->category_file_summaries[$key];}
+		$cutoff=sprintf('%.0f',time()-(float)$days*86400);$sql=pafiledb_category_file_summary_sql($scope,$cutoff);
+		if(!($result=$db->sql_query($sql))){message_die(GENERAL_ERROR,'Could not read download category files','',__LINE__,__FILE__,$sql);}
+		try{$row=$db->sql_fetchrow($result);}finally{$db->sql_freeresult($result);}
+		if(!$row){message_die(GENERAL_ERROR,'Could not read download category files');}
+		$summary=array('total'=>(int)$row['total_files'],'new'=>(int)$row['new_files'],'last'=>array());
+		if($row['file_id']!==null){foreach(array('file_id','file_name','file_time','file_catid')as$field){$summary['last'][$field]=$row[$field];}}
+		$this->category_file_summaries[$key]=$summary;return $summary;
+	}
+
 	function last_file_in_cat($cat_id, &$file_info)
 	{
-		if((empty($this->cat_rowset[$cat_id]['cat_last_file_id']) && empty($this->cat_rowset[$cat_id]['cat_last_file_name']) && empty($this->cat_rowset[$cat_id]['cat_last_file_time'])) || $this->modified)
-		{
-			global $db;
-
-			$sql = 'SELECT file_time, file_id, file_name, file_catid
-				FROM ' . PA_FILES_TABLE . " 
-				WHERE file_approved = '1' 
-				AND file_catid IN (" . $this->gen_cat_ids($cat_id) . ")
-				ORDER BY file_time DESC";
-
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Query Files info', '', __LINE__, __FILE__, $sql);
-			}
-
-			while($row = $db->sql_fetchrow($result))
-			{
-				$temp_cat[] = $row;
-			}
-
-			$file_info = $temp_cat[0];
-			if(!empty($file_info))
-			{
-				$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-					SET cat_last_file_id = " . intval($file_info['file_id']) . ", 
-					cat_last_file_name = '" . addslashes($file_info['file_name']) . "', 
-					cat_last_file_time = " . intval($file_info['file_time']) . "
-					WHERE cat_id = $cat_id";
-
-				if ( !($db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Couldnt Query Files info', '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
-		else
-		{
-			$file_info['file_id'] = $this->cat_rowset[$cat_id]['cat_last_file_id'];
-			$file_info['file_name'] = $this->cat_rowset[$cat_id]['cat_last_file_name'];
-			$file_info['file_time'] = $this->cat_rowset[$cat_id]['cat_last_file_time'];
-		}
+		$summary=$this->category_file_summary($cat_id);$file_info=$summary['last'];
 	}
 	
 	function generate_category_nav($cat_id)
@@ -413,92 +395,24 @@ class pafiledb
 	
 	function file_in_cat($cat_id)
 	{
-		if($this->cat_rowset[$cat_id]['cat_files'] == -1 || $this->modified)
-		{
-			global $db, $db;
-		
-			$sql = 'SELECT COUNT(file_id) as total_files
-				FROM ' . PA_FILES_TABLE . " 
-				WHERE file_approved = '1' 
-				AND file_catid IN (" . $this->gen_cat_ids($cat_id) . ')
-				ORDER BY file_time DESC';
-
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Query Files info', '', __LINE__, __FILE__, $sql);
-			}
-
-			$files_no = 0;
-			if($row = $db->sql_fetchrow($result))
-			{
-				$files_no = $row['total_files'];
-			}
-
-			$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
-					SET cat_files = $files_no
-					WHERE cat_id = $cat_id";
-
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Query Files info', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else
-		{
-			$files_no = $this->cat_rowset[$cat_id]['cat_files'];
-		}
-		
-
-		return $files_no;
+		$summary=$this->category_file_summary($cat_id);return $summary['total'];
 	}
-	
+
 	function new_file_in_cat($cat_id)
 	{
-		global $pafiledb_config, $board_config, $db, $db, $_COOKIE;
-
-		$files_new = 0;
-
-		$time = time() - ($pafiledb_config['settings_newdays'] * 24 * 60 * 60);
-
-		$sql = 'SELECT file_time, file_catid
-			FROM ' . PA_FILES_TABLE . " 
-			WHERE file_approved = '1'
-			AND file_catid IN (" . $this->gen_cat_ids($cat_id) . ')
-			AND file_time > ' . $time . '
-			ORDER BY file_time DESC';
-			
-
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Query Files info', '', __LINE__, __FILE__, $sql);
-		}
-		
-		while($row = $db->sql_fetchrow($result))
-		{
-			if($this->auth[$row['file_catid']]['auth_read'])
-			{
-				$files_new++;
-			}
-		}
-
-		return $files_new;
+		$summary=$this->category_file_summary($cat_id);return $summary['new'];
 	}
-	
+
 	function gen_cat_ids($cat_id, $cat_ids = '')
 	{
-		if(!empty($this->subcat_rowset[$cat_id]))
-		{
-			foreach($this->subcat_rowset[$cat_id] as $subcat_id => $cat_row)
-			{
-				$cat_ids = $this->gen_cat_ids($subcat_id, $cat_ids);
-			}
+		require_once dirname(__FILE__) . '/functions_category_read.php';
+		// Keep the historical string API, but never include inaccessible descendants.
+		$scope=pafiledb_category_file_scope($this,$cat_id);
+		if ($cat_ids!=='') {
+			if (!is_string($cat_ids)||!preg_match('/^[1-9][0-9]*(?:,\s*[1-9][0-9]*)*$/D',$cat_ids)) { return ''; }
+			foreach (explode(',',$cat_ids) as $id) { $id=trim($id);if((float)$id>2147483647||!pafiledb_file_category_accessible($this,$id)||(string)$this->cat_rowset[(int)$id]['cat_allow_file']!==(string)PA_CAT_ALLOW_FILE){return '';}$scope[]=(int)$id; }
 		}
-		
-		if(!empty($this->cat_rowset[$cat_id]))
-		{
-			$cat_ids .= ( ( $cat_ids != '' ) ? ', ' : '' ) . $cat_id;
-		}
-		return $cat_ids;
+		$scope=array_unique($scope);sort($scope,SORT_NUMERIC);return implode(', ',$scope);
 	}
 	
 	function auth($c_access)
@@ -754,8 +668,9 @@ class pafiledb
 					{
 						$last_file_time = create_date($board_config['default_dateformat'], $last_file_info['file_time'], $board_config['board_timezone']);
 						$last_file = $last_file_time . '<br />';
-						$last_file_name = (strlen(stripslashes($last_file_info['file_name'])) > 20) ? substr(stripslashes($last_file_info['file_name']), 0, 20) . '...' : stripslashes($last_file_info['file_name']);
-						$last_file .= '<a href="' . append_sid('dload.php?action=file&file_id=' . $last_file_info['file_id']) . '" alt="' . stripslashes($last_file_info['file_name']) . '" title="' . stripslashes($last_file_info['file_name']) . '">' . $last_file_name . '</a> ';
+						$file_label = pafiledb_category_file_label($last_file_info['file_name']);
+						$last_file_name = $file_label['short'];
+						$last_file .= '<a href="' . append_sid('dload.php?action=file&file_id=' . $last_file_info['file_id']) . '" title="' . $file_label['title'] . '">' . $last_file_name . '</a> ';
 						$last_file .= '<a href="' . append_sid('dload.php?action=file&file_id=' . $last_file_info['file_id']) . '"><img src="' . $images['icon_latest_reply'] . '" border="0" alt="' . $lang['View_latest_file'] . '" title="' . $lang['View_latest_file'] . '" /></a>';
 					}
 					else
@@ -823,7 +738,8 @@ class pafiledb
 							{
 								$last_file_time = create_date($board_config['default_dateformat'], $last_file_info['file_time'], $board_config['board_timezone']);
 								$last_file = $last_file_time . '<br />';
-								$last_file_name = (strlen(stripslashes($last_file_info['file_name'])) > 20) ? substr(stripslashes($last_file_info['file_name']), 0, 20) . '...' : stripslashes($last_file_info['file_name']);
+								$file_label = pafiledb_category_file_label($last_file_info['file_name']);
+								$last_file_name = $file_label['short'];
 								$last_file .= '<a href="' . append_sid('dload.php?action=file&file_id=' . $last_file_info['file_id']) . '">' . $last_file_name . '</a> ';
 								$last_file .= '<a href="' . append_sid('dload.php?action=file&file_id=' . $last_file_info['file_id']) . '"><img src="' . $images['icon_latest_reply'] . '" border="0" alt="' . $lang['View_latest_file'] . '" title="' . $lang['View_latest_file'] . '" /></a>';
 							}
