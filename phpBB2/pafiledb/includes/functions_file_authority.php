@@ -25,7 +25,7 @@ class PaFileDbFileAuthority
     {
         if (!is_object($storage) || !$storage->namespace_matches($prefix) || !is_array($actor) || !isset($actor['id'],$actor['sid'],$actor['logged']) ||
             !is_int($actor['id']) || !is_bool($actor['logged']) || ($actor['logged'] ? ($actor['id'] < 1 || $actor['id'] > 8388607) : $actor['id'] !== ANONYMOUS) ||
-            !is_string($actor['sid']) || $actor['sid'] === '' || strlen($actor['sid']) > 32 || !in_array($mode, array('public','files','categories'), true)) { pafiledb_file_fail('Not_Authorised'); }
+            !is_string($actor['sid']) || $actor['sid'] === '' || strlen($actor['sid']) > 32 || !in_array($mode, array('public','files','categories','settings'), true)) { pafiledb_file_fail('Not_Authorised'); }
         foreach (array('USERS_TABLE'=>'users','SESSIONS_TABLE'=>'sessions','CONFIG_TABLE'=>'config','JR_ADMIN_TABLE'=>'jr_admin_users','PA_FILES_TABLE'=>'pa_files','PA_CATEGORY_TABLE'=>'pa_cat','PA_CONFIG_TABLE'=>'pa_config','PA_AUTH_ACCESS_TABLE'=>'pa_auth','USER_GROUP_TABLE'=>'user_group','GROUPS_TABLE'=>'groups') as $constant => $suffix) {
             if (!defined($constant) || constant($constant) !== $prefix . $suffix) { pafiledb_file_fail(); }
         }
@@ -59,7 +59,8 @@ class PaFileDbFileAuthority
         if ($this->mode !== 'public') {
             if (!$logged || (string)$sessions[0]['session_admin'] !== '1' || empty($userdata['session_admin'])) { pafiledb_file_fail('Not_Authorised'); }
             $this->rows('SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . $this->actor['id'] . ' FOR UPDATE');
-            try { phpbb_acp_actor($this->storage, ($this->mode === 'files' ? 'admin_pa_file.' : 'admin_pa_category.') . $phpEx); }
+            $modules = array('files'=>'admin_pa_file.','categories'=>'admin_pa_category.','settings'=>'admin_pa_settings.');
+            try { phpbb_acp_actor($this->storage, $modules[$this->mode] . $phpEx); }
             catch (PhpbbAclException $error) { pafiledb_file_fail('Not_Authorised'); }
         }
         $this->config = array(); foreach ($this->rows('SELECT config_name,config_value FROM ' . PA_CONFIG_TABLE . ' ORDER BY config_name FOR UPDATE') as $row) { $this->config[$row['config_name']] = $row['config_value']; }
@@ -103,7 +104,8 @@ class PaFileDbFileAuthority
 
     function select($action, $ids, $destination = 0)
     {
-        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','mirror-delete','category','download'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
+        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','mirror-delete','category','download','settings'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
+        if (($action === 'settings' && ($this->mode !== 'settings' || $ids || $destination !== 0)) || ($this->mode === 'settings' && $action !== 'settings')) { pafiledb_file_fail('Not_Authorised'); }
         $unique = array(); foreach ($ids as $id) { $id = self::id($id); if (isset($unique[$id])) { pafiledb_file_fail('PA_file_invalid'); } $unique[$id] = $id; }
         $this->destination = self::id($destination, true); $this->action = $action;
         if (($action === 'create' && ($unique || !$this->destination)) || ($action === 'edit' && (count($unique) !== 1 || !$this->destination)) || (in_array($action, array('delete','approve','mirror','mirror-delete','download'), true) && !$unique) || (in_array($action,array('mirror','mirror-delete','download'),true) && count($unique) !== 1) || ($action === 'download' && $this->mode !== 'public') || ($action === 'category' && ($this->mode !== 'categories' || $unique))) { pafiledb_file_fail('PA_file_invalid'); }
@@ -115,6 +117,7 @@ class PaFileDbFileAuthority
     function check()
     {
         if ($this->action === null) { pafiledb_file_fail('PA_file_invalid'); } $this->current();
+        if ($this->mode === 'settings') { if ($this->action !== 'settings') { pafiledb_file_fail('Not_Authorised'); } return true; }
         if ($this->mode === 'categories') { if ($this->action !== 'category') { pafiledb_file_fail('Not_Authorised'); } return true; }
         if ($this->mode === 'files') {
             if (in_array($this->action, array('create','edit'), true)) { $this->category($this->destination, array(), true, false, false); }

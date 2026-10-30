@@ -1,4 +1,9 @@
 <?php
+$lang['PA_settings_invalid'] = 'A download setting is invalid. Please check the form.';
+$lang['PA_settings_size'] = 'The maximum file size must not exceed 2,147,483,647 bytes.';
+$lang['PA_settings_directory'] = 'The configured download and screenshot directories must exist and be writable.';
+$lang['PA_settings_pending'] = 'Finish pending uploads or file recovery before changing this directory.';
+$lang['PA_settings_failed'] = 'The settings could not be confirmed. Reload the settings before retrying.';
 
 // Categories
 

@@ -16,6 +16,7 @@ $admin_custom = file_get_contents($root . '/phpBB2/admin/admin_pa_custom.php');
 $admin_flags = file_get_contents($root . '/phpBB2/admin/admin_flags.php');
 $admin_catauth = file_get_contents($root . '/phpBB2/admin/admin_pa_catauth.php');
 $admin_settings = file_get_contents($root . '/phpBB2/admin/admin_pa_settings.php');
+$settings_storage = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_settings_storage.php');
 $admin_ug_auth = file_get_contents($root . '/phpBB2/admin/admin_pa_ug_auth.php');
 $admin_file = file_get_contents($root . '/phpBB2/admin/admin_pa_file.php');
 $admin_license = file_get_contents($root . '/phpBB2/admin/admin_pa_license.php');
@@ -60,13 +61,13 @@ pafiledb_admin_assert(strpos($admin_catauth, 'phpbb_admin_session_field()') !== 
 pafiledb_admin_assert(strpos($admin_catauth, "'CATEGORY_NAME' => phpbb_admin_html") !== false, 'category names must be escaped in permission output');
 
 pafiledb_admin_assert(strpos($admin_settings, 'phpbb_admin_require_post_session();') !== false, 'configuration writes must require a POST token');
-pafiledb_admin_assert(strpos($admin_settings, '$editable_config = array(') !== false, 'configuration writes need a field allowlist');
-pafiledb_admin_assert(strpos($admin_settings, 'in_array($config_name, $editable_config, true)') !== false, 'only allowlisted configuration fields may be written');
-pafiledb_admin_assert(strpos($admin_settings, "(^|/)\\.\\.(/|$)") !== false, 'storage directories must reject traversal');
+pafiledb_admin_assert(strpos($admin_settings, 'pafiledb_settings_save($_POST)') !== false && strpos($settings_storage, 'function pafiledb_settings_fields()') !== false, 'configuration writes need a complete owned field allowlist');
+pafiledb_admin_assert(strpos($settings_storage, 'foreach(pafiledb_settings_fields()as$name)') !== false, 'only allowlisted configuration fields may be written');
+pafiledb_admin_assert(strpos($settings_storage, "(^|/)\\.\\.(/|$)") !== false, 'storage directories must reject traversal');
 pafiledb_admin_assert(strpos($admin_settings, "'S_HIDDEN_FIELDS' => phpbb_admin_session_field()") !== false, 'configuration forms must carry a session token');
 pafiledb_admin_assert(strpos($admin_settings, "'UPLOAD_DIR' => phpbb_admin_html") !== false, 'configuration text must be escaped in form output');
-pafiledb_admin_assert(substr_count($pafiledb_functions, '$db->sql_escape(') >= 2, 'paFileDB configuration SQL must use driver escaping');
-pafiledb_admin_assert(strpos($pafiledb_functions, "preg_match('/^[a-z0-9_]{1,191}$/Di'") !== false, 'paFileDB configuration names must be bounded identifiers');
+pafiledb_admin_assert(strpos($settings_storage, '$storage->sql_escape($values[$name])') !== false && strpos($settings_storage, '$storage->sql_escape($name)') !== false, 'paFileDB configuration SQL must use owning-driver escaping');
+pafiledb_admin_assert(strpos($pafiledb_functions, 'function set_config(') === false, 'Unowned per-field configuration writer must not remain as an alternate path');
 
 pafiledb_admin_assert(strpos($admin_ug_auth, 'phpbb_admin_require_post_session();') !== false, 'user/group permission writes must require a POST token');
 pafiledb_admin_assert(strpos($admin_ug_auth, "array('user', 'group', 'glb_user', 'glb_group')") !== false, 'user/group permission modes must use an allowlist');

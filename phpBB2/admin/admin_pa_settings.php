@@ -38,129 +38,50 @@ if ($submit)
 	phpbb_admin_require_post_session();
 }
 
-$editable_config = array(
-	'settings_dbname', 'settings_topnumber', 'settings_newdays', 'settings_file_page',
-	'settings_viewall', 'settings_disable', 'hotlink_prevent', 'hotlink_allowed',
-	'sort_method', 'sort_order', 'max_file_size', 'upload_dir', 'screenshots_dir',
-	'forbidden_extensions', 'auth_search', 'auth_stats', 'auth_toplist', 'auth_viewall',
-	'allow_html', 'allow_bbcode', 'allow_smilies', 'allow_comment_links',
-	'no_comment_link_message', 'allow_comment_images', 'no_comment_image_message',
-	'max_comment_chars', 'need_validation', 'validator', 'pm_notify', 'tpl_php'
-);
-$boolean_config = array('settings_viewall', 'settings_disable', 'hotlink_prevent', 'allow_html', 'allow_bbcode', 'allow_smilies', 'allow_comment_links', 'allow_comment_images', 'need_validation', 'pm_notify', 'tpl_php');
-$integer_config = array('settings_topnumber', 'settings_newdays', 'settings_file_page', 'max_comment_chars');
-$auth_config = array('auth_search', 'auth_stats', 'auth_toplist', 'auth_viewall');
-$auth_values = array(AUTH_ALL, AUTH_REG, AUTH_ACL, AUTH_MOD, AUTH_ADMIN);
-
-$sql = 'SELECT *
-	FROM ' . PA_CONFIG_TABLE;
-
-if(!$result = $db->sql_query($sql))
+require_once $phpbb_root_path . 'pafiledb/includes/functions_settings_storage.php';
+$default_config = $pafiledb_functions->pafiledb_config();
+$new = $default_config;
+$settings_error = '';
+if ($submit)
 {
-	message_die(CRITICAL_ERROR, "Could not query config information in admin_board", "", __LINE__, __FILE__, $sql);
-}
-else
-{
-	while( $row = $db->sql_fetchrow($result) )
+	try
 	{
-		$config_name = $row['config_name'];
-		$config_value = $row['config_value'];
-		$default_config[$config_name] = $config_value;
-
-		$new[$config_name] = $default_config[$config_name];
-		if ($submit && in_array($config_name, $editable_config, true))
-		{
-			$new[$config_name] = phpbb_admin_post_string($config_name, $default_config[$config_name]);
-
-			if (in_array($config_name, $boolean_config, true))
-			{
-				$new[$config_name] = (intval($new[$config_name]) === 1) ? '1' : '0';
-			}
-			elseif (in_array($config_name, $integer_config, true))
-			{
-				$new[$config_name] = (string) min(1000000, max(0, intval($new[$config_name])));
-			}
-			elseif (in_array($config_name, $auth_config, true))
-			{
-				$auth_value = intval($new[$config_name]);
-				$new[$config_name] = in_array($auth_value, $auth_values, true) ? (string) $auth_value : (string) $default_config[$config_name];
-			}
-			elseif ($config_name === 'sort_method')
-			{
-				$new[$config_name] = in_array($new[$config_name], array('file_name', 'file_time', 'file_rating', 'file_dls', 'file_update_time'), true) ? $new[$config_name] : 'file_time';
-			}
-			elseif ($config_name === 'sort_order')
-			{
-				$new[$config_name] = in_array(strtoupper($new[$config_name]), array('ASC', 'DESC'), true) ? strtoupper($new[$config_name]) : 'DESC';
-			}
-			elseif ($config_name === 'validator')
-			{
-				$new[$config_name] = in_array($new[$config_name], array('validator_admin', 'validator_mod'), true) ? $new[$config_name] : 'validator_admin';
-			}
-			elseif ($config_name === 'max_file_size')
-			{
-				$new[$config_name] = is_numeric($new[$config_name]) ? (string) min(1099511627776, max(0, (float) $new[$config_name])) : '0';
-			}
-			elseif ($config_name === 'upload_dir' || $config_name === 'screenshots_dir')
-			{
-				$new[$config_name] = str_replace('\\', '/', trim($new[$config_name]));
-				if ($new[$config_name] === '' || preg_match('/[\x00-\x1f\x7f?#]/', $new[$config_name]) || preg_match('#(^|/)\.\.(/|$)|^[a-z]+://|^/|^[a-z]:#i', $new[$config_name]))
-				{
-					message_die(GENERAL_ERROR, 'Invalid paFileDB storage directory.');
-				}
-				$new[$config_name] = rtrim($new[$config_name], '/') . '/';
-			}
-
-			if (strlen($new[$config_name]) > 255)
-			{
-				message_die(GENERAL_ERROR, 'A paFileDB setting exceeds the supported length.');
-			}
-		}
-		if ($config_name === 'tpl_php')
-		{
-			$new[$config_name] = '0';
-		}
-
-		if ((empty($size)) && (!$submit) && ($config_name == 'max_file_size'))
-		{
-			$size = (intval($default_config[$config_name]) >= 1048576) ? 'mb' : ( (intval($default_config[$config_name]) >= 1024) ? 'kb' : 'b' );
-		}
-
-		if ( (!$submit) && ($config_name == 'max_file_size') )
-		{
-			if($new[$config_name] >= 1048576)
-			{
-				$new[$config_name] = round($new[$config_name] / 1048576 * 100) / 100;
-			}
-			else if($new[$config_name] >= 1024)
-			{
-				$new[$config_name] = round($new[$config_name] / 1024 * 100) / 100;
-			}
-		}
-
-		if($submit && in_array($config_name, $editable_config, true))
-		{
-
-			if ($config_name == 'max_file_size')
-			{
-				$new[$config_name] = ( $size == 'kb' ) ? round($new[$config_name] * 1024) : ( ($size == 'mb') ? round($new[$config_name] * 1048576) : $new[$config_name] );
-			}
-
-			if($config_name == 'tpl_php' && $new[$config_name] != $default_config[$config_name])
-			{
-				$pafiledb_template->compile_cache_clear();
-			}
-
-			$pafiledb_functions->set_config($config_name, $new[$config_name]);
-		}
+		$pafiledb_config = pafiledb_settings_save($_POST);
 	}
-
-	if($submit)
+	catch (PaFileDbFileActionFailure $error)
 	{
-		$cache->unload();
+		$key = $error->getMessage();
+		$settings_error = isset($lang[$key]) ? $lang[$key] : $lang['PA_settings_failed'];
+	}
+	catch (PaFileDbFileStorageFailure $error) { $settings_error = $lang['PA_settings_directory']; }
+	catch (Exception $error) { $settings_error = $lang['PA_settings_failed']; }
+	catch (Error $error) { $settings_error = $lang['PA_settings_failed']; }
+	if ($settings_error === '')
+	{
 		$message = $lang['Settings_changed'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_settings.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
 	}
+	// Keep a rejected draft for correction. This only affects escaped output;
+	// persistence validates the whole request against current locked settings.
+	foreach (pafiledb_settings_fields() as $name)
+	{
+		if (isset($_POST[$name]))
+		{
+			$value = phpbb_request_raw_value($_POST[$name]);
+			if (is_string($value) && strlen($value) <= 4096) { $new[$name] = $value; }
+		}
+	}
+}
+if (!$submit || !isset($_POST['max_file_size']) || !is_string(phpbb_request_raw_value($_POST['max_file_size'])))
+{
+	$display_size = pafiledb_settings_display_size($default_config['max_file_size']);
+	$new['max_file_size'] = $display_size['value'];
+	$size = $display_size['unit'];
+}
+$new['tpl_php'] = '0';
+if ($settings_error !== '')
+{
+	$template->assign_block_vars('settings_error', array('MESSAGE' => phpbb_admin_html($settings_error)));
 }
 
 $template->set_filenames(array(

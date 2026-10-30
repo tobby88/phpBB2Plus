@@ -882,6 +882,14 @@ jobs:
         env:
           PHPBB_PA_FILE_SAVE_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Commit complete download settings under current module authority
+        if: matrix.part == 4
+        run: |
+          php .github/scripts/check-pafiledb-settings-native.php
+          php .github/scripts/check-pafiledb-settings-native.php legacy
+        env:
+          PHPBB_PA_SETTINGS_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - name: Approve complete download batches under current validator policy
         if: matrix.part == 4
         run: |

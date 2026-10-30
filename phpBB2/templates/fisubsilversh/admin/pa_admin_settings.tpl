@@ -2,6 +2,11 @@
 
 <p>{L_SETTINGSEXPLAIN}</p>
 
+<!-- BEGIN settings_error -->
+<table width="100%" cellpadding="3" cellspacing="1" class="forumline"><tr><td class="row1"><span class="gen">{settings_error.MESSAGE}</span></td></tr></table>
+<br />
+<!-- END settings_error -->
+
 <form action="{S_SETTINGS_ACTION}" method="post" name="form">
 {S_HIDDEN_FIELDS}
 <table width="100%" cellpadding="3" cellspacing="1" class="forumline">
@@ -51,11 +56,7 @@
 	<tr>
 	  <td class="row1">{L_HOTLINK_ALLOWED}<br><span class="gensmall">{L_HOTLINK_ALLOWED_INFO}</span></td>
 	  <td class="row2"><input class="post" type="text" size="40" name="hotlink_allowed" value="{HOTLINK_ALLOWED}" /></td>
-	</tr>  
-  <tr>
-	<td class="row1">{L_FILE_IN_PAGE}<br><span class="gensmall">{L_FILE_IN_PAGE_INFO}</span></td>
-	<td class="row2"><input type="text" class="post" size="5" maxlength="5" name="settings_file_page" value="{SETTINGS_FILE_PAGE}" /></td>
-  </tr>
+	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_DEFAULT_SORT_METHOD}</span></td>
 	  <td class="row2">
@@ -79,7 +80,7 @@
 	</tr>
   <tr>
 	<td class="row1">{L_MAX_FILE_SIZE}<br><span class="gensmall">{L_MAX_FILE_SIZE_INFO}</span></td>
-	<td class="row2"><input type="text" class="post" size="8" maxlength="15" name="max_file_size" value="{MAX_FILE_SIZE}" /> {S_FILESIZE}</td>
+	<td class="row2"><input type="text" class="post" size="12" maxlength="20" name="max_file_size" value="{MAX_FILE_SIZE}" /> {S_FILESIZE}</td>
   </tr>
 	<tr>
 		<td class="row1">{L_UPLOAD_DIR}<br /><span class="gensmall">{L_UPLOAD_DIR_EXPLAIN}</span></td>

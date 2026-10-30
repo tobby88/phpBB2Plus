@@ -231,11 +231,18 @@ class PaFileDbFileCoordinator
 		return true;
 	}
 
+	function begin_settings()
+	{
+		$this->begin(true);
+		$this->operation_mode = 'settings';
+	}
+
 	private function allowed_statement($sql, $journal)
 	{
 		if (!is_string($sql)) { return false; }
 		if (preg_match('/^SELECT\b/i', $sql)) { return true; }
 		if (!preg_match('/^(?:INSERT INTO|UPDATE|DELETE FROM) ([A-Za-z0-9_]+)\b/i', $sql, $match)) { return false; }
+		if ($this->operation_mode === 'settings') { return !$journal && strpos($sql, 'UPDATE ') === 0 && $match[1] === $this->prefix . 'pa_config' && isset($this->tables[$match[1]]); }
 		$writable = $journal ? array('pa_file_journal') : array('pa_files','pa_cat','pa_comments','pa_votes','pa_customdata','pa_mirrors','pa_auth','pa_file_journal','pa_download_info');
 		foreach ($writable as $suffix) { if ($match[1] === $this->prefix . $suffix && isset($this->tables[$match[1]])) { return true; } }
 		return false;
@@ -291,7 +298,7 @@ class PaFileDbFileCoordinator
 	{
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $this->journal_transaction) { throw new PaFileDbFileCoordinatorFailure('Invalid prepared Download receipt transaction'); }
-		if ($this->operation_mode === 'recovery') { throw new PaFileDbFileCoordinatorFailure('Recovery cannot prepare a new download publication'); }
+		if ($this->operation_mode === 'recovery' || $this->operation_mode === 'settings') { throw new PaFileDbFileCoordinatorFailure('This operation cannot prepare a new download publication'); }
 		if (!$this->can_publish()) { throw new PaFileDbFileCoordinatorFailure('Missing download preparation capability'); }
 		$this->operation_mode = 'producer';
 		$this->query($this->journal, 'START TRANSACTION'); $this->journal_transaction = true;

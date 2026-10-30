@@ -58,15 +58,9 @@ include($phpbb_root_path . 'pafiledb/includes/functions_pafiledb.'.$phpEx);
 $cache = new acm();
 $pafiledb_functions = new pafiledb_functions();
 
-if ($cache->exists('config'))
-{
-	$pafiledb_config = $cache->get('config');
-}
-else
-{
-	$pafiledb_config = $pafiledb_functions->pafiledb_config();
-	$cache->put('config', $pafiledb_config);
-}
+// Configuration controls current visibility and file roots. An old reader must
+// never publish its pre-change snapshot back into a shared filesystem cache.
+$pafiledb_config = $pafiledb_functions->pafiledb_config();
 
 
 $pafiledb_user = new user_info();

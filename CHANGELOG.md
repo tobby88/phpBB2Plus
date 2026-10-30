@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download settings and test infrastructure
+
+- Commit complete download settings atomically under current ACP/session/module
+  authority. Validate all values and real storage directories before writing;
+  preserve rejected drafts, Unicode and exact byte limits. Refuse a directory
+  change while its file operations still require recovery, and remove the unused
+  per-field writer and duplicate pagination control.
+- Read current download configuration directly instead of publishing stale
+  snapshots through a shared filesystem cache. Keep real MariaDB/InnoDB CI
+  fixtures on bounded disposable tmpfs storage while retaining all test cases
+  and verifying normal commit flushing.
+
 ### Deleted-post storage
 
 - Add explicit deleted-post state through fresh installations and the idempotent

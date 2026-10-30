@@ -1,4 +1,9 @@
 <?php
+$lang['PA_settings_invalid'] = 'Eine Download-Einstellung ist ungültig. Bitte überprüfe das Formular.';
+$lang['PA_settings_size'] = 'Die maximale Dateigröße darf 2.147.483.647 Byte nicht überschreiten.';
+$lang['PA_settings_directory'] = 'Die Download- und Screenshot-Verzeichnisse müssen vorhanden und beschreibbar sein.';
+$lang['PA_settings_pending'] = 'Bitte beende laufende Uploads bzw. die Dateiwiederherstellung, bevor du dieses Verzeichnis änderst.';
+$lang['PA_settings_failed'] = 'Das Speichern konnte nicht bestätigt werden. Bitte lade die Einstellungen vor einem erneuten Versuch neu.';
 
 // Categories
 
