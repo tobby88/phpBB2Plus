@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### License and Download text output
+
+- Escape raw license names in public headings and upload choices, and raw
+  Download titles across the module views. Give the translated no-license
+  option its intended numeric value `0`, and release license-list read results.
+- Render formatted license documents through the maintained HTML tag, attribute
+  and URL sanitizer, preserving ordinary document formatting and Unicode while
+  restoring the surrounding forum HTML policy after every render. Existing
+  stored license text and download confirmation links remain unchanged.
+
 ### Custom download field administration
 
 - Commit custom definitions, initial ordering and removal of every associated

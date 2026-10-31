@@ -59,7 +59,7 @@ class pafiledb_toplist extends pafiledb_public
 		}
 
 		$pafiledb_template->assign_vars(array(
-			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
+			'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']),
 
 			'U_INDEX' => append_sid('index.'.$phpEx),
 			'U_DOWNLOAD' => append_sid('dload.'.$phpEx),

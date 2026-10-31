@@ -276,7 +276,7 @@ class pafiledb_user_upload extends pafiledb_public
 				'ERROR' => implode('<br />', array_map('pafiledb_html', $this->error)),
 				'S_ADD_FILE_ACTION' => append_sid("dload.$phpEx"),
 
-				'DOWNLOAD' => $pafiledb_config['settings_dbname'],
+				'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']),
 				'FILESIZE' => intval($pafiledb_config['max_file_size']),
 				'FILE_NAME' => pafiledb_html($file_name),
 				'FILE_DESC' => pafiledb_html($file_desc),

@@ -119,7 +119,7 @@ class pafiledb_post_comment extends pafiledb_public
 			'FILE_NAME' => pafiledb_html($file_data['file_name']),
 			'SUBJECT' => htmlspecialchars($raw_subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 			'COMMENT' => htmlspecialchars($raw_message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
+			'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']),
 			'MESSAGE_LENGTH' => $pafiledb_config['max_comment_chars'],
 
 			'L_COMMENT_ADD' => $lang['Comment_add'],

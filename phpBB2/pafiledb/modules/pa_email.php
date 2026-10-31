@@ -75,7 +75,7 @@ class pafiledb_email extends pafiledb_public
             'L_EMPTY_SUBJECT_EMAIL'=>$lang['Empty_subject_email'],'L_EMPTY_MESSAGE_EMAIL'=>$lang['Empty_message_email'],
             'U_INDEX'=>append_sid('index.' . $phpEx),'U_DOWNLOAD_HOME'=>append_sid('dload.' . $phpEx),
             'U_FILE_NAME'=>append_sid('dload.' . $phpEx . '?action=file&file_id=' . $file_id),
-            'FILE_NAME'=>pafiledb_html($file_data['file_name']),'DOWNLOAD'=>$pafiledb_config['settings_dbname'],'ID'=>$file_id)));
+            'FILE_NAME'=>pafiledb_html($file_data['file_name']),'DOWNLOAD'=>pafiledb_plain_text($pafiledb_config['settings_dbname']),'ID'=>$file_id)));
         if ($error_key !== '') { $pafiledb_template->assign_block_vars('mail_error', array('MESSAGE'=>pafiledb_html($lang[$error_key]))); }
         $this->display($lang['Download'], 'pa_email_body.tpl');
     }

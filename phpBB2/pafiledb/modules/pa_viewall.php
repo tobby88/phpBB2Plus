@@ -87,7 +87,7 @@ class pafiledb_viewall extends pafiledb_public
 			'U_INDEX' => append_sid('index.'.$phpEx),
 			'U_DOWNLOAD' => append_sid('dload.'.$phpEx),
 
-			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
+			'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']))
 		);
 
 		$this->display_files($sort_method, $sort_order, $start, TRUE);

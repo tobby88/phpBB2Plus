@@ -75,7 +75,7 @@ class pafiledb_file extends pafiledb_public
 			'U_DOWNLOAD_HOME' => append_sid('dload.'.$phpEx),
 
 			'FILE_NAME' => pafiledb_html($file_data['file_name']),
-			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
+			'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']))
 		);
 
 		//===================================================

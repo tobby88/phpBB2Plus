@@ -67,11 +67,11 @@ class pafiledb_functions
 
 		if ($license_id == 0) 
 		{
-			$list .= '<option calue="0" selected>' . $lang['None'] . '</option>';
+			$list .= '<option value="0" selected>' . pafiledb_plain_text($lang['None']) . '</option>';
 		}
 		else
 		{
-			$list .= '<option calue="0">' . $lang['None'] . '</option>';
+			$list .= '<option value="0">' . pafiledb_plain_text($lang['None']) . '</option>';
 		}
 
 		$sql = 'SELECT * 
@@ -87,13 +87,14 @@ class pafiledb_functions
 		{
 			if ($license_id == $license['license_id']) 
 			{
-				$list .= '<option value="' . $license['license_id'] . '" selected>' . $license['license_name'] . '</option>';
+				$list .= '<option value="' . (int)$license['license_id'] . '" selected>' . pafiledb_plain_text($license['license_name']) . '</option>';
 			}
 			else 
 			{
-				$list .= '<option value="' . $license['license_id'] . '">' . $license['license_name'] . '</option>';
+				$list .= '<option value="' . (int)$license['license_id'] . '">' . pafiledb_plain_text($license['license_name']) . '</option>';
 			}
 		}
+		$db->sql_freeresult($result);
 		return $list;
 	}
 
@@ -631,6 +632,13 @@ function pafiledb_resolve_local_download($physical_filename, $upload_dir, $root_
 function pafiledb_html($value)
 {
 	return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8', false);
+}
+
+// Plain raw configuration and license names are not stored as HTML. Preserve
+// literal entity text as well as Unicode, instead of treating it as markup.
+function pafiledb_plain_text($value)
+{
+	return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 function pafiledb_file_info_sql($file_id)

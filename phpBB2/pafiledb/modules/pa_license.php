@@ -10,6 +10,7 @@
 */
 
 require_once dirname(dirname(__FILE__)) . '/includes/functions_toplist.php';
+require_once dirname(dirname(__FILE__)) . '/includes/functions_license_text.php';
 class pafiledb_license extends pafiledb_public
 {
 	function main($action = false)
@@ -102,10 +103,10 @@ class pafiledb_license extends pafiledb_public
 			'U_FILE_NAME' => append_sid('dload.php?action=file&file_id=' . $file_id),
 			'U_DOWNLOAD' => append_sid('dload.php?action=download&file_id=' . $file_id),
 
-			'LE_NAME' => $license['license_name'],
+			'LE_NAME' => pafiledb_plain_text($license['license_name']),
 			'FILE_NAME' => pafiledb_html($file_data['file_name']),
-			'LE_TEXT' => nl2br($license['license_text']),
-			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
+			'LE_TEXT' => pafiledb_license_terms($license['license_text']),
+			'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']))
 		);
 
 		$this->display($lang['Download'], 'pa_license_body.tpl');

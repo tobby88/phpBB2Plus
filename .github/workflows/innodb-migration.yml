@@ -808,7 +808,10 @@ jobs:
           PHPBB_PA_DIRECT_NATIVE: '1'
           PHPBB_PA_DIRECT_PASSWORD: fixture-only
       - if: matrix.part == 2
-        run: php .github/scripts/check-pafiledb-read-forms-native.php
+        run: |
+          php .github/scripts/check-pafiledb-read-forms-native.php
+          php .github/scripts/check-pafiledb-read-forms-native.php render
+          php .github/scripts/check-pafiledb-read-forms-native.php render legacy
         env:
           PHPBB_PA_READ_FORMS_NATIVE: '1'
           PHPBB_PA_READ_FORMS_PASSWORD: fixture-only

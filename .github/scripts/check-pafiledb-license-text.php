@@ -1,0 +1,27 @@
+<?php
+define('IN_PHPBB',true);$root=dirname(dirname(__DIR__));$phpbb_root_path=$root.'/phpBB2/';$phpEx='php';$table_prefix='fixture_';
+require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'pafiledb/includes/pafiledb_constants.php';require$phpbb_root_path.'pafiledb/includes/functions.php';require$phpbb_root_path.'pafiledb/includes/functions_license_text.php';
+function lt_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['lt_checks']++;}
+function message_die(){throw new RuntimeException('Unexpected license option error');}
+class LicenseOptionDatabase{
+ public$rows=array(),$freed=0;
+ function sql_query($sql){if(!preg_match('/^SELECT \* FROM fixture_pa_license ORDER BY license_id$/D',preg_replace('/\s+/',' ',trim($sql)))){throw new RuntimeException('Unexpected license list statement');}$this->rows=array(array('license_id'=>'2','license_name'=>$GLOBALS['lt_name']));return true;}
+ function sql_fetchrow($result){return array_shift($this->rows);}
+ function sql_freeresult($result){$this->freed++;}
+}
+$lt_checks=0;$lt_name="License O'Reilly \\ &amp; <b>Literal</b> Grüße 😀";$db=new LicenseOptionDatabase();$functions=new pafiledb_functions();$board_config=array('allow_html'=>0,'allow_html_tags'=>'b','sentinel'=>'Unchanged');
+set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
+try{
+ foreach(array('english','german')as$language){$lang=array();require$phpbb_root_path.'language/lang_'.$language.'/lang_main.php';foreach(array(0,2)as$id){$html=$functions->license_list($id);lt_check(preg_match('/<option value="0"( selected)?>[^<]*<\/option>/',$html,$m)===1&&($id===0?isset($m[1]):empty($m[1])),'None always has the numeric browser value 0 and correct selection');lt_check(preg_match('/<option value="2"(?: selected)?>(.*?)<\/option>/s',$html,$m)===1&&html_entity_decode($m[1],ENT_QUOTES,'UTF-8')===$lt_name&&strpos($html,'<b>Literal</b>')===false,'Every actual option escapes raw license names once');}}
+ lt_check($db->freed===4,'Every license list releases its read result');
+ foreach(array('0','',"Grüße 😀 &amp; <b>Literal</b> ' \\")as$text){$escaped=pafiledb_plain_text($text);lt_check(html_entity_decode($escaped,ENT_QUOTES,'UTF-8')===$text&&strpos($escaped,'<b>')===false,'Plain labels preserve raw text, zero, literal entities and slashes');}
+ $good='<p>Grüße &amp; <strong>Terms</strong></p>'."\n".'<ol><li>One</li></ol><a href="https://licenses.example.invalid/terms?a=1&amp;b=2" title="Terms">Read</a><table><tr><td>Cell</td></tr></table>';
+ $before=$board_config;$html=pafiledb_license_terms($good);lt_check(strpos($html,'<p>Grüße &amp; <strong>Terms</strong></p>')!==false&&strpos($html,'<ol><li>One</li></ol>')!==false&&strpos($html,'<table>')!==false,'Document formatting survives independently of forum post HTML settings');lt_check(strpos($html,'href="https://licenses.example.invalid/terms?a=1&amp;b=2"')!==false&&strpos($html,'&amp;amp;')===false&&strpos($html,'<br')!==false,'Safe links, entities and original line breaks survive');lt_check($board_config===$before,'Document policy never leaks into forum HTML configuration');
+ $bad=array('<p onclick="return false" style="display:none">Visible</p>','<script>/* inert fixture */</script>','<iframe src="https://frame.example.invalid/"></iframe>','<object data="fixture"></object>','<form action="https://form.example.invalid/"><input name="fixture"></form>','<svg onload="return false"></svg>','<a href="javascript:void(0)">Inert</a>','<a href="java&#x73;cript:void(0)">Inert</a>','<img src="data:text/plain,fixture" onerror="return false">','<a href="file:///fixture">Inert</a>','<span srcdoc="fixture" formaction="fixture">Text</span>');
+ foreach($bad as$text){$html=pafiledb_license_terms($text);lt_check(!preg_match('/<(?:script|iframe|object|form|input|svg)\b|\s(?:on[a-z]+|style|srcdoc|formaction)\s*=/i',$html)&&!preg_match('/(?:href|src)=["\'](?:javascript|file|data|java&#x73;cript):/i',$html)&&$board_config===$before,'Executable markup, event attributes and unsafe protocols never reach the document');}
+ foreach(array('<a href="mailto:license@example.invalid">Mail</a>','<img src="https://images.example.invalid/logo.png" alt="Logo">','<pre><code>License text</code></pre>')as$text){lt_check(pafiledb_license_terms($text)===$text,'Safe document formatting and explicit safe resources remain available');}
+ $limit=ini_get('pcre.backtrack_limit');try{ini_set('pcre.backtrack_limit','1');$html=pafiledb_license_terms(str_repeat('<b onclick="return false">Text</b>',20));lt_check($board_config===$before&&strpos($html,'<b onclick=')===false,'Parser exhaustion fails closed and restores the surrounding policy');}finally{ini_set('pcre.backtrack_limit',$limit);}
+ // Every raw download title output must cross the shared plain-text boundary.
+ $modules=0;foreach(glob($phpbb_root_path.'pafiledb/modules/*.php')as$path){$source=file_get_contents($path);$needle="\$pafiledb_config['settings_dbname']";$count=substr_count($source,$needle);if($count){lt_check(substr_count($source,'pafiledb_plain_text('.$needle.')')===$count,'All download title bindings escape raw stored configuration');$modules++;}}lt_check($modules===14,'Every current Download module with a title binding is covered');
+ echo 'Download license text: ',$lt_checks," actual options/zero/plain-label/HTML/UTF8/entity/policy/unsafe-attribute/protocol/exhaustion/title-boundary checks PASS.\n";
+}finally{restore_error_handler();}

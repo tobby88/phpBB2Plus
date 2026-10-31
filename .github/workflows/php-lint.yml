@@ -924,6 +924,8 @@ jobs:
         run: |
           php .github/scripts/check-pafiledb-custom-admin-form.php
           php .github/scripts/check-pafiledb-custom-admin-form.php legacy
+      - name: Escape raw license labels and sanitize formatted license documents
+        run: php .github/scripts/check-pafiledb-license-text.php
       - name: Preserve rejected download file drafts and custom-field rendering
         run: |
           php .github/scripts/check-pafiledb-file-form.php

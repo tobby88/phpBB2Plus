@@ -305,7 +305,7 @@ class pafiledb_search extends pafiledb_public
 				$pafiledb_template->assign_vars(array(
 					'PAGINATION' => generate_pagination($base_url, $total_match_count, $per_page, $start),
 					'PAGE_NUMBER' => sprintf($lang['Page_of'], (floor($start / $per_page) + 1), ceil($total_match_count / $per_page)),
-					'DOWNLOAD' => $pafiledb_config['settings_dbname'],
+					'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']),
 	
 					'U_INDEX' => append_sid('index.'.$phpEx),
 					'U_DOWNLOAD' => append_sid('dload.'.$phpEx),
@@ -336,7 +336,7 @@ class pafiledb_search extends pafiledb_public
 				'S_SEARCH_ACTION' => append_sid('dload.php'),
 				'S_CAT_MENU' => $dropmenu,
 
-				'DOWNLOAD' => $pafiledb_config['settings_dbname'],
+				'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']),
 	
 				'U_INDEX' => append_sid('index.'.$phpEx),
 				'U_DOWNLOAD' => append_sid('dload.'.$phpEx),

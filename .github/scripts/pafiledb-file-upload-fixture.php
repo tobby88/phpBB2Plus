@@ -7,7 +7,7 @@ function pu_request($data=null,$files=array()){
  $response=@file_get_contents($GLOBALS['pu_url'],false,stream_context_create(array('http'=>$options)));if($response===false){return false;}$decoded=json_decode($response,true);if(!is_array($decoded)){throw new RuntimeException('Upload fixture returned non-JSON response: '.substr($response,0,500));}if(isset($decoded['fixture_error'])){throw new RuntimeException('Actual upload worker error: '.$decoded['fixture_error']);}return$decoded;
 }
 function pu_post($legacy,$extra=array()){
- return array_merge(array('sid'=>'files-8','cat_id'=>'9','name'=>"Upload O'Reilly \\ &amp; Grüße 😀",'long_desc'=>'Upload description 😀','author'=>'Synthetic','posticon'=>'none','field[1]'=>"O'Reilly \\ <tag> Grüße 😀",'fixture_legacy'=>$legacy?'1':'0'),$extra);
+ return array_merge(array('sid'=>'files-8','cat_id'=>'9','license'=>'0','name'=>"Upload O'Reilly \\ &amp; Grüße 😀",'long_desc'=>'Upload description 😀','author'=>'Synthetic','posticon'=>'none','field[1]'=>"O'Reilly \\ <tag> Grüße 😀",'fixture_legacy'=>$legacy?'1':'0'),$extra);
 }
 function pu_files(){return array('userfile'=>array('synthetic.zip',$GLOBALS['pu_zip']),'screen_shot'=>array('synthetic.png',$GLOBALS['pu_png']));}
 function pu_assets(){

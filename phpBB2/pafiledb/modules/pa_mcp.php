@@ -221,7 +221,7 @@ $pafiledb_template->assign_vars(array(
 			'U_INDEX' => append_sid('index.'.$phpEx),
 			'U_DOWNLOAD_HOME' => append_sid('dload.php'),
 			'U_DOWNLOAD' => append_sid('dload.php'),
-			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
+			'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']),
 			'L_MCP_TITLE' => $l_title,
 			'L_MCP_EXPLAIN' => $l_explain,
 			'L_ADD_FILE' => $lang['Afiletitle'],

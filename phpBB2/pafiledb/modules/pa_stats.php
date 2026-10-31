@@ -144,7 +144,7 @@ class pafiledb_stats extends pafiledb_public
 			'U_VOTE_LCAP' => "templates/fisubsilversh/images/vote_lcap.gif",
 			'U_VOTE_RCAP' => "templates/fisubsilversh/images/vote_rcap.gif",
 
-			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
+			'DOWNLOAD' => pafiledb_plain_text($pafiledb_config['settings_dbname']),
 			'STATS_TEXT' => $stats_text)
 		);
 		$this->display($lang['Download'], 'pa_stats_body.tpl');
