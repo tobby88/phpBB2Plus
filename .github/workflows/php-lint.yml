@@ -248,6 +248,7 @@ jobs:
           php .github/scripts/check-ctracker-log-manager.php
           php .github/scripts/check-ctracker-counter-policy.php
           php .github/scripts/check-ctracker-log-initialization.php
+          php .github/scripts/check-ctracker-log-records.php
 
       - name: Test CrackerTracker integrity checksums
         run: php .github/scripts/check-ctracker-checksums.php

@@ -77,9 +77,10 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 
 	// cell 3 has another description if it is the malformed login log
 	( $logid == 4 || $logid == 5 )? $description_cell_2 = $lang['ctracker_log_manager_cell_2b'] : $description_cell_2 = $lang['ctracker_log_manager_cell_2a'];
+	$log_size = $logmanager->check_log_size($logid);
 
 	$template->assign_block_vars('show_log_header', array(
-			'L_MESSAGE_TEXT'	=> ($logmanager->check_log_size($logid) == 1)? sprintf($lang['ctracker_log_manager_showheader1'], append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6')) : sprintf($lang['ctracker_log_manager_showheader'], $logmanager->check_log_size($logid), append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6')),
+			'L_MESSAGE_TEXT'	=> (($log_size == 1)? sprintf($lang['ctracker_log_manager_showheader1'], append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6')) : sprintf($lang['ctracker_log_manager_showheader'], $log_size, append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6'))) . '<br />' . $lang['ctracker_log_manager_tail_info'],
 			'L_LOG_SHOW'		=> $lang['ctracker_log_manager_showlog'],
 			'L_LOGCELL1'		=> $lang['ctracker_log_manager_cell_1'],
 			'L_LOGCELL2'		=> $description_cell_2,

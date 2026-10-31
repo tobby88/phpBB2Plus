@@ -260,6 +260,7 @@ $lang['ctracker_log_manager_delete']	  = 'DELETE';
 $lang['ctracker_log_manager_delete_all']  = 'Delete All Logfiles';
 $lang['ctracker_log_manager_deleted']	  = 'The log file has been deleted successfully!';
 $lang['ctracker_log_manager_all_deleted'] = 'All log files have been deleted successfully!';
+$lang['ctracker_log_manager_tail_info'] = 'The display includes up to 1000 of the newest complete lines. Oversized and cut-off lines are omitted; the stored log file remains unchanged.';
 $lang['ctracker_log_manager_showheader1'] = 'There is <b>one</b> entry in this log file. Click <b><a href="%s">HERE</a></b> to go back to Logfile overview.';
 $lang['ctracker_log_manager_showheader']  = 'There are <b>%s</b> entries in this log file.<br />Click <b><a href="%s">HERE</a></b> to go back to Logfile overview.';
 $lang['ctracker_log_manager_showlog']	  = 'View Logfile';

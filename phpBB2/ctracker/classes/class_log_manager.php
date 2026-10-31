@@ -290,14 +290,9 @@ class log_manager
 		// the persistent counter.
 		if (intval($file_id) !== 6)
 		{
-			@rewind($logentry);
-			if (@fgets($logentry, 16385) !== false)
-			{
-				while (@fgets($logentry, 16385) !== false)
-				{
-					$this->last_deleted_entries++;
-				}
-			}
+			$count = $this->count_event_records($logentry);
+			if ($count === false) { @flock($logentry, LOCK_UN); @fclose($logentry); return $this->ct_file_error(); }
+			$this->last_deleted_entries = $count;
 		}
 		$success = @ftruncate($logentry, 0) && @rewind($logentry) &&
 			@fwrite($logentry, $resetstring) === strlen($resetstring) && @fflush($logentry);
@@ -418,80 +413,65 @@ class log_manager
 	 * @param $file_id Identification of the Log File
 	 * @return $logsize Count how many entrys are in the Log
 	 */
-	function check_log_size($file_id)
-	{
-		$logsize  = 0;
-		$path     = '';
+    // Count physical records, not bounded fgets fragments. The caller owns
+    // any file lock; clearing must retain its exclusive lock throughout.
+    private function count_event_records($handle)
+    {
+        if(!@rewind($handle)){return false;}$count=0;$seen=false;$ends_lf=false;
+        while(!feof($handle)){
+            $chunk=@fread($handle,8192);if($chunk===false||($chunk===''&&!feof($handle))){return false;}
+            if($chunk===''){break;}$seen=true;$ends_lf=substr($chunk,-1)==="\n";$count+=substr_count($chunk,"\n");
+        }
+        if($seen&&!$ends_lf){$count++;}return max(0,$count-($seen?1:0));
+    }
 
-		$path     = $this->safe_log_path($file_id);
-		if ($path === false)
-		{
-			return 0;
-		}
-		$handle = @fopen($path, 'rb');
-		if ($handle === false)
-		{
-			return 0;
-		}
-		$first_line = @fgets($handle);
-		if ($first_line !== false)
-		{
-			if ($file_id != 6)
-			{
-				while (@fgets($handle) !== false)
-				{
-					$logsize++;
-				}
-			}
-			else
-			{
-				$logsize = 1;
-				while (($line = @fgets($handle)) !== false)
-				{
-					if ($line === $first_line)
-					{
-						$logsize++;
-					}
-				}
-			}
-		}
-		@fclose($handle);
+    // Debug groups repeat the exact first logical line. Fingerprinting keeps
+    // the comparison bounded even if that first line is unusually large.
+    private function read_record_fingerprint($handle)
+    {
+        $hash=hash_init('sha256');$length=0;
+        while(($chunk=@fgets($handle,8193))!==false){$length+=strlen($chunk);hash_update($hash,$chunk);if(substr($chunk,-1)==="\n"){break;}}
+        return $length===0?false:array($length,hash_final($hash));
+    }
 
-		return $logsize;
-	}
+    function check_log_size($file_id)
+    {
+        $path=$this->safe_log_path($file_id);if($path===false){return 0;}$handle=@fopen($path,'rb');if($handle===false){return 0;}
+        try{
+            if(!@flock($handle,LOCK_SH)){return 0;}
+            if(intval($file_id)!==6){$count=$this->count_event_records($handle);return$count===false?0:$count;}
+            $first=$this->read_record_fingerprint($handle);if($first===false){return 0;}$count=1;
+            while(($next=$this->read_record_fingerprint($handle))!==false){if($next===$first){$count++;}}return$count;
+        }finally{@flock($handle,LOCK_UN);@fclose($handle);}
+    }
 
-	/**
-	 * Read a bounded tail of a logfile for the ACP. This avoids loading a
-	 * corrupted or manually enlarged file completely into PHP memory.
-	 */
-	function read_log_lines($file_id, $max_lines = 1000)
-	{
-		$path = $this->safe_log_path($file_id);
-		$max_lines = max(1, min(5000, intval($max_lines)));
-		if ($path === false || !is_file($path) || !is_readable($path))
-		{
-			return array();
-		}
-
-		$handle = @fopen($path, 'rb');
-		if ($handle === false)
-		{
-			return array();
-		}
-		$lines = array();
-		while (($line = @fgets($handle, 16385)) !== false)
-		{
-			$lines[] = $line;
-			if (count($lines) > $max_lines)
-			{
-				array_shift($lines);
-			}
-		}
-		@fclose($handle);
-
-		return $lines;
-	}
-
+    /**
+     * Read at most the newest requested lines within an 8 MiB tail. Never
+     * return fragments of an oversized record or of the left scan boundary.
+     */
+    function read_log_lines($file_id,$max_lines=1000)
+    {
+        $path=$this->safe_log_path($file_id);$max_lines=max(1,min(5000,intval($max_lines)));
+        if($path===false||!is_file($path)||!is_readable($path)){return array();}$handle=@fopen($path,'rb');if($handle===false){return array();}
+        try{
+            if(!@flock($handle,LOCK_SH)){return array();}$stat=@fstat($handle);
+            if(!is_array($stat)||!isset($stat['size'])||!is_int($stat['size'])||$stat['size']<1){return array();}
+            $position=$stat['size'];$budget=min($position,8388608);$lines=array();$carry='';$oversized=false;$suffix='';$at_end=true;
+            while($position>0&&$budget>0&&count($lines)<$max_lines){
+                $bytes=min(8192,$position,$budget);$position-=$bytes;$budget-=$bytes;if(@fseek($handle,$position)!==0){return array();}
+                $chunk=@fread($handle,$bytes);if($chunk===false||strlen($chunk)!==$bytes){return array();}$parts=explode("\n",$chunk);
+                for($i=count($parts)-1;$i>=0;$i--){
+                    // A final LF terminates the last record; it adds no extra
+                    // empty record at EOF. Interior empty lines are retained.
+                    if($at_end&&$parts[$i]===''&&$i===count($parts)-1){$at_end=false;$suffix="\n";continue;}$at_end=false;
+                    if(!$oversized){$candidate=$parts[$i].$carry;if(strlen($candidate)+strlen($suffix)>16384){$oversized=true;$carry='';}else{$carry=$candidate;}}
+                    if($i>0){if(!$oversized){$lines[]=$carry.$suffix;}$carry='';$oversized=false;$suffix="\n";if(count($lines)>=$max_lines){return array_reverse($lines);}}
+                }
+            }
+            if($position===0&&!$oversized&&count($lines)<$max_lines){$lines[]=$carry.$suffix;}
+            return array_reverse($lines);
+        }finally{@flock($handle,LOCK_UN);@fclose($handle);}
+    }
 
 	/**
 	 * Stops the script on file operation errors

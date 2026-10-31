@@ -259,6 +259,7 @@ $lang['ctracker_log_manager_delete']	  = 'LÖSCHEN';
 $lang['ctracker_log_manager_delete_all']  = 'Alle Logdateien löschen';
 $lang['ctracker_log_manager_deleted']	  = 'Das Logfile wurde erfolgreich gelöscht!';
 $lang['ctracker_log_manager_all_deleted'] = 'Alle Logdateien wurden erfolgreich gelöscht!';
+$lang['ctracker_log_manager_tail_info'] = 'Die Anzeige umfasst bis zu 1000 der neuesten vollständigen Zeilen. Überlange und angeschnittene Zeilen werden ausgelassen; die gespeicherte Protokolldatei bleibt unverändert.';
 $lang['ctracker_log_manager_showheader1'] = 'Diese Logdatei enthält aktuell <b>einen</b> Eintrag. Klicke <b><a href="%s">HIER</a></b>, um zur Logdatei Übersicht zurückzukehren.';
 $lang['ctracker_log_manager_showheader']  = 'Diese Logdatei enthält aktuell <b>%s</b> Einträge.<br />Klicke <b><a href="%s">HIER</a></b>, um zur Logdatei Übersicht zurückzukehren.';
 $lang['ctracker_log_manager_showlog']	  = 'Logdatei ansehen';

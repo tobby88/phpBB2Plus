@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### CrackerTracker log records
+
+- Count complete logical records in fixed-size buffers, including during log
+  reset, so a large historical or damaged line is transferred to the persistent
+  counter once. Preserve debug-header group counting without loading entire
+  large lines into memory.
+- Read the newest complete display lines within a bounded tail, omitting
+  oversized or cut-off records instead of displaying their middle fragments as
+  separate events. Explain the display limit in English and German; retain the
+  original file contents during viewing.
+
 ### Read-only Download file maintenance
 
 - Report missing and unreferenced local files without deleting data. Exclude
