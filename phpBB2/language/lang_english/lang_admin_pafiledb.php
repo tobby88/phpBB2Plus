@@ -1,4 +1,9 @@
 <?php
+$lang['PA_permissions_invalid'] = 'Invalid download permission selection. Check the categories, fields and access levels.';
+$lang['PA_permissions_incomplete'] = 'The permission form is incomplete. Reload it or open fewer categories; no partial update was accepted.';
+$lang['PA_permissions_missing'] = 'A selected download category no longer exists. Reload the permission page.';
+$lang['PA_permissions_target'] = 'The selected user, group or personal-group membership has changed or is ambiguous. Reload the permission page.';
+$lang['PA_permissions_failed'] = 'The permission change could not be confirmed. Reload the permission page before trying again.';
 $lang['PA_custom_invalid'] = 'Invalid download field. Check the name, type, choices, order and selection.';
 $lang['PA_custom_regex'] = 'The field expression is invalid or longer than 255 characters.';
 $lang['PA_custom_missing'] = 'A selected download field no longer exists. Reload the field list.';

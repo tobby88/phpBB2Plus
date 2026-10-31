@@ -12,6 +12,8 @@
 <h2>{L_USER_OR_GROUPNAME}: {USERNAME}</h2>
 
 <form method="post" action="{S_AUTH_ACTION}">
+{S_AUTH_CONTEXT}
+<!-- IF ERROR neq '' --><p class="errorline">{ERROR}</p><!-- ENDIF -->
 
 <!-- IF USER -->
 <p>{USER_LEVEL}</p>

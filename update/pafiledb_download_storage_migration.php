@@ -21,7 +21,7 @@ function plus_pa_download_index_matches($rows,$columns)
 function plus_pa_download_plan($db,$prefix,$canonical=true)
 {
     plus_pa_download_prefix($prefix);if(mysqli_character_set_name($db)!=='utf8mb4'){throw new RuntimeException('Download storage migration requires utf8mb4');}$plan=array();
-    foreach(array('pa_download_info'=>array('file_id'),'pa_cat'=>array('cat_last_file_id','cat_files'),'pa_files'=>array())as$suffix=>$required){
+    foreach(array('pa_download_info'=>array('file_id'),'pa_cat'=>array('cat_last_file_id','cat_files'),'pa_auth'=>array('cat_id'),'pa_files'=>array())as$suffix=>$required){
         $table=$prefix.$suffix;$meta=plus_storage_metadata($db,$table);if($meta===null){continue;}
         if($canonical&&($meta['ENGINE']!=='InnoDB'||strtolower($meta['ROW_FORMAT'])!=='dynamic'||$meta['TABLE_COLLATION']!=='utf8mb4_unicode_ci')){throw new RuntimeException('Complete modern storage migration before widening download identities');}
         $columns=array();foreach(plus_storage_rows($db,'SHOW FULL COLUMNS FROM '.plus_storage_identifier($table))as$column){if($canonical&&$column['Collation']!==null&&$column['Collation']!=='utf8mb4_unicode_ci'){throw new RuntimeException('Download column encoding requires migration first');}$columns[$column['Field']]=$column;}

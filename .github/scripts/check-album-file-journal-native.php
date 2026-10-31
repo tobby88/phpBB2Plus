@@ -140,6 +140,9 @@ try {
     ajm_sql('ALTER TABLE legacy_pa_download_info MODIFY file_id MEDIUMINT NOT NULL DEFAULT 0,DROP INDEX file_actor,DROP INDEX file_address');
     ajm_sql('ALTER TABLE legacy_pa_cat MODIFY cat_files MEDIUMINT NOT NULL DEFAULT -1,MODIFY cat_last_file_id MEDIUMINT UNSIGNED NOT NULL DEFAULT 0');
     ajm_sql('ALTER TABLE legacy_pa_files DROP INDEX file_category_time');
+    ajm_sql('ALTER TABLE legacy_pa_auth MODIFY cat_id SMALLINT UNSIGNED NOT NULL DEFAULT 0');
+    ajm_sql('INSERT INTO legacy_pa_auth(group_id,cat_id,auth_download)VALUES(22,65535,1),(22,65535,0),(31,0,1)');
+    $download_grants_before = plus_pa_download_digest($db, 'legacy_pa_auth');
     ajm_sql("INSERT INTO legacy_pa_files(file_id,real_name,file_dir,file_name,file_catid,file_approved)VALUES(42,'synthetic.zip','downloads/','Preserved download',7,1)");
     $download_files_before = plus_pa_download_digest($db, 'legacy_pa_files');
     ajm_sql("INSERT INTO legacy_pa_download_info(file_id,user_id,downloader_ip,downloader_os)VALUES(42,7,'7f000001','Preserved download'),(42,7,'7f000001','Preserved download')");
@@ -153,6 +156,7 @@ try {
     ajm_check(!plus_pa_file_journal_plan($db, 'legacy_'), 'Real full updater also creates the canonical download file journal'); $cases++;
     ajm_check(!plus_pa_download_plan($db, 'legacy_') && plus_pa_download_digest($db, 'legacy_pa_download_info') === $download_rows_before, 'Real full updater widens download references/counters and preserves duplicate visitor rows'); $cases++;
     ajm_check(plus_pa_download_digest($db, 'legacy_pa_files') === $download_files_before && isset(plus_pa_download_indexes($db, 'legacy_pa_files')['file_category_time']), 'Real full updater adds category lookup index without altering file metadata'); $cases++;
+    ajm_check(plus_pa_download_digest($db, 'legacy_pa_auth') === $download_grants_before, 'Real full updater widens grant category references without altering historical duplicate permissions'); $cases++;
     ajm_check(!plus_album_rating_plan($db, 'legacy_', true) && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before, 'Real full updater widens legacy HotOrNot scores and preserves duplicate/negative votes'); $cases++;
     ajm_check(!plus_album_comment_parent_plan($db, 'legacy_')['changes'] && plus_album_comment_parent_digest($db, 'legacy_', false) === $comments_expected, 'Real full updater reconciles current comment parents and preserves orphan/content rows'); $cases++;
     ajm_check(!plus_post_tombstone_plan($db,'legacy_',true) && plus_post_tombstone_digest($db,'legacy_posts',$post_columns)===$posts_before && ajm_rows('SELECT post_deleted,post_deleted_time,post_deleted_by FROM legacy_posts')[0]===array('post_deleted'=>'0','post_deleted_time'=>'0','post_deleted_by'=>'0'), 'Actual full updater adds placeholder state without blanking or deleting historical posts'); $cases++;
@@ -161,6 +165,7 @@ try {
     ajm_check(plus_album_comment_parent_digest($db, 'legacy_', false) === $comments_expected, 'Repeated full updater preserves repaired and orphan comment snapshots'); $cases++;
     ajm_check(!plus_pa_download_plan($db, 'legacy_') && plus_pa_download_digest($db, 'legacy_pa_download_info') === $download_rows_before, 'Repeated full updater preserves migrated download statistics'); $cases++;
     ajm_check(plus_pa_download_digest($db, 'legacy_pa_files') === $download_files_before, 'Repeated full updater preserves indexed download file metadata'); $cases++;
+    ajm_check(plus_pa_download_digest($db, 'legacy_pa_auth') === $download_grants_before, 'Repeated full updater preserves all category grant rows'); $cases++;
     ajm_check(plus_post_tombstone_digest($db,'legacy_posts',$post_columns)===$posts_before && !plus_post_tombstone_plan($db,'legacy_',true), 'Repeated full updater preserves post contents and deletion state'); $cases++;
     echo 'Native Album file journal migration: ', $cases, " dry/apply/idempotence/modern-schema/guest/Unicode/row-preservation/caller-TX/locks/custom-refusal/partial-resume/real-scoped-and-full-updater cases PASS; own loopback schemas only, no image operations or live data.\n";
 } finally {

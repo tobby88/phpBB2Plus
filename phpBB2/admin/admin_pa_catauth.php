@@ -38,18 +38,21 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
 include($phpbb_root_path . 'pafiledb/pafiledb_common.'.$phpEx);
+require_once $phpbb_root_path . 'pafiledb/includes/functions_permission_storage.php';
+$permission_ids=array();$permission_error='';
 
 if (!function_exists('admin_display_cat_auth'))
 {
 	function admin_display_cat_auth($cat_parent = 0, $depth = 0)
 	{
 		global $pafiledb, $phpbb_root_path, $pafiledb_template, $phpEx;
-		global $cat_auth_fields, $cat_auth_const, $cat_auth_levels, $lang;
+		global $cat_auth_fields, $cat_auth_const, $cat_auth_levels, $lang, $permission_ids, $permission_error;
 		$pre = str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;', $depth);
 		if(isset($pafiledb->subcat_rowset[$cat_parent]))
 		{
 			foreach($pafiledb->subcat_rowset[$cat_parent] as $sub_cat_id => $cat_data)
 			{
+                if(isset($permission_ids[$sub_cat_id])){continue;}$permission_ids[$sub_cat_id]=(int)$sub_cat_id;
 				$pafiledb_template->assign_block_vars('cat_row', array(
 					'CATEGORY_NAME' => phpbb_admin_html($cat_data['cat_name']),
 					'IS_HIGHER_CAT' => ($cat_data['cat_allow_file']) ? false : true,
@@ -63,7 +66,7 @@ if (!function_exists('admin_display_cat_auth'))
 
 					for($k = 0; $k < count($cat_auth_levels); $k++)
 					{
-						$selected = ( $cat_data[$cat_auth_fields[$j]] == $cat_auth_const[$k] ) ? ' selected="selected"' : '';
+						$selected = (($permission_error!==''?pafiledb_permission_draft($_POST,$cat_auth_fields[$j],$sub_cat_id,$cat_data[$cat_auth_fields[$j]],true):$cat_data[$cat_auth_fields[$j]]) == $cat_auth_const[$k]) ? ' selected="selected"' : '';
 						$custom_auth[$j] .= '<option value="' . $cat_auth_const[$k] . '"' . $selected . '>' . $lang['Category_' . $cat_auth_levels[$k]] . '</option>';
 					}
 					$custom_auth[$j] .= '</select>&nbsp;';
@@ -104,15 +107,16 @@ $field_names = array(
 $cat_auth_levels = array('ALL', 'REG', 'PRIVATE', 'MOD', 'ADMIN');
 $cat_auth_const = array(AUTH_ALL, AUTH_REG, AUTH_ACL, AUTH_MOD, AUTH_ADMIN);
 
-$cat_parent = (isset($_GET['cat_parent']) && is_scalar($_GET['cat_parent'])) ? max(0, intval($_GET['cat_parent'])) : 0;
+$view_input=array_merge($_GET,$_POST);
+$cat_parent = (isset($view_input['cat_parent']) && is_scalar($view_input['cat_parent'])) ? max(0,intval($view_input['cat_parent'])) : 0;
 if ($cat_parent && !isset($pafiledb->cat_rowset[$cat_parent]))
 {
 	$cat_parent = 0;
 }
 
-if(isset($_GET['cat_id']) && is_scalar($_GET['cat_id']))
+if(isset($view_input['cat_id']) && is_scalar($view_input['cat_id']) && (int)$view_input['cat_id']>0)
 {
-	$cat_id = (isset($_GET['cat_id']) && is_scalar($_GET['cat_id'])) ? max(0, intval($_GET['cat_id'])) : 0;
+	$cat_id=max(0,intval($view_input['cat_id']));
 	if (!$cat_id || !isset($pafiledb->cat_rowset[$cat_id]))
 	{
 		message_die(GENERAL_ERROR, 'Invalid download category.');
@@ -127,66 +131,17 @@ else
 //
 // Start program proper
 //
-if( isset($_POST['submit']) )
+if ((isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD']==='POST') || isset($_POST['submit']))
 {
-	phpbb_admin_require_post_session();
-	$temp_sql = array();
-
-	for($i = 0; $i < count($cat_auth_fields); $i++)
-	{
-		$field = $cat_auth_fields[$i];
-		if (!isset($_POST[$field]) || !is_array($_POST[$field]))
-		{
-			continue;
-		}
-
-		foreach($_POST[$field] as $temp_cat_id => $value)
-		{
-			$temp_cat_id = intval($temp_cat_id);
-			if (!$temp_cat_id || !isset($pafiledb->cat_rowset[$temp_cat_id]) || !is_scalar($value))
-			{
-				continue;
-			}
-
-			$auth_value = intval($value);
-			if (!in_array($auth_value, $cat_auth_const, true))
-			{
-				continue;
-			}
-
-			if (!isset($temp_sql[$temp_cat_id]))
-			{
-				$temp_sql[$temp_cat_id] = array();
-			}
-			$temp_sql[$temp_cat_id][] = $field . ' = ' . $auth_value;
-		}
-	}
-	
-	$sql = array();
-	foreach($temp_sql as $temp_cat_id => $update_fields)
-	{
-		$update_sql = implode(', ', $update_fields);
-		$sql[] = "UPDATE " . PA_CATEGORY_TABLE . " 
-			SET $update_sql WHERE cat_id = $temp_cat_id";
-	}
-	
-	unset($temp_sql);
-
-
-	if ( is_array($sql) && (count($sql) > 0) )
-	{
-		foreach($sql as $do_sql)
-		{
-			if ( !$db->sql_query($do_sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update category permissions', '', __LINE__, __FILE__, $do_sql);
-			}
-		}
-	}
-
-	$message = $lang['Category_auth_updated'] . '<br /><br />' . sprintf($lang['Click_return_catauth'],  '<a href="' . append_sid("admin_pa_catauth.$phpEx") . '">', "</a>");
-	message_die(GENERAL_MESSAGE, $message);
-} // End of submit
+    phpbb_admin_require_post_session();
+    try { pafiledb_category_permissions_save($_POST); }
+    catch(PaFileDbFileActionFailure$error){$key=$error->getMessage();$permission_error=isset($lang[$key])?$lang[$key]:$lang['PA_permissions_failed'];}
+    catch(Exception$error){$permission_error=$lang['PA_permissions_failed'];}
+    catch(Error$error){$permission_error=$lang['PA_permissions_failed'];}
+    if($permission_error===''){
+        $message=$lang['Category_auth_updated'].'<br /><br />'.sprintf($lang['Click_return_catauth'],'<a href="'.append_sid('admin_pa_catauth.'.$phpEx).'">','</a>');message_die(GENERAL_MESSAGE,$message);
+    }
+}
 
 //
 
@@ -243,7 +198,7 @@ elseif(!empty($cat_id))
 
 		for($k = 0; $k < count($cat_auth_levels); $k++)
 		{
-			$selected = ( $pafiledb->cat_rowset[$cat_id][$cat_auth_fields[$j]] == $cat_auth_const[$k] ) ? ' selected="selected"' : '';
+			$selected = (($permission_error!==''?pafiledb_permission_draft($_POST,$cat_auth_fields[$j],$cat_id,$pafiledb->cat_rowset[$cat_id][$cat_auth_fields[$j]],true):$pafiledb->cat_rowset[$cat_id][$cat_auth_fields[$j]]) == $cat_auth_const[$k]) ? ' selected="selected"' : '';
 			$custom_auth[$j] .= '<option value="' . $cat_auth_const[$k] . '"' . $selected . '>' . $lang['Category_' . $cat_auth_levels[$k]] . '</option>';
 		}
 		$custom_auth[$j] .= '</select>&nbsp;';
@@ -252,10 +207,11 @@ elseif(!empty($cat_id))
 			'S_AUTH_LEVELS_SELECT' => $custom_auth[$j])
 		);
 	}
-	$s_hidden_fields = '<input type="hidden" name="cat_id" value="' . $cat_id . '" />';
+	$permission_ids[$cat_id]=(int)$cat_id;
 	$cat_name = phpbb_admin_html($pafiledb->cat_rowset[$cat_id]['cat_name']);
 }
-$s_hidden_fields = (isset($s_hidden_fields) ? $s_hidden_fields : '') . phpbb_admin_session_field();
+$s_auth_context=phpbb_admin_session_field().'<input type="hidden" name="permission_form" value="1" /><input type="hidden" name="cat_parent" value="'.$cat_parent.'" />'.(isset($cat_id)?'<input type="hidden" name="cat_id" value="'.$cat_id.'" />':'');
+$s_hidden_fields='<input type="hidden" name="permission_ids" value="'.implode(',',$permission_ids).'" />';
 $s_column_span = count($cat_auth_fields) + 2;
 
 $pafiledb_template->assign_vars(array(
@@ -267,6 +223,7 @@ $pafiledb_template->assign_vars(array(
 	'L_SUBMIT' => $lang['Submit'],
 	'L_RESET' => $lang['Reset'],
 
+    'ERROR' => phpbb_admin_html($permission_error), 'S_AUTH_CONTEXT' => $s_auth_context,
 	'S_CATAUTH_ACTION' => append_sid("admin_pa_catauth.$phpEx"),
 	'S_COLUMN_SPAN' => $s_column_span,
 	'S_HIDDEN_FIELDS' => $s_hidden_fields)

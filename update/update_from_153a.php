@@ -66,7 +66,7 @@ function update_usage()
 	echo "  --album-discussion-text-storage-only  Preserve comment author and UTF8/HTML text capacity\n";
 	echo "  --album-file-journal-only  Only create/verify durable Album journal tables; never clean image files\n";
 	echo "  --pafiledb-file-journal-only Only create/verify durable download file intents; never delete files\n";
-	echo "  --pafiledb-download-storage-only Widen download references/counters and index visitor records\n";
+	echo "  --pafiledb-download-storage-only Widen download/category grant references and counters; index lookups\n";
 	echo "  --album-rating-storage-only  Widen legacy HotOrNot scores without rewriting votes\n";
 	echo "  --album-comment-parents-only  Reconcile comment categories to current existing parents\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";

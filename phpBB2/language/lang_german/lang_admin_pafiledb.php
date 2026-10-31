@@ -1,4 +1,9 @@
 <?php
+$lang['PA_permissions_invalid'] = 'Ungültige Download-Berechtigung. Bitte überprüfe Kategorien, Felder und Zugriffsstufen.';
+$lang['PA_permissions_incomplete'] = 'Das Berechtigungsformular ist unvollständig. Bitte lade es neu oder öffne weniger Kategorien. Es wurde keine Teiländerung übernommen.';
+$lang['PA_permissions_missing'] = 'Eine ausgewählte Download-Kategorie ist nicht mehr vorhanden. Bitte lade die Berechtigungen neu.';
+$lang['PA_permissions_target'] = 'Benutzer, Gruppe oder persönliche Gruppenzuordnung haben sich geändert oder sind nicht eindeutig. Bitte lade die Berechtigungen neu.';
+$lang['PA_permissions_failed'] = 'Die Berechtigungsänderung konnte nicht bestätigt werden. Bitte lade die Seite vor einem erneuten Versuch neu.';
 $lang['PA_custom_invalid'] = 'Ungültiges Download-Feld. Bitte überprüfe Namen, Typ, Auswahlwerte, Reihenfolge und Auswahl.';
 $lang['PA_custom_regex'] = 'Der Ausdruck für das Feld ist ungültig oder länger als 255 Zeichen.';
 $lang['PA_custom_missing'] = 'Ein ausgewähltes Download-Feld ist nicht mehr vorhanden. Bitte lade die Feldliste neu.';

@@ -249,6 +249,13 @@ class PaFileDbFileCoordinator
 		$this->operation_mode = 'custom';
 	}
 
+	function begin_permissions($grants = false)
+	{
+		if (!is_bool($grants)) { throw new PaFileDbFileCoordinatorFailure('Invalid Download permission scope'); }
+		$this->begin(true);
+		$this->operation_mode = $grants ? 'permission-grants' : 'permission-categories';
+	}
+
 	private function allowed_statement($sql, $journal)
 	{
 		if (!is_string($sql)) { return false; }
@@ -262,6 +269,11 @@ class PaFileDbFileCoordinator
 		if ($this->operation_mode === 'custom') {
 			if ($journal || !isset($this->tables[$match[1]])) { return false; }
 			return $match[1] === $this->prefix . 'pa_custom' || preg_match('/^DELETE FROM '.preg_quote($this->prefix.'pa_customdata','/').' WHERE customdata_custom IN\([1-9][0-9]*(?:,[1-9][0-9]*)*\)$/D',$sql)===1;
+		}
+		if ($this->operation_mode === 'permission-grants') { return !$journal && $match[1] === $this->prefix . 'pa_auth' && isset($this->tables[$match[1]]); }
+		if ($this->operation_mode === 'permission-categories') {
+			$field='auth_(?:view|read|view_file|edit_file|delete_file|upload|download|rate|email|view_comment|post_comment|edit_comment|delete_comment)';
+			return !$journal && isset($this->tables[$match[1]]) && preg_match('/^UPDATE '.preg_quote($this->prefix.'pa_cat','/').' SET '.$field.'=(?:0|1|2|3|5)(?:,'.$field.'=(?:0|1|2|3|5))* WHERE cat_id=[1-9][0-9]*$/D',$sql)===1;
 		}
 		$writable = $journal ? array('pa_file_journal') : array('pa_files','pa_cat','pa_comments','pa_votes','pa_customdata','pa_mirrors','pa_auth','pa_file_journal','pa_download_info');
 		foreach ($writable as $suffix) { if ($match[1] === $this->prefix . $suffix && isset($this->tables[$match[1]])) { return true; } }
@@ -318,7 +330,7 @@ class PaFileDbFileCoordinator
 	{
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $this->journal_transaction) { throw new PaFileDbFileCoordinatorFailure('Invalid prepared Download receipt transaction'); }
-		if (in_array($this->operation_mode,array('recovery','settings','licenses','custom'),true)) { throw new PaFileDbFileCoordinatorFailure('This operation cannot prepare a new download publication'); }
+		if (in_array($this->operation_mode,array('recovery','settings','licenses','custom','permission-categories','permission-grants'),true)) { throw new PaFileDbFileCoordinatorFailure('This operation cannot prepare a new download publication'); }
 		if (!$this->can_publish()) { throw new PaFileDbFileCoordinatorFailure('Missing download preparation capability'); }
 		$this->operation_mode = 'producer';
 		$this->query($this->journal, 'START TRANSACTION'); $this->journal_transaction = true;

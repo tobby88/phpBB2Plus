@@ -996,7 +996,7 @@ CREATE TABLE phpbb_pa_cat (
 
 CREATE TABLE phpbb_pa_auth (
    group_id mediumint(8) default '0' NOT NULL,
-   cat_id smallint(5) UNSIGNED default '0' NOT NULL,
+   cat_id int(10) UNSIGNED default '0' NOT NULL,
    auth_view tinyint(1) default '0' NOT NULL,
    auth_read tinyint(1) default '0' NOT NULL,
    auth_view_file tinyint(1) default '0' NOT NULL,

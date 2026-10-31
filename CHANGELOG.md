@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download category and user/group permissions
+
+- Save each permission form as one transaction under current administrator or
+  delegated module authority. Reject incomplete or truncated submissions before
+  changing any permissions, and preserve valid drafts with a translated error.
+- Resolve personal groups from current memberships, retain unrelated grants,
+  and display the effective permissions of historical duplicate grant rows.
+- Widen category references in permission storage to match category identities.
+  Fresh installs use the corrected field; `update_from_153a.php` performs the
+  same guarded migration, including its download-storage-only mode, preserving
+  existing rows, defaults, comments and indexes.
+
 ### License and Download text output
 
 - Escape raw license names in public headings and upload choices, and raw

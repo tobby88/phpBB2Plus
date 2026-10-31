@@ -54,8 +54,9 @@ pafiledb_admin_assert(substr_count($admin_flags, 'phpbb_admin_require_post_sessi
 pafiledb_admin_assert(substr_count($admin_flags, 'phpbb_admin_html($flag_image)') >= 2, 'stored flag images must be escaped when rendered');
 
 pafiledb_admin_assert(strpos($admin_catauth, 'phpbb_admin_require_post_session();') !== false, 'category permission writes must require a POST token');
-pafiledb_admin_assert(strpos($admin_catauth, 'in_array($auth_value, $cat_auth_const, true)') !== false, 'category permission levels must use a strict allowlist');
-pafiledb_admin_assert(strpos($admin_catauth, '!isset($pafiledb->cat_rowset[$temp_cat_id])') !== false, 'category permission targets must exist');
+$permission_storage = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_permission_storage.php');
+pafiledb_admin_assert(strpos($admin_catauth, 'pafiledb_category_permissions_save($_POST)') !== false && strpos($permission_storage, 'function pafiledb_permission_value(') !== false, 'whole category batches require the owned strict permission writer');
+pafiledb_admin_assert(strpos($permission_storage, 'pafiledb_permission_categories($storage,$ids,$authority)') !== false, 'permission targets are checked against current locked categories');
 pafiledb_admin_assert(strpos($admin_catauth, "\$_REQUEST") === false, 'category permissions must not merge GET and POST input');
 pafiledb_admin_assert(strpos($admin_catauth, 'phpbb_admin_session_field()') !== false, 'category permission forms must carry a session token');
 pafiledb_admin_assert(strpos($admin_catauth, "'CATEGORY_NAME' => phpbb_admin_html") !== false, 'category names must be escaped in permission output');
@@ -71,7 +72,7 @@ pafiledb_admin_assert(strpos($pafiledb_functions, 'function set_config(') === fa
 
 pafiledb_admin_assert(strpos($admin_ug_auth, 'phpbb_admin_require_post_session();') !== false, 'user/group permission writes must require a POST token');
 pafiledb_admin_assert(strpos($admin_ug_auth, "array('user', 'group', 'glb_user', 'glb_group')") !== false, 'user/group permission modes must use an allowlist');
-pafiledb_admin_assert(strpos($admin_ug_auth, 'function pa_admin_ug_post_map') !== false, 'category permission maps must be normalized');
+pafiledb_admin_assert(strpos($admin_ug_auth, 'pafiledb_group_permissions_save($_POST)') !== false && strpos($permission_storage, 'function pafiledb_permission_map(') !== false, 'complete permission maps use the owned whole-batch writer');
 pafiledb_admin_assert(strpos($admin_ug_auth, 'group_single_user = 0') !== false, 'group targets must exclude personal groups');
 pafiledb_admin_assert(strpos($admin_ug_auth, 'group_single_user = 1') !== false, 'user targets must resolve through their personal group');
 pafiledb_admin_assert(strpos($admin_ug_auth, '@each(') === false, 'PHP 8-incompatible permission iterators must not return');

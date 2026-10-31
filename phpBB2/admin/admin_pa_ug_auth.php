@@ -15,17 +15,19 @@ $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 include($phpbb_root_path . 'pafiledb/pafiledb_common.' . $phpEx);
+require_once $phpbb_root_path . 'pafiledb/includes/functions_permission_storage.php';
+$permission_error='';$permission_ids=array();
 $pafiledb->init();
 
 function pa_admin_ug_request($key, $default = '')
 {
 	if (isset($_POST[$key]) && is_scalar($_POST[$key]))
 	{
-		return stripslashes((string) $_POST[$key]);
+		return (string)phpbb_request_raw_value($_POST[$key]);
 	}
 	if (isset($_GET[$key]) && is_scalar($_GET[$key]))
 	{
-		return stripslashes((string) $_GET[$key]);
+		return (string)phpbb_request_raw_value($_GET[$key]);
 	}
 	return (string) $default;
 }
@@ -92,81 +94,11 @@ function pa_admin_ug_access($group_id)
 	$rows = array();
 	while ($row = $db->sql_fetchrow($result))
 	{
-		$rows[intval($row['cat_id'])] = $row;
+        $cat=(int)$row['cat_id'];if(!isset($rows[$cat])){$rows[$cat]=$row;}
+        foreach(array_merge(pafiledb_permission_fields(),array('auth_mod'),pafiledb_permission_fields(true))as$field){$rows[$cat][$field]=(!empty($rows[$cat][$field])||!empty($row[$field]))?1:0;}
 	}
 	$db->sql_freeresult($result);
 	return $rows;
-}
-
-function pa_admin_ug_write($group_id, $cat_id, $fields, $values)
-{
-	global $db;
-	$group_id = intval($group_id);
-	$cat_id = intval($cat_id);
-	$normalized = array();
-	$has_permission = false;
-	foreach ($fields as $field)
-	{
-		$value = (isset($values[$field]) && intval($values[$field]) === 1) ? 1 : 0;
-		$normalized[$field] = $value;
-		$has_permission = $has_permission || $value;
-	}
-	$sql = 'SELECT group_id FROM ' . PA_AUTH_ACCESS_TABLE . " WHERE group_id = $group_id AND cat_id = $cat_id";
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, "Couldn't inspect paFileDB permissions", '', __LINE__, __FILE__, $sql);
-	}
-	$exists = (bool) $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if (!$has_permission)
-	{
-		if ($exists)
-		{
-			$sql = 'DELETE FROM ' . PA_AUTH_ACCESS_TABLE . " WHERE group_id = $group_id AND cat_id = $cat_id";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, "Couldn't delete paFileDB permissions", '', __LINE__, __FILE__, $sql);
-			}
-		}
-		return;
-	}
-	if ($exists)
-	{
-		$assignments = array();
-		foreach ($normalized as $field => $value)
-		{
-			$assignments[] = $field . ' = ' . $value;
-		}
-		$sql = 'UPDATE ' . PA_AUTH_ACCESS_TABLE . ' SET ' . implode(', ', $assignments) . " WHERE group_id = $group_id AND cat_id = $cat_id";
-	}
-	else
-	{
-		$names = array_merge(array('cat_id', 'group_id'), array_keys($normalized));
-		$data = array_merge(array($cat_id, $group_id), array_values($normalized));
-		$sql = 'INSERT INTO ' . PA_AUTH_ACCESS_TABLE . ' (' . implode(', ', $names) . ') VALUES (' . implode(', ', $data) . ')';
-	}
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, "Couldn't update paFileDB permissions", '', __LINE__, __FILE__, $sql);
-	}
-}
-
-function pa_admin_ug_post_map($name)
-{
-	$values = array();
-	if (!isset($_POST[$name]) || !is_array($_POST[$name]))
-	{
-		return $values;
-	}
-	foreach ($_POST[$name] as $id => $value)
-	{
-		$id = intval($id);
-		if ($id > 0 && is_scalar($value))
-		{
-			$values[$id] = (intval($value) === 1) ? 1 : 0;
-		}
-	}
-	return $values;
 }
 
 function pa_admin_ug_related($mode, $target)
@@ -201,7 +133,7 @@ function pa_admin_ug_related($mode, $target)
 
 function pa_admin_display_category_auth($parent = 0, $depth = 0)
 {
-	global $pafiledb, $pafiledb_template, $phpEx, $cat_auth_fields, $optionlist_mod, $optionlist_acl_adv;
+	global $pafiledb, $pafiledb_template, $phpEx, $cat_auth_fields, $optionlist_mod, $optionlist_acl_adv, $permission_ids;
 	if (!isset($pafiledb->subcat_rowset[$parent]))
 	{
 		return;
@@ -209,6 +141,7 @@ function pa_admin_display_category_auth($parent = 0, $depth = 0)
 	$pre = str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;', $depth);
 	foreach ($pafiledb->subcat_rowset[$parent] as $cat_id => $cat_data)
 	{
+        if(isset($permission_ids[$cat_id])){continue;}$permission_ids[$cat_id]=(int)$cat_id;
 		$pafiledb_template->assign_block_vars('cat_row', array('CAT_NAME' => phpbb_admin_html($cat_data['cat_name']), 'IS_HIGHER_CAT' => empty($cat_data['cat_allow_file']), 'PRE' => $pre, 'U_CAT' => append_sid("admin_pa_catauth.$phpEx?cat_id=" . intval($cat_id)), 'S_MOD_SELECT' => $optionlist_mod[$cat_id]));
 		for ($i = 0; $i < count($cat_auth_fields); $i++)
 		{
@@ -253,7 +186,6 @@ if (($mode === 'user' || $mode === 'glb_user') && isset($_POST['username']))
 
 $cat_auth_fields = array('auth_view', 'auth_read', 'auth_view_file', 'auth_edit_file', 'auth_delete_file', 'auth_upload', 'auth_download', 'auth_rate', 'auth_email', 'auth_view_comment', 'auth_post_comment', 'auth_edit_comment', 'auth_delete_comment');
 $global_auth_fields = array('auth_search', 'auth_stats', 'auth_toplist', 'auth_viewall');
-$category_write_fields = array_merge($cat_auth_fields, array('auth_mod'));
 $field_names = array('auth_view' => $lang['View'], 'auth_read' => $lang['Read'], 'auth_view_file' => $lang['View_file'], 'auth_edit_file' => $lang['Edit_file'], 'auth_delete_file' => $lang['Delete_file'], 'auth_upload' => $lang['Upload'], 'auth_download' => $lang['Download_file'], 'auth_rate' => $lang['Rate'], 'auth_email' => $lang['Email'], 'auth_view_comment' => $lang['View_comment'], 'auth_post_comment' => $lang['Post_comment'], 'auth_edit_comment' => $lang['Edit_comment'], 'auth_delete_comment' => $lang['Delete_comment']);
 $global_names = array('auth_search' => $lang['Auth_search'], 'auth_stats' => $lang['Auth_stats'], 'auth_toplist' => $lang['Auth_toplist'], 'auth_viewall' => $lang['Auth_viewall']);
 
@@ -267,47 +199,18 @@ $is_global = ($mode === 'glb_user' || $mode === 'glb_group');
 $is_user = ($mode === 'user' || $mode === 'glb_user');
 $target = ($user_id || $group_id) ? pa_admin_ug_target($mode, $user_id, $group_id) : false;
 
-if (isset($_POST['submit']))
+if (isset($_POST['permission_form']) || isset($_POST['submit']))
 {
-	phpbb_admin_require_post_session();
-	if (!$target)
-	{
-		message_die(GENERAL_ERROR, 'Invalid paFileDB permission target.');
-	}
-	if (!$is_global)
-	{
-		$moderators = pa_admin_ug_post_map('moderator');
-		$maps = array();
-		foreach ($cat_auth_fields as $field)
-		{
-			$maps[$field] = pa_admin_ug_post_map('private_' . $field);
-		}
-		foreach ($pafiledb->cat_rowset as $cat_id => $cat_data)
-		{
-			$cat_id = intval($cat_id);
-			$values = array('auth_mod' => isset($moderators[$cat_id]) ? $moderators[$cat_id] : 0);
-			foreach ($cat_auth_fields as $field)
-			{
-				$values[$field] = ($cat_data[$field] == AUTH_ACL && empty($values['auth_mod']) && isset($maps[$field][$cat_id])) ? $maps[$field][$cat_id] : 0;
-			}
-			pa_admin_ug_write($target['group_id'], $cat_id, $category_write_fields, $values);
-		}
-	}
-	else
-	{
-		$values = array();
-		$moderator = is_moderator($target['group_id']);
-		foreach ($global_auth_fields as $field)
-		{
-			$value = (isset($_POST['private_' . $field]) && is_scalar($_POST['private_' . $field]) && intval($_POST['private_' . $field]) === 1) ? 1 : 0;
-			$values[$field] = (!$moderator && isset($pafiledb_config[$field]) && $pafiledb_config[$field] == AUTH_ACL) ? $value : 0;
-		}
-		pa_admin_ug_write($target['group_id'], 0, $global_auth_fields, $values);
-	}
-	$return_text = $is_user ? $lang['Click_return_userauth'] : $lang['Click_return_groupauth'];
-	message_die(GENERAL_MESSAGE, $lang['Auth_updated'] . '<br /><br />' . sprintf($return_text, '<a href="' . append_sid("admin_pa_ug_auth.$phpEx?mode=$mode") . '">', '</a>'));
+    phpbb_admin_require_post_session();
+    try { pafiledb_group_permissions_save($_POST); }
+    catch(PaFileDbFileActionFailure$error){$key=$error->getMessage();$permission_error=isset($lang[$key])?$lang[$key]:$lang['PA_permissions_failed'];}
+    catch(Exception$error){$permission_error=$lang['PA_permissions_failed'];}
+    catch(Error$error){$permission_error=$lang['PA_permissions_failed'];}
+    if($permission_error===''){
+        $return_text=$is_user?$lang['Click_return_userauth']:$lang['Click_return_groupauth'];message_die(GENERAL_MESSAGE,$lang['Auth_updated'].'<br /><br />'.sprintf($return_text,'<a href="'.append_sid('admin_pa_ug_auth.'.$phpEx.'?mode='.$mode).'">','</a>'));
+    }
+    if(!$target){message_die(GENERAL_ERROR,phpbb_admin_html($permission_error));}
 }
-
 if ($target)
 {
 	$access = pa_admin_ug_access($target['group_id']);
@@ -322,13 +225,13 @@ if ($target)
 		{
 			$cat_id = intval($cat_id);
 			$row = isset($access[$cat_id]) ? $access[$cat_id] : array();
-			$is_mod = !empty($row['auth_mod']);
+			$is_mod = $permission_error!==''?(bool)pafiledb_permission_draft($_POST,'moderator',$cat_id,!empty($row['auth_mod'])?1:0):!empty($row['auth_mod']);
 			foreach ($cat_auth_fields as $index => $field)
 			{
 				$select = '&nbsp;';
 				if ($cat_data[$field] == AUTH_ACL)
 				{
-					$current = !empty($row[$field]);
+					$current = $permission_error!==''?(bool)pafiledb_permission_draft($_POST,'private_'.$field,$is_global?null:$cat_id,!empty($row[$field])?1:0):!empty($row[$field]);
 					$select = '<select name="private_' . $field . '[' . $cat_id . ']">';
 					$select .= (!empty($target['is_admin']) || $is_mod) ? '<option value="1">' . $lang['ON'] . '</option>' : '<option value="1"' . ($current ? ' selected="selected"' : '') . '>' . $lang['ON'] . '</option><option value="0"' . (!$current ? ' selected="selected"' : '') . '>' . $lang['OFF'] . '</option>';
 					$select .= '</select>';
@@ -354,7 +257,7 @@ if ($target)
 			$select = '&nbsp;';
 			if (isset($pafiledb_config[$field]) && $pafiledb_config[$field] == AUTH_ACL)
 			{
-				$current = !empty($row[$field]);
+				$current = $permission_error!==''?(bool)pafiledb_permission_draft($_POST,'private_'.$field,$is_global?null:$cat_id,!empty($row[$field])?1:0):!empty($row[$field]);
 				$select = '<select name="private_' . $field . '">';
 				$select .= (!empty($target['is_admin']) || $moderator) ? '<option value="1">' . $lang['ON'] . '</option>' : '<option value="1"' . ($current ? ' selected="selected"' : '') . '>' . $lang['ON'] . '</option><option value="0"' . (!$current ? ' selected="selected"' : '') . '>' . $lang['OFF'] . '</option>';
 				$select .= '</select>';
@@ -378,8 +281,9 @@ if ($target)
 	}
 	$hidden = '<input type="hidden" name="mode" value="' . phpbb_admin_html($mode) . '" />';
 	$hidden .= $is_user ? '<input type="hidden" name="' . POST_USERS_URL . '" value="' . intval($target['user_id']) . '" />' : '<input type="hidden" name="' . POST_GROUPS_URL . '" value="' . intval($target['group_id']) . '" />';
-	$hidden .= phpbb_admin_session_field();
-	$pafiledb_template->assign_vars(array('SHOW_MOD' => !$is_global, 'L_USER_OR_GROUPNAME' => $is_user ? $lang['Username'] : $lang['Group_name'], 'L_AUTH_TITLE' => $is_user ? $lang['Auth_Control_User'] : $lang['Auth_Control_Group'], 'L_AUTH_EXPLAIN' => $is_user ? $lang['User_auth_explain'] : $lang['Group_auth_explain'], 'L_MODERATOR_STATUS' => $lang['Moderator_status'], 'L_PERMISSIONS' => $lang['Permissions'], 'L_SUBMIT' => $lang['Submit'], 'L_RESET' => $lang['Reset'], 'L_CAT' => $is_global ? ($is_user ? $lang['User_Global_Permissions'] : $lang['Group_Global_Permissions']) : $lang['Category'], 'U_USER_OR_GROUP' => append_sid("admin_pa_ug_auth.$phpEx"), 'S_COLUMN_SPAN' => $span + ($is_global ? 1 : 2), 'S_AUTH_ACTION' => append_sid("admin_pa_ug_auth.$phpEx"), 'S_HIDDEN_FIELDS' => $hidden));
+    $auth_context=$hidden.phpbb_admin_session_field().'<input type="hidden" name="permission_form" value="1" />';
+    $hidden='<input type="hidden" name="permission_ids" value="'.($is_global?'0':implode(',',$permission_ids)).'" />';
+	$pafiledb_template->assign_vars(array('ERROR'=>phpbb_admin_html($permission_error),'S_AUTH_CONTEXT'=>$auth_context,'SHOW_MOD' => !$is_global, 'L_USER_OR_GROUPNAME' => $is_user ? $lang['Username'] : $lang['Group_name'], 'L_AUTH_TITLE' => $is_user ? $lang['Auth_Control_User'] : $lang['Auth_Control_Group'], 'L_AUTH_EXPLAIN' => $is_user ? $lang['User_auth_explain'] : $lang['Group_auth_explain'], 'L_MODERATOR_STATUS' => $lang['Moderator_status'], 'L_PERMISSIONS' => $lang['Permissions'], 'L_SUBMIT' => $lang['Submit'], 'L_RESET' => $lang['Reset'], 'L_CAT' => $is_global ? ($is_user ? $lang['User_Global_Permissions'] : $lang['Group_Global_Permissions']) : $lang['Category'], 'U_USER_OR_GROUP' => append_sid("admin_pa_ug_auth.$phpEx"), 'S_COLUMN_SPAN' => $span + ($is_global ? 1 : 2), 'S_AUTH_ACTION' => append_sid("admin_pa_ug_auth.$phpEx"), 'S_HIDDEN_FIELDS' => $hidden));
 }
 else
 {
