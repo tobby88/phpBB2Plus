@@ -51,7 +51,9 @@ class PaFileDbFileAuthority
         $ttl = $this->rows("SELECT config_value FROM " . CONFIG_TABLE . " WHERE config_name='session_length' FOR UPDATE");
         if (count($ttl) !== 1 || !preg_match('/^[1-9][0-9]*$/D', (string)$ttl[0]['config_value']) || (float)$ttl[0]['config_value'] > 2147483647) { pafiledb_file_fail(); }
         $sid = $this->storage->sql_escape($this->actor['sid']);
-        $sessions = $this->rows('SELECT session_id,session_user_id,session_logged_in,session_admin,session_time FROM ' . SESSIONS_TABLE . " WHERE HEX(session_id)=HEX('" . $sid . "') FOR UPDATE");
+        // Use the primary key to limit locks to this session; retain HEX for
+        // byte-exact matching under case-insensitive or padded collations.
+        $sessions = $this->rows('SELECT session_id,session_user_id,session_logged_in,session_admin,session_time FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') FOR UPDATE");
         if (count($sessions) !== 1 || (int)$sessions[0]['session_user_id'] !== $this->actor['id'] || (string)$sessions[0]['session_logged_in'] !== ($logged ? '1' : '0') || (int)$sessions[0]['session_time'] < time() - (int)$ttl[0]['config_value']) { pafiledb_file_fail('Session_invalid'); }
         $users = $this->rows('SELECT user_id,username,user_active,user_level,user_allowhtml,user_allowbbcode,user_allowsmile FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->actor['id'] . ' FOR UPDATE');
         if (count($users) !== 1 || ($logged && ((string)$users[0]['user_active'] !== '1' || !in_array((int)$users[0]['user_level'], array(USER,MOD,ADMIN), true)))) { pafiledb_file_fail('Not_Authorised'); }

@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download category and user/group permissions
 
+- Look up the current session through its primary key while retaining a
+  byte-exact check. Structural transactions keep the actor's session locked
+  without blocking updates to unrelated sessions.
 - Save each permission form as one transaction under current administrator or
   delegated module authority. Reject incomplete or truncated submissions before
   changing any permissions, and preserve valid drafts with a translated error.
