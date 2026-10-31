@@ -263,6 +263,7 @@ $lang['ctracker_log_manager_tail_info'] = 'Die Anzeige umfasst bis zu 1000 der n
 $lang['ctracker_log_manager_operation_failed'] = 'Die Protokollaktion konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die Übersicht neu laden. Prüfe, ob das Datenbank-Update vollständig ausgeführt wurde.';
 $lang['ctracker_settings_operation_failed'] = 'Das Speichern konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die Einstellungen neu laden. Prüfe, ob das Datenbank-Update vollständig ausgeführt wurde.';
 $lang['ctracker_admin_action_failed'] = 'Die Änderung konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch diese Verwaltungsseite neu laden. Prüfe, ob das Datenbank-Update vollständig ausgeführt wurde.';
+$lang['ctracker_maintenance_failed'] = 'Die Wartungsaktion konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch den Status neu laden. Prüfe, ob das Datenbank-Update vollständig ausgeführt wurde.';
 $lang['ctracker_log_manager_showheader1'] = 'Diese Logdatei enthält aktuell <b>einen</b> Eintrag. Klicke <b><a href="%s">HIER</a></b>, um zur Logdatei Übersicht zurückzukehren.';
 $lang['ctracker_log_manager_showheader']  = 'Diese Logdatei enthält aktuell <b>%s</b> Einträge.<br />Klicke <b><a href="%s">HIER</a></b>, um zur Logdatei Übersicht zurückzukehren.';
 $lang['ctracker_log_manager_showlog']	  = 'Logdatei ansehen';

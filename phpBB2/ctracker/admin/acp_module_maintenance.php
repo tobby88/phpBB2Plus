@@ -30,6 +30,10 @@ $template->set_filenames(array(
 // Maintenance mutates CrackerTracker tables and therefore accepts only a
 // session-bound POST action.
 $mode = phpbb_admin_post_string('mode');
+if (array_key_exists('mode', $_POST) && !is_string($_POST['mode']))
+{
+	message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+}
 if ($mode !== '')
 {
 	phpbb_admin_require_post_session();
@@ -89,84 +93,16 @@ $testvalue[3] = (defined('protection_unit_three') && function_exists('ctracker_b
 $testvalue[4] = $rate_table_ready ? $lang['ctracker_ma_active'] : $lang['ctracker_ma_inactive'];
 
 
-// Maintenance actions
-if ( $mode == '1' )
+// Maintenance actions run on an owning connection; no DDL may commit the
+// ordinary forum connection or race an in-flight scan publication.
+if ($mode !== '')
 {
-	// Delete all entrys in the CrackerTracker IP Blocker
-	$mode_selected = true;
-	$sql = 'TRUNCATE ' . CTRACKER_IPBLOCKER;
-
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		 $operation_err = true;
-		 $error_message = __LINE__ . '<br />' . __FILE__ . '<br /><br />' . $sql;
-	}
+    $mode_selected = true;
+    require_once dirname(__DIR__).'/classes/class_maintenance_storage.php';
+    try { ctracker_maintenance_run($mode); }
+    catch (Exception $error) { $operation_err = true; $error_message = ctracker_maintenance_error_message($error); }
+    catch (Error $error) { $operation_err = true; $error_message = ctracker_maintenance_error_message($error); }
 }
-else if ( $mode == '2' )
-{
-	// Remove only the obsolete User-Agent rules shipped in 2006. They are
-	// trivial to spoof and include legitimate clients; custom administrator
-	// rules must survive this cleanup.
-	$mode_selected = true;
-	$legacy_values = array(
-		'*WebStripper*', '*NetMechanic*', '*CherryPicker*', '*EmailCollector*',
-		'*EmailSiphon*', '*WebBandit*', '*EmailWolf*', '*ExtractorPro*',
-		'*SiteSnagger*', '*CheeseBot*', '*ia_archiver*', '*Website Quester*',
-		'*WebZip*', '*moget*', '*WebSauger*', '*WebCopier*', '*WWW-Collector*',
-		'*InfoNaviRobot*', '*Harvest*', '*Bullseye*', '*LinkWalker*',
-		'*LinkextractorPro*', '*WebProxy*', '*BlowFish*', '*WebEnhancer*',
-		'*TightTwatBot*', '*LinkScan*', '*WebDownloader*', 'lwp',
-		'*BruteForce*', 'lwp-*', '*anonym*'
-	);
-	$quoted_values = array();
-	foreach ($legacy_values as $legacy_value)
-	{
-		$quoted_values[] = "'" . $db->sql_escape($legacy_value) . "'";
-	}
-	$sql = 'DELETE FROM ' . CTRACKER_IPBLOCKER . ' WHERE ct_blocker_value IN (' . implode(', ', $quoted_values) . ')';
-	if (!$db->sql_query($sql))
-	{
-		$operation_err = true;
-		$error_message = __LINE__ . '<br />' . __FILE__;
-	}
-}
-else if ( $mode == '3' )
-{
-	// Delete all entrys from Login-History
-	$mode_selected = true;
-	$sql = 'TRUNCATE ' . CTRACKER_LOGINHISTORY;
-
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		 $operation_err = true;
-		 $error_message = __LINE__ . '<br />' . __FILE__ . '<br /><br />' . $sql;
-	}
-}
-else if ( $mode == '4' )
-{
-	// Delete all entrys from Hashsum Checker
-	$mode_selected = true;
-	$sql = 'TRUNCATE ' . CTRACKER_FILECHK;
-
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		 $operation_err = true;
-		 $error_message = __LINE__ . '<br />' . __FILE__ . '<br /><br />' . $sql;
-	}
-}
-else if ( $mode == '5' )
-{
-	// Delete all entrys from CrackerTracker Filescanner
-	$mode_selected = true;
-	$sql = 'TRUNCATE ' . CTRACKER_FILESCANNER;
-
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		 $operation_err = true;
-		 $error_message = __LINE__ . '<br />' . __FILE__ . '<br /><br />' . $sql;
-	}
-}
-
 
 /*
  * Info or Errorbox
@@ -180,7 +116,7 @@ else if ( $mode_selected && $operation_err )
 {
 	// Error on query (replaces message_die() error on this place)
 	$template->assign_block_vars('errorbox', array(
-		'ERR_MSG'	=> $error_message)
+		'ERR_MSG'	=> phpbb_admin_html($error_message))
 	);
 }
 

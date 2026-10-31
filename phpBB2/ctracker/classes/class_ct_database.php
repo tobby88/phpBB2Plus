@@ -565,7 +565,8 @@ class ct_database
 	{
 		global $db, $lang;
 
-		$sql = 'TRUNCATE ' . CTRACKER_LOGINHISTORY;
+		// Keep this legacy primitive within its caller's transaction as well.
+		$sql = 'DELETE FROM ' . CTRACKER_LOGINHISTORY;
 
 		if ( !($result = $db->sql_query($sql)) )
 		{

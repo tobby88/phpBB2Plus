@@ -573,6 +573,12 @@ jobs:
         env:
           PHPBB_CT_ACTIONS_NATIVE: '1'
           PHPBB_CT_ACTIONS_PASSWORD: fixture-only
+      - name: Run CrackerTracker maintenance without caller commits or scan races
+        if: matrix.part == 4
+        run: php .github/scripts/check-ctracker-maintenance-native.php
+        env:
+          PHPBB_CT_MAINTENANCE_NATIVE: '1'
+          PHPBB_CT_MAINTENANCE_PASSWORD: fixture-only
       - name: Check CrackerTracker recovery storage
         if: matrix.part == 3
         run: php .github/scripts/check-ctracker-recovery-storage.php

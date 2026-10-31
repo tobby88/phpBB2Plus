@@ -29,6 +29,7 @@ $project_root = dirname(__DIR__);
 $forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 require_once $forum_root . '/includes/functions_user_ids.php';
+require_once $forum_root . '/includes/functions_ctracker_legacy_rules.php';
 require_once __DIR__ . '/innodb_migration.php';
 require_once __DIR__ . '/style_id_migration.php';
 require_once __DIR__ . '/ip_ban_migration.php';
@@ -1017,23 +1018,7 @@ if (update_table_exists($connection, $dbname, $ipblocker_table) &&
 
 // The original package seeded spoofable User-Agent strings from 2006. Remove
 // only those exact factory rows; administrator-created block rules survive.
-$legacy_blocklist_values = array(
-	'*WebStripper*', '*NetMechanic*', '*CherryPicker*', '*EmailCollector*',
-	'*EmailSiphon*', '*WebBandit*', '*EmailWolf*', '*ExtractorPro*',
-	'*SiteSnagger*', '*CheeseBot*', '*ia_archiver*', '*Website Quester*',
-	'*WebZip*', '*moget*', '*WebSauger*', '*WebCopier*', '*WWW-Collector*',
-	'*InfoNaviRobot*', '*Harvest*', '*Bullseye*', '*LinkWalker*',
-	'*LinkextractorPro*', '*WebProxy*', '*BlowFish*', '*WebEnhancer*',
-	'*TightTwatBot*', '*LinkScan*', '*WebDownloader*', 'lwp',
-	'*BruteForce*', 'lwp-*', '*anonym*'
-);
-$quoted_legacy_blocklist = array();
-foreach ($legacy_blocklist_values as $legacy_blocklist_value)
-{
-	$quoted_legacy_blocklist[] = "'" . mysqli_real_escape_string($connection, $legacy_blocklist_value) . "'";
-}
-$operations[] = 'DELETE FROM ' . update_quote_identifier($ipblocker_table) .
-	' WHERE `ct_blocker_value` IN (' . implode(', ', $quoted_legacy_blocklist) . ')';
+$operations[] = ctracker_legacy_blocklist_cleanup_sql($ipblocker_table);
 if (!update_index_exists($connection, $dbname, $table_prefix . 'users', 'user_reg_ip'))
 {
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table_prefix . 'users') .

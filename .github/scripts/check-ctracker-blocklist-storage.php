@@ -5,6 +5,9 @@ $schema = file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
 $basic = file_get_contents($root . '/phpBB2/install/schemas/mysql_basic.sql');
 $database = file_get_contents($root . '/phpBB2/ctracker/classes/class_ct_database.php');
 $maintenance = file_get_contents($root . '/phpBB2/ctracker/admin/acp_module_maintenance.php');
+$maintenance_owner = file_get_contents($root . '/phpBB2/ctracker/classes/class_maintenance_storage.php');
+define('IN_PHPBB', true);
+require $root . '/phpBB2/includes/functions_ctracker_legacy_rules.php';
 $admin_functions = file_get_contents($root . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
 $updater = file_get_contents($root . '/update/update_from_153a.php');
 
@@ -30,22 +33,17 @@ if (strpos($database, 'stripslashes($row[\'ct_blocker_value\'])') !== false ||
 	fwrite(STDERR, "Blocklist loading corrupts stored patterns or accepts an invalid delete ID.\n");
 	exit(1);
 }
-$mode_two_start = strpos($maintenance, 'else if ( $mode == \'2\' )');
-$mode_three_start = strpos($maintenance, 'else if ( $mode == \'3\' )');
-if ($mode_two_start === false || $mode_three_start === false || $mode_three_start <= $mode_two_start)
-{
-	fwrite(STDERR, "Could not inspect the legacy-rule cleanup action.\n");
-	exit(1);
-}
-$mode_two = substr($maintenance, $mode_two_start, $mode_three_start - $mode_two_start);
-if (stripos($mode_two, 'TRUNCATE') !== false || stripos($mode_two, 'INSERT INTO') !== false ||
-	stripos($mode_two, 'DELETE FROM') === false || strpos($mode_two, '*ia_archiver*') === false)
+if (strpos($maintenance, 'ctracker_maintenance_run($mode)') === false ||
+	stripos($maintenance, 'TRUNCATE') !== false || stripos($maintenance_owner, 'TRUNCATE') !== false ||
+	strpos($maintenance_owner, 'ctracker_legacy_blocklist_cleanup_sql($table)') === false ||
+	count(ctracker_legacy_blocklist_values()) !== 32 || !in_array('*ia_archiver*', ctracker_legacy_blocklist_values(), true) ||
+	strpos(ctracker_legacy_blocklist_cleanup_sql('fixture_ctracker_ipblocker'), 'HEX(`ct_blocker_value`) IN (') === false)
 {
 	fwrite(STDERR, "The maintenance action may replace custom blocklist entries.\n");
 	exit(1);
 }
 if (strpos($updater, "MODIFY `id` MEDIUMINT(8) UNSIGNED NOT NULL AUTO_INCREMENT") === false ||
-	strpos($updater, '$legacy_blocklist_values') === false || strpos($updater, 'quoted_legacy_blocklist') === false)
+	strpos($updater, 'ctracker_legacy_blocklist_cleanup_sql($ipblocker_table)') === false)
 {
 	fwrite(STDERR, "The post-1.53a updater lacks the blocklist migration.\n");
 	exit(1);

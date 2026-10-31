@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Transactional CrackerTracker maintenance
+
+- Check the current account, ACP session and exact maintenance permission for
+  all five cleanup actions. Delete selected rows on an owned transaction;
+  cleanup no longer implicitly commits an unrelated caller transaction.
+- Coordinate checksum and scanner cleanup with active scans on the same
+  owning connection. Refuse a busy or lost scan lease before committing.
+- Remove obsolete bundled block rules by their exact bytes in both maintenance
+  and the post-1.53a updater, preserving custom accent, case and space variants.
+  Keep diagnostics, ordinary logging and identifier sequences intact.
+
 ### Atomic CrackerTracker administration actions
 
 - Publish an announcement and its existing users' notification flags in one
