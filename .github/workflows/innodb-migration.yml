@@ -555,6 +555,12 @@ jobs:
         env:
           PHPBB_CT_RECOVERY_NATIVE: '1'
           PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only
+      - name: Keep current CrackerTracker log authority through manual file operations
+        if: matrix.part == 3
+        run: php .github/scripts/check-ctracker-log-authority-native.php
+        env:
+          PHPBB_CT_LOG_AUTHORITY_NATIVE: '1'
+          PHPBB_CT_LOG_AUTHORITY_PASSWORD: fixture-only
       - name: Check CrackerTracker recovery storage
         if: matrix.part == 3
         run: php .github/scripts/check-ctracker-recovery-storage.php

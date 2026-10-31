@@ -4,6 +4,7 @@ define('IN_PHPBB', true); define('CTRACKER_ACP', true); define('GENERAL_ERROR', 
 $counter_source = dirname(dirname(__DIR__)) . '/phpBB2/';
 require $counter_source . 'includes/php_compat.php';
 require $counter_source . 'ctracker/classes/class_log_manager.php';
+require __DIR__.'/ctracker-log-controller-fixture.php';
 $cache_source=file_get_contents($counter_source.'includes/functions.php');
 $cache_start=strpos($cache_source,'function phpbb_serialized_data_read(');
 $cache_end=strpos($cache_source,'function phpbb_data_store_read(',$cache_start);
@@ -42,7 +43,7 @@ function cp_reset() {
 function cp_admin($mode, $id=0) {
     global $template, $lang, $images, $phpEx, $phpbb_root_path;
     $_POST=array('mode'=>$mode,'logid'=>(string)$id,'sid'=>'counter-fixture');
-    include $GLOBALS['counter_source'].'ctracker/admin/acp_module_logmanager.php';
+    eval(ctracker_log_fixture_source($GLOBALS['counter_source']));
 }
 $cases=0;
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});

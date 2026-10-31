@@ -79,20 +79,10 @@ include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
 // Download Debug Log?
 if ( $module_number == 99 )
 {
-	$log_filepath = $phpbb_root_path . 'ctracker/logfiles/logfile_debug_mode.txt';
-	if (@is_link($log_filepath) || !is_file($log_filepath) || !is_readable($log_filepath))
-	{
-		message_die(GENERAL_ERROR, 'CrackerTracker debug log is not available.');
-	}
-	$size = max(0, intval(filesize($log_filepath)));
-	header('Content-Type: text/plain; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="logfile_debug_mode.txt"');
-    header('Content-Length: ' . $size);
-	header('Cache-Control: no-store, private, max-age=0');
-	header('X-Content-Type-Options: nosniff');
-    header("Pragma: no-cache");
-    header("Expires: 0");
-    readfile($log_filepath);
+	require_once dirname(__DIR__) . '/ctracker/classes/class_log_authority.php';
+	try { ctracker_log_debug_download(); }
+	catch (Exception $error) { message_die(GENERAL_ERROR, ctracker_log_error_message($error)); }
+	catch (Error $error) { message_die(GENERAL_ERROR, ctracker_log_error_message($error)); }
 	exit;
 }
 

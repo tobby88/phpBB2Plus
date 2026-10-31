@@ -18,6 +18,7 @@ if ( !defined('IN_PHPBB') || !defined('CTRACKER_ACP') )
 	die('Hacking attempt!');
 }
 
+require_once dirname(__DIR__) . '/classes/class_log_authority.php';
 /*
  * Template assignment
  */
@@ -34,17 +35,27 @@ $logid_source = ($post_mode !== '') ? phpbb_admin_post_string('logid', '0') : ((
 $logid      = intval($logid_source);
 $valid_log_ids = array(2, 3, 4, 5, 6);
 
+if (in_array($mode, array('delete', 'view', 'downloaddebug'), true) &&
+    (!is_string($logid_source) || !preg_match('/^[2-6]$/D', $logid_source)))
+{
+	message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+}
+$log_scope = null;
+try
+{
+$log_scope = ctracker_log_scope_open(in_array($mode, array('delete', 'delete_all'), true));
+
 if ( $mode == 'delete' )
 {
 	phpbb_admin_require_post_session();
 	if (!in_array($logid, $valid_log_ids, true))
 	{
-		message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+		throw new CtrackerLogAuthorityFailure('ctracker_error_database_op');
 	}
 	if (!$logmanager->delete_logfile($logid) ||
 		(in_array($logid, array(2, 3, 5), true) && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
 	{
-		message_die(GENERAL_ERROR, $lang['ctracker_error_logfileop']);
+		throw new CtrackerLogAuthorityFailure('ctracker_error_logfileop');
 	}
 
 	$template->assign_block_vars('infobox', array(
@@ -59,7 +70,7 @@ else if ( $mode == 'delete_all' )
 		if (!$logmanager->delete_logfile($i) ||
 			(in_array($i, array(2, 3, 5), true) && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
 		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_logfileop']);
+			throw new CtrackerLogAuthorityFailure('ctracker_error_logfileop');
 		}
 	}
 
@@ -71,7 +82,7 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 {
 	if (!in_array($logid, $valid_log_ids, true))
 	{
-		message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+		throw new CtrackerLogAuthorityFailure('ctracker_error_database_op');
 	}
 	// Header for logfile output
 
@@ -192,7 +203,20 @@ $template->assign_vars(array(
 ));
 
 
-// Generate the page
+$log_scope->finish();
+}
+catch (Exception $error)
+{
+	if ($log_scope) { $log_scope->release(); }
+	message_die(GENERAL_ERROR, ctracker_log_error_message($error));
+}
+catch (Error $error)
+{
+	if ($log_scope) { $log_scope->release(); }
+	message_die(GENERAL_ERROR, ctracker_log_error_message($error));
+}
+
+// Generate the page after releasing the current-authority scope.
 $template->pparse('ct_body');
 
 ?>

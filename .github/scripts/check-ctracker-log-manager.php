@@ -179,7 +179,9 @@ if (strpos($logmanager_source, 'read_log_lines(') === false || strpos($logmanage
 	fwrite(STDERR, "The ACP still performs an unbounded direct logfile read.\n");
 	exit(1);
 }
-if (strpos($download_source, '@is_link($log_filepath)') === false)
+$download_helper = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_log_authority.php');
+if (strpos($download_source, 'ctracker_log_debug_download();') === false ||
+    strpos($download_helper, "@lstat(\$path)") === false || strpos($download_helper, '0100000') === false)
 {
 	fwrite(STDERR, "The debug-log download can follow a symbolic link.\n");
 	exit(1);

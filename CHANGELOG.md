@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current authority for manual CrackerTracker log access
+
+- Recheck and retain the current account, ACP session and exact delegated
+  log-manager permission while viewing, clearing or downloading logs. A stale
+  open admin form cannot clear files after committed permission/session
+  revocation. Debug exports use the same permission and release their database
+  and file locks before the request exits.
+- Keep automatic logging and rotation available independently of ACP access.
+  File failures report an unconfirmed operation; SQL authority locks do not
+  imply that filesystem changes can be rolled back.
+
 ### CrackerTracker log records
 
 - Count complete logical records in fixed-size buffers, including during log
