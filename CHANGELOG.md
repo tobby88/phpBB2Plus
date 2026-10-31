@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Consistent CrackerTracker URL limits
+
+- Count a complete address once, including its scheme and www prefix. Avoid
+  counting a BBCode target and one identical displayed address twice while
+  retaining additional references inside labels or malformed/nested markup.
+- Preserve the six-reference limit across subject and body, existing role and
+  post-count exemptions, Unicode input and protection switches. A parser
+  resource failure cannot silently disable the URL check.
+
 ### Reliable CrackerTracker keyword definitions
 
 - Keep content, registration-name and email definitions available across repeated

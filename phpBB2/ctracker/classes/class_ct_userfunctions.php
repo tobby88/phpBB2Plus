@@ -31,6 +31,83 @@ class ct_userfunctions
 		return $definitions;
 	}
 
+	/** End of one address token; a www substring inside it is not another URL. */
+	private function spam_url_end($text, $offset)
+	{
+		static $delimiters = null;
+		if ($delimiters === null) {
+			$delimiters = '<>"\'[]';
+			for ($byte=0; $byte<=32; $byte++) { $delimiters .= chr($byte); }
+		}
+		$end = $offset + strcspn($text, $delimiters, $offset);
+		// Square brackets normally separate BBCode. Keep a bracketed IPv6 host
+		// together with its scheme before applying the ordinary token boundary.
+		if (isset($text[$end]) && $text[$end] === '[' && preg_match('!\A(?:https?|ftps?)://\z!i', substr($text, $offset, $end-$offset)) === 1) {
+			$close = strpos($text, ']', $end+1);
+			if ($close !== false && filter_var(substr($text, $end+1, $close-$end-1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+				$end = $close+1 + strcspn($text, $delimiters, $close+1);
+			}
+		}
+		return $end;
+	}
+
+	/** A complete target may also appear once as its displayed address. */
+	private function spam_url_bbcode_target($target)
+	{
+		$url = preg_match('!\A(?:www|ftp)\.!i', $target) === 1 ? 'http://'.$target : $target;
+		try { $parts = @parse_url($url); }
+		catch (Exception $error) { return false; }
+		catch (Error $error) { return false; }
+		return is_array($parts) && isset($parts['host']) && $parts['host'] !== '';
+	}
+
+	/** Count address references, stopping as soon as the existing limit is exceeded. */
+	private function spam_url_count($text)
+	{
+		$prefix = '!\[url(?:=|\])|(?:https?|ftps?)://|(?:www|ftp)\.!i';
+		$address = '!\A(?:(?:https?|ftps?)://|(?:www|ftp)\.)!i';
+		$count = 0; $offset = 0; $length = strlen($text); $duplicate = null;
+		while ($offset < $length && $count <= 6) {
+			$found = preg_match($prefix, $text, $match, PREG_OFFSET_CAPTURE, $offset);
+			if ($found === false) { return 7; }
+			if ($found === 0) { break; }
+			$token = $match[0][0]; $start = $match[0][1];
+			if ($duplicate !== null && $start >= $duplicate['end']) { $duplicate = null; }
+			if ($token[0] === '[') {
+				// A new URL tag cannot borrow the outer tag's display-label exception.
+				$duplicate = null; $offset = $start + strlen($token);
+				if (substr($token, -1) !== '=') { continue; }
+				$count++;
+				$end = $this->spam_url_end($text, $offset);
+				// Only skip a complete, single-address target. Malformed targets keep
+				// their contents in the scan, including every additional URL inside.
+				if ($end <= $offset || !isset($text[$end]) || $text[$end] !== ']') { continue; }
+				$target = substr($text, $offset, $end-$offset);
+				if (preg_match($address, $target) !== 1) { continue; }
+				$offset = $end+1;
+				$close = stripos($text, '[/url]', $offset);
+				if ($close === false || !$this->spam_url_bbcode_target($target)) { continue; }
+				$nested = stripos($text, '[url', $offset); $html = strpos($text, '<', $offset);
+				if (($nested !== false && $nested < $close) || ($html !== false && $html < $close)) { continue; }
+				// The target and one identical visible address describe one link.
+				// Other or repeated addresses in the label still consume the limit.
+				$duplicate = array('target'=>$target, 'end'=>$close);
+				continue;
+			}
+			$offset = $this->spam_url_end($text, $start);
+			if ($offset <= $start) { return 7; }
+			$value = substr($text, $start, $offset-$start);
+			if ($duplicate !== null && $offset <= $duplicate['end']) {
+				$target = $duplicate['target'];
+				if ($value === $target || (preg_match('!\A(?:www|ftp)\.!i', $value) === 1 && preg_replace('!\A(?:https?|ftps?)://!i', '', $target) === $value)) {
+					$duplicate = null; continue;
+				}
+			}
+			$count++;
+		}
+		return $count;
+	}
+
 	/**
 	 * Return a privacy-preserving network key and label for login comparison.
 	 * IPv4 keeps the historical /16 behavior; IPv6 uses a stable /48 prefix.
@@ -229,7 +306,7 @@ class ct_userfunctions
 
 			$message = $this->post_value('message', 262144);
 			$subject = $this->post_value('subject', 1024);
-			$url_count = preg_match_all('/(?:\\[url=|https?:\/\/|www\\.)/i', $message . "\n" . $subject, $matches);
+			$url_count = $this->spam_url_count($message . "\n" . $subject);
 			$eur_count = preg_match_all('/(?:US|\\$|€)/u', $message . "\n" . $subject, $matches);
 
 			if ( $url_count > 6 || $eur_count > 6 )
