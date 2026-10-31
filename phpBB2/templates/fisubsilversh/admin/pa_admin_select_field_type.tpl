@@ -1,6 +1,7 @@
 <h1>{L_FIELD_TITLE}</h1>
 
 <p>{L_FIELD_EXPLAIN}</p>
+<!-- IF ERROR neq '' --><p class="errorline">{ERROR}</p><!-- ENDIF -->
 
 <form action="{S_FIELD_ACTION}" method="post">
 <table width="100%" cellpadding="3" cellspacing="1" class="forumline">

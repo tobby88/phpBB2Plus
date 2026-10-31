@@ -1,4 +1,8 @@
 <?php
+$lang['PA_custom_invalid'] = 'Ungültiges Download-Feld. Bitte überprüfe Namen, Typ, Auswahlwerte, Reihenfolge und Auswahl.';
+$lang['PA_custom_regex'] = 'Der Ausdruck für das Feld ist ungültig oder länger als 255 Zeichen.';
+$lang['PA_custom_missing'] = 'Ein ausgewähltes Download-Feld ist nicht mehr vorhanden. Bitte lade die Feldliste neu.';
+$lang['PA_custom_failed'] = 'Die Feldänderung konnte nicht bestätigt werden. Bitte lade die Feldliste vor einem erneuten Versuch neu.';
 $lang['PA_license_invalid'] = 'Lizenzname oder Lizenztext sind ungültig. Bitte überprüfe die Auswahl und das Formular.';
 $lang['PA_license_failed'] = 'Die Lizenzänderung konnte nicht bestätigt werden. Bitte lade die Lizenzliste vor einem erneuten Versuch neu.';
 $lang['PA_settings_invalid'] = 'Eine Download-Einstellung ist ungültig. Bitte überprüfe das Formular.';

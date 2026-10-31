@@ -26,7 +26,7 @@ try{
  pc_reset();$coordinator=pc_coordinator();$lock='attachment:'.md5($schema."\0fixture_attachments");$r=pc_rows("SELECT GET_LOCK('".$lock."',0) held");pc_check((string)$r[0]['held']==='0','Download files and category metadata share the actual owning mutation lease');$coordinator->release();$coordinator=null;
  if(getenv('PHPBB_PA_FILE_RECOVERY_NATIVE')==='1'){require __DIR__.'/pafiledb-file-recovery-fixture.php';}
  if(getenv('PHPBB_PA_FILE_AUTHORITY_NATIVE')==='1'){require __DIR__.'/pafiledb-file-authority-fixture.php';}
- elseif(getenv('PHPBB_PA_FILE_SAVE_NATIVE')==='1'||getenv('PHPBB_PA_FILE_UPLOAD_NATIVE')==='1'||getenv('PHPBB_PA_FILE_METADATA_NATIVE')==='1'||getenv('PHPBB_PA_DOWNLOAD_NATIVE')==='1'||getenv('PHPBB_PA_MIRROR_NATIVE')==='1'||getenv('PHPBB_PA_CATEGORY_READ_NATIVE')==='1'||getenv('PHPBB_PA_FILE_DELETE_NATIVE')==='1'||getenv('PHPBB_PA_CATEGORY_ACTION_NATIVE')==='1'||getenv('PHPBB_PA_SETTINGS_NATIVE')==='1'||getenv('PHPBB_PA_LICENSE_NATIVE')==='1'){require __DIR__.'/pafiledb-file-authority-native-support.php';}
+ elseif(getenv('PHPBB_PA_FILE_SAVE_NATIVE')==='1'||getenv('PHPBB_PA_FILE_UPLOAD_NATIVE')==='1'||getenv('PHPBB_PA_FILE_METADATA_NATIVE')==='1'||getenv('PHPBB_PA_DOWNLOAD_NATIVE')==='1'||getenv('PHPBB_PA_MIRROR_NATIVE')==='1'||getenv('PHPBB_PA_CATEGORY_READ_NATIVE')==='1'||getenv('PHPBB_PA_FILE_DELETE_NATIVE')==='1'||getenv('PHPBB_PA_CATEGORY_ACTION_NATIVE')==='1'||getenv('PHPBB_PA_SETTINGS_NATIVE')==='1'||getenv('PHPBB_PA_LICENSE_NATIVE')==='1'||getenv('PHPBB_PA_CUSTOM_NATIVE')==='1'){require __DIR__.'/pafiledb-file-authority-native-support.php';}
  if(getenv('PHPBB_PA_CUSTOM_FIELDS_NATIVE')==='1'){require __DIR__.'/pafiledb-custom-fields-fixture.php';}
  if(getenv('PHPBB_PA_FILE_SAVE_NATIVE')==='1'){require __DIR__.'/pafiledb-file-save-fixture.php';}
  if(getenv('PHPBB_PA_FILE_UPLOAD_NATIVE')==='1'){require __DIR__.'/pafiledb-file-upload-fixture.php';}
@@ -38,5 +38,6 @@ try{
  if(getenv('PHPBB_PA_CATEGORY_ACTION_NATIVE')==='1'){require __DIR__.'/pafiledb-category-action-fixture.php';}
  if(getenv('PHPBB_PA_SETTINGS_NATIVE')==='1'){require __DIR__.'/pafiledb-settings-fixture.php';}
  if(getenv('PHPBB_PA_LICENSE_NATIVE')==='1'){require __DIR__.'/pafiledb-license-fixture.php';}
+ if(getenv('PHPBB_PA_CUSTOM_NATIVE')==='1'){require __DIR__.'/pafiledb-custom-admin-fixture.php';}
  echo 'Native download file coordinator: ',$pc_checks," ownership/durable-intent/lost-ack/capability/schema/shared-lease checks PASS.\n";
 }finally{restore_error_handler();if($coordinator){$coordinator->release();}if($source){$source->sql_close();}if($peer){$peer->sql_close();}if(!preg_match('/^codex_pa_file_coord_[a-f0-9]{16}$/D',$schema)){throw new RuntimeException('Own schema identity required');}if($created){$control->sql_query('DROP DATABASE '.$schema);}$control->sql_close();}

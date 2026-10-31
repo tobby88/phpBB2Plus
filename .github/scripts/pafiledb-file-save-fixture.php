@@ -10,7 +10,7 @@ function ps_reset($id=8){
  $pafiledb_config=array();foreach(pc_rows('SELECT * FROM fixture_pa_config')as$row){$pafiledb_config[$row['config_name']]=$row['config_value'];}
  foreach(array('auth_search','auth_stats','auth_toplist','auth_viewall')as$key){$pafiledb_config[$key]=AUTH_ALL;}
  $pafiledb_functions=new pafiledb_functions();$lang=array();require$GLOBALS['ps_real_root'].'language/lang_english/lang_main.php';require$GLOBALS['ps_real_root'].'language/lang_english/lang_pafiledb.php';
- pc_sql('DELETE FROM fixture_pa_customdata');pc_sql('DELETE FROM fixture_pa_custom');pa_insert('fixture_pa_custom',array('custom_id'=>1,'custom_name'=>'Text','custom_description'=>'Description','data'=>'','field_type'=>INPUT,'regex'=>'','field_order'=>1));
+ pc_sql('DELETE FROM fixture_pa_customdata');pc_sql('DELETE FROM fixture_pa_custom');pa_insert('fixture_pa_custom',array('custom_id'=>1,'custom_name'=>'Text','custom_description'=>'Description','data'=>'','field_type'=>PA_FIELD_INPUT,'regex'=>'','field_order'=>1));
  pc_sql("INSERT INTO fixture_pa_customdata(customdata_file,customdata_custom,data)VALUES(42,1,'Original field'),(43,1,'Unrelated preserved field')");
  $_FILES=array();$_POST=ps_post(array());
 }

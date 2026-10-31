@@ -15,7 +15,7 @@ class FileFormDatabase{
   if(!preg_match('/^SELECT\b/i',$sql)){$this->writes++;throw new RuntimeException('Unexpected form database write');}
   if(strpos($sql,'fixture_pa_files')!==false){$this->rows=array($GLOBALS['pf_existing']);}
   elseif(strpos($sql,'fixture_pa_customdata')!==false){$this->rows=array();}
-  elseif(strpos($sql,'fixture_pa_custom')!==false){$this->rows=array(array('custom_id'=>1,'custom_name'=>'Custom field','custom_description'=>'Custom description','data'=>'','field_type'=>INPUT,'regex'=>'','field_order'=>1));}
+  elseif(strpos($sql,'fixture_pa_custom')!==false){$this->rows=array(array('custom_id'=>1,'custom_name'=>'Custom field','custom_description'=>'Custom description','data'=>'','field_type'=>PA_FIELD_INPUT,'regex'=>'','field_order'=>1));}
   elseif(strpos($sql,'fixture_pa_license')!==false){$this->rows=array(array('license_id'=>2,'license_name'=>'Synthetic license'));}
   elseif(strpos($sql,'fixture_pa_mirrors')!==false){$this->rows=isset($GLOBALS['pf_mirrors'])?$GLOBALS['pf_mirrors']:array();}
   else{$this->rows=array();}return true;

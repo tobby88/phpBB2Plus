@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Custom download field administration
+
+- Commit custom definitions, initial ordering and removal of every associated
+  file value atomically under current ACP authority. Preserve rejected forms,
+  serialized choices, Unicode and backslashes; reject stale targets, invalid
+  types, oversized fields and invalid regular expressions before writing.
+- Give all six Download field types their own constant names. The profile
+  module's different checkbox value no longer confuses single selects and
+  checkboxes; stored type IDs and existing field values remain unchanged.
+  Initialize new-field forms and restrict ACP reads to definitions.
+
 ### Download license consistency
 
 - Create, edit and remove download licenses in an owned transaction under the

@@ -1,4 +1,8 @@
 <?php
+$lang['PA_custom_invalid'] = 'Invalid download field. Check the name, type, choices, order and selection.';
+$lang['PA_custom_regex'] = 'The field expression is invalid or longer than 255 characters.';
+$lang['PA_custom_missing'] = 'A selected download field no longer exists. Reload the field list.';
+$lang['PA_custom_failed'] = 'The field operation could not be confirmed. Reload the field list before trying again.';
 $lang['PA_license_invalid'] = 'The license name or text is invalid. Please check your selection and the form.';
 $lang['PA_license_failed'] = 'The license operation could not be confirmed. Reload the license list before trying again.';
 $lang['PA_settings_invalid'] = 'A download setting is invalid. Please check the form.';

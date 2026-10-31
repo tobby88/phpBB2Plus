@@ -50,12 +50,14 @@ define('PA_AUTH_COMMENT_EDIT', 10);
 define('PA_AUTH_COMMENT_DELETE', 11);
 
 //Field Types
-defined('INPUT') || define('INPUT', 0);
-defined('TEXTAREA') || define('TEXTAREA', 1);
-defined('RADIO') || define('RADIO', 2);
-defined('SELECT') || define('SELECT', 3);
-defined('SELECT_MULTIPLE') || define('SELECT_MULTIPLE', 4);
-defined('CHECKBOX') || define('CHECKBOX', 5);
+// These storage IDs belong to Download fields. The profile module also uses
+// CHECKBOX, but with value 3; sharing that name confused select and checkbox.
+defined('PA_FIELD_INPUT') || define('PA_FIELD_INPUT', 0);
+defined('PA_FIELD_TEXTAREA') || define('PA_FIELD_TEXTAREA', 1);
+defined('PA_FIELD_RADIO') || define('PA_FIELD_RADIO', 2);
+defined('PA_FIELD_SELECT') || define('PA_FIELD_SELECT', 3);
+defined('PA_FIELD_SELECT_MULTIPLE') || define('PA_FIELD_SELECT_MULTIPLE', 4);
+defined('PA_FIELD_CHECKBOX') || define('PA_FIELD_CHECKBOX', 5);
 
 define('ICONS_DIR', 'pafiledb/images/icons/');
  

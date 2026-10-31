@@ -40,8 +40,8 @@ pafiledb_admin_assert(strpos($admin_custom, 'phpbb_admin_require_post_session();
 pafiledb_admin_assert(strpos($admin_custom, "isset(\$_POST['field_ids']) && is_array") !== false, 'custom-field deletion IDs must be a POST array');
 pafiledb_admin_assert(strpos($admin_custom, "\$module['Download']['Mfieldtitle']") !== false, 'custom-field module discovery must not read an unloaded language entry');
 
-pafiledb_admin_assert(strpos($field_functions, '$field_id = (int) $field_id;') !== false, 'custom-field IDs must be integers');
-pafiledb_admin_assert(strpos($field_functions, '$db->sql_escape(serialize($data))') !== false, 'serialized custom-field data must be escaped at the SQL boundary');
+pafiledb_admin_assert(strpos($field_functions, '$field_id=PaFileDbFileAuthority::id($field_id);') !== false, 'custom-field IDs must use the strict shared identifier validator');
+pafiledb_admin_assert(strpos($field_functions, "return pafiledb_custom_save('save',\$post)") !== false && strpos($field_functions, "return pafiledb_custom_save('delete',") !== false, 'legacy custom-field entry points must delegate to the owned writer');
 pafiledb_admin_assert(strpos($category_actions, '$id=PaFileDbFileAuthority::id($id);') !== false, 'category mutation IDs must use the strict shared identifier validator');
 pafiledb_admin_assert(strpos($category_functions, 'function order_cat($cat_id, $move)') !== false, 'category ordering must receive a validated move value');
 pafiledb_admin_assert(strpos($category_actions, "in_array(\$values[\$key],array('delete','move'),true)") !== false, 'category delete modes must use a strict allowlist');

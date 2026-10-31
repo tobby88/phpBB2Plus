@@ -113,14 +113,14 @@ class custom_field
 					{
 						switch($this->field_rowset[$field_id]['field_type'])
 						{
-							case INPUT:
-							case TEXTAREA:
-							case RADIO:
-							case SELECT:
+							case PA_FIELD_INPUT:
+							case PA_FIELD_TEXTAREA:
+							case PA_FIELD_RADIO:
+							case PA_FIELD_SELECT:
 								$field_data = $data['data'];
 								break;
-							case SELECT_MULTIPLE:
-							case CHECKBOX:
+							case PA_FIELD_SELECT_MULTIPLE:
+							case PA_FIELD_CHECKBOX:
 								$field_data = htmlspecialchars(implode(', ', phpbb_safe_unserialize_scalar_array($data['data'])), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 								break;
 							default:
@@ -158,22 +158,22 @@ class custom_field
 			{
 				switch($field_data['field_type'])
 				{
-					case INPUT:
+					case PA_FIELD_INPUT:
 						$this->display_edit_input($file_id, $field_id, $field_data);
 						break;
-					case TEXTAREA:
+					case PA_FIELD_TEXTAREA:
 						$this->display_edit_textarea($file_id, $field_id, $field_data);
 						break;
-					case RADIO:
+					case PA_FIELD_RADIO:
 						$this->display_edit_radio($file_id, $field_id, $field_data);
 						break;
-					case SELECT:
+					case PA_FIELD_SELECT:
 						$this->display_edit_select($file_id, $field_id, $field_data);
 						break;
-					case SELECT_MULTIPLE:
+					case PA_FIELD_SELECT_MULTIPLE:
 						$this->display_edit_select_multiple($file_id, $field_id, $field_data);
 						break;
-					case CHECKBOX:
+					case PA_FIELD_CHECKBOX:
 						$this->display_edit_checkbox($file_id, $field_id, $field_data);
 						break;
 				}
@@ -320,102 +320,22 @@ class custom_field
 		}
 	}
 	
+	// Compatibility entry points also use the owned writer. The ACP controller
+	// sends multi-field deletion as one batch rather than looping this method.
 	function update_add_field($field_type, $field_id = false)
 	{
-		global $db, $_POST, $lang;
-
-		$field_type = (int) $field_type;
-		$field_id = (int) $field_id;
-		$field_name = (isset($_POST['field_name']) && is_scalar($_POST['field_name'])) ? $db->sql_escape(htmlspecialchars(stripslashes((string) $_POST['field_name']), ENT_QUOTES, 'UTF-8')) : '';
-		$field_desc = (isset($_POST['field_desc']) && is_scalar($_POST['field_desc'])) ? $db->sql_escape(htmlspecialchars(stripslashes((string) $_POST['field_desc']), ENT_QUOTES, 'UTF-8')) : '';
-		$regex = (isset($_POST['regex']) && is_scalar($_POST['regex'])) ? $db->sql_escape(stripslashes((string) $_POST['regex'])) : '';
-		$data = (isset($_POST['data']) && is_scalar($_POST['data'])) ? stripslashes((string) $_POST['data']) : '';
-		$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? (int) $_POST['field_order'] : 0;
-
-
-		if($field_id)
-		{
-			$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? intval($_POST['field_order']) : 0;
-		}
-
-		if(!empty($data))
-		{
-			$data = explode("\n", htmlspecialchars(trim($data)));
-
-			foreach($data as $key => $value)
-			{
-				$data[$key] = trim($value);
-			}
-			$data = $db->sql_escape(serialize($data));
-		}
-		
-		if(empty($field_name))
-		{
-			message_die(GENERAL_ERROR, $lang['Missing_field']);
-		}
-		
-		if( (($field_type != INPUT && $field_type != TEXTAREA) && empty($data)) )
-		{
-			message_die(GENERAL_ERROR, $lang['Missing_field']);
-		}
-
-		
-		if(!$field_id)
-		{
-			$sql = "INSERT INTO " . PA_CUSTOM_TABLE . " (custom_name, custom_description, data, regex, field_type)
-				VALUES('" . $field_name . "', '" . $field_desc . "', '" . $data . "', '" . $regex . "', '" . $field_type . "')";
-
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not add the new fields', '', __LINE__, __FILE__, $sql);
-			}
-			
-			$field_id = $db->sql_nextid();
-			
-			$sql = "UPDATE " . PA_CUSTOM_TABLE . " 
-				SET field_order = '$field_id'
-				WHERE custom_id = $field_id";
-				
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not set the order for the giving field', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else
-		{
-			$sql = "UPDATE " . PA_CUSTOM_TABLE . " 
-				SET custom_name = '$field_name', custom_description = '$field_desc', data = '$data', regex = '$regex', field_order='$field_order'
-				WHERE custom_id = $field_id";
-				
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update information for the giving field', '', __LINE__, __FILE__, $sql);
-			}
-		}
+		require_once dirname(__FILE__) . '/functions_custom_storage.php';
+		$post=$_POST;$post['field_type']=$field_type;$post['field_id']=$field_id===false?0:$field_id;
+		return pafiledb_custom_save('save',$post);
 	}
-	
+
 	function delete_field($field_id)
 	{
-		global $db;
-		$field_id = (int) $field_id;
-		
-		$sql = "DELETE FROM " . PA_CUSTOM_DATA_TABLE . "
-			WHERE customdata_custom = '$field_id'";
-
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not delete custom data', '', __LINE__, __FILE__, $sql);
-		}
-		
-		$sql = "DELETE FROM " . PA_CUSTOM_TABLE . " 
-			WHERE custom_id = '$field_id'";
-			
-		if ( !($db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not delete the selected field', '', __LINE__, __FILE__, $sql);
-		}
+		require_once dirname(__FILE__) . '/functions_custom_storage.php';
+		$field_id=PaFileDbFileAuthority::id($field_id);
+		return pafiledb_custom_save('delete',array('field_ids'=>array($field_id=>'yes')));
 	}
-	
+
 	function get_field_data($field_id)
 	{
 		$return_array = $this->field_rowset[$field_id];
@@ -442,7 +362,7 @@ class custom_field
 		$posted = isset($_POST['field']) && is_array($_POST['field']) ? $_POST['field'] : array();
 		foreach ($this->field_rowset as $id => $definition)
 		{
-			$multiple = in_array((int)$definition['field_type'], array(SELECT_MULTIPLE,CHECKBOX), true);
+			$multiple = in_array((int)$definition['field_type'], array(PA_FIELD_SELECT_MULTIPLE,PA_FIELD_CHECKBOX), true);
 			if (!array_key_exists($id, $posted) && !$multiple) { continue; }
 			$value = array_key_exists($id, $posted) ? $posted[$id] : array();
 			if ($multiple)
@@ -465,7 +385,7 @@ class custom_field
 		$fields = isset($_POST['field']) ? $_POST['field'] : array();
 		foreach ($this->field_rowset as $id => $definition)
 		{
-			if (in_array((int)$definition['field_type'], array(SELECT_MULTIPLE, CHECKBOX), true) && !array_key_exists($id, $fields)) { $fields[$id] = array(); }
+			if (in_array((int)$definition['field_type'], array(PA_FIELD_SELECT_MULTIPLE, PA_FIELD_CHECKBOX), true) && !array_key_exists($id, $fields)) { $fields[$id] = array(); }
 		}
 		$values = array();
 		foreach ($fields as $field_id => $input)
@@ -473,8 +393,8 @@ class custom_field
 			if (!(is_int($field_id) || is_string($field_id)) || !preg_match('/^[1-9][0-9]*$/D', (string)$field_id) || (float)$field_id > 2147483647) { $this->invalid_file_data(); }
 			$field_id = (int)$field_id; if (!isset($this->field_rowset[$field_id])) { continue; }
 			$definition = $this->field_rowset[$field_id]; $type = (int)$definition['field_type'];
-			if (!in_array($type, array(INPUT,TEXTAREA,RADIO,SELECT,SELECT_MULTIPLE,CHECKBOX), true)) { $this->invalid_file_data(); }
-			$multiple = in_array($type, array(SELECT_MULTIPLE,CHECKBOX), true);
+			if (!in_array($type, array(PA_FIELD_INPUT,PA_FIELD_TEXTAREA,PA_FIELD_RADIO,PA_FIELD_SELECT,PA_FIELD_SELECT_MULTIPLE,PA_FIELD_CHECKBOX), true)) { $this->invalid_file_data(); }
+			$multiple = in_array($type, array(PA_FIELD_SELECT_MULTIPLE,PA_FIELD_CHECKBOX), true);
 			if ($multiple ? !is_array($input) : !(is_string($input) || is_int($input))) { $this->invalid_file_data(); }
 			$raw = array();
 			foreach ($multiple ? array_values($input) : array($input) as $value)

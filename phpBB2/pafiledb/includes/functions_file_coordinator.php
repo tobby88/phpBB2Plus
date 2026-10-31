@@ -243,6 +243,12 @@ class PaFileDbFileCoordinator
 		$this->operation_mode = 'licenses';
 	}
 
+	function begin_custom_fields()
+	{
+		$this->begin(true);
+		$this->operation_mode = 'custom';
+	}
+
 	private function allowed_statement($sql, $journal)
 	{
 		if (!is_string($sql)) { return false; }
@@ -252,6 +258,10 @@ class PaFileDbFileCoordinator
 		if ($this->operation_mode === 'licenses') {
 			if ($journal || !isset($this->tables[$match[1]])) { return false; }
 			return $match[1] === $this->prefix . 'pa_license' || preg_match('/^UPDATE '.preg_quote($this->prefix.'pa_files','/').' SET file_license=0 WHERE file_license IN\([1-9][0-9]*(?:,[1-9][0-9]*)*\)$/D',$sql)===1;
+		}
+		if ($this->operation_mode === 'custom') {
+			if ($journal || !isset($this->tables[$match[1]])) { return false; }
+			return $match[1] === $this->prefix . 'pa_custom' || preg_match('/^DELETE FROM '.preg_quote($this->prefix.'pa_customdata','/').' WHERE customdata_custom IN\([1-9][0-9]*(?:,[1-9][0-9]*)*\)$/D',$sql)===1;
 		}
 		$writable = $journal ? array('pa_file_journal') : array('pa_files','pa_cat','pa_comments','pa_votes','pa_customdata','pa_mirrors','pa_auth','pa_file_journal','pa_download_info');
 		foreach ($writable as $suffix) { if ($match[1] === $this->prefix . $suffix && isset($this->tables[$match[1]])) { return true; } }
@@ -308,7 +318,7 @@ class PaFileDbFileCoordinator
 	{
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $this->journal_transaction) { throw new PaFileDbFileCoordinatorFailure('Invalid prepared Download receipt transaction'); }
-		if (in_array($this->operation_mode,array('recovery','settings','licenses'),true)) { throw new PaFileDbFileCoordinatorFailure('This operation cannot prepare a new download publication'); }
+		if (in_array($this->operation_mode,array('recovery','settings','licenses','custom'),true)) { throw new PaFileDbFileCoordinatorFailure('This operation cannot prepare a new download publication'); }
 		if (!$this->can_publish()) { throw new PaFileDbFileCoordinatorFailure('Missing download preparation capability'); }
 		$this->operation_mode = 'producer';
 		$this->query($this->journal, 'START TRANSACTION'); $this->journal_transaction = true;

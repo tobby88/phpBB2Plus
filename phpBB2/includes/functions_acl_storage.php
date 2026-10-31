@@ -72,6 +72,7 @@ function phpbb_acp_actor($db,$route)
 		'admin_pa_file.'.$phpEx,
 		'admin_pa_settings.'.$phpEx,
 		'admin_pa_license.'.$phpEx,
+		'admin_pa_custom.'.$phpEx,
 		'admin_kb_types.'.$phpEx,
 		'admin_kb_config.'.$phpEx.'?mode=config',
 		'admin_words.'.$phpEx,'admin_acronyms.'.$phpEx,'admin_disallow.'.$phpEx,
