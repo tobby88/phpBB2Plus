@@ -64,6 +64,10 @@ class ct_userfunctions
 	/** Count address references, stopping as soon as the existing limit is exceeded. */
 	private function spam_url_count($text)
 	{
+		// Compare a copy: Unicode spaces and invisible control/format characters
+		// separate references just like ASCII whitespace. Never rewrite the post.
+		$text = preg_replace('/[\p{Z}\p{Cc}\p{Cf}]/u', ' ', $text);
+		if (!is_string($text)) { return 7; }
 		$prefix = '!\[url(?:=|\])|(?:https?|ftps?)://|(?:www|ftp)\.!i';
 		$address = '!\A(?:(?:https?|ftps?)://|(?:www|ftp)\.)!i';
 		$count = 0; $offset = 0; $length = strlen($text); $duplicate = null;
@@ -306,7 +310,8 @@ class ct_userfunctions
 
 			$message = $this->post_value('message', 262144);
 			$subject = $this->post_value('subject', 1024);
-			$url_count = $this->spam_url_count($message . "\n" . $subject);
+			// Markup in the body cannot consume the subject as its display label.
+			$url_count = $this->spam_url_count($message) + $this->spam_url_count($subject);
 			$eur_count = preg_match_all('/(?:US|\\$|€)/u', $message . "\n" . $subject, $matches);
 
 			if ( $url_count > 6 || $eur_count > 6 )

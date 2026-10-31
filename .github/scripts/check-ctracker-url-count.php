@@ -35,9 +35,15 @@ foreach(array('english','german')as$locale){
  cu_run('Grüße café 😀 und ganz normaler Text','ordinary',false);
  cu_run(str_repeat('x',260000).' https://www.example.org/path','ordinary',false);
  cu_run(str_repeat('[url]',40000).' '.$seven,'ordinary',true);
+ foreach(array(' ',"\t","\0","\x01","\x7f","\xc2\x85","\xc2\xa0","\xe1\x9a\x80","\xe2\x80\x80","\xe2\x80\x83","\xe2\x80\x8b","\xe2\x80\x8d","\xe2\x80\xa8","\xe2\x80\xa9","\xe2\x80\xaf","\xe2\x81\x9f","\xe2\x81\xa0","\xe3\x80\x80","\xef\xbb\xbf")as$separator){cu_run(implode($separator,array_fill(0,6,'https://www.example.org/path')),'ordinary',false);cu_run(implode($separator,array_fill(0,7,'https://www.example.org/path')),'ordinary',true);}
+ cu_run(implode(' ',array_fill(0,6,'https://www.example.org/a%20www.other/?next=https%3A%2F%2Fwww.other/')),'ordinary',false);
+ foreach(array('https://target.example/ [/url]','https://different.example/ [/url]')as$subject){cu_run(implode(' ',array_fill(0,5,'https://example.org/')).' [url=https://target.example/]Label',$subject,true);}
+ cu_run(implode(' ',array_fill(0,4,'https://example.org/')).' [url=https://target.example/]Label','https://target.example/ [/url]',false);
+ cu_run('[url=https://target.example/]https://target.example/[/url]',implode(' ',array_fill(0,5,'https://example.org/')),false);
+ cu_run('ordinary '.chr(255),'ordinary',true);
  foreach(array(array('user_level'=>1),array('user_level'=>2),array('user_posts'=>2),array('spam_attack_boost'=>0))as$exemption){cu_run($seven,'ordinary',false,$exemption);}
  // A comparison copy must not rewrite malformed transport values either.
  cu_run(array('https://example.org/'),'ordinary',false);
  $old=ini_get('pcre.backtrack_limit');try{ini_set('pcre.backtrack_limit','0');cu_run('https://www.example.org/path','ordinary',true);}finally{ini_set('pcre.backtrack_limit',$old);}
 }
-echo 'CrackerTracker URL count: ',$checks," actual EN/DE boundary/BBCode/label/nesting/malformed/IPv6/Unicode/policy/resource-failure/input-preservation cases PASS; no database or network.\n";
+echo 'CrackerTracker URL count: ',$checks," actual EN/DE boundary/BBCode/label/nesting/malformed/IPv6/Unicode/separator/policy/resource-failure/input-preservation cases PASS; no database or network.\n";

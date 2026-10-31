@@ -14,6 +14,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Preserve the six-reference limit across subject and body, existing role and
   post-count exemptions, Unicode input and protection switches. A parser
   resource failure cannot silently disable the URL check.
+- Treat Unicode spaces and invisible controls as reference boundaries in the
+  comparison copy, preserving the submitted text and encoded URL characters.
+  Keep body and subject markup separate before adding their reference counts.
 
 ### Reliable CrackerTracker keyword definitions
 
