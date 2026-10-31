@@ -29,6 +29,12 @@ class ct_adminfunctions
 	function __construct() { throw new SettingsExit('render'); }
 }
 require $forum_root . 'ctracker/classes/class_ct_database.php';
+// Only the batch-persistence boundary is replaced for these pure form-input
+// checks. Native tests execute the real owner and runtime publication path.
+class SettingsConfiguration extends ct_database
+{
+	function change_configurations($values) { foreach ($values as $name => $value) { $this->change_configuration($name, $value); } }
+}
 function settings_assert($condition, $message)
 {
 	if (!$condition) { throw new RuntimeException($message); }
@@ -40,7 +46,7 @@ function submit_settings($post, $allow_session = true)
 	$HTTP_SERVER_VARS = array('REMOTE_ADDR' => '192.0.2.1');
 	$HTTP_ENV_VARS = array();
 	$db = new SettingsDatabase();
-	$ctracker_config = new ct_database();
+	$ctracker_config = new SettingsConfiguration();
 	$db->queries = array();
 	$before = $ctracker_config->settings;
 	$_POST = $HTTP_POST_VARS = array_merge(array('submit' => '1'), $post);

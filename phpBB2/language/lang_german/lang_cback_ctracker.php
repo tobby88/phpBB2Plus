@@ -261,6 +261,7 @@ $lang['ctracker_log_manager_deleted']	  = 'Das Logfile wurde erfolgreich gelösc
 $lang['ctracker_log_manager_all_deleted'] = 'Alle Logdateien wurden erfolgreich gelöscht!';
 $lang['ctracker_log_manager_tail_info'] = 'Die Anzeige umfasst bis zu 1000 der neuesten vollständigen Zeilen. Überlange und angeschnittene Zeilen werden ausgelassen; die gespeicherte Protokolldatei bleibt unverändert.';
 $lang['ctracker_log_manager_operation_failed'] = 'Die Protokollaktion konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die Übersicht neu laden. Prüfe, ob das Datenbank-Update vollständig ausgeführt wurde.';
+$lang['ctracker_settings_operation_failed'] = 'Das Speichern konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die Einstellungen neu laden. Prüfe, ob das Datenbank-Update vollständig ausgeführt wurde.';
 $lang['ctracker_log_manager_showheader1'] = 'Diese Logdatei enthält aktuell <b>einen</b> Eintrag. Klicke <b><a href="%s">HIER</a></b>, um zur Logdatei Übersicht zurückzukehren.';
 $lang['ctracker_log_manager_showheader']  = 'Diese Logdatei enthält aktuell <b>%s</b> Einträge.<br />Klicke <b><a href="%s">HIER</a></b>, um zur Logdatei Übersicht zurückzukehren.';
 $lang['ctracker_log_manager_showlog']	  = 'Logdatei ansehen';

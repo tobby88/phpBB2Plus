@@ -14,10 +14,10 @@ class CtLogNativeTemplate {
  function pparse($key){$this->rendered++;}
 }
 class CtLogNativeDb extends sql_db {
- public$fixturePassword,$connections=array(),$kind='',$fail='',$closed=false;
+ public$fixturePassword,$connections=array(),$kind='',$fail='',$closed=false,$query_hook=null,$setting_writes=0,$lose_commit=false;
  function __construct($host,$user,$password,$schema,$persistency=false){$this->fixturePassword=$password;parent::__construct($host,$user,$password,$schema,$persistency);}
- function sql_dedicated_connection(){if($this->kind==='same'){return$this;}$next=new self($this->server,$this->user,$this->fixturePassword,$this->dbname,false);$next->fail=$this->fail;$this->connections[]=$next;return$next;}
- function sql_query($sql='',$transaction=false){if($this->fail!==''&&strpos($sql,$this->fail)!==false){return false;}return parent::sql_query($sql,$transaction);}
+ function sql_dedicated_connection(){if($this->kind==='same'){return$this;}$next=new self($this->server,$this->user,$this->fixturePassword,$this->dbname,false);$next->fail=$this->fail;$next->query_hook=$this->query_hook;$next->lose_commit=$this->lose_commit;$this->connections[]=$next;return$next;}
+ function sql_query($sql='',$transaction=false){if(strpos($sql,'INSERT INTO '.CTRACKER_CONFIG.' ')===0){$this->setting_writes++;}if(is_callable($this->query_hook)&&call_user_func($this->query_hook,$sql,$this)===false){return false;}if($this->fail!==''&&strpos($sql,$this->fail)!==false){return false;}$result=parent::sql_query($sql,$transaction);if($this->lose_commit&&$sql==='COMMIT'&&$this->setting_writes>0){return false;}return$result;}
  function sql_close(){$this->closed=true;return parent::sql_close();}
 }
 function cl_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['checks']++;}
@@ -37,7 +37,7 @@ function cl_reset($id=7){
  $header="1|||0|||null|||null|||null|||null|||null\n";
  foreach($GLOBALS['files']as$i=>$name){file_put_contents($GLOBALS['base'].'/ctracker/logfiles/'.$name,$i===0?'7':($i===5?"Synthetic debug Grüße 😀\n":$header."0|||1|||Synthetic & <event>|||referrer|||agent|||address|||host\n"));}
  $cache=$GLOBALS['base'].'/cache/ctracker_counter.cache';if(is_file($cache)){unlink($cache);}
- $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'log-own-session');$_GET=array();$db->fail=$db->kind='';$template=new CtLogNativeTemplate();
+ $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'log-own-session');$_GET=array();$db->fail=$db->kind='';$db->query_hook=null;$db->lose_commit=false;$db->setting_writes=0;$template=new CtLogNativeTemplate();
 }
 function cl_controller($mode,$id='5',$overrides=array()){
  global$template,$lang,$images,$phpEx,$phpbb_root_path,$board_config;
@@ -57,6 +57,8 @@ try{
  cl_check($control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')!==false,'Own disposable native schema');$created=true;$peer=new sql_db($host,'root',$password,$schema,false);$db=new CtLogNativeDb($host,'root',$password,$schema,false);
  $canonical=file_get_contents($app.'install/schemas/mysql_schema.sql');foreach(array('users','sessions','jr_admin_users','config')as$suffix){cl_check(preg_match('/^CREATE TABLE phpbb_'.$suffix.'\s*\([\s\S]*?;/m',$canonical,$m)===1,'Actual canonical authority table');cl_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]));}
  cl_check(mkdir($base,0700)&&mkdir($base.'/ctracker',0700)&&mkdir($base.'/ctracker/logfiles',0700)&&mkdir($base.'/cache',0700),'Own synthetic log directories');$made=true;$phpbb_root_path=$base.'/';
+ if(getenv('PHPBB_CT_SETTINGS_NATIVE')==='1'){require __DIR__.'/ctracker-settings-native-fixture.php';}
+ else{
  foreach(array(7,11)as$id){
   foreach(array(2,3,4,5,6)as$log){cl_reset($id);$manager=new log_manager();$count=$manager->get_counter_value();cl_controller('delete',(string)$log);cl_check($manager->check_log_size($log)===0&&$manager->get_counter_value()===$count&&$template->rendered===1&&cl_closed(),'Actual root/delegated selected clear preserves attack accounting');}
   cl_reset($id);$manager=new log_manager();$count=$manager->get_counter_value();cl_controller('delete_all');foreach(array(2,3,4,5,6)as$log){cl_check($manager->check_log_size($log)===0,'Actual authorized clear-all clears selected files');}cl_check($manager->get_counter_value()===$count&&cl_closed(),'Actual authorized clear-all preserves aggregate and releases owner');
@@ -88,6 +90,7 @@ try{
  $outside=$base.'/cache/synthetic-outside.txt';file_put_contents($outside,'Never stream a linked target');unlink($debug);$linked=@symlink($outside,$debug);try{if($linked){$denied=false;ob_start();try{ctracker_log_debug_download();}catch(CtrackerLogAuthorityFailure$error){$denied=true;}finally{$output=ob_get_clean();}cl_check($denied&&$output===''&&cl_closed(),'Actual raw helper rejects a symbolic link before bytes');}}finally{if($linked){unlink($debug);}unlink($outside);file_put_contents($debug,'');}
  $controller=file_get_contents($app.'admin/admin_cracker_tracker.php');cl_check(substr_count($controller,'try { ctracker_log_debug_download(); }')===1,'Actual dispatcher routes raw helper through the tested scope');
  echo 'Native CrackerTracker log authority: ',$checks," actual-controller/current-role/session/exact-JR/row-lock/caller-transaction/storage/raw-stream cases PASS; own schema and synthetic log bytes only.\n";
+ }
 }finally{
  if($scope){$scope->release();}if($db){foreach($db->connections as$c){if(!$c->closed){$c->sql_close();}}$db->sql_close();}if($peer){$peer->sql_close();}
  if($created){if(!preg_match('/^codex_ct_log_authority_[a-f0-9]{16}$/D',$schema)){throw new RuntimeException('Own schema required');}$control->sql_query('DROP DATABASE '.$schema);}$control->sql_close();

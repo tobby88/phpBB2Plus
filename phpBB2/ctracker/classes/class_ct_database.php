@@ -256,6 +256,20 @@ class ct_database
 		unset($this->invalid_settings[$setting]);
 	}
 
+	/** Save a whole manual settings form before publishing its runtime values. */
+	function change_configurations($values)
+	{
+		require_once __DIR__.'/class_settings_storage.php';
+		try { $saved = ctracker_admin_settings_save($this, $values); }
+		catch (Exception $error) { message_die(GENERAL_ERROR, ctracker_settings_error_message($error)); return; }
+		catch (Error $error) { message_die(GENERAL_ERROR, ctracker_settings_error_message($error)); return; }
+		foreach ($saved as $key => $value)
+		{
+			$this->settings[$key] = $value;
+			unset($this->invalid_settings[$key]);
+		}
+	}
+
 	/** Preserve complete UTF-8 announcements within the VARCHAR(255) limit. */
 	function normalize_global_message($message)
 	{

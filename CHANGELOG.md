@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic CrackerTracker settings
+
+- Save a complete validated settings form on an owned connection under current
+  account, ACP session and exact delegated settings permission. A later write,
+  readback or commit failure cannot leave an earlier protection switch changed.
+- Repair missing setting rows and canonical key spelling through validated
+  upserts. Publish runtime values and recovered-setting notices only after an
+  acknowledged commit; an uncertain commit requires reloading before retrying.
+- Share the current ACP identity/session checks with manual log access while
+  keeping its database adapters read-only and automatic logging independent.
+
 ### Current authority for manual CrackerTracker log access
 
 - Recheck and retain the current account, ACP session and exact delegated

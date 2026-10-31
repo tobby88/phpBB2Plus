@@ -48,10 +48,7 @@ if( isset($HTTP_POST_VARS['submit']) )
 		}
 		$pending_settings[$setting_name] = $value;
 	}
-	foreach ($pending_settings as $setting_name => $value)
-	{
-		$ctracker_config->change_configuration($setting_name, $value);
-	}
+	$ctracker_config->change_configurations($pending_settings);
 }
 
 
