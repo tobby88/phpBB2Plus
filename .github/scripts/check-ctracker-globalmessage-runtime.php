@@ -39,6 +39,17 @@ $helper_end = strpos($helpers, 'function phpbb_avatar_remote_url(', $helper_star
 broadcast_assert($helper_start !== false && $helper_end > $helper_start, 'URL validator extraction must match the real source');
 eval(substr($helpers, $helper_start, $helper_end - $helper_start));
 require $forum_root . 'ctracker/classes/class_ct_database.php';
+// Pure input/escaping fixture only. The native suite executes the real owned
+// message+notification transaction and post-commit runtime publication.
+class BroadcastConfiguration extends ct_database
+{
+	function apply_admin_action($kind, $values)
+	{
+		if ($kind !== 'notice_publish') { throw new RuntimeException('Unexpected pure broadcast operation'); }
+		$this->change_global_message($values['global_message'], $values['global_message_type']);
+		$admin = new ct_adminfunctions(); $admin->set_global_message();
+	}
+}
 function run_broadcast($text, $type = '1', $fail = false)
 {
 	global $forum_root, $db, $lang, $HTTP_SERVER_VARS, $HTTP_ENV_VARS;
@@ -47,7 +58,7 @@ function run_broadcast($text, $type = '1', $fail = false)
 		'ctracker_glob_msg_invalid_url'=>'invalid URL', 'ctracker_glob_msg_saved'=>'saved %s');
 	$HTTP_SERVER_VARS = array('REMOTE_ADDR'=>'192.0.2.10'); $HTTP_ENV_VARS = array();
 	$db = new BroadcastDatabase();
-	$ctracker_config = new ct_database();
+	$ctracker_config = new BroadcastConfiguration();
 	$before = $ctracker_config->settings;
 	$db->queries = array(); $db->fail = $fail;
 	$_POST = array('submit'=>'Save', 'global_message_type'=>$type, 'global_message'=>is_string($text) ? addslashes($text) : $text);

@@ -263,6 +263,7 @@ $lang['ctracker_log_manager_all_deleted'] = 'All log files have been deleted suc
 $lang['ctracker_log_manager_tail_info'] = 'The display includes up to 1000 of the newest complete lines. Oversized and cut-off lines are omitted; the stored log file remains unchanged.';
 $lang['ctracker_log_manager_operation_failed'] = 'The log operation could not be confirmed. Reload the overview before retrying. Check that the database upgrade has been completed.';
 $lang['ctracker_settings_operation_failed'] = 'Saving the settings could not be confirmed. Reload the settings before retrying. Check that the database upgrade has been completed.';
+$lang['ctracker_admin_action_failed'] = 'The change could not be confirmed. Reload this administration page before retrying. Check that the database upgrade has been completed.';
 $lang['ctracker_log_manager_showheader1'] = 'There is <b>one</b> entry in this log file. Click <b><a href="%s">HERE</a></b> to go back to Logfile overview.';
 $lang['ctracker_log_manager_showheader']  = 'There are <b>%s</b> entries in this log file.<br />Click <b><a href="%s">HERE</a></b> to go back to Logfile overview.';
 $lang['ctracker_log_manager_showlog']	  = 'View Logfile';

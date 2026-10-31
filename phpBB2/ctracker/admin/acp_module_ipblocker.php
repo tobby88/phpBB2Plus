@@ -33,7 +33,7 @@ $mode = phpbb_admin_post_string('mode');
 if ( $mode == 'remove' )
 {
 	phpbb_admin_require_post_session();
-	$ctracker_config->delete_from_blocklist(phpbb_admin_post_string('id', '0'));
+	$ctracker_config->apply_admin_action('block_delete', array('id' => phpbb_admin_post_string('id', '0')));
 	$template->assign_block_vars('deleted', array(
 			'L_SUCCESSFULLY_DELETED' => $lang['ctracker_ipb_deleted'])
 	);
@@ -41,7 +41,7 @@ if ( $mode == 'remove' )
 else if ( $mode == 'add' )
 {
 	phpbb_admin_require_post_session();
-	$ctracker_config->save_to_blocklist(phpbb_admin_post_string('entry'));
+	$ctracker_config->apply_admin_action('block_add', array('entry' => phpbb_admin_post_string('entry')));
 	$template->assign_block_vars('added', array(
 			'L_SUCCESSFULLY_ADDED' => $lang['ctracker_ipb_added'])
 	);	

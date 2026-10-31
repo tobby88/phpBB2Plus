@@ -1,29 +1,5 @@
 <?php
-require$app.'ctracker/classes/class_ct_database.php';require$app.'ctracker/classes/class_ct_adminfunctions.php';require$app.'ctracker/classes/class_settings_storage.php';
-class CtSettingsNativeTemplate extends CtLogNativeTemplate {
- public$vars=array();function assign_vars($values){$this->vars=array_merge($this->vars,$values);}
-}
-function cs_rows(){return cl_rows('SELECT ct_config_name,ct_config_value FROM '.CTRACKER_CONFIG.' ORDER BY HEX(ct_config_name)');}
-function cs_reset($id=7){
- global$ctracker_config,$template,$db;
- cl_reset($id);cl_sql('DELETE FROM '.CTRACKER_CONFIG);$defaults=(new ct_database())->default_settings();$tuples=array();
- $defaults['unrelated_setting']='Preserved Grüße 😀';foreach($defaults as$key=>$value){$tuples[]="('".$db->sql_escape($key)."','".$db->sql_escape($value)."')";}
- cl_sql('INSERT INTO '.CTRACKER_CONFIG.'(ct_config_name,ct_config_value)VALUES'.implode(',',$tuples));
- $ctracker_config=new ct_database();$template=new CtSettingsNativeTemplate();
- $routes=jr_admin_authorization_routes();$hash=array_search('admin_cracker_tracker.php?modu=9',$routes,true);cl_check($hash!==false,'Actual exact settings module registered');
- cl_sql("UPDATE fixture_jr_admin_users SET user_jr_admin='".$hash."' WHERE user_id=11");
-}
-function cs_controller($values,$token='log-own-session'){
- global$ctracker_config,$template,$lang,$images,$phpEx,$phpbb_root_path,$HTTP_POST_VARS;
- $_POST=$HTTP_POST_VARS=array_merge(array('submit'=>'1','sid'=>$token),$values);
- include$GLOBALS['app'].'ctracker/admin/acp_module_settings.php';
-}
-function cs_failure($callback,$message){
- $before=cs_rows();$memory=$GLOBALS['ctracker_config']->settings;$invalid=$GLOBALS['ctracker_config']->invalid_settings;$files=cl_fingerprint();$denied=false;
- try{$callback();}catch(CtLogControllerExit$error){$denied=true;}catch(CtrackerSettingsFailure$error){$denied=true;}catch(CtrackerAcpAuthorityFailure$error){$denied=true;}
- cl_check($denied&&cs_rows()===$before&&$GLOBALS['ctracker_config']->settings===$memory&&$GLOBALS['ctracker_config']->invalid_settings===$invalid&&cl_fingerprint()===$files&&cl_closed(),$message.' rolls back whole database batch; memory/files unchanged; owner released');
-}
-function cs_recreate(){global$canonical;cl_sql('DROP TABLE '.CTRACKER_CONFIG);preg_match('/^CREATE TABLE `phpbb_ctracker_config`\s*\([\s\S]*?;/m',$canonical,$match);cl_sql(str_replace('phpbb_ctracker_config',CTRACKER_CONFIG,$match[0]));}
+require __DIR__.'/ctracker-config-native-support.php';
 cl_check(preg_match('/^CREATE TABLE `phpbb_ctracker_config`\s*\([\s\S]*?;/m',$canonical,$match)===1,'Actual canonical CT settings participant');cl_sql(str_replace('phpbb_ctracker_config',CTRACKER_CONFIG,$match[0]));
 $controller=file_get_contents($app.'ctracker/admin/acp_module_settings.php');preg_match_all('/\$images\[\x27([^\x27]+)\x27\]/',$controller,$image_keys);foreach($image_keys[1]as$key){$images[$key]='fixture.gif';}
 $proposal=array('ipblock_enabled'=>'0','ipblock_logsize'=>'101');
@@ -50,6 +26,7 @@ foreach($revocations as$sql){cs_reset();cl_sql($sql);cs_failure(function(){cs_co
 foreach(array('6','3','11')as$module){cs_reset(11);$routes=jr_admin_authorization_routes();$hash=array_search('admin_cracker_tracker.php?modu='.$module,$routes,true);cl_check($hash!==false,'Neighboring registered module exists');cl_sql("UPDATE fixture_jr_admin_users SET user_jr_admin='".$hash."' WHERE user_id=11");cs_failure(function(){cs_controller($GLOBALS['proposal']);},'Other CT grants cannot authorize settings');}
 cs_reset(11);cl_sql('DELETE FROM fixture_jr_admin_users');cs_failure(function(){cs_controller($GLOBALS['proposal']);},'Removed exact settings grant rejected');
 // The original second-INSERT failure now rolls back its first protection switch.
+foreach(array('method','token')as$bad){cs_reset();$direct=new CtrackerSettingsStorage($db,ctracker_acp_scope_actor(true));if($bad==='method'){$_SERVER['REQUEST_METHOD']='GET';}else{$_POST['sid']='wrong';}cs_failure(function()use($direct,$proposal){try{$direct->save($GLOBALS['ctracker_config'],$proposal);}finally{$direct->release();}},'Direct owned settings operation also enforces POST token');}
 cs_reset();$observations=array();$memory=$ctracker_config->settings;$db->query_hook=function($sql,$connection)use(&$observations,$memory){if(strpos($sql,'INSERT INTO '.CTRACKER_CONFIG.' ')===0&&$connection->setting_writes===2){$rows=cl_rows("SELECT ct_config_value FROM ".CTRACKER_CONFIG." WHERE ct_config_name='ipblock_enabled'");$observations[]=($rows[0]['ct_config_value']==='1'&&$GLOBALS['ctracker_config']->settings===$memory);return false;}return true;};cs_failure(function(){cs_controller($GLOBALS['proposal']);},'Actual second native write failure');cl_check($observations===array(true),'First write is invisible and runtime state unchanged before second-write failure');
 foreach(array('final-check','commit','readback')as$phase){cs_reset();$db->query_hook=function($sql,$connection)use($phase){if($connection->setting_writes<2){return true;}if($phase==='commit'&&$sql==='COMMIT'){return false;}if($phase==='final-check'&&strpos($sql,'SELECT session_id,session_user_id')===0){return false;}if($phase==='readback'&&strpos($sql,'SELECT ct_config_name,ct_config_value FROM '.CTRACKER_CONFIG.' WHERE')===0){return false;}return true;};cs_failure(function(){cs_controller($GLOBALS['proposal']);},'Late '.$phase.' failure');}
 cs_reset();$db->query_hook=function($sql,$connection){if(strpos($sql,'INSERT INTO '.CTRACKER_CONFIG.' ')===0&&$connection->setting_writes===1){$GLOBALS['userdata']['user_id']=11;}return true;};cs_failure(function(){cs_controller($GLOBALS['proposal']);},'Actor identity cannot change during batch');

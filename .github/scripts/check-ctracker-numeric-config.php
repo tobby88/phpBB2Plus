@@ -82,9 +82,19 @@ class FooterStopTemplate
 }
 // Invalid submissions stop before rendering; valid ones stop on success. This
 // executes the real footer ACP and setter without reading live counters.
+// Replace only its owned persistence boundary in this pure numeric fixture;
+// native tests cover current module authority and acknowledged publication.
+class NumericActionConfiguration extends ct_database
+{
+	function apply_admin_action($kind, $values)
+	{
+		if ($kind !== 'layout') { throw new RuntimeException('Unexpected pure layout operation'); }
+		$this->change_configuration('footer_layout', $values['footer_layout']);
+	}
+}
 foreach (array(null, array('1'), '', '0', '9', '1junk', '1.0', ' 1', '01', '1', '8') as $choice)
 {
-	$db = new NumericDatabase(); $ctracker_config = new ct_database(); $db->queries = array();
+	$db = new NumericDatabase(); $ctracker_config = new NumericActionConfiguration(); $db->queries = array();
 	$before = $ctracker_config->settings; $template = new FooterStopTemplate();
 	$phpbb_root_path = $forum_root; $phpEx = 'php';
 	$_POST = $HTTP_POST_VARS = array('submit' => '1', 'footer_layout' => $choice);

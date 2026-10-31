@@ -43,7 +43,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 	{
 		message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_error_settings_input'], 'footer_layout'));
 	}
-	$ctracker_config->change_configuration('footer_layout', $footer_layout);
+	$ctracker_config->apply_admin_action('layout', array('footer_layout' => $footer_layout));
 	$template->assign_block_vars('infobox', array());
 }
 

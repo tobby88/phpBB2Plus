@@ -567,6 +567,12 @@ jobs:
         env:
           PHPBB_CT_SETTINGS_NATIVE: '1'
           PHPBB_CT_SETTINGS_PASSWORD: fixture-only
+      - name: Commit CrackerTracker notices, rule changes and layout under current authority
+        if: matrix.part == 4
+        run: php .github/scripts/check-ctracker-actions-native.php
+        env:
+          PHPBB_CT_ACTIONS_NATIVE: '1'
+          PHPBB_CT_ACTIONS_PASSWORD: fixture-only
       - name: Check CrackerTracker recovery storage
         if: matrix.part == 3
         run: php .github/scripts/check-ctracker-recovery-storage.php

@@ -15,6 +15,7 @@
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License
 */
 
+class CtrackerInputFailure extends RuntimeException {}
 class ct_database
 {
 
@@ -271,16 +272,31 @@ class ct_database
 	}
 
 	/** Preserve complete UTF-8 announcements within the VARCHAR(255) limit. */
-	function normalize_global_message($message)
+	function normalize_global_message($message, $throw = false)
 	{
 		if (!is_string($message) || strlen($message) > 1020 ||
 			preg_match('/\A.{0,255}\z/us', $message) !== 1 ||
 			preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/', $message) !== 0)
 		{
+			if ($throw === true) { throw new CtrackerInputFailure('ctracker_error_global_message'); }
 			global $lang;
 			message_die(GENERAL_MESSAGE, $lang['ctracker_error_global_message']);
 		}
 		return $message;
+	}
+
+	/** Fixed manual actions publish runtime configuration only after commit. */
+	function apply_admin_action($kind, $values)
+	{
+		require_once __DIR__.'/class_admin_actions.php';
+		try { $saved = ctracker_admin_action_save($this, $kind, $values); }
+		catch (Exception $error) { message_die($error instanceof CtrackerInputFailure ? GENERAL_MESSAGE : GENERAL_ERROR, ctracker_admin_action_error_message($error)); return; }
+		catch (Error $error) { message_die(GENERAL_ERROR, ctracker_admin_action_error_message($error)); return; }
+		foreach ($saved as $key => $value)
+		{
+			$this->settings[$key] = $value;
+			unset($this->invalid_settings[$key]);
+		}
 	}
 
 	/** Validate both announcement fields before issuing a single upsert. */
@@ -361,26 +377,28 @@ class ct_database
 	 * Validate rules without silently joining pasted lines or dropping NULs.
 	 * Such rewriting can create a different (even catch-all) blocking rule.
 	 */
-	function normalize_blocklist_value($value)
+	function normalize_blocklist_value($value, $throw = false)
 	{
 		$value = is_string($value) ? trim($value, ' ') : '';
 		if ($value === '' || strlen($value) > 200 || substr_count($value, '*') > 8 ||
 			preg_match('//u', $value) !== 1 ||
 			preg_match('/[\x00-\x1f\x7f]/', $value) !== 0)
 		{
+			if ($throw === true) { throw new CtrackerInputFailure('ctracker_error_blocklist_value'); }
 			global $lang;
 			message_die(GENERAL_MESSAGE, $lang['ctracker_error_blocklist_value']);
 		}
 		return $value;
 	}
 
-	function normalize_blocklist_id($id)
+	function normalize_blocklist_id($id, $throw = false)
 	{
 		$value = (is_string($id) || is_int($id)) ? (string) $id : '';
 		$blocklist_id = (int) $value;
 		if ($value === '' || strlen($value) > 8 || !ctype_digit($value) ||
 			$blocklist_id < 1 || $blocklist_id > 16777215)
 		{
+			if ($throw === true) { throw new CtrackerInputFailure('ctracker_error_blocklist_id'); }
 			global $lang;
 			message_die(GENERAL_MESSAGE, $lang['ctracker_error_blocklist_id']);
 		}

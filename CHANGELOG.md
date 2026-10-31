@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic CrackerTracker administration actions
+
+- Publish an announcement and its existing users' notification flags in one
+  owned transaction. Keep retraction, block-rule changes and layout selection
+  under their exact current ACP module permission and session; a stale form
+  cannot continue writing after committed role/session/grant revocation.
+- Preserve Unicode, URL/rule/identifier validation, automatic rule IDs, missing
+  rule deletion as a no-op and all layout previews. Verify saved values before
+  commit and publish runtime configuration only after an acknowledged commit.
+  Ordinary members can still acknowledge their own announcement.
+
 ### Atomic CrackerTracker settings
 
 - Save a complete validated settings form on an owned connection under current

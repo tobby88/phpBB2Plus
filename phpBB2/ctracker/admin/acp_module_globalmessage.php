@@ -33,7 +33,6 @@ $template->set_filenames(array(
 if ( isset($HTTP_POST_VARS['submit']) )
 {
 	phpbb_admin_require_post_session();
-	$adminfunctions = new ct_adminfunctions();
 	$message_type = phpbb_admin_post_string('global_message_type');
 	if ($message_type !== '0' && $message_type !== '1')
 	{
@@ -46,10 +45,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 		message_die(GENERAL_MESSAGE, $lang['ctracker_glob_msg_invalid_url']);
 	}
 
-	$ctracker_config->change_global_message($global_message, $message_type);
-	
-	$adminfunctions->set_global_message();
-	unset($adminfunctions);
+	$ctracker_config->apply_admin_action('notice_publish', array('global_message' => $global_message, 'global_message_type' => $message_type));
 	
 	$message = sprintf($lang['ctracker_glob_msg_saved'], append_sid('admin_cracker_tracker.' . $phpEx . '?modu=4'));
 	message_die(GENERAL_MESSAGE, $message);
@@ -57,9 +53,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 else if ( isset($HTTP_POST_VARS['pull_back']) )
 {
 	phpbb_admin_require_post_session();
-	$adminfunctions = new ct_adminfunctions();
-	$adminfunctions->unset_global_message();
-	unset($adminfunctions);
+	$ctracker_config->apply_admin_action('notice_retract', array());
 	
 	$message = sprintf($lang['ctracker_glob_msg_reset_ok'], append_sid('admin_cracker_tracker.' . $phpEx . '?modu=4'));
 	message_die(GENERAL_MESSAGE, $message);
