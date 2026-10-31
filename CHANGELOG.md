@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Reliable CrackerTracker keyword definitions
+
+- Keep content, registration-name and email definitions available across repeated
+  checks, new handler objects and earlier includes in another scope. Preserve
+  existing switches, Unicode comparisons and the legacy definition-file API.
+
 ### Transactional CrackerTracker maintenance
 
 - Check the current account, ACP session and exact maintenance permission for

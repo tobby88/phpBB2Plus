@@ -19,6 +19,18 @@
 
 class ct_userfunctions
 {
+	/** Load definitions into their own scope, independently of earlier includes. */
+	private function spam_definitions()
+	{
+		static $definitions = null;
+		if ($definitions === null)
+		{
+			require dirname(__DIR__) . '/constants.php';
+			$definitions = array('content'=>$ct_spammer_def, 'email'=>$ct_mailscn_def, 'username'=>$ct_userspm_def);
+		}
+		return $definitions;
+	}
+
 	/**
 	 * Return a privacy-preserving network key and label for login comparison.
 	 * IPv4 keeps the historical /16 behavior; IPv6 uses a stable /48 prefix.
@@ -178,7 +190,7 @@ class ct_userfunctions
 	 */
 	function handle_postings()
 	{
-		global $lang, $ctracker_config, $userdata, $phpbb_root_path, $phpEx;
+		global $lang, $ctracker_config, $userdata;
 
 		// MOD or ADMIN? - No Action please.
 		if ( $userdata['user_level'] > 0 )
@@ -227,12 +239,8 @@ class ct_userfunctions
 
 			if ($ctracker_config->settings['spam_keyword_det'] == '2' || intval($ctracker_config->settings['spam_keyword_det']) == 2 )
 			{
-				// Did this that Eclipse does not output warning message because
-				// the IDE doesn't know that we initialize this in the included
-				// file!
-				$ct_spammer_def = array();
-
-				include_once($phpbb_root_path . 'ctracker/constants.' . $phpEx);
+				$definitions = $this->spam_definitions();
+				$ct_spammer_def = $definitions['content'];
 
 				$clean_message = $this->spam_comparison_text($message);
 				$clean_title   = $this->spam_comparison_text($subject);
@@ -264,20 +272,12 @@ class ct_userfunctions
 	 */
 	function handle_profile()
 	{
-		global $ctracker_config, $phpbb_root_path, $phpEx, $mode, $lang, $HTTP_POST_VARS;
+		global $ctracker_config, $mode, $lang, $HTTP_POST_VARS;
 
-		/*
-		 * Done this that Eclipse or another Code-Checker does not output
-		 * warning messages here because it does not know that the Vars are
-		 * initialized in the included file and so they have not to be defined
-		 * as global in this function.
-		 */
-		$ct_spammer_def = array();
-		$ct_mailscn_def = array();
-		$ct_userspm_def = array();
-
-		// We need the constants file so we include it now
-		include_once($phpbb_root_path . 'ctracker/constants.' . $phpEx);
+		$definitions = $this->spam_definitions();
+		$ct_spammer_def = $definitions['content'];
+		$ct_mailscn_def = $definitions['email'];
+		$ct_userspm_def = $definitions['username'];
 		$username = $this->post_value('username', 255);
 		$email = $this->post_value('email', 320);
 		// post_value bounds bytes, while utf8mb4 VARCHAR capacities count

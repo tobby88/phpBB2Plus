@@ -72,6 +72,38 @@ foreach (array('english', 'german') as $locale) {
     $cases[] = array($locale, 'register', 'signature', "vi\xC2\xADagra", true, array('spam_keyword_det'=>1));
 }
 
+if (isset($argv[1]) && $argv[1] === '--scope') {
+    utf8_spam_assert(count($argv) === 4 && in_array($argv[2], array('english','german'), true) && in_array($argv[3], array('global','local'), true), 'Invalid scope case');
+    $ct_spammer_def = array('outside content'); $ct_mailscn_def = array('outside email'); $ct_userspm_def = array('outside username');
+    if ($argv[3] === 'global') { require $phpbb_root_path . 'ctracker/constants.php'; }
+    else { $load = function($file) { require $file; }; $load($phpbb_root_path . 'ctracker/constants.php'); }
+    $outside = serialize(array($ct_spammer_def, $ct_mailscn_def, $ct_userspm_def));
+    $lang = array(); require $phpbb_root_path . 'language/lang_' . $argv[2] . '/lang_cback_ctracker.php';
+    $ctracker_config = new stdClass();
+    $ctracker_config->settings = array('spammer_blockmode'=>0, 'spam_attack_boost'=>1, 'spam_keyword_det'=>2, 'reg_protection'=>0, 'autoban_mails'=>1);
+    $userdata = array('user_id'=>2, 'user_level'=>0, 'user_posts'=>0); $db = new Utf8SpamNoDatabase();
+    $functions = new ct_userfunctions(); $base_settings = $ctracker_config->settings;
+    foreach (array(array('post','message','viagra',true), array('editprofile','signature',"vi\xC2\xADagra",true), array('register','username','FUNTKLAKOW',true), array('register','email','member@mailinator.com',true), array('post','subject','Grüße 😀',false), array('editprofile','signature','Grüße 😀',false), array('register','username','Normal member',false), array('register','username','FUNTKLAKOW',false,array('autoban_mails'=>0)), array('register','email','member@mailinator.com',false,array('autoban_mails'=>0)), array('editprofile','signature','viagra',false,array('spam_keyword_det'=>0)), array('post','message','viagra',false,array('spam_keyword_det'=>1))) as $sample) {
+        $ctracker_config->settings = isset($sample[4]) ? array_merge($base_settings, $sample[4]) : $base_settings;
+        $mode = $sample[0]; $HTTP_POST_VARS = array('submit'=>1, 'message'=>'ordinary', 'subject'=>'ordinary', 'username'=>'Normal member', 'email'=>'member@example.org', 'signature'=>'ordinary');
+        $HTTP_POST_VARS[$sample[1]] = $sample[2]; $_POST = $HTTP_POST_VARS;
+        $snapshot = serialize(array($HTTP_POST_VARS, $_POST, $userdata, $ctracker_config));
+        for ($round=0; $round<3; $round++) {
+            if ($round === 2) { $functions = new ct_userfunctions(); }
+            $rejected = false;
+            try { if ($mode === 'post') { $functions->handle_postings(); } else { $functions->handle_profile(); } }
+            catch (Utf8SpamRejected $error) {
+                $key = $mode === 'post' ? 'ctracker_info_post_spammer' : ($mode === 'register' ? 'ctracker_info_profile_spammer' : 'ctracker_info_profile_content');
+                utf8_spam_assert($error->getMessage() === $lang[$key], 'Wrong localized scope rejection'); $rejected = true;
+            }
+            utf8_spam_assert($rejected === $sample[3] && serialize(array($HTTP_POST_VARS, $_POST, $userdata, $ctracker_config)) === $snapshot, 'Repeated/preloaded cross-handler policy or input changed');
+            utf8_spam_assert(serialize(array($ct_spammer_def, $ct_mailscn_def, $ct_userspm_def)) === $outside && CTRACKER_VERSION === '5.0.6', 'Loader changed outside dictionary scope or version');
+        }
+    }
+    require $phpbb_root_path . 'ctracker/constants.php';
+    utf8_spam_assert(CTRACKER_VERSION === '5.0.6' && in_array('*viagra*', $ct_spammer_def, true) && in_array('*@mailinator.com', $ct_mailscn_def, true) && in_array('funtklakow', $ct_userspm_def, true), 'Legacy data-file inclusion contract changed');
+    echo "UTF8_SPAM_SCOPE_OK\n"; exit(0);
+}
 if (isset($argv[1])) {
     utf8_spam_assert(count($argv) === 3 && $argv[1] === '--case' && ctype_digit($argv[2]) && isset($cases[(int)$argv[2]]), 'Invalid child case');
     $case = $cases[(int)$argv[2]];
@@ -92,19 +124,21 @@ if (isset($argv[1])) {
     }
     $db = new Utf8SpamNoDatabase();
     $snapshot = serialize(array($HTTP_POST_VARS, $_POST, $userdata, $ctracker_config));
-    $rejected = false;
-    try {
-        $functions = new ct_userfunctions();
-        if ($mode === 'post') { $functions->handle_postings(); }
-        else { $functions->handle_profile(); }
-    } catch (Utf8SpamRejected $e) {
-        $expected_key = $mode === 'post' ? 'ctracker_info_post_spammer' :
-            ($mode === 'register' ? 'ctracker_info_profile_spammer' : 'ctracker_info_profile_content');
-        utf8_spam_assert($e->getMessage() === $lang[$expected_key], 'Wrong localized rejection');
-        $rejected = true;
+    for ($round=0; $round<3; $round++) {
+        $rejected = false;
+        try {
+            $functions = new ct_userfunctions();
+            if ($mode === 'post') { $functions->handle_postings(); }
+            else { $functions->handle_profile(); }
+        } catch (Utf8SpamRejected $e) {
+            $expected_key = $mode === 'post' ? 'ctracker_info_post_spammer' :
+                ($mode === 'register' ? 'ctracker_info_profile_spammer' : 'ctracker_info_profile_content');
+            utf8_spam_assert($e->getMessage() === $lang[$expected_key], 'Wrong localized rejection');
+            $rejected = true;
+        }
+        utf8_spam_assert($rejected === $case[4], 'Actual repeated handler policy differs: case ' . $argv[2]);
+        utf8_spam_assert(serialize(array($HTTP_POST_VARS, $_POST, $userdata, $ctracker_config)) === $snapshot, 'Handler changed input, policy or account');
     }
-    utf8_spam_assert($rejected === $case[4], 'Actual handler policy differs: case ' . $argv[2]);
-    utf8_spam_assert(serialize(array($HTTP_POST_VARS, $_POST, $userdata, $ctracker_config)) === $snapshot, 'Handler changed input, policy or account');
     echo "UTF8_SPAM_CASE_OK\n";
     exit(0);
 }
@@ -129,19 +163,21 @@ foreach ($normalization_cases as $case) {
         utf8_spam_assert(preg_match('//u', $clean) === 1, 'Valid Unicode damaged');
     }
 }
-foreach ($cases as $index=>$case) {
+$requests = array(); foreach ($cases as $index=>$case) { $requests[] = array(array('--case', (string)$index), "UTF8_SPAM_CASE_OK\n"); }
+foreach (array('english','german') as $locale) { foreach (array('global','local') as $scope) { $requests[] = array(array('--scope',$locale,$scope), "UTF8_SPAM_SCOPE_OK\n"); } }
+foreach ($requests as $index=>$request) {
     // Windows fixtures intentionally have no php.ini. Linux retains its CLI
     // module stack (ctype can be a separately packaged extension on old PHP).
     $command = escapeshellarg(PHP_BINARY);
     if (PHP_OS === 'WINNT') { $command .= ' -n -d date.timezone=UTC'; }
     else { $ini = php_ini_loaded_file(); if ($ini !== false) { $command .= ' -c ' . escapeshellarg($ini); } }
-    $command .= ' ' . escapeshellarg(__FILE__) . ' --case ' . (int)$index;
+    $command .= ' ' . escapeshellarg(__FILE__); foreach ($request[0] as $argument) { $command .= ' ' . escapeshellarg($argument); }
     $pipes = array();
     $process = proc_open($command, array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')), $pipes, null, null, array('bypass_shell'=>true));
     utf8_spam_assert(is_resource($process), 'Fresh request process unavailable');
     fclose($pipes[0]);
     $stdout = stream_get_contents($pipes[1]); $stderr = stream_get_contents($pipes[2]);
     fclose($pipes[1]); fclose($pipes[2]); $status = proc_close($process);
-    utf8_spam_assert($status === 0 && $stdout === "UTF8_SPAM_CASE_OK\n" && $stderr === '', 'Actual fresh handler failed case ' . $index . ': ' . $stdout . $stderr);
+    utf8_spam_assert($status === 0 && $stdout === $request[1] && $stderr === '', 'Actual fresh handler failed case ' . $index . ': ' . $stdout . $stderr);
 }
-echo 'CrackerTracker UTF-8 spam checks passed: ' . count($normalization_cases) . ' byte-preservation and ' . count($cases) . " fresh localized handler cases.\n";
+echo 'CrackerTracker UTF-8 spam checks passed: ' . count($normalization_cases) . ' byte-preservation, ' . count($cases) . " fresh localized handler cases repeated three times, and four preloaded/cross-handler scope requests.\n";

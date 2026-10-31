@@ -24,7 +24,7 @@ if ( !defined('IN_PHPBB') )
 /*
  * Constants we need
  */
-define('CTRACKER_VERSION', '5.0.6');		// CrackerTracker Version
+if (!defined('CTRACKER_VERSION')) { define('CTRACKER_VERSION', '5.0.6'); }
 
 
 /*
