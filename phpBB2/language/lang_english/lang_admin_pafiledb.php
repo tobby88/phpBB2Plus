@@ -1,4 +1,5 @@
 <?php
+$lang['PA_checker_failed'] = 'The file check could not be completed. No files or database entries were changed. Please try again.';
 $lang['PA_permissions_invalid'] = 'Invalid download permission selection. Check the categories, fields and access levels.';
 $lang['PA_permissions_incomplete'] = 'The permission form is incomplete. Reload it or open fewer categories; no partial update was accepted.';
 $lang['PA_permissions_missing'] = 'A selected download category no longer exists. Reload the permission page.';
@@ -245,13 +246,13 @@ $lang['Not_approved'] = '(Not Approved)';
 $lang['Approved_info'] = 'Use this option to make the file available for users, and also to approve a file that has been uploaded by the users.';
 $lang['Fchecker'] = 'File Maintenance';
 $lang['File_checker'] = 'File Maintenance';
-$lang['File_checker_explain'] = 'Here you can perform a checking for all file in database and the file in the download directory.';
-$lang['File_saftey'] = 'File maintenance will attempt to delete all files and screenshots that are currently not needed and will remove any file records where the file has been deleted and will clear all screenshots that are not found.<br /><br />If the files do not start with <FONT COLOR="#FF0000">{html_path}</FONT> then the files will be skipped for security reasons.<br /><br />Please make sure that <FONT COLOR="#FF0000">{html_path}</FONT> is the path that you use for your files.<br /><br /><b>Note:</b> It is strongly recommended that you <b><a href="' . append_sid("admin_db_utilities.php?perform=backup") . '" class="genmed">Backup your database</a></b>.';
+$lang['File_checker_explain'] = 'Check local downloads and screenshots against their database references. This tool produces a report only.';
+$lang['File_saftey'] = 'This check does not delete files or change database entries. It reports missing local files and files without a current reference. Directory control files, symbolic links and pending file operations are excluded. Review the report before making any manual changes.';
 $lang['File_checker_perform'] = 'Perform Checking';
-$lang['Checker_saved'] = 'Total Saved Space';
+$lang['Checker_saved'] = 'Total size of files without a current reference';
 $lang['Checker_sp1'] = 'Checking for records with missing files...';
 $lang['Checker_sp2'] = 'Checking for records with missing screenshots...';
-$lang['Checker_sp3'] = 'Deleting unused Files...'; 
+$lang['Checker_sp3'] = 'Files without a current reference (report only)';
 $lang['Filedls'] = 'Download Total';
 $lang['Addtional_field'] = 'Additional Field';
 $lang['File_not_found'] = 'The file you specified cannot be found';

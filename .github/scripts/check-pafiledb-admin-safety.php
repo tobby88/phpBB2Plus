@@ -96,12 +96,12 @@ pafiledb_admin_assert(strpos($admin_license, "in_array(\$license_action, array('
 pafiledb_admin_assert(strpos($admin_license, 'function pa_license_form_scalar') !== false && strpos($admin_license, 'pafiledb_license_save($action, $_POST)') !== false, 'license writes must use the owned batch writer and preserve rejected drafts');
 pafiledb_admin_assert(strpos($admin_license, 'phpbb_admin_html($license[\'license_name\'])') !== false, 'license names must be escaped in output');
 
-pafiledb_admin_assert(strpos($admin_fchecker, "\$pafiledb_config['upload_dir']") !== false, 'file checker must use the configured upload directory');
-pafiledb_admin_assert(strpos($admin_fchecker, "\$pafiledb_config['screenshots_dir']") !== false, 'file checker must use the configured screenshot directory');
-pafiledb_admin_assert(strpos($admin_fchecker, "basename(str_replace('\\\\', '/', \$temp_ssname))") !== false, 'file checker must reject traversing screenshot paths');
-pafiledb_admin_assert(strpos($admin_fchecker, 'UNION SELECT mirror_id') !== false, 'file checker must count mirror uploads as referenced');
-pafiledb_admin_assert(strpos($admin_fchecker, '$db->sql_escape($temp)') !== false, 'file checker filenames must be escaped at the SQL boundary');
-pafiledb_admin_assert(strpos($admin_fchecker, "'DEL_FILE' => phpbb_admin_html") !== false, 'file checker output must be escaped');
+$checker = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_file_checker.php');
+pafiledb_admin_assert(strpos($admin_fchecker,'pafiledb_file_check()')!==false&&strpos($checker,'pafiledb_file_directories($authority->settings())')!==false,'file checker uses current owned download/screenshot directories');
+pafiledb_admin_assert(strpos($checker,'pafiledb_file_url_identity(')!==false,'file checker uses the maintained local URL reference parser');
+pafiledb_admin_assert(strpos($checker,'FROM \'.PA_MIRRORS_TABLE.')!==false&&strpos($checker,'FROM \'.PA_FILE_JOURNAL_TABLE.')!==false,'file checker protects mirror and pending journal references');
+pafiledb_admin_assert(strpos($checker,"begin_checker()")!==false,'file checker owns its read-only coordinated operation');
+pafiledb_admin_assert(strpos($admin_fchecker,"'DEL_FILE'=>phpbb_admin_html(\$path)")!==false,'file checker escapes filesystem output');
 pafiledb_admin_assert(strpos($pafiledb_search, '$db->sql_escape(') !== false, 'paFileDB search terms must be escaped at the SQL boundary');
 pafiledb_admin_assert(strpos($pafiledb_search, 'each($result_list)') === false, 'paFileDB search must not use the removed each() iterator');
 pafiledb_admin_assert(strpos($pafiledb_search, 'global $_REQUEST') === false, 'paFileDB search must not accept cookie-backed request values');

@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Read-only Download file maintenance
+
+- Report missing and unreferenced local files without deleting data. Exclude
+  directory control/index files, symlinks and pending file operations; describe
+  the actual report behavior in English and German.
+- Coordinate the complete report with uploads and recovery under current ACP
+  authority. Read references in three queries and inventory file metadata
+  without hashing entire downloads or running a query for every file.
+- Share local URL reference recognition with file recovery, retaining old
+  HTTP/www links and percent-encoded Unicode screenshot names.
+
 ### Download category and user/group permissions
 
 - Look up the current session through its primary key while retaining a

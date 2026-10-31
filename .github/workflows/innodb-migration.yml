@@ -909,6 +909,12 @@ jobs:
         env:
           PHPBB_PA_CUSTOM_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Report local download files without touching metadata or physical bytes
+        if: matrix.part == 4
+        run: php .github/scripts/check-pafiledb-file-checker-native.php
+        env:
+          PHPBB_PA_CHECKER_NATIVE: '1'
+          PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
       - name: Commit complete category, user and group permission batches
         if: matrix.part == 4
         run: |

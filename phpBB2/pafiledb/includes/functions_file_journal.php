@@ -1,6 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
-require_once dirname(__FILE__) . '/functions_file_storage.php';
+require_once dirname(__FILE__) . '/functions_file_reference.php';
 
 class PaFileDbFileJournalFailure extends RuntimeException {}
 
@@ -196,25 +196,9 @@ class PaFileDbFileJournal
 
     private function url_reference($value)
     {
-        if (!is_string($value) || $value === '' || preg_match('/[\x00-\x1f\x7f\\\\]/', $value)) { return null; }
-        $parts = @parse_url($value); $board = @parse_url($this->board_url); if (!$parts || !$board || isset($parts['user']) || isset($parts['pass'])) { return null; }
-        if (isset($parts['host'])) {
-            if (empty($board['host']) || (isset($parts['scheme']) && !in_array(strtolower($parts['scheme']), array('http','https'), true)) ||
-                strcasecmp(preg_replace('/^www\./i', '', $parts['host']), preg_replace('/^www\./i', '', $board['host'])) !== 0 ||
-                (isset($parts['port']) && !in_array($parts['port'], array(80,443,isset($board['port']) ? $board['port'] : 0), true))) { return null; }
-        } elseif (isset($parts['scheme'])) { return null; }
-        $path = isset($parts['path']) ? rawurldecode($parts['path']) : '';
-        if (preg_match('//u', $path) !== 1 || preg_match('/[\x00-\x1f\x7f\\\\]/', $path)) { return null; }
-        $base = isset($board['path']) ? rtrim(rawurldecode($board['path']), '/') : '';
-        if ($path === '' || $path[0] !== '/') { $path = $base . '/' . $path; }
-        $segments = array(); foreach (explode('/', $path) as $part) { if ($part === '' || $part === '.') { continue; } if ($part === '..') { array_pop($segments); } else { $segments[] = $part; } } $path = '/' . implode('/', $segments);
-        foreach ($this->directories as $scope => $relative) {
-            $prefixes = array($relative . '/', $base . '/' . $relative . '/');
-            foreach ($prefixes as $prefix) { if (strpos($path, $prefix) === 0) { $name = substr($path, strlen($prefix)); if (PaFileDbFileStorage::filename($name)) { return $this->physical_key($scope, $name); } } }
-        }
-        return null;
+        $reference=pafiledb_file_url_identity($value,$this->board_url,$this->directories);
+        return $reference===null?null:$this->physical_key($reference['scope'],$reference['name']);
     }
-
     private function collect_references()
     {
         $references = array();

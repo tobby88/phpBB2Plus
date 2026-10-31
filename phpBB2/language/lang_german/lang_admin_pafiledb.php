@@ -1,4 +1,5 @@
 <?php
+$lang['PA_checker_failed'] = 'Die Dateiüberprüfung konnte nicht abgeschlossen werden. Dateien und Datenbankeinträge wurden nicht verändert. Bitte versuche es erneut.';
 $lang['PA_permissions_invalid'] = 'Ungültige Download-Berechtigung. Bitte überprüfe Kategorien, Felder und Zugriffsstufen.';
 $lang['PA_permissions_incomplete'] = 'Das Berechtigungsformular ist unvollständig. Bitte lade es neu oder öffne weniger Kategorien. Es wurde keine Teiländerung übernommen.';
 $lang['PA_permissions_missing'] = 'Eine ausgewählte Download-Kategorie ist nicht mehr vorhanden. Bitte lade die Berechtigungen neu.';
@@ -245,13 +246,13 @@ $lang['Not_approved'] = '(Nicht Geprüft)';
 $lang['Approved_info'] = 'Wähle diese Option, um die Datei für Benutzer verfügbar zu machen, und ebenfalls um eine Datei freizugeben, die durch einen Benutzer hochgeladen wurde.';
 $lang['Fchecker'] = 'Datei: Wartung';
 $lang['File_checker'] = 'Datei Wartung';
-$lang['File_checker_explain'] = 'Hier kannst Du eine Überprüfung aller Dateien in der Download Datenbank und der Dateien im Download Verzeichnis durchführen.';
-$lang['File_saftey'] = 'Die Datei Überprüfung wird versuchen, alle Dateien und Screenshots die momentan nicht gebraucht werden zu entfernen. Ebenfalls werden alle Datei-Einträge gelöscht, zu denen die Datei nicht mehr vorhanden ist und alle Screenshots, die nicht mehr gefunden werden.<br /><br />Wenn die Dateien nicht mit <FONT COLOR="#FF0000">{html_path}</FONT> beginnen werden sie aus Sicherheitsgründen übersprungen.<br /><br />Bitte stelle sicher, dass <FONT COLOR="#FF0000">{html_path}</FONT> der Pfad ist, den Du für Deine Dateien verwendest.<br /><br /><b>Achtung:</b> Es wird strengstens empfohlen, dass Du ein <b><a href="' . append_sid("admin_db_utilities.php?perform=backup") . '" class="genmed">Backup der Datenbank</a></b> durchführst.';
+$lang['File_checker_explain'] = 'Prüft lokale Downloads und Screenshots auf ihre Datenbankverweise. Dieses Werkzeug erstellt ausschließlich einen Prüfbericht.';
+$lang['File_saftey'] = 'Diese Prüfung löscht keine Dateien und verändert keine Datenbankeinträge. Sie zeigt fehlende lokale Dateien und Dateien ohne aktuellen Verweis. Verzeichnisschutz, Indexdateien, symbolische Links und noch laufende Dateioperationen werden ausgenommen. Prüfe den Bericht vor manuellen Änderungen.';
 $lang['File_checker_perform'] = 'Starte Überprüfung';
-$lang['Checker_saved'] = 'Speicherplatz freigegeben';
+$lang['Checker_saved'] = 'Gesamtgröße der Dateien ohne aktuellen Verweis';
 $lang['Checker_sp1'] = 'Prüfe auf Einträge mit fehlenden Dateien...';
 $lang['Checker_sp2'] = 'Prüfe auf Einträge mit fehlenden Screenshots...';
-$lang['Checker_sp3'] = 'Lösche nicht benötigte Dateien...';
+$lang['Checker_sp3'] = 'Dateien ohne aktuellen Verweis (nur Anzeige)';
 $lang['Filedls'] = 'Download Insgesamt';
 $lang['Addtional_field'] = 'Zusätzliches Feld';
 $lang['File_not_found'] = 'Die von Dir genannte Datei konnte nicht gefunden werden';

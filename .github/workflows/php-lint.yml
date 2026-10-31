@@ -912,6 +912,8 @@ jobs:
           php .github/scripts/check-pafiledb-category-form.php legacy
       - name: Preserve download file bytes, roots and recoverable stages
         run: php .github/scripts/check-pafiledb-file-storage.php
+      - name: Render read-only file checker forms and complete reports
+        run: php .github/scripts/check-pafiledb-file-checker-form.php
       - name: Preserve rejected download settings and current configuration reads
         run: |
           php .github/scripts/check-pafiledb-settings-form.php

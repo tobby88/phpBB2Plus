@@ -1,8 +1,10 @@
 <form action="{S_CHECKER_FILE_ACTION}" method="post">
+{S_HIDDEN_FIELDS}
 
 <h1>{L_FILE_CHECKER}</h1>
 
 <p>{L_FCHECKER_EXPLAIN}</p>
+<!-- IF ERROR neq '' --><p class="errorline">{ERROR}</p><!-- ENDIF -->
 
 <table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr>
@@ -21,7 +23,7 @@
 <!-- END check_step1 -->
 
 <tr>
-    <td class="row1"><span class="cattitle">{L_FILE_CHECKER_SP2}</span></B></td>
+    <td class="row1"><span class="cattitle">{L_FILE_CHECKER_SP2}</span></td>
 </tr>
 <!-- BEGIN check_step2 -->
 <tr>
@@ -30,7 +32,7 @@
 <!-- END check_step2 -->
 
 <tr>
-    <td class="row1"><span class="cattitle">{L_FILE_CHECKER_SP3}</span></B></td>
+    <td class="row1"><span class="cattitle">{L_FILE_CHECKER_SP3}</span></td>
 </tr>
 <!-- BEGIN check_step3 -->
 <tr>

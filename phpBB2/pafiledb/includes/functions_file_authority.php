@@ -25,7 +25,7 @@ class PaFileDbFileAuthority
     {
         if (!is_object($storage) || !$storage->namespace_matches($prefix) || !is_array($actor) || !isset($actor['id'],$actor['sid'],$actor['logged']) ||
             !is_int($actor['id']) || !is_bool($actor['logged']) || ($actor['logged'] ? ($actor['id'] < 1 || $actor['id'] > 8388607) : $actor['id'] !== ANONYMOUS) ||
-            !is_string($actor['sid']) || $actor['sid'] === '' || strlen($actor['sid']) > 32 || !in_array($mode, array('public','files','categories','settings','licenses','custom','permissions'), true)) { pafiledb_file_fail('Not_Authorised'); }
+            !is_string($actor['sid']) || $actor['sid'] === '' || strlen($actor['sid']) > 32 || !in_array($mode, array('public','files','categories','settings','licenses','custom','permissions','checker'), true)) { pafiledb_file_fail('Not_Authorised'); }
         foreach (array('USERS_TABLE'=>'users','SESSIONS_TABLE'=>'sessions','CONFIG_TABLE'=>'config','JR_ADMIN_TABLE'=>'jr_admin_users','PA_FILES_TABLE'=>'pa_files','PA_CATEGORY_TABLE'=>'pa_cat','PA_CONFIG_TABLE'=>'pa_config','PA_AUTH_ACCESS_TABLE'=>'pa_auth','USER_GROUP_TABLE'=>'user_group','GROUPS_TABLE'=>'groups') as $constant => $suffix) {
             if (!defined($constant) || constant($constant) !== $prefix . $suffix) { pafiledb_file_fail(); }
         }
@@ -61,7 +61,7 @@ class PaFileDbFileAuthority
         if ($this->mode !== 'public') {
             if (!$logged || (string)$sessions[0]['session_admin'] !== '1' || empty($userdata['session_admin'])) { pafiledb_file_fail('Not_Authorised'); }
             $this->rows('SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . $this->actor['id'] . ' FOR UPDATE');
-            $modules = array('files'=>'admin_pa_file.','categories'=>'admin_pa_category.','settings'=>'admin_pa_settings.','licenses'=>'admin_pa_license.','custom'=>'admin_pa_custom.','permissions'=>'admin_pa_catauth.');
+            $modules = array('files'=>'admin_pa_file.','categories'=>'admin_pa_category.','settings'=>'admin_pa_settings.','licenses'=>'admin_pa_license.','custom'=>'admin_pa_custom.','permissions'=>'admin_pa_catauth.','checker'=>'admin_pa_fchecker.');
             try { phpbb_acp_actor($this->storage, $modules[$this->mode] . $phpEx); }
             catch (PhpbbAclException $error) { pafiledb_file_fail('Not_Authorised'); }
         }
@@ -106,11 +106,12 @@ class PaFileDbFileAuthority
 
     function select($action, $ids, $destination = 0)
     {
-        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','mirror-delete','category','download','settings','licenses','custom','permissions'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
+        if ($this->action !== null || !in_array($action, array('create','edit','delete','approve','mirror','mirror-delete','category','download','settings','licenses','custom','permissions','checker'), true) || !is_array($ids) || count($ids) > 500) { pafiledb_file_fail('PA_file_invalid'); }
         if (($action === 'settings' && ($this->mode !== 'settings' || $ids || $destination !== 0)) || ($this->mode === 'settings' && $action !== 'settings')) { pafiledb_file_fail('Not_Authorised'); }
         if (($action === 'licenses' && ($this->mode !== 'licenses' || $ids || $destination !== 0)) || ($this->mode === 'licenses' && $action !== 'licenses')) { pafiledb_file_fail('Not_Authorised'); }
         if (($action === 'custom' && ($this->mode !== 'custom' || $ids || $destination !== 0)) || ($this->mode === 'custom' && $action !== 'custom')) { pafiledb_file_fail('Not_Authorised'); }
         if (($action === 'permissions' && ($this->mode !== 'permissions' || $ids || $destination !== 0)) || ($this->mode === 'permissions' && $action !== 'permissions')) { pafiledb_file_fail('Not_Authorised'); }
+        if (($action === 'checker' && ($this->mode !== 'checker' || $ids || $destination !== 0)) || ($this->mode === 'checker' && $action !== 'checker')) { pafiledb_file_fail('Not_Authorised'); }
         $unique = array(); foreach ($ids as $id) { $id = self::id($id); if (isset($unique[$id])) { pafiledb_file_fail('PA_file_invalid'); } $unique[$id] = $id; }
         $this->destination = self::id($destination, true); $this->action = $action;
         if (($action === 'create' && ($unique || !$this->destination)) || ($action === 'edit' && (count($unique) !== 1 || !$this->destination)) || (in_array($action, array('delete','approve','mirror','mirror-delete','download'), true) && !$unique) || (in_array($action,array('mirror','mirror-delete','download'),true) && count($unique) !== 1) || ($action === 'download' && $this->mode !== 'public') || ($action === 'category' && ($this->mode !== 'categories' || $unique))) { pafiledb_file_fail('PA_file_invalid'); }
@@ -126,6 +127,7 @@ class PaFileDbFileAuthority
         if ($this->mode === 'licenses') { if ($this->action !== 'licenses') { pafiledb_file_fail('Not_Authorised'); } return true; }
         if ($this->mode === 'custom') { if ($this->action !== 'custom') { pafiledb_file_fail('Not_Authorised'); } return true; }
         if ($this->mode === 'permissions') { if ($this->action !== 'permissions') { pafiledb_file_fail('Not_Authorised'); } return true; }
+        if ($this->mode === 'checker') { if ($this->action !== 'checker') { pafiledb_file_fail('Not_Authorised'); } return true; }
         if ($this->mode === 'categories') { if ($this->action !== 'category') { pafiledb_file_fail('Not_Authorised'); } return true; }
         if ($this->mode === 'files') {
             if (in_array($this->action, array('create','edit'), true)) { $this->category($this->destination, array(), true, false, false); }

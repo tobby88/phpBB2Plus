@@ -112,6 +112,21 @@ class PaFileDbFileStorage
 		return $this->snapshot_file($scope, $name, 'snapshot');
 	}
 
+	// Read metadata only: never hash large downloads or follow file symlinks.
+	function inventory($scope)
+	{
+		if(!is_string($scope)||!isset($this->directories[$scope])){throw new PaFileDbFileStorageFailure('Invalid Download inventory scope');}
+		$this->check('inventory',$scope);$path=$this->base.DIRECTORY_SEPARATOR.str_replace('/',DIRECTORY_SEPARATOR,$this->directories[$scope]);$handle=@opendir($path);
+		if(!$handle){throw new PaFileDbFileStorageFailure('Download inventory unavailable');}$rows=array();
+		try{while(($name=readdir($handle))!==false){
+			if(!self::filename($name)){continue;}$file=$path.DIRECTORY_SEPARATOR.$name;clearstatcache(true,$file);$stat=@lstat($file);
+			if($stat===false){throw new PaFileDbFileStorageFailure('Download inventory changed');}
+			if(($stat['mode']&0170000)!==0100000){continue;}
+			if(!is_int($stat['size'])||$stat['size']<0){throw new PaFileDbFileStorageFailure('Invalid Download inventory size');}$rows[$name]=$stat['size'];
+		}}finally{closedir($handle);}
+		$this->check('inventory',$scope);ksort($rows,SORT_STRING);return$rows;
+	}
+
 
 	private function snapshot_file($scope, $name, $action)
 	{
