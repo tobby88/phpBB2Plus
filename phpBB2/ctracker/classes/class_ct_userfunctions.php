@@ -112,6 +112,26 @@ class ct_userfunctions
 		return $count;
 	}
 
+	/** Count monetary markers, not arbitrary US substrings or complete prices. */
+	private function spam_currency_count($text)
+	{
+		$text = preg_replace('/\p{Cf}/u', ' ', $text);
+		if (!is_string($text)) { return 7; }
+		$word = '[\p{L}\p{M}_]'; $gap = '[\p{Zs}\t]*+'; $dollar = '(?:USD|U\.?S\.?)';
+		$pattern = '~(?:(?<!'.$word.')'.$dollar.$gap.')?\$(?:'.$gap.$dollar.'(?!'.$word.'))?'
+			.'|(?:(?<!'.$word.')EUR'.$gap.')?€(?:'.$gap.'EUR(?!'.$word.'))?'
+			.'|(?<!'.$word.')U\.?S\.?(?:'.$gap.'|-)dollars?(?!'.$word.')'
+			.'|(?<!'.$word.')(?:USD|EUR)(?!'.$word.')~iu';
+		$count = 0; $offset = 0;
+		while ($count <= 6) {
+			$found = preg_match($pattern, $text, $match, PREG_OFFSET_CAPTURE, $offset);
+			if ($found === false) { return 7; }
+			if ($found === 0) { break; }
+			$count++; $offset = $match[0][1] + strlen($match[0][0]);
+		}
+		return $count;
+	}
+
 	/**
 	 * Return a privacy-preserving network key and label for login comparison.
 	 * IPv4 keeps the historical /16 behavior; IPv6 uses a stable /48 prefix.
@@ -312,9 +332,9 @@ class ct_userfunctions
 			$subject = $this->post_value('subject', 1024);
 			// Markup in the body cannot consume the subject as its display label.
 			$url_count = $this->spam_url_count($message) + $this->spam_url_count($subject);
-			$eur_count = preg_match_all('/(?:US|\\$|€)/u', $message . "\n" . $subject, $matches);
+			$currency_count = $this->spam_currency_count($message) + $this->spam_currency_count($subject);
 
-			if ( $url_count > 6 || $eur_count > 6 )
+			if ( $url_count > 6 || $currency_count > 6 )
 			{
 				message_die(GENERAL_MESSAGE, $lang['ctracker_info_post_spammer']);
 			}

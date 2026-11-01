@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Consistent CrackerTracker currency markers
+
+- Count compound dollar/euro markers once and recognize USD/EUR and explicit
+  US-dollar forms with word boundaries. Ordinary words such as USB, USA or
+  currency-like identifiers no longer count as monetary markers.
+- Preserve the six-marker limit across separately parsed subject/body fields,
+  role and post-count exemptions and original input. Stop at the first excess
+  marker, reject comparison failures and clarify the English/German ACP help.
+
 ### Consistent CrackerTracker URL limits
 
 - Count a complete address once, including its scheme and www prefix. Avoid

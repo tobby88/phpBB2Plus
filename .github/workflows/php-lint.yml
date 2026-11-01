@@ -173,6 +173,7 @@ jobs:
           php .github/scripts/check-ctracker-ip-range.php
           php .github/scripts/check-ctracker-utf8-spam.php
           php .github/scripts/check-ctracker-url-count.php
+          php .github/scripts/check-ctracker-currency-count.php
           php .github/scripts/check-ctracker-policy-help.php
 
       - name: Test CrackerTracker configuration resilience
