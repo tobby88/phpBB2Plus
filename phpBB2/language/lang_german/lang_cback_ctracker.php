@@ -90,9 +90,9 @@ $lang['ctracker_settings_e22']			  = 'Aktiviert die Überprüfung der Passwortg�
 $lang['ctracker_settings_m23']			  = 'Passwortgültigkeit in Tagen';
 $lang['ctracker_settings_e23']			  = 'Wie lange ist ein Benutzerpasswort gültig, ehe ein Hinweis zum Ändern erscheint? (in Tagen)';
 $lang['ctracker_settings_m24']			  = 'Passwort Komplexitätskontrolle';
-$lang['ctracker_settings_e24']			  = 'Diese Funktion überprüft Benutzerpasswörter auf Komplexität.';
+$lang['ctracker_settings_e24']			  = 'Prüft neue Passwörter bei Registrierung und Profiländerungen. Die Zeichenanforderungen berücksichtigen Unicode; vorhandene Passwörter und die Login-Prüfung bleiben unverändert.';
 $lang['ctracker_settings_m25']			  = 'Passwort Komplexitätsmodus';
-$lang['ctracker_settings_e25']			  = 'Hier kann eingestellt werden, ob zwingend Zeichen in Passwörtern vorhanden sein müssen.';
+$lang['ctracker_settings_e25']			  = 'Wähle die erforderliche Kombination aus Dezimalziffern, Klein- und Großbuchstaben sowie Sonderzeichen. Buchstaben anderer Alphabete und Umlaute werden nach ihrer Unicode-Kategorie eingeordnet. Satzzeichen, Symbole und Leerraum zählen als Sonderzeichen; Unterstriche, kombinierende Akzente und unsichtbare Formatzeichen dagegen nicht. Die separate Mindestlänge zählt weiterhin interne Bytes.';
 $lang['ctracker_settings_m26']			  = 'Passwort-Mindestlänge (interne Bytes)';
 $lang['ctracker_settings_e26']			  = 'Mindestlänge neuer Passwörter in der intern verwendeten Byte-Darstellung. Umlaute und Emoji belegen mehrere UTF-8-Bytes; Anführungszeichen, Apostrophe und Backslashes zählen aus Kompatibilitätsgründen jeweils doppelt. Vorhandene Passwörter werden nicht verändert.';
 $lang['ctracker_settings_m27']			  = 'Passwort Reset Prüfer';
@@ -133,15 +133,15 @@ $lang['ctracker_settings_e43']             = 'Begrenzt Beiträge, private Nachri
 
 $lang['ctracker_settings_on']			  = 'Aktivieren';
 $lang['ctracker_settings_off']			  = 'Deaktivieren';
-$lang['ctracker_complex_1']				  = '[0-9]';
-$lang['ctracker_complex_2']				  = '[a-z]';
-$lang['ctracker_complex_3']				  = '[A-Z]';
-$lang['ctracker_complex_4']				  = '[0-9][a-z]';
-$lang['ctracker_complex_5']				  = '[0-9][A-Z]';
-$lang['ctracker_complex_6']				  = '[0-9][a-z][A-Z]';
-$lang['ctracker_complex_7']				  = '[0-9][*]';
-$lang['ctracker_complex_8']				  = '[0-9][a-z][*]';
-$lang['ctracker_complex_9']				  = '[0-9][a-z][A-Z][*]';
+$lang['ctracker_complex_1']				  = 'Ziffern';
+$lang['ctracker_complex_2']				  = 'Kleinbuchstaben';
+$lang['ctracker_complex_3']				  = 'Großbuchstaben';
+$lang['ctracker_complex_4']				  = 'Ziffern + klein';
+$lang['ctracker_complex_5']				  = 'Ziffern + groß';
+$lang['ctracker_complex_6']				  = 'Ziffern + klein + groß';
+$lang['ctracker_complex_7']				  = 'Ziffern + Sonderzeichen';
+$lang['ctracker_complex_8']				  = 'Ziffern + klein + Sonderzeichen';
+$lang['ctracker_complex_9']				  = 'Ziffern + klein + groß + Sonderzeichen';
 
 
 /*

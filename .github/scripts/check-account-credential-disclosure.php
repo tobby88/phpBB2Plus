@@ -1,5 +1,6 @@
 <?php
 namespace MailDeliveryFixture;
+define('IN_PHPBB', true);
 require __DIR__ . '/check-mail-delivery-runtime.php';
 require_once $root.'includes/php_compat.php';
 require_once $root.'includes/functions_validate.php';

@@ -1,5 +1,6 @@
 <?php
 namespace PasswordPolicyFixture;
+define('IN_PHPBB', true);
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require_once $root . 'includes/php_compat.php';
 require_once $root . 'includes/functions_validate.php';

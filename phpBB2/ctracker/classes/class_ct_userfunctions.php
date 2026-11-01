@@ -499,54 +499,27 @@ class ct_userfunctions
 		// Password complexity
 		if ( intval($ctracker_config->settings['pw_complex']) == 1 && $new_password !== '' )
 		{
-			$p_patterns 	= '';
-			$active_pw_prot = '';
-			$p_pass     	= $new_password;
-
-			switch ( intval($ctracker_config->settings['pw_complex_mode']) )
+			// Decode only the classification copy. Lengths, hashes and request
+			// bytes retain their historical representation.
+			$p_pass = function_exists('phpbb_request_raw_value') ? phpbb_request_raw_value($new_password) : $new_password;
+			$requirements = array(1=>array(1), 2=>array(2), 3=>array(3),
+				4=>array(1,2), 5=>array(1,3), 6=>array(1,2,3),
+				7=>array(1,4), 8=>array(1,2,4), 9=>array(1,2,3,4));
+			$mode = intval($ctracker_config->settings['pw_complex_mode']);
+			if (!isset($requirements[$mode])) { $mode = 1; }
+			$classes = array(1=>'\p{Nd}', 2=>'\p{Ll}', 3=>'\p{Lu}',
+				4=>'(?!_)[\p{P}\p{S}\p{Z}\t\r\n\v\f]');
+			$p_patterns = '/\A'; $labels = array();
+			foreach ($requirements[$mode] as $category)
 			{
-				case 1: $p_patterns 	= '/^.*(?=.+)(?=.*\\d).*$/'; // [0-9]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_1'];
-						break;
-
-				case 2: $p_patterns 	= '/^.*(?=.+)(?=.*[a-z]).*$/'; // [a-z]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_2'];
-						break;
-
-				case 3: $p_patterns 	= '/^.*(?=.+)(?=.*[A-Z]).*$/'; // [A-Z]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_3'];
-						break;
-
-				case 4: $p_patterns 	= '/^.*(?=.+)(?=.*\\d)(?=.*[a-z]).*$/'; // [0-9][a-z]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_1'] . ', ' . $lang['ctracker_info_password_cmplx_2'];
-						break;
-
-				case 5: $p_patterns 	= '/^.*(?=.+)(?=.*\\d)(?=.*[A-Z]).*$/'; // [0-9][A-Z]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_1'] . ', ' . $lang['ctracker_info_password_cmplx_3'];
-						break;
-
-				case 6: $p_patterns 	= '/^.*(?=.+)(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).*$/'; // [0-9][a-z][A-Z]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_1'] . ', ' . $lang['ctracker_info_password_cmplx_2'] . ', ' . $lang['ctracker_info_password_cmplx_3'];
-						break;
-
-				case 7: $p_patterns 	= '/^.*(?=.+)(?=.*\\d)(?=.*\\W).*$/'; // [0-9][*]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_1'] . ', ' . $lang['ctracker_info_password_cmplx_4'];
-						break;
-
-				case 8: $p_patterns 	= '/^.*(?=.+)(?=.*\\d)(?=.*[a-z])(?=.*\\W).*$/'; // [0-9][a-z][*]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_1'] . ', ' . $lang['ctracker_info_password_cmplx_2'] . ', ' . $lang['ctracker_info_password_cmplx_4'];
-						break;
-
-				case 9: $p_patterns 	= '/^.*(?=.+)(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*\\W).*$/'; // [0-9][a-z][A-Z][*]
-						$active_pw_prot = $lang['ctracker_info_password_cmplx_1'] . ', ' . $lang['ctracker_info_password_cmplx_2'] . ', ' . $lang['ctracker_info_password_cmplx_3'] . ', ' . $lang['ctracker_info_password_cmplx_4'];
-						break;
-
-				default: $p_patterns = '/^.*(?=.+)(?=.*\\d).*$/';
-						 $active_pw_prot = $lang['ctracker_info_password_cmplx_1'];
-						 break;
+				$p_patterns .= '(?=[^\n]*'.$classes[$category].')';
+				$labels[] = $lang['ctracker_info_password_cmplx_'.$category];
 			}
+			// Preserve the old single-line rule (including its optional final LF).
+			$p_patterns .= '[^\n]*\n?\z/u';
+			$active_pw_prot = implode(', ', $labels);
 
-			if ( !preg_match($p_patterns, $p_pass) )
+			if ( preg_match($p_patterns, $p_pass) !== 1 )
 			{
 				message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_info_password_cmplx'], $active_pw_prot));
 			}

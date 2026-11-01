@@ -1,6 +1,7 @@
 <?php
 // Execute real bootstrap normalization and every controller/owned worker policy call.
 // This is a request/policy test, not a database or browser integration test.
+define('IN_PHPBB', true);
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require_once $root . 'includes/php_compat.php';
 require_once $root . 'includes/functions_validate.php';

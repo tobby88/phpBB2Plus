@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Unicode-aware CrackerTracker password requirements
+
+- Classify new passwords by Unicode decimal digits and lowercase/uppercase
+  letters. Accented letters and combining marks no longer impersonate special
+  characters; punctuation, symbols and whitespace satisfy that requirement.
+- Preserve all nine mode combinations, the separate internal byte minimum,
+  optional checks and existing credential/hash representation. Compare a copy
+  of the submitted text and clarify the English/German ACP help and selectors.
+
 ### Consistent CrackerTracker currency markers
 
 - Count compound dollar/euro markers once and recognize USD/EUR and explicit

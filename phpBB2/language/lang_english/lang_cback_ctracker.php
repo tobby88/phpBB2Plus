@@ -92,9 +92,9 @@ $lang['ctracker_settings_e22']			  = 'Activates Checking of Validity of Password
 $lang['ctracker_settings_m23']			  = 'Validity of Password in days';
 $lang['ctracker_settings_e23']			  = 'How long User password will be valid before there will be shown a note that the password should be changed. (in days)';
 $lang['ctracker_settings_m24']			  = 'Password Complexity Check';
-$lang['ctracker_settings_e24']			  = 'This feature checks the complexity of the User passwords.';
+$lang['ctracker_settings_e24']			  = 'Checks new passwords during registration and profile changes. Character requirements use Unicode; existing passwords and login verification are unchanged.';
 $lang['ctracker_settings_m25']			  = 'Password Complexity Mode';
-$lang['ctracker_settings_e25']			  = 'Here it can be set, if there have to be ZEICHEN in passwords.';
+$lang['ctracker_settings_e25']			  = 'Choose the required combination of decimal digits, lowercase and uppercase letters, and special characters. Letters from other alphabets and accented letters use their Unicode categories. Punctuation, symbols and whitespace count as special characters; underscores, combining accents and invisible format controls do not. The separate minimum length still counts internal bytes.';
 $lang['ctracker_settings_m26']			  = 'Minimum password length (internal bytes)';
 $lang['ctracker_settings_e26']			  = 'Minimum length for new passwords in their internal byte representation. Accented characters and emoji use multiple UTF-8 bytes; quotes and backslashes each count as two bytes for compatibility. Existing passwords are not changed.';
 $lang['ctracker_settings_m27']			  = 'Password Reset Checker';
@@ -135,15 +135,15 @@ $lang['ctracker_settings_e43']             = 'Separately limits posts, private m
 
 $lang['ctracker_settings_on']			  = 'Activate';
 $lang['ctracker_settings_off']			  = 'Deactivate';
-$lang['ctracker_complex_1']				  = '[0-9]';
-$lang['ctracker_complex_2']				  = '[a-z]';
-$lang['ctracker_complex_3']				  = '[A-Z]';
-$lang['ctracker_complex_4']				  = '[0-9][a-z]';
-$lang['ctracker_complex_5']				  = '[0-9][A-Z]';
-$lang['ctracker_complex_6']				  = '[0-9][a-z][A-Z]';
-$lang['ctracker_complex_7']				  = '[0-9][*]';
-$lang['ctracker_complex_8']				  = '[0-9][a-z][*]';
-$lang['ctracker_complex_9']				  = '[0-9][a-z][A-Z][*]';
+$lang['ctracker_complex_1']				  = 'Digits';
+$lang['ctracker_complex_2']				  = 'Lowercase letters';
+$lang['ctracker_complex_3']				  = 'Uppercase letters';
+$lang['ctracker_complex_4']				  = 'Digits + lowercase';
+$lang['ctracker_complex_5']				  = 'Digits + uppercase';
+$lang['ctracker_complex_6']				  = 'Digits + lower + upper';
+$lang['ctracker_complex_7']				  = 'Digits + special';
+$lang['ctracker_complex_8']				  = 'Digits + lower + special';
+$lang['ctracker_complex_9']				  = 'Digits + lower + upper + special';
 
 
 /*
