@@ -836,7 +836,7 @@ else if ( $submit || $confirm )
 		
 					if ($row = $db->sql_fetchrow($result))
 					{
-						if ($row['code'] != $posted_confirm_code)
+						if (!hash_equals((string)$row['code'], $posted_confirm_code))
 						{
 							$error = TRUE;
 							$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
@@ -845,10 +845,12 @@ else if ( $submit || $confirm )
 						{
 							$sql = 'DELETE FROM ' . CONFIRM_TABLE . " 
 								WHERE confirm_id = '$confirm_id' 
-									AND session_id = '" . $userdata['session_id'] . "'";
-							if (!$db->sql_query($sql))
+									AND session_id = '" . $db->sql_escape($userdata['session_id']) . "'
+									AND HEX(code) = HEX('" . $db->sql_escape($posted_confirm_code) . "')";
+							if (!$db->sql_query($sql) || $db->sql_affectedrows() !== 1)
 							{
-								message_die(GENERAL_ERROR, 'Could not delete confirmation code', __LINE__, __FILE__, $sql);
+								$error = TRUE;
+								$error_msg .= (!empty($error_msg) ? '<br />' : '') . $lang['Confirm_code_wrong'];
 							}
 						}
 					}
@@ -1579,64 +1581,21 @@ $page_title = ($postreport || $lock_subject) ? $lang['Post_a_report']: $page_tit
 //
 $confirm_image = '';
 $s_hidden_fields = '';
-if( !$userdata['session_logged_in'] && $ctracker_config->settings['vconfirm_guest'] != 1 && $plus_config['enable_confirm_post'])
+if (!$userdata['session_logged_in'] && ($ctracker_config->settings['vconfirm_guest'] == 1 || $plus_config['enable_confirm_post']))
 {
-	$expiry_time = time() - $board_config['session_length'];
-
-	$sql = 'SELECT session_id 
-		FROM ' . SESSIONS_TABLE ." WHERE session_time>$expiry_time"; 
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not select session data', '', __LINE__, __FILE__, $sql);
+	require_once $phpbb_root_path . 'includes/functions_confirmation.' . $phpEx;
+	try { $confirm_id = phpbb_confirmation_challenge($db, $userdata); }
+	catch (PhpbbOwnedStorageFailure $failure) {
+		$key = $failure->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['ctracker_code_dbconn']);
 	}
-	
-	if ($row = $db->sql_fetchrow($result))
-	{
-		$confirm_sql = '';
-		do
-		{
-			$confirm_sql .= (($confirm_sql != '') ? ', ' : '') . "'" . $row['session_id'] . "'";
-		}
-		while ($row = $db->sql_fetchrow($result));
-	
-		$sql = 'DELETE FROM ' .  CONFIRM_TABLE . " 
-			WHERE session_id NOT IN ($confirm_sql)";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Could not delete stale confirm data', '', __LINE__, __FILE__, $sql);
-		}
-	}
-	$db->sql_freeresult($result);
-	
-	// Generate the required confirmation code
-	// NB 0 (zero) could get confused with O (the letter) so we make change it
-	$code = phpbb_random_string(6, '23456789ABCDEFGHJKLMNPQRSTUVWXYZ');
-	$confirm_id = bin2hex(phpbb_random_bytes(16));
-	
-	$sql = 'INSERT INTO ' . CONFIRM_TABLE . " (confirm_id, session_id, code) 
-		VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, 'Could not insert new confirm code information', '', __LINE__, __FILE__, $sql);
-	}
-	
-	unset($code);
-	
 	$confirm_image = '<img src="' . append_sid("profile.$phpEx?mode=confirm&amp;id=$confirm_id") . '" alt="" title="" />';
-
-	$hidden_form_fields .= '<input type="hidden" name="confirm_id" value="' . $confirm_id . '" />';
-	
+	$confirm_hidden = '<input type="hidden" name="confirm_id" value="' . $confirm_id . '" />';
+	// Rendering is independent of the verification include: a failed submission
+	// must get a usable image and hidden ID even after POST_CONFIRM_CHECK ran.
+	if ($ctracker_config->settings['vconfirm_guest'] == 1) { $s_hidden_fields .= $confirm_hidden; }
+	else { $hidden_form_fields .= $confirm_hidden; }
 	$template->assign_block_vars('switch_confirm', array());
-}
-else if ( $ctracker_config->settings['vconfirm_guest'] == 1 && !$userdata['session_logged_in'] )
-{
-	// CrackerTracker v5.x
-	if ( !defined('CRACKER_TRACKER_VCONFIRM') )
-	{
-		define('CRACKER_TRACKER_VCONFIRM', true);
-	}
-	$template->assign_block_vars('switch_confirm', array());
-	include_once($phpbb_root_path . 'ctracker/engines/ct_visual_confirm.' . $phpEx);
 }
 // Generate smilies listing for page output
 generate_smilies('inline', PAGE_POSTING);

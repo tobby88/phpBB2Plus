@@ -480,7 +480,7 @@ if ( isset($_POST['submit']) )
 	
 				if ($row = $db->sql_fetchrow($result))
 				{
-					if ($row['code'] != $confirm_code)
+					if (!hash_equals((string)$row['code'], $confirm_code))
 					{
 						$error = TRUE;
 						$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
@@ -1470,65 +1470,13 @@ else
 	$confirm_image = '';
 	if (!empty($board_config['enable_confirm']) && $mode == 'register' && !$plus_config['enable_antirobot'])
 	{
-		$expiry_time = time() - $board_config['session_length'];
-	
-		$sql = 'SELECT session_id 
-			FROM ' . SESSIONS_TABLE ." WHERE session_time>$expiry_time"; 
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Could not select session data', '', __LINE__, __FILE__, $sql);
-		}
-
-		if ($row = $db->sql_fetchrow($result))
-		{
-			$confirm_sql = '';
-			do
-			{
-				$confirm_sql .= (($confirm_sql != '') ? ', ' : '') . "'" . $row['session_id'] . "'";
-			}
-			while ($row = $db->sql_fetchrow($result));
-		
-			$sql = 'DELETE FROM ' .  CONFIRM_TABLE . " 
-				WHERE session_id NOT IN ($confirm_sql)";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not delete stale confirm data', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		$db->sql_freeresult($result);
-
-		$sql = 'SELECT COUNT(session_id) AS attempts 
-			FROM ' . CONFIRM_TABLE . " 
-			WHERE session_id = '" . $userdata['session_id'] . "'";
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain confirm code count', '', __LINE__, __FILE__, $sql);
-		}
-
-		if ($row = $db->sql_fetchrow($result))
-		{
-			if ($row['attempts'] > 3)
-			{
-				message_die(GENERAL_MESSAGE, $lang['Too_many_registers']);
-			}
-		}
-		$db->sql_freeresult($result);
-		
-		// Generate the required confirmation code
-		// NB 0 (zero) could get confused with O (the letter) so we make change it
-		$code = phpbb_random_string(6, '23456789ABCDEFGHJKLMNPQRSTUVWXYZ');
-		$confirm_id = bin2hex(phpbb_random_bytes(16));
-
-		$sql = 'INSERT INTO ' . CONFIRM_TABLE . " (confirm_id, session_id, code) 
-			VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Could not insert new confirm code information', '', __LINE__, __FILE__, $sql);
-		}
-
-		unset($code);
-		
-		$confirm_image = '<img src="' . append_sid("profile.$phpEx?mode=confirm&amp;id=$confirm_id") . '" alt="" title="" />';
+		require_once $phpbb_root_path . 'includes/functions_confirmation.' . $phpEx;
+	try { $confirm_id = phpbb_confirmation_challenge($db, $userdata); }
+	catch (PhpbbOwnedStorageFailure $failure) {
+	    $key = $failure->getMessage();
+	    message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['ctracker_code_dbconn']);
+	}
+	$confirm_image = '<img src="' . append_sid("profile.$phpEx?mode=confirm&amp;id=$confirm_id") . '" alt="" title="" />';
 		$s_hidden_fields .= '<input type="hidden" name="confirm_id" value="' . $confirm_id . '" />';
 
 		$template->assign_block_vars('switch_confirm', array());

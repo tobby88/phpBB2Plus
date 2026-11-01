@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Reusable CAPTCHA forms with bounded session storage
+
+- Share an owned confirmation generator between registration and both guest
+  posting variants. Reuse an existing code after four open forms instead of
+  locking the form without a failed answer; keep earlier active tabs usable.
+- Freeze the current guest session and timeout policy through commit, serialize
+  concurrent generation and roll back cleanup/insertion together on failure.
+  Preserve pre-existing oversized sets while preventing further growth.
+- Compare the built-in guest posting code exactly and require one successful
+  consumption, including when another request has already consumed it.
+- Render the posting challenge independently of its verification include, so
+  a redisplayed form still contains a usable image and hidden confirmation ID.
+
 ### Unicode-aware CrackerTracker password requirements
 
 - Classify new passwords by Unicode decimal digits and lowercase/uppercase

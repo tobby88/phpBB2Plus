@@ -102,56 +102,12 @@ if ( $mode == 'check' || defined('POST_CONFIRM_CHECK') )
 else
 {
 	$confirm_image = '';
-	$session_id = isset($userdata['session_id']) && is_scalar($userdata['session_id']) ? (string) $userdata['session_id'] : '';
-	if (!preg_match('/^[a-f0-9]{32}$/Di', $session_id))
-	{
-		message_die(GENERAL_ERROR, $lang['ctracker_code_dbconn']);
+	require_once $phpbb_root_path . 'includes/functions_confirmation.' . $phpEx;
+	try { $confirm_id = phpbb_confirmation_challenge($db, $userdata); }
+	catch (PhpbbOwnedStorageFailure $failure) {
+	    $key = $failure->getMessage();
+	    message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['ctracker_code_dbconn']);
 	}
-
-	// Remove orphaned challenges without loading every active session into PHP.
-	$sql = 'DELETE confirm_entry FROM ' . CONFIRM_TABLE . ' confirm_entry
-		LEFT JOIN ' . SESSIONS_TABLE . ' active_session
-			ON active_session.session_id = confirm_entry.session_id
-		WHERE active_session.session_id IS NULL';
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, $lang['ctracker_code_dbconn'], '', __LINE__, __FILE__, $sql);
-	}
-
-	$sql = 'SELECT COUNT(session_id) AS attempts
-		FROM ' . CONFIRM_TABLE . "
-		WHERE session_id = '" . $db->sql_escape($session_id) . "'";
-
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, $lang['ctracker_code_dbconn'], '', __LINE__, __FILE__, $sql);
-	}
-
-	if ($row = $db->sql_fetchrow($result))
-	{
-		if ($row['attempts'] > 3)
-		{
-			message_die(GENERAL_MESSAGE, $lang['ctracker_code_count']);
-		}
-	}
-
-	$db->sql_freeresult($result);
-
-
-	// Generate the required confirmation code
-	// NB 0 (zero) could get confused with O (the letter) so we make change it
-	$code = phpbb_random_string(6, '23456789ABCDEFGHJKLMNPQRSTUVWXYZ');
-	$confirm_id = bin2hex(phpbb_random_bytes(16));
-
-	$sql = 'INSERT INTO ' . CONFIRM_TABLE . " (confirm_id, session_id, code)
-		VALUES ('" . $db->sql_escape($confirm_id) . "', '" . $db->sql_escape($session_id) . "', '" . $db->sql_escape($code) . "')";
-
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, $lang['ctracker_code_dbconn'], '', __LINE__, __FILE__, $sql);
-	}
-
-	unset($code);
 
 	$confirm_image 	  = '<img src="' . append_sid("profile.$phpEx?mode=confirm&amp;id=$confirm_id") . '" alt="" title="" />';
 	$s_hidden_fields = isset($s_hidden_fields) && is_string($s_hidden_fields) ? $s_hidden_fields : '';

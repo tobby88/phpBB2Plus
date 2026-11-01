@@ -54,8 +54,10 @@ security_entropy_assert(strpos($bbcode, 'mt_srand') === false, 'BBCode parsing m
 foreach (array('posting.php', 'ctracker/engines/ct_visual_confirm.php', 'includes/usercp_register.php') as $relative)
 {
 	$source = file_get_contents($root . '/phpBB2/' . $relative);
-	security_entropy_assert(strpos($source, "phpbb_random_string(6, '23456789ABCDEFGHJKLMNPQRSTUVWXYZ')") !== false, $relative . ' must generate unbiased visual-confirmation text');
-	security_entropy_assert(strpos($source, 'bin2hex(phpbb_random_bytes(16))') !== false, $relative . ' must generate a 128-bit confirmation id');
+	security_entropy_assert(strpos($source, 'phpbb_confirmation_challenge($db, $userdata)') !== false, $relative . ' must use the shared owned confirmation generator');
 }
+$confirmation = file_get_contents($root . '/phpBB2/includes/functions_confirmation.php');
+security_entropy_assert(strpos($confirmation, "phpbb_random_string(6, '23456789ABCDEFGHJKLMNPQRSTUVWXYZ')") !== false, 'shared confirmations must use unbiased text');
+security_entropy_assert(strpos($confirmation, 'bin2hex(phpbb_random_bytes(16))') !== false, 'shared confirmation IDs must retain 128-bit entropy');
 
 echo "Security entropy checks passed.\n";

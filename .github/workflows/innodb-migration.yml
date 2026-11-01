@@ -661,6 +661,12 @@ jobs:
         env:
           PHPBB_REGISTRATION_NATIVE: '1'
           PHPBB_REGISTRATION_PASSWORD: fixture-only
+      - name: Bound and reuse actual CAPTCHA challenges under concurrent renders
+        if: matrix.part == 2
+        run: php .github/scripts/check-confirmation-native.php
+        env:
+          PHPBB_CONFIRMATION_NATIVE: '1'
+          PHPBB_CONFIRMATION_PASSWORD: fixture-only
       - if: matrix.part == 4
         run: php .github/scripts/check-profile-account-defaults.php
         env:
