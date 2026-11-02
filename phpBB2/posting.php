@@ -96,6 +96,9 @@ foreach ($params as $var => $param)
 	}
 }
 
+// The report target is also needed by the early cancel and preview paths.
+$postreport = max(0, intval($request_scalar($_GET, 'postreport', 0)));
+
 $refresh = $preview || $poll_add || $poll_edit || $poll_delete;
 $orig_word = $replacement_word = array();
 //-- mod : post icon -------------------------------------------------------------------------------
@@ -211,11 +214,11 @@ init_userprefs($userdata);
 if ( isset($_POST['cancel']) )
 {
 	if ( $postreport )
-{
-	$redirect = 'viewtopic.$phpEx?' . POST_POST_URL . '=$postreport';
-	$post_append = '';
-} else
-	if ( $post_id )
+	{
+		$redirect = "viewtopic.$phpEx?" . POST_POST_URL . "=$postreport";
+		$post_append = '';
+	}
+	else if ( $post_id )
 	{
 		$redirect = "viewtopic.$phpEx?" . POST_POST_URL . "=$post_id";
 		$post_append = "#$post_id";
@@ -1149,7 +1152,6 @@ else
 	//
 	// User default entry point
 	//
-	$postreport=(isset($_GET['postreport']))? intval( $_GET['postreport']) : 0;
 if ($postreport)
 {
 	$sql = 'SELECT topic_id FROM '.POSTS_TABLE.' WHERE post_id="'.$postreport.'"';

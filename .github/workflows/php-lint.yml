@@ -326,6 +326,7 @@ jobs:
       - name: Test posting and poll safety
         run: |
           php .github/scripts/check-posting-safety.php
+          php .github/scripts/check-posting-cancel.php
           php .github/scripts/check-full-editor-form.php
 
       - name: Test warning-card safety

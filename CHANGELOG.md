@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Cancelling posting forms
+
+- Initialize the report target before cancellation, preview and submission.
+  Cancelling a form no longer emits an undefined-variable warning.
+- Return an abandoned report to the reported post with a valid URL; retain the
+  existing post, topic, forum and index destinations for ordinary forms.
+
 ### Bounded failed-login diagnostics
 
 - Stop the informational failed-login counter at its canonical storage limit.
