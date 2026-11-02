@@ -77,6 +77,7 @@ try{
  $result=lp_login(true);ats_check($lp_changed,'Race occurs after password verification before session read');
  ats_check($result==='denied'&&$lp_cookies===array()&&lp_rows('SELECT session_id FROM fixture_sessions WHERE session_user_id=2')===array(),'A replaced verified password cannot publish a new authenticated session or cookies');
  $cases=2;$serialized=0;
+	ats_check(lp_login(false,array('setup'=>function(){lp_query('UPDATE fixture_users SET user_badlogin=32767 WHERE user_id=2');}))==='published'&&lp_rows('SELECT user_badlogin FROM fixture_users WHERE user_id=2')[0]['user_badlogin']==='0','Correct credentials at the diagnostic counter limit still publish and reset the count');$cases++;
  foreach(array(array('persistent'=>1),array('stale_cookie'=>1),array('existing_cookie'=>1),array('existing_cookie'=>1,'persistent'=>1),array('rehash'=>1),array('admin'=>1))as$options){
   ats_check(lp_login(false,$options)==='published'&&$lp_open===0&&$db===$main,'Manual login with optional features commits/releases');$rows=lp_rows('SELECT * FROM fixture_sessions WHERE session_user_id=2');ats_check(count($rows)===1&&(int)$rows[0]['session_admin']===(empty($options['admin'])?0:1),'Actual stored session authority');
   $keys=lp_rows('SELECT key_id FROM fixture_sessions_keys WHERE user_id=2');ats_check(count($keys)===(empty($options['persistent'])?0:1),'Only requested persistence remains, old device cookie cannot override password login');

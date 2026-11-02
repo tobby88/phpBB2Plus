@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Bounded failed-login diagnostics
+
+- Stop the informational failed-login counter at its canonical storage limit.
+  A full counter no longer causes a database error or skips the ordinary
+  failed-attempt limiter. Preserve larger historical/custom counter values.
+- Keep successful login/reset behavior and existing IP/account limits intact;
+  no account lockout or database migration is introduced.
+
 ### Complete local calendar days
 
 - Preserve half-hour and quarter-hour timezone offsets when calculating local

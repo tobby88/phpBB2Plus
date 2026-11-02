@@ -105,6 +105,12 @@ jobs:
         env:
           PHPBB_FIXTURE_LOCKS_NATIVE: '1'
           PHPBB_FIXTURE_LOCKS_PASSWORD: fixture-only
+      - name: Keep failed login counters bounded without skipping the limiter
+        if: matrix.part == 2
+        run: php .github/scripts/check-login-counter-native.php
+        env:
+          PHPBB_LOGIN_COUNTER_NATIVE: '1'
+          PHPBB_LOGIN_COUNTER_PASSWORD: fixture-only
       - name: Respect discussion forum access in Knowledge Base comments
         if: matrix.part == 2
         run: |

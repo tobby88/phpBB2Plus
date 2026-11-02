@@ -44,7 +44,7 @@ class log_manager
 	public function prepare_log($username) {}
 	public function write_general_logfile($limit, $kind) {}
 }
-function message_die($code, $message) { $GLOBALS['branch_error_message'] = $message; throw new LoginBranchExit('message'); }
+function message_die($code, $message) { $GLOBALS['branch_error_code'] = $code; $GLOBALS['branch_error_message'] = $message; throw new LoginBranchExit('message'); }
 function append_sid($value, $html = false) { return $value . (strpos($value, '?') === false ? '?' : '&') . 'sid=test-session'; }
 function redirect($url) { throw new LoginBranchExit('redirect'); }
 function phpbb_login_session($database, $record, $ip, $page, $autologin, $admin, $replacement) { throw new LoginBranchExit('session-created'); }
@@ -71,11 +71,12 @@ $branch_code = substr($source, $first, $last - $first) . "\n}";
 $log_include = 'include_once($phpbb_root_path . \'ctracker/classes/class_log_manager.\' . $phpEx);';
 branch_assert(substr_count($branch_code, $log_include) === 1, 'only the explicit log boundary is substituted');
 $branch_code = str_replace($log_include, '/* In-memory log-manager double. */', $branch_code);
-function run_login_branch($record, $name, $password_valid = false, $valid_sid = true, $limit_reject = false)
+function run_login_branch($record, $name, $password_valid = false, $valid_sid = true, $limit_reject = false, $database = null)
 {
 	global $branch_code, $branch_password_valid, $branch_limited_names, $branch_verifications;
 	$GLOBALS['branch_limit_reject'] = $limit_reject;
 	$GLOBALS['branch_error_message'] = '';
+	$GLOBALS['branch_error_code'] = null;
 	$branch_password_valid = $password_valid; $branch_limited_names = array(); $branch_verifications = array();
 	$_POST = array('login'=>'Login', 'username'=>$name, 'password'=>'FakePassword123!', 'sid'=>'test-session');
 	$_GET = array(); $HTTP_POST_VARS = $_POST;
@@ -83,12 +84,12 @@ function run_login_branch($record, $name, $password_valid = false, $valid_sid = 
 	$sid = $valid_sid ? 'test-session' : 'invalid';
 	$board_config = array('board_disable'=>false, 'password_hashing'=>false);
 	$ctracker_config = new stdClass(); $ctracker_config->settings = array('logsize_logins'=>10);
-	$db = new LoginBranchDatabase(); $db->row = $record;
+	$db = $database === null ? new LoginBranchDatabase() : $database; $db->row = $record;
 	$template = new LoginBranchTemplate(); $phpEx = 'php'; $user_ip = '192.0.2.10';
 	$lang = array('Session_invalid'=>'invalid', 'Error_login'=>'failed', 'Click_return_login'=>'%slogin%s', 'Click_return_index'=>'%sindex%s');
 	$outcome = 'fell-through';
 	try { eval($branch_code); } catch (LoginBranchExit $exit) { $outcome = $exit->getMessage(); }
-	return array('outcome'=>$outcome, 'names'=>$branch_limited_names, 'verifications'=>$branch_verifications, 'message'=>$GLOBALS['branch_error_message']);
+	return array('outcome'=>$outcome, 'names'=>$branch_limited_names, 'verifications'=>$branch_verifications, 'message'=>$GLOBALS['branch_error_message'], 'error_code'=>$GLOBALS['branch_error_code']);
 }
 $known = array('user_id'=>42, 'username'=>'Müller', 'user_level'=>0, 'user_active'=>1, 'user_blocktime'=>0, 'user_password'=>'fake-hash');
 $failed_known = run_login_branch($known, 'Müller');

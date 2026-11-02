@@ -149,7 +149,9 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						// to hard-lock another user's account or trigger email floods.
 						// CrackerTracker's central and per-IP/account limiters remain
 						// responsible for slowing repeated guesses.
-						$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin = user_badlogin + 1
+						// The diagnostic SMALLINT must not overflow and interrupt the
+						// ordinary failure/limiter path. Keep wider historical values.
+						$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin = IF(user_badlogin < 32767, user_badlogin + 1, user_badlogin)
 							WHERE user_id = " . intval($row['user_id']);
 						if (!$db->sql_query($sql))
 						{

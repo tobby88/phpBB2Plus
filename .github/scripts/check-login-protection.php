@@ -9,7 +9,7 @@ $required = array(
 	'hash_equals((string) $userdata[\'session_id\']',
 	'ctracker_enforce_login_identity_limit($row[\'username\'])',
 	'ctracker_enforce_login_identity_limit($username)',
-	'user_badlogin = user_badlogin + 1',
+	'user_badlogin = IF(user_badlogin < 32767, user_badlogin + 1, user_badlogin)',
 	"phpbb_password_verify(\$password, '')"
 );
 foreach ($required as $marker)
