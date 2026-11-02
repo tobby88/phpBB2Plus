@@ -35,9 +35,6 @@ $plus_config += array(
 	'index_layout' => '',
 	'enable_gentime' => 0,
 );
-$board_config += array(
-	'summer_time' => 0,
-);
 
 define('HEADER_INC', TRUE);
 
@@ -101,7 +98,7 @@ unset($regs);
 // GET THE TIME TODAY AND YESTERDAY 
 // 
 $today_ary = explode('|', create_date('m|d|Y', time(),$board_config['board_timezone'])); 
-$board_config['time_today'] = gmmktime(0 - $board_config['board_timezone'] - $board_config['summer_time'],0,0,$today_ary[0],$today_ary[1],$today_ary[2]); 
+$board_config['time_today'] = phpbb_local_day_start($today_ary[2], $today_ary[0], $today_ary[1], $board_config['board_timezone']);
 $board_config['time_yesterday'] = $board_config['time_today'] - 86400; 
 unset($today_ary); 
 //-- end mod : today at   yesterday at ------------------------------------------------------------------------ 

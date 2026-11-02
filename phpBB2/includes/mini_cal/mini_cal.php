@@ -117,7 +117,7 @@ define ('IN_MINI_CAL', 1);
             }
             else
             {
-                $nix_mini_cal_today = gmmktime($board_config['board_timezone'], 0, 0, $mini_cal_this_month, $mini_cal_this_day, $mini_cal_this_year);
+                $nix_mini_cal_today = phpbb_local_day_start($mini_cal_this_year, $mini_cal_this_month, $mini_cal_this_day, $board_config['board_timezone']);
                 $mini_cal_day_link = '<a href="' . append_sid($phpbb_root_path . "search.$phpEx?search_id=mini_cal&amp;d=" . $nix_mini_cal_today) . '" class="' . MINI_CAL_DAY_LINK_CLASS . '">' . ( $mini_cal_day ) . '</a>';
                 $mini_cal_day = ( $mini_cal_today >= $d_mini_cal_today ) ? $mini_cal_day_link : $mini_cal_day;
             }

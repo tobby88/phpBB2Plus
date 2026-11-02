@@ -289,7 +289,8 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			}
 			else if ( MINI_CAL_CALENDAR_VERSION != 'NONE' && $search_id == 'mini_cal' ) 
 			{
-				$nix_tomorrow  = mktime (0,0,0,date("m", $search_date), date("d", $search_date)+1,date("Y", $search_date)); 
+				// Calendar links carry the UTC start of the requested local day.
+				$nix_tomorrow = $search_date + 86400;
 		                
 				$sql = "SELECT post_id 
 				    FROM " . POSTS_TABLE . " 

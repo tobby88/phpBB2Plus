@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Complete local calendar days
+
+- Preserve half-hour and quarter-hour timezone offsets when calculating local
+  midnight. Keep header labels and calendar links aligned with date formatting.
+- Search a complete local day from calendar links, including its first second
+  and excluding the next day's first second, independently of server timezone.
+- Include exact midnight in today/yesterday labels and display future days with
+  their date. Preserve existing timestamp storage and current DST policy.
+
 ### Reusable CAPTCHA forms with bounded session storage
 
 - Render CAPTCHA images without thousands of float string-offset warnings or

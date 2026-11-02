@@ -1482,6 +1482,14 @@ function phpbb_timezone_label($offset)
 //
 // Create date/time from format and timezone
 //
+// Use the same current server-DST adjustment as create_date(). Convert the
+// complete offset to seconds: gmmktime() accepts only whole hours.
+function phpbb_local_day_start($year, $month, $day, $tz)
+{
+	return gmmktime(0, 0, 0, (int) $month, (int) $day, (int) $year)
+		- (int) round(3600 * ($tz + date('I')));
+}
+
 function create_date($format, $gmepoch, $tz)
 {
 	global $board_config, $lang;
@@ -1508,11 +1516,11 @@ function create_date_day($format, $gmepoch, $tz)
    global $board_config, $lang;
 
    $date_day = create_date($format, $gmepoch, $tz);
-    if ( $board_config['time_today'] < $gmepoch)
+    if ( $gmepoch >= $board_config['time_today'] && $gmepoch < $board_config['time_today'] + 86400)
     {
        $date_day = sprintf($lang['Today_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz));
     }
-      else if ( $board_config['time_yesterday'] < $gmepoch)
+      else if ( $gmepoch >= $board_config['time_yesterday'] && $gmepoch < $board_config['time_today'])
     {
        $date_day = sprintf($lang['Yesterday_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz));
     }

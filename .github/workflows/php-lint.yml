@@ -118,6 +118,9 @@ jobs:
       - name: Render complete CAPTCHA PNGs without PHP notices or deprecations
         run: php .github/scripts/check-confirmation-image.php
 
+      - name: Preserve complete local days in date labels and calendar searches
+        run: php .github/scripts/check-calendar-day-boundaries.php
+
       - name: Check InnoDB migration schema and updater integration
         run: php .github/scripts/check-innodb-migration.php
       - name: ACP avatar upload transaction integration
