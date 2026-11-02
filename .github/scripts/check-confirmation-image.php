@@ -36,14 +36,16 @@ if (isset($argv[1]) && strpos($argv[1], '--fixture=') === 0) {
     exit(3); // The real endpoint must terminate its own response.
 }
 function ci_render($fixture) {
-    $command = escapeshellarg(PHP_BINARY).' -n '.escapeshellarg(__FILE__).' '.
+    // Retain this runtime's normal extension configuration. On Linux PHP 5/7,
+    // even JSON may be a shared extension and disappears under a forced -n.
+    $command = escapeshellarg(PHP_BINARY).' '.escapeshellarg(__FILE__).' '.
         escapeshellarg('--fixture='.base64_encode(json_encode($fixture)));
     $process = proc_open($command, array(0=>array('pipe','r'), 1=>array('pipe','w'), 2=>array('pipe','w')),
         $pipes, null, null, array('bypass_shell'=>true));
     ci_assert(is_resource($process), 'Actual image child starts'); fclose($pipes[0]);
     $output = stream_get_contents($pipes[1]); fclose($pipes[1]);
     $errors = stream_get_contents($pipes[2]); fclose($pipes[2]); $exit = proc_close($process);
-    ci_assert($exit === 0 && $errors === '', 'Actual image endpoint exits without warnings: '.$errors);
+    ci_assert($exit === 0 && $errors === '', 'Actual image endpoint exits without warnings (exit '.$exit.'): '.$errors.substr($output,0,500));
     $result = json_decode($output, true);
     ci_assert(is_array($result) && isset($result['image'], $result['queries']), 'Completed binary response receipt');
     $result['image'] = base64_decode($result['image'], true);
