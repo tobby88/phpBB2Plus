@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Reusable CAPTCHA forms with bounded session storage
 
+- Render CAPTCHA images without thousands of float string-offset warnings or
+  deprecated random-generator reseeding. Preserve the existing glyphs, cropping
+  and greyscale PNG format across PHP 5.6, 7.4 and 8.5.
 - Share an owned confirmation generator between registration and both guest
   posting variants. Reuse an existing code after four open forms instead of
   locking the form without a failed answer; keep earlier active tabs usable.

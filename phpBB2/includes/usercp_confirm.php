@@ -76,9 +76,6 @@ $img_height = 40;
 $img_width = 0;
 $l = 0;
 
-list($usec, $sec) = explode(' ', microtime()); 
-mt_srand($sec * $usec); 
-
 $char_widths = array();
 for ($i = 0; $i < strlen($code); $i++)
 {
@@ -155,8 +152,8 @@ exit;
 function randomise($scanline, $width)
 {
 	$new_line = '';
-	$start = floor($width/2);
-	$end = strlen($scanline) - ceil($width/2);
+	$start = (int) floor($width/2);
+	$end = strlen($scanline) - (int) ceil($width/2);
 
 	for ($i = $start; $i < $end; $i++)
 	{

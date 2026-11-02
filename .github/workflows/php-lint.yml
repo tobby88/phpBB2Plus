@@ -115,6 +115,9 @@ jobs:
       - name: Check request-local ERC password proofs and fresh authority
         run: php .github/scripts/check-erc-password-proof.php
 
+      - name: Render complete CAPTCHA PNGs without PHP notices or deprecations
+        run: php .github/scripts/check-confirmation-image.php
+
       - name: Check InnoDB migration schema and updater integration
         run: php .github/scripts/check-innodb-migration.php
       - name: ACP avatar upload transaction integration
