@@ -44,7 +44,7 @@ removed_runtime_assert(strpos($update_sources, '" WHERE topic_id = " . $row[') =
 $captcha = file_get_contents($root . '/phpBB2/includes/usercp_confirm_adv.php');
 removed_runtime_assert(strpos($captcha, '$use_ttf = count($fonts) > 0') !== false, 'advanced CAPTCHA must tolerate an empty font directory');
 removed_runtime_assert(strpos($captcha, 'if (!$use_ttf)') !== false, 'advanced CAPTCHA must have a built-in-font fallback');
-removed_runtime_assert(strpos($captcha, 'imagestring($image, $builtin_font') !== false, 'advanced CAPTCHA fallback must remain usable');
+removed_runtime_assert(strpos($captcha, 'phpbb_captcha_builtin_letter($image,') !== false && strpos($captcha, 'imagestring($image, $font,') !== false, 'advanced CAPTCHA must retain the shared built-in-font drawing fallback');
 
 $functions = file_get_contents($root . '/phpBB2/includes/functions.php');
 $page_header = file_get_contents($root . '/phpBB2/includes/page_header.php');
