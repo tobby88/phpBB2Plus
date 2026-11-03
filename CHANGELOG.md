@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Moderation IP lookup scope and identity display
+
+- Bind the Shoutbox IP overview's account names to the standard template and
+  escape labels and complete search tooltips in both moderation IP views.
+  Preserve literal account names in search links without decoding entities.
+- Recheck the current active account, exact logged-in session and forum ACLs
+  before cross-forum IP lookups. Show forum totals and other IPs only from
+  forums the moderator can currently view, read and moderate.
+- Retain the Shoutbox-to-forum correlation while explicitly distinguishing
+  Shoutbox IP statistics from scoped forum-post statistics in both languages.
+
 ### Shoutbox stored-message display and highlighting
 
 - Share BBCode, word filtering, links and smilies rendering across the compact

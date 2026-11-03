@@ -987,6 +987,9 @@ $lang['New_forum'] = 'New forum';
 $lang['This_posts_IP'] = 'IP address for this post';
 $lang['Other_IP_this_user'] = 'Other IP addresses this user has posted from';
 $lang['Users_this_IP'] = 'Users posting from this IP address';
+$lang['Moderated_forum_users_IP'] = 'Forum posts from this IP address (forums you moderate)';
+$lang['Shoutbox_this_IP'] = 'IP address of this shout (shoutbox messages)';
+$lang['Shoutbox_other_IPs'] = 'Other IP addresses used by this user in the shoutbox';
 $lang['IP_info'] = 'IP Information';
 $lang['Lookup_IP'] = 'Look up IP address';
 

@@ -327,6 +327,8 @@ if ($mode=='delete' || $mode=='censor')
 } else
 if ($mode=='ip')
 {
+	require_once($phpbb_root_path . 'includes/functions_ip_lookup.' . $phpEx);
+	phpbb_ip_lookup_actor($db, true);
 	//	show the ip
 	if ( !$is_auth['auth_mod'])
 	{
@@ -375,9 +377,9 @@ if ($mode=='ip')
 	);
 	$template->assign_vars(array(
 		'L_IP_INFO' => $lang['IP_info'],
-		'L_THIS_POST_IP' => $lang['This_posts_IP'],
-		'L_OTHER_IPS' => $lang['Other_IP_this_user'],
-		'L_OTHER_USERS' => $lang['Users_this_IP'],
+		'L_THIS_POST_IP' => $lang['Shoutbox_this_IP'],
+		'L_OTHER_IPS' => $lang['Shoutbox_other_IPs'],
+		'L_OTHER_USERS' => $lang['Moderated_forum_users_IP'],
 		'L_LOOKUP_IP' => $lang['Lookup_IP'], 
 		'L_SEARCH' => $lang['Search'],
 		'SEARCH_IMG' => $images['icon_search'], 
@@ -434,10 +436,11 @@ if ($mode=='ip')
 		//
 		// Get other users who've posted under this IP
 		//
+		$ip_forum_filter = phpbb_ip_lookup_forum_filter($db);
 		$sql = "SELECT u.user_id, u.username, COUNT(*) as postings 
 			FROM " . USERS_TABLE ." u, " . POSTS_TABLE . " p 
 			WHERE p.poster_id = u.user_id 
-				AND p.poster_ip = '" . $shout_identifyer['shout_ip'] . "'
+				AND p.poster_ip = '" . $db->sql_escape($shout_identifyer['shout_ip']) . "'" . $ip_forum_filter . "
 			GROUP BY u.user_id, u.username
 			ORDER BY " . (( SQL_LAYER == 'msaccess' ) ? 'COUNT(*)' : 'postings' ) . " DESC";
 
@@ -451,9 +454,8 @@ if ($mode=='ip')
 			$i = 0;
 			do
 			{
-				$id = $row['user_id'];
-//				$username = ( $id == ANONYMOUS ) ? $lang['Guest'] : $row['username'];
-				$shout_username = ( $id == ANONYMOUS && $row['username'] == '' ) ? $lang['Guest'] : $row['username'];
+				$id = (int)$row['user_id'];
+				$ip_author = phpbb_ip_lookup_author($id, $row['username']);
 
 				$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 				$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
@@ -461,12 +463,12 @@ if ($mode=='ip')
 				$template->assign_block_vars('userrow', array(
 					'ROW_COLOR' => '#' . $row_color, 
 					'ROW_CLASS' => $row_class, 
-					'SHOUT_USERNAME' => $shout_username,
+					'USERNAME' => $ip_author['name'],
 					'POSTS' => $row['postings'] . ' ' . ( ( $row['postings'] == 1 ) ? $lang['Post'] : $lang['Posts'] ),
-					'L_SEARCH_POSTS' => sprintf($lang['Search_user_posts'], $shout_username), 
+					'L_SEARCH_POSTS' => $ip_author['title'],
 
 					'U_PROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$id"),
-					'U_SEARCHPOSTS' => append_sid("search.$phpEx?search_author=" . urlencode(html_entity_decode($shout_username, ENT_QUOTES, 'UTF-8')) . "&amp;showresults=topics"))
+					'U_SEARCHPOSTS' => append_sid("search.$phpEx?search_author=" . $ip_author['query'] . "&amp;showresults=topics"))
 				);
 
 				$i++; 

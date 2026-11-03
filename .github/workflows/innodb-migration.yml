@@ -289,6 +289,12 @@ jobs:
         env:
           PHPBB_SHOUT_TEXT_NATIVE: '1'
           PHPBB_SHOUT_TEXT_PASSWORD: fixture-only
+      - name: Scope native moderation IP reads to current sessions and forum permissions
+        if: matrix.part == 4
+        run: php .github/scripts/check-ip-lookup-native.php
+        env:
+          PHPBB_IP_LOOKUP_NATIVE: '1'
+          PHPBB_IP_LOOKUP_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

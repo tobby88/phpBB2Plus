@@ -979,6 +979,9 @@ $lang['New_forum'] = 'Neues Forum';
 $lang['This_posts_IP'] = 'IP-Adresse für diesen Beitrag';
 $lang['Other_IP_this_user'] = 'Andere IP-Adressen, von denen dieser Benutzer geschrieben hat';
 $lang['Users_this_IP'] = 'Beiträge von dieser IP-Adresse';
+$lang['Moderated_forum_users_IP'] = 'Forenbeiträge von dieser IP-Adresse (von dir moderierte Foren)';
+$lang['Shoutbox_this_IP'] = 'IP-Adresse dieses Shouts (Shoutbox-Nachrichten)';
+$lang['Shoutbox_other_IPs'] = 'Andere IP-Adressen dieses Benutzers in der Shoutbox';
 $lang['IP_info'] = 'IP-Information';
 $lang['Lookup_IP'] = 'IP nachschlagen';
 
