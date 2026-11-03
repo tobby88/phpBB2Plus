@@ -606,9 +606,9 @@ if( $mode != '' )
 			'BONUS' => $game_info['game_bonus'],
 			'AT_BONUS' => $game_info['at_game_bonus'],
 			'REWARD' => $reward,
-			'BEST_PLAYER' => arcade_output_html($best_player),
+			'BEST_PLAYER' => phpbb_stored_text($best_player),
 			'BEST_SCORE' => $display_score,
-			'BEST_AT_PLAYER' => arcade_output_html($score_at_info['username']),
+			'BEST_AT_PLAYER' => phpbb_stored_text($score_at_info['username']),
 			'BEST_AT_SCORE' => $display_at_score,
 			'INSTRUCTIONS' => arcade_output_smilies($instructions),
 			'ARCADE_MOD' => sprintf($lang['activitiy_mod_info'], $arcade->version),
@@ -731,7 +731,7 @@ if( $mode != '' )
 	        $template->assign_block_vars("scores", array(
 				    'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2', 
          		'POS' => $pos, 
-				'NAME' => arcade_output_html($user_name),
+				'NAME' => phpbb_stored_text($user_name),
 	         	'SCORE' => $display_score,                                  
 		       	'DATE' => create_date($board_config['default_dateformat'], $row['date'], $board_config['board_timezone']),
 		       	'TIME_TAKEN' => $time_taken,
@@ -1025,7 +1025,7 @@ if( $mode != '' )
     		  {
       			$moderator = '<br /><b>'.$lang['Moderator'].':</b>';
       			$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['mod_id'] . "");
-					$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . arcade_output_html($arcade->get_username($catrows[$i]['mod_id'])) . '</span></a>';
+					$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . phpbb_stored_text($arcade->get_username($catrows[$i]['mod_id'])) . '</span></a>';
       			$moderator .= $profile;
       		}
 //
@@ -1039,7 +1039,7 @@ if( $mode != '' )
        				$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['last_player'] . "");
        				if($catrows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
        				{
-						$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . arcade_output_html($catrows[$i]['username']) . '</span></a>';
+						$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . phpbb_stored_text($catrows[$i]['username']) . '</span></a>';
        				}
        				else
        				{
@@ -1211,7 +1211,7 @@ if( $mode != '' )
 						if($game_rows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
 						{
 							$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$best_player_id");
-							$profile = '<a href="' . $temp_url . '"><span class="gentbl">' . arcade_output_html($best_player) . '</span></a>';
+							$profile = '<a href="' . $temp_url . '"><span class="gentbl">' . phpbb_stored_text($best_player) . '</span></a>';
 							$best_player = $profile;
 						}
 						else
@@ -1246,7 +1246,7 @@ if( $mode != '' )
 						? $game_rows[$i]['at_username']
 						: (($game_rows[$i]['player_name'] == '') ? '?????' : $game_rows[$i]['player_name']);
             $best_at_score = $arcade->convert_score($game_rows[$i]['at_score']) ? '<br /><br />' . $arcade->score : '';
-						$best_at_player = htmlspecialchars($best_at_player, ENT_QUOTES, 'UTF-8');
+						$best_at_player = phpbb_stored_text($best_at_player);
 						if ($game_rows[$i]['at_username'] !== null && ($game_rows[$i]['at_user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD))
 						{
 							$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $best_at_player_id);
@@ -1526,7 +1526,7 @@ if( $mode != '' )
 		$monthly_highscore = ($arcade->arcade_config['games_show_mhm']) ? highscore_jump_box() : '';
 
 		$template->assign_vars(array(
-			"ARCADE_USERNAME" => arcade_output_html($userdata['username']),
+			"ARCADE_USERNAME" => phpbb_stored_text($userdata['username']),
 			"GAMELIB_LINK" => $gamelib_link,
 			"PAGINATION" => $pagination,
 			"PAGE_NUMBER" => $page_number, 
@@ -1622,7 +1622,7 @@ else
 		{
 			$moderator = '<br /><b>'.$lang['Moderator'].':</b>';
 			$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['mod_id'] . "");
-			$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . arcade_output_html($arcade->get_username($catrows[$i]['mod_id'])) . '</span></a>';
+			$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . phpbb_stored_text($arcade->get_username($catrows[$i]['mod_id'])) . '</span></a>';
 			$moderator .= $profile;
 		}
 //
@@ -1636,7 +1636,7 @@ else
  				$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['last_player'] . "");
  				if($catrows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
  				{
-					$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . arcade_output_html($catrows[$i]['username']) . '</span></a>';
+					$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . phpbb_stored_text($catrows[$i]['username']) . '</span></a>';
  				}
  				else
  				{
@@ -1701,7 +1701,7 @@ else
     {
       $last_tour_user_id  = $last_tour['user_id'];
       $last_tour_date     = create_date($board_config['default_dateformat'], $last_tour['last_played_time'], $board_config['board_timezone']);
-		$display_last_tour = '<a href="arcade_tournament.'.$phpEx.'?mode=tour&amp;id='.(int) $last_tour['tour_id'].'" class="gensmall">'.arcade_output_html($last_tour['tour_name']).'</a><br>'.$last_tour_date.'<br><a href="'.append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . (int) $last_tour_user_id).'" class="gensmall">'. arcade_output_html($arcade->get_username($last_tour_user_id)) .'</a>';
+		$display_last_tour = '<a href="arcade_tournament.'.$phpEx.'?mode=tour&amp;id='.(int) $last_tour['tour_id'].'" class="gensmall">'.arcade_output_html($last_tour['tour_name']).'</a><br>'.$last_tour_date.'<br><a href="'.append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . (int) $last_tour_user_id).'" class="gensmall">'. phpbb_stored_text($arcade->get_username($last_tour_user_id)) .'</a>';
     }
 //
 //  Turn Tournament Info ON
@@ -1724,7 +1724,7 @@ else
  			$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[0]['last_player'] . "");
  			if($catrows[0]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
  			{
-				$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . arcade_output_html($catrows[0]['username']) . '</span></a>';
+				$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . phpbb_stored_text($catrows[0]['username']) . '</span></a>';
  			}
  			else
  			{
@@ -1805,7 +1805,7 @@ else
 //  Basics for Page
 //
 	$template->assign_vars(array(
-		'ARCADE_USERNAME' => arcade_output_html($userdata['username']),
+		'ARCADE_USERNAME' => phpbb_stored_text($userdata['username']),
 		'L_WELCOME' => sprintf($lang['game_welcome'], $board_config['sitename']),
 		'L_WELCOME_GUEST' => sprintf($lang['game_guest_welcome'], $board_config['sitename']),
 		'L_SEARCH' => $lang['Search'],

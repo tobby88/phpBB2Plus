@@ -48,8 +48,8 @@ arcade_secondary_assert(strpos($activity, 'function arcade_external_url($value)'
 arcade_secondary_assert(strpos($activity, 'return phpbb_normalize_external_url($value);') !== false, 'runtime link categories must share the external URL boundary');
 arcade_secondary_assert(strpos($adminCategories, '$normalized_link = phpbb_normalize_external_url($desc);') !== false, 'admin link categories must share the external URL boundary');
 arcade_secondary_assert(substr_count($activity, 'arcade_output_html(') >= 20, 'stored Arcade metadata must be escaped at output boundaries');
-arcade_secondary_assert(substr_count($activity, "'ARCADE_USERNAME' => arcade_output_html(\$userdata['username'])") === 1, 'the default Arcade page needs an escaped server-side username');
-arcade_secondary_assert(substr_count($activity, '"ARCADE_USERNAME" => arcade_output_html($userdata[\'username\'])') === 1, 'Arcade category pages need an escaped server-side username');
+arcade_secondary_assert(substr_count($activity, "'ARCADE_USERNAME' => phpbb_stored_text(\$userdata['username'])") === 1, 'the default Arcade page needs an escaped server-side username');
+arcade_secondary_assert(substr_count($activity, '"ARCADE_USERNAME" => phpbb_stored_text($userdata[\'username\'])') === 1, 'Arcade category pages need an escaped server-side username');
 arcade_secondary_assert(strpos($activity, 'ina_send_user_pm(') === false, 'viewing another player statistics must remain side-effect free');
 arcade_secondary_assert(strpos($activity, "\$score_names_sql[] = \"'\" . \$db->sql_escape(\$score_name) . \"'\"") !== false, 'statistics game-name lists must be SQL escaped');
 arcade_secondary_assert(strpos($functions, "\$game_name_sql = \$db->sql_escape(\$rows[\$i]['game_name'])") !== false, 'highscore aggregation must escape stored game names');

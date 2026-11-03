@@ -135,6 +135,8 @@ jobs:
         run: php -n .github/scripts/check-shoutbox-author-labels.php
       - name: Render current Arcade summaries with structured caches and session-local links
         run: php .github/scripts/check-arcade-summaries.php
+      - name: Render stored player names across Arcade pages and comments
+        run: php .github/scripts/check-arcade-player-labels.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

@@ -405,7 +405,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 
 		for ($i = 0; $i < count($commentrow); $i++)
 		{
-			$poster = (int)$commentrow[$i]['user_id']>0 ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $commentrow[$i]['user_id']) .'">'. phpbb_profile_text($commentrow[$i]['username']) .'</a>' : phpbb_author_name($commentrow[$i]['comment_user_id'],$commentrow[$i]['comment_username']!==''?$commentrow[$i]['comment_username']:$lang['Guest']);
+			$poster = (int)$commentrow[$i]['user_id']>0 ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $commentrow[$i]['user_id']) .'">'. phpbb_stored_text($commentrow[$i]['username']) .'</a>' : phpbb_author_name($commentrow[$i]['comment_user_id'],$commentrow[$i]['comment_username']!==''?$commentrow[$i]['comment_username']:$lang['Guest']);
 
 			if ($commentrow[$i]['comment_edit_count'] > 0)
 			{
@@ -486,7 +486,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		'body' => 'arcade_comment_body.tpl')
 	);
 
-	$poster = ((int) $first_commenter['user_id'] > 0) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $first_commenter['user_id']) .'">'. phpbb_profile_text($first_commenter['username']) .'</a>' : '';
+	$poster = ((int) $first_commenter['user_id'] > 0) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $first_commenter['user_id']) .'">'. phpbb_stored_text($first_commenter['username']) .'</a>' : '';
 
 	//---------------------------------
 	// Comment Posting Form
