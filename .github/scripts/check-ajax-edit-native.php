@@ -102,7 +102,7 @@ try{
  // Real request decoding, branches, response draft and rendering; only censor
  // lookup and displayed date are deterministic presentation fixtures.
  $ajax=file_get_contents($phpbb_root_path.'ajax.php');$a=strpos($ajax,'function ajax_scalar_value(');$b=strpos($ajax,'// Get SID and check it',$a);ae_check($a!==false&&$b>$a,'Actual request helpers');eval(substr($ajax,$a,$b-$a));
- $functions=file_get_contents($phpbb_root_path.'includes/functions.php');foreach(array('phpbb_profile_text','utf8_rawurldecode','unhtmlspecialchars') as $name){$a=strpos($functions,'function '.$name.'(');$b=strpos($functions,"\n}",$a);ae_check($a!==false&&$b>$a,'Actual text conversion '.$name);eval(substr($functions,$a,$b+2-$a));}
+ $functions=file_get_contents($phpbb_root_path.'includes/functions.php');foreach(array('phpbb_profile_text','phpbb_stored_text','utf8_rawurldecode','unhtmlspecialchars') as $name){$a=strpos($functions,'function '.$name.'(');$b=strpos($functions,"\n}",$a);ae_check($a!==false&&$b>$a,'Actual text conversion '.$name);eval(substr($functions,$a,$b+2-$a));}
  $a=strpos($ajax,"if (\$mode == 'edit_post_subject')");$b=strpos($ajax,'// Voting/Viewing of polls',$a);ae_check($a!==false&&$b>$a,'Actual edit branches');$branches=substr($ajax,$a,$b-$a);
  foreach(array('english','german') as $locale){require $phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';foreach(array('subject','text') as $field){foreach(array('success','failure','ack','denied') as $kind){
   ae_fixture();$board_config['allow_bbcode']=false;$before=ae_snapshot();if($kind==='failure'){$ae_fail='DELETE FROM fixture_search_wordmatch';}if($kind==='ack'){$ae_ack=true;}if($kind==='denied'){ae_sql(ae_revoke('session'));$before=ae_snapshot();}

@@ -319,7 +319,7 @@ function cg_get_data($user_id, $all = false)
 		} 
 	} 
 
-	if($do_update || !isset($user_style[$user_id]['name']) || !$user_style[$user_id]['name'])
+	if($do_update || !isset($user_style[$user_id]['name']) || !is_string($user_style[$user_id]['name']) || $user_style[$user_id]['name'] === '')
 	{ 
 		if (!$can_write_cache && !$all)
 		{
@@ -457,7 +457,7 @@ function color_group_colorize_name($user_id, $no_profile = false)
 		return $lang['Guest'];
 	}
 
-	if ( !isset($cacheUsers[$user_id]['name']) || !$cacheUsers[$user_id]['name'] )
+	if ( !isset($cacheUsers[$user_id]['name']) || !is_string($cacheUsers[$user_id]['name']) || $cacheUsers[$user_id]['name'] === '' )
 	{
 		// $cacheUsers = cg_get_data($user_id); 
 		$cacheUsers = cg_get_data($user_id, true);
@@ -470,7 +470,8 @@ function color_group_colorize_name($user_id, $no_profile = false)
 	$color = check_font_color_nivisec($cacheUsers[$user_id]['color']) ? htmlspecialchars($cacheUsers[$user_id]['color'], ENT_QUOTES, 'UTF-8') : '';
 	$style_color = ($color !== '') ? 'style="font-weight:bold;color:' . $color . '"' : '';
 
-	$username = stripslashes($cacheUsers[$user_id]['name']);
+	$username = is_string($cacheUsers[$user_id]['name']) ? $cacheUsers[$user_id]['name'] : '';
+	$stored_username = ($username !== '');
 
 	if ($username == '')
 	{
@@ -482,10 +483,11 @@ function color_group_colorize_name($user_id, $no_profile = false)
 		} else {
 			$row = $db->sql_fetchrow($result);
 			$username = ($row && isset($row['username'])) ? $row['username'] : $lang['Guest'];
+			$stored_username = ($row && isset($row['username']));
 			$db->sql_freeresult($result);
 		}
 	}
-	$username = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+	$username = $stored_username ? phpbb_stored_text($username) : htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
 
 	// Make the profile link or no and return it //
 	if ($no_profile)

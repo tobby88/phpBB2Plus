@@ -393,7 +393,7 @@ else
 		'U_OPTION'			=> append_sid("./profile_options.$phpEx?sub=$menu_name&mod=$mod_id&" . POST_USERS_URL . "=$view_user_id"),
 		'L_MOD_NAME'		=> mods_settings_get_lang($mod_name) . ( !empty($sub_name) ? ' - ' . mods_settings_get_lang($sub_name) : '' ),
 		'U_USER'			=> append_sid("./profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=$view_user_id"),
-		'L_USER'			=> phpbb_profile_text($view_userdata['username']),
+		'L_USER'			=> phpbb_stored_text($view_userdata['username']),
 		'L_SUBMIT'			=> $lang['Submit'],
 		'L_RESET'			=> $lang['Reset'],
 		)

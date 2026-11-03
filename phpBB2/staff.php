@@ -323,7 +323,7 @@ else
 	}
 
 	$template->assign_vars(array(
-		'L_ABOUT_USER' => sprintf($lang['Staff_about'], phpbb_profile_text($view_profile['username'])),
+		'L_ABOUT_USER' => sprintf($lang['Staff_about'], phpbb_stored_text($view_profile['username'])),
 		'L_CLOSE_WINDOW' => $lang['Close_window'],
 		'L_POSTS' => $lang['Posts'],
 		'L_TOPICS' => $lang['Topics'],

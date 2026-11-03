@@ -137,7 +137,7 @@ if ($mode == 'mod')
   	$template->assign_vars(array(
 	   	'MESSAGE_TITLE' => $lang['Confirm'],
 
-		'MESSAGE_TEXT' => sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . htmlspecialchars($arcade->get_username($player_id), ENT_QUOTES, 'UTF-8') . ')'),
+		'MESSAGE_TEXT' => sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . phpbb_stored_text($arcade->get_username($player_id)) . ')'),
 
   		'L_NO' => $lang['No'],
 	   	'L_YES' => $lang['Yes'],

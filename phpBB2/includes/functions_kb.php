@@ -1184,7 +1184,7 @@ function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 for($i = 0; $i < $total_posts; $i++)
 {
 	$registered=isset($postrow[$i]['user_id']) && (int)$postrow[$i]['user_id']>0 && is_string($postrow[$i]['username']) && $postrow[$i]['username']!=='';
-	$poster=$registered ? phpbb_profile_text($postrow[$i]['username']) : phpbb_profile_text($lang['Guest']);
+	$poster=$registered ? phpbb_stored_text($postrow[$i]['username']) : phpbb_profile_text($lang['Guest']);
 	if (!$registered && is_string($postrow[$i]['post_username']) && $postrow[$i]['post_username']!=='')
 	{
 		$poster=phpbb_post_author_name($postrow[$i]);

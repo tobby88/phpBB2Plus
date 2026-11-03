@@ -408,7 +408,7 @@ if( $mode === '' )
 				'READ_ONLY' => ($is_personal_root_cat) ? 'readonly' :'',
 				'DISABLED' => ($is_personal_root_cat) ? 'disabled' :'',
 
-				'S_CAT_TITLE' => ($is_personal_root_cat) ? sprintf($lang['Personal_Gallery_Of_User'], htmlspecialchars($username, ENT_QUOTES, 'UTF-8')) : htmlspecialchars(html_entity_decode((string) $catrow['cat_title'], ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8'),
+				'S_CAT_TITLE' => ($is_personal_root_cat) ? sprintf($lang['Personal_Gallery_Of_User'], phpbb_stored_text($username)) : htmlspecialchars(html_entity_decode((string) $catrow['cat_title'], ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8'),
 				'S_CAT_DESC' => htmlspecialchars((string) $catrow['cat_desc'], ENT_QUOTES, 'UTF-8'),
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
 

@@ -385,7 +385,7 @@ if(!empty($game_name))
 	$arcade_user_id = (int) $arcade->user_id;
 	$ip_num_sql = $db->sql_escape($ip_num);
 	$user_name_sql = $db->sql_escape((string) $user_name);
-	$user_name_display = htmlspecialchars((string) $user_name, ENT_QUOTES, 'UTF-8');
+	$user_name_display = phpbb_stored_text($user_name);
 	$score_sql = is_finite((float) $arcade->score) ? (string) ((float) $arcade->score) : '0';
 	$game_desc	= $game_info['game_desc'];
 	$game_id	= (int) $game_info['game_id'];

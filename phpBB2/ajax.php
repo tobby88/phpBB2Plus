@@ -120,13 +120,11 @@ if ($mode == 'edit_post_subject')
 	// Get new edited message
 	if ($row['post_edit_count'])
 	{
-		$l_edit_time_total = ($row['post_edit_count'] == 1) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
-
 		if (($row['poster_id'] == ANONYMOUS) && !empty($row['post_username']))
 		{
 			$row['username'] = phpbb_post_author_name($row);
 		}
-		$editmessage = phpbb_post_edit_caption($row, phpbb_profile_text($row['username']));
+		$editmessage = phpbb_post_edit_caption($row, phpbb_stored_text($row['username']));
 	}
 	else
 	{
@@ -207,13 +205,11 @@ else if ($mode == 'edit_post_text')
 	// Get new edited message
 	if ($row['post_edit_count'])
 	{
-		$l_edit_time_total = ($row['post_edit_count'] == 1) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
-
 		if (($row['poster_id'] == ANONYMOUS) && !empty($row['post_username']))
 		{
 			$row['username'] = phpbb_post_author_name($row);
 		}
-		$editmessage = phpbb_post_edit_caption($row, phpbb_profile_text($row['username']));
+		$editmessage = phpbb_post_edit_caption($row, phpbb_stored_text($row['username']));
 	}
 	else
 	{

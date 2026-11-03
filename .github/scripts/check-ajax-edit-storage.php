@@ -149,7 +149,7 @@ try
 	mutation_check($helper_start!==false && $helper_end>$helper_start,'Locate actual AJAX request helpers');
 	eval(substr($ajax_source,$helper_start,$helper_end-$helper_start));
 	$functions_source=file_get_contents($forum_root.'includes/functions.php');
-	foreach(array('utf8_rawurldecode','unhtmlspecialchars','phpbb_profile_text','create_date') as $name)
+	foreach(array('utf8_rawurldecode','unhtmlspecialchars','phpbb_profile_text','phpbb_stored_text','create_date') as $name)
 	{
 		$start=strpos($functions_source,'function '.$name.'('); $end=strpos($functions_source,"\n}",$start);
 		mutation_check($start!==false && $end>$start,'Locate actual response/request text conversion');

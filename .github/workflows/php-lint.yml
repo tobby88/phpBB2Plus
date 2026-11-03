@@ -992,6 +992,8 @@ jobs:
         run: php .github/scripts/check-statistics-rendering.php
       - name: Read canonical and legacy statistics cache bytes safely
         run: php .github/scripts/check-statistics-cache.php
+      - name: Render member labels and preserve guest privacy
+        run: php .github/scripts/check-member-labels.php
       - name: Render historical and maintenance account labels
         run: php .github/scripts/check-admin-history-labels.php
       - name: Render admin account names without changing stored identities

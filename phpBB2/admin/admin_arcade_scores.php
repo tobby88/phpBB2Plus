@@ -165,7 +165,7 @@ if($mode != '' && $game_id > 0)
 //
 // Output Confirm 
 //
-		$message = sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . htmlspecialchars($arcade->get_username($player_id), ENT_QUOTES, 'UTF-8') . ')');
+		$message = sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . phpbb_stored_text($arcade->get_username($player_id)) . ')');
 		$message .= sprintf($lang['admin_score_options'], append_sid("admin_arcade_scores.$phpEx?mode=$action&amp;game_id=$game_id&amp;score=" . rawurlencode((string) $score) . "&amp;player_id=$player_id"), phpbb_admin_session_field());
     		message_die(GENERAL_MESSAGE, $message, '', __LINE__, __FILE__, $sql);
      }
