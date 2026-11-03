@@ -7,6 +7,24 @@ function ct_error_assert($ok, $message)
 	if (!$ok) { fwrite(STDERR, "CrackerTracker error-path test failed: $message\n"); exit(1); }
 }
 $options = array('post_free_text' => ct_security_free_post_fields(), 'scan_post' => true);
+$contact_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/includes/functions.php');
+ct_error_assert(preg_match('/^function phpbb_social_profile_allowed_url\(.*?^\}/ms', $contact_source, $contact_match) === 1, 'actual contact URL helper must be present');
+eval($contact_match[0]);
+$contact_form = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/templates/fisubsilversh/profile_add_body.tpl');
+foreach (array('fb'=>'facebook.com','ig'=>'instagram.com','twr'=>'x.com','tg'=>'t.me','li'=>'linkedin.com','tt'=>'tiktok.com','dc'=>'discord.com','signal'=>'signal.me','threema'=>'threema.id') as $field=>$host)
+{
+	$url = 'https://' . $host . '/example/?online=1';
+	ct_error_assert(strpos($contact_form, 'name="' . $field . '"') !== false, 'a current real contact input is covered');
+	ct_error_assert(phpbb_social_profile_allowed_url($url, array($host)) === $url, 'actual contact helper accepts the service URL');
+	ct_error_assert(ct_security_value_is_attack($url, false, array()), 'URL sample reproduces the generic parameter signature');
+	$post = array($field=>$url); $snapshot = serialize($post);
+	ct_error_assert(!ct_security_request_is_attack(array(), $post, array(), $options), 'approved contact URL has website content policy: ' . $field);
+	ct_error_assert(serialize($post) === $snapshot, 'comparison preserves original contact URL');
+	ct_error_assert(ct_security_request_is_attack(array(), array($field=>$url . "\0"), array(), $options), 'contact fields cannot bypass NUL checks');
+	$contact_custom = $options; $contact_custom['custom_rules'] = array('online=1');
+	ct_error_assert(ct_security_request_is_attack(array(), $post, array(), $contact_custom), 'contact fields cannot bypass configured custom rules');
+}
+echo "CrackerTracker current contact request policy: 9 approved service URLs, 63 assertions PASS.\n";
 foreach (array('password', 'new_password', 'cur_password', 'password_confirm', 'smtp_password', 'ftp_pass') as $field)
 {
 	ct_error_assert(!ct_security_request_is_attack(array(), array($field => 'Long!Pass;select<svg>Example9'), array(), $options), 'credential field must accept arbitrary non-NUL password characters: ' . $field);

@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### CrackerTracker contact-field coverage
 
+- Give current contact fields the same free-text request policy as website and
+  legacy messenger fields, so approved service URLs with ordinary query
+  parameters are not rejected as generic parameter signatures. Retain request
+  shape/NUL validation, custom rules and separate profile keyword checks.
 - Apply the existing optional profile keyword policy to Signal, Threema,
   Telegram, Discord and the currently offered social profile fields as well as
   legacy fields. Preserve UTF-8 comparison, existing switches and stored data.

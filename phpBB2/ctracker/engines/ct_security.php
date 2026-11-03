@@ -412,6 +412,9 @@ function ct_security_free_post_fields()
 		'username', 'password', 'subject', 'message', 'poll_title', 'poll_option',
 		'new_password', 'password_confirm', 'cur_password', 'smtp_password', 'ftp_pass',
 		'email', 'aim', 'msn', 'yim', 'interests', 'occupation', 'signature',
+		// Current contact links have the same content policy as website and
+		// legacy messenger fields; profile spam checks remain separate.
+		'signal', 'threema', 'tg', 'dc', 'fb', 'ig', 'li', 'tt', 'twr',
 		'website', 'location', 'search', 'sitename', 'word', 'replacement', 'help',
 		'last_msg', 'quote', 'content', 'site_desc', 'disable_reg_msg', 'disable_msg',
 		'pic_desc', 'pic_title', 'filecomment', 'comment', 'search_author',
