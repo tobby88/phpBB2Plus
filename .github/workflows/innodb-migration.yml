@@ -343,6 +343,12 @@ jobs:
         env:
           PHPBB_STATS_RENDER_NATIVE: '1'
           PHPBB_STATS_RENDER_PASSWORD: fixture-only
+      - name: Preserve native statistics cache bytes in both SQL modes
+        if: matrix.part == 4
+        run: php .github/scripts/check-statistics-cache-native.php
+        env:
+          PHPBB_STATS_CACHE_NATIVE: '1'
+          PHPBB_STATS_CACHE_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

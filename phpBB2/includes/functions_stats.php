@@ -96,8 +96,36 @@ function module_language_parse($lang_key, $lang_var)
 
 function sql_quote($data)
 {
-	$data = str_replace("'", "\'", $data);
-	return ($data);
+	global $db;
+	return $db->sql_escape((string) $data);
+}
+
+// Native database bytes are already unescaped. Some old modules supplied an
+// addslashes()-encoded cache instead; only try that representation if the
+// original bytes could not be decoded as an array.
+function statistics_cache_array($serialized)
+{
+	if (!is_string($serialized) || $serialized === '') { return array(); }
+	$data = phpbb_safe_unserialize_array($serialized);
+	if (!$data && strpos($serialized, '\\') !== false)
+	{
+		$data = phpbb_safe_unserialize_array(stripslashes($serialized));
+	}
+	$remaining = 100000;
+	return statistics_cache_value_valid($data, $remaining) ? $data : array();
+}
+
+// Cache SQL rows and template values consist of arrays, scalars and null.
+// Incomplete objects and recursive/excessively deep arrays require a refresh.
+function statistics_cache_value_valid($value, &$remaining, $depth = 0)
+{
+	if (--$remaining < 0 || $depth > 32) { return false; }
+	if (!is_array($value)) { return $value === null || is_scalar($value); }
+	foreach ($value as $item)
+	{
+		if (!statistics_cache_value_valid($item, $remaining, $depth + 1)) { return false; }
+	}
+	return true;
 }
 
 function stats_modules_root()
