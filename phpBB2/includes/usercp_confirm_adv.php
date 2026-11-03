@@ -225,7 +225,7 @@ $black = imagecolorallocate($image, 0, 0, 0);
 $lattice_color = imagecolorallocate($image, $rgb_lattice_color[0], $rgb_lattice_color[1], $rgb_lattice_color[2]);
 
 #$x_char_position = (round($total_width/6));
-$x_char_position = (round(($total_width - 12) / strlen($code)) + mt_rand(-3, 5));
+$x_char_position = ($total_width - 8) / strlen($code);
 
 for ($i = 0; $i < strlen($code); $i++)
 {
@@ -240,43 +240,44 @@ for ($i = 0; $i < strlen($code); $i++)
 
 	if (!$use_ttf)
 	{
-		$builtin_font = 5;
-		$letter_width = imagefontwidth($builtin_font);
-		$letter_height = imagefontheight($builtin_font);
-		$x_pos = max(2, (int) (($i + 0.5) * ($total_width / strlen($code)) - ($letter_width / 2)));
-		$y_pos = max(2, (int) (($total_height - $letter_height) / 2) + mt_rand(-3, 3));
-		imagestring($image, $builtin_font, $x_pos + 2, $y_pos + 2, $char, $white);
-		imagestring($image, $builtin_font, $x_pos + 1, $y_pos + 1, $char, $black);
-		imagestring($image, $builtin_font, $x_pos, $y_pos, $char, $textcolor);
+		phpbb_captcha_builtin_letter($image, $char, $i, $total_width, $total_height, $x_char_position, $textcolor, $white, $black);
 		continue;
 	}
 
 	$char_pos = array();
 	$font_path = $phpbb_root_path . 'captcha/fonts/' . $fonts[$font];
-	$char_pos = @imagettfbbox($size, $angle, $font_path, $char);
-	if (!is_array($char_pos) || count($char_pos) < 8)
+	$max_width = max(1, (int) floor($x_char_position) - 3);
+	$max_height = $total_height - 8;
+	$fitted = false;
+	for ($attempt = 0; $attempt < 4; $attempt++)
 	{
-		$builtin_font = 5;
-		$letter_width = imagefontwidth($builtin_font);
-		$letter_height = imagefontheight($builtin_font);
-		$x_pos = max(2, (int) (($i + 0.5) * ($total_width / strlen($code)) - ($letter_width / 2)));
-		$y_pos = max(2, (int) (($total_height - $letter_height) / 2) + mt_rand(-3, 3));
-		imagestring($image, $builtin_font, $x_pos + 2, $y_pos + 2, $char, $white);
-		imagestring($image, $builtin_font, $x_pos + 1, $y_pos + 1, $char, $black);
-		imagestring($image, $builtin_font, $x_pos, $y_pos, $char, $textcolor);
+		$char_pos = @imagettfbbox($size, $angle, $font_path, $char);
+		if (!is_array($char_pos) || count($char_pos) < 8) { break; }
+		$left = min($char_pos[0], $char_pos[2], $char_pos[4], $char_pos[6]);
+		$right = max($char_pos[0], $char_pos[2], $char_pos[4], $char_pos[6]);
+		$top = min($char_pos[1], $char_pos[3], $char_pos[5], $char_pos[7]);
+		$bottom = max($char_pos[1], $char_pos[3], $char_pos[5], $char_pos[7]);
+		$letter_width = $right - $left; $letter_height = $bottom - $top;
+		if ($letter_width > 0 && $letter_height > 0 && $letter_width <= $max_width && $letter_height <= $max_height) { $fitted = true; break; }
+		if ($size <= 8) { break; }
+		$scale = min(1, $max_width / max(1, $letter_width), $max_height / max(1, $letter_height));
+		$size = max(8, min($size - 1, (int) floor($size * $scale)));
+	}
+	if (!$fitted)
+	{
+		phpbb_captcha_builtin_letter($image, $char, $i, $total_width, $total_height, $x_char_position, $textcolor, $white, $black);
 		continue;
 	}
-	$letter_width = abs($char_pos[0]) + abs($char_pos[4]);
-	$letter_height = abs($char_pos[1]) + abs($char_pos[5]);
 
-	$x_pos = ($x_char_position / 4) + ($i * $x_char_position);
-	($i == strlen($code)-1 && $x_pos >= ($total_width - ($letter_width + 5))) ? $x_pos = ($total_width - ($letter_width + 5)) : '';
-	$y_min = max(1, (int) ceil($size * 1.4));
-	$y_max = max($y_min, (int) floor($total_height - ($size * 0.4)));
+	$jitter = max(0, min(3, (int) floor(($x_char_position - $letter_width - 2) / 4)));
+	$x_pos = (int) (4 + $i * $x_char_position + ($x_char_position - $letter_width - 2) / 2 - $left) + mt_rand(-$jitter, $jitter);
+	$y_min = max(2, 4 - $top);
+	$y_max = max($y_min, $total_height - 3 - $bottom);
 	$y_pos = mt_rand($y_min, $y_max);
 
 //	Pre letters
-	$size = ($pre_letter_great) ? $size + (2 * $pre_letters) : $size - (2 * $pre_letters);
+	$final_size = $size;
+	$size = ($pre_letter_great) ? $size + (2 * $pre_letters) : max(1, $size - (2 * $pre_letters));
 	for ($count = 1; $count <= $pre_letters; $count++)
 	{
 		$pre_angle = $angle + mt_rand(-20, 20);
@@ -293,6 +294,7 @@ for ($i = 0; $i < strlen($code); $i++)
 	}
 
 //	Final letters
+	$size = $final_size;
 	imagettftext($image, $size, $angle, $x_pos, $y_pos-2, $white, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
 	imagettftext($image, $size, $angle, $x_pos+2, $y_pos, $black, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
 	imagettftext($image, $size, $angle, $x_pos+1, $y_pos-1, $textcolor, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
@@ -357,6 +359,22 @@ function get_rgb($hex){
     $rgb['g'] = $hex_array[$hex[2]] * 16 + $hex_array[$hex[3]]; 
     $rgb['b']= $hex_array[$hex[4]] * 16 + $hex_array[$hex[5]]; 
     return $rgb['r'].','.$rgb['g'].','.$rgb['b']; 
+}
+
+function phpbb_captcha_builtin_letter($image, $char, $index, $width, $height, $cell, $color, $white, $black)
+{
+	$font = 1;
+	foreach (array(5, 4, 3, 2, 1) as $candidate)
+	{
+		if (imagefontwidth($candidate) + 2 <= $cell && imagefontheight($candidate) + 4 <= $height) { $font = $candidate; break; }
+	}
+	$letter_width = imagefontwidth($font); $letter_height = imagefontheight($font);
+	$jitter = max(0, min(3, (int) floor(($cell - $letter_width - 2) / 4)));
+	$x = (int) (4 + ($index + 0.5) * $cell - ($letter_width + 2) / 2) + mt_rand(-$jitter, $jitter);
+	$y = max(2, min($height - $letter_height - 3, (int) (($height - $letter_height) / 2) + mt_rand(-3, 3)));
+	imagestring($image, $font, $x + 2, $y + 2, $char, $white);
+	imagestring($image, $font, $x + 1, $y + 1, $char, $black);
+	imagestring($image, $font, $x, $y, $char, $color);
 }
 
 // Function  gdVersion by Hagan Fox

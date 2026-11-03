@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album watermarks and advanced CAPTCHA layout
+
+- Keep watermark coordinates integral on PHP 8.5 while preserving all nine
+  placements and opacity levels. Bound image decoding, release both GD images,
+  and return a controlled error instead of partial or unmarked image output.
+- Fit final CAPTCHA letters and their shadows inside the configured image,
+  including narrow/tall settings and the built-in font fallback. Keep background
+  noise separate from the final glyph size and avoid fractional GD coordinates.
+
 ### Shield smilies and GD compatibility
 
 - Render shield captions as UTF-8 with bundled DejaVu Sans 2.37, with a readable

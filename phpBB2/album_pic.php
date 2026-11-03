@@ -61,93 +61,56 @@ if 	(defined('ALBUM_SP_CONFIG_TABLE'))
 // 
 function mergePics($sourcefile, $insertfile, $pos = 0, $transition = 50, $filetype = '')
 {
-	$insertfile_id = imageCreateFromPNG($insertfile);
-
-   switch( $filetype ) 
-   { 
-      case '.jpg': 
-         $sourcefile_id = imageCreateFromJPEG($sourcefile); 
-         break; 
-      case '.png': 
-         $sourcefile_id = imageCreateFromPNG($sourcefile); 
-         break; 
-      default: 
-         break; 
-   } 
-
-   // Get the size of both pics 
-   $sourcefile_width = imageSX($sourcefile_id); 
-   $sourcefile_height = imageSY($sourcefile_id); 
-   $insertfile_width = imageSX($insertfile_id); 
-   $insertfile_height = imageSY($insertfile_id); 
-
-   switch( $pos ) 
-   { 
-      case 0: // middle 
-         $dest_x = ( $sourcefile_width / 2 ) - ( $insertfile_width / 2 ); 
-         $dest_y = ( $sourcefile_height / 2 ) - ( $insertfile_height / 2 ); 
-         break; 
-
-      case 1: // top left 
-         $dest_x = 0; 
-         $dest_y = 0; 
-         break; 
-
-      case 2: // top right 
-         $dest_x = $sourcefile_width - $insertfile_width; 
-         $dest_y = 0; 
-         break; 
-
-      case 3: // bottom right 
-         $dest_x = $sourcefile_width - $insertfile_width; 
-         $dest_y = $sourcefile_height - $insertfile_height; 
-         break; 
-
-      case 4: // bottom left 
-         $dest_x = 0; 
-         $dest_y = $sourcefile_height - $insertfile_height; 
-         break; 
-
-      case 5: // top middle 
-         $dest_x = ( ( $sourcefile_width - $insertfile_width ) / 2 ); 
-         $dest_y = 0; 
-         break; 
-
-      case 6: // middle right 
-         $dest_x = $sourcefile_width - $insertfile_width; 
-         $dest_y = ( $sourcefile_height / 2 ) - ( $insertfile_height / 2 ); 
-         break; 
-
-      case 7: // bottom middle 
-         $dest_x = ( ( $sourcefile_width - $insertfile_width ) / 2 ); 
-         $dest_y = $sourcefile_height - $insertfile_height; 
-         break; 
-
-      case 8: // middle left 
-         $dest_x = 0; 
-         $dest_y = ( $sourcefile_height / 2 ) - ( $insertfile_height / 2 ); 
-         break; 
-      default: 
-         break; 
-   } 
-
-   // Merge the two pix 
-   imageCopyMerge($sourcefile_id, $insertfile_id, $dest_x, $dest_y, 0, 0, $insertfile_width, $insertfile_height, $transition); 
-
-   // Create the final image 
-   switch( $filetype ) 
-   { 
-      case '.jpg': 
-         Imagejpeg($sourcefile_id, null, 75);
-         break; 
-      case '.png': 
-         Imagepng($sourcefile_id); 
-         break; 
-      default: 
-         break; 
-   } 
-
-   phpbb_gd_release($sourcefile_id);
+	if (!is_string($sourcefile) || !is_string($insertfile) || !is_string($filetype) ||
+		strpos($sourcefile, "\0") !== false || strpos($insertfile, "\0") !== false ||
+		strpos($sourcefile, '://') !== false || strpos($insertfile, '://') !== false ||
+		!in_array($filetype, array('.jpg', '.png'), true)) { return false; }
+	$decoder = $filetype === '.png' ? 'imagecreatefrompng' : 'imagecreatefromjpeg';
+	$encoder = $filetype === '.png' ? 'imagepng' : 'imagejpeg';
+	if (!function_exists('imagecreatefrompng') || !function_exists($decoder) || !function_exists($encoder) || !function_exists('imagecopymerge')) { return false; }
+	$source_info = @getimagesize($sourcefile); $insert_info = @getimagesize($insertfile);
+	if (!$source_info || !$insert_info || $source_info[2] !== ($filetype === '.png' ? IMAGETYPE_PNG : IMAGETYPE_JPEG) || $insert_info[2] !== IMAGETYPE_PNG ||
+		!phpbb_image_dimensions_safe($source_info[0], $source_info[1]) || !phpbb_image_dimensions_safe($insert_info[0], $insert_info[1])) { return false; }
+	$memory = trim((string) ini_get('memory_limit'));
+	if ($memory !== '-1')
+	{
+		if (!preg_match('/^([0-9]+)\s*([KMG]?)$/iD', $memory, $limit)) { return false; }
+		$power = array(''=>0, 'K'=>1, 'M'=>2, 'G'=>3);
+		$bytes = (float) $limit[1] * pow(1024, $power[strtoupper($limit[2])]);
+		$decoded = ((float) $source_info[0] * $source_info[1] + (float) $insert_info[0] * $insert_info[1]) * 6;
+		if (memory_get_usage(true) + $decoded + 10485760 >= $bytes) { return false; }
+	}
+	$pos = (is_int($pos) || is_string($pos)) && preg_match('/^[0-8]$/D', (string) $pos) ? (int) $pos : 0;
+	if (!(is_int($transition) || is_string($transition)) || !preg_match('/^[0-9]{1,3}$/D', (string) $transition)) { return false; }
+	$transition = max(0, min(100, (int) $transition));
+	$sourcefile_id = $insertfile_id = $buffer = false;
+	try
+	{
+		$sourcefile_id = @$decoder($sourcefile); $insertfile_id = @imagecreatefrompng($insertfile);
+		if (!$sourcefile_id || !$insertfile_id) { return false; }
+		$dx = $source_info[0] - $insert_info[0]; $dy = $source_info[1] - $insert_info[1];
+		$dest_x = in_array($pos, array(2, 3, 6), true) ? $dx : (in_array($pos, array(0, 5, 7), true) ? $dx / 2 : 0);
+		$dest_y = in_array($pos, array(3, 4, 7), true) ? $dy : (in_array($pos, array(0, 6, 8), true) ? $dy / 2 : 0);
+		// Preserve legacy truncation, including a watermark larger than its image.
+		if (!@imagecopymerge($sourcefile_id, $insertfile_id, (int) $dest_x, (int) $dest_y, 0, 0, $insert_info[0], $insert_info[1], $transition)) { return false; }
+		$buffer = @fopen('php://temp/maxmemory:2097152', 'w+b');
+		if (!$buffer) { return false; }
+		$written = $filetype === '.png' ? @imagepng($sourcefile_id, $buffer) : @imagejpeg($sourcefile_id, $buffer, 75);
+		if (!$written || !is_resource($buffer) || !rewind($buffer)) { return false; }
+		$head = fread($buffer, 8); $end = $filetype === '.png' ? 12 : 2;
+		if (fseek($buffer, -$end, SEEK_END) !== 0) { return false; }
+		$tail = fread($buffer, $end);
+		if ($filetype === '.png' ? ($head !== "\x89PNG\r\n\x1a\n" || $tail !== "\0\0\0\0IEND\xae\x42\x60\x82") : (substr($head, 0, 2) !== "\xff\xd8" || $tail !== "\xff\xd9")) { return false; }
+		if (!rewind($buffer)) { return false; }
+		// Emit only a complete watermark result. Never append an unmarked fallback.
+		fpassthru($buffer);
+		return true;
+	}
+	finally
+	{
+		if (is_resource($buffer)) { fclose($buffer); }
+		phpbb_gd_release($sourcefile_id); phpbb_gd_release($insertfile_id);
+	}
 } 
 // 
 // END: Function for watermark 
@@ -303,7 +266,11 @@ if( $pic_filetype != '.gif' && (!$userdata['session_logged_in'] || $userdata['us
 
    $sourcefile = ALBUM_UPLOAD_PATH . $pic_filename;
    $insertfile = $album_root_path  . 'mark.png'; 
-   mergePics($sourcefile, $insertfile, $position, $transition, $pic_filetype); 
+   if (!mergePics($sourcefile, $insertfile, $position, $transition, $pic_filetype))
+   {
+      http_response_code(503); header('Content-Type: text/plain; charset=UTF-8'); header('Cache-Control: no-store, private');
+      echo 'Watermarked image rendering is temporarily unavailable.';
+   }
 }
 else if ($pic_filetype != '.gif' && $album_sp_config['wut_users'] == 1 && $album_sp_config['use_watermark'] == 1)
 {
@@ -312,7 +279,11 @@ else if ($pic_filetype != '.gif' && $album_sp_config['wut_users'] == 1 && $album
 
    $sourcefile = ALBUM_UPLOAD_PATH . $pic_filename;
    $insertfile = $album_root_path  . 'mark.png'; 
-   mergePics($sourcefile, $insertfile, $position, $transition, $pic_filetype);
+   if (!mergePics($sourcefile, $insertfile, $position, $transition, $pic_filetype))
+   {
+      http_response_code(503); header('Content-Type: text/plain; charset=UTF-8'); header('Cache-Control: no-store, private');
+      echo 'Watermarked image rendering is temporarily unavailable.';
+   }
 }
 else 
 { 

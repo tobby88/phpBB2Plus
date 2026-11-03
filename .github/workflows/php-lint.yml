@@ -9,6 +9,7 @@ on:
       - "phpBB2/**/*.tpl"
       - "phpBB2/**/*.js"
       - "phpBB2/**/*.css"
+      - "phpBB2/assets/fonts/**"
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
@@ -21,6 +22,7 @@ on:
       - "phpBB2/**/*.tpl"
       - "phpBB2/**/*.js"
       - "phpBB2/**/*.css"
+      - "phpBB2/assets/fonts/**"
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
@@ -59,6 +61,8 @@ jobs:
         run: find phpBB2 update -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Render UTF-8 shield PNGs and release GD resources across PHP versions
         run: php .github/scripts/check-schild-rendering.php
+      - name: Render bounded album watermarks and complete CAPTCHA glyphs with native GD
+        run: php .github/scripts/check-watermark-captcha-rendering.php
 
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
