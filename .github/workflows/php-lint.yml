@@ -106,6 +106,8 @@ jobs:
         run: php .github/scripts/check-calendar-birthdays.php
       - name: Check empty positions between multi-day calendar events
         run: php .github/scripts/check-calendar-empty-slots.php
+      - name: Check topic search highlighting and malformed parameters
+        run: php .github/scripts/check-topic-highlighting.php
       - name: Check scoped style cache actions and recovery preservation
         run: php .github/scripts/check-style-cache-controller.php
 

@@ -28,6 +28,7 @@ $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 require_once $phpbb_root_path . 'includes/functions_post_edit.' . $phpEx;
+require_once $phpbb_root_path . 'includes/functions_topic_highlight.' . $phpEx;
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_color_groups.'.$phpEx);
 phpbb_load_icon_config();
@@ -55,7 +56,7 @@ if ( isset($_GET[POST_POST_URL]) && is_scalar($_GET[POST_POST_URL]))
 
 
 $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
-$requested_highlight = phpbb_request_scalar($_GET, 'highlight');
+$requested_highlight = phpbb_topic_highlight_query(phpbb_request_scalar($_GET, 'highlight'));
 $view_mode = phpbb_request_scalar($_GET, 'view');
 
 if (!$topic_id && !$post_id)
@@ -545,24 +546,8 @@ if ( count($orig_word) )
 //
 // Was a highlight request part of the URI?
 //
-$highlight_match = $highlight = '';
-if (isset($HTTP_GET_VARS['highlight']))
-{
-	// Split words and phrases
-	$words = explode(' ', trim(htmlspecialchars($HTTP_GET_VARS['highlight'])));
-
-	for($i = 0; $i < sizeof($words); $i++)
-	{
-		if (trim($words[$i]) != '')
-		{
-			$highlight_match .= (($highlight_match != '') ? '|' : '') . str_replace('*', '\w*', preg_quote($words[$i], '#'));
-		}
-	}
-	unset($words);
-
-	$highlight = urlencode($HTTP_GET_VARS['highlight']);
-	$highlight_match = phpbb_rtrim($highlight_match, "\\");
-}
+$highlight_match = phpbb_topic_highlight_pattern($requested_highlight);
+$highlight = urlencode($requested_highlight);
 
 //
 // Post, reply and other URL generation for
@@ -1390,10 +1375,8 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	if ($highlight_match)
 	{
-		// This has been back-ported from 3.0 CVS
-		$message = preg_replace('#(?!<.*)(?<!\w)(' . $highlight_match . ')(?!\w|[^<>]*>)#i', '<b style="color:#'.$theme['fontcolor3'].'">\1</b>', $message);
+		$message = phpbb_topic_highlight_apply($message, $highlight_match, $theme['fontcolor3']);
 	}
-
 	//
 	// Replace naughty words
 	//

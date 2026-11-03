@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Topic search highlighting
+
+- Reject malformed or oversized highlight parameters without a topic-view error;
+  decode legacy request escaping once for rendering and navigation.
+- Restore search wildcards and consistent UTF-8 word boundaries, including
+  matching text represented by HTML entities.
+- Preserve HTML attributes, comments and raw-text elements while highlighting
+  visible text. Keep the complete post if PCRE reaches a resource limit.
+
 ### Calendar birthdays and scheduler paging
 
 - Render empty positions between multi-day events without looking up a missing
