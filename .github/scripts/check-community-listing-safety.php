@@ -26,7 +26,10 @@ $profile_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/p
 
 community_listing_assert(strpos($compact, 'phpbb_request_scalar($_POST, \'start\'') !== false, 'compact Shoutbox offsets must be scalar');
 community_listing_assert(strpos($compact, 'shoutbox_view.$phpEx?start=$start') !== false, 'compact Shoutbox pagination needs a named start parameter');
-community_listing_assert(strpos($compact, '$display_username = phpbb_profile_text') !== false, 'compact Shoutbox usernames must be escaped');
+foreach (array($compact, $shoutbox_max) as $author_source)
+{
+	community_listing_assert(strpos($author_source, "phpbb_stored_text(\$shout_row['username'])") !== false && strpos($author_source, "phpbb_post_author_name(\$shout_row,'shout_username','shout_user_id','shout_author_removed')") !== false, 'Shoutbox account keys and guest labels must use their escaped display contracts');
+}
 community_listing_assert(strpos($shoutbox, 'min(1000000, max(0,') !== false && strpos($shoutbox_max, 'min(1000000, max(0,') !== false, 'Shoutbox offsets must be bounded');
 community_listing_assert(strpos($kb_cat, "\$kb_news_sort_method = 't.article_date'") !== false, 'Knowledge Base category sort needs a default');
 community_listing_assert(strpos($kb_cat, '$articles_per_page = kb_stats_page_size(') !== false && preg_match('/^function kb_stats_page_size\(.*?^\}/ms',$kb_functions,$kb_size_helper)===1 && preg_match('/return\s+max\(1,\s*min\(1000/',$kb_size_helper[0])===1, 'Knowledge Base pagination must use its bounded nonzero page-size helper');
