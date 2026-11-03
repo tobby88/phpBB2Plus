@@ -79,8 +79,8 @@ $template->assign_vars(array(
 	'L_USERNAME' => $lang['Username'], 'L_POSTS' => $lang['Posts'], 'L_JOINED' => $lang['Joined'], 'L_EMAIL' => $lang['Email'],
 	'L_IP' => $lang['Registration_IP_address'], 'L_HOST' => $lang['Registration_IP_hostname'],
 	'L_SHARED' => $lang['Registration_IP_shared'], 'L_RESOLVE' => $lang['Registration_IP_resolve'],
-	'MAIN_USER' => htmlspecialchars($main['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-	'MAIN_EMAIL' => htmlspecialchars($main['user_email'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'MAIN_POSTS' => intval($main['user_posts']),
+	'MAIN_USER' => phpbb_stored_text($main['username']),
+	'MAIN_EMAIL' => htmlspecialchars((string) $main['user_email'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'MAIN_POSTS' => intval($main['user_posts']),
 	'MAIN_JOINED' => htmlspecialchars(create_date($lang['DATE_FORMAT'], $main['user_regdate'], $board_config['board_timezone']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 	'MAIN_IP' => ($ip === '') ? $lang['Registration_IP_unknown'] : htmlspecialchars($ip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 	'MAIN_HOST' => htmlspecialchars($host, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
@@ -102,8 +102,8 @@ if ($ip !== '')
 	{
 		$template->assign_block_vars('userrow', array(
 			'ROW_CLASS' => (($i++ % 2) === 0) ? 'row1' : 'row2',
-			'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-			'EMAIL' => htmlspecialchars($row['user_email'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'POSTS' => intval($row['user_posts']),
+			'USERNAME' => phpbb_stored_text($row['username']),
+			'EMAIL' => htmlspecialchars((string) $row['user_email'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'POSTS' => intval($row['user_posts']),
 			'JOINED' => htmlspecialchars(create_date($lang['DATE_FORMAT'], $row['user_regdate'], $board_config['board_timezone']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 			'U_USER' => append_sid("admin_users.$phpEx?mode=edit&amp;" . POST_USERS_URL . '=' . intval($row['user_id']))
 		));

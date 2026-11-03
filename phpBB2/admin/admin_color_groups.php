@@ -271,7 +271,7 @@ if ($found_list && isset($group_id))
 	while ($row = $db->sql_fetchrow($result))
 	{
 		$selected = (in_array($row['user_id'], $user_list)) ? 'selected="true"' : '';
-		$username = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8');
+		$username = phpbb_stored_text($row['username']);
 		$c_group_name = isset($color_group_list[$row['user_color_group']]) ? $color_group_list[$row['user_color_group']] : '';
 		$c_group = ($row['user_color_group'] != 0 && $c_group_name !== '') ? '(' . htmlspecialchars($c_group_name, ENT_QUOTES, 'UTF-8') . ')' : '';
 		$id = (int) $row['user_id'];

@@ -458,7 +458,7 @@ if( $mode!= "")
 			'BANNER_URL' => htmlspecialchars((string) $banner_info['banner_url'], ENT_QUOTES, 'UTF-8'),
 			'L_BANNER_OWNER' => $lang['Banner_owner'],
 			'L_BANNER_OWNER_EXPLAIN' => $lang['Banner_owner_explain'],
-			'BANNER_OWNER' => htmlspecialchars((string) $owner['username'], ENT_QUOTES, 'UTF-8'),
+			'BANNER_OWNER' => phpbb_stored_text($owner['username']),
 			'U_SEARCH_USER' => append_sid("./../search.$phpEx?mode=searchuser"),
 			'L_FIND_USERNAME' => $lang['Find_username'],
 

@@ -164,7 +164,7 @@ if ( $row = $db->sql_fetchrow($result) )
                 $template->assign_block_vars('admin_account', array(
 				'ROW_NUMBER' => $i + $start + 1,
 		'ROW_CLASS' => $row_class,
-		'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8'),
+		'USERNAME' => phpbb_stored_text($row['username']),
 		'U_PROFILE' => append_sid("../profile.$phpEx?mode=viewprofile&amp;u=" . (int) $row['user_id']),
                         'EMAIL' => $email,
                         'REG_DATE' => create_date($board_config['default_dateformat'], $row['user_regdate'], $board_config['board_timezone']),
