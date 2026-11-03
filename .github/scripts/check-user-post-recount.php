@@ -1,5 +1,8 @@
 <?php
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
+$formatters=file_get_contents($root.'includes/functions.php');
+if(preg_match('/^function phpbb_stored_text\(.*?^\}/ms',$formatters,$formatter)!==1){throw new RuntimeException('Actual stored-name formatter unavailable');}
+eval($formatter[0]);
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','POSTS_TABLE'=>'fixture_posts','FORUMS_TABLE'=>'fixture_forums','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
 require_once $root.'includes/functions_maintenance_posts.php';
 define('SESSIONS_TABLE','fixture_sessions');

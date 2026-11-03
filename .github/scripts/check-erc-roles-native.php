@@ -3,6 +3,9 @@ if (PHP_SAPI !== 'cli' || getenv('PHPBB_ERC_ROLES_NATIVE') !== '1') { return; }
 define('IN_PHPBB', true); define('ADMIN', 1); define('MOD', 2); define('USER', 0);
 foreach (array('USERS'=>'users','USER_GROUP'=>'members','AUTH_ACCESS'=>'auth','GROUPS'=>'groups','FORUMS'=>'forums') as $key=>$table) { define($key.'_TABLE','fixture_'.$table); }
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
+$formatters=file_get_contents($root.'includes/functions.php');
+if(preg_match('/^function phpbb_stored_text\(.*?^\}/ms',$formatters,$formatter)!==1){throw new RuntimeException('Actual stored-name formatter unavailable');}
+eval($formatter[0]);
 require $root.'includes/php_compat.php';
 $source=file_get_contents($root.'includes/functions_dbmtnc.php');
 $a=strpos($source,'function check_authorisation(');$b=strpos($source,'function get_config_data(',$a);
