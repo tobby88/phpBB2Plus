@@ -281,6 +281,14 @@ jobs:
         env:
           PHPBB_KB_SEARCH_NATIVE: '1'
           PHPBB_KB_SEARCH_PASSWORD: fixture-only
+      - name: Preserve shoutbox text, session authors and blocked-write boundaries
+        if: matrix.part == 4
+        run: |
+          php .github/scripts/check-shoutbox-text-native.php raw
+          php .github/scripts/check-shoutbox-text-native.php legacy
+        env:
+          PHPBB_SHOUT_TEXT_NATIVE: '1'
+          PHPBB_SHOUT_TEXT_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

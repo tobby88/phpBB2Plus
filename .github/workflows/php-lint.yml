@@ -121,6 +121,10 @@ jobs:
           php .github/scripts/check-kb-search-text.php
           php -n .github/scripts/check-kb-search-text.php raw
           php -n .github/scripts/check-kb-search-text.php legacy
+      - name: Keep shoutbox input and actual previews consistent
+        run: |
+          php .github/scripts/check-shoutbox-text.php raw
+          php .github/scripts/check-shoutbox-text.php legacy
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

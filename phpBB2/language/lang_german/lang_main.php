@@ -1335,6 +1335,8 @@ $lang['Shout_censor'] = 'shout entfernt !';
 $lang['Shout_refresh'] = 'Aktualisieren';
 $lang['Shout_text'] = 'Dein Text';
 $lang['Shoutbox_login'] = 'Zum Schreiben bitte einloggen.';
+$lang['Shoutbox_invalid_text'] = 'Die Nachricht enthält ungültige Zeichen. Bitte prüfe den Text.';
+$lang['Shoutbox_format_failed'] = 'Die Nachricht konnte nicht vollständig formatiert werden oder ist zu lang. Bitte kürze den Text.';
 $lang['Viewing_Shoutbox']= 'Shoutbox anzeigen';
 $lang['Censor'] ='Zensiert';
 // End add - Fully integrated shoutbox MOD

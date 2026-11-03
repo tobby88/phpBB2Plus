@@ -40,6 +40,7 @@ $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include_once($phpbb_root_path . 'common.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx); 
+require_once($phpbb_root_path . 'includes/functions_shoutbox.' . $phpEx);
 define ('NUM_SHOUT', 20);
 
 //
@@ -90,6 +91,13 @@ $error_msg = '';
 $username = $userdata['session_logged_in'] ? $userdata['username'] : phpbb_request_scalar($_POST, 'username');
 $max = 0;
 $shout_max_length = 16000;
+$shout_text = phpbb_shoutbox_text(isset($_POST['message']) ? $_POST['message'] : '', $shout_max_length);
+if ($shout_text === false)
+{
+	$error = true;
+	$error_msg = $lang['Shoutbox_invalid_text'];
+	$shout_text = '';
+}
 $s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 if (phpbb_request_scalar($_POST, 'mode') !== '' || phpbb_request_scalar($_GET, 'mode') !== '')
 	{
@@ -142,8 +150,8 @@ else
 
 if ($refresh)
 {
-	$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
-	if (!empty($message))
+	$message = htmlspecialchars($shout_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	if ($message !== '')
 	{
 		$template->assign_var('MESSAGE',$message);
 	}
@@ -192,27 +200,35 @@ if ($submit || isset($_POST['message']))
 			}
 		}
 	}
-	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? substr(trim((string) $_POST['message']), 0, $shout_max_length) : '';
+	$message = addslashes($shout_text);
 	// insert shout !
-	if ($submit && !empty($message) && $is_auth['auth_post'] && !$error)
+	if ($submit && $message !== '' && $is_auth['auth_post'] && !$error)
 	{
 		include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 		$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
-		$message = prepare_message(trim($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
-		$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies)
-				VALUES ('" . $db->sql_escape(stripslashes($message)) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "'," . intval($bbcode_on) . "," . intval($html_on) . "," . intval($smilies_on) . ")";
-		if (!$result = $db->sql_query($sql)) 
+		$message = phpbb_shoutbox_prepare_message($shout_text, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+		if ($message === false)
 		{
-			message_die(GENERAL_ERROR, 'Error inserting shout.', '', __LINE__, __FILE__, $sql);
+			$error = true;
+			$error_msg = $lang['Shoutbox_format_failed'];
 		}
-		// auto prune
-		$prune_shout_days = isset($board_config['prune_shouts']) ? max(0, intval($board_config['prune_shouts'])) : 0;
-		if ($prune_shout_days)
+		else
 		{
-			$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time <= " . (time() - 86400 * $prune_shout_days);
+			$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies)
+					VALUES ('" . $db->sql_escape(stripslashes($message)) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "'," . intval($bbcode_on) . "," . intval($html_on) . "," . intval($smilies_on) . ")";
 			if (!$result = $db->sql_query($sql)) 
 			{
-				message_die(GENERAL_ERROR, 'Error autoprune shouts.', '', __LINE__, __FILE__, $sql);
+				message_die(GENERAL_ERROR, 'Error inserting shout.', '', __LINE__, __FILE__, $sql);
+			}
+			// auto prune
+			$prune_shout_days = isset($board_config['prune_shouts']) ? max(0, intval($board_config['prune_shouts'])) : 0;
+			if ($prune_shout_days)
+			{
+				$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time <= " . (time() - 86400 * $prune_shout_days);
+				if (!$result = $db->sql_query($sql))
+				{
+					message_die(GENERAL_ERROR, 'Error autoprune shouts.', '', __LINE__, __FILE__, $sql);
+				}
 			}
 		}
 	}
@@ -279,7 +295,7 @@ $template->assign_vars(array(
 			'ERROR_MESSAGE' => $error_msg)
 		);
 		$template->assign_var_from_handle('ERROR_BOX', 'reg_header');
-		$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
+		$message = htmlspecialchars($shout_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 		$template->assign_var('MESSAGE',$message);
 	}
 

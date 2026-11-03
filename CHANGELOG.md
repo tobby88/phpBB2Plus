@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Shoutbox text and preview consistency
+
+- Keep complete UTF-8 characters within the existing input byte budget. Check
+  the formatted message against the actual TEXT storage limit and return
+  localized feedback instead of SQL errors or partial stored messages.
+- Use the same canonical text for compact/full submission, preview, refresh and
+  error forms. Preserve a message containing only `0`, including after word
+  filtering, and keep rejected input available for correction.
+- Store the current session's exact author name in both views, ignore submitted
+  replacement names for logged-in users, and escape the preview author label.
+  Retain existing session/flood checks and prune only after a successful insert.
+
 ### Knowledge Base Unicode search boundaries
 
 - Count complete Unicode characters in search queries and terms, including

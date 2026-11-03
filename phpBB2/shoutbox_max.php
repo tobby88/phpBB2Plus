@@ -44,6 +44,7 @@ $phpbb_root_path = './';
 require_once($phpbb_root_path . 'extension.inc');
 require_once($phpbb_root_path . 'common.'.$phpEx);
 require_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_shoutbox.' . $phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 define ('NUM_SHOUT', 20);
 //
@@ -92,6 +93,13 @@ $error = false;
 $error_msg = '';
 $message = '';
 $shout_max_length = 16000;
+$shout_text = phpbb_shoutbox_text(isset($_POST['message']) ? $_POST['message'] : '', $shout_max_length);
+if ($shout_text === false)
+{
+	$error = true;
+	$error_msg = $lang['Shoutbox_invalid_text'];
+	$shout_text = '';
+}
 $shouts_per_page = max(1, isset($board_config['posts_per_page']) ? intval($board_config['posts_per_page']) : 10);
 $s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
@@ -136,13 +144,13 @@ if( !$userdata['session_logged_in'] )
 {
 	$template->assign_block_vars('switch_username_select', array());
 }
-$username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
+$username = $userdata['session_logged_in'] ? $userdata['username'] : phpbb_request_scalar($_POST, 'username');
 // Check username
 if ($username !== '')
 {
-	$username = phpbb_clean_username(phpbb_request_raw_value($username));
 	if ( !$userdata['session_logged_in'])
 	{
+		$username = phpbb_clean_username(phpbb_request_raw_value($username));
 		require_once($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 		$result = validate_username($username, false, 0, true);
 		if ( $result['error'] )
@@ -155,8 +163,8 @@ if ($username !== '')
 
 if ($refresh || $preview)
 {
-	$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
-	if (!empty($message))
+	$message = htmlspecialchars($shout_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	if ($message !== '' && !$error)
 	{
 		if ($preview)
 		{
@@ -165,33 +173,42 @@ if ($refresh || $preview)
 			$replacement_word = array();
 			obtain_word_list($orig_word, $replacement_word);
 			$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
-			$preview_message = stripslashes(prepare_message(addslashes(unprepare_message($message)), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
+			$preview_message = phpbb_shoutbox_prepare_message($shout_text, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+			if ($preview_message === false)
+			{
+				$error = true;
+				$error_msg = $lang['Shoutbox_format_failed'];
+			}
+			else
+			{
+				$preview_message = stripslashes($preview_message);
 
-			if( $bbcode_on )
-			{
-				$preview_message = bbencode_second_pass($preview_message, $bbcode_uid);
+				if( $bbcode_on )
+				{
+					$preview_message = bbencode_second_pass($preview_message, $bbcode_uid);
+				}
+				if( !empty($orig_word) )
+				{
+					$preview_message = ($preview_message !== '') ? preg_replace($orig_word, $replacement_word, $preview_message) : '';
+				}
+				$preview_message = make_clickable($preview_message);
+				if( $smilies_on )
+				{
+					$preview_message = smilies_pass($preview_message);
+				}
+				$preview_message = str_replace("\n", '<br />', $preview_message);
+				$template->set_filenames(array(
+					'preview' => 'posting_preview.tpl')
+				);
+				$template->assign_vars(array(
+					'USERNAME' => htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+					'POST_DATE' => create_date($board_config['default_dateformat'], time(), $board_config['board_timezone']),
+					'MESSAGE' => $preview_message,
+					'L_POSTED' => $lang['Posted'],
+					'L_PREVIEW' => $lang['Preview'])
+				);
+				$template->assign_var_from_handle('POST_PREVIEW_BOX', 'preview');
 			}
-			if( !empty($orig_word) )
-			{
-				$preview_message = ( !empty($preview_message) ) ? preg_replace($orig_word, $replacement_word, $preview_message) : '';
-			}
-			$preview_message = make_clickable($preview_message);
-			if( $smilies_on )
-			{
-				$preview_message = smilies_pass($preview_message);
-			}
-			$preview_message = str_replace("\n", '<br />', $preview_message);
-			$template->set_filenames(array(
-				'preview' => 'posting_preview.tpl')
-			);
-			$template->assign_vars(array(
-				'USERNAME' => $username,
-				'POST_DATE' => create_date($board_config['default_dateformat'], time(), $board_config['board_timezone']),
-				'MESSAGE' => $preview_message,
-				'L_POSTED' => $lang['Posted'], 
-				'L_PREVIEW' => $lang['Preview'])
-			);
-			$template->assign_var_from_handle('POST_PREVIEW_BOX', 'preview');
 		} 
 		$template->assign_var('MESSAGE_MAX',$message);
 	}
@@ -223,27 +240,35 @@ if ($submit || isset($_POST['message']))
 		}
 	}
 
-	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? substr(trim((string) $_POST['message']), 0, $shout_max_length) : '';
+	$message = addslashes($shout_text);
 	// insert shout !
-	if ($submit && !empty($message) && $is_auth['auth_post'] && !$error)
+	if ($submit && $message !== '' && $is_auth['auth_post'] && !$error)
 	{
 		require_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 		$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
-		$message = prepare_message(trim($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
-		$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies)
-				VALUES ('" . $db->sql_escape(stripslashes($message)) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape(stripslashes($username)) . "', '" . $db->sql_escape($bbcode_uid) . "'," . intval($bbcode_on) . "," . intval($html_on) . "," . intval($smilies_on) . ")";
-		if (!$result = $db->sql_query($sql)) 
+		$message = phpbb_shoutbox_prepare_message($shout_text, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+		if ($message === false)
 		{
-			message_die(GENERAL_ERROR, 'Error inserting shout.', '', __LINE__, __FILE__, $sql);
+			$error = true;
+			$error_msg = $lang['Shoutbox_format_failed'];
 		}
-		// auto prune
-		$prune_shout_days = isset($board_config['prune_shouts']) ? max(0, intval($board_config['prune_shouts'])) : 0;
-		if ($prune_shout_days)
+		else
 		{
-			$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time <= " . (time() - 86400 * $prune_shout_days);
+			$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies)
+					VALUES ('" . $db->sql_escape(stripslashes($message)) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "'," . intval($bbcode_on) . "," . intval($html_on) . "," . intval($smilies_on) . ")";
 			if (!$result = $db->sql_query($sql)) 
 			{
-				message_die(GENERAL_ERROR, 'Error autoprune shouts.', '', __LINE__, __FILE__, $sql);
+				message_die(GENERAL_ERROR, 'Error inserting shout.', '', __LINE__, __FILE__, $sql);
+			}
+			// auto prune
+			$prune_shout_days = isset($board_config['prune_shouts']) ? max(0, intval($board_config['prune_shouts'])) : 0;
+			if ($prune_shout_days)
+			{
+				$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time <= " . (time() - 86400 * $prune_shout_days);
+				if (!$result = $db->sql_query($sql))
+				{
+					message_die(GENERAL_ERROR, 'Error autoprune shouts.', '', __LINE__, __FILE__, $sql);
+				}
 			}
 		}
 	}
@@ -835,7 +860,7 @@ obtain_word_list($orig_word, $replacement_word);
 			'ERROR_MESSAGE' => $error_msg)
 		);
 		$template->assign_var_from_handle('ERROR_BOX', 'reg_header');
-		$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
+		$message = htmlspecialchars($shout_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 		$template->assign_var('MESSAGE_MAX',$message);
 	}
 
