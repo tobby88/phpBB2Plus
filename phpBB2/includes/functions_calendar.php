@@ -942,14 +942,22 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 					}
 
 					$ind = $map[$offset_date][$k];
-					$template->assign_block_vars('_calendar_box._row._cell.switch_filled._event', array(
-						'U_EVENT'		=> $events[$ind]['event_link'],
-						'EVENT_TYPE'	=> stripslashes($events[$ind]['event_type_icon']),
-						'EVENT_TITLE'	=> $events[$ind]['event_short_title'],
-						'EVENT_CLASS'	=> $events[$ind]['event_txt_class'],
-						'EVENT_MESSAGE'	=> $events[$ind]['event_message'],
-						)
-					);
+					if ($ind > -1)
+					{
+						$template->assign_block_vars('_calendar_box._row._cell.switch_filled._event', array(
+							'U_EVENT'		=> $events[$ind]['event_link'],
+							'EVENT_TYPE'	=> stripslashes($events[$ind]['event_type_icon']),
+							'EVENT_TITLE'	=> $events[$ind]['event_short_title'],
+							'EVENT_CLASS'	=> $events[$ind]['event_txt_class'],
+							'EVENT_MESSAGE'	=> $events[$ind]['event_message'],
+							)
+						);
+					}
+					else
+					{
+						// Multi-day events can leave empty positions in a day's map.
+						$template->assign_block_vars('_calendar_box._row._cell.switch_filled._event', array());
+					}
 					$flag = ( $over && ($k == $nb_row_per_cell-1) );
 					if ($ind > -1)
 					{

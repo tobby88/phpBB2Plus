@@ -8,6 +8,8 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Calendar birthdays and scheduler paging
 
+- Render empty positions between multi-day events without looking up a missing
+  event or carrying over the previous event's template fields.
 - Use the installed Birthday MOD date format in both calendar views, replacing
   the scheduler's dormant code for an absent Profile Control Panel extension.
 - Honor the resolved birthday setting and member-only profile policy; guests

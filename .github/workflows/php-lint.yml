@@ -104,6 +104,8 @@ jobs:
         run: php .github/scripts/check-module-language-gaps.php
       - name: Check calendar birthday privacy, dates, paging and tooltip data
         run: php .github/scripts/check-calendar-birthdays.php
+      - name: Check empty positions between multi-day calendar events
+        run: php .github/scripts/check-calendar-empty-slots.php
       - name: Check scoped style cache actions and recovery preservation
         run: php .github/scripts/check-style-cache-controller.php
 
