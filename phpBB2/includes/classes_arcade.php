@@ -69,21 +69,71 @@ class arcade
 //
   function read_cat($cache_path = '')
   {
-    global $db;
+    global $db, $lang;
 
-    $this->categories = $this->read_cache('categories', $this->arcade_config['categories_cache'], $cache_path);
-
-    if(!$this->categories)
-    { 
-     	$cat_sql = "SELECT c.*, g.game_name, game_id, game_desc, u.username, u.user_allow_viewonline 
-         FROM " . iNA_CAT . " c
-     	   LEFT JOIN ". iNA_GAMES . " g ON g.game_name = c.last_game 
-         LEFT JOIN ". USERS_TABLE . " u ON c.last_player = u.user_id
-         ORDER BY c.cat_order ASC, cat_id ASC";
-      if($result = $db->sql_query($cat_sql))
+    // Cache category/game metadata only. Account names and visibility are
+    // current request data, including after a rename, deletion or profile edit.
+    $cached = $this->read_cache('categories', $this->arcade_config['categories_cache'], $cache_path);
+    $rows = false;
+    if (is_array($cached) && isset($cached['version'], $cached['categories'])
+        && $cached['version'] === 1 && is_array($cached['categories']))
+    {
+      $rows = $cached['categories'];
+      foreach ($rows as $row)
       {
-      	$this->categories = $db->sql_fetchrowset($result);
-        $this->write_cache('categories', $this->categories, $cache_path);    
+        if (!is_array($row) || !array_key_exists('last_player', $row)
+            || array_key_exists('username', $row) || array_key_exists('user_allow_viewonline', $row)
+            || ($row['last_player'] !== null && (!(is_int($row['last_player']) || is_string($row['last_player']))
+                || !preg_match('/^-?[0-9]{1,8}$/D', (string) $row['last_player'])
+                || (int) $row['last_player'] < -8388608 || (int) $row['last_player'] > 8388607)))
+        {
+          $rows = false;
+          break;
+        }
+      }
+    }
+    if ($rows === false)
+    {
+      $cat_sql = "SELECT c.*, g.game_name, game_id, game_desc
+         FROM " . iNA_CAT . " c
+         LEFT JOIN " . iNA_GAMES . " g ON g.game_name = c.last_game
+         ORDER BY c.cat_order ASC, cat_id ASC";
+      $result = $db->sql_query($cat_sql);
+      if (!$result) { message_die(GENERAL_ERROR, $lang['no_cat_data']); }
+      try { $rows = $db->sql_fetchrowset($result); }
+      finally { $db->sql_freeresult($result); }
+      if (!is_array($rows)) { message_die(GENERAL_ERROR, $lang['no_cat_data']); }
+      foreach ($rows as $key => $row) { unset($rows[$key]['username'], $rows[$key]['user_allow_viewonline']); }
+      $this->write_cache('categories', array('version' => 1, 'categories' => $rows), $cache_path);
+    }
+
+    $this->categories = $rows;
+    $ids = $users = array();
+    foreach ($this->categories as $key => $row)
+    {
+      $this->categories[$key]['username'] = null;
+      $this->categories[$key]['user_allow_viewonline'] = 0;
+      $id = isset($row['last_player']) ? (int) $row['last_player'] : 0;
+      if ($id > 0 && $id <= 8388607) { $ids[$id] = $id; }
+    }
+    foreach (array_chunk(array_values($ids), 500) as $chunk)
+    {
+      $result = $db->sql_query('SELECT user_id, username, user_allow_viewonline FROM ' . USERS_TABLE
+        . ' WHERE user_id IN (' . implode(',', $chunk) . ')');
+      if (!$result) { message_die(GENERAL_ERROR, $lang['no_cat_data']); }
+      try
+      {
+        while ($user = $db->sql_fetchrow($result)) { $users[(int) $user['user_id']] = $user; }
+      }
+      finally { $db->sql_freeresult($result); }
+    }
+    foreach ($this->categories as $key => $row)
+    {
+      $id = isset($row['last_player']) ? (int) $row['last_player'] : 0;
+      if (isset($users[$id]))
+      {
+        $this->categories[$key]['username'] = $users[$id]['username'];
+        $this->categories[$key]['user_allow_viewonline'] = $users[$id]['user_allow_viewonline'];
       }
     }
     return $this->categories;

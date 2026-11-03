@@ -301,6 +301,12 @@ jobs:
         env:
           PHPBB_ARCADE_SUMMARY_NATIVE: '1'
           PHPBB_ARCADE_SUMMARY_PASSWORD: fixture-only
+      - name: Keep native Arcade category identities and visibility current
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-category-cache-native.php
+        env:
+          PHPBB_ARCADE_CATEGORY_NATIVE: '1'
+          PHPBB_ARCADE_CATEGORY_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php
