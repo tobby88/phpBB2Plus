@@ -16,7 +16,7 @@ function kr_controller($requested,$size){
  global$db,$template,$kp_source,$kb_config,$start,$article_id,$lang,$phpbb_root_path,$phpEx;
  $source=file_get_contents($kp_source.'includes/kb_article.php');$a=strpos($source,"\$topic=array();\$comments='';");$b=strpos($source,'//rate',$a);
  kp_check($a!==false&&$b>$a,'Actual full comment controller branch');$topic_id=77;$article_id=1;$start=$requested;$template=new KcvTemplate();
- $kb_config['comments']=$kb_config['comments_show']=1;$kb_config['comments_pagination']=$size;$pagination='';eval(substr($source,$a,$b-$a));
+ $kb_config['comments']=$kb_config['comments_show']=1;$kb_config['comments_pagination']=$size;$pagination='';$highlight_param='';eval(substr($source,$a,$b-$a));
  return array($topic,$start,$comments,$pagination,kr_ids());
 }
 function kp_comment_retention_suite(){

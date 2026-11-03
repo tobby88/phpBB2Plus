@@ -327,7 +327,7 @@ switch($mode)
 		foreach ($searchset as $article)
 		{
 			$article_id = intval($article['article_id']);
-			$article_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id&amp;highlight=$highlight_active")), ENT_QUOTES, 'UTF-8');
+			$article_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id&amp;highlight=$highlight_active")), ENT_QUOTES, 'UTF-8', false);
 			$article_title = $article['article_title'];
 			if (count($orig_word))
 			{
@@ -336,7 +336,7 @@ switch($mode)
 			$article_title = phpbb_stored_text($article_title);
 			$category_id = intval($article['article_category_id']);
 			$kb_cat = get_kb_cat($category_id);
-			$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
+			$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8', false);
 			$category_name = isset($kb_cat['category_name']) ? phpbb_stored_text($kb_cat['category_name']) : '';
 			$category = '<a href="' . $temp_url . '" class="name">' . $category_name . '</a>';
 			$type = phpbb_stored_text(get_kb_type((int) $article['article_type']));
@@ -344,7 +344,7 @@ switch($mode)
 			$author_identity = kb_display_author($article, $article['registered_username']);
 			if ($author_identity['id'] > 0)
 			{
-				$author_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $author_id), ENT_QUOTES, 'UTF-8');
+				$author_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $author_id), ENT_QUOTES, 'UTF-8', false);
 				$article_author = '<a href="' . $author_url . '" class="name">' . phpbb_profile_text($author_identity['name']) . '</a>';
 			}
 			else

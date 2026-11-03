@@ -24,6 +24,7 @@ if ( !defined('IN_PHPBB') )
 {
 	die("Hacking attempt");
 }
+require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 
 
 	$article_id = (isset($_GET['k']) && is_scalar($_GET['k'])) ? intval($_GET['k']) : 0;
@@ -51,7 +52,7 @@ if ( !defined('IN_PHPBB') )
 	   $article_category_name = isset($category['category_name']) && is_scalar($category['category_name']) ? (string) $category['category_name'] : '';
 
 	   $temp_url = append_sid(this_kb_mxurl("mode=cat&amp;cat=$article_category_id"));
-	   $category = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_stored_text($article_category_name) . '</a>';
+	   $category = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8', false) . '" class="gen">' . phpbb_stored_text($article_category_name) . '</a>';
 	
 	   $date = create_date($board_config['default_dateformat'], $row['article_date'], $board_config['board_timezone']);
 	
@@ -69,7 +70,7 @@ if ( !defined('IN_PHPBB') )
 	       $author_name_plain = $author_identity['name'];
 	   
 	       $temp_url = append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id");
-	       $author_kb_art  = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_profile_text($author_name_plain) . '</a>';
+	       $author_kb_art  = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8', false) . '" class="gen">' . phpbb_profile_text($author_name_plain) . '</a>';
 	   }
 	
 	   $art_pages = explode('[page]', $row['article_body']);
@@ -124,24 +125,10 @@ if ( !defined('IN_PHPBB') )
 	//
 	// Was a highlight request part of the URI?
 	//
-	$highlight_match = $highlight = '';
-	if (isset($_GET['highlight']) && is_scalar($_GET['highlight']))
-	{
-	    // Split words and phrases
-		$words = explode(' ', trim(htmlspecialchars(urldecode($_GET['highlight']))));
-
-		for($i = 0; $i < sizeof($words); $i++)
-		{
-		    if (trim($words[$i]) != '')
-			{
-			    $highlight_match .= (($highlight_match != '') ? '|' : '') . str_replace('*', '\w*', preg_quote($words[$i], '#'));
-			}
-	    }
-		unset($words);
-
-		$highlight = urlencode($_GET['highlight']);
-		$highlight_match = phpbb_rtrim($highlight_match, "\\");
-    }
+	$requested_highlight = phpbb_topic_highlight_query(isset($_GET['highlight']) ? $_GET['highlight'] : '');
+	$highlight_match = phpbb_topic_highlight_pattern($requested_highlight);
+	$highlight = urlencode($requested_highlight);
+	$highlight_param = $requested_highlight === '' ? '' : '&amp;highlight=' . $highlight;
 	
 	if ( !$board_config['allow_html'] ) 
     { 
@@ -172,15 +159,6 @@ if ( !defined('IN_PHPBB') )
 	}
 
 	//
-	// Highlight active words (primarily for search)
-	//
-	if ($highlight_match)
-	{
-		// This has been back-ported from 3.0 CVS
-		$article = preg_replace('#(?!<.*)(?<!\w)(' . $highlight_match . ')(?!\w|[^<>]*>)#i', '<b style="color:#'.$theme['fontcolor3'].'">\1</b>', $article);
-	}
-
-	//
 	// Replace naughty words
 	//
 	if ( count($orig_word) )
@@ -203,9 +181,7 @@ if ( !defined('IN_PHPBB') )
 	//
 	if ($highlight_match)
 	{
-		// This was shamelessly 'borrowed' from volker at multiartstudio dot de
-		// via php.net's annotated manual
-		$article = phpbb_preg_replace_outside_tags($article, '#\\b(' . $highlight_match . ')\\b#i', '<span style="color:#' . $theme['fontcolor3'] . '"><b>\\1</b></span>');
+		$article = phpbb_topic_highlight_apply($article, $highlight_match, isset($theme['fontcolor3']) ? $theme['fontcolor3'] : '000000');
 	}
 	
 	$article_title = phpbb_stored_text($article_title);
@@ -299,7 +275,7 @@ if ( !defined('IN_PHPBB') )
 
 			$show_num_comments = kb_stats_page_size($kb_config['comments_pagination']);
 			$start = kb_stats_page_start($start,$show_num_comments,$topic['topic_replies']);
-			$pagination = generate_pagination(this_kb_mxurl("mode=article&k=$article_id" . $page_numm), $topic['topic_replies'], $show_num_comments, $start). '&nbsp;';
+			$pagination = generate_pagination(this_kb_mxurl("mode=article&k=$article_id" . $page_numm . $highlight_param), $topic['topic_replies'], $show_num_comments, $start). '&nbsp;';
 			get_kb_comments($topic_id, $start, $show_num_comments);   
 		}
 	
@@ -321,7 +297,7 @@ if ( !defined('IN_PHPBB') )
 		$path_kb_array = array();
 		get_kb_nav($article_category_id);
 
-		$print_url = append_sid(this_kb_mxurl("mode=article&amp;k=" . $article_id . "&print=true", true));
+		$print_url = append_sid(this_kb_mxurl("mode=article&amp;k=" . $article_id . "&print=true" . $highlight_param, true));
 
 		$template->assign_vars(array(
 			'PAGINATION' => $pagination,
@@ -426,11 +402,11 @@ if ( !defined('IN_PHPBB') )
 			{
 				if ( !$print_version )
 				{
-					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number" . $start_pag));
+					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number" . $start_pag . $highlight_param));
 				}
 				else
 				{
-					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number&print=true" . $start_pag, true));
+					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number&print=true" . $start_pag . $highlight_param, true));
 				}
 				$page_link = '<a href="' . $temp_url . '" class="nav">' . $page_number . ' - ' . $article_toc . '</a>';
 			}
@@ -474,11 +450,11 @@ if ( !defined('IN_PHPBB') )
 			{
 				if ( !$print_version )
 				{
-			    	$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number" . $start_pag));
+					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number" . $start_pag . $highlight_param));
 				}
 				else
 				{
-			    	$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number&print=true" . $start_pag, true));
+					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number&print=true" . $start_pag . $highlight_param, true));
 				}
 			    $page_link = '<a href="' . $temp_url . '" class="nav">' . $page_number . '</a>';
 			}

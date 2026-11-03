@@ -114,6 +114,8 @@ jobs:
         run: php .github/scripts/check-calendar-empty-slots.php
       - name: Check topic search highlighting and malformed parameters
         run: php .github/scripts/check-topic-highlighting.php
+      - name: Preserve KB highlighting and article/category/profile navigation
+        run: php .github/scripts/check-kb-highlighting-links.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

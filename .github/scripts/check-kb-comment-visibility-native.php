@@ -36,7 +36,7 @@ function kcv_controller($topic_id){
  global$db,$template,$kp_source,$kb_config,$start,$article_id,$lang,$phpbb_root_path,$phpEx;
  $source=file_get_contents($kp_source.'includes/kb_article.php');$a=strpos($source,"\$topic=array();\$comments='';");$b=strpos($source,'//rate',$a);
  kp_check($a!==false&&$b>$a,'Complete actual comment link/count/renderer controller branch');
- $article_id=1;$start=0;eval(substr($source,$a,$b-$a));return array($comments,$topic);
+ $article_id=1;$start=0;$highlight_param='';eval(substr($source,$a,$b-$a));return array($comments,$topic);
 }
 function kcv_assert($allowed,$label){
  global$db,$template,$kb_config;

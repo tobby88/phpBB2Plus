@@ -218,7 +218,7 @@ function get_kb_nav($parent, $visited = array())
 	
 	 $category_id = (int) $row['category_id'];
 	 $category_name = phpbb_stored_text($row['category_name']);
-	 $temp_url = htmlspecialchars(append_sid(this_kb_mxurl('mode=cat&amp;cat=' . $category_id)), ENT_QUOTES, 'UTF-8');
+	 $temp_url = htmlspecialchars(append_sid(this_kb_mxurl('mode=cat&amp;cat=' . $category_id)), ENT_QUOTES, 'UTF-8', false);
 	 $path_kb_array[] = '-> <a href="' . $temp_url . '" class="nav">' . $category_name . '</a> ';
 	 
 	 if ((int) $row['parent'] > 0)
@@ -331,7 +331,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   {
 	       $author_name = phpbb_profile_text($author_identity['name']);
 	   
-	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8');
+	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8', false);
 	       $author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';
 	   }
 		
@@ -342,7 +342,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   $article_totalvotes = (string) $article['article_totalvotes'];
 		
 	   $article_title = phpbb_stored_text($article['article_title']);
-	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
+	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8', false);
 	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
 	   $approve = '';
@@ -502,7 +502,7 @@ function get_kb_cat_index($parent = 0)
 		
 		$category_id = (int) $category['category_id'];
 		$category_name = phpbb_stored_text($category['category_name']);
-		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
+		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8', false);
 	   	$category = '<a href="' . $temp_url . '" class="forumlink">' . $category_name . '</a>';
 		
 		$template->assign_block_vars('catrow', array(
@@ -551,7 +551,7 @@ function get_kb_cat_subs($parent)
 		
 		$category_id = (int) $category['category_id'];
 		$category_name = phpbb_stored_text($category['category_name']);
-		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
+		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8', false);
 	   	$category = '<a href="' . $temp_url . '" class="forumlink">' . $category_name . '</a>';
 		
 		$template->assign_block_vars('switch_sub_cats.catrow', array(
@@ -1324,7 +1324,7 @@ function get_kb_stats($type = false, $approve = false, $block_name = '', $start 
 	   {
 	       $author_name = phpbb_profile_text($author_identity['name']);
 	   
-	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8');
+	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8', false);
 	       $author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';
 	   }
 		
@@ -1335,7 +1335,7 @@ function get_kb_stats($type = false, $approve = false, $block_name = '', $start 
 	   $article_totalvotes = (string) $article['article_totalvotes'];
 		
 	   $article_title = phpbb_stored_text($article['article_title']);
-	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
+	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8', false);
 	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
 	   $approve = '';
@@ -1346,7 +1346,7 @@ function get_kb_stats($type = false, $approve = false, $block_name = '', $start 
 	   if ($article['joined_category_id']!==null) { $category=array('category_id'=>$article['joined_category_id'],'category_name'=>$article['joined_category_name']); }
 	   $category_id = isset($category['category_id']) ? (int) $category['category_id'] : 0;
 	   $category_name = isset($category['category_name']) ? phpbb_stored_text($category['category_name']) : '';
-	   $category_temp = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
+	   $category_temp = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8', false);
 	   $category_url = '<a href="' . $category_temp . '" class="genmed">' . $category_name . '</a>';
 	   
 	   if ( defined('IN_ADMIN') || $userdata['user_level'] == ADMIN )

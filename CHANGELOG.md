@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Knowledge Base highlighting and navigation
+
+- Use the common Unicode highlighter once per article, preserving literal plus
+  signs, wildcards, entities and HTML attributes. Retain the article unchanged
+  when the request is invalid or the regex resource limit is reached.
+- Preserve the highlight query in article pages, comments, contents and print
+  links. Escape list/search/category/author URLs exactly once so their article,
+  category, profile and session parameters reach the intended page.
+
 ### Album watermarks and advanced CAPTCHA layout
 
 - Keep watermark coordinates integral on PHP 8.5 while preserving all nine
