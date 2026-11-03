@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Banner owner identities
+
+- Resolve submitted banner owner names as names, including numeric usernames,
+  rather than treating them as account IDs. Remove the request's compatibility
+  quoting once so names with quotes and backslashes remain selectable.
+- Preserve the existing owner when a submitted name is missing, invalid,
+  ambiguous or cannot be read. Existing banners continue loading by owner ID.
+
 ### Arcade summary names and caches
 
 - Render stored account names once in both global leaderboards and the latest

@@ -255,10 +255,14 @@ jobs:
           PHPBB_CT_LOGIN_IP_PASSWORD: fixture-only
       - name: Check native Unicode account identity boundaries
         if: matrix.part == 4
-        run: php .github/scripts/check-username-identity-native.php
+        run: |
+          php .github/scripts/check-username-identity-native.php
+          php .github/scripts/check-banner-owner-native.php
         env:
           PHPBB_USERNAME_NATIVE: '1'
           PHPBB_USERNAME_PASSWORD: fixture-only
+          PHPBB_BANNER_OWNER_NATIVE: '1'
+          PHPBB_BANNER_OWNER_PASSWORD: fixture-only
       - name: Check native Unicode public and ACP account creation
         if: matrix.part == 1
         run: |

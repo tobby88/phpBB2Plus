@@ -540,7 +540,7 @@ if( $mode!= "")
 		$banner_click = max(0, (int) admin_banner_post_scalar('banner_click', '0'));
 		$banner_view = max(0, (int) admin_banner_post_scalar('banner_view', '0'));
 		$banner_url = substr(trim(admin_banner_post_scalar('banner_url', '')), 0, 255);
-		$banner_owner = substr(trim(admin_banner_post_scalar('username', '')), 0, 255);
+		$banner_owner = phpbb_admin_post_string('username');
 		$banner_spot = (int) admin_banner_post_scalar('banner_spot', '0');
 		$banner_forum = max(0, (int) admin_banner_post_scalar(POST_FORUM_URL, '0'));
 
@@ -594,7 +594,7 @@ if( $mode!= "")
 		{
 			message_die(GENERAL_MESSAGE, $lang['Missing_banner_name']);
 		}
-		$owner = get_userdata($banner_owner);
+		$owner = get_userdata($banner_owner, true);
 		if (!is_array($owner) || empty($owner['user_id']))
 		{
 			message_die(GENERAL_MESSAGE, $lang['Missing_banner_owner']);
