@@ -285,7 +285,7 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 		if (defined('POST_BIRTHDAY') && ($topic_rowset[$i]['topic_type'] == POST_BIRTHDAY))
 		{
 			$folder_image =  $images['folder_birthday'];
-			$folder_alt = $lang['Happy_birthday'];
+			$folder_alt = $lang['Birthday'];
 			$newest_post_img = '';
 		}
 		else if( $topic_rowset[$i]['topic_status'] == TOPIC_MOVED )

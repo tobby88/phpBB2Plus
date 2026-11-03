@@ -23,7 +23,6 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.' . $phpEx);
-@include($phpbb_root_path . 'profilcp/functions_profile.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_calendar.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_topics_list.' . $phpEx);
 
@@ -118,7 +117,7 @@ $month_start = mktime(0,0,0, $month, 01, $year);
 $month_end	 = mktime(0,0,0, $month+1, 01, $year);
 $number = 0;
 $events	= array();
-get_event_PCP_birthday($events, $number, $month_start, $month_end);
+get_birthday($events, $number, $month_start, $month_end);
 get_event_topics($events, $number, $month_start, $month_end, false, 0, -1, $fid);
 
 // get the days with events
@@ -146,14 +145,13 @@ $events = array();
 // birthday
 $birthdays_count = 0;
 $remaining = $board_config['topics_per_page'];
-get_event_PCP_birthday($events, $birthdays_count, $start_date, $end_date, true, $start, $remaining);
-$displayed = count($events)-1;
-if ($displayed < 0) $displayed = 0;
+get_birthday($events, $birthdays_count, $start_date, $end_date, true, $start, $remaining);
+$displayed = count($events);
 
 // topics
 $topics_count = 0;
 $remaining = $board_config['topics_per_page'] - $displayed;
-$local_start = $start-$displayed;
+$local_start = max(0, $start - $birthdays_count);
 get_event_topics($events, $topics_count, $start_date, $end_date, true, $local_start, $remaining, $fid);
 //
 // set the page title and include the page header
@@ -372,7 +370,7 @@ $total = $topics_count + $birthdays_count;
 if ($total == 0) $total++;
 $template->assign_vars(array(
 	'PAGINATION' => generate_pagination("calendar_scheduler.$phpEx?d=$date&mode=$mode", $total, $board_config['topics_per_page'], $start),
-	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $topics_count / $board_config['topics_per_page'] )),
+	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $total / $board_config['topics_per_page'] )),
 	'L_GOTO_PAGE' => $lang['Goto_page'],
 
 	'NAV_SEPARATOR'		=> $nav_separator,

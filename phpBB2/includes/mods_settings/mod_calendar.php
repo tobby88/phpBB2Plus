@@ -84,7 +84,7 @@ $config_fields = array(
 		'type'		=> 'LIST_RADIO',
 		'user'		=> 'user_calendar_birthday',
 		'default'	=> 'Yes',
-		'hide'		=> (!isset($lang['Happy_birthday']) || !isset($userdata['user_birthday'])),
+		'hide'		=> (!isset($lang['birthday']) || !isset($userdata['user_birthday'])),
 		'values'	=> $list_yes_no,
 		),
 

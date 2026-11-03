@@ -24,7 +24,6 @@ define('IN_CALENDAR', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.' . $phpEx);
-@include($phpbb_root_path . 'profilcp/functions_profile.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_calendar.' . $phpEx);
 
 //

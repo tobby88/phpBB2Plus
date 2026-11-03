@@ -102,6 +102,8 @@ jobs:
         run: php .github/scripts/check-xs-import-return.php
       - name: Check module language integration
         run: php .github/scripts/check-module-language-gaps.php
+      - name: Check calendar birthday privacy, dates, paging and tooltip data
+        run: php .github/scripts/check-calendar-birthdays.php
       - name: Check scoped style cache actions and recovery preservation
         run: php .github/scripts/check-style-cache-controller.php
 

@@ -553,283 +553,77 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 	$db->sql_freeresult($result);
 }
 // 
-// Birthday Mod for Topic Calendar & Birthday Mod wihout PCP 
+// Birthday MOD calendar events
 // 
-function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, $start=0, $max_limit=-1) 
-{ 
-   global $template, $lang, $images, $userdata, $board_config, $db, $phpbb_root_path, $phpEx; 
-
-        $sql = "SELECT u.* 
-      FROM " . USERS_TABLE . " AS u 
-      WHERE u.user_id <> " . ANONYMOUS . " 
-         AND u.user_birthday <> 999999 
-      ORDER BY username"; 
-    
-   if ( !$result = $db->sql_query($sql) ) 
-   { 
-      message_die(GENERAL_ERROR, 'Could not read user table to get birthday today info', '', __LINE__, __FILE__, $sql); 
-   } 
-
-   // get the number of occurences 
-   $number = $db->sql_numrows($result); 
-   // if limit per page asked, limit the number of results 
-
-   // read users 
-   while ($row = $db->sql_fetchrow($result)) 
-   { 
-      $user_id      = $row['user_id']; 
-      $username      = $row['username'];
-      $user_avatar = $row['user_avatar'];
-      $user_birthday = realdate($lang['DATE_FORMAT'], $row['user_birthday']); 
-
-      $username_link = append_sid($phpbb_root_path . "./profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=$user_id"); 
-
-
-      $event_day   = realdate('d',$row['user_birthday']); 
-      $event_month   = realdate('n',$row['user_birthday']); 
-      $event_year2   = realdate('Y',$row['user_birthday']); 
-      $start_month   = intval(date('m', $start_date)); 
-      $event_year      = intval(date('Y', $start_date)); 
-      if ($event_month < $start_month) $event_year++; 
-      $event_time = mktime( 0,0,0, $event_month, $event_day, $event_year ); 
-
-      $age = $event_year - $event_year2;
-      if ( intval(substr($user_birthday, 4, 4)) > intval(date('md', $event_time)) ) $age--;
-      if ($age <= 0) $age = '';
-      
-      $tmp_message = '<img src="' . $images['happy_birthday'] . '" alt="' . $lang['Go_to_bottom'] . '" title="' . $lang['Go_to_bottom'] . '" border="0" />' . '<br /><br />';
-      $tmp_message .= sprintf($lang['birthday'] . '&nbsp;' . '[' . $age . ']' . '<br /><br />',$username); 
-      $message = htmlspecialchars("<table cellspacing='1' cellpadding='2' border='0' width='100%' class='forumline'><tr><td class='row1' nowrap='nowrap' align='center'><b>".$lang['birthday_header']."</b><span class='topictitle'></span><hr /><span class='genmed'>".$tmp_message."</span></td></tr></table>"); 
-      $message = preg_replace("/[\n\r]{1,2}/", '', $message); 
-
-      $new_row = array(); 
-      $new_row['event_id']            = POST_USERS_URL . $user_id; 
-
-      $new_row['event_author_id']         = $user_id; 
-      $new_row['event_author']         = $username; 
-      $new_row['event_time']            = $event_time; 
-
-      $new_row['event_last_author_id']   = ''; 
-      $new_row['event_last_author']      = ''; 
-      $new_row['event_last_time']         = ''; 
-
-      $new_row['event_replies']         = ''; 
-      $new_row['event_views']            = ''; 
-      $new_row['event_type']            = POST_BIRTHDAY; 
-      $new_row['event_vote']            = ''; 
-      $new_row['event_status']         = ''; 
-      $new_row['event_moved_id']         = ''; 
-      $new_row['event_last_id']         = ''; 
-      $new_row['event_forum_id']         = ''; 
-      $new_row['event_forum_name']      = ''; 
-
-      $new_row['event_icon']				= isset($images['icon_birthday']) ? $images['icon_birthday'] : $images['happy_birthday'];
-      $new_row['event_title']            = $username; 
-      $new_row['event_short_title']      = $username; 
-      $new_row['event_message']         = $message; 
-      $new_row['event_calendar_time']      = $event_time; 
-      $new_row['event_calendar_duration']   = ''; 
-      $new_row['event_link']            = $username_link; 
-      $new_row['event_txt_class']         = 'genmed'; 
-      $new_row['event_type_icon']         = '<img src="' . $images['icon_tiny_profile'] . '" border="0" align="absbottom" hspace="2" />'; 
-      $events[] = $new_row; 
-   } 
-	$db->sql_freeresult($result);
-} 
-
-//
-// birthday (only with PCP)
-//
-function get_event_PCP_birthday(&$events, &$number, $start_date, $end_date, $limit=false, $start=0, $max_limit=-1)
+// Birthday MOD stores whole days from 1970-01-01, not PCP's YYYYMMDD.
+// Count and page only occurrences overlapping the requested half-open interval.
+function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, $start=0, $max_limit=-1)
 {
-	global $template, $lang, $images, $userdata, $board_config, $db, $phpbb_root_path, $phpEx;
-	global $tree;
-
-	// init results
-	$number = 0;
-	if ($max_limit < 0)
-	{
-		$max_limit = $board_config['topics_per_page'];
-	}
-
-	// add birthday events (only with Profile Control Panel) for logged people eyes
-	if ($board_config['calendar_birthday'] && isset($lang['Happy_birthday']) && isset($userdata['user_birthday']) && ($userdata['user_id'] != ANONYMOUS))
-	{
-		// get start month
-		$sql_where = '';
-		$work_date = $start_date;
-		while ( intval(date('Ym', $work_date)) <= intval(date('Ym', $end_date)) )
-		{
-			$start_month = date('md', $work_date );
-			$end_month = date('m', $work_date) . '99';
-			if ( intval(date('Ym', $work_date)) == intval(date('Ym', $end_date)) )
-			{
-				$end_month = date('md', $end_date);
-			}
-			$sql_where .= !empty($sql_where) ? ' OR' : '';
-			$sql_where .= " ( RIGHT(u.user_birthday, 4) >= $start_month AND RIGHT(u.user_birthday, 4) < $end_month )";
-
-			// go to next month
-			$work_year = intval(date('Y', $work_date));
-			$work_month = intval(date('m', $work_date));
-			$work_month++;
-			if ($work_month > 12)
-			{
-				$work_month = 1;
-				$work_year++;
-			}
-			$work_date = mktime( 0,0,0, $work_month, 01, $work_year );
-		}
-
-		// select now profiles
-		if (!empty($sql_where))
-		{
-			$user_id = $userdata['user_id'];
-			$sql = "SELECT u.*, 
-							(CASE WHEN b.buddy_ignore = 0 THEN 1 ELSE 0 END) as user_friend,
-							i.buddy_ignore AS user_ignore,
-							b.buddy_visible AS user_visible
-						FROM ((" . USERS_TABLE . " AS u 
-						LEFT JOIN " . BUDDYS_TABLE . " AS b	ON b.user_id=u.user_id AND b.buddy_id=$user_id)
-						LEFT JOIN " . BUDDYS_TABLE . " AS i ON i.user_id=$user_id AND i.buddy_id=u.user_id)
-						WHERE u.user_id <> " . ANONYMOUS . " 
-							AND u.user_birthday <> 0 
-							AND u.user_birthday <> '' 
-							AND ( $sql_where )
-						ORDER BY username";
-			if ( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not read user table to get birthday today info', '', __LINE__, __FILE__, $sql);
-			}
-
-			// get the number of occurences
-			$number = $db->sql_numrows($result);
-
-			// if limit per page asked, limit the number of results
-			if ($limit)
-			{
-				$sql .= " LIMIT $start, $max_limit";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not obtain topics information', '', __LINE__, __FILE__, $sql);
-				}
-			}
-
-			// read users
-			while ($row = $db->sql_fetchrow($result))
-			{
-				// user info
-				$user_id		= $row['user_id'];
-				$username		= $row['username'];
-				$user_birthday	= $row['user_birthday'];
-
-				// get user relational status
-				$ignore			= $row['user_ignore'];
-				$friend			= $row['user_friend'];
-				$always_visible = $row['user_visible'];
-
-				// get the status of each info
-				$real_display	= ( !$ignore && $userdata['user_allow_real'] && $row['user_allow_real'] && ( ($row['user_viewreal'] == YES) || ( ($row['user_viewreal'] == FRIEND_ONLY) && $friend ) ) );
-
-				// take care of admin status
-				if ( is_admin($userdata) || ($user_id == $userdata['user_id']) )
-				{
-					$real_display = true;
-				}
-
-				if ($real_display)
-				{
-					$txt_class = get_user_level_class($row['user_level'], 'genmed', $row);
-					if ($row['user_allow_viewonline'] != YES)
-					{
-						$username = '<i>' . $username . '</i>';
-					}
-					$username_link = append_sid($phpbb_root_path . "./profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=$user_id");
-
-					$event_month	= intval(substr($user_birthday, 4, 2));
-					$event_day		= intval(substr($user_birthday, 6, 2));
-					$start_month	= intval(date('m', $start_date));
-					$event_year		= intval(date('Y', $start_date));
-					if ($event_month < $start_month) $event_year++;
-					$event_time = mktime( 0,0,0, $event_month, $event_day, $event_year );
-
-					// build the overview
-					$sav_tpl = $template->_tpldata;
-					$det_handler = '_overview_profil_' . $user_id;
-					$template->set_filenames(array(
-						$det_handler => 'calendar_overview_profil.tpl')
-					);
-
-					$age = $event_year - intval(substr($user_birthday, 0, 4));
-					if ( intval(substr($user_birthday, 4, 4)) > intval(date('md', $event_time)) ) $age--;
-					if ($age <= 0) $age = '';
-
-					// avatar
-					$avatar_display = ( $userdata['user_viewavatar'] && $row['user_allowavatar'] );
-					if ( is_admin($userdata)|| ($view_user_id == $user_id) )
-					{
-						$avatar_display = true;
-					}
-					$avatar = '';
-					if ( $avatar_display && $row['user_avatar_type'] )
-					{
-						$avatar = phpbb_avatar_image($row['user_avatar'], $row['user_avatar_type']);
-					}
-
-					$template->assign_vars(array(
-						'L_TITLE'		=> $lang['Happy_birthday'],
-						'L_USERNAME'	=> $username,
-						'TXT_CLASS'		=> $txt_class,
-						'L_AGE'			=> $lang['Age'],
-						'AVATAR'		=> $avatar,
-						'AGE'			=> $age,
-						)
-					);
-
-					$template->assign_var_from_handle('_calendar_overview', $det_handler);
-					$message = $template->_tpldata['.'][0]['_calendar_overview'];
-					$template->_tpldata = $sav_tpl;
-
-					// remove \n remaining from the template
-					$message = preg_replace("/[\n\r]{1,2}/", '', $message);
-
-					// store only the new values
-					$new_row = array();
-					$new_row['event_id']				= POST_USERS_URL . $user_id;
-
-					$new_row['event_author_id']			= $user_id;
-					$new_row['event_author']			= $username;
-					$new_row['event_time']				= $event_time;
-
-					$new_row['event_last_author_id']	= '';
-					$new_row['event_last_author']		= '';
-					$new_row['event_last_time']			= '';
-
-					$new_row['event_replies']			= '';
-					$new_row['event_views']				= '';
-					$new_row['event_type']				= POST_BIRTHDAY;
-					$new_row['event_vote']				= '';
-					$new_row['event_status']			= '';
-					$new_row['event_moved_id']			= '';
-					$new_row['event_last_id']			= '';
-					$new_row['event_forum_id']			= '';
-					$new_row['event_forum_name']		= '';
-
-					$new_row['event_icon']				= '';
-					$new_row['event_title']				= $username;
-					$new_row['event_short_title']		= $username;
-					$new_row['event_message']			= $message;
-					$new_row['event_calendar_time']		= $event_time;
-					$new_row['event_calendar_duration']	= '';
-					$new_row['event_link']				= $username_link;
-					$new_row['event_txt_class']			= $txt_class;
-					$new_row['event_type_icon']			= '<img src="' . $images['icon_tiny_profile'] . '" border="0" align="absbottom" hspace="2" />';
-
-					$events[] = $new_row;
-				}
-			}
-		}
-	}
+    global $lang, $images, $userdata, $board_config, $db, $phpbb_root_path, $phpEx;
+    $number = 0;
+    // Match the profile and birthday-popup policy, including the user's resolved
+    // calendar preference. Guests must not learn hidden birthdates or ages here.
+    if (empty($board_config['calendar_birthday']) || empty($userdata['session_logged_in']) ||
+        empty($userdata['user_id']) || (int)$userdata['user_id'] <= 0) { return; }
+    if (!is_numeric($start_date) || !is_numeric($end_date)) { return; }
+    $start_date = (int)$start_date; $end_date = (int)$end_date;
+    if ($end_date <= $start_date) { return; }
+    $first_year = (int)date('Y', $start_date); $last_year = (int)date('Y', $end_date - 1);
+    if ($first_year < 1971 || $last_year > 2070) { return; }
+    $start = is_scalar($start) ? max(0, min(1000000, (int)$start)) : 0;
+    $max_limit = is_scalar($max_limit) ? (int)$max_limit : 0;
+    if ($max_limit < 0) { $max_limit = (int)$board_config['topics_per_page']; }
+    $max_limit = max(0, min(1000, $max_limit));
+    $sql = 'SELECT user_id, username, user_birthday FROM ' . USERS_TABLE .
+        ' WHERE user_id <> ' . ANONYMOUS . ' AND user_birthday <> 999999 ORDER BY username, user_id';
+    if (!$result = $db->sql_query($sql))
+    {
+        message_die(GENERAL_ERROR, 'Could not read user birthdays', '', __LINE__, __FILE__, $sql);
+    }
+    try
+    {
+        while ($row = $db->sql_fetchrow($result))
+        {
+            if ((int)$row['user_id'] <= 0 || !is_scalar($row['user_birthday']) ||
+                !preg_match('/^-?[0-9]{1,6}$/D', (string)$row['user_birthday']) ||
+                (int)$row['user_birthday'] === 999999) { continue; }
+            $birthdate = realdate('Ymd', (int)$row['user_birthday']);
+            if (!preg_match('/^([0-9]{4})([0-9]{2})([0-9]{2})$/D', $birthdate, $parts) ||
+                (int)$parts[1] < 1901 || (int)$parts[1] > 2099 ||
+                !checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1])) { continue; }
+            for ($year = max($first_year, (int)$parts[1]); $year <= $last_year; $year++)
+            {
+                // Preserve the Birthday MOD's March 1 occurrence for February 29
+                // in non-leap years. A birthday lasts the local day, including DST.
+                $event_time = mktime(0, 0, 0, (int)$parts[2], (int)$parts[3], $year);
+                $next_day = mktime(0, 0, 0, (int)date('n', $event_time), (int)date('j', $event_time) + 1, $year);
+                if ($event_time >= $end_date || $next_day <= $start_date) { continue; }
+                $position = $number++;
+                if ($limit && ($position < $start || $position - $start >= $max_limit)) { continue; }
+                $user_id = (int)$row['user_id']; $username = phpbb_stored_text($row['username']);
+                $age = $year - (int)$parts[1];
+                $markup = '<table cellspacing="1" cellpadding="2" border="0" width="100%" class="forumline"><tr><td class="row1" align="center"><b>' .
+                    phpbb_profile_text($lang['birthday_header']) . '</b><hr /><span class="genmed">' .
+                    sprintf($lang['birthday'], $username) . ($age > 0 ? '&nbsp;[' . $age . ']' : '') . '</span></td></tr></table>';
+                $icon = isset($images['icon_birthday']) ? $images['icon_birthday'] : (isset($images['happy_birthday']) ? $images['happy_birthday'] : '');
+                $profile_icon = isset($images['icon_tiny_profile']) ? $images['icon_tiny_profile'] : '';
+                $events[] = array(
+                    'event_id' => POST_USERS_URL . $user_id,
+                    'event_author_id' => $user_id, 'event_author' => $row['username'], 'event_time' => $event_time,
+                    'event_last_author_id' => '', 'event_last_author' => '', 'event_last_time' => '',
+                    'event_replies' => '', 'event_views' => '', 'event_type' => POST_BIRTHDAY, 'event_vote' => '',
+                    'event_status' => '', 'event_moved_id' => '', 'event_last_id' => '', 'event_forum_id' => '', 'event_forum_name' => '',
+                    'event_icon' => $icon, 'event_title' => $username, 'event_short_title' => $username,
+                    'event_message' => htmlspecialchars($markup, ENT_QUOTES, 'UTF-8'),
+                    'event_calendar_time' => $event_time, 'event_calendar_duration' => $next_day - $event_time - 1,
+                    'event_link' => append_sid($phpbb_root_path . 'profile.' . $phpEx . '?mode=viewprofile&' . POST_USERS_URL . '=' . $user_id),
+                    'event_txt_class' => 'genmed',
+                    'event_type_icon' => '<img src="' . phpbb_profile_text($profile_icon) . '" border="0" alt="" />'
+                );
+            }
+        }
+    }
+    finally { $db->sql_freeresult($result); }
 }
 
 function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
@@ -948,7 +742,6 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 	get_event_topics($events, $number, $start_date, $end_date, false, 0, -1, $fid);
 
 	// birthday
-//	get_event_PCP_birthday($events, $number, $start_date, $end_date);
 	get_birthday($events, $number, $start_date, $end_date); 
         //
 	// And now display them
@@ -1154,7 +947,7 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 						'EVENT_TYPE'	=> stripslashes($events[$ind]['event_type_icon']),
 						'EVENT_TITLE'	=> $events[$ind]['event_short_title'],
 						'EVENT_CLASS'	=> $events[$ind]['event_txt_class'],
-						'EVENT_MESSAGE'	=> str_replace(array('"', '\''), array('&quot;', '\\\''), $events[$ind]['event_message']),
+						'EVENT_MESSAGE'	=> $events[$ind]['event_message'],
 						)
 					);
 					$flag = ( $over && ($k == $nb_row_per_cell-1) );

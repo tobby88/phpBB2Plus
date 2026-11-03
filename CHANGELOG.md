@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Calendar birthdays and scheduler paging
+
+- Use the installed Birthday MOD date format in both calendar views, replacing
+  the scheduler's dormant code for an absent Profile Control Panel extension.
+- Honor the resolved birthday setting and member-only profile policy; guests
+  no longer learn birthdates or ages from the monthly calendar.
+- Make the existing birthday preference available for the installed module.
+- Filter and count birthdays for the requested interval before paging, including
+  cross-year ranges, full local days across DST and February 29 occurrences.
+- Fix negative topic offsets, skipped events and page counts in mixed birthday
+  and topic lists. Use the existing translated birthday icon label.
+- Pass calendar tooltip content through an HTML data attribute instead of
+  interpolating it into JavaScript, preserving quotes, backslashes and UTF-8.
+
 ### Module language integration
 
 - Restore missing English and German album, CAPTCHA, banner, arcade and junior

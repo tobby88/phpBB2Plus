@@ -1028,6 +1028,12 @@ jobs:
         env:
           PHPBB_PA_CATEGORY_READ_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Read calendar birthdays through the production MySQL driver
+        if: matrix.part == 4
+        run: php .github/scripts/check-calendar-birthdays-native.php
+        env:
+          PHPBB_CALENDAR_BIRTHDAYS_NATIVE: '1'
+          PHPBB_CALENDAR_BIRTHDAYS_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-pafiledb-stats-native.php
         env:

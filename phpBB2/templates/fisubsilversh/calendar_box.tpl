@@ -116,7 +116,7 @@ function destroyTitle()
 				<!-- BEGIN _event -->
 				<!-- BEGIN switch_event -->
 				<tr>
-					<td class="row1" nowrap="nowrap"><span class="genmed">{_calendar_box._row._cell.switch_filled._event.EVENT_TYPE}<a href="{_calendar_box._row._cell.switch_filled._event.U_EVENT}" onMouseOver="createTitle(this, '{_calendar_box._row._cell.switch_filled._event.EVENT_MESSAGE}', event.pageX, event.pageY);" onMouseOut="destroyTitle();" class="{_calendar_box._row._cell.switch_filled._event.EVENT_CLASS}">{_calendar_box._row._cell.switch_filled._event.EVENT_TITLE}</a></span></td>
+					<td class="row1" nowrap="nowrap"><span class="genmed">{_calendar_box._row._cell.switch_filled._event.EVENT_TYPE}<a href="{_calendar_box._row._cell.switch_filled._event.U_EVENT}" data-calendar-message="{_calendar_box._row._cell.switch_filled._event.EVENT_MESSAGE}" onMouseOver="createTitle(this, this.getAttribute('data-calendar-message'), event.pageX, event.pageY);" onMouseOut="destroyTitle();" class="{_calendar_box._row._cell.switch_filled._event.EVENT_CLASS}">{_calendar_box._row._cell.switch_filled._event.EVENT_TITLE}</a></span></td>
 					<!-- BEGIN _more -->
 					<td class="row1" align="right"><span class="genmed"><a href="#" onClick="hdr_toggle('calendar_display_extend_{_calendar_box._row._cell.switch_filled.EVENT_DATE}','calendar_open_close_{_calendar_box._row._cell.switch_filled.EVENT_DATE}', '{DOWN_ARROW}', '{UP_ARROW}'); return false;" class="gensmall">...<img src="{_calendar_box._row._cell.switch_filled.TOGGLE_ICON}" id="calendar_open_close_{_calendar_box._row._cell.switch_filled.EVENT_DATE}" hspace="2" border="0" /></a></span></td>
 					<!-- END _more -->
