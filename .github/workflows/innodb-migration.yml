@@ -1034,6 +1034,12 @@ jobs:
         env:
           PHPBB_CALENDAR_BIRTHDAYS_NATIVE: '1'
           PHPBB_CALENDAR_BIRTHDAYS_PASSWORD: fixture-only
+      - name: Paginate actual topic reader lists without orphan-account pages
+        if: matrix.part == 4
+        run: php .github/scripts/check-topic-readers-native.php
+        env:
+          PHPBB_TOPIC_READERS_NATIVE: '1'
+          PHPBB_TOPIC_READERS_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-pafiledb-stats-native.php
         env:

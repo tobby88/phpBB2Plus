@@ -80,7 +80,11 @@ if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
 
 $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
-$mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined')));
+$mode = phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined'));
+if (!in_array($mode, array('username', 'email', 'joined', 'topic_time', 'topic_count', 'website', 'topten'), true))
+{
+	$mode = 'joined';
+}
 
 if(phpbb_request_scalar($_POST, 'order') !== '')
 {
@@ -93,6 +97,27 @@ else if(phpbb_request_scalar($_GET, 'order') !== '')
 else
 {
 	$sort_order = 'ASC';
+}
+
+// Count the same joined records as the listing. History may outlive a user.
+$sql = "SELECT count(*) AS total
+	FROM " . USERS_TABLE . " u, " . TOPIC_VIEW_TABLE . " tv
+	WHERE u.user_id = tv.user_id AND tv.topic_id = " . $topic_id;
+if (!($result = $db->sql_query($sql)) || !($total = $db->sql_fetchrow($result)))
+{
+	message_die(GENERAL_ERROR, 'Error getting total users', '', __LINE__, __FILE__, $sql);
+}
+$db->sql_freeresult($result);
+$total_members = (int) $total['total'];
+$list_limit = ($mode === 'topten') ? 10 : $board_config['topics_per_page'];
+if ($mode === 'topten')
+{
+	$start = 0;
+	$total_members = min(10, $total_members);
+}
+else
+{
+	$start = min($start, max(0, (int) floor(($total_members - 1) / $list_limit) * $list_limit));
 }
 
 //
@@ -174,32 +199,33 @@ switch( $mode )
 
 // Start replacement - Who viewed a topic MOD
 case 'joined':
-	$order_by = "u.user_regdate $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+	$order_by = 'u.user_regdate';
 	break;
 case 'username':
-	$order_by = "u.username $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+	$order_by = 'u.username';
 	break;
 case 'topic_count':
-	$order_by = "tv.view_count $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+	$order_by = 'tv.view_count';
 	break;
 case 'topic_time':
-	$order_by = "tv.view_time $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+	$order_by = 'tv.view_time';
 	break;
 case 'email':
-	$order_by = "u.user_email $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+	$order_by = 'u.user_email';
 	break;
 case 'website':
-	$order_by = "u.user_website $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+	$order_by = 'u.user_website';
 	break;
 case 'topten':
-	$order_by = "u.user_posts $sort_order LIMIT 10";
+	$order_by = 'u.user_posts';
 	break;
 default:
-	$order_by = "u.user_regdate $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+	$order_by = 'u.user_regdate';
 	break;
 // End replacement - Who viewed a topic MOD
 
 }
+$order_by .= " $sort_order LIMIT $start, $list_limit";
 
 
 // Start replacement - Who viewed a topic MOD & Admin/mod colors management MOD
@@ -343,37 +369,13 @@ if ( $row = $db->sql_fetchrow($result) )
 	}
 	while ( $row = $db->sql_fetchrow($result) );
 }
+$db->sql_freeresult($result);
 
-if ( $mode != 'topten' || $board_config['topics_per_page'] < 10 )
-{
-
-// Start replacement - Who viewed a topic MOD
-	$sql = "SELECT count(*) AS total
-		FROM " . TOPIC_VIEW_TABLE . "
-		WHERE topic_id = " . $topic_id;
-// End replacement - Who viewed a topic MOD
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Error getting total users', '', __LINE__, __FILE__, $sql);
-	}
-
-	if ( $total = $db->sql_fetchrow($result) )
-	{
-		$total_members = $total['total'];
-		// Start replacement - Who viewed a topic MOD
-		$pagination = generate_pagination("topic_view_users.$phpEx?".POST_TOPIC_URL."=$topic_id&amp;mode=$mode&amp;order=$sort_order", $total_members, $board_config['topics_per_page'], $start). '&nbsp;';
-		// End replacement - Who viewed a topic MOD
-	}
-}
-else
-{
-	$pagination = '&nbsp;';
-	$total_members = 10;
-}
+$pagination = ($mode === 'topten') ? '&nbsp;' : generate_pagination("topic_view_users.$phpEx?".POST_TOPIC_URL."=$topic_id&amp;mode=$mode&amp;order=$sort_order", $total_members, $list_limit, $start) . '&nbsp;';
 
 $template->assign_vars(array(
 	'PAGINATION' => $pagination,
-	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $total_members / $board_config['topics_per_page'] )), 
+	'PAGE_NUMBER' => sprintf($lang['Page_of'], (int) floor($start / $list_limit) + 1, max(1, (int) ceil($total_members / $list_limit))),
 
 	'L_GOTO_PAGE' => $lang['Goto_page'])
 );

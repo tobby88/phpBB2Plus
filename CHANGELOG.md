@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Topic reader pagination
+
+- Count the same existing accounts in the reader list and its pagination, so
+  retained history for removed accounts cannot create empty later pages.
+- Normalize out-of-range offsets and reset the top-ten view to its first row;
+  keep empty lists and page labels consistent and retain existing access checks.
+
 ### Rank overview
 
 - Initialize standard-rank member lists for empty and hidden lists, and escape
