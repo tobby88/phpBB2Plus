@@ -143,6 +143,8 @@ jobs:
         run: php .github/scripts/check-arcade-monthly-authors.php
       - name: Keep real zero Arcade scores distinct from missing results
         run: php .github/scripts/check-arcade-zero-scores.php
+      - name: Preserve stable owners and former-author privacy in Arcade points
+        run: php .github/scripts/check-arcade-points.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

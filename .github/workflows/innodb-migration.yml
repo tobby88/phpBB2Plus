@@ -319,6 +319,12 @@ jobs:
         env:
           PHPBB_ARCADE_ZERO_NATIVE: '1'
           PHPBB_ARCADE_ZERO_PASSWORD: fixture-only
+      - name: Aggregate native Arcade points without losing historical aliases
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-points-native.php
+        env:
+          PHPBB_ARCADE_POINTS_NATIVE: '1'
+          PHPBB_ARCADE_POINTS_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

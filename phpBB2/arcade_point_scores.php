@@ -67,13 +67,20 @@ while ($row = $db->sql_fetchrow($result))
 {
 	$player = (string) $row['player'];
 	$player_key = ((int) $row['highscore_user_id'] > 0) ? 'u:' . (int) $row['highscore_user_id'] : 'n:' . $player;
-	$totals[$player_key] = array(
-		'player' => $player,
-		'monthly' => (int) $row['score_count'],
-		'all_time' => 0,
-		'total' => 0
-	);
+	if (!isset($totals[$player_key]))
+	{
+		$totals[$player_key] = array(
+			'user_id' => (int) $row['highscore_user_id'],
+			'player' => $player,
+			'monthly' => 0,
+			'all_time' => 0,
+			'total' => 0
+		);
+	}
+	$totals[$player_key]['player'] = $player;
+	$totals[$player_key]['monthly'] += (int) $row['score_count'];
 }
+$db->sql_freeresult($result);
 
 // All-time score rows contain the full history. The first row per game after
 // applying each game's direction is its current all-time winner.
@@ -105,6 +112,7 @@ foreach (array(0 => 'DESC', 1 => 'ASC') as $reverse_list => $sort_order)
 		if (!isset($totals[$player_key]))
 		{
 			$totals[$player_key] = array(
+				'user_id' => (int) $row['player_id'],
 				'player' => $player,
 				'monthly' => 0,
 				'all_time' => 0,
@@ -113,6 +121,7 @@ foreach (array(0 => 'DESC', 1 => 'ASC') as $reverse_list => $sort_order)
 		}
 		$totals[$player_key]['all_time']++;
 	}
+	$db->sql_freeresult($result);
 }
 
 foreach ($totals as &$player_total)
@@ -140,7 +149,7 @@ foreach ($totals as $player_total)
 	$rank++;
 	$template->assign_block_vars('total', array(
 		'RANK' => $rank,
-		'NAME' => htmlspecialchars($player_total['player'], ENT_QUOTES, 'UTF-8'),
+		'NAME' => phpbb_author_name($player_total['user_id'], $player_total['player']),
 		'MONTH_TOTAL' => $player_total['monthly'],
 		'AT_TOTAL' => $player_total['all_time'],
 		'TOTAL' => $player_total['total']
