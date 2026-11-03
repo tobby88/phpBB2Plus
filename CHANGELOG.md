@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Staff profile signatures
+
+- Use the common stored-signature renderer in the staff profile panel. Escape
+  literal HTML before BBCode rendering, preserve links and line breaks, and
+  respect current HTML/BBCode switches without exposing internal UID tokens.
+
 ### Topic reader pagination
 
 - Count the same existing accounts in the reader list and its pagination, so

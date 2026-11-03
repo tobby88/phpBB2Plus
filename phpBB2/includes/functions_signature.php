@@ -24,7 +24,7 @@ function phpbb_signature_edit_text($text, $uid)
 	return unprepare_message(phpbb_signature_strip_uid($text, $uid));
 }
 
-function phpbb_signature_render($text, $uid, $html, $bbcode, $smilies)
+function phpbb_signature_render($text, $uid, $html, $bbcode, $smilies, $separator = true)
 {
 	global $lang;
 	$text = (string) $text; $uid = (string) $uid;
@@ -35,5 +35,6 @@ function phpbb_signature_render($text, $uid, $html, $bbcode, $smilies)
 	if ($uid !== '') { $text = $bbcode ? bbencode_second_pass($text, $uid) : phpbb_signature_strip_uid($text, $uid); }
 	$text = make_clickable($text);
 	if ($smilies) { $text = smilies_pass($text); }
-	return '_________________<br />' . str_replace("\n", "\n<br />\n", $text);
+	// A profile panel may already provide its own signature heading.
+	return ($separator ? '_________________<br />' : '') . str_replace("\n", "\n<br />\n", $text);
 }

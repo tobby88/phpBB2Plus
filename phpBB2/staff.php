@@ -308,17 +308,17 @@ else
 	$topic_percent = ($total_topics > 0) ? min(100, ($user_topics / $total_topics) * 100) : 0;
 
 	include_once($phpbb_root_path .'includes/bbcode.'.$phpEx);
+	require_once($phpbb_root_path .'includes/functions_signature.'.$phpEx);
 	$user_sig = ( $view_profile['user_sig'] != '' && $board_config['allow_sig'] ) ? $view_profile['user_sig'] : '';
 	$user_sig_bbcode_uid = $view_profile['user_sig_bbcode_uid'];
 
 	if( $user_sig != '' )
 	{
 		$template->assign_block_vars('switch_view_profile.view_signature', array());
-		$user_sig = ( $view_profile['user_allowsmile'] && $board_config['allow_smilies'] ) ? smilies_pass($user_sig) : $user_sig;
-		$user_sig = ( $board_config['allow_bbcode'] && $user_sig_bbcode_uid != '' ) ? bbencode_second_pass($user_sig, $user_sig_bbcode_uid) : preg_replace('/\:[0-9a-z\:]+\]/si', ']', $user_sig);
-		$user_sig = ( !$board_config['allow_html'] || empty($view_profile['user_allowhtml']) ) ? preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig) : $user_sig;
-		$user_sig = str_replace("\n", "\n<br />\n", $user_sig);
-		$user_sig = make_clickable($user_sig);
+		$user_sig = phpbb_signature_render($user_sig, $user_sig_bbcode_uid,
+			!empty($board_config['allow_html']) && !empty($view_profile['user_allowhtml']),
+			!empty($board_config['allow_bbcode']),
+			!empty($view_profile['user_allowsmile']) && !empty($board_config['allow_smilies']), false);
 		$user_sig = ( count($orig_word) ) ? phpbb_preg_replace_outside_tags($user_sig, $orig_word, $replacement_word) : $user_sig;
 	}
 

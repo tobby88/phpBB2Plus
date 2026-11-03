@@ -68,5 +68,24 @@ try {
  $preview=true;$signature_text='too long';$board_config['max_sig_chars']=2;eval($body);
  signature_render_check($preview_sig===$lang['Signature_too_long']&&$signature_text==='too long','Length failure retains edit text');$cases++;
  signature_render_check(phpbb_signature_edit_text(null,null)===''&&phpbb_signature_render(null,'',false,false,false)===$lang['sig_none'],'Empty legacy nullable signature');$cases++;
+ // The staff popup must use the same stored-text renderer, without escaping
+ // generated BBCode markup afterwards or adding another separator to its panel.
+ $staffSource=file_get_contents($phpbb_root_path.'staff.php');$a=strpos($staffSource,'$user_sig = (');$b=strpos($staffSource,'$template->assign_vars(array(',$a);
+ signature_render_check($a!==false&&$b>$a,'Actual staff signature block');$staffBody=substr($staffSource,$a,$b-$a);
+ foreach(array(0,1)as$htmlOn){foreach(array(0,1)as$userHtml){foreach(array(0,1)as$bbcodeOn){
+  $board_config=array('allow_sig'=>1,'allow_html'=>$htmlOn,'allow_html_tags'=>'b,i','allow_bbcode'=>$bbcodeOn,'allow_smilies'=>0);
+  foreach(array('[b]Grüße 😀[/b] [i]italic[/i]','<b>HTML</b> & text','[quote="Name"]quoted[/quote]','[list][*]one[*]two[/list]',"first\nsecond",'https://example.invalid/path')as$raw){
+   $uid='0123456789';$stored=phpbb_signature_prepare($raw,$htmlOn,1,0,$uid);
+   $view_profile=array('user_sig'=>$stored,'user_sig_bbcode_uid'=>$uid,'user_allowsmile'=>0,'user_allowhtml'=>$userHtml);$orig_word=$replacement_word=array();
+   eval($staffBody);
+   $common=phpbb_signature_render($stored,$uid,(bool)$htmlOn&&(bool)$userHtml,(bool)$bbcodeOn,false);
+   signature_render_check($common==='_________________<br />'.$user_sig,'Staff and common signature renderers agree for stored text, policy changes and UTF-8');
+   signature_render_check(strpos($user_sig,'_________________')===false,'Staff panel does not gain an extra separator');
+   if($raw==='[b]Grüße 😀[/b] [i]italic[/i]'&&$bbcodeOn){signature_render_check(strpos($user_sig,'<span style="font-weight:bold">')!==false&&strpos($user_sig,'&lt;span')===false,'Staff keeps generated formatting with literal HTML disabled');}
+   if($raw==='<b>HTML</b> & text'&&(!$htmlOn||!$userHtml)){signature_render_check(strpos($user_sig,'<b>HTML</b>')===false,'Both board and member HTML policy must permit literal markup');}
+   $cases++;
+  }
+ }}}
+ foreach(array(array(0,'Stored signature'),array(1,''))as$empty){$board_config['allow_sig']=$empty[0];$view_profile['user_sig']=$empty[1];eval($staffBody);signature_render_check($user_sig==='','Disabled and empty staff signatures stay absent');$cases++;}
  echo 'Signature rendering: '.$cases." actual-controller round-trip, preview, BBCode and output-safety cases passed.\n";
 } finally {restore_error_handler();}
