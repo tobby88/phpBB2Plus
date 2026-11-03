@@ -6,6 +6,11 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Module timezone labels
+
+- Preserve fractional GMT offsets and supported legacy translations in print
+  view and the download module using the common timezone-label function.
+
 ### HTTP response compression
 
 - Share quality-aware gzip negotiation across normal pages, ACP, print view and

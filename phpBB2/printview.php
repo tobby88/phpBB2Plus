@@ -267,7 +267,7 @@ $template->assign_vars(array(
 	'T_FONTSIZE2' => $theme['fontsize2'],
 	'S_CONTENT_DIRECTION' => $lang['DIRECTION'],
 	'S_CONTENT_ENCODING' => $lang['ENCODING'],
-	'S_TIMEZONE' => sprintf($lang['All_times'], $lang[number_format($board_config['board_timezone'])]),
+	'S_TIMEZONE' => sprintf($lang['All_times'], phpbb_timezone_label($board_config['board_timezone'])),
 	'L_TOPICS' => $lang['Topics'])
 );
 //

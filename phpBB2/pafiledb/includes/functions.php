@@ -737,7 +737,7 @@ function pafiledb_page_footer()
 		'JUMPMENU' => $pafiledb->modules[$pafiledb->module_name]->jumpmenu_option(),
 		'L_JUMP' =>  $lang['jump'],
 		'S_JUMPBOX_ACTION' => append_sid('dload.php'),
-		'S_TIMEZONE' => sprintf($lang['All_times'], $lang[number_format($board_config['board_timezone'])]))
+		'S_TIMEZONE' => sprintf($lang['All_times'], phpbb_timezone_label($board_config['board_timezone'])))
 	);
 	$pafiledb->modules[$pafiledb->module_name]->_pafiledb();
 	if(!isset($_GET['explain']))

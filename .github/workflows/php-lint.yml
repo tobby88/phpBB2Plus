@@ -254,6 +254,8 @@ jobs:
         run: |
           php .github/scripts/check-gzip-output-safety.php
           php .github/scripts/check-gzip-output-safety.php ajax
+      - name: Test module timezone labels
+        run: php .github/scripts/check-module-timezone-labels.php
 
       - name: Test web source exposure rules
         run: php .github/scripts/check-web-source-exposure.php
