@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### CrackerTracker member actions and notices
+
+- Save IP-warning preferences and notice acknowledgements using a separate
+  transaction with the current active member, live session, timeout and relevant
+  settings held through commit. Preserve ordinary member access and caller work.
+- Bind notice buttons to the exact displayed IP pair or global message/type.
+  An old form cannot dismiss a newly changed notice; already-cleared notices
+  remain safe to acknowledge again. Publish runtime changes only after success.
+- Escape historical address and date text in the member login history, including
+  malformed legacy UTF-8. Existing valid addresses and display formats remain.
+- Reuse the existing schema; no database migration or new setting is needed.
+
 ### Cancelling posting forms
 
 - Initialize the report target before cancellation, preview and submission.

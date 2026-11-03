@@ -57,7 +57,8 @@ try{
  cl_check($control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')!==false,'Own disposable native schema');$created=true;$peer=new sql_db($host,'root',$password,$schema,false);$db=new CtLogNativeDb($host,'root',$password,$schema,false);
  $canonical=file_get_contents($app.'install/schemas/mysql_schema.sql');foreach(array('users','sessions','jr_admin_users','config')as$suffix){cl_check(preg_match('/^CREATE TABLE phpbb_'.$suffix.'\s*\([\s\S]*?;/m',$canonical,$m)===1,'Actual canonical authority table');cl_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]));}
  cl_check(mkdir($base,0700)&&mkdir($base.'/ctracker',0700)&&mkdir($base.'/ctracker/logfiles',0700)&&mkdir($base.'/cache',0700),'Own synthetic log directories');$made=true;$phpbb_root_path=$base.'/';
- if(getenv('PHPBB_CT_MAINTENANCE_NATIVE')==='1'){require __DIR__.'/ctracker-maintenance-native-fixture.php';}
+ if(getenv('PHPBB_CT_USER_ACTIONS_NATIVE')==='1'){require __DIR__.'/ctracker-user-actions-native-fixture.php';}
+ elseif(getenv('PHPBB_CT_MAINTENANCE_NATIVE')==='1'){require __DIR__.'/ctracker-maintenance-native-fixture.php';}
  elseif(getenv('PHPBB_CT_ACTIONS_NATIVE')==='1'){require __DIR__.'/ctracker-actions-native-fixture.php';}
  elseif(getenv('PHPBB_CT_SETTINGS_NATIVE')==='1'){require __DIR__.'/ctracker-settings-native-fixture.php';}
  else{

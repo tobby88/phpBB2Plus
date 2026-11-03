@@ -471,4 +471,6 @@ $lang['ctracker_pwreset_info']	= 'Due to safety reasons it is not possible to se
 $lang['ctracker_vc_guest_post'] = 'Visual Confirmation for Guests';
 $lang['ctracker_vc_guest_expl'] = 'Please enter the following code before sending your post. For guests this is neccessary due to Spam Security reasons.';
 
+$lang['Ctracker_notice_changed'] = 'This notice has changed. Please reload the page before confirming it.';
+
 ?>

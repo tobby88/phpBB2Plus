@@ -470,4 +470,6 @@ $lang['ctracker_pwreset_info']	= 'Aus Sicherheitsgründen ist es leider nur mög
 $lang['ctracker_vc_guest_post'] = 'Visuelle Bestätigung für Gäste';
 $lang['ctracker_vc_guest_expl'] = 'Bitte trage den nachfolgenden Zahlen- / Buchstabencode in das Eingabefeld ein bevor Du Deinen Post abschickst. Für Gäste dieses Forums ist diese Maßnahme zum Schutz vor automatischen Spambots erforderlich.';
 
+$lang['Ctracker_notice_changed'] = 'Dieser Hinweis hat sich geändert. Bitte lade die Seite vor dem Bestätigen neu.';
+
 ?>

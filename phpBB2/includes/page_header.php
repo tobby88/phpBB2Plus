@@ -532,9 +532,8 @@ foreach ($nav_links as $nav_item => $nav_array)
 $l_timezone = phpbb_timezone_label($board_config['board_timezone']);
 
 /* CrackerTracker IP Range Scanner */
+require_once($phpbb_root_path . 'ctracker/classes/class_user_actions.' . $phpEx);
 $marknow = (isset($_POST['marknow']) && is_scalar($_POST['marknow'])) ? (string) $_POST['marknow'] : '';
-$mark_token = (isset($_POST['ct_token']) && is_scalar($_POST['ct_token'])) ? (string) $_POST['ct_token'] : '';
-$mark_request_method = isset($HTTP_SERVER_VARS['REQUEST_METHOD']) ? strtoupper((string) $HTTP_SERVER_VARS['REQUEST_METHOD']) : '';
 $ctracker_settings = (isset($ctracker_config) && is_object($ctracker_config) && isset($ctracker_config->settings) && is_array($ctracker_config->settings)) ? $ctracker_config->settings : array();
 $ctracker_settings += array(
 	'login_ip_check' => 0,
@@ -546,16 +545,14 @@ $ctracker_settings += array(
 );
 if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 {
-	$expected_mark_token = phpbb_session_action_token('ctracker-message', 'ipfeature', intval($userdata['user_id']), $userdata['session_id']);
-	if ($mark_request_method !== 'POST' || $mark_token === '' || !hash_equals($expected_mark_token, $mark_token))
+	try
 	{
-		message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		$changes = ctracker_user_apply($db, 'ipfeature');
+		foreach ($changes as $key => $value) { $userdata[$key] = $value; }
 	}
-	$userdata['ct_last_ip'] = $userdata['ct_last_used_ip'];
-	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_ip = ct_last_used_ip WHERE user_id=' . $userdata['user_id'];
-	if ( !($result = $db->sql_query($sql)) )
+	catch (RuntimeException $error)
 	{
-		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, isset($lang[$error->getMessage()]) ? $lang[$error->getMessage()] : $lang['ctracker_error_updating_userdata']);
 	}
 	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('~/([^/?#]+)(?:[?#].*)?$~', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
 	{
@@ -571,13 +568,15 @@ if ( $ctracker_settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn']
 	$check_ip_range = $ctracker_user->check_ip_range();
 	if ( $check_ip_range != 'allclear' )
 	{
+		$notice_context = ctracker_user_notice_context('ipfeature', $userdata, $ctracker_settings);
 		$template->assign_block_vars('ctracker_message', array(
 			'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
 			'L_MESSAGE_TEXT' => $check_ip_range));
 		$template->assign_block_vars('ctracker_message.switch_mark_action', array(
 			'S_MARK_ACTION' => 'index.' . $phpEx,
 			'S_MARK_VALUE' => 'ipfeature',
-			'S_MARK_TOKEN' => phpbb_session_action_token('ctracker-message', 'ipfeature', intval($userdata['user_id']), $userdata['session_id']),
+			'S_MARK_CONTEXT' => $notice_context,
+			'S_MARK_TOKEN' => ctracker_user_notice_token('ipfeature', $notice_context, $userdata),
 			'L_MARK_MESSAGE' => htmlspecialchars($lang['ctracker_gmb_markip'], ENT_QUOTES, 'UTF-8')));
 	}
 }
@@ -585,16 +584,14 @@ if ( $ctracker_settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn']
 /* CrackerTracker Global Message Function */
 if ( $marknow == 'globmsg' && $userdata['session_logged_in'] )
 {
-	$expected_mark_token = phpbb_session_action_token('ctracker-message', 'globmsg', intval($userdata['user_id']), $userdata['session_id']);
-	if ($mark_request_method !== 'POST' || $mark_token === '' || !hash_equals($expected_mark_token, $mark_token))
+	try
 	{
-		message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		$changes = ctracker_user_apply($db, 'globmsg');
+		foreach ($changes as $key => $value) { $userdata[$key] = $value; }
 	}
-	$userdata['ct_global_msg_read'] = 0;
-	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_global_msg_read = 0 WHERE user_id=' . $userdata['user_id'];
-	if ( !($result = $db->sql_query($sql)) )
+	catch (RuntimeException $error)
 	{
-		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, isset($lang[$error->getMessage()]) ? $lang[$error->getMessage()] : $lang['ctracker_error_updating_userdata']);
 	}
 	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('#/([^/?#]+)(?:[?#].*)?$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
 	{
@@ -605,6 +602,7 @@ if ( $marknow == 'globmsg' && $userdata['session_logged_in'] )
 
 if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $ctracker_settings['global_message'] != '' )
 {
+	$notice_context = ctracker_user_notice_context('globmsg', $userdata, $ctracker_settings);
 	$global_message_text = phpbb_stored_text($ctracker_settings['global_message']);
 	$global_message_url = phpbb_profile_http_url($ctracker_settings['global_message']);
 	$global_message_output = ($ctracker_settings['global_message_type'] == 1 || $global_message_url === '')
@@ -616,7 +614,8 @@ if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $
 	$template->assign_block_vars('ctracker_message.switch_mark_action', array(
 		'S_MARK_ACTION' => 'index.' . $phpEx,
 		'S_MARK_VALUE' => 'globmsg',
-		'S_MARK_TOKEN' => phpbb_session_action_token('ctracker-message', 'globmsg', intval($userdata['user_id']), $userdata['session_id']),
+		'S_MARK_CONTEXT' => $notice_context,
+		'S_MARK_TOKEN' => ctracker_user_notice_token('globmsg', $notice_context, $userdata),
 		'L_MARK_MESSAGE' => htmlspecialchars($lang['ctracker_gmb_mark'], ENT_QUOTES, 'UTF-8')));
 }
 

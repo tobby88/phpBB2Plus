@@ -23,22 +23,26 @@ init_userprefs($userdata);
 // End session management
 
 
-// session id check
-if (!empty($HTTP_POST_VARS['sid']) || !empty($HTTP_GET_VARS['sid']))
-{
-	$sid = (!empty($HTTP_POST_VARS['sid'])) ? $HTTP_POST_VARS['sid'] : $HTTP_GET_VARS['sid'];
-}
-else
-{
-	$sid = '';
-}
-
 // Ensure that a user is logged in and the feature is available
 if ( !$userdata['session_logged_in'] )
 {
 	message_die(GENERAL_MESSAGE, $lang['ctracker_lhistory_err']);
 }
 
+// Save before rendering so the header also sees the acknowledged preference.
+if (!empty($HTTP_POST_VARS['submit']))
+{
+	require_once($phpbb_root_path . 'ctracker/classes/class_user_actions.' . $phpEx);
+	try
+	{
+		$changes = ctracker_user_apply($db, 'preference');
+		foreach ($changes as $key => $value) { $userdata[$key] = $value; }
+	}
+	catch (RuntimeException $error)
+	{
+		message_die(GENERAL_ERROR, isset($lang[$error->getMessage()]) ? $lang[$error->getMessage()] : $lang['ctracker_error_database_op']);
+	}
+}
 
 // Include the page_header
 $page_title = $lang['ctracker_lhistory_nav'];
@@ -70,8 +74,8 @@ if ( $ctracker_config->settings['login_history'] )
 		$template->assign_block_vars('login_output', array(
 				'ROW_CLASS'		=> ($count % 2 == 0)? 'row1' : 'row2',
 				'VALUE_1'		=> $count,
-				'VALUE_2'		=> date($userdata['user_dateformat'], $row['ct_login_time']),
-				'VALUE_3'		=> $row['ct_login_ip'])
+				'VALUE_2'		=> phpbb_profile_text(date($userdata['user_dateformat'], $row['ct_login_time'])),
+				'VALUE_3'		=> phpbb_profile_text($row['ct_login_ip']))
 		);
 	}
 }
@@ -83,21 +87,6 @@ if ( $ctracker_config->settings['login_ip_check'] == 1 )
 	
 	$sel1 = '';
 	$sel2 = '';
-	
-	if (!empty($HTTP_POST_VARS['submit']))
-	{
-		if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
-		$newsetting = (isset($HTTP_POST_VARS['ct_enable_ip_warn']) && is_scalar($HTTP_POST_VARS['ct_enable_ip_warn']) && intval($HTTP_POST_VARS['ct_enable_ip_warn']) === 1) ? 1 : 0;
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_enable_ip_warn=' . $newsetting . ' WHERE user_id=' . $userdata['user_id'];
-		$userdata['ct_enable_ip_warn'] = $newsetting;
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-		}
-	}
 	
 	($userdata['ct_enable_ip_warn'] == 1)? $sel1 = ' checked="checked"' : $sel2 = ' checked';
 	
