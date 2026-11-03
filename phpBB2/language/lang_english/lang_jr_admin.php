@@ -11,6 +11,7 @@
 *
 ***************************************************************************/
 $lang['None'] = 'None';
+$lang['Error_User_Table'] = 'Could not load the user data.';
 $lang['Allow_Access'] = 'Allow Access';
 
 $lang['Jr_Admin'] = 'Junior Admin';

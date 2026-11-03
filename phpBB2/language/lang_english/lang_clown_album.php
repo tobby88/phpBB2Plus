@@ -24,7 +24,7 @@
 
 
 $lang['Album_config'] = 'CLowN SP Configuration';
-$lang['Album_config_explain'] = 'Here you can configure some options for the Album Service Pack';
+$lang['Album_clown_config_explain'] = 'Here you can configure some options for the Album Service Pack';
 $lang['Album_sp_general'] = 'General Config';
 $lang['Album_sp_watermark'] = 'WaterMark Config';
 $lang['Album_sp_hotornot'] = 'Hot or Not Config';

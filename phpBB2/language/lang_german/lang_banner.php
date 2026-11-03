@@ -106,6 +106,7 @@ $lang['By_week'] = "Nach Wochentag";
 $lang['By_date'] = "Nach Datum";
 
 // messages
+$lang['Missing_banner_name'] = 'Bitte gib einen Namen für das Banner ein.';
 $lang['Missing_banner_id'] = "Die Banner-ID fehlt";
 $lang['Missing_banner_owner'] = "Du mußt einen Banner-Eigentümer wählen";
 $lang['Missing_time'] = "Wenn du ein Banner zeitbasiert angibst, mußt du das Zeitintervall angeben";

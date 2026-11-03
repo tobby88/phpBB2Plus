@@ -200,6 +200,7 @@ $lang['no_file_received'] = 'No image file received';
 $lang['no_thumbnail_file_received'] = 'No thumbnail file received';
 $lang['file_too_big'] = 'Image file size too big';
 $lang['thumbnail_too_big'] = 'Thumbnail file size too big';
+$lang['thumb_res_too_high'] = 'The thumbnail is invalid or its resolution is too high.';
 $lang['image_res_too_high'] = 'Image resolution too high';
 $lang['add_field'] = 'Add file upload field';
 $lang['remove_field'] = 'Remove file upload field';

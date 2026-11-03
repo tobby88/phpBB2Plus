@@ -127,7 +127,7 @@ $lang['Pics_updated_successfully'] = 'Deine Bilder Informationen sind erfolgreic
 
 // Delete Pic
 $lang['Album_delete_confirm'] = 'Bist Du sicher, das Bild (die Bilder) zu löschen?';
-$lang['Pic_deleted_successful'] = 'Dieses Bild (diese Bilder) sind erfolgreich gelöscht worden';
+$lang['Pics_deleted_successfully'] = 'Dieses Bild (diese Bilder) sind erfolgreich gelöscht worden';
 
 //
 // ModCP
@@ -198,6 +198,7 @@ $lang['no_file_received'] = 'Keine Bilddatei empfangen';
 $lang['no_thumbnail_file_received'] = 'Kein Vorschaubild empfangen';
 $lang['file_too_big'] = 'Bilddatei ist zu groß';
 $lang['thumbnail_too_big'] = 'Vorschaudatei ist zu groß';
+$lang['thumb_res_too_high'] = 'Die Vorschaugrafik ist ungültig oder ihre Auflösung ist zu hoch.';
 $lang['image_res_too_high'] = 'Bildauflösung ist zu hoch';
 $lang['add_field'] = 'Weiteres Bild-Upload-Feld hinzufügen';
 $lang['remove_field'] = 'Letztes Bild-Upload-Feld entfernen';

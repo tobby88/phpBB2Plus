@@ -7,6 +7,7 @@
  *
  ***************************************************************************/ 
 
+$lang['captcha_config_updated'] = 'The CAPTCHA configuration has been saved.';
 $lang['VC_Captcha_Config'] = 'CAPTCHA Config';
 $lang['captcha_config_explain'] = 'Here you can determine the appearance of the picture, which indicates the registration code on activated visual confirmation.';
 $lang['VC_active'] = 'Visual Confirmation is active!'; 

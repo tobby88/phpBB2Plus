@@ -867,7 +867,7 @@ else
       AND user_id = " . $userdata['user_id'];
     if( !$result = $db->sql_query($sql) )
     {
-    	message_die(GENERAL_ERROR, $lang['no_tour_players_data'], "", __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, $lang['no_tour_player_data'], "", __LINE__, __FILE__, $sql);
     }
     $tour_play = $db->sql_fetchrow($result);
     

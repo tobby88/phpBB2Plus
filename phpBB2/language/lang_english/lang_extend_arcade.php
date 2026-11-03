@@ -353,6 +353,7 @@ $lang['activitiy_mod_info'] = 'phpBB Activity, Arcade Mod %s &copy 2001, 2007 - 
 ******************************************************************************/
 $lang['no_main_data'] = 'Couldn\'t obtain main data';
 $lang['no_game_data'] = 'Couldn\'t obtain game data';
+$lang['no_cat_delete'] = 'Could not delete the game category.';
 $lang['no_cat_update'] = 'Couldn\'t update category data';
 $lang['no_cat_data'] = 'Couldn\'t obtain category data';
 $lang['no_cat_data_enter'] = 'No category Name or Description - Saved Failed';
@@ -365,6 +366,7 @@ $lang['no_game_save'] = 'Couldn\'t save game data';
 $lang['no_user_data'] = 'Couldn\'t obtain user data';
 $lang['no_user_update'] = 'Couldn\'t update user data';
 $lang['no_score_data'] = 'Couldn\'t obtain scores data';
+$lang['no_score_update'] = 'Could not update the game scores.';
 $lang['no_score_reset'] = 'Couldn\'t reset scores data';
 $lang['no_score_insert'] = 'Couldn\'t insert score';
 $lang['no_score_reset'] = 'Couldn\'t reset scores';
@@ -400,7 +402,7 @@ $lang['newscore_close'] = '<br /><a href="javascript:self.close();"><img src="im
 $lang['no_arcadehash_data'] = 'Error Reading Game Data from URL';
 $lang['amod_update_error'] = 'Error updating database, unable to connect';
 $lang['admin_arcade_reward_error'] = 'You can ONLY set-up ONE reward system at a time<br><br>';
-$land['no_rate_data'] = 'Couldn\'t obtain rate data';
+$lang['no_rate_data'] = 'Couldn\'t obtain rate data';
 $lang['no_rate_update'] = 'Couldn\'t update rate data';
 $lang['no_comment_data'] = 'Couldn\'t obtain comment data';
 $lang['no_comment_edit_data'] = 'Couldn\'t obtain comment editing data';

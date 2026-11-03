@@ -71,7 +71,7 @@ if ( $lang_extend_admin )
 $lang['Forum_link']					= 'Link redirection';
 $lang['Forum_link_visited']			= 'This link has been visited %d times';
 $lang['Redirect']					= 'Redirect';
-$lang['Redirect_to']				= 'If your browser does not support meta redirection please click %sHERE% to be redirected';
+$lang['Redirect_to']				= 'If your browser does not support meta redirection please click %sHERE%s to be redirected';
 
 $lang['Use_sub_forum']				= 'Index packing';
 $lang['Hierarchy_setting']			= 'Categories Hierarchy settings';

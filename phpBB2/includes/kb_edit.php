@@ -143,11 +143,6 @@ if ( !defined('IN_PHPBB') )
 		  'L_SUBMIT' => $lang['Edit'],
 		  'L_PREVIEW' => $lang['Preview'],
 		  
-		  'L_FAQ' => $lang['FAQ'],
-		  'L_HOWTO' => $lang['HowTo'],
-		  'L_INFO' => $lang['Info'],
-		  'L_TUTORIAL' => $lang['Tutorial'],
-		  
 		  'S_ACTION' => this_kb_mxurl('mode=edit'),
 		  'HTML_STATUS' => $html_status,
 		  'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid($phpbb_root_path . "faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 

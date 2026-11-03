@@ -70,7 +70,7 @@ if ( $lang_extend_admin )
 $lang['Forum_link']					= 'Link Weiterleitung';
 $lang['Forum_link_visited']			= 'Dieser Link wurde %d mal besucht';
 $lang['Redirect']					= 'Weiterleitung';
-$lang['Redirect_to']				= 'Sollte Dein Browser keine Meta Weiterleitung unterstützen, klicke bitte %shier% für manuelle Weiterleitung';
+$lang['Redirect_to']				= 'Sollte Dein Browser keine Meta Weiterleitung unterstützen, klicke bitte %shier%s für manuelle Weiterleitung';
 
 $lang['Use_sub_forum']				= 'Index Pack-Level';
 $lang['Hierarchy_setting']			= 'Kategorie Hierarchie Einstellungen';

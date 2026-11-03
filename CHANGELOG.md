@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Module language integration
+
+- Restore missing English and German album, CAPTCHA, banner, arcade and junior
+  administrator messages, and the category-hierarchy style editor labels.
+- Use the existing translated category, forum, global announcement and download
+  moderator labels. Give the download smilie picker a title without a topic dependency.
+- Fix the forum-link fallback page and both of its translated link placeholders.
+- Keep the Album Service Pack description separate from the main album description
+  and remove unused fixed article-type bindings from the Knowledge Base editor.
+
 ### eXtreme Styles import return links
 
 - Repair the return-target validator so valid local filenames, query parameters

@@ -184,7 +184,7 @@ if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
 	{
 		header('Refresh: 0; URL=' . $url);
 		$safe_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $safe_url . '"><title>' . htmlspecialchars($lang['Redirect'], ENT_QUOTES, 'UTF-8') . '</title></head><body><div align="center">' . sprintf($lang['Rediect_to'], '<a href="' . $safe_url . '">', '</a>') . '</div></body></html>';
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $safe_url . '"><title>' . htmlspecialchars($lang['Redirect'], ENT_QUOTES, 'UTF-8') . '</title></head><body><div align="center">' . sprintf($lang['Redirect_to'], '<a href="' . $safe_url . '">', '</a>') . '</div></body></html>';
 		exit;
 	}
 

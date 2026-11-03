@@ -7,6 +7,7 @@
  *
  ***************************************************************************/
 
+$lang['captcha_config_updated'] = 'Die CAPTCHA-Konfiguration wurde gespeichert.';
 $lang['VC_Captcha_Config'] = 'CAPTCHA Konfiguration';
 $lang['captcha_config_explain'] = 'Hier kannst du das Aussehen des Bildes bestimmen, das bei aktivierter Visuellen Bestätigung den Registrierungscode anzeigt.';
 $lang['captcha_config_explain'] .= '<br />Bedenke bitte das die Lesbarkeit des Bestätigungs-Codes, extrem erschwert oder sogar unmöglich werden kann.';

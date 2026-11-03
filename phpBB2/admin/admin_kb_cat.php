@@ -355,7 +355,7 @@ switch( $mode )
 		   'L_CAT_DELETE' => $lang['Cat_delete_title'],
 		   'L_DELETE_ARTICLES' => $lang['Delete_all_articles'],
 		   
-		   'L_CAT_NAME' => $lang['Article_category'],
+		   'L_CAT_NAME' => $lang['Category'],
 		   'L_MOVE_CONTENTS' => $lang['Move_contents'],
 		   'L_DELETE' => $lang['Move_and_Delete'],
 		   
@@ -383,7 +383,7 @@ switch( $mode )
   
   	  'L_CREATE_CAT' => $lang['Create_cat'],
 	  'L_CREATE' => $lang['Create'],
-	  'L_CATEGORY' => isset($lang['Article_category']) ? $lang['Article_category'] : $lang['Category'],
+	  'L_CATEGORY' => $lang['Category'],
   	  'L_ACTION' => $lang['Art_action'],
 	  'L_ARTICLES' => $lang['Articles'],
 	  'L_ORDER' => $lang['Update_order'],

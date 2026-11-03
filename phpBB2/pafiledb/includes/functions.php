@@ -403,7 +403,7 @@ class pafiledb_functions
 
 			$gen_simple_header = TRUE;
 
-			$page_title = $lang['Review_topic'] . " - $topic_title";
+			$page_title = $lang['Emoticons'];
 			include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 			$pafiledb_template->set_filenames(array(

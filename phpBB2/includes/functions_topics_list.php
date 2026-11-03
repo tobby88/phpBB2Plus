@@ -163,7 +163,7 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 	// get a default title
 	if (empty($list_title))
 	{
-		$list_title = $lang['forum'];
+		$list_title = $lang['Forum'];
 	}
 
 	// choose template

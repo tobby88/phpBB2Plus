@@ -473,7 +473,7 @@ $pafiledb_template->assign_vars(array(
 );
 
 
-$this->display($lang['MCP'], $template_file);
+$this->display($lang['MCP_title'], $template_file);
 
 // $pafiledb_template->display('admin');
 
