@@ -139,6 +139,8 @@ jobs:
         run: php .github/scripts/check-arcade-player-labels.php
       - name: Keep cached Arcade category identities and visibility current
         run: php .github/scripts/check-arcade-category-cache.php
+      - name: Apply former-author privacy in monthly Arcade score tables
+        run: php .github/scripts/check-arcade-monthly-authors.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

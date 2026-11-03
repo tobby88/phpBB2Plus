@@ -163,7 +163,7 @@ while($row = $db->sql_fetchrow($result))
 //
 
 	$highscore_game = (string) $row['highscore_game'];
-	$highscore_player = phpbb_profile_text($row['highscore_player']);
+	$highscore_player = phpbb_author_name($row['highscore_user_id'], $row['highscore_player']);
 	$converted_score = $arcade->convert_score($row['highscore_score']);
 	$highscore_score = ($converted_score !== false && $converted_score !== null) ? htmlspecialchars((string) $converted_score, ENT_QUOTES, 'UTF-8') : '';
   $row_bg_number = ($bgcounter++ % 2 == 0) ? 1 : 2;

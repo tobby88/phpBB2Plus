@@ -307,6 +307,12 @@ jobs:
         env:
           PHPBB_ARCADE_CATEGORY_NATIVE: '1'
           PHPBB_ARCADE_CATEGORY_PASSWORD: fixture-only
+      - name: Apply native former-author policy in monthly Arcade tables
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-monthly-authors-native.php
+        env:
+          PHPBB_ARCADE_MONTHLY_NATIVE: '1'
+          PHPBB_ARCADE_MONTHLY_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php
