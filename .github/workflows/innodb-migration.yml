@@ -295,6 +295,12 @@ jobs:
         env:
           PHPBB_IP_LOOKUP_NATIVE: '1'
           PHPBB_IP_LOOKUP_PASSWORD: fixture-only
+      - name: Preserve native Arcade summary identities and independent counters
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-summaries-native.php
+        env:
+          PHPBB_ARCADE_SUMMARY_NATIVE: '1'
+          PHPBB_ARCADE_SUMMARY_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

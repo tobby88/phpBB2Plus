@@ -100,41 +100,36 @@ function best_player($type = 'first_places')
 		$type = 'first_places';
 	}
 
-  if ($type == 'first_places')
-  {
-    $best_player = $arcade->read_cache('best_player', $arcade->arcade_config['highscore_cache']);
-  }
-  else
-  {
-    $best_player = $arcade->read_cache('best_at_player', $arcade->arcade_config['at_highscore_cache']);
-  }
-  if (!$best_player)
-  {
-  	$sql = "SELECT u.user_id, u.username, a.$type FROM " . USERS_TABLE . " as u, " . iNA_USER_DATA . " as a
-  		WHERE u.user_id = a.user_id
-     	ORDER by $type DESC, last_won_date LIMIT 0,1";
-  	if(!$user = $db->sql_query($sql)) 
-  	{
-  		message_die(GENERAL_ERROR, $lang['no_user_data'], "", __LINE__, __FILE__, $sql); 
-  	}
-  	$user_row = $db->sql_fetchrow($user);
+	$current = $type === 'first_places';
+	$key = $current ? 'best_player' : 'best_at_player';
+	$cached = $arcade->read_cache($key, $arcade->arcade_config[$current ? 'highscore_cache' : 'at_highscore_cache']);
+	$user_row = false;
+	// Old caches contain rendered HTML, including a visitor's language/SID.
+	// Retain the established keys (and their invalidators), but cache data only.
+	if (is_array($cached) && isset($cached['version'], $cached['type'], $cached['user_id'], $cached['wins']) &&
+		$cached['version'] === 1 && $cached['type'] === $type && is_int($cached['user_id']) &&
+		$cached['user_id'] >= -8388608 && $cached['user_id'] <= 8388607 && is_int($cached['wins']) &&
+		$cached['wins'] >= -8388608 && $cached['wins'] <= 8388607)
+	{
+		$sql = 'SELECT user_id, username FROM ' . USERS_TABLE . ' WHERE user_id = ' . $cached['user_id'];
+		if (!($user = $db->sql_query($sql))) { message_die(GENERAL_ERROR, $lang['no_user_data']); }
+		$user_row = $db->sql_fetchrow($user); $db->sql_freeresult($user);
+		if ($user_row) { $wins = $cached['wins']; }
+	}
 	if (!$user_row)
 	{
-		return '';
+		$sql = "SELECT u.user_id, u.username, a.$type FROM " . USERS_TABLE . " as u, " . iNA_USER_DATA . " as a
+			WHERE u.user_id = a.user_id ORDER by $type DESC, last_won_date LIMIT 0,1";
+		if (!($user = $db->sql_query($sql))) { message_die(GENERAL_ERROR, $lang['no_user_data']); }
+		$user_row = $db->sql_fetchrow($user); $db->sql_freeresult($user);
+		if (!$user_row) { return ''; }
+		$wins = (int)$user_row[$type];
+		$arcade->write_cache($key, array('version'=>1, 'type'=>$type, 'user_id'=>(int)$user_row['user_id'], 'wins'=>$wins));
 	}
-
-  	if ($type == 'first_places')
-  	{
-      $best_player = sprintf($lang['games_best_player'] , append_sid("profile.$phpEx?mode=viewprofile&u=".(int) $user_row['user_id']), phpbb_profile_text($user_row['username']), append_sid("activity.$phpEx?mode=game_stats&amp;user_id=".(int) $user_row['user_id']."&amp;id=4"), (int) $user_row[$type]);
-      $arcade->write_cache('best_player', $best_player);
-  	}
-    else
-    {
-      $best_player = sprintf($lang['games_best_at_player'] , append_sid("profile.$phpEx?mode=viewprofile&u=".(int) $user_row['user_id']), phpbb_profile_text($user_row['username']), append_sid("activity.$phpEx?mode=game_stats&amp;user_id=".(int) $user_row['user_id']."&id=1"), (int) $user_row[$type]);
-      $arcade->write_cache('best_at_player', $best_player);
-    }
-  }
-	return $best_player;
+	return sprintf($lang[$current ? 'games_best_player' : 'games_best_at_player'],
+		append_sid("profile.$phpEx?mode=viewprofile&amp;u=" . (int)$user_row['user_id']),
+		phpbb_stored_text($user_row['username']),
+		append_sid("activity.$phpEx?mode=game_stats&amp;user_id=" . (int)$user_row['user_id'] . '&amp;id=' . ($current ? 4 : 1)), $wins);
 }
 //
 //  Get the Last game this user played
@@ -173,10 +168,11 @@ function last_played_score()
   ORDER BY date DESC LIMIT 0,1";
   if ( !($result = $db->sql_query($last_sql)) )
   {
-    return '<br />ERROR<br />' . $sql;
+    return '';
   }
 	$last_info = $db->sql_fetchrow($result);
-	return $last_info ? sprintf($lang['games_last_score_gained'], phpbb_profile_text($last_info['username']), $arcade->convert_score($last_info['score']), phpbb_profile_text($last_info['game_desc'])) : '';
+	$db->sql_freeresult($result);
+	return $last_info ? sprintf($lang['games_last_score_gained'], phpbb_stored_text($last_info['username']), $arcade->convert_score($last_info['score']), phpbb_profile_text($last_info['game_desc'])) : '';
 }
 
 function games_position($games_place)

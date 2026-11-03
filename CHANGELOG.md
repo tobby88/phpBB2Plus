@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Arcade summary names and caches
+
+- Render stored account names once in both global leaderboards and the latest
+  score summary. Keep raw game captions escaped and preserve numeric formatting.
+- Cache versioned winner IDs and counters under the established cache names,
+  replacing old HTML caches automatically. Generate translated text and links
+  for the current request, and refresh names from the current account record;
+  a removed account triggers a fresh leaderboard lookup.
+- Return an empty optional summary after a failed latest-score read instead
+  of referencing an undefined SQL variable. Release the leaderboard and latest
+  score query results.
+
 ### Shoutbox author labels
 
 - Decode stored account names once before escaping their visible labels, and
