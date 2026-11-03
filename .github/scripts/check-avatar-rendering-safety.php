@@ -90,7 +90,6 @@ $renderers = array(
 	'staff.php',
 	'topic_view_users.php',
 	'viewtopic.php',
-	'includes/functions_calendar.php',
 	'includes/usercp_register.php',
 	'includes/usercp_viewprofile.php',
 	'pafiledb/includes/functions_comment.php',
@@ -102,5 +101,11 @@ foreach ($renderers as $renderer)
 	$source = file_get_contents($root . $renderer);
 	avatar_test_true(strpos($source, 'phpbb_avatar_image(') !== false, $renderer . ' must use the shared avatar renderer.');
 }
+
+// Calendar birthdays no longer use the retired PCP avatar/profile overview.
+// Keep that boundary explicit instead of requiring an unused avatar renderer.
+$calendar = file_get_contents($root . 'includes/functions_calendar.php');
+avatar_test_true(strpos($calendar, 'user_avatar') === false && strpos($calendar, 'calendar_overview_profil.tpl') === false,
+	'Calendar birthdays must not revive the removed PCP avatar rendering path.');
 
 echo "Avatar rendering safety checks passed.\n";
