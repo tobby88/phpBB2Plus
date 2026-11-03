@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Public news categories
+
+- Use the shared News renderer for category text and style-relative image URLs.
+  Remove an unused image scan and copied admin form fields from the public page,
+  and start its session without an undefined legacy argument.
+
 ### Print author bylines
 
 - Use stored guest bylines and the shared former-author visibility policy in

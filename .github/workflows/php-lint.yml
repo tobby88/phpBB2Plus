@@ -258,6 +258,8 @@ jobs:
         run: php .github/scripts/check-module-timezone-labels.php
       - name: Test print author bylines
         run: php .github/scripts/check-print-author-bylines.php
+      - name: Test public news categories
+        run: php .github/scripts/check-news-categories-controller.php
 
       - name: Test web source exposure rules
         run: php .github/scripts/check-web-source-exposure.php
