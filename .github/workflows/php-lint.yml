@@ -131,6 +131,8 @@ jobs:
           php .github/scripts/check-shoutbox-display.php legacy
       - name: Render literal IP lookup identities and localized source labels
         run: php -n .github/scripts/check-ip-lookup-display.php
+      - name: Display stored shoutbox account and guest labels exactly once
+        run: php -n .github/scripts/check-shoutbox-author-labels.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

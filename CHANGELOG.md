@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Shoutbox author labels
+
+- Decode stored account names once before escaping their visible labels, and
+  retain the author policy's already escaped guest labels without re-escaping.
+  Preserve literal entity spellings, special characters and numeric profile
+  links in both views. Former-author masking follows the existing policy.
+
 ### Moderation IP lookup scope and identity display
 
 - Bind the Shoutbox IP overview's account names to the standard template and
