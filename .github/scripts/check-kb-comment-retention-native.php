@@ -49,13 +49,14 @@ function kp_comment_retention_suite(){
    array(9,null,'',phpbb_profile_text($lang['Guest'])),
    array(9,null,null,phpbb_profile_text($lang['Guest'])),
    array(4,'0',$key,'0'),
-   array(4,'Cur &amp; Größe',$key,phpbb_profile_text('Cur &amp; Größe')),
+   array(4,phpbb_username_key('Cur &amp; Größe'),$key,phpbb_profile_text('Cur &amp; Größe')),
+   array(4,phpbb_username_key('Cur & Größe'),$key,phpbb_profile_text('Cur & Größe')),
    array(9,null,'<b>Legacy</b> & Grüße',phpbb_profile_text('<b>Legacy</b> & Grüße'))
   )as$identity){
    kr_seed();kp_sql('UPDATE fixture_posts SET poster_id='.$identity[0].',post_username='.($identity[2]===null?'NULL':"'".$GLOBALS['peer']->sql_escape($identity[2])."'").' WHERE post_id=2');
    if($identity[1]!==null){kp_sql("UPDATE fixture_users SET username='".$GLOBALS['peer']->sql_escape($identity[1])."' WHERE user_id=4");}
    $before=kp_snapshot();kp_check(kr_render()===array(2,3),'Historical identity never hides reply');$name=$template->blocks['postrow'][0]['POSTER_NAME'];
-   kp_check($name===$identity[3]&&stripos($name,'<b>')===false&&strpos($name,'<a ')===false,'Current/raw and saved/escaped name boundaries, including zero, no dead profile link');
+   kp_check($name===$identity[3]&&stripos($name,'<b>')===false&&strpos($name,'<a ')===false,'Canonical current account keys and saved guest names, including literal entities and zero, no dead profile link');
    kp_check(kp_snapshot()===$before,'Original registered/guest poster ID and stored name unchanged');$cases++;
   }
   kr_seed();
