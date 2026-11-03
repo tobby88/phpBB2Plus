@@ -9,11 +9,13 @@ foreach(array('english','german')as$locale)
 	{
 		foreach(array('Simple','A" title="B',"O'Reilly",'<b>ü 😀</b>','Literal &amp; Name','C:\\temp')as$raw)
 		{
-			$r=ip_controller_row($route,$raw);$escaped=htmlspecialchars($raw,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+			foreach(array(ENT_QUOTES,ENT_COMPAT)as$flags){
+			$stored=phpbb_username_key($raw,$flags);ip_check($stored!=='','Canonical or historical complete stored username');$r=ip_controller_row($route,$stored);$escaped=htmlspecialchars($raw,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 			ip_check($r['USERNAME']===$escaped,'Actual controller binds escaped literal account name to the standard template');
 			ip_check($r['L_SEARCH_POSTS']===htmlspecialchars(sprintf($lang['Search_user_posts'],$raw),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),'Complete localized title escaped once');
 			ip_check(strpos($r['U_SEARCHPOSTS'],'search_author='.urlencode($raw).'&amp;')!==false,'Exact raw account identity in query, including literal entities');
 			ip_check(strpos($r['U_PROFILE'],'u=7')!==false,'Profile retains numeric identity');$ip_cases++;
+			}
 		}
 		foreach(array(ANONYMOUS,DELETED)as$id){$r=ip_controller_row($route,'Stored non-account name',$id);ip_check($r['USERNAME']===$lang['Guest']&&strpos($r['L_SEARCH_POSTS'],'Stored non-account')===false,'Deleted/anonymous identities do not expose a stored account-table label');$ip_cases++;}
 		$q=ip_controller_queries($route);ip_check(strpos($q['users'],'$ip_forum_filter')!==false,'Actual forum correlation uses fresh permission scope');

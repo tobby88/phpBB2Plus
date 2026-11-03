@@ -31,12 +31,12 @@ function phpbb_ip_lookup_forum_filter($database, $required_forum = null)
 	return $forums ? ' AND p.forum_id IN (' . implode(',', $forums) . ')' : ' AND 1 = 0';
 }
 
-/** Separate literal account names, HTML labels and URL query values. */
+/** Decode the stored account key once, then separate labels and URL values. */
 function phpbb_ip_lookup_author($id, $name)
 {
 	global $lang;
-	$raw = (int)$id > 0 ? (string)$name : $lang['Guest'];
+	$raw = (int)$id > 0 ? html_entity_decode((string)$name, ENT_QUOTES, 'UTF-8') : $lang['Guest'];
 	return array('name'=>htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 		'title'=>htmlspecialchars(sprintf($lang['Search_user_posts'], $raw), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-		'query'=>urlencode((int)$id > 0 ? (string)$name : 'Anonymous'));
+		'query'=>urlencode((int)$id > 0 ? $raw : 'Anonymous'));
 }

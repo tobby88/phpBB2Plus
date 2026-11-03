@@ -12,13 +12,15 @@ function AJAX_message_die($response){throw new UsernameSearchExit($response);}
 ats_check(phpbb_username_search_allowed('ä*',1)&&!phpbb_username_search_allowed('ä*',2),'Wildcard minimum counts Unicode characters, not bytes');
 ats_check(phpbb_username_search_allowed('0',3)&&phpbb_username_search_allowed('%',3),'Literal short names remain searchable');
 foreach(array('',array('bad'),str_repeat('ä',26),str_repeat('😀',26),"bad\xc3","bad\0name")as$bad){ats_check(!phpbb_username_search_allowed($bad,1),'Malformed/oversized search denied');}
-$source=file_get_contents($ats_source.'search.php');$a=strpos($source,'$search_author_value =');$b=strpos($source,'$search_id =',$a);ats_check($a!==false&&$b>$a,'Actual author request parser');$request_parser=substr($source,$a,$b-$a);
+$source=file_get_contents($ats_source.'search.php');$a=strpos($source,'$search_author_value =');$b=strpos($source,'$search_id =',$a);ats_check($a!==false&&$b>$a,'Actual author request parser');$request_parser=substr($source,$a,$b-$a);$search_keywords='';
 foreach(array('C@ro','0','A&B',"O'Reilly",'C:\\notes','A_*',str_repeat('ä',26),str_repeat('😀',255))as$raw){profile_fixture_request(array('search_author'=>$raw));$board_config=array('search_min_chars'=>1);eval($request_parser);ats_check($search_author===$raw,'Actual author parser decodes request once and permits complete guest bylines');}
 foreach(array(array('bad'),str_repeat('ä',256),"bad\xc3","bad\0name",'ä*','*')as$bad){profile_fixture_request(array('search_author'=>$bad));$board_config=array('search_min_chars'=>2);$denied=false;try{eval($request_parser);}catch(AttachSettingsExit$e){$denied=true;}ats_check($denied,'Invalid author never falls through to unrestricted keyword search');}
 // Run the actual rendered-link expressions, not a reimplementation of them.
-foreach(array('viewtopic.php','topic_view_users.php','includes/usercp_viewprofile.php','groupcp.php','privmsg.php','memberlist.php','shoutbox_max.php')as$file){
+require_once $ats_source.'includes/functions_ip_lookup.php';
+foreach(array('viewtopic.php','topic_view_users.php','includes/usercp_viewprofile.php','groupcp.php','privmsg.php','memberlist.php','shoutbox_max.php','modcp.php')as$file){
  $source=file_get_contents($ats_source.$file);preg_match_all('/append_sid\("search\.\$phpEx\?search_author=" .*? "&amp;showresults=(?:posts|topics)"\)/',$source,$links);ats_check(count($links[0])>0,'Actual author link '.$file);
- foreach(array('A&B',"O'Reilly",'&#39;','C:\\notes','😀')as$raw){$key=phpbb_username_key($raw);$username=$username_from=$shout_username=$key;$row=$profiledata=array('username'=>$key);$postrow=array($row);$i=0;$phpEx='php';
+ foreach(array('A&B',"O'Reilly",'&#39;','C:\\notes','😀')as$raw){$key=phpbb_username_key($raw);$username=$username_from=$shout_username=$key;$row=$profiledata=array('username'=>$key,'user_id'=>7);$postrow=array($row);$i=0;$phpEx='php';
+  if(in_array($file,array('shoutbox_max.php','modcp.php'),true)){$a=strpos($source,'$id = (int)$row[');$b=$a===false?false:strpos($source,'$row_color =',$a);ats_check($a!==false&&$b>$a,'Actual IP author preparation before its link');eval(substr($source,$a,$b-$a));}
   foreach($links[0]as$expression){eval('$url='.$expression.';');parse_str(str_replace('&amp;','&',parse_url($url,PHP_URL_QUERY)),$parameters);ats_check($parameters['search_author']===$raw,'Actual author link transmits decoded identity once '.$file);}
  }
 }
