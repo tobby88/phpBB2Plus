@@ -31,6 +31,7 @@ $phpbb_root_path = './';
 require_once($phpbb_root_path . 'extension.inc');
 require_once($phpbb_root_path . 'common.'.$phpEx);
 require_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_shoutbox.' . $phpEx);
 define ('NUM_SHOUT', 20);
 
 //
@@ -109,13 +110,7 @@ obtain_word_list($orig_word, $replacement_word);
 		$display_username = phpbb_profile_text($display_username);
 		$username = ($user_id == ANONYMOUS) ? $display_username : "<a href='" . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . (int) $shout_row['shout_user_id']) . "' target='_top'>" . $display_username . "</a>";
 		$shout = (! $shout_row['shout_active']) ? $shout_row['shout_text'] : $lang['Shout_censor'];
-		if ( $board_config['allow_smilies'] && $shout_row['user_allowsmile'] && $shout != '' && $shout_row['enable_smilies'])
-		{
-			$shout = smilies_pass($shout);
-		} 
-		$shout = bbencode_second_pass($shout,$shout_row['shout_bbcode_uid']);
-		$shout = preg_replace($orig_word, $replacement_word, $shout);
-		$shout = str_replace("\n", "\n<br />\n", $shout);
+		$shout = phpbb_shoutbox_render($shout, $shout_row['shout_bbcode_uid'], $shout_row['enable_bbcode'], $board_config['allow_smilies'] && $shout_row['user_allowsmile'] && $shout_row['enable_smilies']);
 
 		$template->assign_block_vars('shoutrow', array(
 			'ROW_COLOR' => '#' . $row_color,

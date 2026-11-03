@@ -125,6 +125,10 @@ jobs:
         run: |
           php .github/scripts/check-shoutbox-text.php raw
           php .github/scripts/check-shoutbox-text.php legacy
+      - name: Match actual shoutbox views and preserve visible search highlights
+        run: |
+          php .github/scripts/check-shoutbox-display.php raw
+          php .github/scripts/check-shoutbox-display.php legacy
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

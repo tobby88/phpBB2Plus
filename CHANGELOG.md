@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Shoutbox stored-message display and highlighting
+
+- Share BBCode, word filtering, links and smilies rendering across the compact
+  view, full view and preview. Parse BBCode before linking so links in formatted
+  prose work while code and existing link targets remain intact.
+- Apply bounded Unicode search highlighting to visible text after formatting.
+  Preserve complete entities, link attributes and pagination queries, and
+  support word wildcards consistently with topic search highlighting.
+- Remove unused signature preparation from the full shoutbox row renderer.
+
 ### Shoutbox text and preview consistency
 
 - Keep complete UTF-8 characters within the existing input byte budget. Check

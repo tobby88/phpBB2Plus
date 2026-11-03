@@ -183,20 +183,7 @@ if ($refresh || $preview)
 			{
 				$preview_message = stripslashes($preview_message);
 
-				if( $bbcode_on )
-				{
-					$preview_message = bbencode_second_pass($preview_message, $bbcode_uid);
-				}
-				if( !empty($orig_word) )
-				{
-					$preview_message = ($preview_message !== '') ? preg_replace($orig_word, $replacement_word, $preview_message) : '';
-				}
-				$preview_message = make_clickable($preview_message);
-				if( $smilies_on )
-				{
-					$preview_message = smilies_pass($preview_message);
-				}
-				$preview_message = str_replace("\n", '<br />', $preview_message);
+				$preview_message = phpbb_shoutbox_render($preview_message, $bbcode_uid, $bbcode_on, $smilies_on);
 				$template->set_filenames(array(
 					'preview' => 'posting_preview.tpl')
 				);
@@ -510,25 +497,9 @@ if (((isset($_POST['start']) && is_scalar($_POST['start'])) || (isset($_GET['sta
 // 
 // Was a highlight request part of the URI?
 //
-$highlight_match = $highlight = '';
-if (phpbb_request_scalar($_GET, 'highlight') !== '')
-{
-   // Split words and phrases
-   $highlight_value = phpbb_request_scalar($_GET, 'highlight');
-   $words = explode(' ', trim(htmlspecialchars($highlight_value)));
-
-   for($i = 0; $i < sizeof($words); $i++)
-   {
-      if (trim($words[$i]) != '')
-      {
-         $highlight_match .= (($highlight_match != '') ? '|' : '') . str_replace('*', '\w*', preg_quote($words[$i], '#'));
-      }
-   }
-   unset($words);
-
-   $highlight = urlencode($highlight_value);
-   $highlight_match = phpbb_rtrim($highlight_match, "\\");
-}
+$requested_highlight = phpbb_topic_highlight_query(isset($_GET['highlight']) ? $_GET['highlight'] : '');
+$highlight_match = phpbb_topic_highlight_pattern($requested_highlight);
+$highlight = urlencode($requested_highlight);
 
 
 $sql = "SELECT *
@@ -645,8 +616,6 @@ obtain_word_list($orig_word, $replacement_word);
 				$user_avatar = ($user_avatar_url != '') ? '<a href="' . $user_avatar_url . '">' . $user_avatar . '</a>' : $user_avatar;
 			} else $user_avatar='';
 			$shout = (! $shout_row['shout_active']) ? $shout_row['shout_text'] : $lang['Shout_censor'].(($is_auth['auth_mod']) ? '<br/><hr/><br/>'.$shout_row['shout_text'] : '');
-			$user_sig = ( $shout_row['enable_sig'] && $shout_row['user_sig'] != '' && $board_config['allow_sig'] ) ? $shout_row['user_sig'] : '';
-			$user_sig_bbcode_uid = $shout_row['user_sig_bbcode_uid'];
 
 
 			$user_rank = '';
@@ -675,38 +644,7 @@ obtain_word_list($orig_word, $replacement_word);
 				}
 			}
 
-			if ( $user_sig != '' )
-			{
-				$user_sig = make_clickable($user_sig);
-			}
-			$shout = make_clickable($shout);
-
-	// 
-   	// Highlight active words (primarily for search) 
-   	// 
-   	if ($highlight_match) 
-   	{ 
-		// This has been back-ported from 3.0 CVS
-		$shout = preg_replace('#(?!<.*)(?<!\w)(' . $highlight_match . ')(?!\w|[^<>]*>)#i', '<b style="color:#'.$theme['fontcolor3'].'">\1</b>', $shout);
-   	}
-	//
-	// Replace naughty words
-	//
-	if ( count($orig_word) )
-	{
-		if ( $user_sig != '' )
-		{
-			$user_sig = preg_replace($orig_word, $replacement_word, $user_sig);
-		}
-		$shout = preg_replace($orig_word, $replacement_word, $shout);
-	}
-
-	if ( $smilies_on && $shout != '' && $shout_row['enable_smilies'])
-	{
-		$shout = smilies_pass($shout);
-	} 
-	$shout = bbencode_second_pass($shout,$shout_row['shout_bbcode_uid']);
-	$shout = str_replace("\n", "\n<br />\n", $shout);
+	$shout = phpbb_shoutbox_render($shout, $shout_row['shout_bbcode_uid'], $shout_row['enable_bbcode'], $smilies_on && $shout_row['enable_smilies'], $highlight_match, $theme['fontcolor3']);
 
 	$ip_img = $ip = $delshout_img = $delshout = $censorshout_img = $censorshout = '';
 	if ( $is_auth['auth_mod'] && $is_auth['auth_delete'])
