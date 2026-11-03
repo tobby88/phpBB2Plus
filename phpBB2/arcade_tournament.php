@@ -70,6 +70,19 @@ $games_played_list = array();
 $tour = array('tour_name' => '', 'tour_desc' => '', 'tour_max_players' => 2, 'tour_player_turns' => 1);
 $url		    = '&nbsp;&raquo;&nbsp;<a href="activity.'.$phpEx.'" class="nav">' . $lang['games_catagories'] . '</a>&nbsp;&raquo;&nbsp;' . $lang['tournaments'];
 
+function arcade_tournament_player_html($user_id, $username, $link = true)
+{
+  global $lang, $phpEx;
+  $user_id = (int) $user_id;
+  if ($user_id <= 0 || !is_string($username))
+  {
+    return phpbb_profile_text($user_id > 0 ? $lang['Former_member'] : $lang['Guest']);
+  }
+  $label = phpbb_author_name($user_id, $username);
+  return $link ? '<a href="' . append_sid('profile.' . $phpEx . '?mode=viewprofile&amp;u=' . $user_id)
+    . '" class="gensmall">' . $label . '</a>' : $label;
+}
+
 function arcade_public_tournament_require_token($userdata, $lang)
 {
   global $HTTP_POST_VARS;
@@ -347,7 +360,7 @@ else if(!empty($HTTP_POST_VARS['end']))
 //
 //  Get Tournament Players
 //
-	$sql = "SELECT * FROM " . iNA_TOUR_PLAY . " AS p
+	$sql = "SELECT p.*, u.username FROM " . iNA_TOUR_PLAY . " AS p
 	  LEFT JOIN " . USERS_TABLE . " AS u
 	    ON p.user_id = u.user_id
     WHERE tour_id = " . $tour_id;
@@ -382,7 +395,7 @@ else if(!empty($HTTP_POST_VARS['end']))
   $winner_id = ($row_count > 0) ? (int) $tour_data[0]['top_player'] : 0;
   if ($winner_id > 0)
   {
-    $message .= sprintf($lang['tour_msg_winner'], htmlspecialchars($arcade->get_username($winner_id), ENT_QUOTES, 'UTF-8'));
+    $message .= sprintf($lang['tour_msg_winner'], arcade_tournament_player_html($winner_id, $arcade->get_username($winner_id), false));
   }
   $pm_message = '';
 
@@ -473,7 +486,7 @@ else if ($mode == 'tour')
 //
 //  Get Tournament Players
 //
-	$sql = "SELECT * FROM " . iNA_TOUR_PLAY . " AS p
+	$sql = "SELECT p.*, u.username FROM " . iNA_TOUR_PLAY . " AS p
 	  LEFT JOIN " . USERS_TABLE . " AS u
 	    ON p.user_id = u.user_id
     WHERE tour_id = " . $tour_id;
@@ -533,7 +546,7 @@ else if ($mode == 'tour')
     $template->assign_block_vars('player', array(
       'ID' => (int) $tour_players[$i]['user_id'],
       'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
-      'NAME' => '<a href="'.append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;u='.(int) $tour_players[$i]['user_id']).'" class="gensmall">' . htmlspecialchars($tour_players[$i]['username'], ENT_QUOTES, 'UTF-8') . '</a>',
+      'NAME' => arcade_tournament_player_html($tour_players[$i]['user_id'], $tour_players[$i]['username']),
       'PLAYED_GAMES' => ($played_games_count > 0 && $userdata['user_level'] == ADMIN) ? $played_games_list : '',
 
        ));
@@ -567,7 +580,7 @@ else if ($mode == 'tour')
         $played_text = $lang['have'];
       }
       $player_id = (int) $temp_games_players[$count];
-      $played_players .= '<a href="'.append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;u='.$player_id).'" class="gensmall">'.htmlspecialchars($arcade->get_username($player_id), ENT_QUOTES, 'UTF-8') .'</a>';
+      $played_players .= arcade_tournament_player_html($player_id, $arcade->get_username($player_id));
     }
 //
 //  Check to see what THIS user has played
@@ -661,7 +674,7 @@ else if ($mode == 'tour')
     {
    	  $tour_data = $db->sql_fetchrow($result);
 	  $top_player_id = (int) $tour_data['top_player'];
-	  $highest_scorer = '<a href="'.append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;u='.$top_player_id).'" class="gensmall">'.htmlspecialchars($arcade->get_username($top_player_id), ENT_QUOTES, 'UTF-8').'</a>';
+	  $highest_scorer = arcade_tournament_player_html($top_player_id, $arcade->get_username($top_player_id));
    	}
     
         
@@ -812,7 +825,7 @@ else
     for($i = 0; $i < $champ_count; $i++)
     {
       $champion_id = (int) $tour_champs[$i]['champion'];
-      $last_5_champ_name .= '<img src="images/crown.gif" alt="" /> <a href="'.append_sid('profile.'. $phpEx .'?mode=viewprofile&amp;u='. $champion_id).'" class="gensmall">'. htmlspecialchars($arcade->get_username($champion_id), ENT_QUOTES, 'UTF-8') . '</a> <img src="images/crown.gif" alt="" /><br />';
+      $last_5_champ_name .= '<img src="images/crown.gif" alt="" /> ' . arcade_tournament_player_html($champion_id, $arcade->get_username($champion_id)) . ' <img src="images/crown.gif" alt="" /><br />';
       $last_5_champions .= htmlspecialchars($tour_champs[$i]['tour_name'], ENT_QUOTES, 'UTF-8') . ' <br />';
     }
   }  

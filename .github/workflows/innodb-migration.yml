@@ -325,6 +325,12 @@ jobs:
         env:
           PHPBB_ARCADE_POINTS_NATIVE: '1'
           PHPBB_ARCADE_POINTS_PASSWORD: fixture-only
+      - name: Preserve native tournament participant owners and display labels
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-tournament-labels-native.php
+        env:
+          PHPBB_ARCADE_TOUR_LABEL_NATIVE: '1'
+          PHPBB_ARCADE_TOUR_LABEL_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php
