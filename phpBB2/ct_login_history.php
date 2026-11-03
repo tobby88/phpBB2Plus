@@ -74,7 +74,7 @@ if ( $ctracker_config->settings['login_history'] )
 		$template->assign_block_vars('login_output', array(
 				'ROW_CLASS'		=> ($count % 2 == 0)? 'row1' : 'row2',
 				'VALUE_1'		=> $count,
-				'VALUE_2'		=> phpbb_profile_text(date($userdata['user_dateformat'], $row['ct_login_time'])),
+				'VALUE_2'		=> phpbb_profile_text(create_date($userdata['user_dateformat'], $row['ct_login_time'], $board_config['board_timezone'])),
 				'VALUE_3'		=> phpbb_profile_text($row['ct_login_ip']))
 		);
 	}

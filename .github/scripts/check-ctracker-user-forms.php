@@ -66,12 +66,13 @@ uf_check(ctracker_user_notice_context('ipfeature', array('ct_last_ip'=>'ab', 'ct
 $source = file_get_contents($app . 'ct_login_history.php');
 $body = 'if (true) {' . uf_fragment($source, "\t\$count = 0;", '// Output settings for Login Checker');
 $ips = array('192.0.2.1', '2001:db8::1', '::ffff:192.0.2.1', '<em data-fixture="history">text</em>', '&lt;em&gt;', "broken\xc3", null);
+$board_config = array('default_lang'=>'german', 'board_timezone'=>0);
 foreach (array('Y-m-d H:i', 'Y-m-d "<em>"') as $format) {
     $userdata = array('user_dateformat'=>$format); $template = new UserFormTemplate(); $db = new UserHistoryRows($ips); $result = true;
     eval($body);
     foreach ($template->blocks['login_output'] as $i => $row) {
         uf_check($row['VALUE_3'] === htmlspecialchars((string)$ips[$i], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'Historical address text is escaped once, with invalid UTF8 replaced');
-        uf_check($row['VALUE_2'] === htmlspecialchars(date($format, 1700000000), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'Historical formatted date is text, including custom format markup');
+        uf_check($row['VALUE_2'] === htmlspecialchars(create_date($format, 1700000000, 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'Historical formatted date is text, including custom format markup');
     }
 }
 $tpl = file_get_contents($app . 'templates/fisubsilversh/overall_header.tpl');

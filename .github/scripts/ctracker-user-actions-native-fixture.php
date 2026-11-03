@@ -35,7 +35,7 @@ function ua_controller($action) {
     try {
         eval($GLOBALS['ua_bodies'][$action]);
         cl_check($action==='preference','Notice action must redirect only after success');
-    } catch(CtUserRedirect $redirect) { cl_check($action!=='preference','Only notices redirect'); }
+    } catch(CtUserRedirect $redirect) { cl_check($action!=='preference','Only notices redirect'); return $redirect->getMessage(); }
     finally { $phpbb_root_path=$original_root; }
 }
 function ua_failure($action,$label,$callback=null) {
@@ -46,12 +46,13 @@ function ua_failure($action,$label,$callback=null) {
     $GLOBALS['ua_cases']++;
 }
 function ua_success($action) {
-    $before=ua_snapshot();$logs=cl_fingerprint();ua_controller($action);$after=ua_snapshot();$id=(int)$GLOBALS['userdata']['user_id'];
+    $before=ua_snapshot();$logs=cl_fingerprint();$destination=ua_controller($action);$after=ua_snapshot();$id=(int)$GLOBALS['userdata']['user_id'];
     foreach($after[0]as$i=>$row){
         $expected=$before[0][$i];if((int)$row['user_id']===$id){if($action==='preference'){$expected['ct_enable_ip_warn']='0';}elseif($action==='ipfeature'){$expected['ct_last_ip']=$expected['ct_last_used_ip'];}else{$expected['ct_global_msg_read']='0';}}
         cl_check($row===$expected,'Actual action modifies only its one intended own field: '.json_encode(array('action'=>$action,'actor'=>$id,'actual'=>$row,'expected'=>$expected)));
     }
     cl_check($before[1]===$after[1]&&$before[2]===$after[2]&&cl_fingerprint()===$logs&&cl_closed(),'Acknowledged member action preserves policies/logs and closes its owner');$GLOBALS['ua_cases']++;
+    return $destination;
 }
 $posting=file_get_contents($app.'ct_login_history.php');$header=file_get_contents($app.'includes/page_header.php');
 $ua_bodies=array('preference'=>ua_fragment($posting,'// Save before rendering','// Include the page_header'),
@@ -131,4 +132,15 @@ foreach(array(USERS_TABLE,SESSIONS_TABLE,CONFIG_TABLE,CTRACKER_CONFIG)as$table){
 ua_reset('preference');$owner=new CtrackerUserActions($db,ctracker_user_request('preference'));
 try{$denied=false;try{$owner->rows('UPDATE '.USERS_TABLE.' SET ct_enable_ip_warn=0');}catch(PhpbbOwnedStorageFailure$error){$denied=true;}cl_check($denied,'Public row adapter cannot expose arbitrary writes');}finally{$owner->release();}
 foreach(array('unknown',array('preference'),null)as$kind){ua_reset('preference');ua_failure('preference','Unknown direct operation',function()use($kind){ctracker_user_apply($GLOBALS['db'],$kind);});}
+$board_config+=array('server_name'=>'www.example.invalid','server_port'=>443,'script_path'=>'/forum');
+foreach(array('ipfeature','globmsg')as$action){
+ foreach(array(array('https://example.invalid/forum/viewtopic.php?t=13&start=15#p42','viewtopic.php?t=13&start=15#p42'),
+  array('https://www.example.invalid/forum/profile.php?mode=viewprofile&u=7','profile.php?mode=viewprofile&u=7'),
+  array('https://www.example.invalid/forum/ftopic13.html','ftopic13.html'),
+  array('https://evil.invalid/forum/viewtopic.php?t=13','portal.php'),array(array('invalid'),'portal.php'),
+  array('https://www.example.invalid/other/viewtopic.php?t=13','portal.php'))as$case){
+   ua_reset($action);$HTTP_SERVER_VARS['HTTP_REFERER']=$case[0];$destination=ua_success($action);
+   cl_check($destination===$case[1],'Actual committed member action preserves a safe local return or uses the fixed fallback');
+ }
+}
 echo 'Native CrackerTracker member actions: ',$ua_cases,' actual-controller cases, ',$checks," assertions PASS; current identity, notice context, locks, rollback, lost acknowledgement and caller isolation.\n";

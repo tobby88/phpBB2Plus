@@ -177,6 +177,9 @@ jobs:
         run: |
           php .github/scripts/check-ctracker-userfunctions.php
           php .github/scripts/check-ctracker-user-forms.php
+          php .github/scripts/check-ctracker-notice-return.php
+          php .github/scripts/check-ctracker-history-dates.php english
+          php .github/scripts/check-ctracker-history-dates.php german
           php .github/scripts/check-ctracker-ip-range.php
           php .github/scripts/check-ctracker-utf8-spam.php
           php .github/scripts/check-ctracker-url-count.php

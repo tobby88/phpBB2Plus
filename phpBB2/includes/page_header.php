@@ -554,11 +554,7 @@ if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 	{
 		message_die(GENERAL_ERROR, isset($lang[$error->getMessage()]) ? $lang[$error->getMessage()] : $lang['ctracker_error_updating_userdata']);
 	}
-	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('~/([^/?#]+)(?:[?#].*)?$~', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
-	{
-		redirect($backlink[1]);
-	}
-	redirect('portal.' . $phpEx);
+	redirect(ctracker_user_return_page(isset($HTTP_SERVER_VARS['HTTP_REFERER']) ? $HTTP_SERVER_VARS['HTTP_REFERER'] : ''));
 }
 
 if ( $ctracker_settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn'] == 1 && $userdata['session_logged_in'] )
@@ -593,11 +589,7 @@ if ( $marknow == 'globmsg' && $userdata['session_logged_in'] )
 	{
 		message_die(GENERAL_ERROR, isset($lang[$error->getMessage()]) ? $lang[$error->getMessage()] : $lang['ctracker_error_updating_userdata']);
 	}
-	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('#/([^/?#]+)(?:[?#].*)?$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
-	{
-		redirect($backlink[1]);
-	}
-	redirect('portal.' . $phpEx);
+	redirect(ctracker_user_return_page(isset($HTTP_SERVER_VARS['HTTP_REFERER']) ? $HTTP_SERVER_VARS['HTTP_REFERER'] : ''));
 }
 
 if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $ctracker_settings['global_message'] != '' )

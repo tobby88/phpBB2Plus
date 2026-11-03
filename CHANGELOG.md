@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### CrackerTracker navigation and date consistency
+
+- Return notice acknowledgements to their original board page with topic,
+  profile and pagination parameters intact. Remove the broken regular expression
+  in global-message returns; untrusted or malformed origins use a fixed fallback.
+- Keep returns inside the configured board path, including supported www aliases
+  and custom ports, without trusting the request Host header.
+- Display login-history times with the forum's user timezone and translated date
+  formatting. Preserve saved timestamps and the existing forum DST policy.
+
 ### CrackerTracker member actions and notices
 
 - Save IP-warning preferences and notice acknowledgements using a separate

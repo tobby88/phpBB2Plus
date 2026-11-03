@@ -4,6 +4,37 @@ require_once dirname(dirname(__DIR__)) . '/includes/functions_owned_storage.php'
 
 class CtrackerUserActionFailure extends RuntimeException {}
 
+// Return to the displayed board page, retaining its topic/profile/pagination
+// parameters. A Referer is optional and never supplies the redirect origin.
+function ctracker_user_return_page($referer)
+{
+    global $board_config, $phpEx;
+    $fallback = 'portal.' . $phpEx;
+    if (!is_string($referer) || $referer === '' || strlen($referer) > 8192
+        || preg_match('/[\x00-\x20\x7f\\\\]/', $referer) || !isset($board_config['server_name']) || !is_string($board_config['server_name'])) { return $fallback; }
+    $parts = @parse_url($referer);
+    if (!is_array($parts) || !isset($parts['scheme'], $parts['host'])
+        || !in_array(strtolower($parts['scheme']), array('http', 'https'), true)
+        || isset($parts['user']) || isset($parts['pass'])
+        || !phpbb_referer_is_allowed($referer, $board_config['server_name'])) { return $fallback; }
+    $port = isset($board_config['server_port']) ? (int) $board_config['server_port'] : 0;
+    $expected_port = ($port > 0 && !in_array($port, array(80, 443), true)) ? $port : (strtolower($parts['scheme']) === 'https' ? 443 : 80);
+    $actual_port = isset($parts['port']) ? (int) $parts['port'] : (strtolower($parts['scheme']) === 'https' ? 443 : 80);
+    if ($actual_port !== $expected_port) { return $fallback; }
+    $base = parse_url(phpbb_board_url(), PHP_URL_PATH);
+    $path = isset($parts['path']) ? $parts['path'] : '/';
+    if (!is_string($base) || strpos($path, $base) !== 0) { return $fallback; }
+    $relative = substr($path, strlen($base));
+    $decoded = rawurldecode($relative);
+    if (($decoded !== '' && $decoded[0] === '/') || preg_match('/[\x00-\x20\x7f\\\\:?#]/', $decoded) || strpos($decoded, '//') !== false
+        || preg_match('~(?:^|/)\.{1,2}(?:/|$)~', $decoded) || stripos($decoded, '%2e') !== false
+        || stripos($decoded, '%2f') !== false || stripos($decoded, '%5c') !== false || stripos($decoded, '%25') !== false) { return $fallback; }
+    $target = $relative . (isset($parts['query']) ? '?' . $parts['query'] : '') . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
+    $decoded_target = rawurldecode($target);
+    if (preg_match('/[\x00-\x1f\x7f]/', $decoded_target) || stripos($decoded_target, ';url') !== false) { return $fallback; }
+    return $target;
+}
+
 // Notice tokens describe the displayed content, not just the button. Length
 // prefixes preserve exact historical bytes without ambiguous concatenation.
 function ctracker_user_notice_context($action, $user, $settings)
