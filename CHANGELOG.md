@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Print author bylines
+
+- Use stored guest bylines and the shared former-author visibility policy in
+  print view. Escape current account names consistently and preserve deleted
+  post placeholders without exposing original bylines.
+
 ### Module timezone labels
 
 - Preserve fractional GMT offsets and supported legacy translations in print

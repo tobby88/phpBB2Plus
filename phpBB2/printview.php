@@ -176,7 +176,9 @@ for($i = 0; $i < $total_posts; $i++)
 		continue;
 	}
 	$poster_id = $postrow[$i]['user_id'];
-	$poster = $postrow[$i]['username'];
+	$poster = ((int) $poster_id === ANONYMOUS)
+		? phpbb_post_author_name($postrow[$i])
+		: phpbb_author_name($poster_id, $postrow[$i]['username']);
 
 	$post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);
 	$post_subject = ( $postrow[$i]['post_subject'] != "" ) ? $postrow[$i]['post_subject'] : "";
