@@ -33,10 +33,10 @@ function bo_rows($sql) {
     $r = bo_sql($sql); try { return $GLOBALS['db']->sql_fetchrowset($r); } finally { $GLOBALS['db']->sql_freeresult($r); }
 }
 function bo_snapshot() { return serialize(bo_rows('SELECT * FROM fixture_banner ORDER BY banner_id')); }
-function bo_save($raw, $id = 0, $sid = 'banner-fixture') {
+function bo_save($raw, $id = 0, $sid = 'banner-fixture', $fields = array()) {
     global $db, $lang, $userdata, $phpEx, $banner_save_body;
     $userdata = array('session_id'=>'banner-fixture'); $_SERVER['REQUEST_METHOD'] = 'POST';
-    profile_fixture_request(array('sid'=>$sid, 'username'=>$raw, 'id'=>(string)$id, 'banner_name'=>'Synthetic banner', 'banner_type'=>'2'));
+    profile_fixture_request(array_merge(array('sid'=>$sid, 'username'=>$raw, 'id'=>(string)$id, 'banner_name'=>'Synthetic banner', 'banner_type'=>'2'), $fields));
     try { eval($banner_save_body); } catch (AttachSettingsExit $e) { return $e->getMessage(); }
     throw new RuntimeException('Actual save branch must finish explicitly');
 }
@@ -87,6 +87,22 @@ try {
         }
         $before = bo_snapshot();
         ats_check(bo_save("O'Reilly", 1) === $lang['Missing_banner_owner'] && bo_snapshot() === $before, 'Ambiguous historical owner cannot select either account'); $cases++;
+        bo_sql('DELETE FROM fixture_users'); bo_sql("INSERT INTO fixture_users VALUES(7,'Owner')");
+        foreach (array("O'Reilly", 'A"B', 'C:\\notes', "A\\'B", 'Trailing\\', '&amp;', '&#39;', '<literal>', 'Grüße 😀', '0', '  Trimmed  ') as $text) {
+            bo_sql('DELETE FROM fixture_banner');
+            $fields = array('banner_name'=>$text, 'banner_description'=>$text, 'banner_comment'=>$text,
+                'banner_url'=>"https://example.invalid/?a='" . rawurlencode($text) . "'&b=2");
+            foreach (array(0, 1, 1) as $id) {
+                bo_save('Owner', $id, 'banner-fixture', $fields);
+                $row = bo_rows('SELECT banner_name,banner_description,banner_comment,banner_url,banner_owner FROM fixture_banner');
+                ats_check(count($row) === 1 && (int)$row[0]['banner_owner'] === 7, 'Metadata save retains numeric owner');
+                foreach ($fields as $field=>$value) {
+                    ats_check($row[0][$field] === trim($value), 'Actual banner text round-trip is byte exact: ' . $field);
+                    $fields[$field] = $row[0][$field];
+                }
+                $cases++;
+            }
+        }
     }
     echo 'Native banner owners: ' . $cases . " complete save/identity/session/failure cases PASS.\n";
 } finally {

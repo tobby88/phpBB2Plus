@@ -13,6 +13,8 @@ changes consolidated after that baseline without implying active maintenance.
   quoting once so names with quotes and backslashes remain selectable.
 - Preserve the existing owner when a submitted name is missing, invalid,
   ambiguous or cannot be read. Existing banners continue loading by owner ID.
+- Preserve quotes and backslashes in banner names, descriptions, comments and
+  target URLs across repeated saves without adding compatibility backslashes.
 
 ### Arcade summary names and caches
 

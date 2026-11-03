@@ -49,7 +49,8 @@ include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 
 function admin_banner_post_scalar($name, $default)
 {
-	return isset($_POST[$name]) && is_scalar($_POST[$name]) ? (string) $_POST[$name] : $default;
+	// SQL escaping happens at the write boundary, after common.php's quoting is undone.
+	return phpbb_admin_post_string($name, $default);
 }
 
 if (isset($_POST['mode']))
