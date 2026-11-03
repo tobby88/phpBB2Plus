@@ -544,8 +544,8 @@ if( $mode != '' )
 //
 // Requested thousands displayed by Painkiller
 //
-		$display_at_score  = $arcade->convert_score($score_at_info['score']) ? $arcade->score : '';
-    $display_score = $arcade->convert_score($score_info['score']) ? $arcade->score : '';
+		$display_at_score = isset($score_at_info['player_id']) ? $arcade->convert_score($score_at_info['score']) : '';
+    $display_score = isset($score_info['player_id']) ? $arcade->convert_score($score_info['score']) : '';
 
 		if($game_info['game_reward'] > 0)
 		{
@@ -721,7 +721,7 @@ if( $mode != '' )
 //
 // v2.0.7 removed the link to games with no score, but this will now tell the user, in case they play
 //
-          $display_score = $arcade->convert_score($row['score']) ? $arcade->score : $lang['None'];
+          $display_score = $arcade->convert_score($row['score']);
 //
 //  Work out the Time to a better format (Req by Painkiller)
 //     
@@ -816,7 +816,7 @@ if( $mode != '' )
 			{
 					$game_link = arcade_output_html($rows[$i]['game_desc']);
 			}
-      $display_score = $arcade->convert_score($rows[$i]['score']) ? $arcade->score : '';
+      $display_score = $arcade->convert_score($rows[$i]['score']);
       $time_taken = $arcade->convert_time($rows[$i]['time_taken']);
 
 			$template->assign_block_vars("stats", array(
@@ -1205,7 +1205,7 @@ if( $mode != '' )
 //
 // Requested thousands by Painkiller
 //
-          $best_score = $arcade->convert_score($game_rows[$i]['score']) ? $arcade->score : '';
+          $best_score = $game_rows[$i]['score'] !== null ? $arcade->convert_score($game_rows[$i]['score']) : '';
 					if($best_player_id != ANONYMOUS)
 					{
 						if($game_rows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
@@ -1245,7 +1245,7 @@ if( $mode != '' )
 					$best_at_player = ($game_rows[$i]['at_username'] !== null && $game_rows[$i]['at_username'] !== '')
 						? $game_rows[$i]['at_username']
 						: (($game_rows[$i]['player_name'] == '') ? '?????' : $game_rows[$i]['player_name']);
-            $best_at_score = $arcade->convert_score($game_rows[$i]['at_score']) ? '<br /><br />' . $arcade->score : '';
+            $best_at_score = $game_rows[$i]['at_score'] !== null ? '<br /><br />' . $arcade->convert_score($game_rows[$i]['at_score']) : '';
 						$best_at_player = phpbb_stored_text($best_at_player);
 						if ($game_rows[$i]['at_username'] !== null && ($game_rows[$i]['at_user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD))
 						{

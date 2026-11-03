@@ -313,6 +313,12 @@ jobs:
         env:
           PHPBB_ARCADE_MONTHLY_NATIVE: '1'
           PHPBB_ARCADE_MONTHLY_PASSWORD: fixture-only
+      - name: Preserve native zero Arcade scores across joined views
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-zero-scores-native.php
+        env:
+          PHPBB_ARCADE_ZERO_NATIVE: '1'
+          PHPBB_ARCADE_ZERO_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php
