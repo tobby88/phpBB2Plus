@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### HTTP response compression
+
+- Share quality-aware gzip negotiation across normal pages, ACP, print view and
+  link rotation. Respect explicit `q=0` refusals, supported wildcard offers and
+  explicit identity preferences; retain the board switch and AJAX exclusions.
+
 ### CrackerTracker contact-field coverage
 
 - Give current contact fields the same free-text request policy as website and

@@ -2,6 +2,35 @@
 
 if (defined('IN_PHPBB')) { require_once dirname(__FILE__) . '/functions_username.php'; }
 
+/** Negotiate optional gzip without overriding a client's explicit refusal. */
+if (!function_exists('phpbb_accepts_gzip'))
+{
+	function phpbb_accepts_gzip($header)
+	{
+		// Keep the historical uncompressed response for absent/invalid fields.
+		if (!is_scalar($header)) { return false; }
+		$header = (string) $header;
+		if ($header === '' || strlen($header) > 8192 || preg_match('/[^\x09\x20-\x7e]/', $header) !== 0) { return false; }
+		$qualities = array();
+		foreach (explode(',', $header) as $item)
+		{
+			$parts = explode(';', trim($item, " \t"));
+			$coding = strtolower(trim($parts[0], " \t"));
+			if ($coding === 'x-gzip') { $coding = 'gzip'; }
+			if (!in_array($coding, array('gzip', 'identity', '*'), true)) { continue; }
+			$quality = 1.0;
+			if (count($parts) > 1)
+			{
+				$quality = count($parts) === 2 && preg_match('/\Aq[ \t]*=[ \t]*(0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)\z/i', trim($parts[1], " \t"), $match) === 1 ? (float) $match[1] : 0.0;
+			}
+			// Contradictory duplicate entries must not erase a refusal.
+			$qualities[$coding] = isset($qualities[$coding]) ? min($qualities[$coding], $quality) : $quality;
+		}
+		$gzip = isset($qualities['gzip']) ? $qualities['gzip'] : (isset($qualities['*']) ? $qualities['*'] : 0.0);
+		return $gzip > 0 && (!isset($qualities['identity']) || $gzip >= $qualities['identity']);
+	}
+}
+
 /**
  * Render bounded SQL diagnostic metadata, never query values or driver text.
  * Driver messages can repeat passwords, private content and SQL literals in

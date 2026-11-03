@@ -57,7 +57,7 @@ if (empty($_COOKIE['cookie_consent']) && !empty($board_config['cookie_consent_en
 global $do_gzip_compress;
 $do_gzip_compress = FALSE;
 $accept_encoding = isset($_SERVER['HTTP_ACCEPT_ENCODING']) && is_scalar($_SERVER['HTTP_ACCEPT_ENCODING']) ? (string) $_SERVER['HTTP_ACCEPT_ENCODING'] : '';
-if ( !empty($board_config['gzip_compress']) && !defined('AJAX_HEADERS') && extension_loaded('zlib') && preg_match('/(?:^|,)\s*gzip\s*(?:;|,|$)/i', $accept_encoding) )
+if ( !empty($board_config['gzip_compress']) && !defined('AJAX_HEADERS') && extension_loaded('zlib') && phpbb_accepts_gzip($accept_encoding) )
 {
 	$do_gzip_compress = TRUE;
 	ob_start();
