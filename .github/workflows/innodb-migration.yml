@@ -273,6 +273,14 @@ jobs:
         env:
           PHPBB_USERNAME_SEARCH_NATIVE: '1'
           PHPBB_USERNAME_SEARCH_PASSWORD: fixture-only
+      - name: Preserve Unicode KB searches and session-bound cached terms
+        if: matrix.part == 3
+        run: |
+          php .github/scripts/check-kb-search-utf8-native.php raw
+          php .github/scripts/check-kb-search-utf8-native.php legacy
+        env:
+          PHPBB_KB_SEARCH_NATIVE: '1'
+          PHPBB_KB_SEARCH_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

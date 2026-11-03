@@ -45,8 +45,7 @@ $is_block = false;
 $show_new = true;
 $mode = phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode'));
 $mode = ($mode === 'results') ? 'results' : '';
-$search_keywords = trim(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords'))));
-$search_keywords = substr($search_keywords, 0, 500);
+$search_keywords = kb_search_limit_text(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords'))), 500);
 $search_id_value = phpbb_request_scalar($_GET, 'search_id');
 $search_id = preg_match('/^[1-9][0-9]*$/D', $search_id_value) ? intval($search_id_value) : 0;
 
@@ -91,7 +90,7 @@ switch($mode)
 			$split_search = is_array($split_search) ? array_slice($split_search, 0, 50) : array();
 			foreach ($split_search as $index => $search_word)
 			{
-				$split_search[$index] = substr((string) $search_word, 0, 100);
+				$split_search[$index] = kb_search_limit_text((string) $search_word, 100);
 			}
 
 			$search_msg_only = (!$search_fields) ? 'AND m.title_match = 0' : '';
@@ -249,7 +248,7 @@ switch($mode)
 					{
 						if (is_scalar($cached_word))
 						{
-							$split_search[] = substr((string) $cached_word, 0, 100);
+							$split_search[] = kb_search_limit_text((string) $cached_word, 100);
 						}
 					}
 				}

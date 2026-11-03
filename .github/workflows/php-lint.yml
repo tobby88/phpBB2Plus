@@ -116,6 +116,11 @@ jobs:
         run: php .github/scripts/check-topic-highlighting.php
       - name: Preserve KB highlighting and article/category/profile navigation
         run: php .github/scripts/check-kb-highlighting-links.php
+      - name: Preserve whole Unicode KB query and cached search terms
+        run: |
+          php .github/scripts/check-kb-search-text.php
+          php -n .github/scripts/check-kb-search-text.php raw
+          php -n .github/scripts/check-kb-search-text.php legacy
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

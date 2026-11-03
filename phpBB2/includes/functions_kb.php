@@ -186,6 +186,14 @@ function kb_limit_text($value, $length)
 	return $characters === false ? '' : implode('', array_slice($characters, 0, $length));
 }
 
+// Search inputs and cached terms use character limits, like other KB text.
+// Validate before mb_substr so optional extensions cannot change invalid input.
+function kb_search_limit_text($value, $length)
+{
+	if (!is_string($value) || preg_match('//u', $value) !== 1) { return ''; }
+	return kb_limit_text($value, $length);
+}
+
 //
 // get_kb_nav($cat_id)
 // gets parents for category

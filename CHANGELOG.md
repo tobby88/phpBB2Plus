@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Knowledge Base Unicode search boundaries
+
+- Count complete Unicode characters in search queries and terms, including
+  cached terms. Keep the existing 500-query/100-term limits as character limits,
+  retain the fifty-term bound, and reject invalid UTF-8 consistently with or
+  without mbstring.
+- Preserve indexed multibyte words and valid utf8mb4 search-cache writes instead
+  of splitting characters into SQL errors. Cache reads remain bound to the
+  original session and leave stored results, articles and their indexes intact.
+
 ### Knowledge Base highlighting and navigation
 
 - Use the common Unicode highlighter once per article, preserving literal plus

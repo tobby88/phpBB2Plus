@@ -1,0 +1,23 @@
+<?php
+// Actual KB search input/word/cache normalization, no database/bootstrap.
+if(PHP_SAPI!=='cli'){exit(2);}
+if(!isset($argv[1])){
+ foreach(array('raw','legacy')as$mode){$p=proc_open(escapeshellarg(PHP_BINARY).' '.(DIRECTORY_SEPARATOR===chr(92)?'-n '.(extension_loaded('mbstring')?'-d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d extension=php_mbstring.dll ':''):'').escapeshellarg(__FILE__).' '.$mode,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));if(!is_resource($p)){throw new RuntimeException('Own KB text fixture process');}fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);if(proc_close($p)!==0||$err!==''){throw new RuntimeException('KB text '.$mode.' failed: '.$out.$err);}echo$out;}echo "KB search text: both request-boundary modes PASS.\n";return;
+}
+define('IN_PHPBB',true);define('PHPBB_LEGACY_REQUEST_ESCAPED',$argv[1]==='legacy');$app=dirname(dirname(__DIR__)).'/phpBB2/';require$app.'includes/php_compat.php';require$app.'includes/functions_search.php';$checks=$cases=0;
+function kt_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['checks']++;}
+function kt_part($s,$a,$b,$offset=0){$x=strpos($s,$a,$offset);$y=$x===false?false:strpos($s,$b,$x);kt_check($x!==false&&$y!==false,'Actual KB text boundary');return substr($s,$x,$y-$x);}
+$functions=file_get_contents($app.'includes/functions_kb.php');foreach(array('kb_limit_text','kb_search_limit_text')as$name){kt_check(preg_match('/^function '.$name.'\(.*?^\}/ms',$functions,$m)===1,'Actual KB Unicode helper');eval($m[0]);}
+$s=file_get_contents($app.'kb_search.php');$input=kt_part($s,'$is_block = false;','switch($mode)');$split=kt_part($s,'$split_search = (!strstr','$search_msg_only =');$cached=kt_part($s,'$split_search = array();','$sort_dir =',strpos($s,'else if ($search_id)'));
+$phpbb_root_path=$app;$board_config=array('topics_per_page'=>10,'default_lang'=>'english');$lang=array('ENCODING'=>'UTF-8');$proof=array();
+error_reporting(E_ALL);set_error_handler(function($n,$m){if(error_reporting()&$n){throw new RuntimeException($m);}});
+foreach(array(array(' Grüße ','Grüße'),array(str_repeat('x',499).'ü',str_repeat('x',499).'ü'),array(str_repeat('ü',501),str_repeat('ü',500)),array(str_repeat('😀',501),str_repeat('😀',500)),array("O'Reilly C:\\temp","O'Reilly C:\\temp"),array('0','0'),array("bad\xff",''),array(array('Grüße'),''),array('', ''))as$sample){
+ $_GET=array();$_POST=array('mode'=>'results','search_keywords'=>$sample[0]);if(PHPBB_LEGACY_REQUEST_ESCAPED){$_POST=phpbb_addslashes_recursive($_POST);}eval($input);kt_check($search_keywords===$sample[1]&&preg_match('//u',$search_keywords)===1,'Query preserves complete Unicode and raw quote/slash/zero semantics');kt_check($search_keywords!==''||$mode==='','Invalid/empty query returns to search form');
+ $stopword_array=$synonym_array=array();eval($split);foreach($split_search as$word){kt_check(preg_match('//u',$word)===1&&preg_match_all('/./us',$word,$unused)<=100,'Whole bounded query words');}kt_check(preg_match('//u',serialize($split_search))===1,'Cache input remains valid UTF-8');$cases++;
+}
+foreach(array(array(str_repeat('ü',49).'😀',str_repeat('ü',49).'😀'),array(str_repeat('😀',101),str_repeat('😀',100)),array(str_repeat('a',101),str_repeat('a',100)),array("bad\xff",''),array('0','0'))as$sample){$search_keywords=$sample[0];$stopword_array=$synonym_array=array();eval($split);kt_check($split_search===array($sample[1]),'Actual per-word character boundary');$cases++;}
+$search_data=array('split_search'=>array(str_repeat('😀',300),'0',array('bad'),"bad\xff",' ü ',1,false));eval($cached);kt_check($split_search===array(str_repeat('😀',100),'0','','ü','1',''),'Cached scalar normalization, invalid UTF8 and arrays');$cases++;
+$search_data=array('split_search'=>array_fill(0,100,'ü'));eval($cached);kt_check(count($split_search)===50,'Cached word-count bound retained');$cases++;
+foreach(array(array(),null,false,123,"bad\xff")as$value){kt_check(kb_search_limit_text($value,100)==='','Direct helper rejects malformed/non-string text consistently');$cases++;}
+$large=str_repeat('😀',262144);$limited=kb_search_limit_text($large,500);kt_check($limited===str_repeat('😀',500),'Large text returns a bounded complete-character prefix');$cases++;
+restore_error_handler();echo 'KB search text ',$argv[1],': ',$cases,' cases, ',$checks,' assertions PASS; whole Unicode query/word/cache bounds, invalid input and legacy escaping; mbstring ',function_exists('mb_substr')?'enabled':'absent',".\n";
