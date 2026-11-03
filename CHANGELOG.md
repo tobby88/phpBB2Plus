@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### CrackerTracker contact-field coverage
+
+- Apply the existing optional profile keyword policy to Signal, Threema,
+  Telegram, Discord and the currently offered social profile fields as well as
+  legacy fields. Preserve UTF-8 comparison, existing switches and stored data.
+
 ### Topic search highlighting
 
 - Reject malformed or oversized highlight parameters without a topic-view error;
