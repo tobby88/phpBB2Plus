@@ -98,6 +98,8 @@ jobs:
         run: php .github/scripts/check-style-import-files.php
       - name: Check interrupted style import recovery
         run: php .github/scripts/check-style-import-journal.php
+      - name: Check style import return fields and translated links
+        run: php .github/scripts/check-xs-import-return.php
       - name: Check scoped style cache actions and recovery preservation
         run: php .github/scripts/check-style-cache-controller.php
 

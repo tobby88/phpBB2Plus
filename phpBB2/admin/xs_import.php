@@ -44,7 +44,7 @@ $lang['xs_import_back'] = str_replace('{URL}', append_sid('xs_import.'.$phpEx), 
 
 $return_value = isset($HTTP_POST_VARS['return']) && is_scalar($HTTP_POST_VARS['return']) ? $HTTP_POST_VARS['return'] : (isset($HTTP_GET_VARS['return']) && is_scalar($HTTP_GET_VARS['return']) ? $HTTP_GET_VARS['return'] : '');
 $return_url = stripslashes((string) $return_value);
-if($return_url !== '' && (!preg_match('#^[a-zA-Z0-9_]+\.[a-zA-Z0-9]+(?:\?[^\r\n#]*)?(?:#[^\r\n]*)?$#D', $return_url) || strpos($return_url, '//') !== false || strpos($return_url, '\\') !== false))
+if($return_url !== '' && (!preg_match('~^[a-zA-Z0-9_]+\.[a-zA-Z0-9]+(?:\?[^\x00-\x1f\x7f#]*)?(?:#[^\x00-\x1f\x7f]*)?$~D', $return_url) || strpos($return_url, '//') !== false || strpos($return_url, '\\') !== false))
 {
 	$return_url = '';
 }

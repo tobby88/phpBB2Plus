@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### eXtreme Styles import return links
+
+- Repair the return-target validator so valid local filenames, query parameters
+  and fragments do not emit regex warnings or lose their return link.
+- Restore the missing English/German previous-page text and retain escaped link
+  output, request precedence and rejection of external paths/control bytes.
+
 ### CrackerTracker navigation and date consistency
 
 - Return notice acknowledgements to their original board page with topic,

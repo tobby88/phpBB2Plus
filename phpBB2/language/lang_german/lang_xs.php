@@ -383,6 +383,7 @@ $lang['xs_clone_no_select'] = 'Du solltest mindestens ein Style zum clonen ausw�
 $lang['xs_no_themes'] = 'Style in der Datenbank nicht gefunden.';
 
 $lang['xs_import_back'] = '<a href="{URL}">Klicke hier</a> um zur Styles Importieren Seite zurückzukehren.';
+$lang['xs_import_back_download'] = '<a href="{URL}">Klicke hier</a>, um zur vorherigen Seite zurückzukehren.';
 $lang['xs_export_back'] = '<a href="{URL}">Klicke hier</a> um zur Styles exportieren Seite zurückzukehren.';
 $lang['xs_clone_back'] = '<a href="{URL}">Klicke hier</a> um zur Styles Clone Seite zurückzukehren.';
 
