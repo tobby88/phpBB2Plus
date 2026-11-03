@@ -992,6 +992,8 @@ jobs:
         run: php .github/scripts/check-statistics-rendering.php
       - name: Read canonical and legacy statistics cache bytes safely
         run: php .github/scripts/check-statistics-cache.php
+      - name: Render birthday greetings from canonical signed day counters
+        run: php .github/scripts/check-birthday-popup.php
       - name: Preserve download file bytes, roots and recoverable stages
         run: php .github/scripts/check-pafiledb-file-storage.php
       - name: Render read-only file checker forms and complete reports

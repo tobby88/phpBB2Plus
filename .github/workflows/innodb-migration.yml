@@ -349,6 +349,12 @@ jobs:
         env:
           PHPBB_STATS_CACHE_NATIVE: '1'
           PHPBB_STATS_CACHE_PASSWORD: fixture-only
+      - name: Render native birthday popup and preserve annual counters
+        if: matrix.part == 4
+        run: php .github/scripts/check-birthday-popup-native.php
+        env:
+          PHPBB_BIRTHDAY_POPUP_NATIVE: '1'
+          PHPBB_BIRTHDAY_POPUP_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php
