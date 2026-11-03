@@ -2,6 +2,19 @@
 
 if (defined('IN_PHPBB')) { require_once dirname(__FILE__) . '/functions_username.php'; }
 
+/** GD resources need closing before PHP 8; GdImage objects have no close API. */
+if (!function_exists('phpbb_gd_release'))
+{
+	function phpbb_gd_release($image)
+	{
+		if (is_resource($image) && get_resource_type($image) === 'gd')
+		{
+			return imagedestroy($image);
+		}
+		return is_object($image) && $image instanceof GdImage;
+	}
+}
+
 /** Negotiate optional gzip without overriding a client's explicit refusal. */
 if (!function_exists('phpbb_accepts_gzip'))
 {

@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Shield smilies and GD compatibility
+
+- Render shield captions as UTF-8 with bundled DejaVu Sans 2.37, with a readable
+  bitmap fallback. Wrap complete characters within fixed pixel/line limits and
+  preserve literal backslashes and zero captions.
+- Handle missing image support or corrupt assets without broken PNG output.
+  Keep text/shadow coordinates integral and avoid deprecated GD object cleanup
+  on PHP 8.5 while still releasing GD resources on PHP 5.6 and 7.4.
+
 ### Staff profile signatures
 
 - Use the common stored-signature renderer in the staff profile panel. Escape

@@ -57,6 +57,8 @@ jobs:
       - name: Lint PHP sources
         shell: bash
         run: find phpBB2 update -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Render UTF-8 shield PNGs and release GD resources across PHP versions
+        run: php .github/scripts/check-schild-rendering.php
 
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test

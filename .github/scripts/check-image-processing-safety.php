@@ -1,6 +1,7 @@
 <?php
 
 define('IN_PHPBB', true);
+require dirname(dirname(__DIR__)) . '/phpBB2/includes/php_compat.php';
 require dirname(dirname(__DIR__)) . '/phpBB2/includes/functions.php';
 
 function image_processing_assert($condition, $message)
@@ -51,6 +52,26 @@ image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'imag
 @unlink($corrupt_gif);
 @unlink($corrupt_thumbnail);
 
+if (extension_loaded('gd'))
+{
+	$source_file = tempnam(sys_get_temp_dir(), 'phpbb-real-image-');
+	$target_file = tempnam(sys_get_temp_dir(), 'phpbb-real-thumb-');
+	$image = imagecreatetruecolor(480, 320);
+	image_processing_assert(imagepng($image, $source_file), 'write own synthetic source');
+	phpbb_gd_release($image);
+	try
+	{
+		foreach (array(0, 1) as $gd2)
+		{
+			$attach_config['use_gd2'] = $gd2;
+			image_processing_assert(create_thumbnail($source_file, $target_file, 'image/png'), 'actual GD thumbnail creation and cleanup');
+			$shape = getimagesize($target_file);
+			image_processing_assert($shape[0] === 400 && $shape[1] === 267 && $shape[2] === IMAGETYPE_PNG, 'actual bounded thumbnail pixels');
+		}
+	}
+	finally { unlink($source_file); unlink($target_file); }
+}
+
 $root = dirname(dirname(__DIR__));
 $sources = array(
 	'phpBB2/album_mod/album_upload_stage.php',
@@ -75,7 +96,7 @@ image_processing_assert(strpos($thumbnail, '$pic_size === false') !== false, 'th
 image_processing_assert(strpos($thumbnail, 'if (!$thumbnail)') !== false, 'thumbnail regeneration must handle failed GD allocations');
 image_processing_assert(strpos($thumbnail, 'if (!@$resize_function(') !== false, 'thumbnail regeneration must handle failed GD copies');
 image_processing_assert(strpos($thumbnail, '$thumbnail_written = false;') !== false, 'thumbnail regeneration must handle failed cache writes');
-image_processing_assert(substr_count($thumbnail, '@imagedestroy($src)') >= 2, 'thumbnail regeneration must release source images on success and failure');
+image_processing_assert(substr_count($thumbnail, '@phpbb_gd_release($src)') >= 2, 'thumbnail regeneration must release old GD resources without deprecated object cleanup on success and failure');
 
 $medium_thumbnail = file_get_contents($root . '/phpBB2/album_picm.php');
 image_processing_assert(strpos($medium_thumbnail, '$thumbnail_written = false;') !== false, 'medium thumbnail regeneration must handle failed cache writes');

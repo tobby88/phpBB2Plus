@@ -714,9 +714,9 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 	{
 		if ($resize)
 		{
-			@imagedestroy($resize);
+			@phpbb_gd_release($resize);
 		}
-		@imagedestroy($src);
+		@phpbb_gd_release($src);
 		return false;
 	}
 
@@ -725,8 +725,8 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 	$temporary_file = @tempnam(dirname($image_file_name), 'phpbb-resize-');
 	if ($temporary_file === false)
 	{
-		@imagedestroy($src);
-		@imagedestroy($resize);
+		@phpbb_gd_release($src);
+		@phpbb_gd_release($resize);
 		return false;
 	}
 	$written = false;
@@ -753,8 +753,8 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 			$type = 'image/png';
 			break;
 	}
-	@imagedestroy($src);
-	@imagedestroy($resize);
+	@phpbb_gd_release($src);
+	@phpbb_gd_release($resize);
 
 	$rendered = $written ? @getimagesize($temporary_file) : false;
 	$expected_rendered_type = ($type === 'image/gif') ? IMAGETYPE_GIF : (($type === 'image/jpeg') ? IMAGETYPE_JPEG : IMAGETYPE_PNG);

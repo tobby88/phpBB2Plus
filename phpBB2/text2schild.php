@@ -6,18 +6,13 @@ define('IN_PHPBB', 'true');
 define('PHPBB_STANDALONE_VALIDATED', true);
 $phpbb_root_path = './';
 include_once($phpbb_root_path . 'includes/php_compat.php');
+require_once($phpbb_root_path . 'includes/functions_schild.php');
 
 $raute = '#';
 $fontcolor = isset($_GET['fontcolor']) && is_string($_GET['fontcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['fontcolor']) ? $_GET['fontcolor'] : '000000';
 $shadowcolor = isset($_GET['shadowcolor']) && is_string($_GET['shadowcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['shadowcolor']) ? $_GET['shadowcolor'] : '';
 $schriftfarbe = $raute . $fontcolor;
-$schriftdatei = 'arial';
 $std_smilie = 1;
-$schriftwidth = 0;
-$schriftheight = 0;
-$zeichenzahl = 0;
-$output = array();
-$text = '';
 
 
 $smilie = isset($_GET['smilie']) && is_scalar($_GET['smilie']) ? (string) $_GET['smilie'] : 'standard';
@@ -60,7 +55,7 @@ if ($hdl = @opendir($smilie_dir))
 }
 sort($smilie_ids, SORT_NUMERIC);
 
-if (empty($smilie_ids) || !function_exists('gd_info') || !function_exists('imagecreatefrompng') || !function_exists('imagecreate'))
+if (empty($smilie_ids) || !function_exists('gd_info') || !function_exists('imagecreatefrompng') || !function_exists('imagecreate') || !function_exists('imagepng'))
 {
 	header('Content-Type: text/plain; charset=UTF-8');
 	header('X-Content-Type-Options: nosniff');
@@ -70,61 +65,15 @@ if (empty($smilie_ids) || !function_exists('gd_info') || !function_exists('image
 	exit;
 }
 
-$gd_info = gd_info();
-
-if((!$gd_info['FreeType Support']) || (!file_exists($schriftdatei))){
-	$schriftwidth = 6;
-	$schriftheight = 8;
-}else{
-	if((!$schriftheight) || (!$schriftwidth)){
-		$schriftwidth = imagefontwidth($schriftdatei);
-		$schriftheight = imagefontheight($schriftdatei);
-	}
-}
-$schriftheight += 2;
-
-
-if(!$text) $text = isset($_GET['text']) && !is_array($_GET['text']) ? trim($_GET['text']) : '';
-$text = html_entity_decode(stripslashes($text), ENT_QUOTES, 'UTF-8');
-$text = preg_replace('/\s+/', ' ', strip_tags(substr($text, 0, 512)));
-
-if(!$text) $text = 'error';//$lang['SC_error']; 
-
-if(strlen($text) > 33){
-	$worte = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
-
-	if(is_array($worte)){
-		$i = 0;
-		$output[0] = '';
-		foreach($worte as $wort){
-			if((strlen($output[$i].' '.$wort) < 33) && (!substr_count($wort, '[SM'))){
-				$output[$i] .= ' '.$wort;
-			}else{
-				if($i < 11){
-					if($zeichenzahl < strlen($output[$i])) $zeichenzahl = strlen($output[$i]);
-					$i++;
-					$output[$i] = substr($wort, 0, 33);
-				}else{
-					$output[$i] = substr($output[$i], 0, 30) . '...';
-					break;
-				}
-			}
-		}
-		if($zeichenzahl < strlen($output[$i])) $zeichenzahl = strlen($output[$i]);
-	}else{
-		$zeichenzahl = 33;
-		$output[0] = substr($text, 0, 30)."...";
-	}
-}else{
-	$zeichenzahl = strlen($text);
-	$output[0] = $text;
-}
-
-if(count($output) > 12) $output[12] = substr($output[12], 0, 30)."...";
-
-$width = ($zeichenzahl * $schriftwidth) + 6;
-$height = (count($output) * $schriftheight) + 34;
-if($width < 60) $width = 60;
+$text = phpbb_schild_text(isset($_GET['text']) ? $_GET['text'] : '');
+// DejaVu Sans 2.37, distributed unmodified with assets/fonts/LICENSE-DejaVu.txt.
+$font = phpbb_schild_font(__DIR__ . '/assets/fonts/DejaVuSans.ttf');
+$output = phpbb_schild_lines($text, $font);
+$width = 60;
+foreach ($output as $line) { $metrics = phpbb_schild_metrics($line, $font); $width = max($width, $metrics[0] + 6); }
+$width = min(204, $width);
+$height = count($output) * $font['height'] + 34;
+$center = (int) floor($width / 2);
 
 if($smilie == 'random') $smilie = $smilie_ids[mt_rand(0, count($smilie_ids) - 1)];
 if(!$smilie){
@@ -141,11 +90,11 @@ $smilie = @imagecreatefrompng($smilie_dir . '/smilie' . intval($smilie) . '.png'
 $schild = @imagecreatefrompng($smilie_dir . '/schild.png');
 $img = imagecreate($width,$height);
 
-if (!$smilie || !$schild || !$img)
+if (!$smilie || !$schild || !$img || imagesx($smilie) < 6 || imagesy($smilie) < 15 || imagesx($schild) < 7 || imagesy($schild) < 17)
 {
-	if ($smilie) imagedestroy($smilie);
-	if ($schild) imagedestroy($schild);
-	if ($img) imagedestroy($img);
+	if ($smilie) phpbb_gd_release($smilie);
+	if ($schild) phpbb_gd_release($schild);
+	if ($img) phpbb_gd_release($img);
 	header('Content-Type: text/plain; charset=UTF-8');
 	header('X-Content-Type-Options: nosniff');
 	header('Cache-Control: no-store, private');
@@ -176,9 +125,9 @@ imagesetpixel($schild, 5, 15, imagecolorallocate($schild, min(255, $smiliefarbe[
 imagesetpixel($schild, 6, 15, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 50), min(255, $smiliefarbe['green'] + 52), min(255, $smiliefarbe['blue'] + 50)));
 
 
-imagecopy ($img, $schild, ($width / 2 - 3), 0, 0, 0, 6, 4); // Bildteil kopieren
-imagecopy ($img, $schild, ($width / 2 - 3), ($height - 24), 0, 5, 9, 17); // Bildteil kopieren
-imagecopy ($img, $smilie, ($width / 2 + 6), ($height - 24), 0, 0, 23, 23); // Bildteil kopieren
+imagecopy ($img, $schild, $center - 3, 0, 0, 0, 6, 4); // Bildteil kopieren
+imagecopy ($img, $schild, $center - 3, $height - 24, 0, 5, 9, 17); // Bildteil kopieren
+imagecopy ($img, $smilie, $center + 6, $height - 24, 0, 0, 23, 23); // Bildteil kopieren
 
 imagefilledrectangle($img, 0, 4, $width, ($height - 25), $bocolor);
 imagefilledrectangle($img, 1, 5, ($width - 2), ($height - 26), $schcolor);
@@ -186,6 +135,8 @@ imagefilledrectangle($img, 1, 5, ($width - 2), ($height - 26), $schcolor);
 if($schildschatten){
 	$shadow_points_one = array((($width - 2) / 2 + ((($width - 2) / 4) - 3)), 5, (($width - 2) / 2 + ((($width - 2) / 4) + 3)), 5, (($width - 2) / 2 - ((($width - 2) / 4) - 3)), ($height - 26), (($width - 2) / 2 - ((($width - 2) / 4) + 3)), ($height - 26));
 	$shadow_points_two = array((($width - 2) / 2 + ((($width - 2) / 4) + 4)), 5, ($width - 2), 5, ($width - 2), ($height - 26), (($width - 2) / 2 - ((($width - 2) / 4) - 4)), ($height - 26));
+	$shadow_points_one = array_map('intval', $shadow_points_one);
+	$shadow_points_two = array_map('intval', $shadow_points_two);
 	if (PHP_VERSION_ID >= 80100)
 	{
 		imagefilledpolygon($img, $shadow_points_one, $schatten1color);
@@ -198,30 +149,27 @@ if($schildschatten){
 	}
 }
 
-$i = 0;
-while($i < count($output)){
-	if(((!$gd_info['FreeType Support']) || (!file_exists($schriftdatei)))){
-		if($schattenfarbe) imagestring($img, 2, (($width - (strlen(trim($output[$i])) * $schriftwidth) - 2) / 2 + 1), ($i * $schriftheight + 6), trim($output[$i]), $txt2color);
-		imagestring($img, 2, (($width - (strlen(trim($output[$i])) * $schriftwidth) - 2) / 2), ($i * $schriftheight + 5), trim($output[$i]), $txtcolor);
-	}else{
-		if($schattenfarbe) imagettftext($img, $schriftheight, 0, (($width - (strlen(trim($output[$i])) * $schriftwidth) - 2) / 2 + 1), ($i * $schriftheight + $schriftheight + 4), $txt2color, $schriftdatei, trim($output[$i]));
-		imagettftext($img, $schriftheight, 0, (($width - (strlen(trim($output[$i])) * $schriftwidth) - 2) / 2), ($i * $schriftheight + $schriftheight + 3), $txtcolor, $schriftdatei, trim($output[$i]));
-	}
-	$i++;
+if (!phpbb_schild_draw_text($img, $output, $font, $width, $txtcolor, $schattenfarbe !== '' ? $txt2color : null))
+{
+	phpbb_gd_release($img); phpbb_gd_release($schild); phpbb_gd_release($smilie);
+	header('Content-Type: text/plain; charset=UTF-8'); header('X-Content-Type-Options: nosniff'); header('Cache-Control: no-store, private');
+	http_response_code(500); echo 'Smilie text could not be rendered.'; exit;
 }
 
 
 imagecolortransparent($img, $bgcolor);  // Dummybg als transparenz setzen
-imageinterlace($img, 1);
+// These small PNGs need no progressive passes; older GD readers also decode
+// non-interlaced output without libpng's interlace-handling warning.
+imageinterlace($img, false);
 
 header('Content-Type: image/png');
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store, private');
 //imagepng($img,'',100);   // 100 = komprimierung
 imagepng($img); 
-imagedestroy($img);
-imagedestroy($schild);
-imagedestroy($smilie);
+phpbb_gd_release($img);
+phpbb_gd_release($schild);
+phpbb_gd_release($smilie);
 
 exit;
 ?>

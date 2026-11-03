@@ -224,9 +224,9 @@ function create_thumbnail($source, $new_file, $mimetype)
 			{
 				if ($new_image)
 				{
-					@imagedestroy($new_image);
+					@phpbb_gd_release($new_image);
 				}
-				@imagedestroy($image);
+				@phpbb_gd_release($image);
 				return false;
 			}
 			
@@ -247,8 +247,8 @@ function create_thumbnail($source, $new_file, $mimetype)
 					break;
 			}
 
-			@imagedestroy($new_image);
-			@imagedestroy($image);
+			@phpbb_gd_release($new_image);
+			@phpbb_gd_release($image);
 			if (!$written)
 			{
 				@unlink($new_file);

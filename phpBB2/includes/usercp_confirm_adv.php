@@ -337,7 +337,7 @@ header("Cache-Control: no-store, no-cache, max-age=0, must-revalidate");
 (!$jpeg) ? header("Content-Type: image/png") : header("Content-Type: image/jpeg");
 
 (!$jpeg) ? imagepng($image) : imagejpeg($image, null, $img_quality);
-imagedestroy($image);
+phpbb_gd_release($image);
 exit;
 
 // Function get_rgb by Frank Burian

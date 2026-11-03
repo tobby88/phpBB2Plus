@@ -306,11 +306,11 @@ else
 		}
 		if ($thumbnail !== $src && function_exists('imagedestroy'))
 		{
-			@imagedestroy($thumbnail);
+			@phpbb_gd_release($thumbnail);
 		}
 		if (function_exists('imagedestroy'))
 		{
-			@imagedestroy($src);
+			@phpbb_gd_release($src);
 		}
 
 		exit;
@@ -323,11 +323,11 @@ else
 
 		if (isset($thumbnail) && $thumbnail && $thumbnail !== $src && function_exists('imagedestroy'))
 		{
-			@imagedestroy($thumbnail);
+			@phpbb_gd_release($thumbnail);
 		}
 		if ($src && function_exists('imagedestroy'))
 		{
-			@imagedestroy($src);
+			@phpbb_gd_release($src);
 		}
 
 		header('Content-type: image/jpeg');

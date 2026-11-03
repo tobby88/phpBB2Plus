@@ -24,3 +24,6 @@
 *.woff binary
 *.woff2 binary
 *.zip binary
+
+# Keep the original upstream font license, including its trailing whitespace.
+phpBB2/assets/fonts/LICENSE-DejaVu.txt -whitespace

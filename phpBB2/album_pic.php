@@ -147,7 +147,7 @@ function mergePics($sourcefile, $insertfile, $pos = 0, $transition = 50, $filety
          break; 
    } 
 
-   ImageDestroy($sourcefile_id); 
+   phpbb_gd_release($sourcefile_id);
 } 
 // 
 // END: Function for watermark 
