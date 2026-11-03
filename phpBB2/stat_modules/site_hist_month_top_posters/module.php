@@ -12,28 +12,12 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 } 
 //
-// Top Posting Users This Week (History Mod adaption)
+// Top Posting Users This Month (History Mod adaption)
 //
 $statistics->init_bars();
 
-$month = array();
 $current_time = time();
-$year = create_date('Y', $current_time, $board_config['board_timezone']);
-$month [0] = mktime (0,0,0,1,1, $year);
-$month [1] = $month [0] + 2678400;
-$month [2] = mktime (0,0,0,3,1, $year);
-$month [3] = $month [2] + 2678400;
-$month [4] = $month [3] + 2592000;
-$month [5] = $month [4] + 2678400;
-$month [6] = $month [5] + 2592000;
-$month [7] = $month [6] + 2678400;
-$month [8] = $month [7] + 2678400;
-$month [9] = $month [8] + 2592000;
-$month [10] = $month [9] + 2678400;
-$month [11] = $month [10] + 2592000;
-$month [12] = $month [11] + 2592000;
-$arr_num = (date('n')-1);
-$time_thismonth = $month[$arr_num];
+list($time_thismonth, $time_nextmonth) = statistics_period_window('month', $current_time, $board_config['board_timezone']);
 
 $l_this_month = create_date('F', $time_thismonth, $board_config['board_timezone']);
 
@@ -49,7 +33,7 @@ $template->assign_vars(array(
 
 $sql = "select u.user_id, u.username, count(u.user_id) as user_posts  
 FROM " . USERS_TABLE . " u, " . POSTS_TABLE . " p 
-WHERE (u.user_id = p.poster_id) AND (p.post_time > '" . $time_thismonth . "') AND (u.user_id <> " . ANONYMOUS . ")
+WHERE (u.user_id = p.poster_id) AND (p.post_time >= '" . $time_thismonth . "') AND (p.post_time < '" . $time_nextmonth . "') AND (u.user_id <> " . ANONYMOUS . ")
 GROUP BY user_id, username
 ORDER BY user_posts DESC
 LIMIT " . $return_limit;

@@ -18,17 +18,13 @@ if ( !defined('IN_PHPBB') )
 $statistics->init_bars();
 
 $current_time = time();
-$minutes = date('is', $current_time);
-$hour_now = $current_time - (60*($minutes[0].$minutes[1])) - ($minutes[2].$minutes[3]); 
-$date = date('H');
-$time_today = $hour_now - (3600 * $date); 
-$time_thisweek = $time_today - ((date('w', $time_today)-1)*86400);
+list($time_thisweek, $time_nextweek) = statistics_period_window('week', $current_time, $board_config['board_timezone']);
 
-$l_this_day = create_date('D', $time_today, $board_config['board_timezone']);
+$l_this_day = create_date('D', $current_time, $board_config['board_timezone']);
 
 $sql = "select u.user_id, u.username, count(u.user_id) as user_posts  
 FROM " . USERS_TABLE . " u, " . POSTS_TABLE . " p 
-WHERE (u.user_id = p.poster_id) AND (p.post_time > '" . $time_thisweek . "') AND (u.user_id <> " . ANONYMOUS . ")
+WHERE (u.user_id = p.poster_id) AND (p.post_time >= '" . $time_thisweek . "') AND (p.post_time < '" . $time_nextweek . "') AND (u.user_id <> " . ANONYMOUS . ")
 GROUP BY user_id, username
 ORDER BY user_posts DESC
 LIMIT " . $return_limit;

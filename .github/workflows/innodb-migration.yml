@@ -331,6 +331,12 @@ jobs:
         env:
           PHPBB_ARCADE_TOUR_LABEL_NATIVE: '1'
           PHPBB_ARCADE_TOUR_LABEL_PASSWORD: fixture-only
+      - name: Count native weekly and monthly statistics in the forum calendar
+        if: matrix.part == 4
+        run: php .github/scripts/check-statistics-periods-native.php
+        env:
+          PHPBB_STATS_PERIOD_NATIVE: '1'
+          PHPBB_STATS_PERIOD_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

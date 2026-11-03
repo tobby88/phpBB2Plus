@@ -20,6 +20,28 @@
 *
 ***************************************************************************/
 
+// Use the same local calendar as create_date(), including its existing DST
+// policy. SQL stores UTC seconds; server-local mktime()/date() cannot define
+// the forum's week or month, and Sunday belongs to the preceding Monday.
+function statistics_period_window($period, $current_time, $timezone)
+{
+	$parts = array_map('intval', explode('|', create_date('Y|n|j|N|H|i|s', $current_time, $timezone)));
+	list($year, $month, $day, $weekday, $hour, $minute, $second) = $parts;
+	$offset = gmmktime($hour, $minute, $second, $month, $day, $year) - $current_time;
+	if ($period === 'week')
+	{
+		$day -= $weekday - 1;
+		return array(gmmktime(0, 0, 0, $month, $day, $year) - $offset,
+			gmmktime(0, 0, 0, $month, $day + 7, $year) - $offset);
+	}
+	if ($period === 'month')
+	{
+		return array(gmmktime(0, 0, 0, $month, 1, $year) - $offset,
+			gmmktime(0, 0, 0, $month + 1, 1, $year) - $offset);
+	}
+	throw new InvalidArgumentException('Unknown statistics period');
+}
+
 // For backward compatibility
 function module_language_parse($lang_key, $lang_var)
 {
