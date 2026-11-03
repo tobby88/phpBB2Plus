@@ -96,7 +96,7 @@ while ($row = $db->sql_fetchrow($result))
 	$template->assign_block_vars('logrow', array(
 		'ROW_CLASS' => (($i++ % 2) === 0) ? 'row1' : 'row2', 'ID' => intval($row['id_log']),
 		'ACTION' => htmlspecialchars($action_label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'TOPIC' => $topic_id,
-		'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'IP' => htmlspecialchars($row['user_ip'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+		'USERNAME' => phpbb_stored_text($row['username']), 'IP' => htmlspecialchars($row['user_ip'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 		'DATE' => htmlspecialchars(create_date($lang['DATE_FORMAT'], $row['log_time'], $board_config['board_timezone']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 		'U_TOPIC' => append_sid($phpbb_root_path . "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id"),
 		'U_USER' => append_sid("admin_users.$phpEx?mode=edit&amp;" . POST_USERS_URL . "=$user_id")

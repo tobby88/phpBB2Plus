@@ -847,7 +847,7 @@ switch($mode_id)
 						echo("<font class=\"gen\"><ul>\n");
 						$list_open = TRUE;
 					}
-					echo("<li>" . htmlspecialchars($row['username']) . " (" . $row['user_id'] . ")</li>\n");
+					echo("<li>" . phpbb_stored_text($row['username']) . " (" . $row['user_id'] . ")</li>\n");
 					$result_array[] = (int) $row['user_id'];
 				}
 				$db->sql_freeresult($result);
@@ -1401,7 +1401,7 @@ switch($mode_id)
 					echo('<ul class="gen">');
 					foreach ($user_sync_result['changed'] as $user_sync_row)
 					{
-						echo('<li>' . sprintf($lang['Maintenance_user_counter_changed'], htmlspecialchars($user_sync_row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), (int) $user_sync_row['user_id'], (int) $user_sync_row['user_posts']) . '</li>');
+						echo('<li>' . sprintf($lang['Maintenance_user_counter_changed'], phpbb_stored_text($user_sync_row['username']), (int) $user_sync_row['user_id'], (int) $user_sync_row['user_posts']) . '</li>');
 					}
 					foreach ($user_sync_result['skipped'] as $user_sync_id)
 					{
@@ -1431,7 +1431,7 @@ switch($mode_id)
 					echo('<ul class="gen">');
 					foreach ($role_sync_result['changed'] as $role_user)
 					{
-						echo('<li>' . sprintf($lang['Changing_moderator_status'], htmlspecialchars($role_user['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $role_user['user_id']) . '</li>');
+						echo('<li>' . sprintf($lang['Changing_moderator_status'], phpbb_stored_text($role_user['username']), $role_user['user_id']) . '</li>');
 					}
 					foreach ($role_sync_result['skipped'] as $role_user)
 					{

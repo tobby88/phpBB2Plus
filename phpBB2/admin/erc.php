@@ -903,7 +903,7 @@ switch($mode)
 						if ($changed === 1)
 						{
 ?>
-	<li><?php echo htmlspecialchars($row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></li>
+	<li><?php echo phpbb_stored_text($row['username']) ?></li>
 <?php
 						}
 					}

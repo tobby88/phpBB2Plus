@@ -19,6 +19,9 @@ $pattern = '/\$this->pdo->exec\(\x27DROP TABLE IF EXISTS fixture_\x27\.\$name\);
 $shared = preg_replace($pattern, 'user_fixture_table($this->pdo,$name,$definition,$engine);', $shared, -1, $replaced);
 if ($replaced !== 1) { throw new RuntimeException('Fixture table setup boundary missing'); }
 if (eval($shared) === false) { throw new RuntimeException('User-maintenance fixture did not execute'); }
+$formatters=file_get_contents($root.'includes/functions.php');
+if(preg_match('/^function phpbb_stored_text\(.*?^\}/ms',$formatters,$formatter)!==1){throw new RuntimeException('Actual stored-name formatter unavailable');}
+eval($formatter[0]);
 foreach (array('ANONYMOUS'=>-1,'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group',
  'THEMES_TABLE'=>'fixture_themes','THEMES_NAME_TABLE'=>'fixture_theme_names','RANKS_TABLE'=>'fixture_ranks',
  'CONFIG_TABLE'=>'fixture_config','BANLIST_TABLE'=>'fixture_bans','SESSIONS_KEYS_TABLE'=>'fixture_keys',

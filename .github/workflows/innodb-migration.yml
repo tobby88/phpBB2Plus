@@ -1110,6 +1110,12 @@ jobs:
         env:
           PHPBB_PA_CATEGORY_READ_NATIVE: '1'
           PHPBB_PA_FILE_COORDINATOR_PASSWORD: fixture-only
+      - name: Preserve audit snapshots and display maintenance account names
+        if: matrix.part == 4
+        run: php .github/scripts/check-admin-history-labels-native.php
+        env:
+          PHPBB_ADMIN_HISTORY_NATIVE: '1'
+          PHPBB_ADMIN_HISTORY_PASSWORD: fixture-only
       - name: Render actual admin account lists and preserve canonical data
         if: matrix.part == 4
         run: php .github/scripts/check-admin-account-labels-native.php

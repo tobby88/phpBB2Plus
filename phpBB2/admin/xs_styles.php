@@ -207,7 +207,7 @@ if(isset($HTTP_GET_VARS['list']) && is_scalar($HTTP_GET_VARS['list']))
 		$template->assign_block_vars('list_users.user', array(
 			'NUM'		=> $i + 1,
 			'ID'		=> $rowset[$i]['user_id'],
-			'NAME'		=> htmlspecialchars($rowset[$i]['username'], ENT_QUOTES, 'UTF-8'),
+			'NAME'		=> phpbb_stored_text($rowset[$i]['username']),
 			)
 		);
 	}

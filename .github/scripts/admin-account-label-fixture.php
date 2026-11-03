@@ -62,7 +62,7 @@ function al_html($template) {
     al_check(preg_match('//u', $html) === 1, 'Rendered page is UTF-8'); return $html;
 }
 function al_visible($html) { return html_entity_decode($html, ENT_QUOTES, 'UTF-8'); }
-function al_names() { return array('A&B', "O'Reilly", '&#39;', '&copy;', '&amp;', 'A<"B', 'Grüße 😀', 'C@ro', 'Back\\slash', '0'); }
+function al_names() { return array('A&B', "O'Reilly", '&#39;', '&copy;', '&amp;', 'A<"B', 'Grüße 😀', 'A@B', 'Back\\slash', '0'); }
 function al_labels($key) {
     $row = $owner = $main = array('user_id'=>7, 'username'=>$key);
     $out = array();

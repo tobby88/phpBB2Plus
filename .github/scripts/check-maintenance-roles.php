@@ -2,6 +2,9 @@
 // Fast logic/controller checks. SQL dialect/metadata/independent concurrency
 // are verified with the actual driver by check-maintenance-roles-native.php.
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
+$formatters=file_get_contents($root.'includes/functions.php');
+if(preg_match('/^function phpbb_stored_text\(.*?^\}/ms',$formatters,$formatter)!==1){throw new RuntimeException('Actual stored-name formatter unavailable');}
+eval($formatter[0]);
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_members','AUTH_ACCESS_TABLE'=>'fixture_auth','FORUMS_TABLE'=>'fixture_forums','SESSIONS_TABLE'=>'fixture_sessions','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
 require_once $root.'includes/functions_maintenance_roles.php';
 function role_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
