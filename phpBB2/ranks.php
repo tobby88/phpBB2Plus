@@ -46,16 +46,39 @@ function get_rank_title($rank_title)
 {
 	global $rank_extended, $profilcp, $lang;
 
-	$res = $rank_title;
+	$res = phpbb_stored_text($rank_title);
 	if ($rank_extended || $profilcp)
 	{
 		$ranks = explode( "|", $rank_title);
 		$res = '';
-		$res .= (isset($ranks[1]) && !empty($ranks[1])) ? '<b>' . $lang['Male'] . ': </b>' . $ranks[1] . '<br />': '';
-		$res .= (isset($ranks[1]) && !empty($ranks[2])) ? '<b>' . $lang['Female'] . ': </b>' . $ranks[2] . '<br />' : '';
-		$res .= '<b>' . $lang['No_gender_specify'] . ': </b>' . $ranks[0];
+		$res .= !empty($ranks[1]) ? '<b>' . phpbb_stored_text($lang['Male']) . ': </b>' . phpbb_stored_text($ranks[1]) . '<br />': '';
+		$res .= !empty($ranks[2]) ? '<b>' . phpbb_stored_text($lang['Female']) . ': </b>' . phpbb_stored_text($ranks[2]) . '<br />' : '';
+		$res .= '<b>' . phpbb_stored_text($lang['No_gender_specify']) . ': </b>' . phpbb_stored_text($ranks[0]);
 	}
 	return $res;
+}
+
+function phpbb_rank_overview_user_link($row)
+{
+	global $phpEx;
+	$url = append_sid('profile.' . $phpEx . '?mode=viewprofile&' . POST_USERS_URL . '=' . (int) $row['user_id']);
+	return '<a href="' . htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false) . '" class="gensmall">'
+		. phpbb_author_name($row['user_id'], $row['username']) . '</a>';
+}
+
+function phpbb_rank_overview_more_link($title)
+{
+	global $profilcp, $phpEx;
+	if (!$profilcp) { return '...'; }
+	$url = append_sid('profile.' . $phpEx . '?mode=buddy&sub=memberlist&filter=user_rank_title&comp=eq&fvalue=' . rawurlencode((string) $title));
+	return '<a href="' . htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false) . '" class="gensmall">...</a>';
+}
+
+function phpbb_rank_overview_image($value)
+{
+	global $images;
+	$name = phpbb_profile_image_name($value);
+	return $name === '' ? '' : '<img src="' . htmlspecialchars($images['rank_path'] . $name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false) . '" border="0" align="center" alt="" />';
 }
 
 //
@@ -108,12 +131,12 @@ for ($i=0; $i < count($spe_ranks); $i++ )
 			if ( ($spe_rank_max_users <= 0) || ( $j <= $spe_rank_max_users ) )
 			{
 				$spe_ranks[$i]['users_list'] .= ($spe_ranks[$i]['users_list'] == '') ? '' : ', ';
-				$spe_ranks[$i]['users_list'] .= '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=" . $row['user_id'] ) . '" class="gensmall">' . $row['username'] . '</a>';
+				$spe_ranks[$i]['users_list'] .= phpbb_rank_overview_user_link($row);
 			}
 			else
 			{
 				$spe_ranks[$i]['users_list'] .= ($spe_ranks[$i]['users_list'] == '') ? '' : ', ';
-				$spe_ranks[$i]['users_list'] .= ( !$profilcp ) ? '...' : '<a href="' . append_sid("profile.$phpEx?mode=buddy&sub=memberlist&filter=user_rank_title&comp=eq&fvalue=$rank_title") . '" class="gensmall">...</a>';
+				$spe_ranks[$i]['users_list'] .= phpbb_rank_overview_more_link($rank_title);
 			}
 		}
 	}
@@ -133,6 +156,7 @@ for ($i=count($ranks)-1; $i >=0; $i--)
 	$ranks[$i]['rank_max'] = $rank_max;
 	$rank_title = $ranks[$i]['rank_title'];
 	$rank_min = $ranks[$i]['rank_min'];
+	$ranks[$i]['users_list'] = '';
 	
 	// count users
 	$sql_base = "SELECT * FROM " . USERS_TABLE . " WHERE user_active = 1 AND (user_rank = 0 OR user_rank IS NULL) AND user_posts >= $rank_min" . (($rank_max < 99999999)  ? " AND user_posts < $rank_max" : "" );
@@ -155,12 +179,12 @@ for ($i=count($ranks)-1; $i >=0; $i--)
 			if ( ($std_rank_max_users <= 0) || ( $j <= $std_rank_max_users ) )
 			{
 				$ranks[$i]['users_list'] .= ($ranks[$i]['users_list'] == '') ? '' : ', ';
-				$ranks[$i]['users_list'] .= '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=" . $row['user_id'] ) . '" class="gensmall">' . $row['username'] . '</a>';
+				$ranks[$i]['users_list'] .= phpbb_rank_overview_user_link($row);
 			}
 			else
 			{
 				$ranks[$i]['users_list'] .= ($ranks[$i]['users_list'] == '') ? '' : ', ';
-				$ranks[$i]['users_list'] .= ( !$profilcp ) ? '...' : '<a href="' . append_sid("profile.$phpEx?mode=buddy&sub=memberlist&filter=user_rank_title&comp=eq&fvalue=$rank_title") . '" class="gensmall">...</a>';
+				$ranks[$i]['users_list'] .= phpbb_rank_overview_more_link($rank_title);
 			}
 		}
 	}
@@ -208,7 +232,7 @@ for ($i=0; $i < count($ranks); $i++)
 {
 	$template->assign_block_vars('ranks', array(
 		'RANK_TITLE' => get_rank_title($ranks[$i]['rank_title']),
-		'RANK_IMAGE' => ($ranks[$i]['rank_image'] == '') ? '' : '<img src="' . $images['rank_path'] . $ranks[$i]['rank_image'] . '" border=0 align="center">',
+		'RANK_IMAGE' => phpbb_rank_overview_image($ranks[$i]['rank_image']),
 		'RANK_MINI'  => $ranks[$i]['rank_min'],
 		'RANK_TOTAL' => $ranks[$i]['user_number'],
 		)
@@ -234,7 +258,7 @@ for ($i=0; $i < count($spe_ranks); $i++)
 {
 	$template->assign_block_vars('spe_ranks', array(
 		'RANK_TITLE' => get_rank_title($spe_ranks[$i]['rank_title']),
-		'RANK_IMAGE' => ($spe_ranks[$i]['rank_image'] == '') ? '' : '<img src="' . $images['rank_path'] . $spe_ranks[$i]['rank_image'] . '" border=0 align="center">',
+		'RANK_IMAGE' => phpbb_rank_overview_image($spe_ranks[$i]['rank_image']),
 		)
 	);
 	if ($spe_rank_max_users != 0)

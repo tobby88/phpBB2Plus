@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Rank overview
+
+- Initialize standard-rank member lists for empty and hidden lists, and escape
+  stored rank titles, account names and profile links. Validate rank image names
+  while preserving member counts, list limits and optional legacy formatting.
+
 ### Public news categories
 
 - Use the shared News renderer for category text and style-relative image URLs.
