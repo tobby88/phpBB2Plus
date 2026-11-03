@@ -179,7 +179,7 @@ else
 // Newest user data
 //
 $newest_userdata = get_db_stat('newestuser');
-$newest_user = htmlspecialchars((string) $newest_userdata['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$newest_user = phpbb_stored_text($newest_userdata['username']);
 $newest_uid = intval($newest_userdata['user_id']);
 
 $sql = 'SELECT user_regdate 

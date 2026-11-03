@@ -27,8 +27,10 @@ function sp_freeze($source) {
     return $out;
 }
 $sp_functions = file_get_contents($sp_root . 'includes/functions.php');
-sp_check(preg_match('/^function create_date\(.*?^\}/ms', $sp_functions, $sp_match) === 1, 'Actual date formatter');
-eval(sp_freeze($sp_match[0]));
+foreach (array('create_date','phpbb_stored_text') as $function) {
+    sp_check(preg_match('/^function ' . $function . '\(.*?^\}/ms', $sp_functions, $sp_match) === 1, 'Actual formatter: ' . $function);
+    eval(sp_freeze($sp_match[0]));
+}
 require $sp_root . 'includes/functions_stats.php';
 require $sp_root . 'includes/functions_module.php';
 class StatisticsPeriodExit extends RuntimeException {}

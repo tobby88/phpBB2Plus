@@ -337,6 +337,12 @@ jobs:
         env:
           PHPBB_STATS_PERIOD_NATIVE: '1'
           PHPBB_STATS_PERIOD_PASSWORD: fixture-only
+      - name: Render native statistics identities and raw UTF-8 excerpts
+        if: matrix.part == 4
+        run: php .github/scripts/check-statistics-rendering-native.php
+        env:
+          PHPBB_STATS_RENDER_NATIVE: '1'
+          PHPBB_STATS_RENDER_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
         if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php

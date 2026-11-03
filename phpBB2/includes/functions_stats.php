@@ -42,6 +42,50 @@ function statistics_period_window($period, $current_time, $timezone)
 	throw new InvalidArgumentException('Unknown statistics period');
 }
 
+// Aggregated counts may be cached, but account identities must be current.
+// Never display a retired account's cached name or link, or resolve by name.
+function statistics_current_users($rows)
+{
+	global $db;
+	$ids = array();
+	foreach ($rows as $row)
+	{
+		$id = (int) $row['user_id'];
+		if ($id > 0) { $ids[$id] = $id; }
+	}
+	if (!$ids) { return array(); }
+	$sql = 'SELECT user_id, username FROM ' . USERS_TABLE . ' WHERE user_id IN (' . implode(',', $ids) . ')';
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, "Couldn't retrieve current statistics accounts", '', __LINE__, __FILE__, $sql);
+	}
+	$accounts = array();
+	while ($row = $db->sql_fetchrow($result)) { $accounts[(int) $row['user_id']] = $row['username']; }
+	$db->sql_freeresult($result);
+	$current = array();
+	foreach ($rows as $row)
+	{
+		$id = (int) $row['user_id'];
+		if (isset($accounts[$id])) { $row['username'] = $accounts[$id]; $current[] = $row; }
+	}
+	return $current;
+}
+
+// Return a short raw-text excerpt, or '' when no abbreviation is needed.
+// Count UTF-8 characters rather than bytes; leave HTML escaping to the caller.
+function statistics_text_excerpt($value)
+{
+	$value = (string) $value;
+	if (preg_match_all('/./us', $value, $characters) === false)
+	{
+		// Match the renderer's substitution for malformed historical text.
+		// Escaping before decoding preserves literal entity-looking raw text.
+		$value = html_entity_decode(htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+		preg_match_all('/./us', $value, $characters);
+	}
+	return count($characters[0]) > 32 ? implode('', array_slice($characters[0], 0, 30)) . '...' : '';
+}
+
 // For backward compatibility
 function module_language_parse($lang_key, $lang_var)
 {

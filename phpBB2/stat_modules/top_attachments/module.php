@@ -112,12 +112,7 @@ for ($i = 0; $i < $num_attachments; $i++)
 	$class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
 	$post_title = (string) $attachments[$i]['topic_title'];
-	$post_title_2 = '';
-	
-	if (strlen($post_title) > 32)
-	{
-		$post_title_2 = substr($post_title, 0, 30) . '...';
-	}
+	$post_title_2 = statistics_text_excerpt($post_title);
 
 	$post_id = intval($attachments[$i]['post_id']);
 	$view_topic = htmlspecialchars(append_sid('viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $post_id . '#' . $post_id), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -133,12 +128,7 @@ for ($i = 0; $i < $num_attachments; $i++)
 	}
 
 	$comment = (string) $attachments[$i]['comment'];
-	$comment_2 = '';
-
-	if (strlen($comment) > 32)
-	{
-		$comment_2 = substr($comment, 0, 30) . '...';
-	}
+	$comment_2 = statistics_text_excerpt($comment);
 
 	if ($comment_2 != '')
 	{
@@ -150,12 +140,7 @@ for ($i = 0; $i < $num_attachments; $i++)
 	}
 
 	$filename = (string) $attachments[$i][$real_filename];
-	$filename_2 = '';
-	
-	if (strlen($filename) > 32)
-	{
-		$filename_2 = substr($filename, 0, 30) . '...';
-	}
+	$filename_2 = statistics_text_excerpt($filename);
 
 	$view_attachment = htmlspecialchars(append_sid('download.' . $phpEx . '?id=' . intval($attachments[$i]['attach_id'])), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	$filename_html = htmlspecialchars($filename, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

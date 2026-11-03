@@ -27,11 +27,11 @@ $escaped_modules = array(
 	'most_used_languages' => "htmlspecialchars((string) \$lang_data[\$i]['user_lang']",
 	'most_viewed_topics' => "htmlspecialchars((string) \$topic_data[\$i]['topic_title']",
 	'most_active_topics' => "htmlspecialchars((string) \$topic_data[\$i]['topic_title']",
-	'top_posters' => "htmlspecialchars((string) \$user_data[\$i]['username']",
-	'site_hist_month_top_posters' => "htmlspecialchars((string) \$user_data[\$i]['username']",
-	'site_hist_week_top_posters' => "htmlspecialchars((string) \$user_data[\$i]['username']",
+	'top_posters' => "phpbb_stored_text(\$user_data[\$i]['username'])",
+	'site_hist_month_top_posters' => "phpbb_stored_text(\$user_data[\$i]['username'])",
+	'site_hist_week_top_posters' => "phpbb_stored_text(\$user_data[\$i]['username'])",
 	'top_attachments' => '$filename_html = htmlspecialchars($filename',
-	'admin_statistics' => '$newest_user = htmlspecialchars(',
+	'admin_statistics' => '$newest_user = phpbb_stored_text(',
 );
 foreach ($escaped_modules as $directory => $marker)
 {

@@ -45,7 +45,8 @@ if ( !($result = $stat_db->sql_query($sql)) )
 
 $total_posts_thismonth = 0;
 $user_count = $stat_db->sql_numrows($result);
-$user_data = $stat_db->sql_fetchrowset($result);
+$user_data = statistics_current_users($stat_db->sql_fetchrowset($result));
+$user_count = count($user_data);
 $firstcount = !empty($user_data) ? max(1, intval($user_data[0]['user_posts'])) : 1;
 
 for ($i = 0; $i < $user_count; $i++)
@@ -62,7 +63,7 @@ for ($i = 0; $i < $user_count; $i++)
 	$template->assign_block_vars('top_posters', array(
 		'RANK' => $i+1,
 		'CLASS' => $class,
-		'USERNAME' => htmlspecialchars((string) $user_data[$i]['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+		'USERNAME' => phpbb_stored_text($user_data[$i]['username']),
 		'PERCENTAGE' => $statistics->percentage,
 		'BAR' => $statistics->bar_percent,
 		'URL' => append_sid($phpbb_root_path . 'profile.php?mode=viewprofile&u=' . intval($user_data[$i]['user_id'])),
