@@ -26,6 +26,8 @@ changes consolidated after that baseline without implying active maintenance.
   including supplementary characters and text longer than 255 bytes. Reject
   malformed or oversized input before writing, with German and English field
   messages. Keep the full value across actual form rendering and repeated saves.
+- Store banner times as HHMM and dates as YYYYMMDD without losing zero-padded
+  components. Reject nonexistent calendar dates before writing a date rule.
 
 ### Arcade summary names and caches
 

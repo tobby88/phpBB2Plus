@@ -621,22 +621,27 @@ if( $mode!= "")
 		case 0: 	$time_begin=0;$time_end=0;
 			$date_begin=0;$date_end=0;break;
 		case 2:	$date_begin = 0;$date_end = 0;
-			$time_begin = $time_begin_hour.$time_begin_min;
-			$time_end = $time_end_hour.$time_end_min;
+			$time_begin = $time_begin_hour * 100 + $time_begin_min;
+			$time_end = $time_end_hour * 100 + $time_end_min;
 			break;
-		case 4 :	$time_begin = $time_begin_hour.$time_begin_min;
-			$time_end = $time_end_hour.$time_end_min;
+		case 4 :	$time_begin = $time_begin_hour * 100 + $time_begin_min;
+			$time_end = $time_end_hour * 100 + $time_end_min;
 			$date_begin = $date_begin_week;
 			$date_end = $date_end_week;
 			break;
-		case 6 :	$time_begin = $time_begin_hour.$time_begin_min;
-			$time_end = $time_end_hour.$time_end_min;
-			$date_begin = $date_begin_year.$date_begin_month.$date_begin_day;
-			$date_end = $date_end_year.$date_end_month.$date_end_day;
+		case 6 :	$time_begin = $time_begin_hour * 100 + $time_begin_min;
+			$time_end = $time_end_hour * 100 + $time_end_min;
+			$date_begin = $date_begin_year * 10000 + $date_begin_month * 100 + $date_begin_day;
+			$date_end = $date_end_year * 10000 + $date_end_month * 100 + $date_end_day;
 			if (!$date_begin_year || !$date_begin_month || !$date_begin_day || !$date_end_year || !$date_end_month || !$date_end_day)
 			{
 				message_die(GENERAL_MESSAGE, $lang['Missing_date']);
-			}break;
+			}
+			if (!checkdate($date_begin_month, $date_begin_day, $date_begin_year) || !checkdate($date_end_month, $date_end_day, $date_end_year))
+			{
+				message_die(GENERAL_MESSAGE, $lang['Banner_invalid_date']);
+			}
+			break;
 		}
 		$banner_comment = admin_banner_post_text('banner_comment', 50, 200);
 		// verify the inputs

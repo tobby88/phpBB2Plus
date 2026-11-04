@@ -3,6 +3,7 @@
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_BANNER_OWNER_NATIVE') !== '1') {
     echo "Banner owner checks require an explicitly enabled disposable database.\n"; return;
 }
+date_default_timezone_set('UTC');
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');
 require __DIR__ . '/check-attachment-settings-storage.php';
 require __DIR__ . '/profile-request-fixture.php';
@@ -61,7 +62,7 @@ function bo_delete($id, $sid = 'banner-fixture') {
     try { eval($banner_delete_body); } catch(AttachSettingsExit $e) { return $e->getMessage(); }
     return 'deleted';
 }
-function bo_text_form($row, $locale) {
+function bo_text_form($row, $locale, $schedule = false) {
     global $ats_source,$bo_banner_source,$board_config,$theme,$phpbb_root_path,$phpEx,$lang;
     require_once $ats_source . 'includes/template.php';
     $phpbb_root_path=$ats_source;$board_config=array('default_lang'=>$locale,'board_timezone'=>0,'default_dateformat'=>'Y-m-d',
@@ -73,6 +74,17 @@ function bo_text_form($row, $locale) {
     }
     $vars=array();foreach(array('BANNER_NAME','BANNER_DESCRIPTION','BANNER_URL','BANNER_COMMENT')as$key){
         ats_check(preg_match('/\''.preg_quote($key,'/').'\'\s*=>\s*([^\r\n]+),/',$bo_banner_source,$m)===1,'Actual text form binding');$vars[$key]=eval('return '.$m[1].';');
+    }
+    if ($schedule) {
+        $start = strpos($bo_banner_source, '$s_time_week_begin=');
+        $end = strpos($bo_banner_source, 'foreach ((array) $lang[\'Banner_spot\']', $start);
+        ats_check($start !== false && $end > $start, 'Complete actual schedule selector builder');
+        eval(substr($bo_banner_source, $start, $end - $start));
+        foreach (array('S_YEAR_BEGIN','S_YEAR_END','S_MONTHS_BEGIN','S_MONTHS_END','S_DATE_BEGIN','S_DATE_END',
+            'S_WEEK_BEGIN','S_WEEK_END','S_HOURS_BEGIN','S_HOURS_END','S_MIN_BEGIN','S_MIN_END') as $key) {
+            ats_check(preg_match('/\''.preg_quote($key,'/').'\'\s*=>\s*([^\r\n]+),/',$bo_banner_source,$m)===1,'Actual schedule template binding');
+            $vars[$key]=eval('return '.$m[1].';');
+        }
     }
     $template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];
     $template->load_config($ats_source.'templates/fisubsilversh',false);$template->set_filenames(array('body'=>'admin/banner_edit_body.tpl'));
@@ -88,7 +100,27 @@ function bo_text_form($row, $locale) {
         ats_check(preg_match('/maxlength="([0-9]+)"/',$m[0],$length)===1&&(int)$length[1]>=2*$limit,'Browser UTF16 limit permits every supported supplementary character');
         $post[$field]=html_entity_decode($v[1],ENT_QUOTES,'UTF-8');
     }
-    foreach($post as$field=>$value){ats_check($value===$row[$field],'Actual form returns the exact raw stored text');}return$post;
+    foreach($post as$field=>$value){ats_check($value===$row[$field],'Actual form returns the exact raw stored text');}
+    if ($schedule) {
+        $post['time_type'] = $row['banner_timetype'];
+        foreach (array('date_begin_year','date_end_year','date_begin_month','date_end_month','date_begin_day','date_end_day',
+            'date_begin_week','date_end_week','time_begin_hour','time_end_hour','time_begin_min','time_end_min') as $field) {
+            ats_check(preg_match('/<select\b[^>]*name="'.$field.'"[^>]*>([\s\S]*?)<\/select>/i',$html,$m)===1,'Actual schedule select');
+            ats_check(preg_match_all('/<option\b[^>]*value="([0-9]+)"([^>]*)>/i',$m[1],$options,PREG_SET_ORDER)>0,'Actual browser schedule options');
+            $post[$field]=$options[0][1];
+            foreach($options as$option){if(preg_match('/\bselected\b/i',$option[2])){$post[$field]=$option[1];break;}}
+        }
+    }
+    return$post;
+}
+function bo_selected_at($hour_now, $date_now, $week_now) {
+    global $ats_source,$db;
+    $header = file_get_contents($ats_source.'includes/page_header.php');
+    $start = strpos($header, '$sql = "SELECT DISTINCT banner_id, banner_name, banner_spot');
+    $end = strpos($header, ';', $start);
+    ats_check($start !== false && $end > $start, 'Actual frontend banner selection query');
+    $sql_level=0; eval(substr($header,$start,$end-$start+1));
+    return count(bo_rows($sql)) === 1;
 }
 $port = getenv('PHPBB_BANNER_OWNER_PORT') ?: '3306';
 ats_check(preg_match('/^[0-9]{1,5}$/D', $port) && (int)$port > 0 && (int)$port <= 65535, 'Loopback port');
@@ -188,6 +220,52 @@ try {
         }
     }
     echo 'Native banner text: '.$text_cases.' cases, '.$forms." actual forms PASS.\n";
+    $schedule_cases=0;$schedule_forms=0;
+    $base=array('banner_active'=>'1','banner_level'=>'0','time_begin_hour'=>'08','time_begin_min'=>'00',
+        'time_end_hour'=>'09','time_end_min'=>'09','date_begin_week'=>'1','date_end_week'=>'5',
+        'date_begin_year'=>'2026','date_begin_month'=>'01','date_begin_day'=>'05',
+        'date_end_year'=>'2026','date_end_month'=>'02','date_end_day'=>'09');
+    $rules=array(
+        array(array('time_type'=>'0'),array(0,0,0,0),array(array(0,19000101,0,true))),
+        array(array('time_type'=>'2'),array(800,909,0,0),array(array(759,20260105,1,false),array(800,20260105,1,true),array(909,20260105,1,true),array(910,20260105,1,false))),
+        array(array('time_type'=>'4'),array(800,909,1,5),array(array(800,20260105,1,true),array(909,20260109,5,true),array(800,20260104,0,false),array(800,20260110,6,false),array(759,20260105,1,false))),
+        array(array('time_type'=>'6'),array(800,909,20260105,20260209),array(array(800,20260104,0,false),array(800,20260105,1,true),array(909,20260209,1,true),array(800,20260210,2,false),array(759,20260105,1,false),array(910,20260209,1,false))),
+        array(array('time_type'=>'6','date_begin_year'=>'2024','date_end_year'=>'2024','date_begin_month'=>'02','date_end_month'=>'02','date_begin_day'=>'29','date_end_day'=>'29',
+            'time_begin_hour'=>'00','time_begin_min'=>'00','time_end_hour'=>'23','time_end_min'=>'59'),array(0,2359,20240229,20240229),array(array(0,20240229,4,true),array(2359,20240229,4,true),array(800,20240301,5,false)))
+    );
+    foreach(array('english','german')as$locale){
+        require $ats_source.'language/lang_'.$locale.'/lang_main.php';require $ats_source.'language/lang_'.$locale.'/lang_banner.php';
+        foreach(array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES')as$mode){
+            bo_sql("SET SESSION sql_mode='$mode'");
+            foreach($rules as$rule){
+                bo_sql('TRUNCATE TABLE fixture_banner');$fields=array_merge($base,$rule[0]);
+                foreach(array(0,1,1)as$id){
+                    $message=bo_save('Owner',$id,'banner-fixture',$fields);
+                    ats_check(strpos($message,$lang[$id?'Banner_updated':'Banner_added'])===0,'Actual schedule save succeeds');
+                    $row=bo_rows('SELECT * FROM fixture_banner')[0];$actual=array();
+                    foreach(array('time_begin','time_end','date_begin','date_end')as$key){$actual[]=(int)$row[$key];}
+                    ats_check($actual===$rule[1],'HHMM and YYYYMMDD keep every zero-padded component');
+                    foreach($rule[2]as$point){ats_check(bo_selected_at($point[0],$point[1],$point[2])===$point[3],'Actual frontend query includes exactly the intended schedule boundaries');}
+                    $form=bo_text_form($row,$locale,true);$schedule_forms++;
+                    foreach(array('time_begin_hour','time_begin_min','time_end_hour','time_end_min')as$key){
+                        if($fields['time_type']!=='0'){ats_check((int)$form[$key]===(int)$fields[$key],'Actual selected time survives reopening');}
+                    }
+                    if($fields['time_type']==='6'){foreach(array('date_begin_year','date_end_year','date_begin_month','date_end_month','date_begin_day','date_end_day')as$key){ats_check((int)$form[$key]===(int)$fields[$key],'Actual selected date survives reopening');}}
+                    $fields=array_merge($fields,$form);$schedule_cases++;
+                }
+            }
+            $before=bo_snapshot();
+            foreach(array('begin','end')as$side){foreach(array(array('2026','02','29'),array('2026','02','31'),array('2026','04','31'),array('1900','02','29'))as$bad){
+                foreach(array(0,1)as$id){$writes=$db->write_queries;
+                    $fields=array_merge($base,array('time_type'=>'6','date_'.$side.'_year'=>$bad[0],'date_'.$side.'_month'=>$bad[1],'date_'.$side.'_day'=>$bad[2]));
+                    ats_check(bo_save('Owner',$id,'banner-fixture',$fields)===$lang['Banner_invalid_date']&&$db->write_queries===$writes&&bo_snapshot()===$before,'Nonexistent date rejected before insert or update with translated message');$schedule_cases++;
+                }
+            }}
+            $fields=array_merge($base,array('time_type'=>'6','date_begin_month'=>'0'));
+            ats_check(bo_save('Owner',1,'banner-fixture',$fields)===$lang['Missing_date']&&bo_snapshot()===$before,'Incomplete date retains existing message');$schedule_cases++;
+        }
+    }
+    echo 'Native banner schedules: '.$schedule_cases.' cases, '.$schedule_forms." actual forms PASS.\n";
     $other = new sql_db($host,'root',$password,$fixture,false);
     try {
         foreach (array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES') as $mode) {
