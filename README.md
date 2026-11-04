@@ -82,6 +82,22 @@ php update/update_from_153a.php
 php update/update_from_153a.php --apply --backup-confirmed --maintenance-confirmed
 ```
 
+Banner IDs now use an InnoDB primary key with automatic allocation. Existing
+installations can run just this migration after backing up the database and
+stopping all web/cron writers:
+
+```sh
+php update/update_from_153a.php --banner-ids-only
+php update/update_from_153a.php --banner-ids-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+The full updater includes the same migration. Existing IDs, banner contents,
+statistics and custom indexes remain intact. The allocation floor also reserves
+IDs retained in historical banner statistics. Invalid or duplicate IDs require
+manual review; the updater never deletes or renumbers them. Convert legacy
+engines with `--storage-only` first when using the targeted mode. Banner changes
+remain disabled until the required storage definition is available.
+
 The CLI recovery tool previews eligible journal headers by default. It can resume
 committed picture deletions and abandon uploads which remained prepared for at
 least seven days by default. It requires an explicit apply and confirmation of a

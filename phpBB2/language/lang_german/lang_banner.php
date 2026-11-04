@@ -117,6 +117,7 @@ $lang['Banner_removed'] = "Das Banner wurde entfernt";
 $lang['Confirm_delete_banner'] = 'Möchtest Du dieses Banner wirklich löschen?';
 $lang['Banner_updated'] = "Das Banner wurde aktualisiert";
 $lang['Banner_added'] = "Das Banner wurde hinzugefügt";
+$lang['Banner_storage_upgrade'] = 'Die Banner-Datenbank muss vor Änderungen aktualisiert werden. Führe den Datenbank-Updater (update/update_from_153a.php --banner-ids-only) mit geprüftem Backup und angehaltenen Web-/Cron-Schreibzugriffen aus.';
 $lang['Click_return_banneradmin'] = 'Klicke %shier%s, um zur Bannerverwaltung zurückzukehren';
 
 $lang['No_redirect_error'] = 'Wenn die Seite nicht in Kürze angezeigt wird, klicke bitte <b><a href="%s" id="jumplink" name="jumplink">hier<a></b>, um zu der gewünschten URL zu gelangen';

@@ -17,6 +17,11 @@ changes consolidated after that baseline without implying active maintenance.
   target URLs across repeated saves without adding compatibility backslashes.
 - Store the selected forum when creating a banner, including on databases with
   strict SQL modes, instead of omitting the required forum column.
+- Replace the racy `MAX(id) + 1` allocation with a database primary key and
+  automatic IDs. Verify the required storage before creating, editing or
+  deleting banners. Include the preserving, repeatable migration in the full
+  updater and its `--banner-ids-only` mode; ambiguous IDs require manual review.
+  Reserve historical statistics IDs when setting the next allocation number.
 
 ### Arcade summary names and caches
 

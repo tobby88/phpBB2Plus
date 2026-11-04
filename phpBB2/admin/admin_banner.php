@@ -53,6 +53,30 @@ function admin_banner_post_scalar($name, $default)
 	return phpbb_admin_post_string($name, $default);
 }
 
+function admin_banner_id_storage_ready()
+{
+	global $db;
+	if (!preg_match('/^[A-Za-z0-9_]{1,64}$/D', BANNERS_TABLE)) { return false; }
+	$queries = array(
+		"SHOW FULL COLUMNS FROM " . BANNERS_TABLE . " WHERE Field='banner_id'",
+		"SHOW INDEX FROM " . BANNERS_TABLE . " WHERE Key_name='PRIMARY'",
+		"SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . BANNERS_TABLE . "') AND TABLE_TYPE='BASE TABLE'"
+	);
+	$rows = array();
+	foreach ($queries as $sql)
+	{
+		$result = $db->sql_query($sql);
+		if (!$result) { return false; }
+		try { $set = $db->sql_fetchrowset($result); } finally { $db->sql_freeresult($result); }
+		if (!is_array($set) || count($set) !== 1) { return false; }
+		$rows[] = $set[0];
+	}
+	return preg_match('/^mediumint(?:\([0-9]+\))? unsigned$/Di', $rows[0]['Type']) === 1 &&
+		$rows[0]['Null'] === 'NO' && $rows[0]['Default'] === null && $rows[0]['Extra'] === 'auto_increment' &&
+		$rows[1]['Column_name'] === 'banner_id' && (string) $rows[1]['Non_unique'] === '0' && $rows[1]['Sub_part'] === null &&
+		$rows[2]['ENGINE'] === 'InnoDB';
+}
+
 if (isset($_POST['mode']))
 {
 	$mode = is_scalar($_POST['mode']) ? (string) $_POST['mode'] : '';
@@ -521,6 +545,7 @@ if( $mode!= "")
 	else if( $mode == "save" )
 	{
 		phpbb_admin_require_post_session();
+		if (!admin_banner_id_storage_ready()) { message_die(GENERAL_ERROR, $lang['Banner_storage_upgrade']); }
 		//
 		// Ok, they sent us our info, let's update it.
 		//
@@ -621,15 +646,8 @@ if( $mode!= "")
 		}
 		else
 		{
-			$sql = "SELECT MAX(banner_id) as banner_id FROM " . BANNERS_TABLE;
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, "Couldn't obtain banner id data", "", __LINE__, __FILE__, $sql);
-			}
-			$banner_nr = $db->sql_fetchrow($result);
-			$banner_id = (int) $banner_nr['banner_id'] + 1;
-			$sql = "INSERT INTO " . BANNERS_TABLE . " (banner_id, banner_name, banner_active, banner_spot, banner_forum, banner_description, banner_url, banner_click, banner_view, banner_owner, banner_level, banner_level_type, banner_timetype, time_begin, time_end, date_begin, date_end, banner_comment, banner_type, banner_width, banner_height, banner_filter, banner_filter_time, banner_weigth)
-				VALUES ($banner_id, '$banner_name_sql', $banner_active, $banner_spot, $banner_forum, '$banner_description_sql', '$banner_url_sql', $banner_click, $banner_view, $banner_owner_id, $banner_level, $banner_level_type, $time_type, $time_begin, $time_end, $date_begin, $date_end, '$banner_comment_sql', $banner_type, $banner_width, $banner_height, $banner_filter, $banner_filter_time, $banner_weigth)";
+			$sql = "INSERT INTO " . BANNERS_TABLE . " (banner_name, banner_active, banner_spot, banner_forum, banner_description, banner_url, banner_click, banner_view, banner_owner, banner_level, banner_level_type, banner_timetype, time_begin, time_end, date_begin, date_end, banner_comment, banner_type, banner_width, banner_height, banner_filter, banner_filter_time, banner_weigth)
+				VALUES ('$banner_name_sql', $banner_active, $banner_spot, $banner_forum, '$banner_description_sql', '$banner_url_sql', $banner_click, $banner_view, $banner_owner_id, $banner_level, $banner_level_type, $time_type, $time_begin, $time_end, $date_begin, $date_end, '$banner_comment_sql', $banner_type, $banner_width, $banner_height, $banner_filter, $banner_filter_time, $banner_weigth)";
 			$message = $lang['Banner_added'];
 		}
 		if( !$result = $db->sql_query($sql) )
@@ -669,6 +687,7 @@ if( $mode!= "")
 			}
 			$banner_id = (int) $_POST['id'];
 			phpbb_admin_require_post_session();
+			if (!admin_banner_id_storage_ready()) { message_die(GENERAL_ERROR, $lang['Banner_storage_upgrade']); }
 			$sql = "DELETE FROM " . BANNERS_TABLE . "
 				WHERE banner_id = $banner_id";
 

@@ -9,6 +9,7 @@ require __DIR__ . '/profile-request-fixture.php';
 define('ANONYMOUS', -1); define('POST_FORUM_URL', 'f'); define('BANNERS_TABLE', 'fixture_banner');
 ats_load_function($ats_source . 'includes/functions.php', 'get_userdata');
 ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_post_scalar');
+ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_id_storage_ready');
 require $ats_source . 'language/lang_english/lang_banner.php';
 require $ats_source . 'db/mysqli.php';
 $source = file_get_contents($ats_source . 'admin/admin_banner.php');
@@ -16,13 +17,22 @@ $begin = strpos($source, 'phpbb_admin_require_post_session();', strpos($source, 
 $end = strpos($source, "\n\t}\n\telse if( \$mode == \"delete\" )", $begin);
 ats_check($begin !== false && $end > $begin, 'Complete actual banner save branch');
 $banner_save_body = substr($source, $begin, $end - $begin);
+$begin = strpos($source, "if (!isset(\$_POST['id'])", strpos($source, 'else if( $mode == "delete" )'));
+$end = strpos($source, "\$message = \$lang['Banner_removed']", $begin);
+ats_check($begin !== false && $end > $begin, 'Actual confirmed banner delete branch');
+$banner_delete_body = substr($source, $begin, $end - $begin);
 $schema = file_get_contents($ats_source . 'install/schemas/mysql_schema.sql');
 ats_check(preg_match('/CREATE TABLE phpbb_banner \([\s\S]+?;/', $schema, $match) === 1, 'Actual banner installer schema');
 $banner_schema = str_replace('phpbb_banner', BANNERS_TABLE, $match[0]);
 class BannerOwnerDatabase extends sql_db {
     var $fail_users = false;
+    var $fail_metadata = ''; var $before_insert = null;
     function sql_query($sql = '', $transaction = false) {
         if ($this->fail_users && preg_match('/^SELECT .* FROM fixture_users\b/', $sql)) { return false; }
+        if ($this->fail_metadata !== '' && strpos($sql,$this->fail_metadata) === 0) { return false; }
+        if ($this->before_insert !== null && strpos($sql,'INSERT INTO fixture_banner ') === 0) {
+            $hook = $this->before_insert; $this->before_insert = null; call_user_func($hook);
+        }
         return parent::sql_query($sql, $transaction);
     }
 }
@@ -40,6 +50,13 @@ function bo_save($raw, $id = 0, $sid = 'banner-fixture', $fields = array()) {
     try { eval($banner_save_body); } catch (AttachSettingsExit $e) { return $e->getMessage(); }
     throw new RuntimeException('Actual save branch must finish explicitly');
 }
+function bo_delete($id, $sid = 'banner-fixture') {
+    global $db,$lang,$userdata,$banner_delete_body;
+    $userdata = array('session_id'=>'banner-fixture'); $_SERVER['REQUEST_METHOD'] = 'POST';
+    profile_fixture_request(array('id'=>(string)$id,'sid'=>$sid));
+    try { eval($banner_delete_body); } catch(AttachSettingsExit $e) { return $e->getMessage(); }
+    return 'deleted';
+}
 $port = getenv('PHPBB_BANNER_OWNER_PORT') ?: '3306';
 ats_check(preg_match('/^[0-9]{1,5}$/D', $port) && (int)$port > 0 && (int)$port <= 65535, 'Loopback port');
 $host = '127.0.0.1:' . $port; $password = getenv('PHPBB_BANNER_OWNER_PASSWORD') ?: '';
@@ -56,7 +73,7 @@ try {
         bo_sql("SET SESSION sql_mode='" . $mode . "'");
         foreach (array('123', '0', '000123', '1e2', '+123', '-1', '.5', '1.2', 'Plain', 'Müller', 'A&B', "O'Reilly", 'C:\\notes', "A\\'B", 'Trailing\\', '&#39;', '😀', ' 123 ') as $raw) {
             foreach (array(ENT_QUOTES, ENT_COMPAT) as $flags) {
-                bo_sql('DELETE FROM fixture_users'); bo_sql('DELETE FROM fixture_banner');
+                bo_sql('DELETE FROM fixture_users'); bo_sql('TRUNCATE TABLE fixture_banner');
                 $key = phpbb_username_key($raw, $flags); ats_check($key !== '', 'Valid canonical fixture identity');
                 bo_sql("INSERT INTO fixture_users VALUES(7,'" . $db->sql_escape($key) . "'),(123,'Other numeric ID'),(100,'Other exponent ID'),(1,'Other decimal ID'),(-1,'Anonymous')");
                 $users = serialize(bo_rows('SELECT * FROM fixture_users ORDER BY user_id'));
@@ -89,7 +106,7 @@ try {
         ats_check(bo_save("O'Reilly", 1) === $lang['Missing_banner_owner'] && bo_snapshot() === $before, 'Ambiguous historical owner cannot select either account'); $cases++;
         bo_sql('DELETE FROM fixture_users'); bo_sql("INSERT INTO fixture_users VALUES(7,'Owner')");
         foreach (array("O'Reilly", 'A"B', 'C:\\notes', "A\\'B", 'Trailing\\', '&amp;', '&#39;', '<literal>', 'Grüße 😀', '0', '  Trimmed  ') as $text) {
-            bo_sql('DELETE FROM fixture_banner');
+            bo_sql('TRUNCATE TABLE fixture_banner');
             $fields = array('banner_name'=>$text, 'banner_description'=>$text, 'banner_comment'=>$text,
                 'banner_url'=>"https://example.invalid/?a='" . rawurlencode($text) . "'&b=2");
             foreach (array(0, 1, 1) as $id) {
@@ -105,6 +122,36 @@ try {
             }
         }
     }
+    $other = new sql_db($host,'root',$password,$fixture,false);
+    try {
+        foreach (array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES') as $mode) {
+            bo_sql("SET SESSION sql_mode='$mode'"); ats_check($other->sql_query("SET SESSION sql_mode='$mode'"),'Peer SQL mode');
+            bo_sql('TRUNCATE TABLE fixture_banner'); $interleaved = false; $peer_message = '';
+            $db->before_insert = function() use($other,&$interleaved,&$peer_message) {
+                $original = $GLOBALS['db']; $GLOBALS['db'] = $other; $interleaved = true;
+                try { $peer_message = bo_save('Owner'); } finally { $GLOBALS['db'] = $original; }
+            };
+            $message = bo_save('Owner'); $rows = bo_rows('SELECT banner_id,banner_name FROM fixture_banner ORDER BY banner_id');
+            ats_check($interleaved && strpos($message,$lang['Banner_added']) === 0 && strpos($peer_message,$lang['Banner_added']) === 0,
+                'Both complete saves really interleave on two independent connections');
+            ats_check(count($rows) === 2 && $rows[0]['banner_id'] === '1' && $rows[1]['banner_id'] === '2','Concurrent creates receive distinct database IDs'); $cases++;
+            bo_save('Owner',1,'banner-fixture',array('banner_name'=>'Edited first'));
+            $rows = bo_rows('SELECT banner_id,banner_name FROM fixture_banner ORDER BY banner_id');
+            ats_check($rows[0]['banner_name'] === 'Edited first' && $rows[1]['banner_name'] === 'Synthetic banner','Editing one allocated ID cannot rewrite the other banner'); $cases++;
+            ats_check(bo_delete(1) === 'deleted' && bo_rows('SELECT banner_id FROM fixture_banner')[0]['banner_id'] === '2','Deleting one allocated ID leaves the other intact'); $cases++;
+        }
+    } finally { $other->sql_close(); }
+    foreach (array('SHOW FULL COLUMNS','SHOW INDEX','SELECT ENGINE FROM') as $failure) {
+        $before = bo_snapshot(); $db->fail_metadata = $failure;
+        try {
+            ats_check(bo_save('Owner') === $lang['Banner_storage_upgrade'] && bo_save('Owner',2) === $lang['Banner_storage_upgrade']
+                && bo_delete(2) === $lang['Banner_storage_upgrade'],'Every metadata failure prevents all banner mutations');
+        } finally { $db->fail_metadata = ''; }
+        ats_check(bo_snapshot() === $before,'Failed storage checks preserve the original banner'); $cases++;
+    }
+    bo_sql('ALTER TABLE fixture_banner MODIFY banner_id MEDIUMINT UNSIGNED NOT NULL'); $before = bo_snapshot();
+    ats_check(bo_save('Owner') === $lang['Banner_storage_upgrade'] && bo_save('Owner',2) === $lang['Banner_storage_upgrade']
+        && bo_delete(2) === $lang['Banner_storage_upgrade'] && bo_snapshot() === $before,'Legacy storage never silently inserts ID zero or rewrites ambiguous IDs'); $cases++;
     echo 'Native banner owners: ' . $cases . " complete save/identity/session/failure cases PASS.\n";
 } finally {
     if ($db !== null) { $db->sql_close(); }

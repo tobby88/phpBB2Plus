@@ -74,6 +74,10 @@ try {
  foreach($matches[0] as $sql){plus_storage_query($db,$sql);}
  storage_check(count($matches[0])===count(plus_storage_tables($schema,'phpbb_'))-2,'Entire canonical schema executed');
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Fresh installation all InnoDB');
+ // Exercise the banner migration through the real full updater, not only its targeted mode.
+ plus_storage_query($db,'ALTER TABLE phpbb_banner MODIFY banner_id MEDIUMINT UNSIGNED NOT NULL, DROP PRIMARY KEY, ADD KEY legacy_banner_id(banner_id)');
+ plus_storage_query($db,"INSERT INTO phpbb_banner(banner_id,banner_name) VALUES(11,'Preserve &amp; banner'),(78,'Keep Grüße 😀')");
+ $banner_rows_before=plus_storage_rows($db,'SELECT * FROM phpbb_banner ORDER BY banner_id');
  require_once $root.'/update/ip_ban_migration.php';storage_check(plus_ip_ban_plan($db,'phpbb_banlist')===array(),'Fresh mask migration is a no-op');
  // Actual full updater must add an absent mask without guessing ff intent.
  plus_storage_query($db,'ALTER TABLE phpbb_banlist DROP ban_ip_mask');
@@ -110,7 +114,8 @@ try {
  $config="<?php\n";
  foreach(array('dbhost'=>'127.0.0.1:'.$port,'dbuser'=>'root','dbpasswd'=>$password,'dbname'=>$name,'table_prefix'=>'phpbb_','dbms'=>'mysqli') as $key=>$value){$config.='$'.$key.'='.var_export($value,true).";\n";}
  file_put_contents($config_file,$config);
- foreach(array('dry','missing-maintenance','full','full-retry','storage','retry') as $case){
+ foreach(array('dry','missing-maintenance','full','full-retry','storage','retry','missing-banner') as $case){
+  if($case==='missing-banner'){plus_storage_query($db,'RENAME TABLE phpbb_banner TO fixture_saved_banner');}
   if($case==='storage'){plus_storage_query($db,'ALTER TABLE phpbb_posts ENGINE=MyISAM');}
   $command=escapeshellarg(PHP_BINARY);
   if(DIRECTORY_SEPARATOR==='\\'){$command.=' -n -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d extension=php_mysqli.dll';}
@@ -121,6 +126,10 @@ try {
   $pipes=array();$p=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));
   storage_check(is_resource($p),'Updater subprocess');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($p);
   storage_check($code===($case==='missing-maintenance'?2:0),'Actual updater '.$case.' failed: '.$err);
+  require_once $root.'/update/banner_id_migration.php';
+  storage_check(count(plus_banner_ids_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0)
+   &&plus_storage_rows($db,'SELECT * FROM phpbb_banner ORDER BY banner_id')===($case==='missing-banner'?array():$banner_rows_before),
+   'Actual full updater makes banner IDs atomic without rewriting payloads; dry/refused/retries preserve data');
   $kb_counts=plus_storage_rows($db,'SELECT category_id,number_articles FROM phpbb_kb_categories ORDER BY category_id');
   $kb_expected=($case==='dry'||$case==='missing-maintenance')?array(array('category_id'=>'1','number_articles'=>'99'),array('category_id'=>'2','number_articles'=>'0')):array(array('category_id'=>'1','number_articles'=>'2'),array('category_id'=>'2','number_articles'=>'2'));
   storage_check($kb_counts===$kb_expected&&plus_storage_rows($db,'SELECT * FROM phpbb_kb_articles ORDER BY article_id')===$kb_articles_before,'Actual full updater repairs derived KB counters only on apply and preserves complete article bytes');
@@ -161,6 +170,11 @@ try {
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='23' WHERE config_name='block_time'");}
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='1' WHERE config_name='board_disable'");}
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value=CASE config_name WHEN 'bluecard_limit' THEN '7' WHEN 'bluecard_limit_2' THEN '0' ELSE '21' END WHERE config_name IN('bluecard_limit','bluecard_limit_2','report_forum')");}
+  if($case==='missing-banner'){
+   storage_check(plus_banner_ids_plan($db,'phpbb_',true)===array(),'Full updater recreates missing banner table with atomic IDs');
+   plus_storage_query($db,'DROP TABLE phpbb_banner');plus_storage_query($db,'RENAME TABLE fixture_saved_banner TO phpbb_banner');
+   storage_check(plus_storage_rows($db,'SELECT * FROM phpbb_banner ORDER BY banner_id')===$banner_rows_before,'Only the owned empty replacement table was discarded');
+  }
  }
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Actual updater left all tables InnoDB');
  plus_storage_query($db,"INSERT INTO phpbb_banlist(ban_userid,ban_ip,ban_email,ban_ip_mask) VALUES(0,'7f0000ff','','ffffffff')");

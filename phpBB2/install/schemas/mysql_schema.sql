@@ -1277,7 +1277,7 @@ CREATE TABLE phpbb_bookmarks (
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_banner (
-banner_id mediumint(8) UNSIGNED NOT NULL,
+banner_id mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
 banner_name text NOT NULL,
 banner_spot smallint(1) UNSIGNED NOT NULL,
 banner_forum mediumint(8) UNSIGNED NOT NULL,
@@ -1301,7 +1301,7 @@ banner_width mediumint(5) UNSIGNED NOT NULL,
 banner_height mediumint(5) NOT NULL,
 banner_filter tinyint(1) NOT NULL,
 banner_filter_time mediumint(5) default '600' NOT NULL,
-INDEX (banner_id)
+PRIMARY KEY (banner_id)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_banner_stats (
