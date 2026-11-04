@@ -444,4 +444,5 @@ $lang['tour_options'] = array('Wartend', 'Inaktiv', 'Aktiv', 'Beendet');
 $lang['tour_start_options'] = array('Manuell', 'Min. Anzahl Spieler erreicht', 'Max. Anzahl an Spielern erreicht', 'Automatisch');
 $lang['tour_end_options'] = array('Manuell', 'Alle Spiele gespielt', 'Automatisch');
 
+$lang['arcade_game_changed'] = 'Dieses Spiel wurde bei geöffnetem Formular geändert oder entfernt. Bitte lade die Spieleinstellungen vor dem erneuten Speichern neu.';
 ?>

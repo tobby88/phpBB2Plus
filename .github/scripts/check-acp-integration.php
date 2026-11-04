@@ -75,7 +75,7 @@ $integrations = array(
 	'admin/admin_attach_cp.php' => array("\$module['Attachments']['Control_Panel']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$normalized_delete_ids'),
 	'admin/admin_arcade.php' => array('$module[\'Arcade\'][\'Configuration\']', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'Invalid Arcade asset directory.'),
 	'admin/admin_arcade_set.php' => array('phpbb_admin_require_post_session();', '$field_maximums', "preg_match('/^\\d+\$/D'", 'UPDATE " . iNA_GAMES'),
-	'admin/admin_arcade_games.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'arcade_admin_rename_game_references', 'arcade_admin_delete_game_references'),
+	'admin/admin_arcade_games.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_game_save($db, $game_id,', 'phpbb_arcade_game_revision($game_info)', 'arcade_admin_delete_game_references'),
 	'admin/admin_arcade_cache.php' => array("'S_CONFIG_ACTION' =>", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()'),
 	'admin/admin_arcade_log.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()'),
 	'admin/admin_arcade_cats.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$target_scope', '`group_required`'),

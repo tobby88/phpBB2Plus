@@ -155,6 +155,8 @@ jobs:
         run: php -n .github/scripts/check-arcade-excerpts.php
       - name: Validate exact Arcade import metadata and real module routes
         run: php .github/scripts/check-arcade-import.php
+      - name: Validate manual Arcade fields and stale game revisions
+        run: php .github/scripts/check-arcade-game.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

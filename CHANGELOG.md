@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Save manually added or edited games, all name references, category game/play
+  counters and requested score resets in one owned transaction. Require the
+  exact Add or Edit module grant, recheck the current ACP session and reject
+  outdated edit forms without overwriting another administrator's changes.
+  Notify members only after a confirmed new-game commit; invalidate affected
+  caches even when a commit acknowledgement is uncertain. No schema migration
+  is needed on canonical InnoDB/utf8mb4 installations.
 - Publish imported games and category counters in one owned transaction, with
   current ACP session and exact Import-module authority. Preserve the new game
   ID before subsequent queries; roll back all writes on failure. Count only
