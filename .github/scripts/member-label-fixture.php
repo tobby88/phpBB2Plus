@@ -10,10 +10,11 @@ require $al_root . 'includes/functions_color_groups.php';
 $ml_cases = $ml_templates = 0;
 $ml_arcade = (new ReflectionClass('arcade'))->newInstanceWithoutConstructor();
 $ml_confirmations = array();
+al_check(preg_match('/^function phpbb_arcade_score_number\(.*?^\}/ms', al_source('includes/functions_arcade_score_storage.php'), $m) === 1, 'Actual score confirmation number'); eval($m[0]);
 foreach (array('admin/admin_arcade_scores.php','arcade_modcp.php') as $file) {
     foreach (preg_split('/\r?\n/', al_source($file)) as $line) {
         if (strpos($line, "\$lang['arcade_score_sure']") === false || strpos($line, 'get_username') === false) { continue; }
-        $pattern = $file === 'arcade_modcp.php' ? '/^\'MESSAGE_TEXT\'\s*=>\s*(.+),$/' : '/^\$message = (.+);$/';
+        $pattern = '/^\'MESSAGE_TEXT\'\s*=>\s*(.+),$/';
         al_check(preg_match($pattern, trim($line), $m) === 1, 'Actual score confirmation'); $ml_confirmations[$file] = $m[1];
     }
 }
@@ -34,11 +35,12 @@ function ml_expect($label, $expected, $message) {
 }
 function ml_registered($record, $raw) {
     global $lang, $arcade;
-    $arcade = $GLOBALS['ml_arcade']; $player_id = (int)$record['user_id']; $score = 123.5;
+    $arcade = $GLOBALS['ml_arcade']; $player_id = (int)$record['user_id']; $score = 123.5; $target = array('score'=>$score);
     $key = $record['username']; $expected = htmlspecialchars($raw, ENT_QUOTES, 'UTF-8'); $out = array();
     foreach ($GLOBALS['ml_confirmations'] as $route=>$expression) {
         $out[$route] = eval('return ' . $expression . ';');
-        ml_expect($out[$route], sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . $expected . ')'), 'Current account in actual score confirmation');
+        $shown_score = $route === 'admin/admin_arcade_scores.php' ? phpbb_arcade_score_number($target['score']) : $score;
+        ml_expect($out[$route], sprintf($lang['arcade_score_sure'], $shown_score, $player_id . ' (' . $expected . ')'), 'Current account in actual score confirmation');
     }
     $user_name = $key; $out['score'] = eval('return ' . $GLOBALS['ml_score'] . ';'); ml_expect($out['score'], $expected, 'Score result name');
     $view_profile = $view_userdata = $record;
