@@ -111,7 +111,9 @@ class PhpbbArcadeGameWriter extends PhpbbArcadeImportWriter
    foreach(array('current'=>array(iNA_SCORES,'highscore_id'),'all_time'=>array(iNA_AT_SCORES,'at_highscore_id'))as$key=>$target){
     if($reset[$key]){$this->query('DELETE FROM '.$target[0]." WHERE game_name='$name'");}
     foreach($this->ranked_players($target[0],$values['game_name'],(int)$values['reverse_list']!==0)as$row){if((int)$row['player_id']>0){$affected[]=(int)$row['player_id'];}}
-    $top=$this->rows('SELECT s.player_id FROM '.$target[0].' s INNER JOIN '.USERS_TABLE." u ON u.user_id=s.player_id WHERE s.game_name='$name' ORDER BY s.score ".((int)$values['reverse_list']?'ASC':'DESC').',s.date ASC,s.player_id ASC LIMIT 1 FOR UPDATE');
+    // Ranked score rows are locked already. Keep accounts shared so a pending
+    // authority revoke need not deadlock with an actor becoming the winner.
+    $top=$this->rows('SELECT s.player_id FROM '.$target[0].' s INNER JOIN '.USERS_TABLE." u ON u.user_id=s.player_id WHERE s.game_name='$name' ORDER BY s.score ".((int)$values['reverse_list']?'ASC':'DESC').',s.date ASC,s.player_id ASC LIMIT 1 LOCK IN SHARE MODE');
     $winner=$top?(int)$top[0]['player_id']:0;$this->query('UPDATE '.iNA_GAMES.' SET '.$target[1].'='.$winner.' WHERE game_id='.$id);
    }
    $this->rebuild_rankings($affected);

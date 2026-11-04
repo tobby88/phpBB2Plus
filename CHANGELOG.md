@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Retain shared account locks while selecting a game's current/all-time winner.
+  When the acting administrator becomes that winner, a queued role revocation
+  can finish after the save without an unnecessary exclusive-lock upgrade.
 - Edit or delete individual current/all-time scores together with their winner
   pointer and affected placement counts/lists in an owned transaction. Require
   current Edit-module authority and a complete game/score snapshot; refuse stale
