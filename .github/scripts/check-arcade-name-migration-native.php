@@ -31,8 +31,11 @@ function an_create($variant,$populated=true){
 }
 function an_denied($callback,$label){$before=an_state();$caught=false;try{$callback();}catch(Exception$e){$caught=true;}an_check($caught&&an_state()===$before,$label);$GLOBALS['an_cases']++;}
 function an_cli($arguments){
- global $an_config;$extension=DIRECTORY_SEPARATOR==='\\'?'php_mysqli.dll':'mysqli.so';
- $parts=array(PHP_BINARY,'-n','-d','extension_dir='.ini_get('extension_dir'),'-d','extension='.$extension,dirname(dirname(__DIR__)).'/update/update_from_153a.php','--config='.$an_config);
+ global $an_config;$parts=array(PHP_BINARY);
+ // Keep Linux's configured mysqlnd dependencies. Bundled Windows runtimes
+ // require their explicit extension directory and the mysqli DLL instead.
+ if(DIRECTORY_SEPARATOR==='\\'){$parts=array_merge($parts,array('-n','-d','extension_dir='.ini_get('extension_dir'),'-d','extension=php_mysqli.dll'));}
+ $parts[]=dirname(dirname(__DIR__)).'/update/update_from_153a.php';$parts[]='--config='.$an_config;
  $command=implode(' ',array_map('escapeshellarg',array_merge($parts,$arguments)));$pipes=array();$process=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));an_check(is_resource($process),'Own updater process');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);return array(proc_close($process),$out,$err);
 }
 $an_db=$control=$peer=null;$created=false;$an_config=null;$an_config_owned=false;$schema='codex_arc_names_'.bin2hex(phpbb_random_bytes(8));
