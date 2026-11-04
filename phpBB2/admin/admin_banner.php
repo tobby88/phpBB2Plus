@@ -77,6 +77,35 @@ function admin_banner_post_text($name, $max_characters, $max_bytes)
 	return $value;
 }
 
+function admin_banner_post_counter($name)
+{
+	global $lang;
+	$value = trim(admin_banner_post_scalar($name, '0'));
+	if ($value === '') { $value = '0'; }
+	if ((isset($_POST[$name]) && !is_scalar($_POST[$name])) || !preg_match('/^[0-9]{1,20}$/D', $value)
+		|| (strlen($value) === 20 && strcmp($value, '18446744073709551615') > 0))
+	{
+		message_die(GENERAL_MESSAGE, sprintf($lang['Banner_counter_invalid'], $lang[$name === 'banner_click' ? 'Banner_clicks' : 'Banner_view']));
+	}
+	$value = ltrim($value, '0');
+	return $value === '' ? '0' : $value;
+}
+
+function admin_banner_counter_storage_ready()
+{
+	global $db;
+	$result = $db->sql_query("SHOW FULL COLUMNS FROM " . BANNERS_TABLE . " WHERE Field IN ('banner_click','banner_view')");
+	if (!$result) { return false; }
+	try { $rows = $db->sql_fetchrowset($result); } finally { $db->sql_freeresult($result); }
+	if (!is_array($rows) || count($rows) !== 2) { return false; }
+	foreach ($rows as $row)
+	{
+		if (!preg_match('/^bigint(?:\([0-9]+\))? unsigned$/Di', $row['Type']) || $row['Null'] !== 'NO'
+			|| (string) $row['Default'] !== '0' || $row['Extra'] !== '') { return false; }
+	}
+	return true;
+}
+
 function admin_banner_id_storage_ready()
 {
 	global $db;
@@ -570,6 +599,7 @@ if( $mode!= "")
 	{
 		phpbb_admin_require_post_session();
 		if (!admin_banner_id_storage_ready()) { message_die(GENERAL_ERROR, $lang['Banner_storage_upgrade']); }
+		if (!admin_banner_counter_storage_ready()) { message_die(GENERAL_ERROR, $lang['Banner_counter_upgrade']); }
 		//
 		// Ok, they sent us our info, let's update it.
 		//
@@ -587,8 +617,8 @@ if( $mode!= "")
 		$banner_description = admin_banner_post_text('banner_description', 30, 120);
 		$banner_width = max(0, (int) admin_banner_post_scalar('banner_width', '0'));
 		$banner_height = max(0, (int) admin_banner_post_scalar('banner_height', '0'));
-		$banner_click = max(0, (int) admin_banner_post_scalar('banner_click', '0'));
-		$banner_view = max(0, (int) admin_banner_post_scalar('banner_view', '0'));
+		$banner_click = admin_banner_post_counter('banner_click');
+		$banner_view = admin_banner_post_counter('banner_view');
 		$banner_url = admin_banner_post_text('banner_url', 90, 360);
 		$banner_owner = phpbb_admin_post_string('username');
 		$banner_spot = (int) admin_banner_post_scalar('banner_spot', '0');

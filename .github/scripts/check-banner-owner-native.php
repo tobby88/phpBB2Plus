@@ -11,6 +11,8 @@ define('ANONYMOUS', -1); define('POST_FORUM_URL', 'f'); define('BANNERS_TABLE', 
 ats_load_function($ats_source . 'includes/functions.php', 'get_userdata');
 ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_post_scalar');
 ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_post_text');
+ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_post_counter');
+ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_counter_storage_ready');
 ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_id_storage_ready');
 require $ats_source . 'language/lang_english/lang_banner.php';
 require $ats_source . 'db/mysqli.php';
@@ -62,7 +64,7 @@ function bo_delete($id, $sid = 'banner-fixture') {
     try { eval($banner_delete_body); } catch(AttachSettingsExit $e) { return $e->getMessage(); }
     return 'deleted';
 }
-function bo_text_form($row, $locale, $schedule = false) {
+function bo_text_form($row, $locale, $schedule = false, $counters = false) {
     global $ats_source,$bo_banner_source,$board_config,$theme,$phpbb_root_path,$phpEx,$lang;
     require_once $ats_source . 'includes/template.php';
     $phpbb_root_path=$ats_source;$board_config=array('default_lang'=>$locale,'board_timezone'=>0,'default_dateformat'=>'Y-m-d',
@@ -74,6 +76,11 @@ function bo_text_form($row, $locale, $schedule = false) {
     }
     $vars=array();foreach(array('BANNER_NAME','BANNER_DESCRIPTION','BANNER_URL','BANNER_COMMENT')as$key){
         ats_check(preg_match('/\''.preg_quote($key,'/').'\'\s*=>\s*([^\r\n]+),/',$bo_banner_source,$m)===1,'Actual text form binding');$vars[$key]=eval('return '.$m[1].';');
+    }
+    if ($counters) {
+        foreach(array('BANNER_CLICK','BANNER_VIEW')as$key){
+            ats_check(preg_match('/\''.preg_quote($key,'/').'\'\s*=>\s*([^\r\n]+),/',$bo_banner_source,$m)===1,'Actual counter form binding');$vars[$key]=eval('return '.$m[1].';');
+        }
     }
     if ($schedule) {
         $start = strpos($bo_banner_source, '$s_time_week_begin=');
@@ -109,6 +116,12 @@ function bo_text_form($row, $locale, $schedule = false) {
             ats_check(preg_match_all('/<option\b[^>]*value="([0-9]+)"([^>]*)>/i',$m[1],$options,PREG_SET_ORDER)>0,'Actual browser schedule options');
             $post[$field]=$options[0][1];
             foreach($options as$option){if(preg_match('/\bselected\b/i',$option[2])){$post[$field]=$option[1];break;}}
+        }
+    }
+    if ($counters) {
+        foreach(array('banner_click','banner_view')as$field){
+            ats_check(preg_match('/<input\b[^>]*name="'.$field.'"[^>]*>/i',$html,$m)===1&&preg_match('/value="([^"]*)"/',$m[0],$v)===1&&strpos($m[0],'maxlength="20"')!==false,'Actual full-width counter input');
+            $post[$field]=html_entity_decode($v[1],ENT_QUOTES,'UTF-8');ats_check($post[$field]===$row[$field],'Actual counter form retains exact decimal digits');
         }
     }
     return$post;
@@ -266,6 +279,30 @@ try {
         }
     }
     echo 'Native banner schedules: '.$schedule_cases.' cases, '.$schedule_forms." actual forms PASS.\n";
+    $counter_cases=0;$counter_forms=0;
+    foreach(array('english','german')as$locale){
+        require $ats_source.'language/lang_'.$locale.'/lang_banner.php';
+        foreach(array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES')as$mode){
+            bo_sql("SET SESSION sql_mode='$mode'");
+            foreach(array('0','16777216','2147483648','9007199254740993','9223372036854775808','18446744073709551615','00000000000000000007','')as$value){
+                bo_sql('TRUNCATE TABLE fixture_banner');$fields=array('banner_click'=>$value,'banner_view'=>$value);$expected=ltrim($value,'0');if($expected===''){$expected='0';}
+                foreach(array(0,1,1)as$id){
+                    $message=bo_save('Owner',$id,'banner-fixture',$fields);ats_check(strpos($message,$lang[$id?'Banner_updated':'Banner_added'])===0,'Actual wide counter save succeeds');
+                    $row=bo_rows('SELECT * FROM fixture_banner')[0];ats_check($row['banner_click']===$expected&&$row['banner_view']===$expected,'Wide counters are never rounded or cast through native integers');
+                    $fields=bo_text_form($row,$locale,false,true);$counter_forms++;$counter_cases++;
+                }
+            }
+            $before=bo_snapshot();
+            foreach(array('banner_click','banner_view')as$field){foreach(array('-1','+1','1.0','1e3','18446744073709551616','999999999999999999999','1 OR 1=1',array('1'))as$value){foreach(array(0,1)as$id){
+                $writes=$db->write_queries;$expected=sprintf($lang['Banner_counter_invalid'],$lang[$field==='banner_click'?'Banner_clicks':'Banner_view']);
+                ats_check(bo_save('Owner',$id,'banner-fixture',array($field=>$value))===$expected&&$db->write_queries===$writes&&bo_snapshot()===$before,'Invalid counter rejected with localized message before any write');$counter_cases++;
+            }}}
+        }
+    }
+    bo_sql('TRUNCATE TABLE fixture_banner');bo_save('Owner');bo_sql('ALTER TABLE fixture_banner MODIFY banner_click MEDIUMINT UNSIGNED NOT NULL');$before=bo_snapshot();
+    ats_check(bo_save('Owner')===$lang['Banner_counter_upgrade']&&bo_save('Owner',1)===$lang['Banner_counter_upgrade']&&bo_snapshot()===$before,'Legacy counter storage blocks creates and edits until updater runs');$counter_cases++;
+    bo_sql('ALTER TABLE fixture_banner MODIFY banner_click BIGINT UNSIGNED NOT NULL DEFAULT 0');
+    echo 'Native banner counters: '.$counter_cases.' cases, '.$counter_forms." actual forms PASS.\n";
     $other = new sql_db($host,'root',$password,$fixture,false);
     try {
         foreach (array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES') as $mode) {

@@ -31,6 +31,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Save banner click counters and detailed statistics in one owned InnoDB
   transaction. Set the browser's click filter only after a confirmed commit,
   preserving both records and retryability when a write fails.
+- Widen banner click/view counters to unsigned 64-bit storage, preserving all
+  existing counts through the full updater and `--banner-counters-only`. Keep
+  exact decimal strings in the ACP and permit the full supported value in forms,
+  including on 32-bit PHP; reject malformed and oversized counter input.
 
 ### Arcade summary names and caches
 

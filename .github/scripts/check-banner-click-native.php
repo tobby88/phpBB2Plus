@@ -82,7 +82,10 @@ try{
             bc_sql('DROP TRIGGER fixture_reject_'.$failure);bc_check(bc_track()&&bc_rows('SELECT banner_click FROM fixture_banner')[0]['banner_click']==='1'&&count(bc_rows('SELECT * FROM fixture_banner_stats'))===1,'Retry after actual rollback counts exactly once');$cases++;
         }
         bc_reset();bc_sql('DELETE FROM fixture_banner');$before=bc_state();bc_check(!bc_track()&&bc_state()===$before&&count($bc_cookies)===0,'Banner removed after initial read creates no orphan statistic');$cases++;
-        bc_reset();bc_sql('UPDATE fixture_banner SET banner_click=16777215');$before=bc_state();bc_check(!bc_track()&&bc_state()===$before&&count($bc_cookies)===0,'Counter overflow cannot silently clamp or create an unmatched statistic even in non-strict caller mode');$cases++;
+        foreach(array('16777215'=>'16777216','2147483647'=>'2147483648','9007199254740991'=>'9007199254740992','9223372036854775807'=>'9223372036854775808')as$before_count=>$after_count){
+            bc_reset();bc_sql('UPDATE fixture_banner SET banner_click='.$before_count);bc_check(bc_track()&&bc_rows('SELECT banner_click FROM fixture_banner')[0]['banner_click']===(string)$after_count&&count(bc_rows('SELECT * FROM fixture_banner_stats'))===1,'Counter grows exactly beyond old, native-integer and floating-point boundaries');$cases++;
+        }
+        bc_reset();bc_sql('UPDATE fixture_banner SET banner_click=18446744073709551615');$before=bc_state();bc_check(!bc_track()&&bc_state()===$before&&count($bc_cookies)===0,'Supported counter limit cannot silently clamp or create an unmatched statistic even in non-strict caller mode');$cases++;
         foreach(array('SET TRANSACTION','START TRANSACTION','SELECT banner_id FROM fixture_banner_stats','SELECT ENGINE FROM','UPDATE fixture_banner ','INSERT INTO fixture_banner_stats ','COMMIT')as$failure){
             bc_reset();$before=bc_state();$bc_hook=function($writer,$sql)use($failure){return strpos($sql,$failure)===0?false:null;};
             bc_check(!bc_track()&&bc_state()===$before&&count($bc_cookies)===0,'Control/metadata/write/commit failure never leaves a partial pair: '.$failure);$bc_hook=null;$cases++;

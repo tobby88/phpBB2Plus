@@ -98,6 +98,19 @@ manual review; the updater never deletes or renumbers them. Convert legacy
 engines with `--storage-only` first when using the targeted mode. Banner changes
 remain disabled until the required storage definition is available.
 
+Banner click and view counts use unsigned 64-bit counters. The full updater
+widens older counter columns while preserving their exact values. The same
+backup and stopped-writer requirements apply to the targeted mode:
+
+```sh
+php update/update_from_153a.php --banner-counters-only
+php update/update_from_153a.php --banner-counters-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+The ACP preserves these values as decimal strings even on 32-bit PHP. Invalid
+or oversized input is rejected before saving. Custom non-integer counter types
+and negative or missing stored counts require manual review rather than repair.
+
 The CLI recovery tool previews eligible journal headers by default. It can resume
 committed picture deletions and abandon uploads which remained prepared for at
 least seven days by default. It requires an explicit apply and confirmation of a

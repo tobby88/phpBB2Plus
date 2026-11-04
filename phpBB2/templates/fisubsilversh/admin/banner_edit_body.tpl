@@ -44,12 +44,12 @@
 
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_BANNER_VIEW}:</span></td>
-		<td class="row2"><input type="text" name="banner_view" size="8" maxlength="8" value="{BANNER_VIEW}" /></td>
+		<td class="row2"><input type="text" name="banner_view" size="20" maxlength="20" inputmode="numeric" value="{BANNER_VIEW}" /></td>
 	</tr>
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_BANNER_CLICK}:</span><br />
 		<span class="gensmall">{L_BANNER_CLICK_EXPLAIN}</span></td>
-		<td class="row2"><input type="text" name="banner_click" size="8" maxlength="8" value="{BANNER_CLICK}" /></td>
+		<td class="row2"><input type="text" name="banner_click" size="20" maxlength="20" inputmode="numeric" value="{BANNER_CLICK}" /></td>
 	</tr>
 
 	<tr>

@@ -75,8 +75,9 @@ try {
  storage_check(count($matches[0])===count(plus_storage_tables($schema,'phpbb_'))-2,'Entire canonical schema executed');
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Fresh installation all InnoDB');
  // Exercise the banner migration through the real full updater, not only its targeted mode.
- plus_storage_query($db,'ALTER TABLE phpbb_banner MODIFY banner_id MEDIUMINT UNSIGNED NOT NULL, DROP PRIMARY KEY, ADD KEY legacy_banner_id(banner_id)');
+ plus_storage_query($db,'ALTER TABLE phpbb_banner MODIFY banner_id MEDIUMINT UNSIGNED NOT NULL, DROP PRIMARY KEY, ADD KEY legacy_banner_id(banner_id), MODIFY banner_click MEDIUMINT UNSIGNED NOT NULL, MODIFY banner_view MEDIUMINT UNSIGNED NOT NULL');
  plus_storage_query($db,"INSERT INTO phpbb_banner(banner_id,banner_name) VALUES(11,'Preserve &amp; banner'),(78,'Keep Grüße 😀')");
+ plus_storage_query($db,'UPDATE phpbb_banner SET banner_click=16777215,banner_view=123456 WHERE banner_id=11');
  $banner_rows_before=plus_storage_rows($db,'SELECT * FROM phpbb_banner ORDER BY banner_id');
  require_once $root.'/update/ip_ban_migration.php';storage_check(plus_ip_ban_plan($db,'phpbb_banlist')===array(),'Fresh mask migration is a no-op');
  // Actual full updater must add an absent mask without guessing ff intent.
@@ -126,10 +127,12 @@ try {
   $pipes=array();$p=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));
   storage_check(is_resource($p),'Updater subprocess');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($p);
   storage_check($code===($case==='missing-maintenance'?2:0),'Actual updater '.$case.' failed: '.$err);
-  require_once $root.'/update/banner_id_migration.php';
+  require_once $root.'/update/banner_counter_migration.php';
   storage_check(count(plus_banner_ids_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0)
    &&plus_storage_rows($db,'SELECT * FROM phpbb_banner ORDER BY banner_id')===($case==='missing-banner'?array():$banner_rows_before),
    'Actual full updater makes banner IDs atomic without rewriting payloads; dry/refused/retries preserve data');
+  storage_check(count(plus_banner_counters_plan($db,'phpbb_',true,true))===($case==='dry'||$case==='missing-maintenance'?1:0),
+   'Actual full updater widens old banner counters before completion; dry/refused/retry preserves exact counts');
   $kb_counts=plus_storage_rows($db,'SELECT category_id,number_articles FROM phpbb_kb_categories ORDER BY category_id');
   $kb_expected=($case==='dry'||$case==='missing-maintenance')?array(array('category_id'=>'1','number_articles'=>'99'),array('category_id'=>'2','number_articles'=>'0')):array(array('category_id'=>'1','number_articles'=>'2'),array('category_id'=>'2','number_articles'=>'2'));
   storage_check($kb_counts===$kb_expected&&plus_storage_rows($db,'SELECT * FROM phpbb_kb_articles ORDER BY article_id')===$kb_articles_before,'Actual full updater repairs derived KB counters only on apply and preserves complete article bytes');

@@ -259,6 +259,7 @@ jobs:
           php .github/scripts/check-username-identity-native.php
           php .github/scripts/check-banner-owner-native.php
           php .github/scripts/check-banner-id-migration-native.php
+          php .github/scripts/check-banner-counter-migration-native.php
           php .github/scripts/check-banner-click-native.php
         env:
           PHPBB_USERNAME_NATIVE: '1'
