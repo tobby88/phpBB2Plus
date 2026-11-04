@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Custom-profile UTF-8 compatibility
+
+- Keep complete Unicode characters when shortening custom-profile values on
+  PHP installations without mbstring. Use the same character boundaries as
+  installations with mbstring, including supplementary characters.
+- Preserve existing field limits, storage representation and database schema.
+
 ### Recent-topic and staff-profile excerpts
 
 - Shorten displayed topics, post subjects and forum names by UTF-8 characters

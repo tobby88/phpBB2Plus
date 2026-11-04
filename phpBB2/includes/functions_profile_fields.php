@@ -160,8 +160,13 @@ function phpbb_profile_field_column($field)
 function phpbb_profile_field_substr($value, $length)
 {
   $length = max(0, (int) $length);
-  // PHP 5.6 substr('', 0, n) can return false; callers require a text value.
-  return (string) (function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length));
+  $value = (string) $value;
+  if ($length === 0 || preg_match('//u', $value) !== 1) { return ''; }
+  // Split only the requested prefix plus a remainder. Byte substr corrupts
+  // multi-byte characters on hosts without mbstring; both hosts must agree.
+  if (function_exists('mb_substr')) { return (string) mb_substr($value, 0, $length, 'UTF-8'); }
+  $characters = preg_split('//u', $value, min($length, strlen($value)) + 2, PREG_SPLIT_NO_EMPTY);
+  return $characters === false ? '' : implode('', array_slice($characters, 0, $length));
 }
 
 function phpbb_profile_field_input($field, $source)

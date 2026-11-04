@@ -26,6 +26,31 @@ $theme=array('template_name'=>'fisubsilversh');$board_config=array('xs_use_cache
 $cases=0;$raw="Grüße 😀 \\ &amp; ' \" </textarea><script>bad</script>";
 set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
 try {
+ $prefix_cases=0;
+ foreach(array('', '0', 'abcdef', 'äÖüß', '😀🦊Z', "e\xcc\x81Z", 'Aä😀Z', '&amp;') as $text) {
+  $characters=preg_split('//u',$text,-1,PREG_SPLIT_NO_EMPTY);
+  foreach(array(-1,0,1,2,3,6,255,60000) as $limit) {
+   $actual=phpbb_profile_field_substr($text,$limit);
+   cpf_check($actual===implode('',array_slice($characters,0,max(0,$limit)))&&preg_match('//u',$actual)===1,'Unicode prefix including empty/zero '.$limit);
+   $prefix_cases++;
+  }
+ }
+ foreach(array("\xc3", "valid\xff", "\xed\xa0\x80") as $invalid) {
+  cpf_check(phpbb_profile_field_substr($invalid,1)==='','Invalid UTF-8 fails closed');$prefix_cases++;
+ }
+ foreach(array(TEXT_FIELD,TEXTAREA) as $type) {
+  foreach(array(1,2,3,255) as $limit) {
+   $field=array('field_name'=>'fixture_unicode','field_type'=>$type,'text_field_maxlen'=>$limit,'text_area_maxlen'=>$limit);
+   $raw_unicode='ä😀'.str_repeat('Ö',260);$expected=implode('',array_slice(preg_split('//u',$raw_unicode,-1,PREG_SPLIT_NO_EMPTY),0,$limit));
+   profile_fixture_request(array('fixture_unicode'=>$raw_unicode));
+   $value=phpbb_profile_field_input($field,$_POST);
+   cpf_check($value===$expected&&preg_match('//u',$value)===1,'Actual Unicode input '.$type.'/'.$limit);
+   $control=phpbb_profile_field_form_control($field,$value);
+   cpf_check(cpf_read($control,'fixture_unicode',$type)===$expected,'Actual Unicode form round trip '.$type.'/'.$limit);$prefix_cases++;
+  }
+ }
+ $long=str_repeat('😀',60001);cpf_check(phpbb_profile_field_substr($long,60000)===str_repeat('😀',60000),'Legacy textarea boundary keeps complete supplementary characters');$prefix_cases++;
+ echo 'Custom profile Unicode: '.$prefix_cases." prefix/input/form cases PASS (mbstring ".(function_exists('mb_substr')?'on':'off').").\n";
  foreach(array('english','german') as $language) { $lang=array();require $phpbb_root_path.'language/lang_'.$language.'/lang_main.php';
  foreach(array('public','admin') as $surface) {
  foreach(array('existing','new','rejected','clear','nested','gallery-return') as $scenario) {
