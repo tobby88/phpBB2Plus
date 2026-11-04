@@ -316,6 +316,12 @@ jobs:
         env:
           PHPBB_ARCADE_TEXT_NATIVE: '1'
           PHPBB_ARCADE_TEXT_PASSWORD: fixture-only
+      - name: Render native stored Arcade excerpts without changing metadata
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-excerpts-native.php
+        env:
+          PHPBB_ARCADE_EXCERPT_NATIVE: '1'
+          PHPBB_ARCADE_EXCERPT_PASSWORD: fixture-only
       - name: Keep native Arcade category identities and visibility current
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-category-cache-native.php

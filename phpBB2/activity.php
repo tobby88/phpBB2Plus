@@ -1053,11 +1053,7 @@ if( $mode != '' )
 //
 //  Last Game (check length and output short version if required)
 //    
-            $last_game_desc = $catrows[$i]['game_desc'];
-       			if(strlen($catrows[$i]['game_desc']) > 25)
-       			{
-       				$last_game_desc =	trim(substr_replace ( $catrows[$i]['game_desc'], ' ', 23, strlen($catrows[$i]['game_desc']) )) . '..';
-       			}
+            $last_game_desc = phpbb_text_excerpt($catrows[$i]['game_desc'], 25);
 //
 //  Build the Last Played Info
 //
@@ -1650,11 +1646,7 @@ else
 //
 //  Last Game (check length and output short version if required)
 //    
-      $last_game_desc = $catrows[$i]['game_desc'];
- 			if(strlen($catrows[$i]['game_desc']) > 25)
- 			{
- 				$last_game_desc =	trim(substr_replace ( $catrows[$i]['game_desc'], ' ', 23, strlen($catrows[$i]['game_desc']) )) . '..';
- 			}
+      $last_game_desc = phpbb_text_excerpt($catrows[$i]['game_desc'], 25);
 //
 //  Build the Last Played Info
 //
@@ -1735,11 +1727,7 @@ else
  		{
  			$profile = $lang['Guest'];
  		}
-    $last_game_desc = $catrows[0]['game_desc'];
-   	if(strlen($catrows[0]['game_desc']) > 25)
-   	{
-		$last_game_desc = trim(substr_replace($catrows[0]['game_desc'], ' ', 23, strlen($catrows[0]['game_desc']))) . '..';
-   	}
+    $last_game_desc = phpbb_text_excerpt($catrows[0]['game_desc'], 25);
 //
 //  Build the Last Played Info
 //

@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Shorten last-played game captions by Unicode characters in both category
+  views and the all-games summary. Keep titles of up to 25 characters intact,
+  add an ellipsis only for longer titles and escape the raw caption once.
 - Count category, game-caption and tournament-name limits as UTF-8 characters.
   Keep whole characters at legacy TEXT byte limits and reject malformed input.
   Apply the same tournament rules without mbstring and permit supplementary

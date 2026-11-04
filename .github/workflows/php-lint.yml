@@ -151,6 +151,8 @@ jobs:
         run: |
           php -n .github/scripts/check-arcade-text.php
           php .github/scripts/check-arcade-text.php
+      - name: Keep complete UTF-8 in last-played Arcade captions
+        run: php -n .github/scripts/check-arcade-excerpts.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation
