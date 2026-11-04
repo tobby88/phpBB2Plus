@@ -445,5 +445,6 @@ $lang['tour_start_options'] = array('Manuell', 'Min. Anzahl Spieler erreicht', '
 $lang['tour_end_options'] = array('Manuell', 'Alle Spiele gespielt', 'Automatisch');
 
 $lang['arcade_game_changed'] = 'Dieses Spiel wurde bei geöffnetem Formular geändert oder entfernt. Bitte lade die Spieleinstellungen vor dem erneuten Speichern neu.';
+$lang['arcade_score_changed'] = 'Das Ergebnis oder Spiel wurde inzwischen geändert oder ist nicht eindeutig. Bitte lade die Bestenliste neu und wähle das Ergebnis erneut.';
 $lang['arcade_reset_changed'] = 'Die Spieleauswahl hat sich geändert. Bitte starte das Zurücksetzen der Ergebnisse erneut.';
 ?>

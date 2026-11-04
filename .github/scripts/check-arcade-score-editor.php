@@ -1,0 +1,19 @@
+<?php
+require __DIR__.'/arcade-score-fixture.php';$count=0;
+foreach(array('0'=>'0.0000','-0'=>'0.0000','1.23456'=>'1.2346','-1.23456'=>'-1.2346','1e2'=>'100.0000','.25'=>'0.2500',' 2.5 '=>'2.5000','+3'=>'3.0000','9999999999.9999'=>'9999999999.9999','-9999999999.9999'=>'-9999999999.9999')as$value=>$expected){as_check(phpbb_arcade_score_number((string)$value)===$expected,'Stable numeric boundary '.$value);$count++;}
+foreach(array('',array(1),null,false,true,'nan','INF','1e99','10000000000','-10000000000','0x10','2,5','1;DELETE','--1',str_repeat('0',129))as$value){$caught=false;try{phpbb_arcade_score_number($value);}catch(PhpbbOwnedStorageFailure$e){$caught=true;}as_check($caught,'Malformed score refused');$count++;}
+foreach(array(-8388608,-1,0,2,8388607,'-1','0','8388607')as$value){as_check(phpbb_arcade_score_integer($value)===(int)$value,'Stable signed player ID');$count++;}
+foreach(array('-0','01','+1','1.0','1e2',true,1.0,array(1),null,-8388609,8388608)as$value){$caught=false;try{phpbb_arcade_score_integer($value);}catch(PhpbbOwnedStorageFailure$e){$caught=true;}as_check($caught,'Malformed player ID refused');$count++;}
+$game=array_merge(array('game_id'=>41),ag_values('raw&amp;😀'));$row=array('game_name'=>$game['game_name'],'gameData'=>'raw &amp; Grüße 😀 \\', 'player'=>'Stored user','player_id'=>'2','score'=>'50.0000','date'=>'2','player_ip'=>'127.0.0.1','time_taken'=>null);
+$revision=phpbb_arcade_score_revision($game,'current',$row);
+foreach(array_merge(array('game_id'),phpbb_arcade_game_fields())as$key){$changed=$game;$changed[$key]=(string)$changed[$key].'x';as_check(phpbb_arcade_score_revision($changed,'current',$row)!==$revision,'Selected game identity and metadata pinned '.$key);$count++;}
+foreach(phpbb_arcade_score_fields('current')as$key){$changed=$row;$changed[$key]=$key==='score'?'60.0000':($key==='player_id'?'8':(string)$changed[$key].'x');as_check(phpbb_arcade_score_revision($game,'current',$changed)!==$revision,'Complete selected score snapshot '.$key);$count++;}
+$changed=$row;$changed['username']='Presentation only';as_check(phpbb_arcade_score_revision($game,'current',$changed)===$revision,'Joined caption is not stored score identity');$count++;
+$changed=$row;unset($changed['gameData']);$changed['player_name']='Cached';as_check(phpbb_arcade_score_revision($game,'all_time',$changed)!==$revision,'Separate current/all-time confirmation');$count++;
+foreach(array(array($game,'wrong',$row),array($game,'current',array()),array($game,'current',array_merge($row,array('player_id'=>array(2)))) )as$args){$caught=false;try{call_user_func_array('phpbb_arcade_score_revision',$args);}catch(PhpbbOwnedStorageFailure$e){$caught=true;}as_check($caught,'Incomplete snapshot refused');$count++;}
+profile_fixture_request(array('name'=>"raw'\\&amp;😀"));as_check(phpbb_arcade_score_request($HTTP_POST_VARS,'name')==="raw'\\&amp;😀",'Actual common normalization decoded exactly once');$count++;
+foreach(array('english','german')as$locale){ag_language($locale);as_check(isset($lang['arcade_score_changed'])&&preg_match('//u',$lang['arcade_score_changed'])===1,'Localized score recovery');$count++;}
+$page=file_get_contents($as_app.'admin/admin_arcade_scores.php');as_check(strpos($page,'html_entity_decode')===false&&strpos($page,'$arcade->update_high(')===false,'No second decoded identity or standalone winner write');
+as_check(strpos(file_get_contents($as_app.'templates/fisubsilversh/confirm_body.tpl'),'{S_HIDDEN_FIELDS}')!==false,'Actual confirmation retains revision/SID');
+as_check(strpos(file_get_contents($as_app.'templates/fisubsilversh/admin/arcade_scores_body.tpl'),'{S_HIDDEN_FIELDS}')!==false,'Actual score editor template retains revision/SID');
+echo 'Arcade score editor inputs: '.$count.' cases, '.$as_checks." assertions PASS; exact raw identities, stable numbers and complete bound snapshots.\n";

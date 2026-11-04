@@ -159,6 +159,8 @@ jobs:
         run: php .github/scripts/check-arcade-game.php
       - name: Bind Arcade deletions and score resets to confirmed game selections
         run: php .github/scripts/check-arcade-actions.php
+      - name: Bind individual Arcade score forms to raw identities and complete snapshots
+        run: php .github/scripts/check-arcade-score-editor.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

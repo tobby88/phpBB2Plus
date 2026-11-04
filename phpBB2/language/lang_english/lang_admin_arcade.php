@@ -440,5 +440,6 @@ $lang['tour_start_options'] = array('Manually', 'Min Players Reached', 'Max Play
 $lang['tour_end_options'] = array('Manually', 'All Games Played', 'Automatically');
 
 $lang['arcade_game_changed'] = 'This game was changed or removed while the form was open. Reload the game settings before saving again.';
+$lang['arcade_score_changed'] = 'The score or game has changed or is ambiguous. Please reload the scoreboard and select the score again.';
 $lang['arcade_reset_changed'] = 'The game selection has changed. Please open a new score-reset confirmation.';
 ?>

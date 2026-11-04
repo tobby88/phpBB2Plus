@@ -346,6 +346,12 @@ jobs:
         env:
           PHPBB_ARCADE_ACTION_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Edit and delete native individual Arcade scores atomically
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-score-editor-native.php
+        env:
+          PHPBB_ARCADE_SCORE_EDITOR_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Keep native Arcade category identities and visibility current
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-category-cache-native.php

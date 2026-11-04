@@ -51,217 +51,98 @@ $file = basename(__FILE__);
 //
 //  Get the Required Information
 //
-$mode               = (string) $arcade->pass_var('mode', '');
-$allowed_modes      = array('scores', 'at_scores', 'delete', 'delete_at');
-if (!in_array($mode, $allowed_modes, true))
+require_once $phpbb_root_path.'includes/functions_arcade_score_storage.php';
+$score_request = isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' ? $HTTP_POST_VARS : $HTTP_GET_VARS;
+$score_is_post = isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST';
+$score_action_result = null;
+try
 {
-  message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-}
-$edit               = max(0, (int) $arcade->pass_var('edit', 0));
-$arcade->game_name  = $arcade->pass_var('game_name', '');
-$game_id            = max(0, (int) $arcade->pass_var('game_id', 0));
-$player_id          = max(0, (int) $arcade->pass_var('player_id', 0));
-$score              = (float) $arcade->pass_var('score', 0);
-$old_score          = (float) $arcade->pass_var('old_score', 0);
-if (!is_finite($score) || !is_finite($old_score) || abs($score) > 9999999999.9999 || abs($old_score) > 9999999999.9999)
-{
-  message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-}
-$score = round($score, 4);
-$old_score = round($old_score, 4);
-$s_mode             = $lang['admin_edit_games'];
-$s_action           = append_sid("admin_arcade_games.$phpEx?mode=edit_games");
-$s_hidden           = '';
-//
-//  Set the Table we are working on
-//
-if($mode === 'scores' || $mode === 'delete')
-{
-  $table = iNA_SCORES;
-  $action = 'delete';
-}
-else
-{
-  $table = iNA_AT_SCORES;
-  $action = 'delete_at';
-}
-//
-//  Start Work.. Hi-Ho, Hi-Ho, it's off to work we go..!
-//
-if($game_id > 0)
-{
-  $sql = "SELECT * FROM " . iNA_GAMES . "
-    WHERE game_id = " . $game_id;
-  if(!$result = $db->sql_query($sql))
-  {
-    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-  }
-  $game_info = $db->sql_fetchrow($result);
-  if (!$game_info)
-  {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-  }
-  $arcade->game_name = $game_info['game_name'];
-}
-if(!empty($arcade->game_name))
-{
-  $sql = "SELECT * FROM " . iNA_GAMES . "
-    WHERE game_name = '" . $db->sql_escape(html_entity_decode($arcade->game_name, ENT_QUOTES, 'UTF-8')) . "'";
-  if(!$result = $db->sql_query($sql))
-  {
-    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-  }
-  $game_info = $db->sql_fetchrow($result);
-  if (!$game_info)
-  {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-  }
-  $game_id = $game_info['game_id'];
-  $arcade->game_name = $game_info['game_name'];
-}
-if (empty($game_info))
-{
-  message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-}
-$arcade->sort_method($game_info['reverse_list']);
-//
-//  Edited score has been submitted
-//
-if(isset($HTTP_POST_VARS['submit']) && isset($HTTP_POST_VARS['score']))
-{
-  phpbb_admin_require_post_session();
-  $sql = "UPDATE " . $table . " SET score = " . $score . "
-    WHERE player_id = " . $player_id . "
-    AND game_name = '" . $db->sql_escape($arcade->game_name) . "'
-    AND score = " . (float) $old_score . " LIMIT 1";
-    
-  if(!$result = $db->sql_query($sql))
-  {
-    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-  }
-  $arcade->update_high($game_id);
-}
-//
-//  Default View
-//
-if($mode != '' && $game_id > 0)
-{
-//
-//  Has the user selected to delete the score?
-//
-  if($mode == 'delete' || $mode == 'delete_at')
-  {
-    if( !isset($HTTP_POST_VARS['confirm']) )
+    phpbb_acp_actor($db, 'admin_arcade_games.'.$phpEx.'?mode=edit_games');
+    $mode = phpbb_arcade_score_request($score_request, 'mode', '');
+    if (!in_array($mode, array('scores','at_scores','delete','delete_at'), true)) { throw new PhpbbOwnedStorageFailure('arcade_score_changed'); }
+    $board = in_array($mode, array('scores','delete'), true) ? 'current' : 'all_time';
+    $table = phpbb_arcade_score_table($board);
+    $game_info = phpbb_arcade_score_game($db, phpbb_arcade_score_request($score_request, 'game_id', '0'), phpbb_arcade_score_request($score_request, 'game_name', ''));
+    $game_id = (int)$game_info['game_id']; $arcade->game_name = $game_info['game_name'];
+    $arcade->sort_method($game_info['reverse_list']);
+    $edit_value = phpbb_arcade_score_request($score_request, 'edit');
+    $edit = $edit_value === null ? null : phpbb_arcade_score_integer($edit_value);
+    $s_mode = $lang['admin_edit_games'];
+    $s_action = append_sid('admin_arcade_games.'.$phpEx.'?mode=edit_games'); $s_hidden = '';
+    if ($score_is_post && isset($HTTP_POST_VARS['cancel'])) { $mode = $board === 'current' ? 'scores' : 'at_scores'; }
+    elseif ($score_is_post && isset($HTTP_POST_VARS['submit']))
     {
-//
-// Was CANCEL Selected ?
-//
-  	 if( isset($HTTP_POST_VARS['cancel']) )
-	   {
-        $mode = ($mode == 'delete') ? 'scores' : 'at_scores';
-	   }
-	   else
-	   {
-//
-// Output Confirm 
-//
-		$message = sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . phpbb_stored_text($arcade->get_username($player_id)) . ')');
-		$message .= sprintf($lang['admin_score_options'], append_sid("admin_arcade_scores.$phpEx?mode=$action&amp;game_id=$game_id&amp;score=" . rawurlencode((string) $score) . "&amp;player_id=$player_id"), phpbb_admin_session_field());
-    		message_die(GENERAL_MESSAGE, $message, '', __LINE__, __FILE__, $sql);
-     }
+        phpbb_admin_require_post_session();
+        if ($mode !== 'scores' && $mode !== 'at_scores') { throw new PhpbbOwnedStorageFailure('arcade_score_changed'); }
+        $score_action_result = phpbb_arcade_score_change($db, $game_id, $board,
+            phpbb_arcade_score_request($score_request, 'player_id'), phpbb_arcade_score_request($score_request, 'score_revision'),
+            'update', phpbb_arcade_score_request($score_request, 'score'));
+        $edit = null;
     }
-    else
+    elseif ($mode === 'delete' || $mode === 'delete_at')
     {
-      phpbb_admin_require_post_session();
-//
-//  Delete Score Selected.
-//  
-      $sql = "DELETE FROM " . $table . "
-        WHERE game_name = '" . $db->sql_escape($arcade->game_name) . "'
-          AND score = " . $score . " 
-          AND player_id = " . $player_id . " LIMIT 1";
-      if(!$result = $db->sql_query($sql))
-      {
-        message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-      }
-//
-//  New we need to check that the highscore is set correctly.
-//
-      $arcade->update_high($game_id);
-      
-      $mode = ($mode == 'delete') ? 'scores' : 'at_scores';
+        $player_id = phpbb_arcade_score_integer(phpbb_arcade_score_request($score_request, 'player_id'));
+        $score_revision = phpbb_arcade_score_request($score_request, 'score_revision');
+        if ($score_is_post && isset($HTTP_POST_VARS['confirm']))
+        {
+            phpbb_admin_require_post_session();
+            $score_action_result = phpbb_arcade_score_change($db, $game_id, $board, $player_id, $score_revision, 'delete');
+            $mode = $board === 'current' ? 'scores' : 'at_scores';
+        }
+        else
+        {
+            $target = phpbb_arcade_score_target($db, $game_info, $board, $player_id, $score_revision);
+            $hidden = '';
+            foreach (array('mode'=>$mode,'game_id'=>$game_id,'player_id'=>$player_id,'score_revision'=>$score_revision) as $key=>$value)
+            { $hidden .= '<input type="hidden" name="'.phpbb_admin_html($key).'" value="'.phpbb_admin_html($value).'" />'; }
+            $template->set_filenames(array('confirm'=>'confirm_body.tpl'));
+            $template->assign_vars(array('MESSAGE_TITLE'=>$lang['Confirm'],
+                'MESSAGE_TEXT'=>sprintf($lang['arcade_score_sure'], phpbb_arcade_score_number($target['score']), $player_id.' ('.phpbb_stored_text($arcade->get_username($player_id)).')'),
+                'L_YES'=>$lang['Yes'],'L_NO'=>$lang['No'], 'S_CONFIRM_ACTION'=>append_sid($file),
+                'S_HIDDEN_FIELDS'=>$hidden.phpbb_admin_session_field()));
+            $template->pparse('confirm'); include('page_footer_admin.'.$phpEx); exit;
+        }
     }
-  }
-//
-//  Get the score informatrion
-//
-  $sql = "SELECT g.game_id, s.*, u.username FROM ". iNA_GAMES ." AS g
-      LEFT JOIN ". $table ." AS s ON g.game_name = s.game_name
-      LEFT JOIN " . USERS_TABLE . " as u ON s.player_id = u.user_id
-        WHERE game_id = " . $game_id . "
-        ORDER by s.score " .$arcade->sort . ", date ASC";
-	if(!$result = $db->sql_query($sql))
-	{
-    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-  }
-  $score_info = $db->sql_fetchrowset($result);
-//
-//  Loop around the score Information.
-//
-  for($i = 0; $i < count($score_info); $i++)
-  {
-    if (!isset($score_info[$i]['player_id']) || $score_info[$i]['player_id'] === null)
-    {
-      continue;
-    }
-    if($edit > 0 && $edit == $score_info[$i]['player_id'])
-    {
-      $score = '<input class="post" type="text" size="10" name="score" value="' . $score_info[$i]['score'] . '" />';
-      $s_mode = $lang['Submit'];
-      $s_action = append_sid("$file");
-      $s_hidden = '<input type="hidden" name="game_id" value="'.(int) $game_id.'"><input type="hidden" name="mode" value="'.phpbb_admin_html($mode).'"><input type="hidden" name="player_id" value="'.(int) $score_info[$i]['player_id'].'"><input type="hidden" name="old_score" value="'.phpbb_admin_html($score_info[$i]['score']).'">';
-    }
-    else
-    {
-      $score = $arcade->convert_score($score_info[$i]['score']);
-    }
-	$score_ip = isset($score_info[$i]['player_ip']) && filter_var($score_info[$i]['player_ip'], FILTER_VALIDATE_IP) !== false
-		? phpbb_admin_html($score_info[$i]['player_ip']) : $lang['Not_available'];
-    
-		$template->assign_block_vars("highscores", array(
-		'PLAYER' => phpbb_admin_html(isset($score_info[$i]['username']) ? $score_info[$i]['username'] : ''),
-        'SCORE' => $score,
-        'DATE' => create_date($board_config['default_dateformat'], $score_info[$i]['date'], $board_config['board_timezone']),
-        'TIME' => ($score_info[$i]['time_taken']) ? ($arcade->convert_time($score_info[$i]['time_taken'])) : '',
-				'EDIT_IMG' => '<a href="'. append_sid("$file?mode=$mode&amp;edit=".(int) $score_info[$i]['player_id']."&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id']) .'"><img src="./../' . $images['icon_edit'] . '" alt="' . $lang['Edit'] . '" title="' . $lang['Edit'] . '" border="0" /></a>',
-				'DELETE_IMG' => '<a href="'. append_sid("$file?mode=$action&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id'] . "&amp;score=".rawurlencode((string) $score_info[$i]['score'])) .'"><img src="./../' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . '" title="' . $lang['Delete'] . '" border="0" /></a>',
-				'IP_IMG' => '<span class="gensmall">' . $score_ip . '</span>'
-       ));     
-  }
 }
-//
-//  Set template information
-//
-$template->assign_vars(array(
-		'L_SCORE_HEADER' => $lang['admin_score_header'],
-		'L_SCORE_INFO' => $lang['admin_score_info'],
-		'L_SCORE_EDITOR' => $lang['admin_score_editor'],
-		
-		'GAME_DESC' => htmlspecialchars($game_info['game_desc'], ENT_QUOTES, 'UTF-8'),
-    'VERSION' => $arcade->version,
-		
-		'S_MODE' => '<input type="submit" name="submit" value="'.$s_mode.'" class="mainoption" />',
-		'S_HIDDEN_FIELDS' => $s_hidden . phpbb_admin_session_field(),
-		'S_ACTION' => $s_action
-		));
-//
-//  Set the current template
-//
-$template->set_filenames(array('body' => 'admin/arcade_scores_body.tpl'));
-//
-// Generate the Main page
-//
-$template->pparse('body');
-include('page_footer_admin.' . $phpEx);
+catch (PhpbbOwnedStorageFailure $e) { message_die(GENERAL_MESSAGE, isset($lang[$e->getMessage()]) ? $lang[$e->getMessage()] : $lang['no_score_data']); }
+catch (PhpbbAclException $e) { message_die(GENERAL_MESSAGE, isset($lang[$e->getMessage()]) ? $lang[$e->getMessage()] : $lang['Not_Authorised']); }
 
-?>
+// Score listing. Raw database identities stay raw until their output boundary.
+$sql = 'SELECT s.*,u.username FROM '.$table.' s LEFT JOIN '.USERS_TABLE.' u ON u.user_id=s.player_id'.
+    " WHERE s.game_name='".$db->sql_escape($game_info['game_name'])."' ORDER BY s.score ".$arcade->sort.',s.date ASC,s.player_id ASC';
+try { $score_info = phpbb_arcade_score_rows($db, $sql); }
+catch (PhpbbOwnedStorageFailure $e) { message_die(GENERAL_MESSAGE, $lang['no_score_data']); }
+foreach ($score_info as $row)
+{
+    if ($row['player_id'] === null) { continue; }
+    try { $row_revision = phpbb_arcade_score_revision($game_info, $board, $row); }
+    catch (PhpbbOwnedStorageFailure $e) { continue; }
+    $row_player = (int)$row['player_id'];
+    if ($edit !== null && $edit === $row_player)
+    {
+        $score = '<input class="post" type="text" size="16" name="score" value="'.phpbb_admin_html($row['score']).'" />';
+        $s_mode = $lang['Submit']; $s_action = append_sid($file);
+        $s_hidden = '';
+        foreach (array('game_id'=>$game_id,'mode'=>$mode,'player_id'=>$row_player,'score_revision'=>$row_revision) as $key=>$value)
+        { $s_hidden .= '<input type="hidden" name="'.phpbb_admin_html($key).'" value="'.phpbb_admin_html($value).'" />'; }
+    }
+    else { $score = $arcade->convert_score($row['score']); }
+    $score_ip = isset($row['player_ip']) && filter_var($row['player_ip'], FILTER_VALIDATE_IP) !== false ? phpbb_admin_html($row['player_ip']) : $lang['Not_available'];
+    $action = $board === 'current' ? 'delete' : 'delete_at';
+    $template->assign_block_vars('highscores', array(
+        'PLAYER'=>phpbb_admin_html(isset($row['username'])?$row['username']:''), 'SCORE'=>$score,
+        'DATE'=>create_date($board_config['default_dateformat'], $row['date'], $board_config['board_timezone']),
+        'TIME'=>$row['time_taken']?$arcade->convert_time($row['time_taken']):'',
+        'EDIT_IMG'=>'<a href="'.append_sid($file.'?mode='.$mode.'&amp;edit='.$row_player.'&amp;game_id='.$game_id).'">'.
+            '<img src="./../'.$images['icon_edit'].'" alt="'.$lang['Edit'].'" title="'.$lang['Edit'].'" border="0" /></a>',
+        'DELETE_IMG'=>'<a href="'.append_sid($file.'?mode='.$action.'&amp;game_id='.$game_id.'&amp;player_id='.$row_player.'&amp;score_revision='.$row_revision).'">'.
+            '<img src="./../'.$images['icon_delpost'].'" alt="'.$lang['Delete'].'" title="'.$lang['Delete'].'" border="0" /></a>',
+        'IP_IMG'=>'<span class="gensmall">'.$score_ip.'</span>'
+    ));
+}
+$template->assign_vars(array('L_SCORE_HEADER'=>$lang['admin_score_header'],'L_SCORE_INFO'=>$lang['admin_score_info'],
+    'L_SCORE_EDITOR'=>$lang['admin_score_editor'],'GAME_DESC'=>htmlspecialchars($game_info['game_desc'],ENT_QUOTES,'UTF-8'),
+    'VERSION'=>$arcade->version,'S_MODE'=>'<input type="submit" name="submit" value="'.$s_mode.'" class="mainoption" />',
+    'S_HIDDEN_FIELDS'=>$s_hidden.phpbb_admin_session_field(),'S_ACTION'=>$s_action));
+$template->set_filenames(array('body'=>'admin/arcade_scores_body.tpl'));
+$template->pparse('body'); include('page_footer_admin.'.$phpEx);

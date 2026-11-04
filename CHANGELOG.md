@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Edit or delete individual current/all-time scores together with their winner
+  pointer and affected placement counts/lists in an owned transaction. Require
+  current Edit-module authority and a complete game/score snapshot; refuse stale
+  forms and ambiguous legacy duplicates. Preserve raw game identities (including
+  `0` and literal entities), retain the other board and clear the winner when
+  the last score is removed. No schema migration is required for this change.
 - Delete games and reset category/global scoreboards in owned transactions,
   with current Edit-module authority and metadata-bound list/confirmation
   revisions. Roll back references, placements, pointers and counters together;

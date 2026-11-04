@@ -22,7 +22,7 @@ admin_ip_privacy_assert(strpos($admin_index, '"IP_ADDRESS" => phpbb_admin_html($
 	'online visitor addresses must be escaped for local display');
 admin_ip_privacy_assert(strpos($admin_index_template, 'U_WHOIS_IP') === false,
 	'the online overview still renders an external Whois link');
-admin_ip_privacy_assert(strpos($arcade_scores, 'filter_var($score_info[$i][\'player_ip\'], FILTER_VALIDATE_IP)') !== false,
+admin_ip_privacy_assert(strpos($arcade_scores, 'filter_var($row[\'player_ip\'], FILTER_VALIDATE_IP)') !== false,
 	'Arcade score addresses must be validated before local display');
 
 echo "Admin IP privacy checks passed.\n";

@@ -78,10 +78,10 @@ arcade_position_assert(strpos($admin_games, '$admin_page_size = max(0, (int)') !
 arcade_position_assert(!is_file($root . '/phpBB2/admin/admin_arcade_ban.php'), 'the empty, unregistered Arcade ban stub must remain removed');
 arcade_position_assert(strpos($admin_cache, "'S_CONFIG_ACTION' =>") !== false, 'the Arcade cache form must use the template action it actually renders');
 arcade_position_assert(strpos($admin_log, 'phpbb_admin_require_post_session();') !== false && strpos($admin_log, 'phpbb_admin_session_field()') !== false, 'Arcade log deletion must use the central AdminCP token');
-arcade_position_assert(strpos($admin_scores, '$allowed_modes') !== false, 'Arcade score actions must use an allowlist');
+arcade_position_assert(strpos($admin_scores, "array('scores','at_scores','delete','delete_at')") !== false, 'Arcade score actions must use an allowlist');
 arcade_position_assert(strpos($admin_scores, 'phpbb_admin_require_post_session();') !== false, 'Arcade score writes must verify the central AdminCP token');
-arcade_position_assert(strpos($admin_scores, "(int) \$score_info[\$i]['player_id']") !== false, 'score editing must bind the submitted player to the displayed row');
-arcade_position_assert(substr_count($admin_scores, '$arcade->update_high($game_id);') >= 2, 'score edits and deletions must refresh highscore state');
+arcade_position_assert(strpos($admin_scores, "'player_id'=>\$row_player,'score_revision'=>\$row_revision") !== false, 'score editing must bind the submitted player to the displayed row');
+arcade_position_assert(substr_count($admin_scores, 'phpbb_arcade_score_change($db,') === 2, 'score edits and deletions must atomically refresh highscore state');
 arcade_position_assert(strpos($admin_categories, '$target_scope') !== false && strpos($admin_categories, 'WHERE cat_id = " . (int) $target_cat') !== false, 'category ordering must swap one adjacent category in the same hierarchy level');
 arcade_position_assert(substr_count($admin_categories, "SET cat_type = 'p', cat_parent = 0") >= 2, 'category removal or demotion must promote child categories');
 arcade_position_assert(strpos($admin_categories, '`group_required`') !== false, 'new categories must persist their group restriction');
