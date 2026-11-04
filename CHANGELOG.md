@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Reset game play counts and their category/global totals together. Use the
+  existing Reset module's current account/session/delegated permission, an
+  owned transaction and cache invalidation for all three statistics actions.
+  Preserve scores and unrelated counters, reject invalid forms, and translate
+  the page and confirmation into German and English.
 - Check current account, session and category assignments in the public score
   moderation panel. Keep ordinary category moderators usable without an ACP
   session. Delete a confirmed score, its winner pointer and affected placements

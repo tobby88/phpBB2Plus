@@ -163,6 +163,8 @@ jobs:
         run: php .github/scripts/check-arcade-score-editor.php
       - name: Preserve public Arcade moderator scopes and confirmation form state
         run: php .github/scripts/check-arcade-moderation.php
+      - name: Validate Arcade statistics actions and existing delegated module
+        run: php .github/scripts/check-arcade-statistics.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

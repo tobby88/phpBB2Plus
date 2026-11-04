@@ -31,63 +31,42 @@ if( !empty($setmodules) )
 }
 
 require($phpbb_root_path . 'extension.inc');
+if (!defined('ARCADE_ADMIN')) { define('ARCADE_ADMIN', 1); }
 require('pagestart.' . $phpEx);
+include_once($phpbb_root_path . 'includes/functions_arcade.' . $phpEx);
+require_once dirname(__DIR__) . '/includes/functions_arcade_statistics_storage.php';
 
-$mode = (isset($HTTP_POST_VARS['mode']) && is_scalar($HTTP_POST_VARS['mode'])) ? (string) $HTTP_POST_VARS['mode'] : '';
-$reset_queries = array(
-	'reset_played' => "UPDATE " . $table_prefix . "ina_games SET played = 0",
-	'reset_last_player' => "UPDATE " . $table_prefix . "ina_cat SET last_player = 0",
-	'reset_last_time' => "UPDATE " . $table_prefix . "ina_cat SET last_time = 0",
-);
-
-if (isset($reset_queries[$mode]))
+try
 {
-	phpbb_admin_require_post_session();
-
-	if (!$db->sql_query($reset_queries[$mode]))
-	{
-		message_die(GENERAL_ERROR, 'Unable to reset the selected Arcade statistic.');
-	}
-
-	message_die(GENERAL_MESSAGE, 'The selected Arcade statistic was reset successfully.<br /><br /><a href="' . append_sid('admin_arcade_reset.' . $phpEx) . '">Return to Arcade resets</a>');
+    phpbb_acp_actor($db, 'admin_arcade_reset.'.$phpEx.'?mode=home');
+    if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST')
+    {
+        phpbb_admin_require_post_session();
+        $mode = isset($HTTP_POST_VARS['mode']) ? $HTTP_POST_VARS['mode'] : null;
+        phpbb_arcade_statistics_reset($db, $mode);
+        message_die(GENERAL_MESSAGE, $lang['arcade_statistics_done'].'<br /><br /><a href="'.phpbb_admin_html(append_sid('admin_arcade_reset.'.$phpEx)).'">'.phpbb_admin_html($lang['arcade_statistics_title']).'</a>');
+    }
+}
+catch (PhpbbAclException $error)
+{
+    $key = $error->getMessage();
+    message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['arcade_statistics_failed']);
+}
+catch (PhpbbOwnedStorageFailure $error)
+{
+    $key = $error->getMessage();
+    message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['arcade_statistics_failed']);
 }
 
-$form_action = append_sid('admin_arcade_reset.' . $phpEx);
-$session_field = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
-
-echo '
-  <table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="bodyline">
-    <tr>
-      <th width="20%" colspan="2" class="thHead">Reset Arcade Plays </th>
-    </tr>
-    <tr>
-      <td colspan="2" class="row1"><div align="center"><span class="gensmall">Reset only the statistic you intentionally want to clear.</span><br />
-      </div></td>
-    </tr>
-    <tr>
-      <td width="50%" class="row2"><div align="right">Reset Played Number </div></td>
-      <td width="50%" class="row3"><form method="post" action="' . $form_action . '">' . $session_field . '<input type="hidden" name="mode" value="reset_played" /><input type="submit" class="mainoption" value="Go!" onclick="return confirm(\'Reset the played counter for every Arcade game?\');" /></form></td>
-    </tr>
-    <tr>
-      <td width="50%" class="row2"><div align="right">Reset Last Player</div></td>
-      <td width="50%" class="row3"><form method="post" action="' . $form_action . '">' . $session_field . '<input type="hidden" name="mode" value="reset_last_player" /><input type="submit" class="mainoption" value="Go!" onclick="return confirm(\'Reset the last-player statistic for every Arcade category?\');" /></form></td>
-    </tr>
-    <tr>
-      <td width="50%" class="row2"><div align="right">Reset Last Time</div></td>
-      <td width="50%" class="row3"><form method="post" action="' . $form_action . '">' . $session_field . '<input type="hidden" name="mode" value="reset_last_time" /><input type="submit" class="mainoption" value="Go!" onclick="return confirm(\'Reset the last-played time for every Arcade category?\');" /></form></td>
-    </tr>
-    <tr>
-      <td colspan="2" align="center" class="catBottom">&nbsp;</td>
-    </tr>
-  </table>
-  <table width="100%"  border="0" cellspacing="0" cellpadding="0">
-  <tr>
-    <td><div align="center"><span class=gensmall>Original version By Ebaby | Made in ACP panel By Minesh </SPAN></div></td>
-  </tr>
-</table>
-';
-
-// Generate footer
-include('page_footer_admin.' . $phpEx);
-
-?>
+$form_action = phpbb_admin_html(append_sid('admin_arcade_reset.'.$phpEx));
+echo '<table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">';
+echo '<tr><th colspan="2" class="thHead">'.phpbb_admin_html($lang['arcade_statistics_title']).'</th></tr>';
+echo '<tr><td colspan="2" class="row1"><span class="genmed">'.phpbb_admin_html($lang['arcade_statistics_help']).'</span></td></tr>';
+foreach (array('reset_played','reset_last_player','reset_last_time') as $mode)
+{
+    echo '<tr><td class="row1"><span class="gen">'.phpbb_admin_html($lang['arcade_statistics_'.$mode]).'</span></td>';
+    echo '<td class="row2"><form method="post" action="'.$form_action.'">'.phpbb_admin_session_field();
+    echo '<input type="hidden" name="mode" value="'.$mode.'" /><input type="submit" class="mainoption" value="'.phpbb_admin_html($lang['Reset']).'" onclick="return confirm('.phpbb_admin_html(json_encode($lang['arcade_statistics_confirm'])).');" /></form></td></tr>';
+}
+echo '</table><div align="center"><span class="gensmall">Original version by Ebaby | ACP version by Minesh</span></div>';
+include('page_footer_admin.'.$phpEx);

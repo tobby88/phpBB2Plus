@@ -1,0 +1,52 @@
+<?php
+if(PHP_SAPI!=='cli'||getenv('PHPBB_ARCADE_STATISTICS_NATIVE')!=='1'){echo "Arcade statistics checks require an explicitly enabled disposable database.\n";return;}
+require __DIR__.'/arcade-game-native-fixture.php';require __DIR__.'/arcade-statistics-fixture.php';
+function ast_reset($role='root')
+{
+    ag_reset($role);ag_sql('UPDATE fixture_ina_cat SET last_player=8,last_time=123');
+    ag_sql("INSERT INTO fixture_ina_games(game_id,game_name,cat_id,game_avail,played) VALUES(42,'offline',9,0,5),(43,'orphan',NULL,0,3)");
+    ag_sql('UPDATE fixture_ina_cat SET total_played=17 WHERE cat_id=-1');
+    ag_sql('UPDATE fixture_ina_cat SET total_played=5 WHERE cat_id=9');
+    ag_sql('UPDATE fixture_ina_cat SET total_played=3 WHERE cat_id=8');
+}
+function ast_expected($before,$mode)
+{
+    foreach(array(iNA_GAMES,iNA_CAT)as$table){$rows=array();foreach($before[$table]as$encoded){$row=json_decode($encoded,true);
+        $field=$mode==='reset_played'?($table===iNA_GAMES?'played':'total_played'):($table===iNA_CAT?($mode==='reset_last_player'?'last_player':'last_time'):null);
+        // The production driver's rowset retains both numeric and named keys.
+        if($field!==null){$index=0;foreach($row as$key=>$value){if(is_int($key)){continue;}if($key===$field){$row[$key]=$row[$index]='0';break;}$index++;}}
+        $rows[]=json_encode($row);
+    }sort($rows);$before[$table]=$rows;}return $before;
+}
+function ast_evicted($expected)
+{
+    global $phpbb_root_path;foreach(array('games','categories')as$key){as_check(file_exists($phpbb_root_path.'cache/arcade_'.$key.'.cache')!==$expected,'Only committed statistics evict '.$key);}
+    foreach(array('best_player','best_at_player')as$key){as_check(file_exists($phpbb_root_path.'cache/arcade_'.$key.'.cache'),'Statistics retain unrelated ranking cache '.$key);}
+}
+$db=$control=$ag_peer=null;$created=false;$schema='codex_arc_stats_'.bin2hex(phpbb_random_bytes(8));$count=0;$serialized=0;
+try{
+    $port=getenv('PHPBB_ARCADE_GAME_PORT')?:'3306';as_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Own loopback port');
+    $host='127.0.0.1:'.$port;$password=getenv('PHPBB_ARCADE_GAME_PASSWORD')?:'';
+    $control=new sql_db($host,'root',$password,'',false);as_check($control->db_connect_id&&$control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Own disposable statistics schema');$created=true;
+    $db=new ArcadeGameNativeDatabase($host,'root',$password,$schema,false);$ag_peer=new sql_db($host,'root',$password,$schema,false);
+    as_check($db->db_connect_id&&$ag_peer->db_connect_id,'Independent native statistics connections');
+    $ag_tables=array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,RANKS_TABLE,iNA_GAMES,iNA_CAT);
+    foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));
+    $canonical=file_get_contents($as_app.'install/schemas/mysql_schema.sql');
+    foreach($ag_tables as$table){$suffix=substr($table,strlen('fixture_'));as_check(preg_match('/CREATE TABLE phpbb_'.preg_quote($suffix,'/').' \(.*?\) ENGINE=InnoDB[^;]*;/s',$canonical,$m)===1,'Canonical statistics fixture '.$suffix);ag_sql(str_replace('phpbb_'.$suffix,$table,$m[0]));}
+    as_open();$ag_routes=aif_routes();$routes=jr_admin_authorization_routes();$keys=array_keys($routes,'admin_arcade_reset.php?mode=home',true);as_check(count($keys)===1,'Actual delegated statistics module');$ag_routes['reset']=$keys[0];
+    foreach(array('root','reset')as$role){foreach(array('reset_played','reset_last_player','reset_last_time')as$mode){ast_reset($role);$before=ag_snapshot();$r=ast_call($mode);as_check(!$r['error'],'Reset succeeds '.$role.'/'.$mode.(!empty($r['key'])?' '.$r['key']:''));as_check(ag_snapshot()===ast_expected($before,$mode),'Reset only selected statistic '.$role.'/'.$mode);ast_evicted(true);$count++;}}
+    foreach(array('import_game','add_game','edit_games')as$role){ast_reset($role);$before=ag_snapshot();$r=ast_call('reset_played');as_check($r['error']&&ag_snapshot()===$before,'Other game module grant cannot reset statistics '.$role);ast_evicted(false);$count++;}
+    foreach(array('revoke-role','revoke-active','revoke-session','revoke-admin','revoke-grant')as$fault){ast_reset($fault==='revoke-grant'?'reset':'root');$db->fault=$fault;$before=ag_snapshot();$r=ast_call('reset_played');as_check($r['error']&&ag_snapshot()===$before,'Fresh authority on owned connection '.$fault);ast_evicted(false);$count++;}
+    foreach(array('serialize-role','serialize-grant')as$fault){ast_reset($fault==='serialize-grant'?'reset':'root');$db->fault=$fault;$before=ag_snapshot();$r=ast_call('reset_played');ag_reap();as_check(!$r['error']&&ag_snapshot()===ast_expected($before,'reset_played'),'Reset serializes before authority revocation '.$fault);$before=ag_snapshot();as_check(ast_call('reset_last_time')['error']&&ag_snapshot()===$before,'Following reset sees committed revocation');$count++;$serialized++;}
+    foreach(array('reset_played','reset_last_player','reset_last_time')as$mode){foreach(array('write-1','commit','commit-after','write-2')as$fault){if($fault==='write-2'&&$mode!=='reset_played'){continue;}ast_reset();$db->fault=$fault;$before=ag_snapshot();$r=ast_call($mode);as_check($r['error'],'Fault returned safely '.$mode.'/'.$fault);as_check(ag_snapshot()===($fault==='commit-after'?ast_expected($before,$mode):$before),'No partial reset or replay '.$mode.'/'.$fault);ast_evicted(strpos($fault,'commit')===0);$count++;}}
+    foreach(array('success','failure','same','missing')as$kind){ast_reset();as_check($db->sql_query('START TRANSACTION')&&$db->sql_query("UPDATE fixture_groups SET group_name='Caller' WHERE group_id=99"),'Own caller transaction');if($kind==='failure'){$db->fault='write-2';}elseif($kind!=='success'){$db->factory_mode=$kind;}$r=ast_call('reset_played');as_check($kind==='success'?!$r['error']:$r['error'],'Dedicated statistics transaction '.$kind);as_check($db->sql_query('ROLLBACK')&&ag_rows('SELECT group_name FROM fixture_groups WHERE group_id=99')[0]['group_name']==='Sentinel','Reset preserves caller transaction '.$kind);$count++;}
+    foreach(array('english','german')as$locale){foreach(array('root','reset')as$role){ast_reset($role);ag_language($locale);$page=ast_controller(array('mode'=>'home'),'GET');as_check($page['type']==='page','Actual statistics page '.$locale.'/'.$role);preg_match_all('#<form method="post".*?</form>#s',$page['html'],$forms);as_check(count($forms[0])===3&&strpos($page['html'],$lang['arcade_statistics_title'])!==false,'Three localized actual forms');foreach($forms[0]as$html){ast_reset($role);ag_language($locale);$fields=array();preg_match_all('/name="([^"]+)" value="([^"]*)"/',$html,$matches,PREG_SET_ORDER);foreach($matches as$m){$fields[$m[1]]=html_entity_decode($m[2],ENT_QUOTES,'UTF-8');}$before=ag_snapshot();$r=ast_controller($fields);as_check($r['type']==='message'&&strpos($r['text'],$lang['arcade_statistics_done'])===0&&ag_snapshot()===ast_expected($before,$fields['mode']),'Actual localized statistics POST form roundtrip');$count++;}}}
+    foreach(array('get','wrong-sid','missing-sid','nested-sid','nested-mode','unknown-mode','missing-mode','query-conflict')as$bad){ast_reset();$post=array('mode'=>'reset_played','sid'=>'fixture-import');$method='POST';$query=array();if($bad==='get'){$method='GET';}elseif($bad==='wrong-sid'){$post['sid']='wrong';}elseif($bad==='missing-sid'){unset($post['sid']);}elseif($bad==='nested-sid'){$post['sid']=array('fixture-import');}elseif($bad==='nested-mode'){$post['mode']=array('reset_played');}elseif($bad==='unknown-mode'){$post['mode']='reset_scores';}elseif($bad==='missing-mode'){unset($post['mode']);}else{$query=array('mode'=>'reset_last_time','sid'=>'wrong');}$before=ag_snapshot();$r=ast_controller($post,$method,$query);as_check(ag_snapshot()===($bad==='query-conflict'?ast_expected($before,'reset_played'):$before),'Actual request source/token/method '.$bad);$count++;}
+    foreach(array('inactive','role','session-owner','session-logged-out','session-admin','case-sid','guest')as$bad){ast_reset();if($bad==='inactive'){ag_sql('UPDATE fixture_users SET user_active=0 WHERE user_id=2');}elseif($bad==='role'){ag_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=2');}elseif($bad==='session-owner'){ag_sql('UPDATE fixture_sessions SET session_user_id=8');}elseif($bad==='session-logged-out'){ag_sql('UPDATE fixture_sessions SET session_logged_in=0');}elseif($bad==='session-admin'){ag_sql('UPDATE fixture_sessions SET session_admin=0');}elseif($bad==='case-sid'){$userdata['session_id']='FIXTURE-IMPORT';}else{$userdata['session_logged_in']=false;}$before=ag_snapshot();$r=ast_controller(array('mode'=>'reset_played','sid'=>'fixture-import'));as_check($r['type']==='message'&&ag_snapshot()===$before,'Actual controller rejects stale identity '.$bad);$count++;}
+    ast_reset();as_check(!ast_call('reset_played')['error'],'Reset before actual game removal');as_check(phpbb_arcade_game_remove($db,41,ag_revision())['removed']&&(int)ag_rows('SELECT total_played FROM fixture_ina_cat WHERE cat_id=-1')[0]['total_played']===0,'Later actual game removal retains consistent zero aggregates');$count++;
+    foreach(array(null,array('reset_played'),0,'reset_played ')as$bad){ast_reset();$before=ag_snapshot();as_check(ast_call($bad)['error']&&ag_snapshot()===$before,'Malformed direct reset cannot mutate');$count++;}
+    ast_reset();ag_sql('ALTER TABLE fixture_ina_cat ENGINE=MyISAM');$before=ag_snapshot();as_check(ast_call('reset_played')['error']&&ag_snapshot()===$before,'Refuse nontransactional reset tables');ag_sql('ALTER TABLE fixture_ina_cat ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$count++;
+    as_check(count($ag_notifications)===0,'No statistics notifications');
+    echo 'Native Arcade statistics: '.$count.' cases, '.$serialized.' serialized revocations, '.$as_checks." assertions PASS; consistent reset totals, current ACP rights, owned rollback and actual EN/DE forms.\n";
+}finally{ag_reap();if($db){$db->sql_close();}if($ag_peer){$ag_peer->sql_close();}if($created){as_check(preg_match('/^codex_arc_stats_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Drop only own statistics schema');}if($control){$control->sql_close();}if($as_created){foreach(array('games','categories','user_id','version')as$key){$file=$as_root.'/cache/arcade_'.$key.'.cache';if(is_file($file)){as_check(!is_link($file)&&unlink($file),'Own statistics cache cleanup');}}as_close();}}

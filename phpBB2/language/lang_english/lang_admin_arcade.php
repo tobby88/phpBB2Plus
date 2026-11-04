@@ -442,4 +442,12 @@ $lang['tour_end_options'] = array('Manually', 'All Games Played', 'Automatically
 $lang['arcade_game_changed'] = 'This game was changed or removed while the form was open. Reload the game settings before saving again.';
 $lang['arcade_score_changed'] = 'The score or game has changed or is ambiguous. Please reload the scoreboard and select the score again.';
 $lang['arcade_reset_changed'] = 'The game selection has changed. Please open a new score-reset confirmation.';
+$lang['arcade_statistics_title'] = 'Reset Arcade statistics';
+$lang['arcade_statistics_confirm'] = 'Reset the selected statistic throughout the Arcade?';
+$lang['arcade_statistics_help'] = 'Each button clears only the value described beside it throughout the Arcade. Scores and leaderboards are retained.';
+$lang['arcade_statistics_reset_played'] = 'Clear play counts for every game, category and the whole Arcade';
+$lang['arcade_statistics_reset_last_player'] = 'Clear the last player for every category';
+$lang['arcade_statistics_reset_last_time'] = 'Clear the last-played time for every category';
+$lang['arcade_statistics_done'] = 'The selected Arcade statistic was reset.';
+$lang['arcade_statistics_failed'] = 'The Arcade statistic could not be reset safely. Please reload the page and try again.';
 ?>

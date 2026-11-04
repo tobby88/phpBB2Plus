@@ -68,6 +68,7 @@ function phpbb_acp_actor($db,$route)
 		'admin_ranks.'.$phpEx,
 		'admin_arcade_games.'.$phpEx.'?mode=import_game',
 		'admin_arcade_games.'.$phpEx.'?mode=add_game','admin_arcade_games.'.$phpEx.'?mode=edit_games',
+		'admin_arcade_reset.'.$phpEx.'?mode=home',
 		'admin_kb_art.'.$phpEx,
 		'admin_kb_cat.'.$phpEx,
 		'admin_pa_category.'.$phpEx,

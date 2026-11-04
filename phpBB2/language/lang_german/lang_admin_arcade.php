@@ -447,4 +447,12 @@ $lang['tour_end_options'] = array('Manuell', 'Alle Spiele gespielt', 'Automatisc
 $lang['arcade_game_changed'] = 'Dieses Spiel wurde bei geöffnetem Formular geändert oder entfernt. Bitte lade die Spieleinstellungen vor dem erneuten Speichern neu.';
 $lang['arcade_score_changed'] = 'Das Ergebnis oder Spiel wurde inzwischen geändert oder ist nicht eindeutig. Bitte lade die Bestenliste neu und wähle das Ergebnis erneut.';
 $lang['arcade_reset_changed'] = 'Die Spieleauswahl hat sich geändert. Bitte starte das Zurücksetzen der Ergebnisse erneut.';
+$lang['arcade_statistics_title'] = 'Spielhallen-Statistiken zurücksetzen';
+$lang['arcade_statistics_confirm'] = 'Die ausgewählte Statistik wirklich für die gesamte Spielhalle zurücksetzen?';
+$lang['arcade_statistics_help'] = 'Jede Schaltfläche setzt nur den daneben beschriebenen Wert für die gesamte Spielhalle zurück. Ergebnisse und Bestenlisten bleiben erhalten.';
+$lang['arcade_statistics_reset_played'] = 'Spielzähler aller Spiele sowie Kategorie- und Gesamtsummen auf null setzen';
+$lang['arcade_statistics_reset_last_player'] = 'Letzte Spieler aller Kategorien zurücksetzen';
+$lang['arcade_statistics_reset_last_time'] = 'Zeitpunkt des letzten Spiels aller Kategorien zurücksetzen';
+$lang['arcade_statistics_done'] = 'Die gewählte Spielhallen-Statistik wurde zurückgesetzt.';
+$lang['arcade_statistics_failed'] = 'Die Spielhallen-Statistik konnte nicht sicher zurückgesetzt werden. Bitte lade die Seite neu und versuche es erneut.';
 ?>
