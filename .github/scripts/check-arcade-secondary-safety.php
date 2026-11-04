@@ -16,6 +16,7 @@ $tournament = file_get_contents($root . '/phpBB2/arcade_tournament.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
 $adminCategories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.php');
 $modcp = file_get_contents($root . '/phpBB2/arcade_modcp.php');
+$moderation_store = file_get_contents($root . '/phpBB2/includes/functions_arcade_moderation_storage.php');
 $loader = file_get_contents($root . '/phpBB2/loader.php');
 $classes = file_get_contents($root . '/phpBB2/includes/classes_arcade.php');
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
@@ -62,7 +63,9 @@ arcade_secondary_assert(strpos($modcp, 'network-tools.com') === false, 'score mo
 arcade_secondary_assert(strpos($modcp, 'FILTER_VALIDATE_IP') !== false, 'score moderation must validate stored IP addresses before display');
 arcade_secondary_assert(strpos($modcp, "array('', 'scores', 'at_scores', 'delete_score', 'delete_at_score')") !== false, 'score moderation actions must be allowlisted');
 arcade_secondary_assert(strpos($modcp, 'ina_find_image(') !== false, 'moderator game images must use the local Arcade asset resolver');
-arcade_secondary_assert(substr_count($modcp, 'AND g.cat_id = " . (int) $cat_id') === 2, 'both score views must remain confined to the moderated category');
+arcade_secondary_assert(substr_count($modcp, 'phpbb_arcade_moderated_game($db, $game_id, $cat_id)') === 2 &&
+    strpos($moderation_store, "\$game['cat_id'] === null") !== false &&
+    strpos($moderation_store, '(string)$this->category_id') !== false, 'read views and owned deletions must remain confined to the moderated category');
 arcade_secondary_assert(strpos($modcp, 'action=edit_score') === false && strpos($modcp, 'action=edit_at_score') === false, 'unimplemented score editing links must not return');
 arcade_secondary_assert(strpos($modcp_template, 'game_edit_menu') === false && strpos($modcp_template, 'ALPHA RELEASE') === false, 'the moderator template must not expose the abandoned alpha game editor');
 

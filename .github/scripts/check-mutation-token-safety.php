@@ -21,11 +21,15 @@ $files = array(
 $page_header = file_get_contents($root . '/phpBB2/includes/page_header.php');
 $overall_header = file_get_contents($root . '/phpBB2/templates/fisubsilversh/overall_header.tpl');
 $user_actions = file_get_contents($root . '/phpBB2/ctracker/classes/class_user_actions.php');
+$quota_guard = file_get_contents($root . '/phpBB2/attach_mod/includes/functions_quota_storage.php');
 
 foreach ($files as $label => $source)
 {
-	mutation_token_assert(strpos($source, "is_scalar(\$_POST['sid'])") !== false || strpos($source, "is_string(\$_POST['sid'])") !== false || strpos($source, "is_scalar(\$_GET['sid'])") !== false, $label . ' must reject array session tokens');
+	mutation_token_assert(strpos($source, "is_scalar(\$_POST['sid'])") !== false || strpos($source, "is_string(\$_POST['sid'])") !== false || strpos($source, "is_scalar(\$_GET['sid'])") !== false || strpos($source, 'phpbb_attach_quota_post($_POST);') !== false, $label . ' must reject array session tokens');
 }
+mutation_token_assert(strpos($quota_guard, "!is_string(\$request['sid'])") !== false &&
+    strpos($quota_guard, "!hash_equals(\$userdata['session_id'], \$request['sid'])") !== false,
+    'the shared POST guard must reject nested tokens and compare the current session');
 
 mutation_token_assert(strpos($files['absence notification'], "REQUEST_METHOD']) !== 'POST'") !== false, 'absence changes must require POST');
 mutation_token_assert(strpos($files['Album comment deletion'], "REQUEST_METHOD']) !== 'POST'") !== false, 'Album comment deletion must require POST');

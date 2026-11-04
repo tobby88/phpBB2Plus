@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Check current account, session and category assignments in the public score
+  moderation panel. Keep ordinary category moderators usable without an ACP
+  session. Delete a confirmed score, its winner pointer and affected placements
+  in one owned transaction; reject stale or cross-category forms and stop after
+  rendering the confirmation. Preserve the other board and unrelated data.
 - Retain shared account locks while selecting a game's current/all-time winner.
   When the acting administrator becomes that winner, a queued role revocation
   can finish after the save without an unnecessary exclusive-lock upgrade.

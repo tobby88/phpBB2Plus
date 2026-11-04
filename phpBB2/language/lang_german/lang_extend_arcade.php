@@ -517,6 +517,9 @@ $lang['arcade_points_monthly_points'] = 'Monatliche Bestleistung: %d Punkt(e)';
 $lang['arcade_points_all_time_points'] = 'Allzeit-Bestleistung: %d Punkt(e)';
 $lang['arcade_points_period_info'] = 'Die Monatspunkte berücksichtigen den aktuellen und den vorherigen Kalendermonat.';
 $lang['arcade_points_stats'] = 'Listenstatistik';
+$lang['arcade_score_changed'] = 'Das Ergebnis oder Spiel wurde inzwischen geändert oder ist nicht eindeutig. Bitte lade die Bestenliste neu und wähle das Ergebnis erneut.';
+$lang['arcade_mod_delete_score'] = 'Ergebnis löschen';
+
 $lang['arcade_points_generated'] = 'Liste in %.4f Sekunden erstellt.';
 
 //

@@ -46,301 +46,123 @@ function arcade_modcp_ip($value, $label)
 	return '<span class="gensmall" title="' . arcade_modcp_html($label) . '">' . arcade_modcp_html($ip) . '</span>';
 }
 
-//
-//  Clear all main vars  
-//
-unset($cat_id, $mode, $mod_id);
-
-$mode = $arcade->pass_var('mode', '');
-$cat_id = 0;
-$mod_id = 0;
-$catagory_name = $lang['all_games'];
-$hidden_options = '';
-
-if ($mode != '')
+function arcade_modcp_fields($values)
 {
-  $cat_id = (int) $arcade->pass_var('cat_id', 0);
-  
-	if ($cat_id > 0)
-	{
-		$sql = "SELECT * FROM " . iNA_CAT . "
-			WHERE cat_id = " . (int) $cat_id;
-		if(!$result = $db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-		}
-		$cat_info = $db->sql_fetchrow($result);
-		if (!$cat_info)
-		{
-			message_die(GENERAL_MESSAGE, $lang['Not_Moderator'], $lang['Not_Authorised']);
-		}
-		$catagory_name = $cat_info['cat_name'];
-		$mod_id = (int) $cat_info['mod_id'];
-	}
+    $html = '';
+    foreach ($values as $name=>$value) { $html .= '<input type="hidden" name="'.arcade_modcp_html($name).'" value="'.arcade_modcp_html($value).'" />'; }
+    return $html;
 }
-else
+require_once $phpbb_root_path.'includes/functions_arcade_moderation_storage.php';
+$moderation_request = isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' ? $HTTP_POST_VARS : $HTTP_GET_VARS;
+$moderation_is_post = isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST';
+try
 {
-	message_die(GENERAL_MESSAGE, $lang['Not_Moderator'], $lang['Not_Authorised']);
+    $mode = phpbb_arcade_score_request($moderation_request, 'mode', '');
+    if ($mode !== 'mod') { throw new PhpbbOwnedStorageFailure('Not_Moderator'); }
+    $cat_id = phpbb_arcade_score_integer(phpbb_arcade_score_request($moderation_request, 'cat_id', '0'), -1);
+    $moderator = phpbb_arcade_moderator_actor($db, $cat_id);
+    $catagory_name = $moderator['category']['cat_name'];
+    $action = phpbb_arcade_score_request($moderation_request, 'action', '');
+    if (!in_array($action, array('', 'scores', 'at_scores', 'delete_score', 'delete_at_score'), true)) { throw new PhpbbOwnedStorageFailure('arcade_score_changed'); }
+    $game_id = phpbb_arcade_score_integer(phpbb_arcade_score_request($moderation_request, 'game_id', '0'), 0);
+    $hidden_options = arcade_modcp_fields(array('mode'=>'mod','cat_id'=>$cat_id));
+    $url = ' &raquo; <a href="'.append_sid('activity.'.$phpEx).'" class="nav">'.arcade_modcp_html($lang['games_catagories']).'</a> &raquo; <a href="'.append_sid('activity.'.$phpEx.'?mode=cat&amp;cat_id='.$cat_id).'" class="nav">'.arcade_modcp_html($catagory_name).'</a>';
+    if ($action === 'delete_score' || $action === 'delete_at_score')
+    {
+        if ($moderation_is_post && isset($HTTP_POST_VARS['cancel']))
+        { redirect(append_sid('arcade_modcp.'.$phpEx.'?mode=mod&cat_id='.$cat_id)); exit; }
+        $board = $action === 'delete_score' ? 'current' : 'all_time';
+        $player_id = phpbb_arcade_score_integer(phpbb_arcade_score_request($moderation_request, 'player_id'));
+        $revision = phpbb_arcade_score_request($moderation_request, 'score_revision');
+        $game_info = phpbb_arcade_moderated_game($db, $game_id, $cat_id);
+        if ($moderation_is_post && isset($HTTP_POST_VARS['confirm']))
+        {
+            phpbb_attach_quota_post($_POST);
+            phpbb_arcade_moderator_score_delete($db, $game_id, $cat_id, $board, $player_id, $revision);
+            $return_action = $board === 'current' ? 'scores' : 'at_scores';
+            redirect(append_sid('arcade_modcp.'.$phpEx.'?mode=mod&cat_id='.$cat_id.'&action='.$return_action.'&game_id='.$game_id, true)); exit;
+        }
+        $target = phpbb_arcade_score_target($db, $game_info, $board, $player_id, $revision);
+        $score = phpbb_arcade_score_number($target['score']);
+        $page_title = $lang['arcade_comment_delete'];
+        include($phpbb_root_path . 'includes/page_header.'.$phpEx);
+        $template->set_filenames(array('body'=>'confirm_body.tpl'));
+        $template->assign_vars(array(
+            'MESSAGE_TITLE'=>$lang['Confirm'],
+            'MESSAGE_TEXT' => sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . phpbb_stored_text($arcade->get_username($player_id)) . ')'),
+            'L_NO'=>$lang['No'], 'L_YES'=>$lang['Yes'],
+            'S_CONFIRM_ACTION'=>append_sid('arcade_modcp.'.$phpEx),
+            'S_HIDDEN_FIELDS'=>arcade_modcp_fields(array('mode'=>'mod','cat_id'=>$cat_id,'action'=>$action,'game_id'=>$game_id,
+                'player_id'=>$player_id,'score_revision'=>$revision,'sid'=>$userdata['session_id']))
+        ));
+        $template->pparse('body'); include($phpbb_root_path . 'includes/page_tail.'.$phpEx); exit;
+    }
+    elseif ($action === '' || $game_id === 0)
+    {
+        $template->assign_block_vars('game_menu', array());
+        $games = phpbb_arcade_score_rows($db, 'SELECT * FROM '.iNA_GAMES.' WHERE cat_id='.$cat_id.' ORDER BY game_name ASC');
+        foreach ($games as $game_info)
+        {
+            $img = ''; $image_src = ina_find_image($game_info['game_path'], $game_info['game_name'], $game_info['image_path'], $phpbb_root_path);
+            if ($image_src !== false) { $img = '<img src="'.arcade_modcp_html($image_src).'" width="'.(int)$board_config['games_image_width'].'" height="'.(int)$board_config['games_image_height'].'" alt="" />'; }
+            $template->assign_block_vars('game', array(
+                'GAME_ID'=>(int)$game_info['game_id'], 'NAME'=>arcade_modcp_html($game_info['game_name']),
+                'FLASH'=>$game_info['game_flash']?$lang['ON']:$lang['OFF'], 'DESC'=>arcade_modcp_html($game_info['game_desc']),
+                'PATH'=>arcade_modcp_html($game_info['game_path']), 'IMAGE'=>$img,
+                'IMAGE_PATH'=>arcade_modcp_html($game_info['image_path']?$game_info['image_path']:$lang['games_image_default']),
+                'INST'=>arcade_modcp_html($game_info['instructions']?$game_info['instructions']:$lang['No_Instructions']),
+                'WIDTH'=>(int)$game_info['win_width'], 'HEIGHT'=>(int)$game_info['win_height'],
+                'AUTO'=>($board_config['games_auto_size']&&!$game_info['game_autosize'])?$lang['ON']:$lang['OFF']
+            ));
+        }
+    }
+    else
+    {
+        $board = $action === 'scores' ? 'current' : 'all_time'; $table = phpbb_arcade_score_table($board);
+        $game_info = phpbb_arcade_moderated_game($db, $game_id, $cat_id);
+        $order = $game_info['reverse_list'] ? 'ASC' : 'DESC';
+        $template->assign_block_vars('scores_edit_menu', array());
+        $scores = phpbb_arcade_score_rows($db, 'SELECT s.*,u.username FROM '.$table.' s LEFT JOIN '.USERS_TABLE.
+            " u ON u.user_id=s.player_id WHERE s.game_name='".$db->sql_escape($game_info['game_name'])."' ORDER BY s.score ".$order.',s.date ASC,s.player_id ASC');
+        foreach ($scores as $score_info)
+        {
+            if ($score_info['player_id'] === null) { continue; }
+            $revision = phpbb_arcade_score_revision($game_info, $board, $score_info);
+            $delete_action = $board === 'current' ? 'delete_score' : 'delete_at_score';
+            $delete_url = append_sid('arcade_modcp.'.$phpEx.'?mode=mod&amp;cat_id='.$cat_id.'&amp;action='.$delete_action.'&amp;game_id='.$game_id.'&amp;player_id='.(int)$score_info['player_id'].'&amp;score_revision='.$revision);
+            $template->assign_block_vars('highscores', array(
+                'PLAYER'=>arcade_modcp_html($score_info['username']!==null?$score_info['username']:$lang['Guest']),
+                'SCORE'=>arcade_modcp_html($arcade->convert_score($score_info['score'])),
+                'DATE'=>arcade_modcp_html(create_date($board_config['default_dateformat'], $score_info['date'], $board_config['board_timezone'])),
+                'TIME'=>arcade_modcp_html($score_info['time_taken']?$arcade->convert_time($score_info['time_taken']):''),
+                'DELETE_IMG'=>'<a href="'.$delete_url.'"><img src="'.arcade_modcp_html($images['icon_delpost']).'" alt="'.arcade_modcp_html($lang['arcade_mod_delete_score']).'" title="'.arcade_modcp_html($lang['arcade_mod_delete_score']).'" /></a>',
+                'IP_IMG'=>arcade_modcp_ip($score_info['player_ip'], $lang['View_IP'])
+            ));
+        }
+        $hidden_options = arcade_modcp_fields(array('mode'=>'mod','cat_id'=>$cat_id,'game_id'=>$game_id));
+    }
 }
-//
-//  Get some basics..!
-//
-$action = $arcade->pass_var('action', '');
-
-if (!in_array($action, array('', 'scores', 'at_scores', 'delete_score', 'delete_at_score'), true))
-{
-	$action = '';
+catch (PhpbbOwnedStorageFailure $e) {
+    $message_key = $e->getMessage() === 'arcade_game_changed' ? 'arcade_score_changed' : $e->getMessage();
+    message_die(GENERAL_MESSAGE, isset($lang[$message_key])?$lang[$message_key]:$lang['Not_Authorised']);
 }
+catch (PhpbbAclException $e) { message_die(GENERAL_MESSAGE, isset($lang[$e->getMessage()])?$lang[$e->getMessage()]:$lang['Not_Authorised']); }
 
-if(!empty($HTTP_POST_VARS['delete_x']))
-{
-  $action = "delete_score";
-}
-
-$game_id    = (int) $arcade->pass_var('game_id', 0);
-$score      = (float) $arcade->pass_var('score', 0);
-$player_id  = (int) $arcade->pass_var('player_id', 0);
-//
-//	Moderators Menu
-//
-if ($mode == 'mod')
-{
-	$url = ' &raquo; <a href="' . append_sid("activity.$phpEx") . '" class="nav">' . arcade_modcp_html($lang['games_catagories']) . '</a> &raquo; <a href="' . append_sid("activity.$phpEx?mode=cat&amp;cat_id=" . (int) $cat_id) . '" class="nav">' . arcade_modcp_html($catagory_name) . '</a>';
-
-	if(($mod_id != $userdata['user_id'] || $mod_id < 1) && $userdata['user_level'] != ADMIN)
-	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Moderator'], $lang['Not_Authorised']);
-	}
-
-  if($action == 'delete_score' || $action == 'delete_at_score')
-  {
-    if( !isset($HTTP_POST_VARS['confirm']) )
-    {
-//
-// Was CANCEL Selected ?
-//
-  	 if( isset($HTTP_POST_VARS['cancel']) )
-	   {
-		    redirect(append_sid("arcade_modcp.$phpEx?mode=mod&cat_id=$cat_id"));
-		    exit;
-	   }
-//
-// Start output of page
-//
-	  $page_title = $lang['arcade_comment_delete'];
-	  include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-
-    $template->set_filenames(array(
-		  'body' => 'confirm_body.tpl')
-  	);
-
-  	$template->assign_vars(array(
-	   	'MESSAGE_TITLE' => $lang['Confirm'],
-
-		'MESSAGE_TEXT' => sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . phpbb_stored_text($arcade->get_username($player_id)) . ')'),
-
-  		'L_NO' => $lang['No'],
-	   	'L_YES' => $lang['Yes'],
-
-		'S_CONFIRM_ACTION' => append_sid("arcade_modcp.$phpEx?mode=mod&amp;cat_id=$cat_id&amp;action=$action&amp;game_id=$game_id&amp;score=$score&amp;player_id=$player_id"),
-		'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
-	    ));
-
-	//
-	// Generate the page
-	//
-  	$template->pparse('body');
-
-  	include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
-    }
-    
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) ||
-      !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
-    {
-      message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-    }
-
-    $sql = "SELECT game_name FROM " . iNA_GAMES . "
-      WHERE game_id = " . (int) $game_id . " AND cat_id = " . (int) $cat_id;
-    if (!($game_result = $db->sql_query($sql)) || !($game_row = $db->sql_fetchrow($game_result)))
-    {
-      message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-    }
-
-    $table = ($action === 'delete_score') ? iNA_SCORES : iNA_AT_SCORES;
-    $sql = "DELETE FROM " . $table . "
-      WHERE game_name = '" . $db->sql_escape($game_row['game_name']) . "'
-      AND score = " . (float) $score . "
-      AND player_id = " . (int) $player_id . "
-      LIMIT 1";
-    if (!$db->sql_query($sql))
-    {
-      message_die(GENERAL_ERROR, $lang['no_score_data'], '', __LINE__, __FILE__, $sql);
-    }
-
-    $return_action = ($action === 'delete_score') ? 'scores' : 'at_scores';
-    redirect(append_sid("arcade_modcp.$phpEx?mode=mod&cat_id=$cat_id&action=$return_action&game_id=$game_id", true));
-    exit;
-//
-//  Delete Score Selected.
-//  
-  }
-  else if($action == '' || $game_id == 0)
-  {
-//
-// Moderator has entered the menu, show the games available and information about them.
-//
-    $template->assign_block_vars("game_menu", array());
-
-    $sql = "SELECT * FROM " . iNA_GAMES . " WHERE cat_id = " . (int) $cat_id . " ORDER BY game_name ASC";
-  	if(!$result = $db->sql_query($sql))
-    {
-		  message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-  	}
-    while (	$game_info = $db->sql_fetchrow($result))
-    {
-			$img = '';
-			$image_src = ina_find_image($game_info['game_path'], $game_info['game_name'], $game_info['image_path'], $phpbb_root_path);
-			if ($image_src !== false)
-			{
-				$img = '<img src="' . arcade_modcp_html($image_src) . '" width="' . (int) $board_config['games_image_width'] . '" height="' . (int) $board_config['games_image_height'] . '" alt="" />';
-			}
-			$template->assign_block_vars("game", array(
-
-				'GAME_ID' => (int) $game_info['game_id'],
-				'NAME' => arcade_modcp_html($game_info['game_name']),
-        'FLASH' => $game_info['game_flash'] ? $lang['ON'] : $lang['OFF'],
-				'DESC' => arcade_modcp_html($game_info['game_desc']),
-				'PATH' => arcade_modcp_html($game_info['game_path']),
-				'IMAGE' => $img,
-				'IMAGE_PATH' => arcade_modcp_html($game_info['image_path'] ? $game_info['image_path'] : $lang['games_image_default']),
-				'INST' => arcade_modcp_html($game_info['instructions'] ? $game_info['instructions'] : $lang['No_Instructions']),
-				'WIDTH' => (int) $game_info['win_width'],
-				'HEIGHT' => (int) $game_info['win_height'],
-				'AUTO' => ($board_config['games_auto_size'] && !$game_info['game_autosize']) ? $lang['ON'] : $lang['OFF']) );
-    }
-  }
-  else if($action == 'scores')
-  {
-//
-//  Show the Scores Edit Window
-//
-//echo ('S '.$action . $game_id) ;
-    $template->assign_block_vars("scores_edit_menu", array());
-
-    $sql = "SELECT reverse_list FROM " . iNA_GAMES . "
-      WHERE game_id = " . (int) $game_id . " AND cat_id = " . (int) $cat_id;
-    if (!($game_result = $db->sql_query($sql)) || !($selected_game = $db->sql_fetchrow($game_result)))
-    {
-      message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-    }
-    $order = $selected_game['reverse_list'] ? 'ASC' : 'DESC';
-
-    $sql = "SELECT s.player_id, s.player_ip, s.score, s.date, s.time_taken, u.username FROM ". iNA_GAMES ." AS g
-      INNER JOIN ". iNA_SCORES ." AS s ON g.game_name = s.game_name
-      LEFT JOIN " . USERS_TABLE . " as u ON s.player_id = u.user_id
-        WHERE g.game_id = " . (int) $game_id . " AND g.cat_id = " . (int) $cat_id . "
-        ORDER by s.score " .$order;
-	   if(!$result = $db->sql_query($sql))
-	   {
-	   	 message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-	   }
-     while (	$score_info = $db->sql_fetchrow($result))
-     {
-			$delete_url = append_sid("arcade_modcp.$phpEx?mode=mod&amp;cat_id=" . (int) $cat_id . "&amp;action=delete_score&amp;game_id=" . (int) $game_id . "&amp;player_id=" . (int) $score_info['player_id']) . '&amp;score=' . rawurlencode((string) $score_info['score']);
-			$template->assign_block_vars("highscores", array(
-				'PLAYER' => arcade_modcp_html($score_info['username'] !== null ? $score_info['username'] : $lang['Guest']),
-				'SCORE' => arcade_modcp_html($arcade->convert_score($score_info['score'])),
-				'DATE' => arcade_modcp_html(create_date($board_config['default_dateformat'], $score_info['date'], $board_config['board_timezone'])),
-				'TIME' => arcade_modcp_html($score_info['time_taken'] ? $arcade->convert_time($score_info['time_taken']) : ''),
-				'DELETE_IMG' => '<a href="' . $delete_url . '"><img src="' . arcade_modcp_html($images['icon_delpost']) . '" alt="' . arcade_modcp_html($lang['Delete_post']) . '" title="' . arcade_modcp_html($lang['Delete_post']) . '" /></a>',
-				'IP_IMG' => arcade_modcp_ip($score_info['player_ip'], $lang['View_IP'])
-     ));     
-     }
-		$hidden_options = '<input type="hidden" name="mode" value="mod" /><input type="hidden" name="cat_id" value="' . (int) $cat_id . '" /><input type="hidden" name="game_id" value="' . (int) $game_id . '" />';
-  }
-  else if($action == 'at_scores')
-  {
-//
-//  Show the Scores Edit Window
-//
-//echo ('S '.$action . $game_id) ;
-    $template->assign_block_vars("scores_edit_menu", array());
-
-    $sql = "SELECT reverse_list FROM " . iNA_GAMES . "
-      WHERE game_id = " . (int) $game_id . " AND cat_id = " . (int) $cat_id;
-    if (!($game_result = $db->sql_query($sql)) || !($selected_game = $db->sql_fetchrow($game_result)))
-    {
-      message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-    }
-    $order = $selected_game['reverse_list'] ? 'ASC' : 'DESC';
-
-    $sql = "SELECT s.player_id, s.player_ip, s.score, s.date, s.time_taken, u.username FROM ". iNA_GAMES ." AS g
-      INNER JOIN ". iNA_AT_SCORES ." AS s ON g.game_name = s.game_name
-      LEFT JOIN " . USERS_TABLE . " as u ON s.player_id = u.user_id
-        WHERE g.game_id = " . (int) $game_id . " AND g.cat_id = " . (int) $cat_id . "
-        ORDER by s.score " .$order;
-	   if(!$result = $db->sql_query($sql))
-	   {
-	   	 message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-	   }
-     while (	$score_info = $db->sql_fetchrow($result))
-     {
-			$delete_url = append_sid("arcade_modcp.$phpEx?mode=mod&amp;cat_id=" . (int) $cat_id . "&amp;action=delete_at_score&amp;game_id=" . (int) $game_id . "&amp;player_id=" . (int) $score_info['player_id']) . '&amp;score=' . rawurlencode((string) $score_info['score']);
-			$template->assign_block_vars("highscores", array(
-				'PLAYER' => arcade_modcp_html($score_info['username'] !== null ? $score_info['username'] : $lang['Guest']),
-				'SCORE' => arcade_modcp_html($arcade->convert_score($score_info['score'])),
-				'DATE' => arcade_modcp_html(create_date($board_config['default_dateformat'], $score_info['date'], $board_config['board_timezone'])),
-				'TIME' => arcade_modcp_html($score_info['time_taken'] ? $arcade->convert_time($score_info['time_taken']) : ''),
-				'DELETE_IMG' => '<a href="' . $delete_url . '"><img src="' . arcade_modcp_html($images['icon_delpost']) . '" alt="' . arcade_modcp_html($lang['Delete_post']) . '" title="' . arcade_modcp_html($lang['Delete_post']) . '" /></a>',
-				'IP_IMG' => arcade_modcp_ip($score_info['player_ip'], $lang['View_IP'])
-     ));     
-     }
-		$hidden_options = '<input type="hidden" name="mode" value="mod" /><input type="hidden" name="cat_id" value="' . (int) $cat_id . '" /><input type="hidden" name="game_id" value="' . (int) $game_id . '" />';
-  }
-
-$moderators_buttons = '<label><input type="radio" name="action" value="scores" checked="checked" /> ' . arcade_modcp_html($lang['arcade_mod_current_scores']) . '</label> &nbsp; '
-	. '<label><input type="radio" name="action" value="at_scores" /> ' . arcade_modcp_html($lang['arcade_mod_all_time_scores']) . '</label>';
-
-
-	$template->set_filenames(array('body' => 'arcade_mod_body.tpl') );
-
-	$template->assign_vars(array(
-    'MOD_MENU' => $lang['arcade_mod_menu'],
-    'MOD_BUTTONS' => $moderators_buttons,
-
-    'L_SUBMIT' => $lang['Submit'],
-		'L_ARCADE_MOD_IMAGE' => $lang['arcade_mod_image'],
-		'L_ARCADE_MOD_FILENAME' => $lang['arcade_mod_filename'],
-		'L_ARCADE_MOD_DESCRIPTION' => $lang['arcade_mod_description'],
-		'L_ARCADE_MOD_PATH' => $lang['arcade_mod_path'],
-		'L_ARCADE_MOD_STATS' => $lang['arcade_mod_stats'],
-		'L_ARCADE_MOD_PLAYER' => $lang['arcade_mod_player'],
-		'L_ARCADE_MOD_DATE' => $lang['arcade_mod_date'],
-		'L_ARCADE_MOD_TIME' => $lang['arcade_mod_time'],
-		'L_ARCADE_MOD_SCORE' => $lang['arcade_mod_score'],
-		'L_ARCADE_MOD_ACTIONS' => $lang['arcade_mod_actions'],
-		'L_ARCADE_MOD_FLASH' => $lang['arcade_mod_flash'],
-		'L_ARCADE_MOD_AUTOSIZE' => $lang['arcade_mod_autosize'],
-		'L_ARCADE_MOD_SCORE_EDITOR' => $action === 'at_scores' ? $lang['arcade_mod_all_time_scores'] : $lang['arcade_mod_current_scores'],
-
-    'S_ACTION' => append_sid("arcade_modcp.$phpEx?mode=mod&cat_id=$cat_id"),
-
-		'ARCADE_MOD' => sprintf($lang['activitiy_mod_info'], $arcade->version()),
-	  'S_HIDDEN_OPTIONS' => $hidden_options,
-  	'U_CAT' => $url
-	));
-	
-}
-else
-{
-	message_die(GENERAL_MESSAGE, $lang['Not_Moderator'], $lang['Not_Authorised']);
-}
-
-$page_title = arcade_modcp_html($lang['arcade_mod_menu'] . ' - ' . $catagory_name);
-// Generate page
+$moderators_buttons = '<label><input type="radio" name="action" value="scores"'.($action!=='at_scores'?' checked="checked"':'').' /> '.arcade_modcp_html($lang['arcade_mod_current_scores']).'</label> &nbsp; '.
+    '<label><input type="radio" name="action" value="at_scores"'.($action==='at_scores'?' checked="checked"':'').' /> '.arcade_modcp_html($lang['arcade_mod_all_time_scores']).'</label>';
+$template->set_filenames(array('body'=>'arcade_mod_body.tpl'));
+$template->assign_vars(array(
+    'MOD_MENU'=>$lang['arcade_mod_menu'], 'MOD_BUTTONS'=>$moderators_buttons, 'L_SUBMIT'=>$lang['Submit'],
+    'L_ARCADE_MOD_IMAGE'=>$lang['arcade_mod_image'],'L_ARCADE_MOD_FILENAME'=>$lang['arcade_mod_filename'],
+    'L_ARCADE_MOD_DESCRIPTION'=>$lang['arcade_mod_description'],'L_ARCADE_MOD_PATH'=>$lang['arcade_mod_path'],
+    'L_ARCADE_MOD_STATS'=>$lang['arcade_mod_stats'],'L_ARCADE_MOD_PLAYER'=>$lang['arcade_mod_player'],
+    'L_ARCADE_MOD_DATE'=>$lang['arcade_mod_date'],'L_ARCADE_MOD_TIME'=>$lang['arcade_mod_time'],
+    'L_ARCADE_MOD_SCORE'=>$lang['arcade_mod_score'],'L_ARCADE_MOD_ACTIONS'=>$lang['arcade_mod_actions'],
+    'L_ARCADE_MOD_FLASH'=>$lang['arcade_mod_flash'],'L_ARCADE_MOD_AUTOSIZE'=>$lang['arcade_mod_autosize'],
+    'L_ARCADE_MOD_SCORE_EDITOR'=>$action==='at_scores'?$lang['arcade_mod_all_time_scores']:$lang['arcade_mod_current_scores'],
+    'S_ACTION'=>append_sid('arcade_modcp.'.$phpEx),'ARCADE_MOD'=>sprintf($lang['activitiy_mod_info'], $arcade->version()),
+    'S_HIDDEN_OPTIONS'=>$hidden_options,'U_CAT'=>$url
+));
+$page_title = arcade_modcp_html($lang['arcade_mod_menu'].' - '.$catagory_name);
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-$template->pparse('body');
-include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
-
-?>
+$template->pparse('body'); include($phpbb_root_path . 'includes/page_tail.'.$phpEx);

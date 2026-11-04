@@ -512,6 +512,9 @@ $lang['arcade_points_monthly_points'] = 'Monthly highscore: %d point(s)';
 $lang['arcade_points_all_time_points'] = 'All-time highscore: %d point(s)';
 $lang['arcade_points_period_info'] = 'Monthly points include the current and previous calendar month.';
 $lang['arcade_points_stats'] = 'List statistics';
+$lang['arcade_score_changed'] = 'The score or game has changed or is ambiguous. Please reload the scoreboard and select the score again.';
+$lang['arcade_mod_delete_score'] = 'Delete score';
+
 $lang['arcade_points_generated'] = 'List generated in %.4f seconds.';
 //
 // TFFT - The End...!
