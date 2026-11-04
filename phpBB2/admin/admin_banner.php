@@ -628,8 +628,8 @@ if( $mode!= "")
 			}
 			$banner_nr = $db->sql_fetchrow($result);
 			$banner_id = (int) $banner_nr['banner_id'] + 1;
-			$sql = "INSERT INTO " . BANNERS_TABLE . " (banner_id, banner_name, banner_active, banner_spot, banner_description, banner_url, banner_click, banner_view, banner_owner, banner_level, banner_level_type, banner_timetype, time_begin, time_end, date_begin, date_end, banner_comment, banner_type, banner_width, banner_height, banner_filter, banner_filter_time, banner_weigth)
-				VALUES ($banner_id, '$banner_name_sql', $banner_active, $banner_spot, '$banner_description_sql', '$banner_url_sql', $banner_click, $banner_view, $banner_owner_id, $banner_level, $banner_level_type, $time_type, $time_begin, $time_end, $date_begin, $date_end, '$banner_comment_sql', $banner_type, $banner_width, $banner_height, $banner_filter, $banner_filter_time, $banner_weigth)";
+			$sql = "INSERT INTO " . BANNERS_TABLE . " (banner_id, banner_name, banner_active, banner_spot, banner_forum, banner_description, banner_url, banner_click, banner_view, banner_owner, banner_level, banner_level_type, banner_timetype, time_begin, time_end, date_begin, date_end, banner_comment, banner_type, banner_width, banner_height, banner_filter, banner_filter_time, banner_weigth)
+				VALUES ($banner_id, '$banner_name_sql', $banner_active, $banner_spot, $banner_forum, '$banner_description_sql', '$banner_url_sql', $banner_click, $banner_view, $banner_owner_id, $banner_level, $banner_level_type, $time_type, $time_begin, $time_end, $date_begin, $date_end, '$banner_comment_sql', $banner_type, $banner_width, $banner_height, $banner_filter, $banner_filter_time, $banner_weigth)";
 			$message = $lang['Banner_added'];
 		}
 		if( !$result = $db->sql_query($sql) )

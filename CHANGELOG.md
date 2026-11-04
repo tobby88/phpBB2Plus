@@ -15,6 +15,8 @@ changes consolidated after that baseline without implying active maintenance.
   ambiguous or cannot be read. Existing banners continue loading by owner ID.
 - Preserve quotes and backslashes in banner names, descriptions, comments and
   target URLs across repeated saves without adding compatibility backslashes.
+- Store the selected forum when creating a banner, including on databases with
+  strict SQL modes, instead of omitting the required forum column.
 
 ### Arcade summary names and caches
 

@@ -52,7 +52,7 @@ try {
     set_error_handler(function($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
     bo_sql('CREATE TABLE fixture_users(user_id INT PRIMARY KEY, username VARCHAR(25) NOT NULL) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
     bo_sql($banner_schema);
-    foreach (array('', 'NO_BACKSLASH_ESCAPES') as $mode) {
+    foreach (array('', 'NO_BACKSLASH_ESCAPES', 'STRICT_TRANS_TABLES', 'STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES') as $mode) {
         bo_sql("SET SESSION sql_mode='" . $mode . "'");
         foreach (array('123', '0', '000123', '1e2', '+123', '-1', '.5', '1.2', 'Plain', 'Müller', 'A&B', "O'Reilly", 'C:\\notes', "A\\'B", 'Trailing\\', '&#39;', '😀', ' 123 ') as $raw) {
             foreach (array(ENT_QUOTES, ENT_COMPAT) as $flags) {
@@ -93,9 +93,10 @@ try {
             $fields = array('banner_name'=>$text, 'banner_description'=>$text, 'banner_comment'=>$text,
                 'banner_url'=>"https://example.invalid/?a='" . rawurlencode($text) . "'&b=2");
             foreach (array(0, 1, 1) as $id) {
-                bo_save('Owner', $id, 'banner-fixture', $fields);
-                $row = bo_rows('SELECT banner_name,banner_description,banner_comment,banner_url,banner_owner FROM fixture_banner');
+                bo_save('Owner', $id, 'banner-fixture', array_merge($fields, array('f'=>'9')));
+                $row = bo_rows('SELECT banner_name,banner_description,banner_comment,banner_url,banner_owner,banner_forum FROM fixture_banner');
                 ats_check(count($row) === 1 && (int)$row[0]['banner_owner'] === 7, 'Metadata save retains numeric owner');
+                ats_check((int)$row[0]['banner_forum'] === 9, 'Actual INSERT and repeated UPDATE preserve the selected forum');
                 foreach ($fields as $field=>$value) {
                     ats_check($row[0][$field] === trim($value), 'Actual banner text round-trip is byte exact: ' . $field);
                     $fields[$field] = $row[0][$field];
