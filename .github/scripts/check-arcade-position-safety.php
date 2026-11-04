@@ -71,7 +71,7 @@ arcade_position_assert(strpos($import_template, 'Auto Import') === false && strp
 arcade_position_assert(strpos($admin_config, "'L_PM_SYSTEM' =>") !== false && strpos($message_template, '{L_PM_SYSTEM}') !== false, 'Arcade message settings must use a translated heading');
 arcade_position_assert(strpos($message_template, 'Private Message System') === false, 'Arcade message templates must not retain a hardcoded English heading');
 arcade_position_assert(strpos($admin_games, 'phpbb_arcade_game_save($db, $game_id,') !== false, 'renaming a game must use the complete atomic game writer');
-arcade_position_assert(strpos($admin_games, 'arcade_admin_delete_game_references') !== false, 'deleting a game must remove or clear dependent records');
+arcade_position_assert(strpos($admin_games, 'phpbb_arcade_game_remove($db,') !== false, 'deleting a game must use the complete atomic reference/counter writer');
 arcade_position_assert(strpos($admin_games, 'WHERE game_id = $old_id') !== false, 'game reordering must verify its source record');
 arcade_position_assert(strpos($admin_games, "AND cat_type <> 'l'") !== false, 'imports must target a real playable category');
 arcade_position_assert(strpos($admin_games, '$admin_page_size = max(0, (int)') !== false, 'Arcade pagination limits must be numeric');

@@ -340,6 +340,12 @@ jobs:
         env:
           PHPBB_ARCADE_GAME_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Delete native Arcade games and reset score scopes atomically
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-actions-native.php
+        env:
+          PHPBB_ARCADE_ACTION_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Keep native Arcade category identities and visibility current
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-category-cache-native.php

@@ -40,6 +40,7 @@ require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 require_once dirname(__DIR__) . '/includes/functions_arcade_game_storage.php';
+require_once dirname(__DIR__) . '/includes/functions_arcade_action_storage.php';
 
 function arcade_admin_post_string($name, $default = '')
 {
@@ -72,46 +73,6 @@ function arcade_admin_notify_new_game($description)
 			@ina_send_user_pm((int) $row['user_id'], $lang['games_new_game_added_info'], $message, (int) $userdata['user_id'], 'YES');
 		}
 		$arcade->write_cache('user_id', $rows, $phpbb_root_path);
-	}
-}
-
-function arcade_admin_delete_game_references($game_name, $game_id)
-{
-	global $db, $lang;
-
-	$game_sql = $db->sql_escape($game_name);
-	$delete_references = array(
-		array(iNA_SCORES, 'game_name'), array(iNA_AT_SCORES, 'game_name'),
-		array(iNA_GAMES_COMMENT, 'comment_game_name'), array(iNA_GAMES_COMMENT, 'game_name'),
-		array(iNA_GAMES_RATE, 'rate_game_name'),
-		array(iNA_SESSIONS, 'game_name'), array(iNA_TOUR_DATA, 'game_name')
-	);
-	foreach ($delete_references as $reference)
-	{
-		$sql = "DELETE FROM " . $reference[0] . " WHERE " . $reference[1] . " = '$game_sql'";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, $lang['no_game_delete'], '', __LINE__, __FILE__, $sql);
-		}
-	}
-
-	$sql = "DELETE FROM " . iNA_FAV . " WHERE fav_game_id = " . (int) $game_id . " OR fav_game_name = '$game_sql'";
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_delete'], '', __LINE__, __FILE__, $sql);
-	}
-
-	$clear_references = array(
-		array(iNA_TOUR_PLAY, 'last_played_game'), array(iNA_USER_DATA, 'last_played'),
-		array(iNA_CAT, 'last_game')
-	);
-	foreach ($clear_references as $reference)
-	{
-		$sql = "UPDATE " . $reference[0] . " SET " . $reference[1] . " = NULL WHERE " . $reference[1] . " = '$game_sql'";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, $lang['no_game_update'], '', __LINE__, __FILE__, $sql);
-		}
 	}
 }
 
@@ -1171,7 +1132,7 @@ else if( !$mode || $mode == "edit_games" || $mode == "game_down" || $mode == "ga
 			"BONUS" => $game_bonus,
 			"DESC" => phpbb_profile_text($game_desc),
 			"U_GAME_EDIT" => append_sid("$file?mode=edit&amp;id=" . $game_id . "&amp;cat_id=" . $cat_id . "&amp;order=".$sort_order."&amp;sort_mode=".$sort_mode."&amp;start=".$start), 
-			"DELETE_ID" => $game_id)
+			"DELETE_ID" => $game_id . ':' . phpbb_arcade_game_revision($game_rows[$i]))
 		);
 	}
 	$template->assign_vars(array(
@@ -1227,179 +1188,56 @@ else if( !$mode || $mode == "edit_games" || $mode == "game_down" || $mode == "ga
 //
 else if( $mode == "clear_scores" || $mode == "clear_at_scores" )
 {
-	$table = iNA_SCORES;
-	$places_sql = '';
-	if( $mode == "clear_at_scores" )
+	$category_value = arcade_admin_post_string('cat_id', null);
+	if (!is_string($category_value) || !preg_match('/^(?:0|[1-9][0-9]{0,6})$/D', $category_value) || (int)$category_value > 8388607)
+	{ message_die(GENERAL_MESSAGE, $lang['arcade_reset_changed']); }
+	$cat_id = (int)$category_value;
+	$board = $mode === 'clear_scores' ? 'current' : 'all_time';
+	if (isset($HTTP_POST_VARS['cancel']))
 	{
-		$table = iNA_AT_SCORES;
-		$places_sql = 'at_';
-	}
-	if(!isset($HTTP_POST_VARS['confirm']))
-	{
-		if(isset($HTTP_POST_VARS['cancel']))
-		{
-			redirect(append_sid("$filename"));
-			exit;
-		}
-		$template->set_filenames(array('body' => 'confirm_body.tpl'));
-		$confirm_text = ($mode === 'clear_at_scores') ? $lang['arcade_delete_at_sure'] : $lang['arcade_delete_scores_sure'];
-		$template->assign_vars(array(
-			'MESSAGE_TITLE' => $lang['Confirm'],
-			'MESSAGE_TEXT' => $confirm_text,
-			'L_NO' => $lang['No'],
-			'L_YES' => $lang['Yes'],
-			'S_CONFIRM_ACTION' => append_sid("$filename"),
-			'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="' . phpbb_admin_html($mode) . '"><input type="hidden" name="cat_id" value="' . (int) $cat_id . '">' . phpbb_admin_session_field(),
-		));
-		$template->pparse('body');
+		redirect(append_sid("$file?mode=edit_games&cat_id=$cat_id"));
 		exit;
 	}
-
-	$cat_id = arcade_admin_post_int('cat_id');
-	if($cat_id > 0)
+	try
 	{
-		$sql = "SELECT game_name, reverse_list FROM " . iNA_GAMES . "
-				WHERE cat_id = '" . $cat_id . "'";
-		if(!$result = $db->sql_query($sql))
+		if (!isset($HTTP_POST_VARS['confirm']))
 		{
-			message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+			$revision = phpbb_arcade_reset_snapshot($db, $cat_id, $board);
+			$template->set_filenames(array('body'=>'confirm_body.tpl'));
+			$template->assign_vars(array(
+				'MESSAGE_TITLE'=>$lang['Confirm'],
+				'MESSAGE_TEXT'=>$mode === 'clear_at_scores' ? $lang['arcade_delete_at_sure'] : $lang['arcade_delete_scores_sure'],
+				'L_NO'=>$lang['No'], 'L_YES'=>$lang['Yes'],
+				'S_CONFIRM_ACTION'=>append_sid($file),
+				'S_HIDDEN_FIELDS'=>'<input type="hidden" name="mode" value="'.$mode.'"><input type="hidden" name="cat_id" value="'.$cat_id.'"><input type="hidden" name="reset_revision" value="'.$revision.'">'.phpbb_admin_session_field()
+			));
+			$template->pparse('body');
+			exit;
 		}
-		while ($game_info = $db->sql_fetchrow($result))
-		{
-			$game_name = $game_info['game_name'];
-			$list_type = !empty($game_info['reverse_list']) ? 'ASC' : 'DESC';
-			$top_score = best_game_player($table, $game_name, $list_type);
-			$game_name_sql = $db->sql_escape($game_name);
-			$sql = "DELETE FROM " . $table . "
-				WHERE game_name = '" . $game_name_sql . "'";
-			if(!$delete = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "UPDATE " . iNA_USER_DATA . "
-				SET ".$places_sql."first_places = GREATEST(".$places_sql."first_places - 1, 0)
-				WHERE user_id = " . (int) $top_score['player_id'];
-		    if(!$update = $db->sql_query($sql)) 
-			{
-				message_die(GENERAL_ERROR, $lang['no_user_update'], "", __LINE__, __FILE__, $sql); 
-			}
-  		$sql = "UPDATE " . iNA_GAMES . "
-  			SET ".$places_sql."highscore_id = 0
-				WHERE game_name = '" . $game_name_sql . "'";
-  		if(!$update = $db->sql_query($sql)) 
-  		{
-  			message_die(GENERAL_ERROR, $lang['no_game_update'], "", __LINE__, __FILE__, $sql); 
-  		}
-		}
+		phpbb_arcade_scores_reset($db, $cat_id, $board, arcade_admin_post_string('reset_revision'));
 	}
-	else
-	{
-		$sql = "TRUNCATE " . $table;
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['no_score_reset'], "", __LINE__, __FILE__, $sql);
-		}
-		$sql = "UPDATE " . iNA_USER_DATA . "
-			SET ".$places_sql."first_places = 0 , ".$places_sql."second_places = 0 , ".$places_sql."third_places = 0";
-		if(!$update = $db->sql_query($sql)) 
-		{
-			message_die(GENERAL_ERROR, $lang['no_user_update'], "", __LINE__, __FILE__, $sql); 
-		}
-		$sql = "UPDATE " . iNA_GAMES . "
-			SET ".$places_sql."highscore_id = 0";
-		if(!$update = $db->sql_query($sql)) 
-		{
-			message_die(GENERAL_ERROR, $lang['no_game_update'], "", __LINE__, __FILE__, $sql); 
-		}
-	}
-//
-//  Force update of cache files
-//
-  $arcade->clear_cache('games');
-  
+	catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+	catch (PhpbbOwnedStorageFailure $error)
+	{ message_die(GENERAL_MESSAGE, isset($lang[$error->getMessage()]) ? $lang[$error->getMessage()] : $lang['no_score_reset']); }
 	$message = $lang['admin_score_reset'];
-	$message .= sprintf($lang['admin_return_games'], "<a href=\"" . append_sid("$file?mode=edit_games&amp;cat_id=$cat_id&amp;order=$sort_order&amp;sort_mode=$sort_mode&amp;start=$start") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-	message_die(GENERAL_MESSAGE, $message, '', __LINE__, __FILE__, $sql);
+	$message .= sprintf($lang['admin_return_games'], "<a href=\"".append_sid("$file?mode=edit_games&cat_id=$cat_id&order=$sort_order&sort_mode=$sort_mode&start=$start")."\">", '</a>').'<br /><br />'.sprintf($lang['Click_return_admin_index'], "<a href=\"".append_sid("index.$phpEx?pane=right")."\">", '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 //
 //  Delete Game
 //
 else if( $mode == "delete")
 {
-	$game_id = arcade_admin_post_int('delete');
-	if( $game_id )
-	{
-		$sql = "SELECT game_name, cat_id, played, game_avail, reverse_list FROM " . iNA_GAMES . "
-			WHERE game_id = $game_id";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['no_game_delete'], "", __LINE__, __FILE__, $sql);
-		}
-		$game_info = $db->sql_fetchrow($result);
-		if (!$game_info)
-		{
-			message_die(GENERAL_MESSAGE, $lang['admin_game_not_deleted']);
-		}
-		$list_type = !empty($game_info['reverse_list']) ? 'ASC' : 'DESC';
-		foreach (array(iNA_SCORES => 'first_places', iNA_AT_SCORES => 'at_first_places') as $score_table => $places_column)
-		{
-			$top_score = best_game_player($score_table, $game_info['game_name'], $list_type);
-			$top_player_id = isset($top_score['player_id']) ? (int) $top_score['player_id'] : 0;
-			if ($top_player_id > 0)
-			{
-				$sql = "UPDATE " . iNA_USER_DATA . " SET $places_column = GREATEST($places_column - 1, 0) WHERE user_id = $top_player_id";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, $lang['no_user_update'], '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
-		arcade_admin_delete_game_references($game_info['game_name'], $game_id);
-		$sql = "DELETE FROM " . iNA_GAMES . "
-			WHERE game_id = $game_id";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['no_game_delete'], "", __LINE__, __FILE__, $sql);
-		}
-		if(!empty($game_info['game_avail']))
-		{
-			$deleted_cat_id = (int) $game_info['cat_id'];
-			$deleted_plays = max(0, (int) $game_info['played']);
-  		$sql = "UPDATE ". iNA_CAT . "
-			SET total_played = GREATEST(total_played - $deleted_plays, 0), total_games = GREATEST(total_games - 1, 0)
-			WHERE cat_id = -1";
-  		if( !$result = $db->sql_query($sql) )
-  		{
-  			message_die(GENERAL_ERROR, $lang['no_cat_update'], "", __LINE__, __FILE__, $sql);
-  		}
-			if($deleted_cat_id > 0)
-      {
-    		$sql = "UPDATE ". iNA_CAT . "
-				SET total_played = GREATEST(total_played - $deleted_plays, 0), total_games = GREATEST(total_games - 1, 0)
-				WHERE cat_id = $deleted_cat_id";
-    		if( !$result = $db->sql_query($sql) )
-    		{
-    			message_die(GENERAL_ERROR, $lang['no_cat_update'], "", __LINE__, __FILE__, $sql);
-    		}
-  		}
-		}
-//
-//  Force update of cache files
-//
-		$arcade->clear_cache('games');
-		$arcade->clear_cache('categories');
-
-		$message = $lang['admin_game_deleted'];
-		$message .= sprintf($lang['admin_return_games'], "<a href=\"" . append_sid("$file?mode=edit_games&amp;cat_id=$cat_id&amp;order=$sort_order&amp;sort_mode=$sort_mode&amp;start=$start") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-		message_die(GENERAL_MESSAGE, $message, '', __LINE__, __FILE__, $sql);
-	}
-	else
-	{
-		$message = $lang['admin_game_not_deleted'];
-		$message .= sprintf($lang['admin_return_arcade'], "<a href=\"" . append_sid("admin_arcade.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-		message_die(GENERAL_MESSAGE, $message, '', __LINE__, __FILE__, $sql);
-	}
+	$selection = arcade_admin_post_string('delete');
+	if (!preg_match('/^([1-9][0-9]{0,6}):([a-f0-9]{64})$/D', $selection, $selected) || (int)$selected[1] > 8388607)
+	{ message_die(GENERAL_MESSAGE, $lang['arcade_game_changed']); }
+	try { phpbb_arcade_game_remove($db, (int)$selected[1], $selected[2]); }
+	catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+	catch (PhpbbOwnedStorageFailure $error)
+	{ message_die(GENERAL_MESSAGE, isset($lang[$error->getMessage()]) ? $lang[$error->getMessage()] : $lang['no_game_delete']); }
+	$message = $lang['admin_game_deleted'];
+	$message .= sprintf($lang['admin_return_games'], "<a href=\"".append_sid("$file?mode=edit_games&cat_id=$cat_id&order=$sort_order&sort_mode=$sort_mode&start=$start")."\">", '</a>').'<br /><br />'.sprintf($lang['Click_return_admin_index'], "<a href=\"".append_sid("index.$phpEx?pane=right")."\">", '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 //
 //  Repair Index's

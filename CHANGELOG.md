@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Delete games and reset category/global scoreboards in owned transactions,
+  with current Edit-module authority and metadata-bound list/confirmation
+  revisions. Roll back references, placements, pointers and counters together;
+  remove historical play counts for offline games too. Global resets use
+  transactional `DELETE`, clear stored placement lists and preserve the other
+  scoreboard. Retain monthly score history, ban audit records and physical game
+  files. These paths reuse the existing canonical storage without a new migration.
 - Reconcile both winner pointers and affected users' first/second/third-place
   counts and game lists inside the game transaction when the scoring direction,
   visibility or name changes, or a board is reset. Preserve score rows, unrelated

@@ -1,0 +1,14 @@
+<?php
+require __DIR__.'/arcade-action-fixture.php';$count=0;
+$row=array_merge(array('game_id'=>41,'played'=>12,'highscore_id'=>8,'at_highscore_id'=>8),ag_values());
+$revision=phpbb_arcade_reset_revision(array($row),7,'current');as_check(preg_match('/^[a-f0-9]{64}$/D',$revision)===1,'Scoped confirmation hash');$count++;
+foreach(array_merge(array('game_id'),phpbb_arcade_game_fields())as$key){$changed=$row;$changed[$key]=$key==='cat_id'?9:(string)$changed[$key].'x';if($key==='game_id'){$changed[$key]=42;}$different=false;try{$different=phpbb_arcade_reset_revision(array($changed),7,'current')!==$revision;}catch(PhpbbOwnedStorageFailure$e){$different=true;}as_check($different,'Every selected game metadata field pinned '.$key);$count++;}
+foreach(array('played','highscore_id','at_highscore_id')as$key){$changed=$row;$changed[$key]=999;as_check(phpbb_arcade_reset_revision(array($changed),7,'current')===$revision,'New gameplay remains within the confirmed reset scope '.$key);$count++;}
+$second=$row;$second['game_id']=42;$second['game_name']='second';as_check(phpbb_arcade_reset_revision(array($row,$second),7,'current')===phpbb_arcade_reset_revision(array($second,$row),7,'current'),'Result ordering does not change scope');$count++;
+as_check(phpbb_arcade_reset_revision(array($row),0,'current')!==$revision&&phpbb_arcade_reset_revision(array($row),7,'all_time')!==$revision,'Board and global/category scope are distinct');$count++;
+foreach(array(array(array($row),-1,'current'),array(array($row),'7','current'),array(array($row),8388608,'current'),array(array($row),7,'other'),array(array($row,$row),7,'current'),array(array(array('game_id'=>array(1),'cat_id'=>7)),7,'current'),array(array($row),8,'current'),array(null,7,'current'))as$args){$caught=false;try{call_user_func_array('phpbb_arcade_reset_revision',$args);}catch(PhpbbOwnedStorageFailure$e){$caught=true;}as_check($caught,'Malformed or ambiguous reset scope rejected');$count++;}
+$changed=$row;$changed['cat_id']=null;as_check(is_string(phpbb_arcade_reset_revision(array($changed),0,'current')),'Global scope includes legacy nullable category');$count++;
+foreach(array('english','german')as$locale){ag_language($locale);as_check(isset($lang['arcade_reset_changed'])&&preg_match('//u',$lang['arcade_reset_changed'])===1,'Localized stale reset confirmation');$count++;}
+$source=file_get_contents($as_app.'admin/admin_arcade_games.php');as_check(strpos($source,'arcade_admin_delete_game_references')===false&&strpos($source,'TRUNCATE ')===false,'No independently committed deletion helper or reset DDL');
+$template=file_get_contents($as_app.'templates/fisubsilversh/confirm_body.tpl');as_check(strpos($template,'{S_HIDDEN_FIELDS}')!==false,'Actual confirmation template renders snapshot and SID');
+echo 'Arcade action inputs: '.$count.' cases, '.$as_checks." assertions PASS; bound scopes, revisions, current template and localized recovery.\n";
