@@ -38,6 +38,8 @@ changes consolidated after that baseline without implying active maintenance.
 - Preserve live click and view increments when a banner form saves unchanged
   counters. Recognize intentional counter corrections separately, and keep
   existing counters when an older open form has no original-value fields.
+- Report a banner removed during editing instead of falsely acknowledging a
+  successful save. Unchanged existing banners still save successfully.
 
 ### Arcade summary names and caches
 

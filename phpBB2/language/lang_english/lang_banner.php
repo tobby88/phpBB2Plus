@@ -117,6 +117,7 @@ $lang['Missing_week'] ="When you define a banner by week day, you must at least 
 $lang['Banner_removed'] = "The banner is now removed";
 $lang['Confirm_delete_banner'] = 'Are you sure you want to delete this banner?';
 $lang['Banner_updated'] = "The banner is now updated";
+$lang['Banner_no_longer_exists'] = 'This banner no longer exists. Your changes could not be saved. Return to banner management and check the current list.';
 $lang['Banner_added'] = "The banner is now added";
 $lang['Banner_text_invalid'] = 'Please check %s. The text contains invalid or unsupported characters.';
 $lang['Banner_invalid_date'] = 'Please select a valid start and end date for the banner.';

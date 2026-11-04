@@ -116,6 +116,7 @@ $lang['Missing_week'] ="Wenn du ein Banner nach Wochentag angibst, mußt du zumi
 $lang['Banner_removed'] = "Das Banner wurde entfernt";
 $lang['Confirm_delete_banner'] = 'Möchtest Du dieses Banner wirklich löschen?';
 $lang['Banner_updated'] = "Das Banner wurde aktualisiert";
+$lang['Banner_no_longer_exists'] = 'Dieses Banner existiert nicht mehr. Deine Änderungen konnten nicht gespeichert werden. Bitte kehre zur Banner-Verwaltung zurück und prüfe die aktuelle Liste.';
 $lang['Banner_added'] = "Das Banner wurde hinzugefügt";
 $lang['Banner_text_invalid'] = 'Bitte prüfe %s. Der Text enthält ungültige oder nicht unterstützte Zeichen.';
 $lang['Banner_invalid_date'] = 'Bitte wähle ein gültiges Start- und Enddatum für das Banner.';

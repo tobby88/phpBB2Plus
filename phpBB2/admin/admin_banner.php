@@ -724,6 +724,21 @@ if( $mode!= "")
 		{
 			message_die(GENERAL_ERROR, "Couldn't update/insert into banners table", "", __LINE__, __FILE__, $sql);
 		}
+		if ($banner_id && $db->sql_affectedrows() === 0)
+		{
+			// An unchanged row also reports zero; distinguish it from a deleted banner.
+			$sql = "SELECT banner_id FROM " . BANNERS_TABLE . " WHERE banner_id = $banner_id";
+			if (!$result = $db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, "Couldn't verify the saved banner", "", __LINE__, __FILE__, $sql);
+			}
+			$banner_exists = $db->sql_fetchrow($result);
+			$db->sql_freeresult($result);
+			if (!$banner_exists)
+			{
+				message_die(GENERAL_MESSAGE, $lang['Banner_no_longer_exists']);
+			}
+		}
 		$message .= "<br /><br />" . sprintf($lang['Click_return_banneradmin'], "<a href=\"" . append_sid("admin_banner.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 		message_die(GENERAL_MESSAGE, $message);
 	}

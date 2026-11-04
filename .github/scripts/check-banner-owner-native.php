@@ -350,6 +350,47 @@ try {
         }
     }finally{$db->before_update=null;$counter_peer->sql_close();}
     echo 'Native banner stale forms: '.$stale_cases." actual form/traffic/manual-edit cases PASS.\n";
+    $missing_cases=0;$removal_peer=new sql_db($host,'root',$password,$fixture,false);
+    try {
+        foreach(array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES')as$mode){
+            bo_sql("SET SESSION sql_mode='$mode'");
+            foreach(array('english','german')as$locale){
+                require $ats_source.'language/lang_'.$locale.'/lang_banner.php';
+                foreach(array(false,true)as$legacy){
+                    foreach(array(false,true)as$late){
+                        bo_sql('TRUNCATE TABLE fixture_banner');bo_save('Owner');bo_save('Owner');
+                        $rows=bo_rows('SELECT * FROM fixture_banner ORDER BY banner_id');
+                        $form=bo_text_form($rows[0],$locale,false,true);
+                        if($legacy){unset($form['banner_click_original'],$form['banner_view_original']);}
+                        $other_before=serialize($rows[1]);$removed=false;
+                        $remove=function()use($removal_peer,&$removed){
+                            ats_check($removal_peer->sql_query('DELETE FROM fixture_banner WHERE banner_id=1'),'Independent removal after form opened');$removed=true;
+                        };
+                        if($late){$db->before_update=$remove;}else{$remove();}
+                        $message=bo_save('Owner',1,'banner-fixture',array_merge($form,array('banner_name'=>'Save after removal')));
+                        $remaining=bo_rows('SELECT * FROM fixture_banner ORDER BY banner_id');
+                        ats_check($removed&&$message===$lang['Banner_no_longer_exists']&&count($remaining)===1&&serialize($remaining[0])===$other_before,
+                            'Removed banners never report saved, reappear or alter another banner; actual current and legacy forms');$missing_cases++;
+                        ats_check(bo_save('Owner',999,'banner-fixture',$form)===$lang['Banner_no_longer_exists']&&serialize(bo_rows('SELECT * FROM fixture_banner'))===serialize($remaining),
+                            'Unknown positive edit ID cannot become an insertion');$missing_cases++;
+                    }
+                    bo_sql('TRUNCATE TABLE fixture_banner');bo_save('Owner');
+                    $row=bo_rows('SELECT * FROM fixture_banner')[0];$before=bo_snapshot();$form=bo_text_form($row,$locale,false,true);
+                    if($legacy){unset($form['banner_click_original'],$form['banner_view_original']);}
+                    foreach(array(1,1)as$id){
+                        ats_check(strpos(bo_save('Owner',$id,'banner-fixture',$form),$lang['Banner_updated'])===0&&bo_snapshot()===$before,
+                            'Repeated unchanged existing banners still save successfully with zero affected rows');$missing_cases++;
+                    }
+                    $db->fail_metadata='SELECT banner_id FROM fixture_banner WHERE banner_id = ';
+                    try {
+                        ats_check(bo_save('Owner',1,'banner-fixture',$form)==="Couldn't verify the saved banner"&&bo_snapshot()===$before,
+                            'A failed existence read never acknowledges a successful save');$missing_cases++;
+                    }finally{$db->fail_metadata='';}
+                }
+            }
+        }
+    }finally{$db->before_update=null;$removal_peer->sql_close();}
+    echo 'Native banner removed rows: '.$missing_cases." actual removal/unchanged/read-failure cases PASS.\n";
     $other = new sql_db($host,'root',$password,$fixture,false);
     try {
         foreach (array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES') as $mode) {
