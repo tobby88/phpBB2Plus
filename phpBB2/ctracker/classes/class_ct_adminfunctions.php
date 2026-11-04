@@ -705,20 +705,44 @@ class ct_adminfunctions
 	}
 
 
-	/**
-	* <b>ScanFile</b><br>
-	* This function scans a file wich is saved into the
-	* filescan database for potential security risks. Well this is a really
-	* complex function because something like that is little bit complex to do
-	* with PHP, but well, this algorithm works really fast and also if you have
-	* a huge premodded board 30seconds execution time for a PHP Script should be
-	* really enough to scan all PHP files of your board. Sorry for the little
-	* spaghetti code in here but i've longtimes optimized this and this one is
-	* really the shortest and fastest method to do that what this function
-	* should do.
-	*
-	* @param $fid = File Identification Number in Database
-	*/
+	/** Recognize a leading guard that ends this file when IN_PHPBB is absent. */
+	private function terminating_entry_guard($source)
+	{
+		if (!function_exists('token_get_all')) { return false; }
+		// Recognize code tokens, not text inside a comment or quoted example.
+		$tokens = array();
+		foreach (token_get_all($source) as $token)
+		{
+			if (is_array($token) && in_array($token[0], array(T_OPEN_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), true)) { continue; }
+			$tokens[] = $token;
+		}
+		$count = count($tokens);
+		if ($count < 10 || !is_array($tokens[0]) || $tokens[0][0] !== T_IF || $tokens[1] !== '(') { return false; }
+		$position = 2;
+		$checks_phpbb = false;
+		// Only a disjunction of missing constants guarantees entry is denied
+		// whenever IN_PHPBB is absent. An AND condition does not guarantee it.
+		while ($position + 5 < $count)
+		{
+			if ($tokens[$position] !== '!' || !is_array($tokens[$position + 1])
+				|| $tokens[$position + 1][0] !== T_STRING || strtolower($tokens[$position + 1][1]) !== 'defined'
+				|| $tokens[$position + 2] !== '(' || !is_array($tokens[$position + 3])
+				|| $tokens[$position + 3][0] !== T_CONSTANT_ENCAPSED_STRING || $tokens[$position + 4] !== ')') { return false; }
+			$constant = $tokens[$position + 3][1];
+			if (!preg_match('/\A([\'\"])[A-Z_][A-Z0-9_]*\1\z/D', $constant)) { return false; }
+			if (substr($constant, 1, -1) === 'IN_PHPBB') { $checks_phpbb = true; }
+			$position += 5;
+			if (is_array($tokens[$position]) && $tokens[$position][0] === T_BOOLEAN_OR) { $position++; continue; }
+			break;
+		}
+		if (!$checks_phpbb || $position + 1 >= $count || $tokens[$position] !== ')') { return false; }
+		$position++;
+		if ($tokens[$position] === '{') { $position++; }
+		return isset($tokens[$position]) && is_array($tokens[$position])
+			&& in_array($tokens[$position][0], array(T_EXIT, T_RETURN), true);
+	}
+
+	/** Classify indexed files without executing their source. */
 	function ScanFile($source_table = '')
 	{
 		global $phpbb_root_path, $lang;
@@ -777,7 +801,8 @@ class ct_adminfunctions
 				continue;
 			}
 
-			for ($i = 0; $i <= count($filename)-1; $i++)
+			$constant_check = $this->terminating_entry_guard(implode('', $filename));
+			for ($i = 0; !$constant_check && $i <= count($filename)-1; $i++)
 	    	{
 				$scanline = $filename[$i];
 				$scanline = strtolower($scanline);
@@ -792,11 +817,6 @@ class ct_adminfunctions
 					if(preg_match('/define\\(\'in_phpbb\'./m', $scanline) && $action_counter == 1)
 					{
 						$constant_set = true;
-					}
-					else if(preg_match('/if\\(!defined\\(\'in_phpbb\'./m', $scanline) && $action_counter == 1)
-					{
-						$constant_check = true;
-						break;
 					}
 					else if($constant_set && preg_match('/\\$phpbb_root_path=./m', $scanline) && $action_counter == 2)
 					{

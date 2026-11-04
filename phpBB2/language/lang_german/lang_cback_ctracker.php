@@ -190,7 +190,7 @@ $lang['ctracker_file_legacy_checksum'] = 'VERALTETE ODER UNGÜLTIGE PRÜFSUMME �
  */
 $lang['ctracker_fscan_complete']		  = 'Der Dateiscan wurde erfolgreich ausgeführt. Unter "Ergebnisse anzeigen" findest Du den neuen Bericht. Die vorherige vollständige Ergebnisliste wurde erst nach erfolgreichem Abschluss ersetzt.<br /><br /><b>Hinweis:</b> Die Prüfung erkennt strukturelle Auffälligkeiten, beweist aber weder Sicherheit noch einen Angriff. Prüfe gemeldete Dateien im Kontext; Quelltext-Kommentare können die Prüfung nicht mehr pauschal deaktivieren.';
 $lang['ctracker_fscan_unchecked']		  = 'NICHT ÜBERPRÜFT';
-$lang['ctracker_fscan_ok']				  = 'SICHER';
+$lang['ctracker_fscan_ok']				  = 'KEINE STRUKTURELLE AUFFÄLLIGKEIT ERKANNT';
 $lang['ctracker_fscan_prob_1']			  = 'extension.inc nicht / zu spät eingebunden';
 $lang['ctracker_fscan_prob_2']			  = '$phpbb_root_path ist möglicherweise nicht richtig initialisiert';
 $lang['ctracker_fscan_prob_3']			  = 'common.php / pagestart.php möglicherweise nicht oder zu spät eingebunden';

@@ -192,7 +192,7 @@ $lang['ctracker_file_legacy_checksum'] = 'LEGACY OR INVALID CHECKSUM – REBUILD
  */
 $lang['ctracker_fscan_complete']		  = 'The file scan completed successfully. Use "Show Results" to review the new report. The previous complete result set was replaced only after the scan succeeded.<br /><br /><b>Note:</b> This check identifies structural concerns; it proves neither safety nor compromise. Review reported files in context. A source-code comment can no longer disable the check wholesale.';
 $lang['ctracker_fscan_unchecked']		  = 'NOT CHECKED';
-$lang['ctracker_fscan_ok']                = 'SAFE';
+$lang['ctracker_fscan_ok']                = 'NO STRUCTURAL ISSUE DETECTED';
 $lang['ctracker_fscan_prob_1']			  = 'extension.inc not / too late included';
 $lang['ctracker_fscan_prob_2']			  = '$phpbb_root_path maybe not be initialised correctly';
 $lang['ctracker_fscan_prob_3']			  = 'common.php / pagestart.php maybe not be or too late included';

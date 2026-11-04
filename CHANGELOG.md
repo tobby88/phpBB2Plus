@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### CrackerTracker file entry checks
+
+- Recognize terminating `IN_PHPBB` entry guards through PHP tokens, including
+  comments, multiline conditions and either quote style. Ineffective checks,
+  conditional exits and checks that depend on another missing constant no
+  longer receive the green structural status merely for mentioning the guard.
+- Describe the green status as no structural issue detected, consistent with
+  the scanner's existing explanation that it cannot establish overall safety.
+
 ### Banner owner identities
 
 - Resolve submitted banner owner names as names, including numeric usernames,

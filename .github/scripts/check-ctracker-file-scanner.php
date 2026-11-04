@@ -79,6 +79,49 @@ if ($link_created)
 	filescan_test_assert(strpos($scan_sql, 'SET safety = 10 WHERE id = 3') !== false, 'a persisted symbolic link must not be read');
 }
 
+// Scan the real files through the complete production classifier; never execute them.
+$guard_cases = array(
+	array("if (!defined('IN_PHPBB')) { die('Denied'); }", 0),
+	array('if (!defined("IN_PHPBB")) { exit; }', 0),
+	array("if (!defined('IN_PHPBB')) die('Denied');", 0),
+	array("if (!defined('IN_PHPBB')) { return; }", 0),
+	array("if (!defined('IN_PHPBB') || !defined('CTRACKER_ACP')) { die('Denied'); }", 0),
+	array("if (!defined('OTHER') || !defined('IN_PHPBB')) { exit; }", 0),
+	array("/* before */\nif /* comment */ ( ! DEFINED /* call */ ( 'IN_PHPBB' ) )\n{\n die('Denied');\n}", 0),
+	array("if (!defined('IN_PHPBB')) {}", 4),
+	array("if (!defined('IN_PHPBB')) { echo 'still running'; }", 4),
+	array("if (!defined('IN_PHPBB'));", 4),
+	array("if (!defined('IN_PHPBB')) { if (false) { die('Denied'); } }", 4),
+	array("if (!defined('IN_PHPBB') && !defined('OTHER')) { die('Denied'); }", 4),
+	array("if (!defined('OTHER')) { die('Denied'); }", 4),
+	array("if (defined('IN_PHPBB')) { die('Denied'); }", 4),
+	array("if (false) { if (!defined('IN_PHPBB')) { die('Denied'); } }", 4),
+	array("\$example = \"if (!defined('IN_PHPBB')) { die('Denied'); }\";", 4),
+	array("// if (!defined('IN_PHPBB')) { die('Denied'); }\necho 'entry';", 4),
+	array("if (!defined('IN_PHPBB') === false) { die('Denied'); }", 4),
+	array("if (!defined('IN_PHPBB') || \$optional) { echo 'still running'; }", 4)
+);
+$guard_files = array();
+try
+{
+	foreach ($guard_cases as $number => $case)
+	{
+		$path = $scan_root . '/guard-' . $number . '.php';
+		$guard_files[] = $path;
+		file_put_contents($path, "<?php\n" . $case[0] . "\necho 'reachable body';\n");
+		$db->queries = array();
+		$db->rows = array(array('id' => 91, 'filepath' => $path));
+		$admin->ScanFile('temporary_scanner_table');
+		filescan_test_assert(in_array('UPDATE temporary_scanner_table SET safety = ' . $case[1] . ' WHERE id = 91', $db->queries, true),
+			'actual terminating versus ineffective entry guard ' . $number);
+	}
+}
+finally
+{
+	foreach ($guard_files as $path) { @unlink($path); }
+}
+echo 'CrackerTracker entry guards: ' . count($guard_cases) . " actual scanned-file cases passed.\n";
+
 @unlink($scan_root . "/quote's.php");
 @unlink($cache_root . '/cached.php');
 if ($link_created)
