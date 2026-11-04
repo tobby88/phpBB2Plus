@@ -259,11 +259,14 @@ jobs:
           php .github/scripts/check-username-identity-native.php
           php .github/scripts/check-banner-owner-native.php
           php .github/scripts/check-banner-id-migration-native.php
+          php .github/scripts/check-banner-click-native.php
         env:
           PHPBB_USERNAME_NATIVE: '1'
           PHPBB_USERNAME_PASSWORD: fixture-only
           PHPBB_BANNER_OWNER_NATIVE: '1'
           PHPBB_BANNER_OWNER_PASSWORD: fixture-only
+          PHPBB_BANNER_CLICK_NATIVE: '1'
+          PHPBB_BANNER_CLICK_PASSWORD: fixture-only
       - name: Check native Unicode public and ACP account creation
         if: matrix.part == 1
         run: |

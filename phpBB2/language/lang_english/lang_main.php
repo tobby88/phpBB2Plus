@@ -1729,6 +1729,7 @@ $lang['Activation_save_failed'] = 'The activation or password reset could not be
 $lang['Activation_storage_upgrade'] = 'Account activation requires InnoDB tables with modern UTF-8 storage. Please complete the documented storage and UTF-8 upgrades first.';
 $lang['Activation_mail_failed'] = 'The account is active, but the notification email could not be sent. Please inform the member separately; activation does not need to be repeated.';
 $lang['Former_member'] = 'Former member';
+$lang['Banner_click_failed'] = 'The banner click could not be confirmed. Please try again later.';
 $lang['Author_privacy_unavailable'] = 'Author information is temporarily unavailable. Please try again later.';
 // Common board/profile/recommendation delivery feedback.
 $lang['Mail_invalid'] = 'Please enter a valid recipient, subject and message.';

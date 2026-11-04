@@ -83,8 +83,9 @@ if (strpos($redirect, "ctracker_enforce_request_limit_profile(array('tracked-red
 	$errors[] = 'Tracked banner redirects must have a dedicated bounded request bucket';
 }
 $cookie_guard = strpos($redirect, 'if (!isset($HTTP_COOKIE_VARS[$cookie_name]))');
-$stats_insert = strpos($redirect, 'INSERT INTO " . BANNER_STATS_TABLE');
-if ($cookie_guard === false || $stats_insert === false || $stats_insert < $cookie_guard)
+$stats_call = strpos($redirect, 'if (!phpbb_record_banner_click($db,');
+$cookie_set = strpos($redirect, 'phpbb_setcookie($cookie_name');
+if ($cookie_guard === false || $stats_call === false || $cookie_set === false || $stats_call < $cookie_guard || $cookie_set < $stats_call)
 {
 	$errors[] = 'Detailed banner statistics must share the public click-cookie filter';
 }

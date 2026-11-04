@@ -1725,6 +1725,7 @@ $lang['Activation_save_failed'] = 'Die Aktivierung oder Passwortzurücksetzung k
 $lang['Activation_storage_upgrade'] = 'Die Kontoaktivierung benötigt InnoDB-Tabellen mit modernem UTF-8-Speicherformat. Bitte führe zunächst die dokumentierten Speicherformat- und UTF-8-Updates aus.';
 $lang['Activation_mail_failed'] = 'Das Konto ist aktiv, aber die Benachrichtigungs-E-Mail konnte nicht gesendet werden. Bitte informiere das Mitglied separat; die Aktivierung muss nicht wiederholt werden.';
 $lang['Former_member'] = 'Ehemaliger Nutzer';
+$lang['Banner_click_failed'] = 'Der Banner-Klick konnte nicht bestätigt werden. Bitte versuche es später erneut.';
 $lang['Author_privacy_unavailable'] = 'Die Autoreninformationen sind vorübergehend nicht verfügbar. Bitte versuche es später erneut.';
 // Common board/profile/recommendation delivery feedback.
 $lang['Mail_invalid'] = 'Bitte gültigen Empfänger, Betreff und Nachricht eingeben.';

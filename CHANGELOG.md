@@ -28,6 +28,9 @@ changes consolidated after that baseline without implying active maintenance.
   messages. Keep the full value across actual form rendering and repeated saves.
 - Store banner times as HHMM and dates as YYYYMMDD without losing zero-padded
   components. Reject nonexistent calendar dates before writing a date rule.
+- Save banner click counters and detailed statistics in one owned InnoDB
+  transaction. Set the browser's click filter only after a confirmed commit,
+  preserving both records and retryability when a write fails.
 
 ### Arcade summary names and caches
 
