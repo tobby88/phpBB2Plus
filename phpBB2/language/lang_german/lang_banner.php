@@ -117,6 +117,9 @@ $lang['Banner_removed'] = "Das Banner wurde entfernt";
 $lang['Confirm_delete_banner'] = 'Möchtest Du dieses Banner wirklich löschen?';
 $lang['Banner_updated'] = "Das Banner wurde aktualisiert";
 $lang['Banner_added'] = "Das Banner wurde hinzugefügt";
+$lang['Banner_text_invalid'] = 'Bitte prüfe %s. Der Text enthält ungültige oder nicht unterstützte Zeichen.';
+$lang['Banner_text_too_long'] = '%s darf höchstens %d Zeichen enthalten.';
+$lang['Banner_text_too_large'] = 'Der Text in %s ist zu lang.';
 $lang['Banner_storage_upgrade'] = 'Die Banner-Datenbank muss vor Änderungen aktualisiert werden. Führe den Datenbank-Updater (update/update_from_153a.php --banner-ids-only) mit geprüftem Backup und angehaltenen Web-/Cron-Schreibzugriffen aus.';
 $lang['Click_return_banneradmin'] = 'Klicke %shier%s, um zur Bannerverwaltung zurückzukehren';
 

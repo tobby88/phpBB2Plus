@@ -31,7 +31,7 @@
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_BANNER_DESCRIPTION}:</span><br />
 		<span class="gensmall">{L_BANNER_DESCRIPTION_EXPLAIN}</span></td>
-		<td class="row2"><input type="text" name="banner_description" size="30" maxlength="30" value="{BANNER_DESCRIPTION}" /></td>
+		<td class="row2"><input type="text" name="banner_description" size="30" maxlength="60" value="{BANNER_DESCRIPTION}" /></td>
 	</tr>
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_BANNER_SIZE}:</span><br />
@@ -66,7 +66,7 @@
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_BANNER_URL}:</span><br />
 		<span class="gensmall">{L_BANNER_URL_EXPLAIN}</span></td>
-		<td class="row2"><input type="text" name="banner_url" size="50" maxlength="80" value="{BANNER_URL}" /></td>
+		<td class="row2"><input type="text" name="banner_url" size="50" maxlength="180" value="{BANNER_URL}" /></td>
 	</tr>
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_BANNER_OWNER}:</span><br />
@@ -144,7 +144,7 @@
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_BANNER_COMMENT}:</span><br />
 		<span class="gensmall">{L_BANNER_COMMENT_EXPLAIN}</span></td>
-		<td class="row2"><input type="text" name="banner_comment" size="50" maxlength="50" value="{BANNER_COMMENT}" /></td>
+		<td class="row2"><input type="text" name="banner_comment" size="50" maxlength="100" value="{BANNER_COMMENT}" /></td>
 	</tr>
 
 	<tr>

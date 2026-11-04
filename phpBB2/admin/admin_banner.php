@@ -53,6 +53,30 @@ function admin_banner_post_scalar($name, $default)
 	return phpbb_admin_post_string($name, $default);
 }
 
+function admin_banner_post_text($name, $max_characters, $max_bytes)
+{
+	global $lang;
+	$label = $lang[ucfirst($name)];
+	if (isset($_POST[$name]) && !is_scalar($_POST[$name]))
+	{
+		message_die(GENERAL_MESSAGE, sprintf($lang['Banner_text_invalid'], $label));
+	}
+	$value = trim(admin_banner_post_scalar($name, ''));
+	if (strlen($value) > $max_bytes)
+	{
+		message_die(GENERAL_MESSAGE, $max_characters > 0 ? sprintf($lang['Banner_text_too_long'], $label, $max_characters) : sprintf($lang['Banner_text_too_large'], $label));
+	}
+	if (preg_match('//u', $value) !== 1 || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/', $value))
+	{
+		message_die(GENERAL_MESSAGE, sprintf($lang['Banner_text_invalid'], $label));
+	}
+	if ($max_characters > 0 && preg_match_all('/./us', $value, $characters) > $max_characters)
+	{
+		message_die(GENERAL_MESSAGE, sprintf($lang['Banner_text_too_long'], $label, $max_characters));
+	}
+	return $value;
+}
+
 function admin_banner_id_storage_ready()
 {
 	global $db;
@@ -559,13 +583,13 @@ if( $mode!= "")
 		{
 			$banner_type = 0;
 		}
-		$banner_name = substr(trim(admin_banner_post_scalar('banner_name', '')), 0, 255);
-		$banner_description = substr(trim(admin_banner_post_scalar('banner_description', '')), 0, 255);
+		$banner_name = admin_banner_post_text('banner_name', 0, 65535);
+		$banner_description = admin_banner_post_text('banner_description', 30, 120);
 		$banner_width = max(0, (int) admin_banner_post_scalar('banner_width', '0'));
 		$banner_height = max(0, (int) admin_banner_post_scalar('banner_height', '0'));
 		$banner_click = max(0, (int) admin_banner_post_scalar('banner_click', '0'));
 		$banner_view = max(0, (int) admin_banner_post_scalar('banner_view', '0'));
-		$banner_url = substr(trim(admin_banner_post_scalar('banner_url', '')), 0, 255);
+		$banner_url = admin_banner_post_text('banner_url', 90, 360);
 		$banner_owner = phpbb_admin_post_string('username');
 		$banner_spot = (int) admin_banner_post_scalar('banner_spot', '0');
 		$banner_forum = max(0, (int) admin_banner_post_scalar(POST_FORUM_URL, '0'));
@@ -614,7 +638,7 @@ if( $mode!= "")
 				message_die(GENERAL_MESSAGE, $lang['Missing_date']);
 			}break;
 		}
-		$banner_comment = substr(trim(admin_banner_post_scalar('banner_comment', '')), 0, 255);
+		$banner_comment = admin_banner_post_text('banner_comment', 50, 200);
 		// verify the inputs
 		if( $banner_name == "" )
 		{

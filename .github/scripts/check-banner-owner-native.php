@@ -9,10 +9,12 @@ require __DIR__ . '/profile-request-fixture.php';
 define('ANONYMOUS', -1); define('POST_FORUM_URL', 'f'); define('BANNERS_TABLE', 'fixture_banner');
 ats_load_function($ats_source . 'includes/functions.php', 'get_userdata');
 ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_post_scalar');
+ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_post_text');
 ats_load_function($ats_source . 'admin/admin_banner.php', 'admin_banner_id_storage_ready');
 require $ats_source . 'language/lang_english/lang_banner.php';
 require $ats_source . 'db/mysqli.php';
 $source = file_get_contents($ats_source . 'admin/admin_banner.php');
+$bo_banner_source = $source;
 $begin = strpos($source, 'phpbb_admin_require_post_session();', strpos($source, 'else if( $mode == "save" )'));
 $end = strpos($source, "\n\t}\n\telse if( \$mode == \"delete\" )", $begin);
 ats_check($begin !== false && $end > $begin, 'Complete actual banner save branch');
@@ -27,7 +29,9 @@ $banner_schema = str_replace('phpbb_banner', BANNERS_TABLE, $match[0]);
 class BannerOwnerDatabase extends sql_db {
     var $fail_users = false;
     var $fail_metadata = ''; var $before_insert = null;
+    var $write_queries = 0;
     function sql_query($sql = '', $transaction = false) {
+        if (preg_match('/^(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|ALTER)\b/', $sql)) { $this->write_queries++; }
         if ($this->fail_users && preg_match('/^SELECT .* FROM fixture_users\b/', $sql)) { return false; }
         if ($this->fail_metadata !== '' && strpos($sql,$this->fail_metadata) === 0) { return false; }
         if ($this->before_insert !== null && strpos($sql,'INSERT INTO fixture_banner ') === 0) {
@@ -56,6 +60,35 @@ function bo_delete($id, $sid = 'banner-fixture') {
     profile_fixture_request(array('id'=>(string)$id,'sid'=>$sid));
     try { eval($banner_delete_body); } catch(AttachSettingsExit $e) { return $e->getMessage(); }
     return 'deleted';
+}
+function bo_text_form($row, $locale) {
+    global $ats_source,$bo_banner_source,$board_config,$theme,$phpbb_root_path,$phpEx,$lang;
+    require_once $ats_source . 'includes/template.php';
+    $phpbb_root_path=$ats_source;$board_config=array('default_lang'=>$locale,'board_timezone'=>0,'default_dateformat'=>'Y-m-d',
+        'board_email_form'=>0,'xs_use_cache'=>0,'xs_auto_compile'=>0,'xs_auto_recompile'=>0,'version'=>'.0.23');
+    $theme=array('template_name'=>'fisubsilversh','td_class1'=>'row1','td_class2'=>'row2');$banner_info=$row;
+    foreach(array('safe_banner_name','safe_banner_description')as$variable){
+        ats_check(preg_match('/^\s*\$'.preg_quote($variable,'/').' = ([^\r\n]+);/m',$bo_banner_source,$m)===1,'Actual text display assignment');
+        $$variable=eval('return '.$m[1].';');
+    }
+    $vars=array();foreach(array('BANNER_NAME','BANNER_DESCRIPTION','BANNER_URL','BANNER_COMMENT')as$key){
+        ats_check(preg_match('/\''.preg_quote($key,'/').'\'\s*=>\s*([^\r\n]+),/',$bo_banner_source,$m)===1,'Actual text form binding');$vars[$key]=eval('return '.$m[1].';');
+    }
+    $template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];
+    $template->load_config($ats_source.'templates/fisubsilversh',false);$template->set_filenames(array('body'=>'admin/banner_edit_body.tpl'));
+    // The real controller also assigns unrelated selectors and labels. Keep those
+    // blank here so the template cannot fall back to a language option array.
+    preg_match_all('/\{([A-Z][A-Z0-9_]*)\}/',file_get_contents($ats_source.'templates/fisubsilversh/admin/banner_edit_body.tpl'),$placeholders);
+    $template->assign_vars(array_merge(array_fill_keys($placeholders[1],''),$vars));
+    ob_start();try{$template->pparse('body');}finally{$html=ob_get_clean();}
+    ats_check(preg_match('//u',$html)===1,'Actual banner form stays UTF8');$post=array();
+    ats_check(preg_match('/<textarea\b[^>]*name="banner_name"[^>]*>([\s\S]*?)<\/textarea>/i',$html,$m)===1,'Actual banner textarea');$post['banner_name']=html_entity_decode($m[1],ENT_QUOTES,'UTF-8');
+    foreach(array('banner_description'=>30,'banner_url'=>90,'banner_comment'=>50)as$field=>$limit){
+        ats_check(preg_match('/<input\b[^>]*name="'.$field.'"[^>]*>/i',$html,$m)===1&&preg_match('/value="([^"]*)"/',$m[0],$v)===1,'Actual banner text input');
+        ats_check(preg_match('/maxlength="([0-9]+)"/',$m[0],$length)===1&&(int)$length[1]>=2*$limit,'Browser UTF16 limit permits every supported supplementary character');
+        $post[$field]=html_entity_decode($v[1],ENT_QUOTES,'UTF-8');
+    }
+    foreach($post as$field=>$value){ats_check($value===$row[$field],'Actual form returns the exact raw stored text');}return$post;
 }
 $port = getenv('PHPBB_BANNER_OWNER_PORT') ?: '3306';
 ats_check(preg_match('/^[0-9]{1,5}$/D', $port) && (int)$port > 0 && (int)$port <= 65535, 'Loopback port');
@@ -122,6 +155,39 @@ try {
             }
         }
     }
+    $text_cases=0;$forms=0;$prefix='https://example.invalid/?q=';
+    $valid_text=array(
+        'banner_name'=>array(str_repeat('ä',128),str_repeat('😀',64).'Z',"Grüße &amp; &#39; <b>literal</b> \\ \" '",str_repeat('x',65535),str_repeat('ä',32767).'x',str_repeat('😀',16383).'abc'),
+        'banner_description'=>array(str_repeat('ä',30),str_repeat('😀',30),str_repeat("e\xcc\x81",15)),
+        'banner_url'=>array($prefix.str_repeat('ä',90-strlen($prefix)),$prefix.str_repeat('😀',90-strlen($prefix))),
+        'banner_comment'=>array(str_repeat('ä',50),str_repeat('😀',50),'0')
+    );
+    bo_sql('DELETE FROM fixture_users');bo_sql("INSERT INTO fixture_users VALUES(7,'Owner')");
+    foreach(array('english','german')as$locale){
+        require $ats_source.'language/lang_'.$locale.'/lang_main.php';require $ats_source.'language/lang_'.$locale.'/lang_banner.php';
+        foreach(array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES')as$mode){
+            bo_sql("SET SESSION sql_mode='$mode'");
+            foreach($valid_text as$field=>$values){foreach($values as$value){
+                bo_sql('TRUNCATE TABLE fixture_banner');$fields=array($field=>$value);
+                foreach(array(0,1,1)as$id){
+                    $message=bo_save('Owner',$id,'banner-fixture',$fields);ats_check(strpos($message,$lang[$id?'Banner_updated':'Banner_added'])===0,'Complete UTF8 save succeeds in every SQL mode');
+                    $rows=bo_rows('SELECT banner_name,banner_description,banner_comment,banner_url FROM fixture_banner');ats_check(count($rows)===1&&$rows[0][$field]===$value,'Every supported UTF8 value preserved without clipping');
+                    $fields=bo_text_form($rows[0],$locale);$forms++;$text_cases++;
+                }
+            }}
+            bo_sql('TRUNCATE TABLE fixture_banner');bo_save('Owner');$before=bo_snapshot();
+            foreach(array('banner_name'=>array(0,65535),'banner_description'=>array(30,120),'banner_url'=>array(90,360),'banner_comment'=>array(50,200))as$field=>$limits){
+                $invalid=array(array("bad\xc3",'Banner_text_invalid'),array("bad\xf0\x28\x8c\x28",'Banner_text_invalid'),array("bad\0text",'Banner_text_invalid'),array(array('unexpected'),'Banner_text_invalid'));
+                if($limits[0]){$invalid[]=array(str_repeat('a',$limits[0]+1),'Banner_text_too_long');$invalid[]=array(str_repeat('😀',$limits[0]+1),'Banner_text_too_long');}
+                else{$invalid[]=array(str_repeat('a',65536),'Banner_text_too_large');$invalid[]=array(str_repeat('😀',16384),'Banner_text_too_large');}
+                foreach($invalid as$bad){foreach(array(0,1)as$id){
+                    $writes=$db->write_queries;$expected=sprintf($lang[$bad[1]],$lang[ucfirst($field)],$limits[0]);
+                    ats_check(bo_save('Owner',$id,'banner-fixture',array($field=>$bad[0]))===$expected&&$db->write_queries===$writes&&bo_snapshot()===$before,'Invalid or oversized input rejected with translated field message before any SQL write');$text_cases++;
+                }}
+            }
+        }
+    }
+    echo 'Native banner text: '.$text_cases.' cases, '.$forms." actual forms PASS.\n";
     $other = new sql_db($host,'root',$password,$fixture,false);
     try {
         foreach (array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES') as $mode) {

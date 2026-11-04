@@ -22,6 +22,10 @@ changes consolidated after that baseline without implying active maintenance.
   deleting banners. Include the preserving, repeatable migration in the full
   updater and its `--banner-ids-only` mode; ambiguous IDs require manual review.
   Reserve historical statistics IDs when setting the next allocation number.
+- Preserve complete UTF-8 banner text within the existing column capacities,
+  including supplementary characters and text longer than 255 bytes. Reject
+  malformed or oversized input before writing, with German and English field
+  messages. Keep the full value across actual form rendering and repeated saves.
 
 ### Arcade summary names and caches
 
