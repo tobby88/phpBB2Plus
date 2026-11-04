@@ -10,6 +10,7 @@ function ai_suite()
 {
  global $db,$ap_main,$ap_hook,$ap_actor,$ap_target,$board_config,$userdata,$schema,$ats_source,$ap_queries;
  $cases=$serialized=0;
+ ap_sql('ALTER TABLE fixture_users ADD new_requirement MEDIUMTEXT NULL DEFAULT NULL');
  foreach(array(str_repeat('ä',25),str_repeat('😀',25),'A&B',"A\\'B", "O'Reilly",str_repeat("'",25)) as $raw){
   ap_reset();$stored=phpbb_username_key($raw,ENT_COMPAT);ap_sql("UPDATE fixture_users SET username='".$GLOBALS['peer']->sql_escape($stored)."' WHERE user_id=2");
   $this_userdata=array('username'=>$stored);$new_user=false;profile_fixture_request(array('username'=>$raw,'sid'=>'fixture-admin'));
@@ -52,7 +53,7 @@ function ai_suite()
     'policy'=>"UPDATE fixture_config SET config_value='72' WHERE config_name='min_password_len'",'style'=>'DELETE FROM fixture_themes','group'=>"UPDATE fixture_groups SET group_name='renamed'");
    // Use complete canonical values for mandatory custom-field columns.
    if($kind==='fields'){
-    $columns=ap_rows('SHOW COLUMNS FROM fixture_profile_fields');$names=$values=array();foreach($columns as $c){if(strpos($c['Extra'],'auto_increment')!==false){continue;}$names[]=$c['Field'];$values[]=$c['Field']==='field_name'?"'New requirement'":($c['Default']===null?"'0'":"'".$GLOBALS['peer']->sql_escape($c['Default'])."'");}
+    $columns=ap_rows('SHOW COLUMNS FROM fixture_profile_fields');$names=$values=array();foreach($columns as $c){if(strpos($c['Extra'],'auto_increment')!==false){continue;}$names[]=$c['Field'];$values[]=$c['Field']==='field_name'?"'New requirement'":($c['Field']==='field_column'?"'new_requirement'":($c['Default']===null?($c['Null']==='YES'?'NULL':"'0'"):"'".$GLOBALS['peer']->sql_escape($c['Default'])."'"));}
     $changes['fields']='INSERT INTO fixture_profile_fields ('.implode(',',$names).') VALUES ('.implode(',',$values).')';
    }
    $change=$changes[$kind];
@@ -68,6 +69,7 @@ function ai_suite()
    $cases++;
   }
  }
+ ap_reset();ap_insert('fixture_profile_fields',array('field_name'=>'Missing storage','field_column'=>'missing_profile_column','field_type'=>0));$before=ap_snap();ats_check(ap_run('edit')==='error'&&ap_snap()===$before,'Reject an inconsistent field without its physical storage');$cases++;
  foreach(array('config','disallow','words','profile_fields','themes','ranks') as $table){ap_reset();ap_sql('ALTER TABLE fixture_'.$table.' ENGINE=MyISAM');$before=ap_snap();ats_check(ap_run('edit')==='error'&&ap_snap()===$before,'Reject nontransactional validation participant '.$table);ap_sql('ALTER TABLE fixture_'.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
  ap_reset();$scope=new PhpbbAdminProfileScope($db,2,false,$_POST);$db=$scope;$denied=false;try{$scope->finish();}catch(PhpbbAclException $e){$denied=true;}finally{$scope->release();}ats_check($denied,'Cannot commit without validating final identity');$cases++;
  ats_load_function(dirname(rtrim($ats_source,'/')).'/update/innodb_migration.php','plus_storage_identifier');ats_load_function(dirname(rtrim($ats_source,'/')).'/update/innodb_migration.php','plus_storage_tables');$covered=plus_storage_tables($schema,'fixture_');
