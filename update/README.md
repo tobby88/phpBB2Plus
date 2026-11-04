@@ -1,5 +1,23 @@
 # Database updates and maintenance
 
+Before deploying the updated Arcade game editor, widen the historical banned
+game reference to match the 50-character game-name capacity:
+
+```sh
+php update/update_from_153a.php --arcade-name-storage-only
+php update/update_from_153a.php --arcade-name-storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+The full updater includes the same migration. Verify a current backup and stop
+and drain all web/cron writers first. Only `ina_banned.game` is widened; rows,
+duplicates, NULL values, literal defaults, comments, other columns, indexes and
+allocation floors are retained and verified. Wider custom storage is retained.
+Generated/non-string definitions and ambiguous empty-table literal defaults
+require review. SQL quoting modes and metadata-lock wait limits are restored.
+DDL cannot be rolled back: after an error, keep writers stopped and inspect the
+backup and current state before retrying. The runtime game editor checks this
+capacity before any write.
+
 Custom-profile limits count original Unicode characters before HTML escaping.
 Before deploying this version over an existing installation, preview:
 

@@ -8,13 +8,21 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Reconcile both winner pointers and affected users' first/second/third-place
+  counts and game lists inside the game transaction when the scoring direction,
+  visibility or name changes, or a board is reset. Preserve score rows, unrelated
+  profile data and contributions from other games; order ties by date and ID.
+- Widen historical banned-game names from 25 to 50 characters so every valid
+  protocol identifier fits all rename references. The installer and consolidated
+  updater agree; `--arcade-name-storage-only` applies only this preserving
+  migration. The manual game writer checks the capacity before writing.
 - Save manually added or edited games, all name references, category game/play
   counters and requested score resets in one owned transaction. Require the
   exact Add or Edit module grant, recheck the current ACP session and reject
   outdated edit forms without overwriting another administrator's changes.
   Notify members only after a confirmed new-game commit; invalidate affected
-  caches even when a commit acknowledgement is uncertain. No schema migration
-  is needed on canonical InnoDB/utf8mb4 installations.
+  caches even when a commit acknowledgement is uncertain. Existing installations
+  must also apply the banned-game reference widening described above.
 - Publish imported games and category counters in one owned transaction, with
   current ACP session and exact Import-module authority. Preserve the new game
   ID before subsequent queries; roll back all writes on failure. Count only

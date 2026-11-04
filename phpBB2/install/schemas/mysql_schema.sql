@@ -1636,7 +1636,7 @@ CREATE TABLE phpbb_ina_banned (
   username varchar(25) DEFAULT NULL,
   user_id mediumint(8) DEFAULT NULL,
   player_ip varchar(16) DEFAULT NULL,
-  game varchar(25) DEFAULT NULL,
+  game varchar(50) DEFAULT NULL,
   score mediumint(8) DEFAULT NULL,
   date varchar(16) DEFAULT NULL,
   KEY user_id (user_id)

@@ -91,6 +91,22 @@ legacy field, the ACP asks for another scoped update before profiles can save
 to it. See [update/README.md](update/README.md) for the preservation checks and
 ambiguous-default cases that require manual review.
 
+Arcade game edits keep both winner pointers and affected users' placement
+counts/lists consistent when the scoring direction, visibility or game name
+changes, including combined score resets. Scores remain intact unless an
+administrator explicitly requests a reset. The historical banned-game name
+column needs the same 50-character capacity as other game references. The full
+updater includes this widening; after canonical InnoDB/UTF-8 migration it can
+also be run separately, with all web/cron writers stopped:
+
+```sh
+php update/update_from_153a.php --arcade-name-storage-only
+php update/update_from_153a.php --arcade-name-storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+Existing rows, duplicate records, defaults, indexes and wider custom definitions
+are preserved. The game editor refuses an incomplete reference migration.
+
 Banner IDs now use an InnoDB primary key with automatic allocation. Existing
 installations can run just this migration after backing up the database and
 stopping all web/cron writers:

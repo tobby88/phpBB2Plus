@@ -387,7 +387,7 @@ function best_game_player($tablename, $gamename, $type)
 	$sql = "SELECT s.player_id, s.score, u.username, u.user_allow_viewonline FROM " . $tablename . " s, " . USERS_TABLE . " u
 		WHERE s.player_id = u.user_id
 		AND game_name = '" . $gamename . "'
-		ORDER BY score $type, date ASC";
+		ORDER BY score $type, date ASC, s.player_id ASC";
 	if(!$result = $db->sql_query($sql))
 	{
 		message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
@@ -494,7 +494,7 @@ function total_highscores($player_id, $table = iNA_SCORES)
 	$game_name_sql = $db->sql_escape($rows[$i]['game_name']);
     $sql = "SELECT player_id, score FROM " . $table . "
       WHERE game_name = '" . $game_name_sql . "'
-        ORDER BY score " . $sort . "
+        ORDER BY score " . $sort . ", date ASC, player_id ASC
         LIMIT 0,3";
     $best_score = $db->sql_query($sql);
   	while($scorerow = $db->sql_fetchrow($best_score))

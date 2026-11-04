@@ -328,6 +328,12 @@ jobs:
         env:
           PHPBB_ARCADE_IMPORT_NATIVE: '1'
           PHPBB_ARCADE_IMPORT_PASSWORD: fixture-only
+      - name: Widen native Arcade references without rewriting historical rows
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-name-migration-native.php
+        env:
+          PHPBB_ARCADE_NAME_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Save native Arcade games, references and resets atomically
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-game-native.php
