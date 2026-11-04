@@ -742,6 +742,57 @@ class ct_adminfunctions
 			&& in_array($tokens[$position][0], array(T_EXIT, T_RETURN), true);
 	}
 
+	/** Verify that a supposed library contains declarations and no global code. */
+	private function declarations_only($source)
+	{
+		if (!function_exists('token_get_all')) { return false; }
+		$tokens = array();
+		foreach (token_get_all($source) as $token)
+		{
+			if (is_array($token) && (in_array($token[0], array(T_OPEN_TAG, T_CLOSE_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), true)
+				|| ($token[0] === T_INLINE_HTML && trim($token[1]) === ''))) { continue; }
+			$tokens[] = $token;
+		}
+		$count = count($tokens); $position = 0; $declarations = 0;
+		$modifiers = array(T_ABSTRACT, T_FINAL);
+		if (defined('T_READONLY')) { $modifiers[] = constant('T_READONLY'); }
+		while ($position < $count)
+		{
+			if ($tokens[$position] === ';') { $position++; continue; }
+			$modified = false;
+			while ($position < $count && is_array($tokens[$position]) && in_array($tokens[$position][0], $modifiers, true))
+			{
+				$modified = true; $position++;
+			}
+			if ($position >= $count || !is_array($tokens[$position])) { return false; }
+			$kind = $tokens[$position][0]; $position++;
+			if ($modified && $kind !== T_CLASS) { return false; }
+			if ($kind === T_FUNCTION)
+			{
+				if ($position < $count && ($tokens[$position] === '&' || (is_array($tokens[$position]) && $tokens[$position][1] === '&'))) { $position++; }
+			}
+			elseif (!in_array($kind, array(T_CLASS, T_INTERFACE, T_TRAIT), true)) { return false; }
+			if ($position >= $count || !is_array($tokens[$position]) || $tokens[$position][0] !== T_STRING) { return false; }
+			// The body must belong to the declaration, not to a later statement.
+			while ($position < $count && $tokens[$position] !== '{')
+			{
+				if ($tokens[$position] === ';' || $tokens[$position] === '}') { return false; }
+				$position++;
+			}
+			if ($position >= $count) { return false; }
+			$depth = 1; $position++;
+			while ($position < $count && $depth > 0)
+			{
+				$token = $tokens[$position++];
+				if ($token === '{' || (is_array($token) && in_array($token[0], array(T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES), true))) { $depth++; }
+				elseif ($token === '}') { $depth--; }
+			}
+			if ($depth !== 0) { return false; }
+			$declarations++;
+		}
+		return $declarations > 0;
+	}
+
 	/** Classify indexed files without executing their source. */
 	function ScanFile($source_table = '')
 	{
@@ -949,8 +1000,8 @@ class ct_adminfunctions
 			}
 			else if($func_class_flag)
 			{
-			  	// File is a function or class file, so no reachable code detected
-			  	$security_risk   = 0;
+				// A declaration or a quoted keyword cannot hide a global tail.
+				$security_risk = $this->declarations_only(implode('', $filename)) ? 0 : 4;
 			}
 			else
 			{

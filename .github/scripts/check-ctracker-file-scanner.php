@@ -101,26 +101,48 @@ $guard_cases = array(
 	array("if (!defined('IN_PHPBB') === false) { die('Denied'); }", 4),
 	array("if (!defined('IN_PHPBB') || \$optional) { echo 'still running'; }", 4)
 );
+$declaration_cases = array(
+	array('function example() {}', 0),
+	array('function first() {} function second() {}', 0),
+	array('function &example() { static $value; return $value; }', 0),
+	array('class Example { function run() {} }', 0),
+	array('abstract class Example { abstract function run(); }', 0),
+	array('final class Example { function run() {} }', 0),
+	array('interface Example { function run(); }', 0),
+	array('trait Example { function run() {} }', 0),
+	array('function example($value) { return "{$value}"; }', 0),
+	array("function example() {}\n?>\n ", 0),
+	array("function example() {}\necho 'global tail';", 4),
+	array("function example() {} echo 'global tail';", 4),
+	array("class Example { function run() {} }\necho 'global tail';", 4),
+	array("\$description = 'class example';\necho 'global tail';", 4),
+	array("\$description = 'function example';\necho 'global tail';", 4),
+	array("echo 'global prefix';\nfunction example() {}", 4),
+	array("(function () { echo 'called'; })();", 4)
+);
 $guard_files = array();
 try
 {
-	foreach ($guard_cases as $number => $case)
+	foreach (array('entry guards' => $guard_cases, 'declarations' => $declaration_cases) as $group => $cases)
 	{
-		$path = $scan_root . '/guard-' . $number . '.php';
-		$guard_files[] = $path;
-		file_put_contents($path, "<?php\n" . $case[0] . "\necho 'reachable body';\n");
-		$db->queries = array();
-		$db->rows = array(array('id' => 91, 'filepath' => $path));
-		$admin->ScanFile('temporary_scanner_table');
-		filescan_test_assert(in_array('UPDATE temporary_scanner_table SET safety = ' . $case[1] . ' WHERE id = 91', $db->queries, true),
-			'actual terminating versus ineffective entry guard ' . $number);
+		foreach ($cases as $number => $case)
+		{
+			$path = $scan_root . '/case-' . count($guard_files) . '.php';
+			$guard_files[] = $path;
+			file_put_contents($path, "<?php\n" . $case[0] . ($group === 'entry guards' ? "\necho 'reachable body';\n" : "\n"));
+			$db->queries = array();
+			$db->rows = array(array('id' => 91, 'filepath' => $path));
+			$admin->ScanFile('temporary_scanner_table');
+			filescan_test_assert(in_array('UPDATE temporary_scanner_table SET safety = ' . $case[1] . ' WHERE id = 91', $db->queries, true),
+				'actual scanned ' . $group . ' case ' . $number);
+		}
+		echo 'CrackerTracker ' . $group . ': ' . count($cases) . " actual scanned-file cases passed.\n";
 	}
 }
 finally
 {
 	foreach ($guard_files as $path) { @unlink($path); }
 }
-echo 'CrackerTracker entry guards: ' . count($guard_cases) . " actual scanned-file cases passed.\n";
 
 @unlink($scan_root . "/quote's.php");
 @unlink($cache_root . '/cached.php');

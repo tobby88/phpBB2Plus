@@ -14,6 +14,9 @@ changes consolidated after that baseline without implying active maintenance.
   longer receive the green structural status merely for mentioning the guard.
 - Describe the green status as no structural issue detected, consistent with
   the scanner's existing explanation that it cannot establish overall safety.
+- Check complete library declarations through PHP tokens before accepting a
+  file as declarations only. Global code following a function or class, and
+  declaration keywords inside quoted text, no longer hide behind that status.
 
 ### Banner owner identities
 
