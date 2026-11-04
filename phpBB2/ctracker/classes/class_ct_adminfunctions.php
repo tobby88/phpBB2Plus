@@ -793,6 +793,52 @@ class ct_adminfunctions
 		return $declarations > 0;
 	}
 
+	/** Keep executable tokens and known bootstrap literals out of quoted examples. */
+	private function structural_scan_lines($source)
+	{
+		if (!function_exists('token_get_all')) { return false; }
+		$code = ''; $quote = ''; $heredoc = false;
+		foreach (token_get_all($source) as $token)
+		{
+			$text = is_array($token) ? $token[1] : $token;
+			$blank = preg_replace('/[^\r\n]/', '', $text);
+			if ($heredoc)
+			{
+				if (is_array($token) && $token[0] === T_END_HEREDOC) { $heredoc = false; }
+				$code .= $blank; continue;
+			}
+			if ($quote !== '')
+			{
+				if (!is_array($token) && $token === $quote) { $quote = ''; }
+				$code .= $blank; continue;
+			}
+			if (!is_array($token) && ($token === '"' || $token === '`'))
+			{
+				$quote = $token; $code .= "''"; continue;
+			}
+			if (is_array($token) && $token[0] === T_START_HEREDOC)
+			{
+				$heredoc = true; $code .= "''" . $blank; continue;
+			}
+			if (is_array($token) && in_array($token[0], array(T_OPEN_TAG, T_CLOSE_TAG, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML, T_ENCAPSED_AND_WHITESPACE), true))
+			{
+				$code .= $blank; continue;
+			}
+			if (is_array($token) && $token[0] === T_CONSTANT_ENCAPSED_STRING)
+			{
+				$literal = substr($text, 1, -1);
+				// Preserve only standalone constants used by the bootstrap recognizer.
+				// A complete quoted call or example must never become executable text.
+				$known = $literal === 'IN_PHPBB' || $literal === 'extension.inc'
+					|| preg_match('/\A(?:\.\/)?(?:common|pagestart)\.(?:php[0-9]*)?\z/D', $literal);
+				$code .= $known ? "'" . $literal . "'" : "''" . $blank;
+				continue;
+			}
+			$code .= $text;
+		}
+		return explode("\n", $code);
+	}
+
 	/** Classify indexed files without executing their source. */
 	function ScanFile($source_table = '')
 	{
@@ -842,7 +888,7 @@ class ct_adminfunctions
 			$file_db_id      = intval($row['id']);
 			$resolved_file   = $this->resolve_file_within_root($row['filepath'], $this->filescan_root);
 			$filename        = ($resolved_file !== false) ? @file($resolved_file) : false;
-			if (!is_array($filename))
+			if (!is_array($filename) || ($scan_lines = $this->structural_scan_lines(implode('', $filename))) === false)
 			{
 				$write_back = 'UPDATE ' . $source_table . ' SET safety = 10 WHERE id = ' . $file_db_id;
 				if (!$db->sql_query($write_back))
@@ -853,9 +899,9 @@ class ct_adminfunctions
 			}
 
 			$constant_check = $this->terminating_entry_guard(implode('', $filename));
-			for ($i = 0; !$constant_check && $i <= count($filename)-1; $i++)
+			for ($i = 0; !$constant_check && $i <= count($scan_lines)-1; $i++)
 	    	{
-				$scanline = $filename[$i];
+				$scanline = $scan_lines[$i];
 				$scanline = strtolower($scanline);
 				$scanline = str_replace(' ', '', $scanline);
 				$scanline = str_replace("\t", '', $scanline);
@@ -865,19 +911,19 @@ class ct_adminfunctions
 				{
 					$action_counter++;
 
-					if(preg_match('/define\\(\'in_phpbb\'./m', $scanline) && $action_counter == 1)
+					if(preg_match('/(?<![a-z0-9_$>:])define\\(\'in_phpbb\'./m', $scanline) && $action_counter == 1)
 					{
 						$constant_set = true;
 					}
-					else if($constant_set && preg_match('/\\$phpbb_root_path=./m', $scanline) && $action_counter == 2)
+					else if($constant_set && preg_match('/^\\$phpbb_root_path=./m', $scanline) && $action_counter == 2)
 					{
 						$root_path = true;
 					}
-					else if($constant_set && preg_match('/include\\(\\$phpbb_root_path\\.\'extension\\.inc|require\\(\\$phpbb_root_path\\.\'extension\\.inc/', $scanline) && $action_counter == 3)
+					else if($constant_set && preg_match('/(?<![a-z0-9_$>:])(?:include|require)\\(\\$phpbb_root_path\\.\'extension\\.inc/', $scanline) && $action_counter == 3)
 					{
 						$extension_inc = true;
 					}
-					else if($constant_set && preg_match('/include\\(\\$phpbb_root_path\\.\'common\\.|include\\(\'\\.\/common\\.|require\\(\'\\.\/common\\.|require\\(\\$phpbb_root_path\\.\'common\\.|require\\(\'\\.\/pagestart\\./', $scanline) && ($action_counter == 4 || $action_counter == 5))
+					else if($constant_set && preg_match('/(?<![a-z0-9_$>:])(?:include|require)\\((?:\\$phpbb_root_path\\.\'common\\.|\'\.\/(?:common|pagestart)\\.)/', $scanline) && ($action_counter == 4 || $action_counter == 5))
 					{
 						$common_included = true;
 						break;

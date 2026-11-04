@@ -9,8 +9,7 @@ function filescan_test_assert($condition, $message)
 {
 	if (!$condition)
 	{
-		fwrite(STDERR, "File-scanner test failed: $message\n");
-		exit(1);
+		throw new RuntimeException("File-scanner test failed: $message");
 	}
 }
 
@@ -30,8 +29,13 @@ class filescan_test_db
 	}
 }
 
-$scan_root = sys_get_temp_dir() . '/ctracker-scan-test-' . getmypid();
+$scan_root = sys_get_temp_dir() . '/ctracker-scan-test-' . getmypid() . '-' . str_replace('.', '', uniqid('', true));
 $cache_root = $scan_root . '/cache';
+if (file_exists($scan_root) || !mkdir($scan_root, 0700)) { throw new RuntimeException('Owned scanner fixture unavailable'); }
+$outside_file = false;
+$link_created = false;
+try
+{
 mkdir($cache_root, 0700, true);
 file_put_contents($scan_root . "/quote's.php", "<?php echo 'review';\n");
 file_put_contents($cache_root . '/cached.php', "<?php echo 'ignored';\n");
@@ -72,7 +76,7 @@ if ($link_created)
 }
 $admin->ScanFile('temporary_scanner_table');
 $scan_sql = implode("\n", $db->queries);
-filescan_test_assert(strpos($scan_sql, 'SET safety = 6 WHERE id = 1') !== false, 'an ordinary in-tree PHP file must be analyzed rather than left unchecked');
+filescan_test_assert(strpos($scan_sql, 'SET safety = 4 WHERE id = 1') !== false, 'global code on the PHP opening-tag line must be analyzed');
 filescan_test_assert(strpos($scan_sql, 'SET safety = 10 WHERE id = 2') !== false, 'a persisted path outside the forum tree must not be read');
 if ($link_created)
 {
@@ -120,10 +124,38 @@ $declaration_cases = array(
 	array("echo 'global prefix';\nfunction example() {}", 4),
 	array("(function () { echo 'called'; })();", 4)
 );
+$bootstrap_source = <<<'BOOTSTRAP'
+define('IN_PHPBB', true);
+$phpbb_root_path = './';
+include($phpbb_root_path . 'extension.inc');
+include($phpbb_root_path . 'common.' . $phpEx);
+echo 'body';
+BOOTSTRAP;
+$bootstrap_example = <<<'EXAMPLE'
+$example = "define('IN_PHPBB', true);";
+$example = '$phpbb_root_path="./";';
+$example = "include($phpbb_root_path . 'extension.inc');";
+$example = "include($phpbb_root_path . 'common.' . $phpEx);";
+echo 'body';
+EXAMPLE;
+$bootstrap_cases = array(
+	array($bootstrap_source, 0),
+	array(str_replace("'", '"', $bootstrap_source), 0),
+	array(str_replace('include(', 'require(', $bootstrap_source), 0),
+	array($bootstrap_example, 4),
+	array(preg_replace('/^/m', '// ', $bootstrap_source) . "\necho 'body';", 4),
+	array("/*\n" . $bootstrap_source . "\n*/\necho 'body';", 4),
+	array('$example = <<<TEXT' . "\n" . $bootstrap_source . "\nTEXT;\necho 'body';", 4),
+	array("\$example = <<<'TEXT'\n" . $bootstrap_source . "\nTEXT;\necho 'body';", 4),
+	array(var_export($bootstrap_source, true) . ";\necho 'body';", 4),
+	array(str_replace('include(', 'not_include(', $bootstrap_source), 3),
+	array(str_replace('include(', '$loader->include(', $bootstrap_source), 3),
+	array(str_replace('define(', '$loader->define(', $bootstrap_source), 4)
+);
 $guard_files = array();
 try
 {
-	foreach (array('entry guards' => $guard_cases, 'declarations' => $declaration_cases) as $group => $cases)
+	foreach (array('entry guards' => $guard_cases, 'declarations' => $declaration_cases, 'bootstrap tokens' => $bootstrap_cases) as $group => $cases)
 	{
 		foreach ($cases as $number => $case)
 		{
@@ -144,6 +176,9 @@ finally
 	foreach ($guard_files as $path) { @unlink($path); }
 }
 
+}
+finally
+{
 @unlink($scan_root . "/quote's.php");
 @unlink($cache_root . '/cached.php');
 if ($link_created)
@@ -152,6 +187,7 @@ if ($link_created)
 }
 @rmdir($cache_root);
 @rmdir($scan_root);
-@unlink($outside_file);
+if (is_string($outside_file)) { @unlink($outside_file); }
+}
 
 echo "CrackerTracker file-scanner tests passed.\n";

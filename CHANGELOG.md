@@ -19,6 +19,9 @@ changes consolidated after that baseline without implying active maintenance.
   declaration keywords inside quoted text, no longer hide behind that status.
   Describe unresolved global code or dependencies as requiring review rather
   than treating the structural report as proof of an exploitable issue.
+- Exclude comments, quoted examples, interpolated strings and heredocs from
+  the bootstrap recognizer. Recognize actual include/require tokens and either
+  quote style without accepting similarly named functions or methods.
 
 ### Banner owner identities
 
