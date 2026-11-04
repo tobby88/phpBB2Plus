@@ -17,6 +17,8 @@ changes consolidated after that baseline without implying active maintenance.
 - Check complete library declarations through PHP tokens before accepting a
   file as declarations only. Global code following a function or class, and
   declaration keywords inside quoted text, no longer hide behind that status.
+  Describe unresolved global code or dependencies as requiring review rather
+  than treating the structural report as proof of an exploitable issue.
 
 ### Banner owner identities
 
