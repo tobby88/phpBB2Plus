@@ -150,7 +150,8 @@ if( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) )
 else if( isset($HTTP_POST_VARS['search']))
 {
   $mode = "edit_games";
-  $search_word = substr(arcade_admin_post_string('search_word'), 0, 100);
+  $search_word = phpbb_arcade_text_limit(arcade_admin_post_string('search_word'), 100);
+  if ($search_word === null) { message_die(GENERAL_MESSAGE, $lang['no_game_data']); }
 }
 else if( isset($HTTP_POST_VARS['add_game']) )
 {
@@ -1455,8 +1456,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['save_game'])
 		$game_id = 0;
 	}
 
-	$game_name = substr(arcade_admin_post_string('game_name'), 0, 50);
-	if ($game_name === '' || $game_name === '.' || $game_name === '..' || preg_match('#[\s/\\\\\x00-\x1F\x7F]#', $game_name))
+	$game_name = arcade_admin_post_string('game_name');
+	if (phpbb_arcade_text_limit($game_name, 50, 50) !== $game_name || $game_name === '' || $game_name === '.' || $game_name === '..' || preg_match('#[\s/\\\\\x00-\x1F\x7F]#', $game_name))
 	{
 		$message = $lang['admin_game_wrong_name'];
 		$message .= sprintf($lang['admin_return_games'], "<a href=\"" . append_sid("$file?mode=edit_games&amp;cat_id=$cat_id&amp;order=$sort_order&amp;sort_mode=$sort_mode&amp;start=$start") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
@@ -1494,7 +1495,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['save_game'])
 		$image_path = '';
 	}
 
-	$game_desc = substr(arcade_admin_post_string('game_desc'), 0, 255);
+	$game_desc = phpbb_arcade_text_limit(arcade_admin_post_string('game_desc'), 255);
 
 	$game_charge = min(4294967295, max(0, arcade_admin_post_int('game_charge')));
 	$game_reward = min(4294967295, max(0, arcade_admin_post_int('game_reward')));
@@ -1509,7 +1510,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['save_game'])
 	$game_highscore_limit = max(0, arcade_admin_post_int('highscore_limit'));
 	$game_at_highscore_limit = max(0, arcade_admin_post_int('at_highscore_limit'));
 	$game_cat_id = arcade_admin_post_int('game_cat_id');
-	$game_instructions = substr(arcade_admin_post_string('game_instructions'), 0, 65535);
+	$game_instructions = phpbb_arcade_text_limit(arcade_admin_post_string('game_instructions'), 65535, 65535);
+	if ($game_desc === null || $game_instructions === null) { message_die(GENERAL_MESSAGE, $lang['no_game_save']); }
 //
 //  Check for the existance of the file on the server (only if local).
 //

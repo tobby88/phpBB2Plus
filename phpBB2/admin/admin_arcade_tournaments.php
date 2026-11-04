@@ -126,9 +126,9 @@ else if(isset($HTTP_POST_VARS['add_tour_submit']))
 //
 //  Here we have to ADD the games and save the header information
 //
-  $tour_name = (isset($HTTP_POST_VARS['tour_name']) && is_scalar($HTTP_POST_VARS['tour_name'])) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])), 0, 25) : '';
-  $tour_desc = (isset($HTTP_POST_VARS['tour_desc']) && is_scalar($HTTP_POST_VARS['tour_desc'])) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])), 0, 65535) : '';
-  if ($tour_name === '')
+  $tour_name = (isset($HTTP_POST_VARS['tour_name']) && is_scalar($HTTP_POST_VARS['tour_name'])) ? phpbb_arcade_text_limit(trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])), 25) : '';
+  $tour_desc = (isset($HTTP_POST_VARS['tour_desc']) && is_scalar($HTTP_POST_VARS['tour_desc'])) ? phpbb_arcade_text_limit(trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])), 65535, 65535) : '';
+  if ($tour_name === '' || $tour_name === null || $tour_desc === null)
   {
     message_die(GENERAL_MESSAGE, $lang['error_no_tour_info']);
   }

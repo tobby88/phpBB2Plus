@@ -147,6 +147,10 @@ jobs:
         run: php .github/scripts/check-arcade-points.php
       - name: Render current and retired tournament participants safely
         run: php .github/scripts/check-arcade-tournament-labels.php
+      - name: Preserve Unicode Arcade inputs and category moderator identities
+        run: |
+          php -n .github/scripts/check-arcade-text.php
+          php .github/scripts/check-arcade-text.php
       - name: Check CrackerTracker coverage of current contact fields
         run: php .github/scripts/check-ctracker-modern-contacts.php
       - name: Check scoped style cache actions and recovery preservation

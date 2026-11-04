@@ -70,6 +70,24 @@ function phpbb_arcade_local_asset($path)
 	return $path;
 }
 
+// Arcade captions are raw UTF-8, not HTML identity keys. VARCHAR limits count
+// characters; legacy TEXT and protocol identifiers also have byte budgets.
+// Invalid input must be rejected by the controller before any write.
+function phpbb_arcade_text_limit($value, $characters, $bytes = 0)
+{
+	if (!is_string($value) || strlen($value) > 1048576 || strpos($value, "\0") !== false || preg_match('//u', $value) !== 1) { return null; }
+	$characters = max(0, min(65535, (int) $characters));
+	$parts = preg_split('//u', $value, $characters + 2, PREG_SPLIT_NO_EMPTY);
+	if ($parts === false) { return null; }
+	$value = implode('', array_slice($parts, 0, $characters));
+	if ($bytes > 0 && strlen($value) > $bytes)
+	{
+		$value = substr($value, 0, (int) $bytes);
+		while (preg_match('//u', $value) !== 1) { $value = substr($value, 0, -1); }
+	}
+	return $value;
+}
+
 /**
  * Bound legacy GET-capable score protocols without counting a request twice.
  * POST submissions are already classified by the central CrackerTracker

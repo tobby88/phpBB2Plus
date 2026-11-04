@@ -287,7 +287,7 @@ if( $mode == "edit_cat" || $mode == "add_cat" )
 		"GROUP" => $cat_group,
 		"DESC" => htmlspecialchars($cat_info['cat_desc'], ENT_QUOTES, 'UTF-8'),
 		"ICON" => htmlspecialchars($cat_info['cat_icon'], ENT_QUOTES, 'UTF-8'),
-		"MODERATOR" => htmlspecialchars($moderator, ENT_QUOTES, 'UTF-8'),
+		"MODERATOR" => phpbb_stored_text($moderator),
 		"SPECIAL" => $cat_info['special_play'],
 		"DISPLAY_ICON" => $icon_path,
 		
@@ -350,9 +350,9 @@ if( isset($HTTP_POST_VARS['save_cat']) )
 {
 	$icon_input = isset($HTTP_POST_VARS['icon']) && is_scalar($HTTP_POST_VARS['icon']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['icon'])), 0, 255) : '';
 	$icon = ($icon_input === '') ? '' : phpbb_arcade_local_asset($icon_input);
-	$name = isset($HTTP_POST_VARS['name']) && is_scalar($HTTP_POST_VARS['name']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['name'])), 0, 100) : '';
+	$name = isset($HTTP_POST_VARS['name']) && is_scalar($HTTP_POST_VARS['name']) ? phpbb_arcade_text_limit(trim(stripslashes((string) $HTTP_POST_VARS['name'])), 100) : '';
 	$type = isset($HTTP_POST_VARS['cat_type']) && is_scalar($HTTP_POST_VARS['cat_type']) ? (string) $HTTP_POST_VARS['cat_type'] : 'p';
-	$desc = isset($HTTP_POST_VARS['desc']) && is_scalar($HTTP_POST_VARS['desc']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['desc'])), 0, 65535) : '';
+	$desc = isset($HTTP_POST_VARS['desc']) && is_scalar($HTTP_POST_VARS['desc']) ? phpbb_arcade_text_limit(trim(stripslashes((string) $HTTP_POST_VARS['desc'])), 65535, 65535) : '';
 	$order = (isset($HTTP_POST_VARS['cat_order']) && is_scalar($HTTP_POST_VARS['cat_order'])) ? (int) $HTTP_POST_VARS['cat_order'] : 0;
 	$parent = (isset($HTTP_POST_VARS['cat_parent']) && is_scalar($HTTP_POST_VARS['cat_parent'])) ? (int) $HTTP_POST_VARS['cat_parent'] : 0;
 	$mod_id = 0;
@@ -361,7 +361,7 @@ if( isset($HTTP_POST_VARS['save_cat']) )
 	{
 		$type = 'p';
 	}
-	if ($name === '')
+	if ($name === '' || $name === null || $desc === null)
 	{
 		message_die(GENERAL_MESSAGE, $lang['no_cat_data_enter']);
 	}
@@ -429,18 +429,17 @@ if( isset($HTTP_POST_VARS['save_cat']) )
 			$group = 0;
 		}
 	}
-	$moderator = isset($HTTP_POST_VARS['moderator']) && is_scalar($HTTP_POST_VARS['moderator']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['moderator'])), 0, 25) : '';
+	$moderator = isset($HTTP_POST_VARS['moderator']) && is_scalar($HTTP_POST_VARS['moderator']) ? trim(stripslashes((string) $HTTP_POST_VARS['moderator'])) : '';
 	$special_play = max(0, min(65535, (isset($HTTP_POST_VARS['special']) && is_scalar($HTTP_POST_VARS['special'])) ? intval($HTTP_POST_VARS['special']) : 0));
-	if($moderator)
+	if ($moderator !== '')
 	{
-		$sql = "SELECT user_id FROM " . USERS_TABLE . "
-			WHERE username = '" . $db->sql_escape($moderator) . "'";
-		if( !$result = $db->sql_query($sql) )
+		$mod_info = phpbb_username_lookup($db, $moderator, array('user_id'));
+		if ($mod_info === false)
 		{
-			message_die(GENERAL_ERROR, $lang['no_game_save'], "", __LINE__, __FILE__, $sql);
+			message_die(GENERAL_ERROR, $lang['no_game_save']);
 		}
-		$mod_info = $db->sql_fetchrow($result);
-		$mod_id = $mod_info ? (int) $mod_info['user_id'] : 0;
+		if ($mod_info === null) { message_die(GENERAL_MESSAGE, $lang['no_game_save']); }
+		$mod_id = (int) $mod_info['user_id'];
 	}
 	$name_sql = $db->sql_escape($name);
 	$desc_sql = $db->sql_escape($desc);

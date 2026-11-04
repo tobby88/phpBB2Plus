@@ -44,7 +44,7 @@
 	</tr>
   <tr>
    <td class="row1">{L_NAME}<span class="gensmall">{L_NAME_INFO}</span></td>
-   <td colspan="3" class="row2" width="20%"><input class="post" type="text" size="25" maxlength="25" name="tour_name" value="{tournament_add.NAME}" /></td>
+   <td colspan="3" class="row2" width="20%"><input class="post" type="text" size="25" maxlength="50" name="tour_name" value="{tournament_add.NAME}" /></td>
  </tr>
  <tr>
    <td class="row1">{L_DESC}<span class="gensmall">{L_DESC_INFO}</span></td>

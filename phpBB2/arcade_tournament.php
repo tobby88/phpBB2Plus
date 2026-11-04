@@ -206,10 +206,14 @@ else if(!empty($HTTP_POST_VARS['submit']))
   }
 	$tour_name = (isset($HTTP_POST_VARS['tour_name']) && is_scalar($HTTP_POST_VARS['tour_name'])) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])) : '';
 	$tour_desc = (isset($HTTP_POST_VARS['tour_desc']) && is_scalar($HTTP_POST_VARS['tour_desc'])) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])) : '';
+	if (phpbb_arcade_text_limit($tour_name, 65535) === null || phpbb_arcade_text_limit($tour_desc, 65535) === null)
+	{
+		message_die(GENERAL_MESSAGE, $lang['error_no_tour_info'].$lang['tour_return']);
+	}
 	$tour_name = trim(preg_replace('/[\x00-\x1f\x7f]+/u', ' ', strip_tags($tour_name)));
 	$tour_desc = trim(preg_replace('/[\x00-\x1f\x7f]+/u', ' ', strip_tags($tour_desc)));
-  $tour_name = function_exists('mb_substr') ? mb_substr($tour_name, 0, 25, 'UTF-8') : substr($tour_name, 0, 25);
-  $tour_desc = function_exists('mb_substr') ? mb_substr($tour_desc, 0, 255, 'UTF-8') : substr($tour_desc, 0, 255);
+  $tour_name = phpbb_arcade_text_limit($tour_name, 25);
+  $tour_desc = phpbb_arcade_text_limit($tour_desc, 255);
   if(strlen($tour_name) < 1 || strlen($tour_desc) < 3)
   {
     message_die(GENERAL_MESSAGE, $lang['error_no_tour_info'].$lang['tour_return']);

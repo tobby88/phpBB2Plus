@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Arcade text entry and category moderators
+
+- Count category, game-caption and tournament-name limits as UTF-8 characters.
+  Keep whole characters at legacy TEXT byte limits and reject malformed input.
+  Apply the same tournament rules without mbstring and permit supplementary
+  characters in the browser's name controls. Existing storage needs no migration.
+- Preserve exact game identifiers instead of clipping overlong names to another
+  game's prefix. Keep the established protocol byte limit.
+- Display category moderator names once and resolve their canonical account
+  keys, including historical quote representations and the name `0`. Refuse
+  missing, ambiguous or invalid identities instead of clearing or reassigning
+  the moderator silently.
+
 ### Custom-profile UTF-8 compatibility
 
 - Apply value limits before HTML escaping so ampersands, quotes and literal
