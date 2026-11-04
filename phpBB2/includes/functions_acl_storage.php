@@ -66,6 +66,7 @@ function phpbb_acp_actor($db,$route)
 	$routes=array('admin_db_maintenance.'.$phpEx,'admin_forumauth.'.$phpEx,
 		'admin_db_utilities.'.$phpEx.'?perform=backup',
 		'admin_ranks.'.$phpEx,
+		'admin_arcade_games.'.$phpEx.'?mode=import_game',
 		'admin_kb_art.'.$phpEx,
 		'admin_kb_cat.'.$phpEx,
 		'admin_pa_category.'.$phpEx,

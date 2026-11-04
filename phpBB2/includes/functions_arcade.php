@@ -561,77 +561,18 @@ function check_ina_game($game_name)
 }
 
 function insert_ina_game($game_name, $game_path, $reverse_list = 0, $game_desc = '', $game_flash = 1, $game_avail = 0, $win_width = 0, $win_height = 0, $cat_id = -1)
-{	
-  if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
-  {
-    global $db, $phpbb_root_path, $arcade, $lang, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
-  }
-  else
-  {
-    global $db, $phpbb_root_path, $arcade, $lang;
-  }
-	$game_name = trim((string) $game_name);
-	$game_path = phpbb_arcade_local_asset($game_path);
-	if ($game_name === '' || $game_path === '')
+{
+	global $db, $lang;
+	require_once dirname(__FILE__) . '/functions_arcade_import_storage.php';
+	try
 	{
-		return false;
+		$values = phpbb_arcade_import_values($game_name, $game_path, $reverse_list, $game_desc, $game_flash, $game_avail, $win_width, $win_height, $cat_id);
+		return phpbb_arcade_import_game($db, $values);
 	}
-	$reverse_list = !empty($reverse_list) ? 1 : 0;
-	$game_flash = !empty($game_flash) ? 1 : 0;
-	$game_avail = !empty($game_avail) ? 1 : 0;
-	$win_width = max(0, (int) $win_width);
-	$win_height = max(0, (int) $win_height);
-	$cat_id = (int) $cat_id;
-	if ($win_width === 0)
-	{
-		$win_width = 550;
-	}
-	if ($win_height === 0)
-	{
-		$win_height = 450;
-	}
-	if($cat_id == 0)
-	{
-    $cat_id = -1;
-  }
-	if($game_desc == '')
-	{
-		$game_desc = trim(str_replace("_", " ", $game_name));
-		$game_desc = ($game_desc !== '') ? ucfirst($game_desc) : $game_name;
-	}
-	$game_name_sql = $db->sql_escape($game_name);
-	$game_path_sql = $db->sql_escape($game_path);
-	$game_desc_sql = $db->sql_escape($game_desc);
-	$inst_sql = "INSERT INTO " . iNA_GAMES . "
-		(cat_id, date_added, game_name, game_path, game_desc, win_width, win_height, reverse_list , game_flash, game_avail)
-			VALUES ($cat_id, " . time() . ", '$game_name_sql', '$game_path_sql', '$game_desc_sql', $win_width, $win_height, $reverse_list, $game_flash, $game_avail)";
-	if( !$inst_result = $db->sql_query($inst_sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_read_game_data'], "", __LINE__, __FILE__, $inst_sql);
-	}
-	if($game_avail == 1)
-	{
-  	$inst_sql = "UPDATE " . iNA_CAT . "
-  		SET total_games = total_games+1
-  			WHERE cat_id = '".$cat_id."'";
-  	if( !$inst_result = $db->sql_query($inst_sql) )
-  	{
-  		message_die(GENERAL_ERROR, $lang['no_read_game_data'], "", __LINE__, __FILE__, $inst_sql);
-  	}
-    if($cat_id > 0)
-    {
-    	$inst_sql = "UPDATE " . iNA_CAT . "
-    		SET total_games = total_games+1
-    			WHERE cat_id = -1";
-    	if( !$inst_result = $db->sql_query($inst_sql) )
-    	{
-    		message_die(GENERAL_ERROR, $lang['no_read_game_data'], "", __LINE__, __FILE__, $inst_sql);
-    	}
-    }
-  }
-	return (int) $db->sql_nextid();
+	catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+	catch (PhpbbOwnedStorageFailure $error)
+	{ $key = $error->getMessage(); message_die(GENERAL_ERROR, isset($lang[$key]) ? $lang[$key] : $lang['no_game_save']); }
 }
-
 function get_total_tour()
 {	global $db, $arcade;
 

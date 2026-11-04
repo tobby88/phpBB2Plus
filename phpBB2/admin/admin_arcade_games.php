@@ -740,13 +740,13 @@ else if( $mode == "import_game")
 //
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submit']))
 {
-	$import_path = (isset($HTTP_POST_VARS['import_path']) && !is_array($HTTP_POST_VARS['import_path'])) ? phpbb_arcade_local_asset($HTTP_POST_VARS['import_path']) : '';
+	$import_path = phpbb_arcade_local_asset(arcade_admin_post_string('import_path'));
 	if ($import_path !== '' && substr($import_path, -1) !== '/')
 	{
 		$import_path .= '/';
 	}
 
-	if(empty($import_path))
+	if ($import_path === '' || phpbb_arcade_text_limit($import_path, 255) !== $import_path)
 	{	
 		$message = $lang['no_game_import'];
 		$message .= sprintf($lang['admin_return_import'], "<a href=\"" . append_sid("$file?mode=import_game") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
@@ -846,8 +846,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 						//
 						if (@file_exists($main_dir_path . '/' . $new_name[0] . '.gif'))
 						{
-							insert_ina_game($new_name[0], $import_path, 0, '', $flash, $online, $width, $height, $cat_id);
-							$i++;
+							if (insert_ina_game($new_name[0], $import_path, 0, '', $flash, $online, $width, $height, $cat_id)) { $i++; } else { $skipped++; }
 						}
 						else
 						{
@@ -862,8 +861,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 						//
 						// Everything checks out, so add it to the database with as much detail as posible.
 						//
-						insert_ina_game($file_name, $import_path, 0, '', $flash, $online, $width, $height, $cat_id);
-						$i++;
+						if (insert_ina_game($file_name, $import_path, 0, '', $flash, $online, $width, $height, $cat_id)) { $i++; } else { $skipped++; }
 					}
 				}
 				else
@@ -893,8 +891,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 								{	
 									if (@file_exists($main_dir_path . '/' . $file_name . '/' . $new_name[0] . '.gif'))
 									{	
-										insert_ina_game($new_name[0], $import_path.$file_name.'/', 0, '', $flash, $online, $width, $height, $cat_id);
-										$i++;
+										if (insert_ina_game($new_name[0], $import_path.$file_name.'/', 0, '', $flash, $online, $width, $height, $cat_id)) { $i++; } else { $skipped++; }
 									}
 									else
 									{
@@ -903,8 +900,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 								}
 								else
 								{
-									insert_ina_game($sub_file_name, $import_path . $file_name . '/', 0, '', $flash, $online, $width, $height, $cat_id);
-									$i++;
+									if (insert_ina_game($sub_file_name, $import_path . $file_name . '/', 0, '', $flash, $online, $width, $height, $cat_id)) { $i++; } else { $skipped++; }
 								}
 							}
 							else

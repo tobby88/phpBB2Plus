@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Arcade text entry and category moderators
 
+- Publish imported games and category counters in one owned transaction, with
+  current ACP session and exact Import-module authority. Preserve the new game
+  ID before subsequent queries; roll back all writes on failure. Count only
+  confirmed imports, skip invalid or existing assets, and invalidate affected
+  caches after each publication, including uncertain commit acknowledgements.
+- Validate exact asset identifiers, local UTF-8 paths and raw captions before
+  import; never clip a filename to another game's identity. Existing canonical
+  InnoDB/utf8mb4 installations need no schema migration for this change.
 - Shorten last-played game captions by Unicode characters in both category
   views and the all-games summary. Keep titles of up to 25 characters intact,
   add an ellipsis only for longer titles and escape the raw caption once.

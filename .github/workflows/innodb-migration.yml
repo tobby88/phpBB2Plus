@@ -322,6 +322,12 @@ jobs:
         env:
           PHPBB_ARCADE_EXCERPT_NATIVE: '1'
           PHPBB_ARCADE_EXCERPT_PASSWORD: fixture-only
+      - name: Publish native Arcade imports with atomic counters and current authority
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-import-native.php
+        env:
+          PHPBB_ARCADE_IMPORT_NATIVE: '1'
+          PHPBB_ARCADE_IMPORT_PASSWORD: fixture-only
       - name: Keep native Arcade category identities and visibility current
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-category-cache-native.php
