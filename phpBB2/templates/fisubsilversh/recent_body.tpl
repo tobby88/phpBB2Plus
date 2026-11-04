@@ -32,7 +32,7 @@
                                                                                        <span class="gensmall">{recent.GOTO_PAGE}<br />{recent.FIRST_TIME}{recent.FIRST_AUTHOR}</span></td>
         <td class="{recent.ROW_CLASS}" width="10%" align="left"><span class="postdetails">&nbsp;{recent.L_REPLIES}: {recent.REPLIES}
                                                                                                    <br />&nbsp;{recent.L_VIEWS}: {recent.VIEWS}</span></td>
-        <td class="{recent.ROW_CLASS}" width="25%" nowrap="nowrap">&nbsp;<span class="genmed"><a href="{recent.U_VIEW_FORUM}" class="genmed">{recent.FORUM_NAME}</span></td>
+        <td class="{recent.ROW_CLASS}" width="25%" nowrap="nowrap">&nbsp;<span class="genmed"><a href="{recent.U_VIEW_FORUM}" class="genmed">{recent.FORUM_NAME}</a></span></td>
         <td class="{recent.ROW_CLASS}" align="right" width="20%" nowrap="nowrap"><span class="gensmall"> {recent.LAST_URL} {recent.LAST_TIME}&nbsp;&nbsp;
                                                                                                                              <br />{recent.LAST_AUTHOR}</span>&nbsp;&nbsp;</td>
   </tr>

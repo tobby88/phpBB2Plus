@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Recent-topic and staff-profile excerpts
+
+- Shorten displayed topics, post subjects and forum names by UTF-8 characters
+  without dropping literal backslashes or splitting HTML entities. Decode the
+  stored subject representation once and escape the final display text.
+- Apply limits to the censored text and add an ellipsis only when something
+  was shortened. Close the forum link in the recent-topic template correctly.
+
 ### CrackerTracker file entry checks
 
 - Recognize terminating `IN_PHPBB` entry guards through PHP tokens, including

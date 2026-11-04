@@ -275,7 +275,7 @@ else
 		{
 			$last_post_title = ( !empty($last_posts['post_subject']) ) ? $last_posts['post_subject'] : $last_posts['topic_title'];
 			$last_post_title = ( count($orig_word) ) ? preg_replace($orig_word, $replacement_word, $last_post_title) : $last_post_title;
-			$last_post_title = ( strlen($last_post_title) < $last_post_length ) ? $last_post_title : substr(stripslashes($last_post_title), 0, $last_post_length) .'...';
+			$last_post_title = phpbb_text_excerpt(html_entity_decode($last_post_title, ENT_QUOTES, 'UTF-8'), $last_post_length);
 
 			$template->assign_block_vars('switch_view_profile.last_posts', array(
 				'LAST_POST_TITLE' => phpbb_profile_text($last_post_title),

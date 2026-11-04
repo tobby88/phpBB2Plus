@@ -164,7 +164,7 @@ for( $i = 0; $i < count($line); $i++ )
 	$topic_url = append_sid("viewtopic.$phpEx?". POST_TOPIC_URL ."=$topic_id");
 
 	$word_censor = ( count($orig_word) ) ? preg_replace($orig_word, $replacement_word, $line[$i]['topic_title']) : $line[$i]['topic_title'];
-	$topic_title = ( strlen($line[$i]['topic_title']) < $topic_length ) ? $word_censor : substr(stripslashes($word_censor), 0, $topic_length) .'...';
+	$topic_title = phpbb_text_excerpt(html_entity_decode($word_censor, ENT_QUOTES, 'UTF-8'), $topic_length);
 
 	$topic_type =  ( $line[$i]['topic_type'] == POST_ANNOUNCE ) ? $lang['Topic_Announcement'] .' ': '';
 	$topic_type .= ( $line[$i]['topic_type'] == POST_GLOBAL_ANNOUNCE ) ? $lang['Topic_Global_Announcement'] .' ': '';
@@ -305,12 +305,11 @@ for( $i = 0; $i < count($line); $i++ )
     $last_style_color = color_group_colorize_name($line[$i]['last_poster_id'], true);
 	$last_author = ( $line[$i]['last_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['last_poster_id']) .'" class="gensmall">' . $last_style_color . ' </a>' : phpbb_post_author_name($line[$i],'last_poster_name','last_poster_id','last_poster_removed');
 	$last_url = '<a href="'. append_sid("viewtopic.$phpEx?". POST_POST_URL .'='. $line[$i]['topic_last_post_id']) .'#'. $line[$i]['topic_last_post_id'] .'"><img src="'. $images['icon_latest_reply'] .'" alt="'. $lang['View_latest_post'] .'" title="'. $lang['View_latest_post'] .'" border="0" /></a>';
-	$forum_name = htmlspecialchars($line[$i]['forum_name'], ENT_QUOTES, 'UTF-8');
-	if ( strlen($forum_name) > (intval($board_config['last_topic_title_length'])-3) ) $forum_name = substr($forum_name, 0, intval($board_config['last_topic_title_length'])) . '...';
+	$forum_name = phpbb_profile_text(phpbb_text_excerpt($line[$i]['forum_name'], intval($board_config['last_topic_title_length'])));
 
 	$template->assign_block_vars('recent', array(
 		'ROW_CLASS' => ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'],
-		'TOPIC_TITLE' => htmlspecialchars($topic_title, ENT_QUOTES, 'UTF-8'),
+		'TOPIC_TITLE' => phpbb_profile_text($topic_title),
 		'TOPIC_TYPE' => $topic_type,
 		'GOTO_PAGE' => $goto_page,
 		'L_VIEWS' => $lang['Views'],

@@ -39,6 +39,19 @@ function phpbb_stored_text($value)
 	return htmlspecialchars(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
 }
 
+// Return plain UTF-8 text; callers escape it for their output context.
+function phpbb_text_excerpt($value, $length)
+{
+	$value = (string) $value;
+	$length = max(0, (int) $length);
+	if ($length === 0 || preg_match('//u', $value) !== 1) { return ''; }
+	// Keep at most the prefix plus one character and a remainder, without
+	// depending on mbstring or splitting a complete UTF-8 character.
+	$characters = preg_split('//u', $value, $length < PHP_INT_MAX - 1 ? $length + 2 : -1, PREG_SPLIT_NO_EMPTY);
+	if ($characters === false) { return ''; }
+	return count($characters) > $length ? implode('', array_slice($characters, 0, $length)) . '...' : $value;
+}
+
 function phpbb_sql_id_list($value, $maximum_ids = 500)
 {
 	$maximum_ids = max(1, min(1000, (int) $maximum_ids));

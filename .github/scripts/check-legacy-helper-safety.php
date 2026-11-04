@@ -24,7 +24,7 @@ $checks = array(
 		'$topic_limit = max(1, min(100, intval($topic_limit)))',
 		'$except_forums_sql = phpbb_sql_id_list($except_forums)',
 		"phpbb_sql_id_list(\$forum_ids)",
-		"htmlspecialchars(\$line[\$i]['forum_name'], ENT_QUOTES, 'UTF-8')",
+		// Forum-label escaping is exercised through the real template in check-list-excerpts.php.
 	),
 	'phpBB2/hacks_list.php' => array(
 		"preg_match('/^[a-z0-9_-]+$/i', \$userdata['user_lang'])",
