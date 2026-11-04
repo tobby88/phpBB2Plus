@@ -1738,4 +1738,5 @@ $lang['Mail_upgrade'] = 'Der E-Mail-Speicher muss aktualisiert werden. Bitte den
 $lang['Mail_absent'] = 'Dieses Mitglied ist momentan nicht per E-Mail erreichbar.';
 $lang['Mail_recommendation_subject'] = 'Forum-Empfehlung';
 $lang['Mail_copy_failed'] = 'Deine Nachricht wurde gesendet, aber die Kopie an Deine eigene Adresse konnte nicht bestätigt werden. Bitte sende die Nachricht nicht erneut ab.';
+$lang['Profile_text_storage_upgrade'] = 'Der Speicher für zusätzliche Profilfelder muss aktualisiert werden. Bitte den Administrator bitten, vor dem Speichern dieser Felder update_from_153a.php auszuführen.';
 ?>

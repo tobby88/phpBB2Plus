@@ -109,7 +109,7 @@ class PhpbbRegistrationScope
 	{
 		if (!$this->transactional) { phpbb_registration_error('Registration_changed'); }
 		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, $submitted, $this->profile_actions); }
-		catch (UnexpectedValueException $e) { phpbb_registration_error('Registration_changed'); }
+        catch (UnexpectedValueException $e) { phpbb_registration_error($e->getMessage() === 'Profile_text_storage_upgrade' ? 'Profile_text_storage_upgrade' : 'Registration_changed'); }
 	}
 	private function pin_settings($table, $keys, $expected, $name = 'config_name', $value = 'config_value')
 	{

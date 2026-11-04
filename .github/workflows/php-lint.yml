@@ -968,6 +968,8 @@ jobs:
         run: php .github/scripts/check-custom-profile-forms.php
       - name: Check stable profile column compatibility
         run: php .github/scripts/check-profile-field-column.php
+      - name: Preserve complete encoded custom-profile values
+        run: php .github/scripts/check-profile-encoded-values.php
       - name: Check profile definition publication boundaries
         run: php .github/scripts/check-profile-definition-storage.php
       - name: Profile definition forms and retry tokens

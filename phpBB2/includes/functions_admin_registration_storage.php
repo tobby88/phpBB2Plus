@@ -74,7 +74,7 @@ class PhpbbAdminRegistrationScope extends PhpbbAclDatabase
 	{
 		if (!$this->transactional) { phpbb_acl_error('Acl_selection_changed'); }
 		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, array(), $this->profile_actions); }
-		catch (UnexpectedValueException $e) { phpbb_acl_error('Acl_selection_changed'); }
+		catch (UnexpectedValueException $e) { phpbb_acl_error($e->getMessage() === 'Profile_text_storage_upgrade' ? 'Profile_text_storage_upgrade' : 'Acl_selection_changed'); }
 	}
 	function sql_query($sql, $transaction = false)
 	{

@@ -82,6 +82,15 @@ php update/update_from_153a.php
 php update/update_from_153a.php --apply --backup-confirmed --maintenance-confirmed
 ```
 
+Custom-profile value limits now count original Unicode characters before HTML
+escaping. The updater widens active custom user columns and encoded defaults/
+options without rewriting existing values. Preview or apply this part alone
+with `--profile-text-storage-only` and the same backup/maintenance confirmations.
+Retired fields keep their physical recovery receipts; after restoring a narrow
+legacy field, the ACP asks for another scoped update before profiles can save
+to it. See [update/README.md](update/README.md) for the preservation checks and
+ambiguous-default cases that require manual review.
+
 Banner IDs now use an InnoDB primary key with automatic allocation. Existing
 installations can run just this migration after backing up the database and
 stopping all web/cron writers:

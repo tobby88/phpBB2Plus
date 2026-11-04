@@ -566,6 +566,18 @@ jobs:
         env:
           PHPBB_PROFILE_DEFINITION_NATIVE: '1'
           PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
+      - name: Widen custom-profile storage without changing values or receipts
+        if: matrix.part == 2
+        run: php .github/scripts/check-profile-text-migration-native.php
+        env:
+          PHPBB_PROFILE_TEXT_NATIVE: '1'
+          PHPBB_PROFILE_TEXT_PASSWORD: fixture-only
+      - name: Exercise profile storage through the complete updater
+        if: matrix.part == 2
+        run: php .github/scripts/check-profile-full-updater-native.php
+        env:
+          PHPBB_PROFILE_TEXT_NATIVE: '1'
+          PHPBB_PROFILE_TEXT_PASSWORD: fixture-only
       - if: matrix.part == 1
         run: php .github/scripts/check-profile-retirement.php
         env:
@@ -775,6 +787,12 @@ jobs:
         env:
           PHPBB_REGISTRATION_NATIVE: '1'
           PHPBB_REGISTRATION_PASSWORD: fixture-only
+      - name: Preserve encoded values through actual ACP profile owners
+        if: matrix.part == 4
+        run: php .github/scripts/check-profile-text-owners-native.php
+        env:
+          PHPBB_ADMIN_PROFILE_NATIVE: '1'
+          PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
       - if: matrix.part == 2
         run: php .github/scripts/check-admin-registration-native.php
         env:

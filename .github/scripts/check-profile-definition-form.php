@@ -63,10 +63,11 @@ try{
   elseif($case==='utf8'){$request['field_name']="\xc3";}elseif($case==='nul'){$request['field_name']="bad\0name";}elseif($case==='comma'){$request['radio_values']='first,second';}
   elseif($case==='duplicate'){$request['checkbox_values']="one\none";}elseif($case==='duplicate-default'){$request['checkbox_values']='one';$request['check_default_values']="one\none";}elseif($case==='empty-option'){$request['radio_values']="one\n\ntwo";}elseif($case==='unknown-default'){$request['radio_default_value']='missing';}
   elseif($case==='enum'){$request['signature_wrap']='0';}elseif($case==='partial-int'){$request['text_field_maxlen']='10junk';}elseif($case==='overflow'){$request['text_field_maxlen']='999999999999999999';}
-  else{$request['text_field_default']=str_repeat('&',60);}
+  else{$request['text_field_default']=str_repeat('&',256);}
   profile_fixture_request($request);$denied=false;try{phpbb_profile_definition_form_values($_POST);}catch(PhpbbAclException $e){$denied=true;}ats_check($denied,'Reject malformed form '.$case);$cases++;
  }
  $request=pdf_request();$request['field_column']='user_password';$request['sql']='DROP';profile_fixture_request($request);$v=phpbb_profile_definition_form_values($_POST);ats_check(array_keys($v)===phpbb_profile_definition_fields(),'Request cannot add identifiers/SQL assignments');$cases++;
+ foreach(array(60,255)as$length){$request=pdf_request();$request['text_field_default']=str_repeat('&',$length);profile_fixture_request($request);$values=phpbb_profile_definition_form_values($_POST);ats_check($values['text_field_default']===str_repeat('&amp;',$length),'Default character budget permits complete encoded values');$cases++;}
  $template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];$template->load_config($ats_source.'templates/fisubsilversh',false);
  $mode='add';$pfid='x';$definition_draft=null;eval($add);$one=$definition_operation;eval($add);ats_check(strlen($one)===64&&ctype_xdigit($one)&&$one!==$definition_operation,'Fresh forms have independent random operation keys');$cases++;
  $request=pdf_request();$request['field_name']="Stored &amp; \\ 😀";$request['field_type']='2';$request['radio_values']="first\n0";$request['radio_default_value']='0';

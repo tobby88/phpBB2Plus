@@ -7,6 +7,7 @@ require_once dirname(__FILE__) . '/functions_profile_definition_storage.php';
 // and restoration never DROP/MODIFY columns or touch stored user values.
 class PhpbbProfileDefinitionRetirement extends PhpbbProfileDefinitionWriter
 {
+    var $text_storage_upgrade = false;
     function __construct($database, $request)
     {
         parent::__construct($database, 'edit', $request);
@@ -98,6 +99,7 @@ class PhpbbProfileDefinitionRetirement extends PhpbbProfileDefinitionWriter
                 $found = false;
                 foreach ($definitions as $row) { if ((int)$row['field_id'] === $id && phpbb_profile_field_column($row) === $column) { $found = true; } }
                 if (!$found) { phpbb_acl_error('Profile_definition_changed'); }
+                $this->text_storage_upgrade = !phpbb_profile_text_storage_ready($this, array($snapshot));
                 $this->sql_query('ROLLBACK'); $this->confirmed = true; return $id;
             }
             foreach ($definitions as $row)
@@ -110,6 +112,10 @@ class PhpbbProfileDefinitionRetirement extends PhpbbProfileDefinitionWriter
             foreach ($snapshot as $value) { $encoded[] = $value === null ? 'NULL' : "'" . $this->sql_escape($value) . "'"; }
             $this->sql_query('INSERT INTO ' . PROFILE_FIELDS_TABLE . ' (' . implode(',', array_keys($snapshot)) . ') VALUES (' . implode(',', $encoded) . ')');
             $this->sql_query('UPDATE ' . PROFILE_FIELD_ACTIONS_TABLE . " SET action_state='restored',updated_at=" . time() . " WHERE operation_key='" . $operation . "'");
+            // Keep retirement's exact physical receipt intact. A legacy field
+            // is now active again, so the offline updater can safely widen it;
+            // ordinary profile writers refuse it until that upgrade completes.
+            $this->text_storage_upgrade = !phpbb_profile_text_storage_ready($this, array($snapshot));
             $this->pin_actor(); $this->commit_attempted = true; $this->commit(); $this->confirmed = true;
             return $id;
         }

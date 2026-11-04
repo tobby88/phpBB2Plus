@@ -93,7 +93,7 @@ try {
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');
 foreach($pp_tables as $s){ats_check(preg_match('/CREATE TABLE `?phpbb_'.$s.'`?\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical participant '.$s);pp_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$m[0]));preg_match_all('/ALTER TABLE phpbb_'.$s.'\s+[\s\S]*?;/',$schema,$extra);foreach($extra[0] as $ddl){pp_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$ddl));}}
- pp_sql('ALTER TABLE fixture_users ADD user_custom_fixture VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL');
+ pp_sql('ALTER TABLE fixture_users ADD user_custom_fixture MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL');
  // Fixture DDL retains a wait allowance for internal background locks.
  pp_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=0;
  foreach(array('edit','password','rename','avatar','reactivate','reactivate-password') as $scenario){

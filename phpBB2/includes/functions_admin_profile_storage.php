@@ -75,6 +75,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 			// Freeze custom-field definitions before the controller validates them,
 			// including an empty range. Identity/rule gaps are locked when checked.
 			$this->profile_fields = phpbb_acl_rows($this, 'SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' ORDER BY field_id ASC');
+			if (!phpbb_profile_text_storage_ready($this, $this->profile_fields)) { phpbb_acl_error('Profile_text_storage_upgrade'); }
 			if ($this->creating) { $this->profile_actions = phpbb_acl_rows($this, 'SELECT field_column,action_state FROM ' . PROFILE_FIELD_ACTIONS_TABLE . ' ORDER BY operation_key'); }
 			$rows = phpbb_acl_rows($this, 'SELECT user_id,user_level,username,user_email,user_warnings FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->target_id . ' FOR UPDATE');
 			if ($this->creating ? count($rows) !== 0 : count($rows) !== 1) { phpbb_acl_error('Acl_selection_changed'); }
@@ -137,7 +138,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 	{
 		if (!$this->creating || !$this->transactional) { phpbb_acl_error('Admin_profile_save_failed'); }
 		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, array(), $this->profile_actions); }
-		catch (UnexpectedValueException $e) { phpbb_acl_error('Acl_selection_changed'); }
+		catch (UnexpectedValueException $e) { phpbb_acl_error($e->getMessage() === 'Profile_text_storage_upgrade' ? 'Profile_text_storage_upgrade' : 'Acl_selection_changed'); }
 	}
 	static function warning_value($value, $error)
 	{

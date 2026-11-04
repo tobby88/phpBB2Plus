@@ -1,5 +1,36 @@
 # Database updates and maintenance
 
+Custom-profile limits count original Unicode characters before HTML escaping.
+Before deploying this version over an existing installation, preview:
+
+```sh
+php update/update_from_153a.php --profile-text-storage-only
+php update/update_from_153a.php --profile-text-storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+Verify a current backup and stop web/cron writers before applying. The full
+post-1.53a updater includes the same migration. It widens the six encoded
+default/option columns in `profile_fields` and active, mapped custom `users`
+columns to `MEDIUMTEXT`, retaining existing `LONGTEXT`. Existing values,
+defaults, comments, nullability, unrelated columns, indexes and allocation
+floors are preserved and verified. No profile values are re-encoded or trimmed.
+Use the PHP command to apply: it temporarily normalizes SQL escaping for its
+DDL and restores the original session settings afterwards.
+
+Indexed or generated target columns, conflicting mappings and nonliteral
+defaults require manual review; no indexes or data are removed to force an
+upgrade. A MariaDB limitation can render a non-BMP default as `?` in metadata.
+For a populated table the updater reads the real literal value. If an empty
+table's printed default contains `?` or a replacement character, it refuses
+the ambiguous change before any DDL instead of guessing a replacement.
+
+Retired custom columns and their physical recovery signatures stay unchanged.
+If an old narrow field is restored later, the ACP displays an upgrade notice.
+Run the scoped command again: the field is now active and can be widened
+without invalidating its retirement receipt. Profile writers refuse an old
+physical width until that upgrade completes. Field labels retain their
+existing limits and unique key; only encoded values/defaults/options expand.
+
 Deleted posts now retain a compact placeholder by default. Before publishing the
 corresponding application code, preview `--post-tombstones-only` and apply it with
 `--apply --backup-confirmed --maintenance-confirmed`. The full updater includes the

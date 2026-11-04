@@ -25,7 +25,7 @@ function phpbb_profile_retirement_submit($database, $request, $mode, $id)
         { $writer->retire($id, phpbb_profile_retirement_token($request, 'definition_revision'), $operation); }
         else { $writer->restore($operation); }
         if (!$writer->confirmed) { phpbb_acl_error('Profile_retirement_failed'); }
-        return array('success', '');
+        return array('success', $writer->text_storage_upgrade ? $lang['Profile_text_storage_upgrade'] : '');
     }
     catch (Exception $failure) { return array('retry', $lang['Profile_retirement_failed']); }
     catch (Throwable $failure) { return array('retry', $lang['Profile_retirement_failed']); }

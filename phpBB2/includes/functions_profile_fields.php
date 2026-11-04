@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__FILE__) . '/functions_profile_columns.php';
+require_once dirname(__FILE__) . '/functions_profile_text.php';
 
 // Definitions must be read under the account owner's transaction. Defaults
 // already use storage encoding, not legacy request escaping or another user's
@@ -18,7 +19,8 @@ function phpbb_profile_new_account_values($fields, $submitted = array())
     { throw new UnexpectedValueException('Invalid profile metadata'); }
     $key = $defaults[(int)$type];
     $value = array_key_exists($column, $submitted) ? $submitted[$column] : (isset($field[$key]) ? $field[$key] : '');
-    if (!is_string($value) || strpos($value, "\0") !== false || !preg_match('//u', $value) || strlen($value) > 240000)
+    $maximum = phpbb_profile_field_value_limit($field);
+    if ($maximum === false || !phpbb_profile_encoded_value_valid($value, $maximum))
     { throw new UnexpectedValueException('Invalid profile value'); }
     $values[$column] = $value;
   }
@@ -29,6 +31,7 @@ function phpbb_profile_new_account_values($fields, $submitted = array())
 function phpbb_profile_new_account_insert($db, $fields, $submitted = array(), $actions = array())
 {
   if (!is_array($actions)) { throw new UnexpectedValueException('Invalid profile recovery metadata'); }
+  if (!phpbb_profile_text_storage_ready($db, $fields)) { throw new UnexpectedValueException('Profile_text_storage_upgrade'); }
   $defaults = phpbb_profile_new_account_values($fields, $submitted);
   if ($actions)
   {
@@ -49,6 +52,43 @@ function phpbb_profile_new_account_insert($db, $fields, $submitted = array(), $a
     $values .= ", '" . $db->sql_escape($value) . "'";
   }
   return array($columns, $values);
+}
+
+// Call from the owning account/definition transaction after pinning its tables.
+// Never perform DDL here: an older installation must use the offline updater.
+function phpbb_profile_text_storage_ready($db, $fields, $definitions = false)
+{
+  if (!is_array($fields)) { return false; }
+  if (!$fields && !$definitions) { return true; }
+  $wanted = array(PROFILE_FIELDS_TABLE => phpbb_profile_text_metadata_columns());
+  if ($fields) { $wanted[USERS_TABLE] = array(); }
+  foreach ($fields as $field)
+  {
+    $column = phpbb_profile_field_column($field);
+    if ($column === '' || in_array($column, phpbb_profile_definition_core_columns(), true)
+      || in_array($column, $wanted[USERS_TABLE], true) || phpbb_profile_field_value_limit($field) === false) { return false; }
+    $wanted[USERS_TABLE][] = $column;
+  }
+  foreach (array_keys($wanted) as $table) { if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D', $table)) { return false; } }
+  try
+  {
+    $tables = array(); foreach (array_keys($wanted) as $table) { $tables[] = "'" . $db->sql_escape($table) . "'"; }
+    $r = $db->sql_query('SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,CHARACTER_SET_NAME,COLLATION_NAME,EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (' . implode(',', $tables) . ')');
+    if (!$r) { return false; }
+    try { $rows = $db->sql_fetchrowset($r); } finally { $db->sql_freeresult($r); }
+    if (!is_array($rows)) { return false; }
+    $physical = array(); foreach ($rows as $row) { $physical[$row['TABLE_NAME']][$row['COLUMN_NAME']] = $row; }
+    foreach ($wanted as $table=>$columns) { foreach ($columns as $column)
+    {
+      if (!isset($physical[$table][$column])) { return false; } $row = $physical[$table][$column];
+      if (!in_array($row['DATA_TYPE'], array('mediumtext','longtext'), true) || (float)$row['CHARACTER_MAXIMUM_LENGTH'] < 360000
+        || (float)$row['CHARACTER_OCTET_LENGTH'] < 360000 || $row['CHARACTER_SET_NAME'] !== 'utf8mb4'
+        || $row['COLLATION_NAME'] !== 'utf8mb4_unicode_ci' || !in_array($row['EXTRA'], array('','DEFAULT_GENERATED'), true)) { return false; }
+    } }
+    return true;
+  }
+  catch (Exception $e) { return false; }
+  catch (Error $e) { return false; }
 }
 
 // Known active and retained columns only; caller pins definitions/receipts.
@@ -194,12 +234,13 @@ function phpbb_profile_field_input($field, $source)
         continue;
       }
       $item = htmlspecialchars((string) phpbb_request_raw_value($item), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-      if (in_array($item, $allowed, true) && !in_array($item, $values, true))
+      if (phpbb_profile_encoded_value_valid($item, 255) && in_array($item, $allowed, true) && !in_array($item, $values, true))
       {
         $values[] = $item;
       }
     }
-    return phpbb_profile_field_substr(implode(',', $values), 60000);
+    $value = implode(',', $values);
+    return phpbb_profile_encoded_value_valid($value, 60000) ? $value : '';
   }
 
   if (!is_scalar($source[$column]))
@@ -211,13 +252,14 @@ function phpbb_profile_field_input($field, $source)
   if ($type === RADIO)
   {
     $allowed = isset($field['radio_button_values']) ? explode(',', (string) $field['radio_button_values']) : array();
-    return in_array($value, $allowed, true) ? $value : '';
+    return phpbb_profile_encoded_value_valid($value, 255) && in_array($value, $allowed, true) ? $value : '';
   }
 
   $maximum = ($type === TEXTAREA)
     ? (isset($field['text_area_maxlen']) ? min(60000, max(0, (int) $field['text_area_maxlen'])) : TEXTAREA_MAXLENGTH)
     : (isset($field['text_field_maxlen']) ? min(TEXT_FIELD_MAXLENGTH, max(0, (int) $field['text_field_maxlen'])) : TEXT_FIELD_MAXLENGTH);
-  return phpbb_profile_field_substr($value, $maximum);
+  $raw = phpbb_profile_field_substr(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), $maximum);
+  return htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 function phpbb_profile_field_assignments($profile_data, $source, &$profile_names)
@@ -282,7 +324,7 @@ function phpbb_profile_field_form_control($field, $value)
   if ($type === TEXT_FIELD)
   {
     $length = isset($field['text_field_maxlen']) ? max(1, min(TEXT_FIELD_MAXLENGTH, (int) $field['text_field_maxlen'])) : TEXT_FIELD_MAXLENGTH;
-    return '<input type="text" class="post" style="width: 200px" name="' . $name . '" size="35" maxlength="' . $length . '" value="' . $safe_value . '" />';
+    return '<input type="text" class="post" style="width: 200px" name="' . $name . '" size="35" maxlength="' . (2 * $length) . '" value="' . $safe_value . '" />';
   }
   if ($type === TEXTAREA)
   {

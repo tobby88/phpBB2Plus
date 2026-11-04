@@ -29,6 +29,7 @@ class PhpbbPublicProfileScope
 	function __construct($database, $id, $sid, $avatar)
 	{
 		global $userdata, $table_prefix, $board_config, $ctracker_config;
+		require_once dirname(__FILE__) . '/functions_profile_fields.php';
 		$this->original = $database; $this->avatar = $avatar;
 		if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_logged_in'])
 			|| !isset($userdata['user_id'], $userdata['session_id']) || !is_string($sid) || $sid === '' || !is_string($userdata['session_id'])
@@ -111,6 +112,7 @@ class PhpbbPublicProfileScope
 		if (!$this->rows('SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id=' . (int)$style)) { phpbb_public_profile_error('Public_profile_changed'); }
 		$fields = $this->rows('SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' WHERE users_can_view=' . ALLOW_VIEW . ' ORDER BY field_id ASC');
 		if ($fields != $profile_data) { phpbb_public_profile_error('Public_profile_changed'); }
+		if (!phpbb_profile_text_storage_ready($this, $fields)) { phpbb_public_profile_error('Profile_text_storage_upgrade'); }
 		$this->identity_validated = true;
 	}
 	function __call($method, $args)

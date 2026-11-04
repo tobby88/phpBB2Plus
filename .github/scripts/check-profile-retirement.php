@@ -166,6 +166,19 @@ $tail= <<<'PHP'
  ats_check($view[3]===''&&$out[0]==='confirmdelete'&&$out[3]==='','Delegated edit administrator can use actual retirement form');
  $view=pr_controller(array('mode'=>'restore','pfid'=>'x','definition_operation'=>$request['definition_operation']),'GET');$request=pr_hidden($view[1]);$request['confirm']='Yes';$out=pr_controller($request);
  ats_check($view[3]===''&&$out[0]==='confirmrestore'&&$out[3]===''&&pr_state()[2]===$before[2],'Delegated edit administrator can restore through actual form');$cases++;
+ // Restoring a legacy field first validates its original physical receipt.
+ // Only the now-active field is widened by the offline updater afterwards.
+ require_once dirname(dirname(__DIR__)).'/update/profile_text_storage_migration.php';
+ pds_reset('root');pds_sql("ALTER TABLE fixture_users MODIFY user_notes VARCHAR(255) DEFAULT 'old default'");
+ $row=pds_rows('SELECT * FROM fixture_profile_fields WHERE field_id=1')[0];$op=pr_operation();$before=pr_state();
+ ats_check(pr_run($op,phpbb_profile_definition_revision($row))===$op,'Retire genuine legacy width');
+ ats_check(plus_profile_text_apply($main->db_connect_id,'fixture_',true,true,2)===0&&pds_rows("SHOW COLUMNS FROM fixture_users WHERE Field='user_notes'")[0]['Type']==='varchar(255)','Offline updater leaves retired physical signature intact');
+ $out=pr_controller(array('mode'=>'confirmrestore','pfid'=>'x','definition_operation'=>$op,'confirm'=>'Yes','sid'=>$userdata['session_id']));
+ ats_check($out[0]==='confirmrestore'&&$out[3]===''&&strpos($out[1],$lang['Profile_text_storage_upgrade'])!==false,'Actual restore form explains required legacy storage update');
+ $fields=pds_rows('SELECT * FROM fixture_profile_fields');ats_check(!phpbb_profile_text_storage_ready($main,$fields),'Legacy restored field cannot overflow before migration');
+ $receipt=pr_state()[1];ats_check(plus_profile_text_apply($main->db_connect_id,'fixture_',true,true,2)===1,'Active restored field has an automatic updater path');
+ ats_check(phpbb_profile_text_storage_ready($main,$fields)&&pr_state()[1]===$receipt&&pr_state()[2]===$before[2],'Restored values and durable receipts remain exact after widening');
+ ats_check(pr_run($op,null,true)===1,'Restoration replay remains valid after its active storage migration');$cases++;
  echo 'Native profile retirement: '.$cases." authorization, atomic rollback/retry, concurrent changes, actual controller/form and recovery cases passed.\n";
 }finally{$pds_hook=null;$main->sql_close();$peer->sql_close();ats_check($control->sql_query('DROP DATABASE '.$fixture),'Remove owned retirement schema');$control->sql_close();restore_error_handler();}
 PHP;

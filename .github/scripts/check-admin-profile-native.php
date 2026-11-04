@@ -108,6 +108,7 @@ $ap_ban=ap_fragment($ap_controller,'$admin_profile_scope->apply_warnings($user_y
 $ap_disable=ap_fragment($ap_controller,'if (!$user_status)',"\t\t\t\t// We remove all stored login keys");
 function ap_run($scenario){
  global $db,$admin_profile_scope,$board_config,$ap_cookies,$userdata,$phpbb_root_path;
+ if(array_key_exists('ap_custom_input',$GLOBALS)){profile_fixture_request($_POST+array('user_custom_fixture'=>$GLOBALS['ap_custom_input']));}
  $source_root=$phpbb_root_path;$phpbb_root_path=$GLOBALS['ap_files'].'/';
  $id=$GLOBALS['ap_target'];$user_id=$id;$user_ip='7f000001';
  try{
@@ -115,6 +116,7 @@ function ap_run($scenario){
   if($scenario==='new'){eval($GLOBALS['ap_creation']);}
   eval($GLOBALS['ap_block']);$admin_profile_scope->assign_quotas($_POST);
   $profile_assignments=array("user_custom_fixture='".$db->sql_escape("Grüße ' 😀")."'");$username='renamed';$this_userdata=array('username'=>'fixture-'.$id);$username_sql=in_array($scenario,array('rename','new'),true)?"username='renamed', ":'';$passwd_sql=in_array($scenario,array('password','self','new'),true)?"user_password='fixture-after', ":'';$email='fixture@example.invalid';
+  if(array_key_exists('ap_custom_input',$GLOBALS)){$names=array();$profile_assignments=phpbb_profile_field_assignments(get_fields(),$_POST,$names);}
   $user_style=1;$user_timezone=0;$user_dateformat='Y-m-d';$user_lang='german';
   $icq=$website=$occupation=$location=$user_flag=$interests=$user_absence_text=$signature=$signature_bbcode_uid=$aim=$yim=$msn='';
   $fb=$ig=$pt=$twr=$skp=$tg=$li=$tt=$dc=$signal=$threema='';
@@ -155,7 +157,7 @@ try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');
  foreach($ap_tables as $s){ats_check(preg_match('/CREATE TABLE phpbb_'.$s.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical table '.$s);$name='fixture_'.($s==='jr_admin_users'?'jr':$s);ap_sql(str_replace('phpbb_'.$s,$name,$m[0]));preg_match_all('/ALTER TABLE phpbb_'.$s.'\s+[\s\S]*?;/',$schema,$extra);foreach($extra[0] as $ddl){ap_sql(str_replace('phpbb_'.$s,$name,$ddl));}}
- ap_sql('ALTER TABLE fixture_users ADD user_custom_fixture VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL');
+ ap_sql('ALTER TABLE fixture_users ADD user_custom_fixture MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL');
  // Keep fixture DDL tolerant of short internal InnoDB background locks.
  // Only a synchronous peer contention probe needs an immediate1205.
  ap_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;

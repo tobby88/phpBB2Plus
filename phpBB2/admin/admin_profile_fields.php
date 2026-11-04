@@ -294,7 +294,7 @@ elseif(in_array($mode, array('confirmdelete','confirmrestore'), true))
   $template->set_filenames(array('body' => 'admin/admin_message_body.tpl'));
   $template->assign_vars(array(
     'MESSAGE_TITLE' => $lang[$mode === 'confirmdelete' ? 'Profile_retirement_removed' : 'Profile_retirement_restored'],
-    'MESSAGE_TEXT' => '<a href="' . phpbb_admin_html(append_sid($filename . '?mode=edit&pfid=x')) . '">' . phpbb_admin_html($lang['profile_field_list']) . '</a>'
+    'MESSAGE_TEXT' => ($retirement_result[1] !== '' ? phpbb_admin_html($retirement_result[1]) . '<br /><br />' : '') . '<a href="' . phpbb_admin_html(append_sid($filename . '?mode=edit&pfid=x')) . '">' . phpbb_admin_html($lang['profile_field_list']) . '</a>'
     ));
 }
 

@@ -5,6 +5,7 @@ namespace AccountPublicationFixture;
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 require_once $root.'includes/php_compat.php';
 define('USERS_TABLE','fixture_users'); define('GROUPS_TABLE','fixture_groups');
+define('PROFILE_FIELDS_TABLE','fixture_profile_fields');
 define('USER_GROUP_TABLE','fixture_user_group'); define('BEGIN_TRANSACTION',1); define('END_TRANSACTION',2);
 define('GENERAL_ERROR',1); define('USER_ACTIVATION_SELF',1); define('USER_ACTIVATION_ADMIN',2);
 define('ALLOW_VIEW',1); define('CHECKBOX',3); define('RADIO',2); define('TEXTAREA',1);
@@ -27,7 +28,7 @@ class PhpbbRegistrationScope {
  var $original;var $avatar;
  function __construct($db,$sid,$username,$email,$fields,$avatar){$this->original=$db;$this->avatar=$avatar;}
  function __call($m,$a){return call_user_func_array(array($this->original,$m),$a);}
- function profile_insert_parts($submitted){return \phpbb_profile_new_account_insert($this->original,$GLOBALS['profile_data'],$submitted);}
+ function profile_insert_parts($submitted){try{return \phpbb_profile_new_account_insert($this->original,$GLOBALS['profile_data'],$submitted);}catch(\UnexpectedValueException $e){throw new QueryFailure('Fixture profile storage unavailable');}}
  function finish(){$this->release();$this->avatar->saved();}
  function release(){$GLOBALS['db']=$this->original;}
 }
@@ -46,8 +47,18 @@ class Database {
  function __construct($pdo,$fail,$native){$this->pdo=$pdo;$this->fail=$fail;$this->native=$native;}
  function sql_escape($v){return substr($this->pdo->quote((string)$v),1,-1);}
  function sql_nextid(){return $this->next_id;}
+ function sql_fetchrowset($result){return is_array($result)?$result:$result->fetchAll(\PDO::FETCH_ASSOC);}
+ function sql_freeresult($result){if($result instanceof \PDOStatement){$result->closeCursor();}}
  function sql_query($sql,$transaction=false){
   $this->queries[]=$sql;
+  if(strpos($sql,'SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH')===0){
+   // This owner double isolates INSERT order, including its historical
+   // nontransactional engine cases. Physical profile capacities/ownership are
+   // tested through the production driver by the dedicated native fixtures.
+   $rows=array();foreach(\phpbb_profile_text_metadata_columns()as$column){$rows[]=array('TABLE_NAME'=>PROFILE_FIELDS_TABLE,'COLUMN_NAME'=>$column,'DATA_TYPE'=>'mediumtext','CHARACTER_MAXIMUM_LENGTH'=>'16777215','CHARACTER_OCTET_LENGTH'=>'16777215','CHARACTER_SET_NAME'=>'utf8mb4','COLLATION_NAME'=>'utf8mb4_unicode_ci','EXTRA'=>'');}
+   try{$probe=$this->pdo->query('SELECT fixture_profile FROM fixture_users WHERE 0');$probe->closeCursor();$row=$rows[0];$row['TABLE_NAME']=USERS_TABLE;$row['COLUMN_NAME']='fixture_profile';$rows[]=$row;}catch(\PDOException $e){}
+   return $rows;
+  }
   // The shipped adapter treats legacy BEGIN/END flags as no-ops. Keep native
   // autocommit here too: passing by simulated rollback would hide this bug.
   if($this->fail!=='' && strpos($sql,'INSERT INTO '.$this->fail)===0){return false;}

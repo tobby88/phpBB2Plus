@@ -67,17 +67,19 @@ function phpbb_profile_definition_values($values)
         { phpbb_acl_error('Profile_definition_invalid'); }
         $values[$key] = (string)(int)$values[$key];
     }
-    foreach (array('field_name'=>255,'field_description'=>255,'text_field_default'=>(int)$values['text_field_maxlen'],
+    foreach (array('field_name'=>255,'field_description'=>255) as $key=>$maximum)
+    { if (strlen($values[$key]) > $maximum) { phpbb_acl_error('Profile_definition_invalid'); } }
+    foreach (array('text_field_default'=>(int)$values['text_field_maxlen'],
         'text_area_default'=>(int)$values['text_area_maxlen'],'radio_button_default'=>255,
         'radio_button_values'=>60000,'checkbox_default'=>60000,'checkbox_values'=>60000) as $key=>$maximum)
-    { if (strlen($values[$key]) > $maximum) { phpbb_acl_error('Profile_definition_invalid'); } }
+    { if (!phpbb_profile_encoded_value_valid($values[$key], $maximum)) { phpbb_acl_error('Profile_definition_invalid'); } }
     if (trim($values['field_name']) === '' || preg_match('/[\x00-\x1f\x7f]/', $values['field_name'])) { phpbb_acl_error('Profile_definition_invalid'); }
     foreach (array('radio_button_values'=>'radio_button_default','checkbox_values'=>'checkbox_default') as $key=>$default)
     {
         $options = $values[$key] === '' ? array() : explode(',', $values[$key]);
         if (count($options) > 100 || count(array_unique($options)) !== count($options)) { phpbb_acl_error('Profile_definition_invalid'); }
         foreach ($options as $option)
-        { if ($option === '' || strlen($option) > 255 || preg_match('/[\x00-\x1f\x7f]/', $option)) { phpbb_acl_error('Profile_definition_invalid'); } }
+        { if ($option === '' || !phpbb_profile_encoded_value_valid($option, 255) || preg_match('/[\x00-\x1f\x7f]/', html_entity_decode($option, ENT_QUOTES, 'UTF-8'))) { phpbb_acl_error('Profile_definition_invalid'); } }
         $defaults = $default === 'checkbox_default' ? ($values[$default] === '' ? array() : explode(',', $values[$default])) : ($values[$default] === '' ? array() : array($values[$default]));
         if (count(array_unique($defaults)) !== count($defaults)) { phpbb_acl_error('Profile_definition_invalid'); }
         foreach ($defaults as $value) { if (!in_array($value, $options, true)) { phpbb_acl_error('Profile_definition_invalid'); } }
@@ -92,49 +94,9 @@ function phpbb_profile_definition_values($values)
 // are eligible. Unsupported definitions fail closed instead of being rebuilt.
 function phpbb_profile_definition_widen_sql($table, $column, $create, $capacity, $maximum, $literal_override = null, &$has_literal_default = false)
 {
-    foreach (array($table, $column) as $identifier)
-    { if (!is_string($identifier) || !preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $identifier)) { phpbb_acl_error('Profile_definition_capacity'); } }
-    if (!is_int($maximum) || $maximum < 1 || $maximum > 60000 || in_array($column, phpbb_profile_definition_core_columns(), true)
-        || !is_array($capacity) || !isset($capacity['DATA_TYPE'], $capacity['COLUMN_KEY'], $capacity['EXTRA'])
-        || $capacity['COLUMN_KEY'] !== '' || !in_array($capacity['EXTRA'], array('', 'DEFAULT_GENERATED'), true) || !is_string($create)) { phpbb_acl_error('Profile_definition_capacity'); }
-    if (!preg_match('/^\s*`' . preg_quote($column, '/') . '` (varchar\([0-9]+\)|tinytext|text|mediumtext|longtext)([^\r\n]*)$/mi', $create, $match))
-    { phpbb_acl_error('Profile_definition_capacity'); }
-    $old_type = strtolower($match[1]); $tail = preg_replace('/,$/', '', $match[2]);
-    $type = preg_replace('/\([0-9]+\)$/', '', $old_type);
-    if ($type !== $capacity['DATA_TYPE']) { phpbb_acl_error('Profile_definition_capacity'); }
-    $literal = <<<'SQL_LITERAL'
-'(?:[^'\\]|\\[\s\S]|'')*'
-SQL_LITERAL;
-    $pattern = '/^(?: CHARACTER SET utf8mb4)?(?: COLLATE utf8mb4_unicode_ci)?(?: NOT NULL| NULL)?(?: DEFAULT (NULL|' . $literal . '|\(' . $literal . '\)))?(?: COMMENT ' . $literal . ')?$/D';
-    if (!preg_match($pattern, $tail, $attributes)) { phpbb_acl_error('Profile_definition_capacity'); }
-    $has_literal_default = isset($attributes[1]) && $attributes[1] !== '' && $attributes[1] !== 'NULL';
-    if ($literal_override !== null)
-    {
-        if (!$has_literal_default || !is_string($literal_override) || !preg_match('/^' . $literal . '$/D', $literal_override)) { phpbb_acl_error('Profile_definition_capacity'); }
-        $needle = ' DEFAULT ' . $attributes[1]; $position = strpos($tail, $needle);
-        $tail = substr_replace($tail, ' DEFAULT ' . $literal_override, $position, strlen($needle));
-        $attributes[1] = $literal_override;
-    }
-    if ($type === 'varchar' && $maximum <= 1024)
-    {
-        if (!preg_match('/^varchar\(([0-9]+)\)$/D', $old_type, $length) || (int)$length[1] >= $maximum) { phpbb_acl_error('Profile_definition_capacity'); }
-        $new_type = 'varchar(' . $maximum . ')';
-    }
-    else
-    {
-        if (!in_array($type, array('varchar','tinytext','text'), true)) { phpbb_acl_error('Profile_definition_capacity'); }
-        $new_type = $type === 'tinytext' && $maximum <= 1024 ? 'text' : 'mediumtext';
-        // MySQL requires a parenthesized expression for a non-NULL TEXT default;
-        // MariaDB accepts the same literal expression. Never evaluate expressions.
-        if (isset($attributes[1]) && isset($attributes[1][0]) && $attributes[1][0] === "'")
-        {
-            $needle = ' DEFAULT ' . $attributes[1]; $position = strpos($tail, $needle);
-            $tail = substr_replace($tail, ' DEFAULT (' . $attributes[1] . ')', $position, strlen($needle));
-        }
-    }
-    return 'ALTER TABLE `' . $table . '` MODIFY COLUMN `' . $column . '` ' . $new_type . $tail;
+    try { return phpbb_profile_text_widen_sql($table, $column, $create, $capacity, $maximum, $literal_override, $has_literal_default); }
+    catch (UnexpectedValueException $e) { phpbb_acl_error('Profile_definition_capacity'); }
 }
-
 // Coordinated metadata publication. Physical capacity preparation is separate:
 // this transaction must never execute DDL or rename/shrink a users-table column.
 class PhpbbProfileDefinitionWriter extends PhpbbAttachQuotaWriter
@@ -162,6 +124,7 @@ class PhpbbProfileDefinitionWriter extends PhpbbAttachQuotaWriter
         { $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
         if (phpbb_acl_rows($this, 'SELECT ban_id FROM ' . BANLIST_TABLE . ' WHERE ban_userid=' . (int)$actor['user_id'] . ' LOCK IN SHARE MODE'))
         { phpbb_acl_error('Not_Authorised'); }
+        if (!phpbb_profile_text_storage_ready($this, array(), true)) { phpbb_acl_error('Profile_text_storage_upgrade'); }
         return $this->actor();
     }
     function actor()
@@ -214,8 +177,10 @@ class PhpbbProfileDefinitionWriter extends PhpbbAttachQuotaWriter
     }
     function capacity_sufficient($capacity, $values)
     {
-        $maximum = $values['field_type'] === '0' ? (int)$values['text_field_maxlen'] : ($values['field_type'] === '1' ? (int)$values['text_area_maxlen'] : ($values['field_type'] === '2' ? 255 : 60000));
-        return (float)$capacity['CHARACTER_MAXIMUM_LENGTH'] >= $maximum && (float)$capacity['CHARACTER_OCTET_LENGTH'] >= $maximum * 4;
+        // Preserve legacy entity spellings too. One shared storage format holds
+        // every supported value/default without per-field encoding surprises.
+        return in_array($capacity['DATA_TYPE'], array('mediumtext','longtext'), true)
+            && (float)$capacity['CHARACTER_MAXIMUM_LENGTH'] >= 360000 && (float)$capacity['CHARACTER_OCTET_LENGTH'] >= 360000;
     }
     function assert_capacity($column, $values)
     {
@@ -230,7 +195,13 @@ class PhpbbProfileDefinitionWriter extends PhpbbAttachQuotaWriter
         if ($capacity['DATA_TYPE'] === 'char' || $capacity['COLUMN_KEY'] !== '') { phpbb_acl_error('Profile_definition_capacity'); }
         $rows = phpbb_acl_rows($this, 'SHOW CREATE TABLE `' . USERS_TABLE . '`');
         if (count($rows) !== 1 || !isset($rows[0]['Create Table'])) { phpbb_acl_error('Profile_definition_capacity'); }
-        $maximum = $values['field_type'] === '0' ? (int)$values['text_field_maxlen'] : ($values['field_type'] === '1' ? (int)$values['text_area_maxlen'] : ($values['field_type'] === '2' ? 255 : 60000));
+        $maximum = 360000;
+        $modes = phpbb_acl_rows($this, 'SELECT @@SESSION.sql_mode AS mode');
+        if (count($modes) !== 1 || !isset($modes[0]['mode']) || !is_string($modes[0]['mode'])) { phpbb_acl_error('Profile_definition_capacity'); }
+        $no_backslashes = in_array('NO_BACKSLASH_ESCAPES', explode(',', $modes[0]['mode']), true);
+        // The offline updater normalizes this mode around preserving DDL.
+        // Do not replay SHOW CREATE's backslash literals in a different mode.
+        if ($no_backslashes) { phpbb_acl_error('Profile_text_storage_upgrade'); }
         $has_literal_default = false;
         $sql = phpbb_profile_definition_widen_sql(USERS_TABLE, $column, $rows[0]['Create Table'], $capacity, $maximum, null, $has_literal_default);
         if ($has_literal_default)
@@ -241,7 +212,7 @@ class PhpbbProfileDefinitionWriter extends PhpbbAttachQuotaWriter
             // default expression: the planner has already required a literal.
             $defaults = phpbb_acl_rows($this, 'SELECT DEFAULT(`' . $column . '`) AS literal_default FROM `' . USERS_TABLE . '` LIMIT 1');
             if (count($defaults) !== 1 || !is_string($defaults[0]['literal_default'])) { phpbb_acl_error('Profile_definition_capacity'); }
-            $sql = phpbb_profile_definition_widen_sql(USERS_TABLE, $column, $rows[0]['Create Table'], $capacity, $maximum, "'" . $this->sql_escape($defaults[0]['literal_default']) . "'");
+            $sql = phpbb_profile_definition_widen_sql(USERS_TABLE, $column, $rows[0]['Create Table'], $capacity, $maximum, "'" . $this->sql_escape($defaults[0]['literal_default']) . "'", $has_literal_default);
         }
         // Release our metadata/authority locks before DDL, but retain the shared
         // writer mutex. ALTER must not implicitly commit a metadata publication.

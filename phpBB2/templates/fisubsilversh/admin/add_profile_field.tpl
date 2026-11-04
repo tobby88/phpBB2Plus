@@ -30,7 +30,7 @@
 				</tr>
 				<tr>
 				  <td class="row1">{L_DEFAULT_VALUE}<br /><span class="gensmall">{L_DEFAULT_VALUE_EXPLAIN}</span></td>
-				  <td class="row2"><input class="post" type="text" maxlength="255" size="25" name="text_field_default" value="{TEXT_FIELD_DEFAULT}" /></td>
+				  <td class="row2"><input class="post" type="text" maxlength="510" size="25" name="text_field_default" value="{TEXT_FIELD_DEFAULT}" /></td>
 				</tr>
 				<tr>
 				  <td class="row1">{L_MAX_LENGTH}<br /><span class="gensmall">{L_MAX_LENGTH_TEXT_FIELD_EXPLAIN}</span></td>

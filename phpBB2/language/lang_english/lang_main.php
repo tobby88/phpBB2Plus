@@ -1742,4 +1742,5 @@ $lang['Mail_upgrade'] = 'The email storage needs updating. Please ask the admini
 $lang['Mail_absent'] = 'This member is currently unavailable for email contact.';
 $lang['Mail_recommendation_subject'] = 'Forum recommendation';
 $lang['Mail_copy_failed'] = 'Your message was sent, but the copy to your own address could not be confirmed. Please do not send the message again.';
+$lang['Profile_text_storage_upgrade'] = 'The custom-profile storage needs updating. Please ask the administrator to run update_from_153a.php before saving these fields.';
 ?>

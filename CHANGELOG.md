@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Custom-profile UTF-8 compatibility
 
+- Apply value limits before HTML escaping so ampersands, quotes and literal
+  entities survive profile edits. Keep checkbox options complete and preserve
+  legacy default bytes. Allow supplementary characters in browser text limits.
+- Add a preserving offline migration for encoded custom values/defaults and
+  refuse saves to obsolete physical storage. The full updater and scoped
+  `--profile-text-storage-only` mode share this migration. Restoring a narrow
+  retired field retains its recovery receipt and explains the required upgrade.
+
 - Keep complete Unicode characters when shortening custom-profile values on
   PHP installations without mbstring. Use the same character boundaries as
   installations with mbstring, including supplementary characters.
