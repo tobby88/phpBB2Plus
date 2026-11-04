@@ -85,7 +85,7 @@ function admin_banner_post_counter($name)
 	if ((isset($_POST[$name]) && !is_scalar($_POST[$name])) || !preg_match('/^[0-9]{1,20}$/D', $value)
 		|| (strlen($value) === 20 && strcmp($value, '18446744073709551615') > 0))
 	{
-		message_die(GENERAL_MESSAGE, sprintf($lang['Banner_counter_invalid'], $lang[$name === 'banner_click' ? 'Banner_clicks' : 'Banner_view']));
+		message_die(GENERAL_MESSAGE, sprintf($lang['Banner_counter_invalid'], $lang[strpos($name, 'banner_click') === 0 ? 'Banner_clicks' : 'Banner_view']));
 	}
 	$value = ltrim($value, '0');
 	return $value === '' ? '0' : $value;
@@ -528,6 +528,7 @@ if( $mode!= "")
 			'BANNER_CLICK' => $banner_info['banner_click'],
 			'L_BANNER_VIEW' => $lang['Banner_view'],
 			'BANNER_VIEW' => $banner_info['banner_view'],
+			'L_BANNER_COUNTERS_EXPLAIN' => $lang['Banner_counters_explain'],
 			'L_BANNER_COMMENT' => $lang['Banner_comment'],
 'L_BANNER_COMMENT_EXPLAIN' => $lang['Banner_comment_explain'],
 			'BANNER_COMMENT' => htmlspecialchars((string) $banner_info['banner_comment'], ENT_QUOTES, 'UTF-8'),
@@ -691,9 +692,19 @@ if( $mode!= "")
 		$banner_owner_id = (int) $owner['user_id'];
 		if( !empty($banner_id) )
 		{
+			// Unedited statistics belong to live traffic, not to this stale form.
+			// Older open forms have no baseline; preserve their current counters.
+			$counter_updates = array();
+			foreach (array('banner_click' => $banner_click, 'banner_view' => $banner_view) as $field => $value)
+			{
+				$original = $field . '_original';
+				$counter_updates[$field] = !isset($_POST[$field], $_POST[$original]) || admin_banner_post_counter($original) === $value ? $field : $value;
+			}
+			$banner_click_update = $counter_updates['banner_click'];
+			$banner_view_update = $counter_updates['banner_view'];
 			$sql = "UPDATE " . BANNERS_TABLE . "
 				SET 	banner_active = $banner_active, banner_name = '$banner_name_sql',
-					banner_description = '$banner_description_sql',	banner_click = $banner_click,	banner_view = $banner_view,
+					banner_description = '$banner_description_sql',	banner_click = $banner_click_update,	banner_view = $banner_view_update,
 					banner_url = '$banner_url_sql', banner_owner = $banner_owner_id,
 					banner_type = '$banner_type', banner_width = '$banner_width', banner_height = '$banner_height',
 					banner_filter = '$banner_filter',banner_filter_time='$banner_filter_time',

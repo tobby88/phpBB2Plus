@@ -35,6 +35,9 @@ changes consolidated after that baseline without implying active maintenance.
   existing counts through the full updater and `--banner-counters-only`. Keep
   exact decimal strings in the ACP and permit the full supported value in forms,
   including on 32-bit PHP; reject malformed and oversized counter input.
+- Preserve live click and view increments when a banner form saves unchanged
+  counters. Recognize intentional counter corrections separately, and keep
+  existing counters when an older open form has no original-value fields.
 
 ### Arcade summary names and caches
 

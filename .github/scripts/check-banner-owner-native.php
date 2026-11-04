@@ -31,7 +31,7 @@ ats_check(preg_match('/CREATE TABLE phpbb_banner \([\s\S]+?;/', $schema, $match)
 $banner_schema = str_replace('phpbb_banner', BANNERS_TABLE, $match[0]);
 class BannerOwnerDatabase extends sql_db {
     var $fail_users = false;
-    var $fail_metadata = ''; var $before_insert = null;
+    var $fail_metadata = ''; var $before_insert = null; var $before_update = null;
     var $write_queries = 0;
     function sql_query($sql = '', $transaction = false) {
         if (preg_match('/^(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|ALTER)\b/', $sql)) { $this->write_queries++; }
@@ -39,6 +39,9 @@ class BannerOwnerDatabase extends sql_db {
         if ($this->fail_metadata !== '' && strpos($sql,$this->fail_metadata) === 0) { return false; }
         if ($this->before_insert !== null && strpos($sql,'INSERT INTO fixture_banner ') === 0) {
             $hook = $this->before_insert; $this->before_insert = null; call_user_func($hook);
+        }
+        if ($this->before_update !== null && preg_match('/^UPDATE fixture_banner\s/', $sql)) {
+            $hook = $this->before_update; $this->before_update = null; call_user_func($hook);
         }
         return parent::sql_query($sql, $transaction);
     }
@@ -78,7 +81,7 @@ function bo_text_form($row, $locale, $schedule = false, $counters = false) {
         ats_check(preg_match('/\''.preg_quote($key,'/').'\'\s*=>\s*([^\r\n]+),/',$bo_banner_source,$m)===1,'Actual text form binding');$vars[$key]=eval('return '.$m[1].';');
     }
     if ($counters) {
-        foreach(array('BANNER_CLICK','BANNER_VIEW')as$key){
+        foreach(array('BANNER_CLICK','BANNER_VIEW','L_BANNER_COUNTERS_EXPLAIN')as$key){
             ats_check(preg_match('/\''.preg_quote($key,'/').'\'\s*=>\s*([^\r\n]+),/',$bo_banner_source,$m)===1,'Actual counter form binding');$vars[$key]=eval('return '.$m[1].';');
         }
     }
@@ -119,9 +122,12 @@ function bo_text_form($row, $locale, $schedule = false, $counters = false) {
         }
     }
     if ($counters) {
+        ats_check(strpos($html,$lang['Banner_counters_explain'])!==false,'Actual localized counter intent explanation');
         foreach(array('banner_click','banner_view')as$field){
             ats_check(preg_match('/<input\b[^>]*name="'.$field.'"[^>]*>/i',$html,$m)===1&&preg_match('/value="([^"]*)"/',$m[0],$v)===1&&strpos($m[0],'maxlength="20"')!==false,'Actual full-width counter input');
             $post[$field]=html_entity_decode($v[1],ENT_QUOTES,'UTF-8');ats_check($post[$field]===$row[$field],'Actual counter form retains exact decimal digits');
+            ats_check(preg_match('/<input\b[^>]*type="hidden"[^>]*name="'.$field.'_original"[^>]*value="([^"]*)"/i',$html,$original)===1,'Actual form includes counter baseline');
+            $post[$field.'_original']=html_entity_decode($original[1],ENT_QUOTES,'UTF-8');ats_check($post[$field.'_original']===$row[$field],'Actual hidden baseline retains exact decimal digits');
         }
     }
     return$post;
@@ -303,6 +309,47 @@ try {
     ats_check(bo_save('Owner')===$lang['Banner_counter_upgrade']&&bo_save('Owner',1)===$lang['Banner_counter_upgrade']&&bo_snapshot()===$before,'Legacy counter storage blocks creates and edits until updater runs');$counter_cases++;
     bo_sql('ALTER TABLE fixture_banner MODIFY banner_click BIGINT UNSIGNED NOT NULL DEFAULT 0');
     echo 'Native banner counters: '.$counter_cases.' cases, '.$counter_forms." actual forms PASS.\n";
+    $stale_cases=0;$counter_peer=new sql_db($host,'root',$password,$fixture,false);
+    $increment=function()use($counter_peer){ats_check($counter_peer->sql_query('UPDATE fixture_banner SET banner_click=banner_click+1,banner_view=banner_view+1 WHERE banner_id=1'),'Independent normal traffic increments both counters');};
+    $read_counters=function(){$row=bo_rows('SELECT banner_click,banner_view FROM fixture_banner')[0];return array('banner_click'=>$row['banner_click'],'banner_view'=>$row['banner_view']);};
+    try{
+        foreach(array('english','german')as$locale){
+            require $ats_source.'language/lang_'.$locale.'/lang_banner.php';
+            foreach(array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES')as$mode){
+                bo_sql("SET SESSION sql_mode='$mode'");ats_check($counter_peer->sql_query("SET SESSION sql_mode='$mode'"),'Independent traffic SQL mode');
+                foreach(array(array(),array('banner_click'=>'0'),array('banner_view'=>'9007199254740993'),
+                    array('banner_click'=>'9223372036854775808','banner_view'=>'9007199254740993'),
+                    array('banner_click'=>'18446744073709551615','banner_view'=>'18446744073709551615'))as$changes){
+                    bo_sql('TRUNCATE TABLE fixture_banner');bo_save('Owner',0,'banner-fixture',array('banner_click'=>'10','banner_view'=>'20'));
+                    $row=bo_rows('SELECT * FROM fixture_banner')[0];$form=bo_text_form($row,$locale,false,true);
+                    $increment();$reached=false;$db->before_update=function()use($increment,&$reached){$reached=true;$increment();};
+                    $message=bo_save('Owner',1,'banner-fixture',array_merge($form,$changes,array('banner_name'=>'Text-only edit')));
+                    $expected=array_merge(array('banner_click'=>'12','banner_view'=>'22'),$changes);
+                    ats_check($reached&&strpos($message,$lang['Banner_updated'])===0&&$read_counters()===$expected,'Unchanged counters preserve both early and last-moment traffic; intentional changes set only the edited counters');$stale_cases++;
+                    $row=bo_rows('SELECT * FROM fixture_banner')[0];$next=bo_text_form($row,$locale,false,true);
+                    if(!isset($changes['banner_click'])||$changes['banner_click']!=='18446744073709551615'){$increment();}
+                    $latest=$read_counters();
+                    foreach(array(1,1)as$id){ats_check(strpos(bo_save('Owner',$id,'banner-fixture',$next),$lang['Banner_updated'])===0&&$read_counters()===$latest,'Repeated unchanged form submissions retain every live count, including full-width totals');$stale_cases++;}
+                }
+                foreach(array('legacy','one-original','missing-control')as$kind){
+                    bo_sql('TRUNCATE TABLE fixture_banner');bo_save('Owner',0,'banner-fixture',array('banner_click'=>'10','banner_view'=>'20'));
+                    $row=bo_rows('SELECT * FROM fixture_banner')[0];$form=bo_text_form($row,$locale,false,true);
+                    if($kind==='legacy'){unset($form['banner_click_original'],$form['banner_view_original']);$form['banner_click']='999';$form['banner_view']='999';}
+                    elseif($kind==='one-original'){unset($form['banner_view_original']);$form['banner_click']='55';$form['banner_view']='999';}
+                    else{unset($form['banner_click']);}
+                    $increment();$expected=array('banner_click'=>$kind==='one-original'?'55':'11','banner_view'=>'21');
+                    ats_check(strpos(bo_save('Owner',1,'banner-fixture',$form),$lang['Banner_updated'])===0&&$read_counters()===$expected,'Missing original/control fields preserve each live counter independently');$stale_cases++;
+                }
+                $row=bo_rows('SELECT * FROM fixture_banner')[0];$form=bo_text_form($row,$locale,false,true);$before=bo_snapshot();
+                foreach(array('banner_click','banner_view')as$field){foreach(array('bad','-1','1e2','18446744073709551616',array('1'))as$invalid){
+                    $writes=$db->write_queries;$bad=$form;$bad[$field.'_original']=$invalid;
+                    $message=bo_save('Owner',1,'banner-fixture',$bad);$expected=sprintf($lang['Banner_counter_invalid'],$lang[$field==='banner_click'?'Banner_clicks':'Banner_view']);
+                    ats_check($message===$expected&&$db->write_queries===$writes&&bo_snapshot()===$before,'Malformed original values rejected with the correct localized visible field label before any write');$stale_cases++;
+                }}
+            }
+        }
+    }finally{$db->before_update=null;$counter_peer->sql_close();}
+    echo 'Native banner stale forms: '.$stale_cases." actual form/traffic/manual-edit cases PASS.\n";
     $other = new sql_db($host,'root',$password,$fixture,false);
     try {
         foreach (array('','NO_BACKSLASH_ESCAPES','STRICT_TRANS_TABLES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES') as $mode) {

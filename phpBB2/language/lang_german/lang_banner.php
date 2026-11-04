@@ -120,6 +120,7 @@ $lang['Banner_added'] = "Das Banner wurde hinzugefügt";
 $lang['Banner_text_invalid'] = 'Bitte prüfe %s. Der Text enthält ungültige oder nicht unterstützte Zeichen.';
 $lang['Banner_invalid_date'] = 'Bitte wähle ein gültiges Start- und Enddatum für das Banner.';
 $lang['Banner_counter_invalid'] = '%s muss eine ganze Zahl von 0 bis 18446744073709551615 sein.';
+$lang['Banner_counters_explain'] = 'Unveränderte Zähler laufen während der Bearbeitung weiter. Ein geänderter Zahlenwert setzt den jeweiligen Zähler auf den eingegebenen Stand.';
 $lang['Banner_counter_upgrade'] = 'Die Banner-Zähler müssen vor Änderungen aktualisiert werden. Führe update/update_from_153a.php --banner-counters-only mit geprüftem Backup und angehaltenen Web-/Cron-Schreibzugriffen aus.';
 $lang['Banner_text_too_long'] = '%s darf höchstens %d Zeichen enthalten.';
 $lang['Banner_text_too_large'] = 'Der Text in %s ist zu lang.';

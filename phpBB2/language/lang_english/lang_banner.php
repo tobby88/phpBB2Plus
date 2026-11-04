@@ -121,6 +121,7 @@ $lang['Banner_added'] = "The banner is now added";
 $lang['Banner_text_invalid'] = 'Please check %s. The text contains invalid or unsupported characters.';
 $lang['Banner_invalid_date'] = 'Please select a valid start and end date for the banner.';
 $lang['Banner_counter_invalid'] = '%s must be a whole number from 0 to 18446744073709551615.';
+$lang['Banner_counters_explain'] = 'Unchanged counters keep growing while you edit. Entering a different value sets that counter to the entered total.';
 $lang['Banner_counter_upgrade'] = 'Banner counters need a storage update before changes can be saved. Run update/update_from_153a.php --banner-counters-only with a verified backup and all web/cron writers stopped.';
 $lang['Banner_text_too_long'] = '%s may contain at most %d characters.';
 $lang['Banner_text_too_large'] = 'The text in %s is too long.';
