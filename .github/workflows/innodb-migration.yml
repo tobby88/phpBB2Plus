@@ -50,7 +50,7 @@ jobs:
       fail-fast: false
       matrix:
         php: ['5.6', '7.4', '8.5']
-        part: [1, 2, 3, 4]
+        part: [1, 2, 3, 4, 5, 6]
     services:
       database:
         image: mariadb:10.11
@@ -178,7 +178,7 @@ jobs:
           PHPBB_ALBUM_COMMENT_PARENTS_CLI: '1'
           PHPBB_ALBUM_COMMENT_PARENTS_PASSWORD: fixture-only
       - name: Check Album file journal schema and real updater preservation
-        if: matrix.part == 1
+        if: matrix.part == 5
         run: |
           php .github/scripts/check-album-file-journal-native.php
           php .github/scripts/check-album-file-coordinator-native.php
@@ -649,7 +649,7 @@ jobs:
         env:
           PHPBB_GUEST_PROFILE_NATIVE: '1'
           PHPBB_GUEST_PROFILE_PASSWORD: fixture-only
-      - if: matrix.part == 4
+      - if: matrix.part == 5
         run: |
           php .github/scripts/check-kb-counters-native.php
           php .github/scripts/check-kb-counter-migration.php
@@ -690,7 +690,7 @@ jobs:
         env:
           PHPBB_REBUILD_NATIVE: '1'
           PHPBB_REBUILD_TEST_PASSWORD: fixture-only
-      - if: matrix.part == 4
+      - if: matrix.part == 6
         run: php .github/scripts/run-native-poll-session.php
         env:
           PHPBB_POLL_MAINTENANCE_NATIVE: '1'
@@ -790,7 +790,7 @@ jobs:
         env:
           PHPBB_ATTACH_SETTINGS_NATIVE: '1'
           PHPBB_ATTACH_SETTINGS_PASSWORD: fixture-only
-      - if: matrix.part == 3
+      - if: matrix.part == 6
         run: |
           php .github/scripts/check-new-user-quota-target.php
           php .github/scripts/check-attachment-quota-storage.php
@@ -852,7 +852,7 @@ jobs:
         env:
           PHPBB_QUICK_ADD_NATIVE: '1'
           PHPBB_QUICK_ADD_PASSWORD: fixture-only
-      - if: matrix.part == 3
+      - if: matrix.part == 6
         run: php .github/scripts/check-admin-profile-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
@@ -878,7 +878,7 @@ jobs:
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
-      - if: matrix.part == 2
+      - if: matrix.part == 5
         run: php .github/scripts/check-maintenance-roles-native.php
         env:
           PHPBB_ROLES_NATIVE: '1'

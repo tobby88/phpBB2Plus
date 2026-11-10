@@ -20,6 +20,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Prepare Arcade native fixture data in one transaction per case. Keep actual
   mutations, failures and concurrent revocations unchanged while avoiding a
   separate durable disk flush for every setup row.
+- Balance the unchanged native test commands across six jobs per PHP version
+  instead of four, using measured execution times. Keep every existing test
+  and verify that all conditional job parts exist in the matrix.
 
 ### Arcade text entry and category moderators
 
