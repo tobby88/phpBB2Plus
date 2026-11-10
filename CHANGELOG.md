@@ -17,6 +17,13 @@ changes consolidated after that baseline without implying active maintenance.
   ordinary members without ACP privileges. Invalidate counter caches together;
   retain score caches and caller transactions. Existing schemas need no change.
 
+- Compare submitted scores against the corresponding current, all-time or
+  monthly record. Distinguish a missing row from a genuine zero or negative
+  score; update existing signed records instead of inserting duplicates.
+- Read each board's winner independently with consistent date/player tie
+  ordering, avoiding the product of all current and all-time score rows.
+  Preserve better/equal scores, their original metadata and monthly owners.
+
 ### Session transitions, log metadata and test runtime
 
 - Do not reissue authentication cookies while resuming an unchanged session.

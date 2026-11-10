@@ -408,7 +408,7 @@ class arcade
     
 		$sql = "SELECT player_id FROM " . iNA_SCORES . "
 			WHERE game_name = '" . $game_name_sql . "'
-			ORDER BY score $sort, date ASC";
+			ORDER BY score $sort, date ASC, player_id ASC";
 		if(!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
@@ -425,7 +425,7 @@ class arcade
 		$sql = "SELECT player_id, username FROM " . iNA_AT_SCORES . ", " . USERS_TABLE . "  
 			WHERE game_name = '" . $game_name_sql . "'
 			AND player_id = user_id
-			ORDER BY score $sort, date ASC";
+			ORDER BY score $sort, date ASC, player_id ASC";
 		if(!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
@@ -591,52 +591,39 @@ class arcade
 //  Get the 1st Place Score and User details.
 //
 
-    $sql = "SELECT g.game_avail, g.reverse_list, g.score_type, s.score, s.player_id, a.score as at_score, a.player_id as at_player_id
-      FROM " . iNA_GAMES . " AS g
-      LEFT JOIN " . iNA_SCORES . " AS s on g.game_name = s.game_name
-      LEFT JOIN " . iNA_AT_SCORES . " AS a on g.game_name = a.game_name 
-      WHERE g.game_name = '" . $game_name_sql . "'
-      ORDER BY s.score, a.score";
+    $sql = "SELECT game_avail, reverse_list, score_type FROM " . iNA_GAMES . "
+      WHERE game_name = '$game_name_sql' LIMIT 2";
     $result = $db->sql_query($sql);
-    if(!$result)
-    {
-      return $this->message . $lang['no_game_data'] . $newline;
-    }
-    $old_score_info = $db->sql_fetchrowset($result);
+    if (!$result) { return $lang['no_game_data'] . $newline; }
+    $games = $db->sql_fetchrowset($result);
     $db->sql_freeresult($result);
-	if (empty($old_score_info))
-	{
-		return $lang['no_game_data'] . $newline;
-	}
-	$this->game_name = $session_info['game_name'];
-//
-//  Check to see if the Game is Available (else we should ignore the call)
-//
-    if(($old_score_info[0]['game_avail'] != 1) || ($userdata['user_id'] == ANONYMOUS && !$this->arcade_config['games_guest_highscore']))
+    if (count($games) !== 1) { return $lang['no_game_data'] . $newline; }
+    $game = $games[0];
+    if ($game['game_avail'] != 1 || ($user_id == ANONYMOUS && !$this->arcade_config['games_guest_highscore'])) { return false; }
+    $this->game_name = $session_info['game_name'];
+    $this->sort = $game['reverse_list'] ? 'ASC' : 'DESC';
+    $score_type = (int)$game['score_type'];
+    // Read each board's actual winner independently. Joining all scores on
+    // both boards multiplies rows and makes tied owners inconsistent with
+    // the displayed ordering (oldest date, then smallest player ID).
+    $tops = array();
+    foreach (array(iNA_SCORES, iNA_AT_SCORES) as $table)
     {
-      return FALSE;
+      $sql = "SELECT score, player_id FROM $table WHERE game_name='$game_name_sql'
+        ORDER BY score " . $this->sort . ", date ASC, player_id ASC LIMIT 1";
+      $result = $db->sql_query($sql);
+      if (!$result) { return $lang['no_score_data'] . $newline; }
+      $tops[$table] = $db->sql_fetchrow($result);
+      $db->sql_freeresult($result);
     }
+    // Only a missing row is absent; zero and negative scores are real records.
+    $has_top_score = $tops[iNA_SCORES] !== false;
+    $has_top_at_score = $tops[iNA_AT_SCORES] !== false;
+    $top_player_id = $has_top_score ? (int)$tops[iNA_SCORES]['player_id'] : 0;
+    $top_score = $has_top_score ? (float)$tops[iNA_SCORES]['score'] : 0.0;
+    $top_at_player_id = $has_top_at_score ? (int)$tops[iNA_AT_SCORES]['player_id'] : 0;
+    $top_at_score = $has_top_at_score ? (float)$tops[iNA_AT_SCORES]['score'] : 0.0;
 
-    if($old_score_info[0]['reverse_list'])
-    {
-      $this->sort = 'ASC';
-      $top_player_id = intval($old_score_info[0]['player_id']);
-	  $top_score = (float) $old_score_info[0]['score'];
-      $top_at_player_id = intval($old_score_info[0]['at_player_id']);
-	  $top_at_score = (float) $old_score_info[0]['at_score'];
-      $score_type = intval($old_score_info[0]['score_type']);
-    }
-    else
-    {
-      $count = count($old_score_info);
-      $top_player_id = intval($old_score_info[count($old_score_info)-1]['player_id']);
-	  $top_score = (float) $old_score_info[count($old_score_info)-1]['score'];
-      $top_at_player_id = intval($old_score_info[count($old_score_info)-1]['at_player_id']);
-	  $top_at_score = (float) $old_score_info[count($old_score_info)-1]['at_score'];
-      $score_type = intval($old_score_info[count($old_score_info)-1]['score_type']);
-      $this->sort = 'DESC';
-    }
-    unset($old_score_info);
 //
 //  Look to see if the user has a highscore and see IF it needs updating.
 //
@@ -644,7 +631,7 @@ class arcade
       LEFT JOIN " . iNA_SCORES . " s ON g.game_name = s.game_name AND s.player_id = " . $user_id . "
       LEFT JOIN " . iNA_AT_SCORES . " a ON g.game_name = a.game_name AND a.player_id = " . $user_id . "
       WHERE g.game_name = '" . $game_name_sql . "'
-      ORDER BY s.score, a.score " . $this->sort . " LIMIT 1";
+      ORDER BY s.score " . $this->sort . ", a.score " . $this->sort . " LIMIT 1";
     $result = $db->sql_query($sql);
     if(!$result)
     {
@@ -656,6 +643,8 @@ class arcade
 	{
 		return $this->message . $lang['no_game_data'] . $newline;
 	}
+    $has_score = $old_score_info['score'] !== null;
+    $has_at_score = $old_score_info['at_score'] !== null;
     $old_score = (float) $old_score_info['score'];
     $old_at_score = (float) $old_score_info['at_score'];
     $game_id = intval($old_score_info['game_id']);
@@ -664,9 +653,9 @@ class arcade
 //
 		if( $userdata['user_id'] != ANONYMOUS || $this->arcade_config['games_guest_highscore'])
 		{
-  		if (( ($this->score > $old_score) && $this->sort == 'DESC' ) || ( ($this->score < $old_score || $old_score == 0) && $this->sort == 'ASC' ))
+      if (!$has_score || ($this->sort == 'DESC' ? $this->score > $old_score : $this->score < $old_score))
       {
-        if($old_score > 0)
+        if($has_score)
         {
           $sql = "UPDATE ". iNA_SCORES ." 
               SET score = ". $this->score . ", date = " . time() . ", time_taken = " . $time_taken . ", player_ip = '$player_ip_sql'
@@ -689,9 +678,9 @@ class arcade
 //
 		if ($userdata['user_id'] != ANONYMOUS && $this->arcade_config['games_at_highscore'])
 		{
-  		if (( ($this->score > $old_at_score) && $this->sort == 'DESC' ) || ( ($this->score < $old_at_score || $old_score == 0) && $this->sort == 'ASC' ))
+      if (!$has_at_score || ($this->sort == 'DESC' ? $this->score > $old_at_score : $this->score < $old_at_score))
       {
-        if($old_at_score > 0)
+        if($has_at_score)
         {
           $sql = "UPDATE ". iNA_AT_SCORES ." 
             SET score = ". $this->score . ", date = " . time() . ", time_taken = " . $time_taken . ", player_ip = '$player_ip_sql'
@@ -711,11 +700,11 @@ class arcade
 //
 //  Check and update the Top Player Info
 //
-  		if (( ($this->score > $top_score) && $this->sort == 'DESC' ) || ( ($this->score < $top_score || $top_score == 0) && $this->sort == 'ASC' ))
+      if (!$has_top_score || ($this->sort == 'DESC' ? $this->score > $top_score : $this->score < $top_score))
   		{
 		   swap_place($top_player_id, $user_id,'first_places',$old_score_info);
       }
-  		if (( ($this->score > $top_at_score) && $this->sort == 'DESC' ) || ( ($this->score < $top_at_score || $top_score == 0) && $this->sort == 'ASC' ))
+      if (!$has_top_at_score || ($this->sort == 'DESC' ? $this->score > $top_at_score : $this->score < $top_at_score))
       {
 		 swap_place($top_at_player_id, $user_id, 'at_first_places',$old_score_info);
       }
@@ -761,7 +750,7 @@ class arcade
   		else
   		{
 // Update the Highscores list
-    		if (( ($this->score > $highscore['highscore_score']) && $this->sort == 'DESC' ) || ( ($this->score < $top_score || $highscore['highscore_score'] == 0) && $this->sort == 'ASC' ))
+        if ($this->sort == 'DESC' ? $this->score > (float)$highscore['highscore_score'] : $this->score < (float)$highscore['highscore_score'])
   			{
 				$sql = "UPDATE " . iNA_HIGHSCORES . "
 					SET highscore_user_id = " . (int) $this->user_id . ", highscore_player = '$player_name_sql', highscore_score = ".$this->score.", highscore_date = " . time() . "

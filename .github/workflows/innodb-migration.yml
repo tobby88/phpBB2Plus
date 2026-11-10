@@ -370,6 +370,12 @@ jobs:
         env:
           PHPBB_ARCADE_LAUNCH_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Preserve native current, all-time and monthly best scores independently
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-best-score-native.php
+        env:
+          PHPBB_ARCADE_BEST_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Keep native Arcade category identities and visibility current
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-category-cache-native.php
