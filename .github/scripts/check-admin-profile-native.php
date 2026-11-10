@@ -70,7 +70,15 @@ function ap_reset($actor='root',$scenario='edit'){
  $db=$GLOBALS['ap_main'];$admin_profile_scope=null;$ap_hook=null;$ap_write=$ap_fail=0;$ap_commit='';$ap_queries=$ap_cookies=array();$GLOBALS['ap_sql_error']=null;
  $GLOBALS['ap_after_commit']=null;
  ap_sql('START TRANSACTION');foreach($GLOBALS['ap_tables'] as $s){ap_sql('DELETE FROM fixture_'.($s==='jr_admin_users'?'jr':$s));}ap_sql('COMMIT');
- ap_sql('ALTER TABLE fixture_groups AUTO_INCREMENT=1');ap_sql('ALTER TABLE fixture_banlist AUTO_INCREMENT=1');ap_sql('START TRANSACTION');
+ // Explicit group 10 below advances its sequence to 11. Avoid rebuilding both
+ // empty tables when their next identities already match the original seed.
+ $identities=ap_rows("SELECT TABLE_NAME,AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('fixture_groups','fixture_banlist')");
+ ats_check(count($identities)===2,'Both native fixture identity sources exist');
+ foreach($identities as $identity){$table=$identity['TABLE_NAME'];$limit=$table==='fixture_groups'?11:1;
+  ats_check(in_array($table,array('fixture_groups','fixture_banlist'),true)&&preg_match('/^[1-9][0-9]*$/D',(string)$identity['AUTO_INCREMENT']),'Actual fixture identity is positive');
+  if((float)$identity['AUTO_INCREMENT']>$limit){ap_sql('ALTER TABLE '.$table.' AUTO_INCREMENT=1');}
+ }
+ ap_sql('START TRANSACTION');
  foreach(array(1,2,5) as $id){ap_insert('fixture_users',array('user_id'=>$id,'username'=>'fixture-'.$id,'user_level'=>$id===1?1:0,'user_active'=>1,'user_password'=>'fixture-before','user_avatar'=>$id===2?'before.png':'','user_avatar_type'=>$id===2?1:0));}
  ap_insert('fixture_groups',array('group_id'=>10,'group_name'=>'personal','group_description'=>'','group_single_user'=>1,'group_moderator'=>0));ap_insert('fixture_user_group',array('user_id'=>2,'group_id'=>10,'user_pending'=>0));
  $ap_actor=$actor==='root'?1:5;$ap_target=$scenario==='new'?42:($scenario==='self'? $ap_actor:2);

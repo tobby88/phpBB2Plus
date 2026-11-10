@@ -46,6 +46,8 @@ changes consolidated after that baseline without implying active maintenance.
   immediately; other servers retain their supported timeout. Preserve every
   boundary/failure case and restore the peer connection's original timeout.
   Read the fixtures' unchanged column definitions once when preparing seeds.
+  Reset empty profile-fixture identity counters only when their actual next
+  value has advanced beyond the unchanged seed; retain deterministic IDs.
 
 ### Arcade text entry and category moderators
 
