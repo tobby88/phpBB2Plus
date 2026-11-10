@@ -272,7 +272,7 @@ class log_manager
 		{
 			return $this->ct_file_error();
 		}
-		$resetstring = ($file_id != 6) ? '1|||' . time() . "|||null|||null|||null|||null|||null\n" : '';
+		$resetstring = ($file_id != 6) ? '1|||' . time() . "|||null|||null|||null|||null|||null|||cleared\n" : '';
 
 		// Delete now
 		$logentry = @fopen($path, 'c+b');
@@ -348,7 +348,7 @@ class log_manager
 			}
 			if ($status['size'] === 0)
 			{
-				$line = '1|||' . time() . "|||null|||null|||null|||null|||null\n" . $line;
+				$line = '1|||' . time() . "|||null|||null|||null|||null|||null|||created\n" . $line;
 			}
 		}
 		$success = @fwrite($logentry, $line) === strlen($line) && @fflush($logentry);
@@ -432,6 +432,14 @@ class log_manager
         $hash=hash_init('sha256');$length=0;
         while(($chunk=@fgets($handle,8193))!==false){$length+=strlen($chunk);hash_update($hash,$chunk);if(substr($chunk,-1)==="\n"){break;}}
         return $length===0?false:array($length,hash_final($hash));
+    }
+
+    function metadata_kind($fields)
+    {
+        if (!is_array($fields) || !isset($fields[0]) || (string)$fields[0] !== '1') { return false; }
+        // Historical packages shipped a dated seed marker. Its presence does
+        // not prove that an administrator cleared the site's logs that day.
+        return isset($fields[7]) && in_array($fields[7], array('created','cleared'), true) ? $fields[7] : 'legacy';
     }
 
     function check_log_size($file_id)

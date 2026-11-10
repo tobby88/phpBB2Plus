@@ -18,8 +18,14 @@ function phpbb_post_is_deleted($row)
 }
 function phpbb_post_tombstone_option($post_deletion)
 {
-    global$board_config,$lang;
-    if($post_deletion!==true||!isset($board_config['post_delete_allow_permanent'])||!in_array($board_config['post_delete_allow_permanent'],array(true,1,'1'),true)){return '';}
+    global$db,$lang;
+    if($post_deletion!==true||!is_object($db)){return '';}
+    // Match the current policy enforced by the writer, not a module's earlier
+    // configuration snapshot. Missing, unreadable or ambiguous policy hides UI.
+    $result=$db->sql_query('SELECT config_value FROM '.CONFIG_TABLE." WHERE config_name='post_delete_allow_permanent'");
+    if(!$result){return '';}
+    try{$rows=$db->sql_fetchrowset($result);}finally{$db->sql_freeresult($result);}
+    if(!is_array($rows)||count($rows)!==1||!isset($rows[0]['config_value'])||(string)$rows[0]['config_value']!=='1'){return '';}
     return '<br /><br /><label class="genmed"><input type="checkbox" name="delete_permanently" value="1" /> '.htmlspecialchars($lang['Post_delete_permanently'],ENT_QUOTES,'UTF-8').'</label>';
 }
 

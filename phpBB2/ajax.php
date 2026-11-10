@@ -28,6 +28,7 @@ require_once $phpbb_root_path . 'includes/functions_post_edit.' . $phpEx;
 
 // Define constant to keep page_header.php from sending headers
 define('AJAX_HEADERS', True);
+define('SESSION_BACKGROUND', true);
 
 //
 // Start session management

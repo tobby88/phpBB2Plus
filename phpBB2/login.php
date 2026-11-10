@@ -25,6 +25,11 @@
 // board is shut down
 //
 define('IN_LOGIN', true);
+// Include redirect responses: a cached login/logout transition can otherwise
+// display an obsolete anonymous or authenticated page after cookies changed.
+header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 if (!defined('IN_PHPBB'))
 {

@@ -27,6 +27,7 @@
  ***************************************************************************/
 
 define('IN_PHPBB', true);
+define('SESSION_BACKGROUND', true);
 $phpbb_root_path = './';
 require_once($phpbb_root_path . 'extension.inc');
 require_once($phpbb_root_path . 'common.'.$phpEx);

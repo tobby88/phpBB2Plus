@@ -99,5 +99,22 @@ try{
   ats_check($denied&&$session_native_cookies===array(),'Failed current/anonymous read cannot publish rejected identity');
  }
  session_creation_fixture('missing-guest');$denied=false;try{session_begin(-1,'7f000001');}catch(AttachSettingsExit$e){$denied=true;}ats_check($denied&&$session_native_cookies===array(),'Missing anonymous seed fails before session/cookie publication');
- echo 'Native session creation: 10 creation + '.$resumed." existing identity/ACL cases passed.\n";
+ session_creation_fixture('active');$board_config['session_length']=3600;$plus_config['show_last_visit']=0;
+ $authenticated=session_begin(2,'7f000001',0);$fresh_cookies=$session_native_cookies;
+ $HTTP_COOKIE_VARS=$fresh_cookies;$session_native_cookies=array();
+ $resumed_user=session_pagestart('7f000001',1,0);
+ ats_check((int)$resumed_user['user_id']===2&&$session_native_cookies===array(),'Ordinary session resume must not rewrite authentication cookies');
+ define('SESSION_BACKGROUND',true);
+ foreach(array('login','logout')as$transition){
+  list($id,$auto,$persistent,$old_sid,$admin)=session_creation_fixture('active');
+  $board_config['session_length']=3600;$plus_config['show_last_visit']=0;
+  $stale_cookies=$HTTP_COOKIE_VARS;$authenticated=session_begin(2,'7f000001',0);$fresh_cookies=$session_native_cookies;
+  if($transition==='logout'){$stale_cookies=$fresh_cookies;session_creation_query("DELETE FROM fixture_sessions WHERE session_id='".$db->sql_escape($authenticated['session_id'])."'");$fresh_cookies=array('fixture_sid'=>'','fixture_data'=>'');}
+  $HTTP_COOKIE_VARS=$stale_cookies;$session_native_cookies=array();
+  $late=session_pagestart('7f000001',0,0);
+  ats_check((int)$late['user_id']===-1&&empty($late['session_logged_in'])&&$late['session_id']===''&&$SID===''&&$session_native_cookies===array(),'Late background response cannot overwrite the completed '.$transition);
+  $current=session_creation_rows('SELECT session_id FROM fixture_sessions WHERE session_user_id=2');
+  ats_check(count($current)===($transition==='login'?1:0),'Background fallback preserves committed '.$transition.' session state');
+ }
+ echo 'Native session creation: 10 creation + '.$resumed." existing identity/ACL cases and 3 cookie-race cases passed.\n";
 }finally{$db->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}

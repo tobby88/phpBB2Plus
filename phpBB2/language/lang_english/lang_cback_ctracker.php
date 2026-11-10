@@ -276,6 +276,8 @@ $lang['ctracker_log_manager_cell_4']	  = 'UserAgent';
 $lang['ctracker_log_manager_cell_5']	  = 'IP Address';
 $lang['ctracker_log_manager_cell_6']	  = 'Remote Host';
 $lang['ctracker_log_manager_sysmsg']	  = 'Last cleaning of the Logfile was <b>%s</b>.';
+$lang['ctracker_log_manager_initialized'] = 'The log file was initialized on <b>%s</b>.';
+$lang['ctracker_log_manager_legacy_marker'] = 'Historical log marker: <b>%s</b>. It may come from the original installation package; it does not establish when this log was last cleared or whether earlier events are complete.';
 
 
 /*

@@ -187,6 +187,9 @@ if (strpos($download_source, 'ctracker_log_debug_download();') === false ||
 	exit(1);
 }
 
+foreach(array(array('1','1156000217','null','null','null','null','null'),array('1','0','null','null','null','null','null','unknown'))as$marker){if($manager->metadata_kind($marker)!=='legacy'){throw new RuntimeException('An inherited marker must not claim an observed log clearing');}}
+foreach(array('created','cleared')as$kind){if($manager->metadata_kind(array('1','1','null','null','null','null','null',$kind))!==$kind){throw new RuntimeException('Explicit log metadata kind lost');}}
+if($manager->metadata_kind(array('0','1'))!==false){throw new RuntimeException('Event mistaken for metadata');}
 echo "CrackerTracker log rotation and counter checks passed.\n";
 
 ?>

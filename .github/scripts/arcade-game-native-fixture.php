@@ -23,6 +23,9 @@ function ag_snapshot(){global $ag_tables;$out=array();foreach($ag_tables as$tabl
 function ag_reset($role='root'){
  global $db,$ag_tables,$ag_routes,$ag_trace,$ag_notifications,$arcade,$phpbb_root_path,$ag_async;
  as_check(!$ag_async,'No outstanding test revocation');$db->fault=$db->factory_mode='';aif_request();$ag_notifications=array();ag_language();
+ // Seed a case in one peer transaction. Autocommitting every fixture row
+ // spent most of the suite waiting for fsync, before the code under test ran.
+ if(!$GLOBALS['ag_peer']->sql_query('START TRANSACTION')){throw new RuntimeException('Own fixture seed transaction unavailable');}
  foreach($ag_tables as$table){ag_sql('DELETE FROM '.$table);}
  ag_sql("INSERT INTO fixture_users(user_id,username,user_password,user_level,user_active) VALUES(2,'Actor','',".($role==='root'?1:0).",1),(8,'Player','',0,1)");ag_sql("INSERT INTO fixture_sessions(session_id,session_user_id,session_logged_in,session_admin) VALUES('fixture-import',2,1,1)");
  if($role!=='root'){ag_sql("INSERT INTO fixture_jr_admin_users(user_id,user_jr_admin,admin_notes) VALUES(2,'".$ag_routes[$role]."','')");}
@@ -35,6 +38,7 @@ function ag_reset($role='root'){
  ag_sql("INSERT INTO fixture_ina_comment(comment_game_name,game_name) VALUES('old_game','old_game')");
  foreach(array(iNA_FAV=>'fav_game_name',iNA_GAMES_RATE=>'rate_game_name',iNA_SESSIONS=>'game_name',iNA_BANNED=>'game',iNA_TOUR_DATA=>'game_name',iNA_TOUR_PLAY=>'last_played_game')as$table=>$field){ag_sql("INSERT INTO $table($field) VALUES('old_game')");}
  ag_sql("INSERT INTO fixture_ina_highscore(highscore_game,highscore_year) VALUES('old_game',2020)");
+ if(!$GLOBALS['ag_peer']->sql_query('COMMIT')){throw new RuntimeException('Own fixture seed commit failed');}
  $arcade->arcade_config['games_pm_new']=0;foreach(array('games','categories','best_player','best_at_player')as$key){as_check($arcade->write_cache($key,array('old'=>'cache'),$phpbb_root_path),'Own affected cache canary');}$ag_trace=array();
 }
 function ag_revision(){return phpbb_arcade_game_revision(ag_rows('SELECT * FROM fixture_ina_games WHERE game_id=41')[0]);}

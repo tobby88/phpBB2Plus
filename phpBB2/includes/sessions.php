@@ -456,8 +456,9 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 
 					session_clean($userdata['session_id']);
 					
-					phpbb_setcookie($cookiename . '_data', serialize($sessiondata), $current_time + 31536000, $cookiepath, $cookiedomain, $cookiesecure);
-					phpbb_setcookie($cookiename . '_sid', $session_id, 0, $cookiepath, $cookiedomain, $cookiesecure);
+					// Resuming a session does not change its cookie capability.
+					// A response started before login/logout can arrive afterwards;
+					// reissuing these old cookies would undo the browser's new state.
 				}
 
 				// Add the session_key to the userdata array if it is set
@@ -475,6 +476,22 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 	// If we reach here then no (valid) session exists. So we'll create a new one,
 	// using the cookie user_id if available to pull basic user prefs.
 	//
+	if (defined('SESSION_BACKGROUND') && SESSION_BACKGROUND)
+	{
+		// Polling must never publish a replacement guest session or rotate a
+		// persistent credential over a newer foreground login/logout response.
+		$sql = 'SELECT * FROM ' . USERS_TABLE . ' WHERE user_id = ' . ANONYMOUS;
+		if (!($result = $db->sql_query($sql)) || !($userdata = $db->sql_fetchrow($result)))
+		{
+			message_die(CRITICAL_ERROR, 'Error obtaining anonymous session details', '', __LINE__, __FILE__, $sql);
+		}
+		$db->sql_freeresult($result);
+		$userdata = array_merge($userdata, array('session_id'=>'', 'session_user_id'=>ANONYMOUS,
+			'session_logged_in'=>0, 'session_admin'=>0, 'session_start'=>$current_time,
+			'session_time'=>$current_time, 'session_ip'=>$user_ip, 'session_page'=>$thispage_id, 'session_topic'=>$thistopic_id));
+		$SID = '';
+		return $userdata;
+	}
 	$user_id = ( isset($sessiondata['userid']) ) ? intval($sessiondata['userid']) : ANONYMOUS;
 
 	if ( !($userdata = session_begin($user_id, $user_ip, $thispage_id, TRUE)) )

@@ -4,6 +4,7 @@ $root = dirname(dirname(__DIR__));
 $login = (string) file_get_contents($root . '/phpBB2/login.php');
 $page_header = (string) file_get_contents($root . '/phpBB2/includes/page_header.php');
 $errors = array();
+foreach(array($login,$page_header)as$source){if(strpos($source,'Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0')===false){$errors[]='Authentication and dynamic pages must not retain stale browser views.';}}
 
 $required = array(
 	'hash_equals((string) $userdata[\'session_id\']',

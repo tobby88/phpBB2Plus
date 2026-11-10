@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Session transitions, log metadata and test runtime
+
+- Do not reissue authentication cookies while resuming an unchanged session.
+  AJAX and Shoutbox refreshes with an expired or replaced session return a
+  guest view without publishing replacement cookies or using a persistent
+  credential. Late responses can no longer overwrite a completed login/logout.
+- Send explicit no-store headers for login redirects and dynamic pages to
+  avoid showing obsolete authenticated or anonymous browser views.
+- Distinguish newly initialized and explicitly cleared CrackerTracker logs.
+  Treat inherited dated markers as historical metadata whose meaning and
+  completeness cannot be established, rather than claiming a known clearing.
+- Prepare Arcade native fixture data in one transaction per case. Keep actual
+  mutations, failures and concurrent revocations unchanged while avoiding a
+  separate durable disk flush for every setup row.
+
 ### Arcade text entry and category moderators
 
 - Reset game play counts and their category/global totals together. Use the

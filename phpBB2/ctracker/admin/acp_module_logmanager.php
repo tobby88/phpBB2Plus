@@ -118,9 +118,11 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 		if ( $line[0] == 1 )
 		{
 			$lastclean = intval($line[1]);
+			$metadata_kind = $logmanager->metadata_kind($line);
+			$metadata_caption = $metadata_kind === 'cleared' ? 'ctracker_log_manager_sysmsg' : ($metadata_kind === 'created' ? 'ctracker_log_manager_initialized' : 'ctracker_log_manager_legacy_marker');
 
 			$template->assign_block_vars('show_system_message', array(
-					'L_SYS_MSG'		=>	sprintf($lang['ctracker_log_manager_sysmsg'], date($board_config['default_dateformat'], $lastclean)),
+					'L_SYS_MSG'		=>	sprintf($lang[$metadata_caption], date($board_config['default_dateformat'], $lastclean)),
 					'L_DELETE'		=> $lang['ctracker_log_manager_delete'],
 					'LOG_ID'		=> $logid)
 				);
