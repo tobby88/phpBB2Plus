@@ -364,6 +364,12 @@ jobs:
         env:
           PHPBB_ARCADE_STATISTICS_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Record native Arcade launches atomically with current game sessions
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-launch-native.php
+        env:
+          PHPBB_ARCADE_LAUNCH_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Keep native Arcade category identities and visibility current
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-category-cache-native.php

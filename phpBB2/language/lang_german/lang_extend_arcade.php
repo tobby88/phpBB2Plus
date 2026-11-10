@@ -523,6 +523,7 @@ $lang['arcade_mod_delete_score'] = 'Ergebnis löschen';
 $lang['arcade_points_generated'] = 'Liste in %.4f Sekunden erstellt.';
 
 //
+$lang['arcade_launch_failed'] = 'Der Spielstart konnte nicht vollständig gespeichert werden. Bitte öffne die Spielhalle erneut.';
 // TFFT - The End...!
 //
 

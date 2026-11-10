@@ -517,6 +517,7 @@ $lang['arcade_mod_delete_score'] = 'Delete score';
 
 $lang['arcade_points_generated'] = 'List generated in %.4f seconds.';
 //
+$lang['arcade_launch_failed'] = 'The game launch could not be saved completely. Please open the Arcade again.';
 // TFFT - The End...!
 //
 

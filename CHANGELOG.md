@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Consistent Arcade launch accounting
+
+- Save a game's play count, category/parent/global counters and the player's
+  last-played metadata in one owned InnoDB transaction, coordinated with resets
+  and catalogue changes. Roll back the complete accounting on failure and never
+  replay writes after an uncertain commit acknowledgement.
+- Verify the current forum session, active player, selected game revision and
+  game capability before counting a launch. Preserve permitted guest play and
+  ordinary members without ACP privileges. Invalidate counter caches together;
+  retain score caches and caller transactions. Existing schemas need no change.
+
 ### Session transitions, log metadata and test runtime
 
 - Do not reissue authentication cookies while resuming an unchanged session.

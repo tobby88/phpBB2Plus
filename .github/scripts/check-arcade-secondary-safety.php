@@ -37,7 +37,9 @@ arcade_secondary_assert(strpos($classes, 'substr(str_replace(array("\\r", "\\n",
 arcade_secondary_assert(strpos($classes, "'at_first_list' => '', 'at_second_list' => '', 'at_third_list' => ''") !== false, 'missing Arcade user summaries need a complete fallback');
 arcade_secondary_assert(strpos($activity, '$best_score = $best_at_score = \'\';') !== false, 'per-game display state must be initialized');
 arcade_secondary_assert(strpos($activity, 'if (is_array($game_size) && isset($game_size[0], $game_size[1]))') !== false, 'failed legacy media probing needs configured dimension fallbacks');
-arcade_secondary_assert(strpos($loader, '$asset_path = phpbb_arcade_local_asset(') < strpos($loader, 'SET played = played + 1'), 'missing Arcade assets must be rejected before play statistics change');
+$asset_gate = strpos($loader, '$asset_path = phpbb_arcade_local_asset(');
+$accounting = strpos($loader, 'phpbb_arcade_record_launch($db, $game_info, $session)');
+arcade_secondary_assert($asset_gate !== false && $accounting !== false && $asset_gate < $accounting, 'missing Arcade assets must be rejected before owned play accounting');
 arcade_secondary_assert(strpos($loader, "ctracker_enforce_request_limit_profile(array('arcade-launch', 300, 'request_limit_content', 60))") !== false, 'GET game launches that mutate statistics need a dedicated request bucket');
 arcade_secondary_assert(strpos($activity, "WHERE game_desc LIKE '%\$search_sql%'") !== false, 'Arcade search totals must use the SQL-escaped term');
 arcade_secondary_assert(strpos($activity, "WHERE rate_game_name = '\$game_name_sql'") !== false, 'Arcade rating lookups must escape stored game names');

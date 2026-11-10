@@ -73,12 +73,8 @@ $game_flash		= $game_info['game_flash'];
 $game_id		  = intval($game_info['game_id']);
 $game_desc		= substr(str_replace("\\'", "'", $game_desc), 0, 255);
 $game_desc_html = phpbb_profile_text($game_desc);
-$game_name_sql = $db->sql_escape($game_name);
-$user_id = (int) $userdata['user_id'];
-$now = time();
 $arcade_hash	= '';
 $license      = !empty($game_info['license']) ? $game_info['license'] : 'None';
-$cat_id		    = (intval($game_info['cat_id']) > 0) ? intval($game_info['cat_id']) : -1;
 //
 // Resolve and verify the local game asset before recording a play. Invalid or
 // stale catalogue entries must not change game, category or user statistics.
@@ -106,74 +102,14 @@ if (function_exists('ctracker_enforce_request_limit_profile'))
 //
 //	Update Game Played amount.
 //
-// Keep counters atomic so simultaneous game starts cannot overwrite each other.
-$sql = "UPDATE " . iNA_GAMES . "
-	SET played = played + 1
-		WHERE game_id = $game_id";
-if (!$db->sql_query($sql))
+require_once($phpbb_root_path . 'includes/functions_arcade_launch_storage.' . $phpEx);
+try
 {
-	message_die(GENERAL_ERROR, $lang['no_game_update'], __LINE__, __FILE__, $sql);
+	phpbb_arcade_record_launch($db, $game_info, $session);
 }
-
-$sql = "SELECT cat_parent FROM " . iNA_CAT . "
-		WHERE cat_id = $cat_id";
-if (!$result = $db->sql_query($sql))
+catch (PhpbbOwnedStorageFailure $error)
 {
-	message_die(GENERAL_ERROR, $lang['no_game_update'], __LINE__, __FILE__, $sql);
-}
-$played_info = $db->sql_fetchrow($result);
-$sql = "UPDATE " . iNA_CAT . "
-	SET total_played = total_played + 1, last_game = '$game_name_sql', last_player = $user_id, last_time = $now
-		WHERE cat_id = $cat_id";
-if (!$db->sql_query($sql))
-{
-	message_die(GENERAL_ERROR, $lang['no_game_update'], __LINE__, __FILE__, $sql);
-}
-if($played_info && intval($played_info['cat_parent']) > 0)
-{
-	$parent_id = (int) $played_info['cat_parent'];
-  $sql = "UPDATE " . iNA_CAT . "
-    SET total_played = total_played + 1, last_game = '$game_name_sql', last_player = $user_id, last_time = $now
-      WHERE cat_id = $parent_id";
-  if (!$db->sql_query($sql))
-  {
-  	message_die(GENERAL_ERROR, $lang['no_cat_update'], __LINE__, __FILE__, $sql);
-  }
-}
-if($cat_id > 0)
-{
-  $sql = "UPDATE " . iNA_CAT . "
-	SET total_played = total_played + 1, last_game = '$game_name_sql', last_player = $user_id, last_time = $now
-  		WHERE cat_id = -1";
-  if (!$db->sql_query($sql))
-  {
-  	message_die(GENERAL_ERROR, $lang['no_cat_update'], __LINE__, __FILE__, $sql);
-  }
-}
-//
-// Update the users data
-//
-$sql = "UPDATE " . iNA_USER_DATA . "
-	SET last_played = '$game_name_sql', last_played_date = $now
-		WHERE user_id = $user_id";
-$result = $db->sql_query($sql);
-if ( !$result )
-{
-	message_die(CRITICAL_ERROR, $lang['no_user_update'], '', __LINE__, __FILE__, $sql);
-}
-$affected_rows = $db->sql_affectedrows();
-if ( $affected_rows < 1 )
-{
-	// A no-op UPDATE also reports zero rows. Check existence before inserting.
-	$sql = "INSERT INTO " . iNA_USER_DATA . "
-		(user_id, last_played, last_played_date)
-		SELECT $user_id, '$game_name_sql', $now
-		FROM DUAL
-		WHERE NOT EXISTS (SELECT 1 FROM " . iNA_USER_DATA . " WHERE user_id = $user_id)";
-	if ( !$db->sql_query($sql) )
-	{
-		message_die(CRITICAL_ERROR, $lang['no_user_update'], '', __LINE__, __FILE__, $sql);
-	}
+	message_die(GENERAL_MESSAGE, $lang['arcade_launch_failed']);
 }
 //
 // Check the extension of the game to see what we should do with it.
