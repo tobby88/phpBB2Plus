@@ -59,7 +59,10 @@ function ap_diff($expected,$actual){
  $out=array();foreach($expected as $table=>$rows){foreach($rows as $i=>$row){foreach($row as $key=>$value){if(!isset($actual[$table][$i])||!array_key_exists($key,$actual[$table][$i])||$actual[$table][$i][$key]!==$value){$out[]=$table.'.'.$i.'.'.$key.': '.json_encode(array($value,isset($actual[$table][$i][$key])?$actual[$table][$i][$key]:null));}}}}return implode('; ',$out);
 }
 function ap_insert($table,$values){
- foreach(ap_rows('SHOW COLUMNS FROM '.$table) as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
+ // Custom columns are installed before the first seed; later DDL only changes
+ // engines or resets identities, preserving these actual column definitions.
+ static $columns=array();if(!isset($columns[$table])){$columns[$table]=ap_rows('SHOW COLUMNS FROM '.$table);}
+ foreach($columns[$table] as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
  $encoded=array();foreach($values as $v){$encoded[]="'".$GLOBALS['peer']->sql_escape((string)$v)."'";}ap_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).') VALUES ('.implode(',',$encoded).')');
 }
 function ap_reset($actor='root',$scenario='edit'){
@@ -208,9 +211,8 @@ try{
    foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
     ap_reset($actor,$scenario);$before=ap_snap();$seen=0;$reached=$blocked=false;
     $ap_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked){if(!ap_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['ap_hook']=null;$reached=true;
-     native_fixture_peer_nowait($GLOBALS['peer']);
-     try{if(!$GLOBALS['peer']->sql_query(ap_revoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Real peer lock timeout');$blocked=true;}}
-     finally{ap_sql('SET SESSION innodb_lock_wait_timeout=1');}};
+     $probe=native_fixture_conflict_query($GLOBALS['peer'],ap_revoke($kind));
+     if(!$probe[0]){$e=$probe[1];ats_check((int)$e['code']===1205,'Real peer lock timeout');$blocked=true;}};
     $result=ap_run($scenario);ats_check($reached,'Every write/commit/authority-lock boundary reached');
     if($blocked){ats_check($result===true&&ap_committed(ap_snap())===ap_committed($after),'Revocation serializes after complete profile');ap_sql(ap_revoke($kind));$serialized++;}
     else{ats_check($result==='error'&&ap_without_authority(ap_snap())===ap_without_authority($before)&&!$ap_cookies,'Effective revocation aborts complete profile');}$cases++;

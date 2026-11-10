@@ -41,6 +41,11 @@ changes consolidated after that baseline without implying active maintenance.
 - Balance the unchanged native test commands across six jobs per PHP version
   instead of four, using measured execution times. Keep every existing test
   and verify that all conditional job parts exist in the matrix.
+- Use the existing server-aware, scoped conflict probe in moderator-role and
+  administrator-profile fixtures. MariaDB reports real conflicting writes
+  immediately; other servers retain their supported timeout. Preserve every
+  boundary/failure case and restore the peer connection's original timeout.
+  Read the fixtures' unchanged column definitions once when preparing seeds.
 
 ### Arcade text entry and category moderators
 

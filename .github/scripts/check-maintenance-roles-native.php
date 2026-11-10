@@ -4,6 +4,7 @@ putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-sett
 foreach(array('USER'=>0,'MOD'=>2,'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','AUTH_ACCESS_TABLE'=>'fixture_auth_access','FORUMS_TABLE'=>'fixture_forums') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_maintenance_roles.php';
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ROLES_NATIVE')!=='1'){echo "Native role checks require an explicitly enabled disposable MySQL/MariaDB fixture.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 require $ats_source.'db/mysqli.php';
 $port=getenv('PHPBB_ROLES_PORT')?:'3306';$password=getenv('PHPBB_ROLES_PASSWORD')?:'';
 ats_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Loopback port');
@@ -33,7 +34,9 @@ function rn_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native 
 function rn_rows($sql){$rows=phpbb_acl_rows($GLOBALS['peer'],$sql);foreach($rows as &$row){foreach(array_keys($row) as $key){if(is_int($key)){unset($row[$key]);}}}unset($row);return $rows;}
 function rn_snap(){$out=array();foreach($GLOBALS['rn_tables'] as $s){$rows=rn_rows('SELECT * FROM fixture_'.$s);usort($rows,function($a,$b){return strcmp(json_encode($a),json_encode($b));});$out[$s]=$rows;}return $out;}
 function rn_insert($table,$values){
- foreach(rn_rows('SHOW COLUMNS FROM '.$table) as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
+ // This fixture never changes column definitions after creating its tables.
+ static $columns=array();if(!isset($columns[$table])){$columns[$table]=rn_rows('SHOW COLUMNS FROM '.$table);}
+ foreach($columns[$table] as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
  $encoded=array();foreach($values as $v){$encoded[]="'".$GLOBALS['peer']->sql_escape((string)$v)."'";}rn_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).') VALUES ('.implode(',',$encoded).')');
 }
 function rn_reset($actor='root',$scenario='repair'){
@@ -82,7 +85,8 @@ try{
    foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
     rn_reset($actor,$scenario);$seen=0;$reached=$blocked=false;$revoked=null;
     $rn_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!rn_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['rn_hook']=null;$reached=true;
-     if(!$GLOBALS['peer']->sql_query(rn_revoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Real independent lock timeout');$blocked=true;}else{$revoked=rn_snap();}};
+     $probe=native_fixture_conflict_query($GLOBALS['peer'],rn_revoke($kind));
+     if(!$probe[0]){$e=$probe[1];ats_check((int)$e['code']===1205,'Real independent lock timeout');$blocked=true;}else{$revoked=rn_snap();}};
     $result=rn_run();ats_check($reached,'Every write and commit authority boundary reached');
     if($blocked){ats_check(is_array($result)&&rn_snap()===$after,'Authority revocation serializes after complete repair');rn_sql(rn_revoke($kind));$serialized++;}
     else{ats_check($result==='error'&&rn_snap()===$revoked,'Effective revocation undoes every role/session change, retaining peer changes');}$cases++;
@@ -98,7 +102,8 @@ try{
     (strpos($change,'before-update')!==false?strpos($sql,'UPDATE fixture_users SET user_level = CASE')===0:strpos($sql,'DELETE FROM fixture_sessions WHERE session_user_id = 10')===0);
    if(!$match){return;}$GLOBALS['rn_hook']=null;$reached=true;
    $query=strpos($change,'promotion')===0?'UPDATE fixture_users SET user_level=1 WHERE user_id=10':($change==='removed-user'?'DELETE FROM fixture_users WHERE user_id=10':($change==='new-grant'?'INSERT INTO fixture_user_group (user_id,group_id,user_pending) VALUES (11,10,0)':'DELETE FROM fixture_user_group WHERE user_id=10'));
-   if(!$GLOBALS['peer']->sql_query($query)){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Target/grant native lock timeout');$blocked=true;}
+   $probe=native_fixture_conflict_query($GLOBALS['peer'],$query);
+   if(!$probe[0]){$e=$probe[1];ats_check((int)$e['code']===1205,'Target/grant native lock timeout');$blocked=true;}
   };
   $out=rn_run();ats_check(is_array($out)&&$reached,'Concurrent target/grant case reached');
   if($blocked){ats_check(rn_snap()===$rn_expected['root|repair'],'Blocked target change leaves a complete ordinary repair');$serialized++;}
@@ -111,7 +116,8 @@ try{
  foreach(array('promote','demote') as $scenario){foreach(array('missing','delegation') as $kind){
   rn_reset('junior',$scenario);$reached=$blocked=false;$revoked=null;
   $rn_hook=function($sql)use($kind,&$reached,&$blocked,&$revoked){if(strpos($sql,'UPDATE fixture_users SET user_level = CASE')!==0||strpos($sql,'WHERE user_id = 20 ')===false){return;}$GLOBALS['rn_hook']=null;$reached=true;
-   if(!$GLOBALS['peer']->sql_query(rn_revoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Self repair native authority lock');$blocked=true;}else{$revoked=rn_snap();}};
+   $probe=native_fixture_conflict_query($GLOBALS['peer'],rn_revoke($kind));
+   if(!$probe[0]){$e=$probe[1];ats_check((int)$e['code']===1205,'Self repair native authority lock');$blocked=true;}else{$revoked=rn_snap();}};
   $out=rn_run();ats_check($reached,'Self role write reached');ats_check($blocked?is_array($out)&&rn_snap()===$rn_expected['junior|'.$scenario]:$out==='error'&&rn_snap()===$revoked,'Self role and all earlier repairs roll back on effective revocation');$cases++;
  }}
  rn_reset();$revoked=null;$rn_failure='ROLLBACK TO SAVEPOINT';
