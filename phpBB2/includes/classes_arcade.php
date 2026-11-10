@@ -569,7 +569,7 @@ class arcade
 	$user_id = (int) $userdata['user_id'];
 	$score = (float) $this->score;
 
-    if(!$score || !is_finite($score) || abs($score) > 9999999999.9999 || !$this->game_name || (strtoupper($userdata['username']) == 'TEST'))
+    if(!is_finite($score) || $score == 0.0 || abs($score) > 9999999999.9999 || !$this->game_name || (strtoupper($userdata['username']) == 'TEST'))
     {
       return false;
     }
