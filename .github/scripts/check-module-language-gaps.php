@@ -43,7 +43,8 @@ foreach (token_get_all('<?php ' . substr($source, $offset)) as $token)
 eval($body);
 $sites = array(
     array('activity.php', "GENERAL_ERROR, \$lang['no_rate_data']", array('lang_extend_arcade')),
-    array('admin/admin_arcade_cats.php', "GENERAL_ERROR, \$lang['no_cat_delete']", array('lang_extend_arcade')),
+    array('admin/admin_arcade_cats.php', "\$lang['no_cat_data']", array('lang_extend_arcade')),
+    array('admin/admin_arcade_cats.php', "\$lang['arcade_category_repair']", array('lang_admin_arcade')),
     array('includes/classes_arcade.php', "\$this->message=\$lang['arcade_submission_failed']", array('lang_extend_arcade')),
     array('newscore.php', "message_die(GENERAL_MESSAGE,\$lang['arcade_submission_failed'])", array('lang_extend_arcade')),
     array('loader.php', "\$lang['arcade_launch_funds']", array('lang_extend_arcade')),

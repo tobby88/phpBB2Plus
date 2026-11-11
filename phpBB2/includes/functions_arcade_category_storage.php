@@ -58,6 +58,14 @@ function phpbb_arcade_category_sum($a,$b)
     if(!preg_match('/^[0-9]{1,20}$/D',(string)$a)||!preg_match('/^[0-9]{1,20}$/D',(string)$b)){throw new PhpbbOwnedStorageFailure('arcade_category_invalid');}
     $a=strrev((string)$a);$b=strrev((string)$b);$out='';$carry=0;for($i=0;$i<max(strlen($a),strlen($b));$i++){$n=$carry+($i<strlen($a)?(int)$a[$i]:0)+($i<strlen($b)?(int)$b[$i]:0);$out.=($n%10);$carry=(int)floor($n/10);}if($carry){$out.=$carry;}$out=ltrim(strrev($out),'0');if($out===''){$out='0';}if(strlen($out)>20||(strlen($out)===20&&strcmp($out,'18446744073709551615')>0)){throw new PhpbbOwnedStorageFailure('arcade_category_invalid');}return $out;
 }
+function phpbb_arcade_category_moderator($database,$name)
+{
+    if(!is_string($name)){throw new PhpbbOwnedStorageFailure('no_game_save');}
+    if($name===''){return 0;}
+    $user=phpbb_username_lookup($database,$name,array('user_id'),'LOCK IN SHARE MODE');
+    if(!$user||(int)$user['user_id']<1){throw new PhpbbOwnedStorageFailure('no_game_save');}
+    return (int)$user['user_id'];
+}
 
 class PhpbbArcadeCategoryWriter extends PhpbbArcadeImportWriter
 {
@@ -96,7 +104,7 @@ class PhpbbArcadeCategoryWriter extends PhpbbArcadeImportWriter
             $values=$input['values'];if((string)$values['cat_order']!==($id?(string)$before[$id]['cat_order']:'0')){$this->storage_fail('arcade_category_changed');}unset($values['cat_order']);
             $parent=(int)$values['cat_parent'];if($values['cat_type']==='s'&&($parent===$id||$parent<1||!isset($nodes[$parent])||$nodes[$parent]['cat_type']!=='p')){$this->storage_fail('admin_cat_no_parent');}
             if((int)$values['group_required']>0&&!$this->rows('SELECT group_id FROM '.GROUPS_TABLE.' WHERE group_id='.(int)$values['group_required'].' AND group_single_user=0 LOCK IN SHARE MODE')){$this->storage_fail('arcade_category_invalid');}
-            $mod=0;if($values['moderator']!==''){$user=phpbb_username_lookup($this,$values['moderator'],array('user_id'),'LOCK IN SHARE MODE');if(!$user||(int)$user['user_id']<1){$this->storage_fail('no_game_save');}$mod=(int)$user['user_id'];}unset($values['moderator']);$values['mod_id']=(string)$mod;
+            $mod=phpbb_arcade_category_moderator($this,$values['moderator']);unset($values['moderator']);$values['mod_id']=(string)$mod;
             $recount=!$id||$nodes[$id]['cat_type']!==$values['cat_type']||(int)$nodes[$id]['cat_parent']!==$parent;
             if($id){if($values['cat_type']!=='p'){foreach($nodes as$child=>$row){if((int)$row['cat_parent']===$id){$nodes[$child]['cat_parent']='0';$nodes[$child]['cat_type']='p';}}}$nodes[$id]=array_replace($nodes[$id],$values);}
             else{

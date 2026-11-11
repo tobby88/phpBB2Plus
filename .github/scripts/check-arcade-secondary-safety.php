@@ -16,6 +16,7 @@ $tournament = file_get_contents($root . '/phpBB2/arcade_tournament.php');
 $tournament_join = file_get_contents($root . '/phpBB2/includes/functions_arcade_tournament_storage.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
 $adminCategories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.php');
+$categoryWriter = file_get_contents($root . '/phpBB2/includes/functions_arcade_category_storage.php');
 $modcp = file_get_contents($root . '/phpBB2/arcade_modcp.php');
 $moderation_store = file_get_contents($root . '/phpBB2/includes/functions_arcade_moderation_storage.php');
 $loader = file_get_contents($root . '/phpBB2/loader.php');
@@ -51,7 +52,7 @@ arcade_secondary_assert(strpos($activity, "strlen(\$cat_rows[0]['game_desc'])") 
 arcade_secondary_assert(strpos($activity, "strtoupper((string) \$arcade->sort_order) === 'ASC'") !== false, 'Arcade SQL ordering must be allowlisted');
 arcade_secondary_assert(strpos($activity, 'function arcade_external_url($value)') !== false, 'link categories need runtime URL validation');
 arcade_secondary_assert(strpos($activity, 'return phpbb_normalize_external_url($value);') !== false, 'runtime link categories must share the external URL boundary');
-arcade_secondary_assert(strpos($adminCategories, '$normalized_link = phpbb_normalize_external_url($desc);') !== false, 'admin link categories must share the external URL boundary');
+arcade_secondary_assert(strpos($adminCategories, 'phpbb_arcade_category_change($db,$HTTP_POST_VARS)') !== false && strpos($categoryWriter, 'phpbb_normalize_external_url($request[\'desc\'])') !== false, 'owned admin link categories must share the external URL boundary');
 arcade_secondary_assert(substr_count($activity, 'arcade_output_html(') >= 20, 'stored Arcade metadata must be escaped at output boundaries');
 arcade_secondary_assert(substr_count($activity, "'ARCADE_USERNAME' => phpbb_stored_text(\$userdata['username'])") === 1, 'the default Arcade page needs an escaped server-side username');
 arcade_secondary_assert(substr_count($activity, '"ARCADE_USERNAME" => phpbb_stored_text($userdata[\'username\'])') === 1, 'Arcade category pages need an escaped server-side username');
