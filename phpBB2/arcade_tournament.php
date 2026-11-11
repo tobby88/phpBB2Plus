@@ -107,89 +107,22 @@ $template->set_filenames(array('body' => 'arcade_tour_body.tpl') );
 if(!empty($HTTP_POST_VARS['join']))
 {
   arcade_public_tournament_require_token($userdata, $lang);
-  if(is_array($join_tour))
+  require_once dirname(__FILE__).'/includes/functions_arcade_tournament_storage.php';
+  try
   {
-    $joining = '';
-	$normalized_join_tours = array();
-	foreach ($join_tour as $join_tour_value)
-	{
-	  if (is_scalar($join_tour_value) && intval($join_tour_value) > 0)
-	  {
-		$normalized_join_tours[intval($join_tour_value)] = intval($join_tour_value);
-		if (count($normalized_join_tours) >= 100)
-		{
-		  break;
-		}
-	  }
-	}
-	$join_tour = array_values($normalized_join_tours);
-    for($i=0; $i < count($join_tour); $i++)
-    {
-      $tour_id = intval($join_tour[$i]);
-      
-      if ($tour_id <= 0)
-      {
-        continue;
-      }
-      $sql = "SELECT * FROM " . iNA_TOUR . "
-        WHERE tour_id = ". $tour_id . "
-          AND tour_active = 2";
-      if( !$result = $db->sql_query($sql) )
-      {
-      	message_die(GENERAL_ERROR, $lang['no_tour_data'], "", __LINE__, __FILE__, $sql);
-      }
-      $tour = $db->sql_fetchrow($result);
-      if (!$tour)
-      {
-        continue;
-      }
-
-      $sql = "SELECT * FROM " . iNA_TOUR_PLAY . "
-        WHERE tour_id = " . $tour_id;
-      if( !$result = $db->sql_query($sql) )
-      {
-      	message_die(GENERAL_ERROR, $lang['no_tour_play_data'], "", __LINE__, __FILE__, $sql);
-      }
-      $tourplayers = $db->sql_fetchrowset($result);
-      $total_tourplayers = count($tourplayers);
-
-      if($total_tourplayers >= $tour['tour_max_players'])
-      {
-        $joining .= sprintf($lang['tour_full'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
-      }
-      else
-      {
-        $sql = "SELECT user_id FROM " . iNA_TOUR_PLAY . "
-          WHERE tour_id = $tour_id
-            AND user_id = ". $userdata['user_id'];
-  		  if( !$result = $db->sql_query($sql) )
-  		  {
-    			message_die(GENERAL_ERROR, $lang['no_tour_play_data'], "", __LINE__, __FILE__, $sql);
-    		}
-    		$tour_total = $db->sql_numrows($result);
-        if($tour_total < 1)
-        {
-          $joining .= sprintf($lang['tour_joined'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
-
-          $sql = "INSERT IGNORE INTO ". iNA_TOUR_PLAY . "
-            (tour_id, user_id) VALUES ($tour_id, ".$userdata['user_id'].")";
-      		if( !$result = $db->sql_query($sql) )
-      		{
-      			message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-      		}
-        }
-        else
-        {
-          $joining .= sprintf($lang['tour_member'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
-        }
-      }
-    }
-    message_die(GENERAL_MESSAGE, ($joining !== '' ? $joining : $lang['tour_no_join']).$lang['tour_return']);
+    $results = phpbb_arcade_tournament_join($db, $join_tour);
   }
-  else
+  catch (PhpbbOwnedStorageFailure $error)
   {
-    message_die(GENERAL_MESSAGE, $lang['tour_no_join'].$lang['tour_return']);
+    $key = $error->getMessage();
+    message_die(GENERAL_MESSAGE, (isset($lang[$key]) ? $lang[$key] : $lang['no_tour_play_data']).$lang['tour_return']);
   }
+  $joining = '';
+  foreach ($results as $result)
+  {
+    $joining .= sprintf($lang[$result['status']], htmlspecialchars($result['name'], ENT_QUOTES, 'UTF-8'));
+  }
+  message_die(GENERAL_MESSAGE, ($joining !== '' ? $joining : $lang['tour_no_join']).$lang['tour_return']);
 }
 //
 //  Start a new Tournament...

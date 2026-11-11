@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic Arcade tournament enrolment
+
+- Reserve tournament seats in an owned transaction with current session,
+  account, ban, group and global Arcade access checks. Serialize capacity
+  checks and inserts, deduplicate selections and report existing membership
+  correctly even when an event is full.
+- Commit an enrolment batch and its optional content-free audit together.
+  Failed writes never report success; uncertain commit acknowledgements are
+  not replayed. Reuse the existing canonical tables without a schema change.
+
 ### Private Arcade game progress
 
 - Preserve complete pnFlashGames checkpoints as opaque UTF-8 protocol data,
