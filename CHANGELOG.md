@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Consistent Arcade parent counters on catalogue edits
+
+- Transfer historical plays between the affected parent categories when moving
+  a game, and remove its parent contribution when deleting it. Shared parents
+  and the global total are counted once; offline games retain their history.
+- Keep visible game counts specific to each direct category. Lock the current
+  category topology with the game and preserve external-link visit counters.
+- Clamp stale unsigned counters before subtracting, avoiding SQL underflow
+  while preserving exact wide totals and whole-operation rollback.
+- Repair existing derived totals through the full updater or its targeted
+  `--arcade-counters-only` mode. Preserve scores, games, metadata and link visits.
+
 ### Faster native profile conflict checks
 
 - Probe every profile write, authority lock and commit boundary using real

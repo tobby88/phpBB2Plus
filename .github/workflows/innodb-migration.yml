@@ -412,6 +412,12 @@ jobs:
         env:
           PHPBB_ARCADE_CATEGORY_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Preserve parent play counters through actual game moves and deletion
+        if: matrix.part == 3
+        run: php .github/scripts/check-arcade-parent-counters-native.php
+        env:
+          PHPBB_ARCADE_PARENT_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Commit whole-game Arcade values with canonical widths and current authority
         if: matrix.part == 3
         run: php .github/scripts/check-arcade-bulk-native.php

@@ -77,12 +77,9 @@ class PhpbbArcadeActionWriter extends PhpbbArcadeGameWriter
         $rows = $this->rows('SELECT * FROM '.iNA_GAMES.' WHERE game_id='.$this->game_id.' FOR UPDATE');
         if (count($rows) !== 1 || !hash_equals(phpbb_arcade_game_revision($rows[0]), $revision)) { $this->storage_fail('arcade_game_changed'); }
         $game = $rows[0]; $name = $this->identity_name($game); $category = (int)$game['cat_id'];
-        $wanted = $category > 0 ? array(-1, $category) : array(-1);
-        $categories = $this->rows('SELECT cat_id,cat_type FROM '.iNA_CAT.' WHERE cat_id IN ('.implode(',', $wanted).') ORDER BY cat_id FOR UPDATE'); $present = array();
-        foreach ($categories as $row) { $present[(int)$row['cat_id']] = $row; }
-        if (!isset($present[-1]) || $present[-1]['cat_type'] === 'l') { $this->storage_fail('no_cat_data'); }
-        $played = (string)$game['played'];
-        if (!preg_match('/^[0-9]{1,10}$/D', $played) || (float)$played > 4294967295) { $this->storage_fail(); }
+        $present = $this->game_category_topology();
+        $wanted = array_keys($this->game_play_categories($category, $present));
+        $played = $this->game_play_count($game);
         $players = $this->affected_players(array($game), array(iNA_SCORES=>'highscore_id', iNA_AT_SCORES=>'at_highscore_id'));
         // Stable game IDs preserve saves across renames and leaderboard
         // resets; deleting the game itself removes its private checkpoints.
@@ -99,8 +96,8 @@ class PhpbbArcadeActionWriter extends PhpbbArcadeGameWriter
         foreach ($wanted as $id) {
             if (!isset($present[$id])) { continue; }
             // Offline games still contributed their historical plays.
-            $set = 'total_played=GREATEST(total_played-'.$played.',0)';
-            if (!empty($game['game_avail'])) { $set .= ',total_games=GREATEST(total_games-1,0)'; }
+            $set = $this->game_counter_subtract('total_played', $played);
+            if (!empty($game['game_avail']) && ($id === -1 || $id === $category)) { $set .= ','.$this->game_counter_subtract('total_games', '1'); }
             $this->query('UPDATE '.iNA_CAT.' SET '.$set.' WHERE cat_id='.$id);
         }
         $this->rebuild_rankings($players);

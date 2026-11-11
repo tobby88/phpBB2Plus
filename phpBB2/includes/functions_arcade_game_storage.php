@@ -50,6 +50,41 @@ class PhpbbArcadeGameWriter extends PhpbbArcadeImportWriter
  function __construct($database,$id){if(!is_int($id)||$id<0||$id>8388607){throw new PhpbbOwnedStorageFailure('no_game_save');}$this->game_id=$id;parent::__construct($database);}
  protected function actor(){global $phpEx;return phpbb_acp_actor($this,'admin_arcade_games.'.$phpEx.'?mode='.($this->game_id?'edit_games':'add_game'));}
  protected function storage_tables(){ $tables=array_merge(parent::storage_tables(),array(GROUPS_TABLE,RANKS_TABLE,iNA_GAME_SAVES));foreach(phpbb_arcade_game_references()as$ref){$tables[]=$ref[0];}return array_values(array_unique($tables)); }
+ protected function game_category_topology()
+ {
+  // Match the launch writer: pin the complete, shallow category topology after
+  // the game lock, so a parent change cannot split a catalogue counter update.
+  $rows=$this->rows('SELECT cat_id,cat_parent,cat_type FROM '.iNA_CAT.' ORDER BY cat_id FOR UPDATE');$categories=array();
+  foreach($rows as$row){$categories[(int)$row['cat_id']]=$row;}
+  if(!isset($categories[-1])||$categories[-1]['cat_type']!=='p'){$this->storage_fail('no_cat_data');}
+  return $categories;
+ }
+ protected function game_play_categories($id,$categories,$required=false)
+ {
+  $targets=array(-1=>true);
+  if($id===-1){return $targets;}
+  if($id<1||!isset($categories[$id])||!in_array($categories[$id]['cat_type'],array('p','s'),true)){
+   if($required){$this->storage_fail('no_cat_data');}return $targets;
+  }
+  $targets[$id]=true;$row=$categories[$id];
+  if($row['cat_type']==='s'){
+   $parent=(int)$row['cat_parent'];
+   if($parent>0&&$parent!==$id&&isset($categories[$parent])&&$categories[$parent]['cat_type']==='p'){$targets[$parent]=true;}
+   elseif($required){$this->storage_fail('no_cat_data');}
+  }
+  ksort($targets,SORT_NUMERIC);return $targets;
+ }
+ protected function game_play_count($game)
+ {
+  $played=(string)$game['played'];
+  if(!preg_match('/^(?:0|[1-9][0-9]{0,9})$/D',$played)||(strlen($played)===10&&strcmp($played,'4294967295')>0)){$this->storage_fail();}
+  return $played;
+ }
+ protected function game_counter_subtract($field,$amount)
+ {
+  // GREATEST(unsigned_counter-amount,0) can overflow before GREATEST runs.
+  return $field.'=CASE WHEN '.$field.'>='.$amount.' THEN '.$field.'-'.$amount.' ELSE 0 END';
+ }
  protected function pin_tables()
  {
   parent::pin_tables();$table=$this->escape(iNA_BANNED);
@@ -69,19 +104,22 @@ class PhpbbArcadeGameWriter extends PhpbbArcadeImportWriter
   if($this->rows('SELECT game_id FROM '.iNA_GAMES." WHERE game_name='$name'".($this->game_id?' AND game_id<>'.$this->game_id:'').' FOR UPDATE')){$this->storage_fail('admin_game_exists');}
   if($old&&($renaming||$reset['current']||$reset['all_time'])){$old_name=$this->escape((string)$old['game_name']);if($this->rows('SELECT game_id FROM '.iNA_GAMES." WHERE game_name='$old_name' AND game_id<>".$this->game_id.' FOR UPDATE')){$this->storage_fail('arcade_game_changed');}}
   foreach(array('group_required'=>array(GROUPS_TABLE,'group_id',' AND group_single_user=0'),'rank_required'=>array(RANKS_TABLE,'rank_id',''))as$key=>$target){if((int)$values[$key]>0&&(!$old||(string)$old[$key]!==$values[$key])&&!$this->rows('SELECT '.$target[1].' FROM '.$target[0].' WHERE '.$target[1].'='.$values[$key].$target[2].' LOCK IN SHARE MODE')){$this->storage_fail('no_game_save');}}
-  $new_cat=(int)$values['cat_id'];$old_cat=$old?(int)$old['cat_id']:-1;$cats=array(-1,$new_cat);if($old_cat>0){$cats[]=$old_cat;}$cats=array_values(array_unique($cats));sort($cats,SORT_NUMERIC);
-  $rows=$this->rows('SELECT cat_id,cat_type FROM '.iNA_CAT.' WHERE cat_id IN ('.implode(',',$cats).') ORDER BY cat_id FOR UPDATE');$present=array();foreach($rows as$row){$present[(int)$row['cat_id']]=$row;}
-  if(!isset($present[-1],$present[$new_cat])||$present[$new_cat]['cat_type']==='l'){$this->storage_fail('no_cat_data');}
+  $new_cat=(int)$values['cat_id'];$old_cat=$old?(int)$old['cat_id']:-1;$present=$this->game_category_topology();
+  $old_targets=$this->game_play_categories($old_cat,$present);$new_targets=$this->game_play_categories($new_cat,$present,true);
+  $cats=array_keys($old_targets+$new_targets);sort($cats,SORT_NUMERIC);
   $affected=array();if($ranking_change&&$old){foreach(array('highscore_id','at_highscore_id')as$key){if((int)$old[$key]>0){$affected[]=(int)$old[$key];}}foreach(array(iNA_SCORES,iNA_AT_SCORES)as$table){foreach($this->ranked_players($table,(string)$old['game_name'],!empty($old['reverse_list']))as$row){if((int)$row['player_id']>0){$affected[]=(int)$row['player_id'];}}}}
   $assign=array();foreach($values as$key=>$value){$assign[]=$key."='".$this->escape($value)."'";}
   if($old){$this->query('UPDATE '.iNA_GAMES.' SET '.implode(',',$assign).' WHERE game_id='.$this->game_id);$id=$this->game_id;}
   else{$this->query('INSERT INTO '.iNA_GAMES.' SET '.implode(',',$assign).',date_added='.time());$id=$this->connection->sql_nextid();if(!preg_match('/^[1-9][0-9]{0,7}$/D',(string)$id)||(float)$id>8388607){$this->storage_fail();}$id=(int)$id;}
   if($renaming){$old_name=$this->escape((string)$old['game_name']);foreach(phpbb_arcade_game_references()as$ref){$this->query('UPDATE '.$ref[0].' SET '.$ref[1]."='$name' WHERE ".$ref[1]."='$old_name'");}}
   $deltas=array();foreach($cats as$cat){$deltas[$cat]=array('games'=>0,'played'=>'0');}
-  if($old&&!empty($old['game_avail'])){$deltas[-1]['games']--;if($old_cat>0&&isset($present[$old_cat])){$deltas[$old_cat]['games']--;}}
+  if($old&&!empty($old['game_avail'])){$deltas[-1]['games']--;if($old_cat>0&&isset($old_targets[$old_cat])){$deltas[$old_cat]['games']--;}}
   if((int)$values['game_avail']){$deltas[-1]['games']++;if($new_cat>0){$deltas[$new_cat]['games']++;}}
-  if($old&&$old_cat!==$new_cat){$played=(string)$old['played'];if(!preg_match('/^[0-9]{1,10}$/D',$played)||(float)$played>4294967295){$this->storage_fail();}if($old_cat>0&&isset($present[$old_cat])){$deltas[$old_cat]['played']='-'.$played;}if($new_cat>0){$deltas[$new_cat]['played']=$played;}}
-  foreach($deltas as$cat=>$delta){$set=array();if($delta['games']){$set[]=$delta['games']>0?'total_games=total_games+1':'total_games=GREATEST(total_games-1,0)';}if((float)$delta['played']!==0.0){$set[]=substr($delta['played'],0,1)==='-'?'total_played=GREATEST(total_played'.$delta['played'].',0)':'total_played=total_played+'.$delta['played'];}if($set){$this->query('UPDATE '.iNA_CAT.' SET '.implode(',',$set).' WHERE cat_id='.(int)$cat);}}
+  if($old&&$old_cat!==$new_cat){$played=$this->game_play_count($old);if($played!=='0'){
+   foreach(array_diff_key($old_targets,$new_targets)as$cat=>$unused){$deltas[$cat]['played']='-'.$played;}
+   foreach(array_diff_key($new_targets,$old_targets)as$cat=>$unused){$deltas[$cat]['played']=$played;}
+  }}
+  foreach($deltas as$cat=>$delta){$set=array();if($delta['games']){$set[]=$delta['games']>0?'total_games=total_games+1':$this->game_counter_subtract('total_games','1');}if($delta['played']!=='0'){$set[]=substr($delta['played'],0,1)==='-'?$this->game_counter_subtract('total_played',substr($delta['played'],1)):'total_played=total_played+'.$delta['played'];}if($set){$this->query('UPDATE '.iNA_CAT.' SET '.implode(',',$set).' WHERE cat_id='.(int)$cat);}}
   if($ranking_change){
    foreach(array('current'=>array(iNA_SCORES,'highscore_id'),'all_time'=>array(iNA_AT_SCORES,'at_highscore_id'))as$key=>$target){
     if($reset[$key]){$this->query('DELETE FROM '.$target[0]." WHERE game_name='$name'");}

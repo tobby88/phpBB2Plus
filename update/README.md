@@ -1,5 +1,20 @@
 # Database updates and maintenance
 
+Rebuild existing Arcade category totals with a verified backup and all web/cron
+writers stopped:
+
+```sh
+php update/update_from_153a.php --arcade-counters-only
+php update/update_from_153a.php --arcade-counters-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+The full updater includes this repair. It counts available games in their direct
+categories and historical plays, including offline games, in each direct and
+parent category. Games, scores, category metadata and external-link visits stay
+unchanged. Repairs commit together and repeating the repair is a no-op. Custom
+category triggers or invalid topology require review before applying it. The
+derived category cache is cleared after application.
+
 Before deploying the private Arcade game-progress reader/writer, preview and
 apply its schema/data migration with all web/cron writers stopped and a current
 verified backup:
