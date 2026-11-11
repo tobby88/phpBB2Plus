@@ -77,7 +77,9 @@ class PhpbbArcadeActionWriter extends PhpbbArcadeGameWriter
         $rows = $this->rows('SELECT * FROM '.iNA_GAMES.' WHERE game_id='.$this->game_id.' FOR UPDATE');
         if (count($rows) !== 1 || !hash_equals(phpbb_arcade_game_revision($rows[0]), $revision)) { $this->storage_fail('arcade_game_changed'); }
         $game = $rows[0]; $name = $this->identity_name($game); $category = (int)$game['cat_id'];
-        $present = $this->game_category_topology();
+        $history_games=array();foreach($this->rows('SELECT game_id,game_name,cat_id,game_avail FROM '.iNA_GAMES.' ORDER BY game_id FOR UPDATE')as$row){$history_games[(int)$row['game_id']]=$row;}
+        $present = $this->game_category_topology(true);
+        $resolved=phpbb_arcade_last_play_resolved($this->rows(phpbb_arcade_last_play_resolution_sql(iNA_CAT,iNA_GAMES)));
         $wanted = array_keys($this->game_play_categories($category, $present));
         $played = $this->game_play_count($game);
         $players = $this->affected_players(array($game), array(iNA_SCORES=>'highscore_id', iNA_AT_SCORES=>'at_highscore_id'));
@@ -90,7 +92,6 @@ class PhpbbArcadeActionWriter extends PhpbbArcadeGameWriter
         }
         $this->query('DELETE FROM '.iNA_FAV.' WHERE fav_game_id='.$this->game_id." OR fav_game_name='$name'");
         foreach (array(array(iNA_TOUR_PLAY,'last_played_game'), array(iNA_USER_DATA,'last_played')) as $ref) { $this->query('UPDATE '.$ref[0].' SET '.$ref[1]."=NULL WHERE ".$ref[1]."='$name'"); }
-        $this->query('UPDATE '.iNA_CAT." SET last_game=NULL,last_player=NULL,last_time=NULL WHERE last_game='$name'");
         $this->query('DELETE FROM '.iNA_GAMES.' WHERE game_id='.$this->game_id);
         if ((int)$this->connection->sql_affectedrows() !== 1) { $this->storage_fail('arcade_game_changed'); }
         foreach ($wanted as $id) {
@@ -100,6 +101,11 @@ class PhpbbArcadeActionWriter extends PhpbbArcadeGameWriter
             if (!empty($game['game_avail']) && ($id === -1 || $id === $category)) { $set .= ','.$this->game_counter_subtract('total_games', '1'); }
             $this->query('UPDATE '.iNA_CAT.' SET '.$set.' WHERE cat_id='.$id);
         }
+        unset($history_games[$this->game_id]);$scopes=array_fill_keys($wanted,true);
+        foreach($resolved as$source=>$id){if($id===$this->game_id){$scopes[$source]=true;}}
+        $history=phpbb_arcade_last_play_plan($present,$history_games,$resolved,$scopes);
+        foreach($resolved as$source=>$id){if($id===$this->game_id&&$present[$source]['cat_type']==='l'){$history[$source]=array('last_game'=>null,'last_player'=>null,'last_time'=>null);}}
+        foreach($history as$id=>$metadata){$set=array();foreach($metadata as$key=>$value){$set[]=$key.'='.($value===null?'NULL':"'".$this->escape($value)."'");}$this->query('UPDATE '.iNA_CAT.' SET '.implode(',',$set).' WHERE cat_id='.(int)$id);}
         $this->rebuild_rankings($players);
         $this->commit_attempted = true; $this->commit(); return array('removed'=>true, 'id'=>$this->game_id);
     }

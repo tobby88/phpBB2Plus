@@ -26,12 +26,14 @@ function phpbb_arcade_last_play_resolved($rows)
  $matches=array();foreach($rows as$row){$id=(int)$row['source_cat'];if($row['game_id']!==null){$matches[$id][]=(int)$row['game_id'];}}
  $resolved=array();foreach($matches as$id=>$games){if(count($games)===1){$resolved[$id]=$games[0];}}return $resolved;
 }
-function phpbb_arcade_last_play_plan($categories,$games,$resolved,$affected=null,$renamed=array())
+function phpbb_arcade_last_play_plan($categories,$games,$resolved,$affected=null,$renamed=array(),$snapshots=null)
 {
  // Only existing snapshots supply a player/time. Offline history remains
  // stored; the request's renderer decides whether it can provide a game link.
- ksort($categories,SORT_NUMERIC);$candidates=array();
- foreach($categories as$source=>$row){
+ // Category deletion/type changes need their pre-change snapshots as sources,
+ // while destination eligibility must use the current topology exclusively.
+ ksort($categories,SORT_NUMERIC);$candidates=array();if($snapshots===null){$snapshots=$categories;}ksort($snapshots,SORT_NUMERIC);
+ foreach($snapshots as$source=>$row){
   if(!in_array($row['cat_type'],array('p','s'),true)||!isset($resolved[$source],$games[$resolved[$source]],$row['last_game'],$row['last_player'],$row['last_time'])||!is_string($row['last_game'])||$row['last_game']===''||!phpbb_arcade_last_play_player($row['last_player'])){continue;}
   $time=phpbb_arcade_last_play_time($row['last_time']);if($time===null){continue;}$game_id=$resolved[$source];
   $candidates[]=array('source'=>$source,'game'=>$game_id,'last_game'=>isset($renamed[$game_id])?$renamed[$game_id]:$row['last_game'],'last_player'=>(string)$row['last_player'],'last_time'=>$time);

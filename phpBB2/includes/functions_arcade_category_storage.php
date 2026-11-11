@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__).'/functions_arcade_import_storage.php';
 require_once dirname(__FILE__).'/functions_username.php';
+require_once dirname(__FILE__).'/functions_arcade_last_play.php';
 
 function phpbb_arcade_category_fields()
 {
@@ -71,7 +72,7 @@ class PhpbbArcadeCategoryWriter extends PhpbbArcadeImportWriter
 {
     protected function actor(){global$phpEx;return phpbb_acp_actor($this,'admin_arcade_cats.'.$phpEx);}
     protected function storage_tables(){return array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,iNA_GAMES,iNA_CAT,GROUPS_TABLE);}
-    protected function counters($nodes,$before)
+    protected function counters($nodes,$before,$resolved)
     {
         // Visible game counts are direct assignments, matching category lists.
         // Historical plays include offline games and, for a parent, its child
@@ -79,13 +80,16 @@ class PhpbbArcadeCategoryWriter extends PhpbbArcadeImportWriter
         $groups=$this->rows('SELECT cat_id,COUNT(CASE WHEN game_avail=1 THEN 1 END) games,COALESCE(SUM(CAST(played AS DECIMAL(20,0))),0) plays FROM '.iNA_GAMES.' WHERE game_id<>0 GROUP BY cat_id');
         $totals=array();foreach($nodes as$id=>$row){$totals[$id]=array('games'=>'0','plays'=>'0');}
         foreach($groups as$row){$cat=(int)$row['cat_id'];$totals[-1]['games']=phpbb_arcade_category_sum($totals[-1]['games'],$row['games']);$totals[-1]['plays']=phpbb_arcade_category_sum($totals[-1]['plays'],$row['plays']);if($cat>0&&isset($nodes[$cat])&&$nodes[$cat]['cat_type']!=='l'){$totals[$cat]['games']=(string)$row['games'];$totals[$cat]['plays']=phpbb_arcade_category_sum($totals[$cat]['plays'],$row['plays']);$parent=(int)$nodes[$cat]['cat_parent'];if($parent>0){$totals[$parent]['plays']=phpbb_arcade_category_sum($totals[$parent]['plays'],$row['plays']);}}}
-        $games=array();foreach($before as$candidate){$name=$candidate['last_game'];if($name!==null&&!array_key_exists($name,$games)){$match=$this->rows('SELECT cat_id FROM '.iNA_GAMES." WHERE game_name='".$this->escape($name)."' AND game_id<>0 LIMIT 2");$games[$name]=count($match)===1?(int)$match[0]['cat_id']:null;}}
+        $games=array();foreach($this->rows('SELECT game_id,game_name,cat_id,game_avail FROM '.iNA_GAMES.' ORDER BY game_id')as$game){$games[(int)$game['game_id']]=$game;}
+        $history=phpbb_arcade_last_play_plan($nodes,$games,$resolved,null,array(),$before);
         foreach($nodes as$id=>$row){
             if($row['cat_type']==='l'){$totals[$id]['plays']=isset($before[$id])&&$before[$id]['cat_type']==='l'?(string)$before[$id]['total_played']:'0';}
             if(strlen($totals[$id]['games'])>10||(float)$totals[$id]['games']>4294967295){$this->storage_fail();}
-            $latest=$row['cat_type']==='l'&&isset($before[$id])&&$before[$id]['cat_type']==='l'?$before[$id]:null;if($row['cat_type']!=='l'){foreach($before as$candidate){$name=$candidate['last_game'];if($name===null||!isset($games[$name])){continue;}$cat=$games[$name];$belongs=$id===-1||$cat===$id||($cat>0&&isset($nodes[$cat])&&(int)$nodes[$cat]['cat_parent']===$id);if($belongs&&(int)$candidate['last_time']>0&&($latest===null||(int)$candidate['last_time']>(int)$latest['last_time'])){$latest=$candidate;}}}
             $set="total_games='".$totals[$id]['games']."',total_played='".$totals[$id]['plays']."'";
-            foreach(array('last_game','last_player','last_time')as$key){$value=$latest===null?null:$latest[$key];$set.=','.$key.'='.($value===null?'NULL':"'".$this->escape((string)$value)."'");}
+            // Link visits have no gameplay identity. Preserve existing link
+            // metadata, but clear game snapshots on conversion to a link.
+            if($row['cat_type']==='l'&&(!isset($before[$id])||$before[$id]['cat_type']!=='l')){$history[$id]=array('last_game'=>null,'last_player'=>null,'last_time'=>null);}
+            if(isset($history[$id])){foreach($history[$id]as$key=>$value){$set.=','.$key.'='.($value===null?'NULL':"'".$this->escape($value)."'");}}
             $this->query('UPDATE '.iNA_CAT.' SET '.$set.' WHERE cat_id='.$id);
         }
     }
@@ -98,6 +102,9 @@ class PhpbbArcadeCategoryWriter extends PhpbbArcadeImportWriter
         $rows=$this->rows('SELECT * FROM '.iNA_CAT.' ORDER BY cat_id FOR UPDATE');
         if(!hash_equals(phpbb_arcade_category_tree_revision($rows),$input['tree_revision'])){$this->storage_fail('arcade_category_changed');}
         $layout=phpbb_arcade_category_layout($rows,$input['operation']==='resync');$nodes=$layout['rows'];$before=array();foreach($rows as$row){$before[(int)$row['cat_id']]=$row;}
+        // Resolve identities before deleting a category or changing its type;
+        // its last known event can still belong to a surviving destination.
+        $resolved=phpbb_arcade_last_play_resolved($this->rows(phpbb_arcade_last_play_resolution_sql(iNA_CAT,iNA_GAMES)));
         $id=$input['id'];$operation=$input['operation'];$recount=$operation==='resync';$game_change=false;
         if($id&&(!isset($nodes[$id])||!hash_equals(phpbb_arcade_category_revision($nodes[$id]),$input['revision']))){$this->storage_fail('arcade_category_changed');}
         if($operation==='save'){
@@ -130,7 +137,7 @@ class PhpbbArcadeCategoryWriter extends PhpbbArcadeImportWriter
         // category identities. Moving a parent always carries its children.
         $order=array(-1);foreach($layout['roots']as$cat){$order[]=$cat;if(isset($layout['children'][$cat])){foreach($layout['children'][$cat]as$child){$order[]=$child;}}}
         foreach($order as$position=>$cat){$nodes[$cat]['cat_order']=(string)$position;$assign=array();foreach(array('cat_name','cat_desc','cat_icon','special_play','group_required','mod_id','cat_type','cat_parent','cat_order')as$key){$value=$nodes[$cat][$key];if(isset($before[$cat])&&$value===$before[$cat][$key]){continue;}$assign[]=$key.'='.($value===null?'NULL':"'".$this->escape((string)$value)."'");}if($assign){$this->query('UPDATE '.iNA_CAT.' SET '.implode(',',$assign).' WHERE cat_id='.$cat);}}
-        if($recount){$this->counters($nodes,$before);}
+        if($recount){$this->counters($nodes,$before,$resolved);}
         $this->commit_attempted=true;$this->commit();return array('operation'=>$operation,'id'=>$id,'games_changed'=>$game_change);
     }
 }

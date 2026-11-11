@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve valid Arcade history across category and game deletion
+
+- Use the same snapshot rules for category resync, reparenting, conversion and
+  deletion. Link visits and incomplete gameplay snapshots cannot replace a
+  valid known event; equally recent local metadata keeps its original bytes.
+- Retain a deleted category's known event in surviving scopes after reassigning
+  its games, and fall back to known remaining gameplay when deleting a game.
+  Keep the current topology, game identity and rollback guarantees throughout.
+
 ### Current Arcade last-play scope and links
 
 - Move known last-play snapshots with games, including combined renames and

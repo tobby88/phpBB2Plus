@@ -9,7 +9,8 @@ php update/update_from_153a.php --arcade-last-play-only --apply --backup-confirm
 
 The full updater includes this repair after counter reconciliation. It relocates
 known events to their current direct/parent/global scopes, retaining recorded
-times and players. Missing or ambiguous game identities are cleared from the
+times and players. Link visits and incomplete snapshots do not supply gameplay
+events. Missing or ambiguous game identities are cleared from the
 derived last-play fields; no replacement history is invented. Games, scores,
 totals and link-category metadata stay unchanged. Application is atomic and
 repeatable, and clears the category cache after successful application.
