@@ -40,6 +40,7 @@ require('pagestart.' . $phpEx);
 //  Load the Arcade required files
 //
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+require_once dirname(__DIR__).'/includes/functions_arcade_tournament_manage.php';
 //
 //  Check the phpBB Arcade Mod version
 //
@@ -77,42 +78,20 @@ if (isset($HTTP_POST_VARS['delete_tour']) && is_scalar($HTTP_POST_VARS['delete_t
 if(isset($HTTP_POST_VARS['tour_submit']))
 {
   phpbb_admin_require_post_session();
-  $sql = "SELECT * FROM " . iNA . "
-  	WHERE config_name IN('games_tournament_mode','games_tournament_max','games_tournament_games','games_tournament_players', 'games_tournament_user')";
-  if( !$result = $db->sql_query($sql) )
+  try
   {
-  	message_die(CRITICAL_ERROR, $lang['no_config_data'], '', __LINE__, __FILE__, $sql);
+    $settings = array();
+    foreach (phpbb_arcade_tournament_setting_keys() as $key)
+    {
+      if (array_key_exists($key,$HTTP_POST_VARS)) { $settings[$key]=$HTTP_POST_VARS[$key]; }
+    }
+    phpbb_arcade_tournament_manage($db,'settings',0,$settings,true);
   }
-	while( $row = $db->sql_fetchrow($result) )
-	{
-//
-//  Build Array for database updates
-//
-		$config_name = $row['config_name'];
-		$config_value = $row['config_value'];
-		$default_config[$config_name] = $config_value;
-//
-//  next update the different Cache settings
-//
-		$new[$config_name] = (isset($HTTP_POST_VARS[$config_name]) && is_scalar($HTTP_POST_VARS[$config_name])) ? max(0, intval($HTTP_POST_VARS[$config_name])) : $default_config[$config_name];
-		if (in_array($config_name, array('games_tournament_max', 'games_tournament_games'), true)) { $new[$config_name] = min(10000, max(1, (int) $new[$config_name])); }
-		if ($config_name === 'games_tournament_players') { $new[$config_name] = min(10000, max(2, (int) $new[$config_name])); }
-		if ($config_name === 'games_tournament_user') { $new[$config_name] = $new[$config_name] ? 1 : 0; }
-
-		$sql = "UPDATE " . iNA . "
-  			SET config_value = '" . ($new[$config_name]) . "'
-			WHERE config_name = '$config_name'";
-		
-  	if(!$db->sql_query($sql))
-  	{
-  		message_die(GENERAL_ERROR, $lang['no_config_update'] . $config_name, '', __LINE__, __FILE__, $sql);
-  	}
+  catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+  catch (PhpbbOwnedStorageFailure $error)
+  {
+    $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['no_config_update']);
   }
-//
-//  Clear the cached copy of the config
-//
-  $arcade->clear_cache('config');
-
 	$message = $lang['admin_config_updated'];
 	$message .= sprintf($lang['admin_return_arcade'], "<a href=\"" . append_sid($file) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 	message_die(GENERAL_MESSAGE, $message);
@@ -132,70 +111,23 @@ else if(isset($HTTP_POST_VARS['add_tour_submit']))
   {
     message_die(GENERAL_MESSAGE, $lang['error_no_tour_info']);
   }
-  $block_plays = $arcade->pass_var('block_plays', 0) ? 1 : 0;
-  $tour_active = max(0, min(3, (int) $arcade->pass_var('tour_active', 0)));
-  $tour_max_players = (int) $arcade->pass_var('tour_max_players', 0);
-	$maximum_players = max(2, (int) $arcade->arcade_config['games_tournament_players']);
-  if($tour_max_players < 2)
+  try
   {
-    $tour_max_players = $maximum_players;
+    $tour_id = phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'id');
+    $values = array('name'=>$tour_name,'desc'=>$tour_desc,
+      'players'=>phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'tour_max_players'),
+      'turns'=>phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'tour_player_turns'),
+      'block'=>phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'block_plays'),
+      'active'=>phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'tour_active'));
+    $revision = phpbb_arcade_score_request($HTTP_POST_VARS,'tour_revision','');
+    $saved = phpbb_arcade_tournament_manage($db,'save',$tour_id,$values,true,$revision);
+    $message = $saved['created'] ? $lang['admin_tournament_added'] : $lang['admin_tournament_updated'];
   }
-  if($tour_max_players > $maximum_players)
+  catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+  catch (PhpbbOwnedStorageFailure $error)
   {
-    $tour_max_players = $maximum_players;
+    $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['no_tour_update']);
   }
-  $tour_player_turns = min(10000, (int) $arcade->pass_var('tour_player_turns', 0));
-  if($tour_player_turns < 1)
-  {
-    $tour_player_turns = 1;
-  }
-
-  if($tour_id > 0)
-  {
-	$sql = "SELECT tour_id FROM " . iNA_TOUR . " WHERE tour_id = $tour_id";
-	$result = $db->sql_query($sql);
-	if (!$result || !$db->sql_fetchrow($result))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-	}
-//
-//  Update OLD Tournament
-//
-    $sql = "UPDATE " . iNA_TOUR . "
-        SET tour_name = '" . $db->sql_escape($tour_name) . "', tour_desc = '" . $db->sql_escape($tour_desc) . "', block_plays = $block_plays, tour_active = $tour_active, tour_max_players = $tour_max_players, tour_player_turns = $tour_player_turns
-      WHERE tour_id = $tour_id";
-  	$message = $lang['admin_tournament_updated'];
-  }
-  else
-  {
-	$maximum_tournaments = max(1, (int) $arcade->arcade_config['games_tournament_max']);
-	$sql = "SELECT COUNT(*) AS total FROM " . iNA_TOUR . " WHERE tour_active <> 3";
-	if (!$result = $db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-	}
-	$active_tournaments = $db->sql_fetchrow($result);
-	if ((int) $active_tournaments['total'] >= $maximum_tournaments)
-	{
-		message_die(GENERAL_MESSAGE, $lang['error_no_tour_info']);
-	}
-//
-//  New Tournmament
-//
-    $sql = "INSERT INTO " . iNA_TOUR . " (tour_name, tour_desc, block_plays, tour_active, tour_max_players, tour_player_turns, start_id, start_date)
-      VALUES ('" . $db->sql_escape($tour_name) . "', '" . $db->sql_escape($tour_desc) . "', $block_plays, $tour_active, $tour_max_players, $tour_player_turns, ".(int) $userdata['user_id'].", ". time() .")";
- 
-  	$message = $lang['admin_tournament_added'];
-  }
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-//
-//  Force update of cache files
-//
-  $arcade->clear_cache('tournaments');
-
 	$message .= sprintf($lang['admin_return_arcade'], "<a href=\"" . append_sid($file) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
 /*******************************************************************************
@@ -598,7 +530,7 @@ $template->assign_vars(array(
 		'S_USER_START_YES' => ($arcade->arcade_config['games_tournament_user'] ? 'checked=checked' : ''),
 		'S_USER_START_NO' => ($arcade->arcade_config['games_tournament_user'] ? '' : 'checked=checked'),
 		
-		'S_HIDDEN_ADD' => '<input type="hidden" name="id" value="'.(int) $tour_id.'">',
+		'S_HIDDEN_ADD' => '<input type="hidden" name="id" value="'.(int) $tour_id.'"><input type="hidden" name="tour_revision" value="'.(isset($tour_info['tour_id']) ? phpbb_arcade_tournament_revision($tour_info) : '').'">',
 		'S_FORM_TOKEN' => phpbb_admin_session_field(),
 		'S_ACTION' => append_sid($file),
 		'S_CONFIG_ACTION' => append_sid($file)

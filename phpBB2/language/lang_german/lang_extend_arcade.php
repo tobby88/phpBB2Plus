@@ -526,6 +526,9 @@ $lang['arcade_points_generated'] = 'Liste in %.4f Sekunden erstellt.';
 $lang['arcade_launch_failed'] = 'Der Spielstart konnte nicht vollständig gespeichert werden. Bitte öffne die Spielhalle erneut.';
 $lang['arcade_submission_failed'] = 'Das Spielergebnis konnte nicht vollständig gespeichert werden. Bitte prüfe die Bestenliste, bevor du es erneut versuchst.';
 $lang['arcade_launch_funds'] = 'Dein Guthaben reicht für dieses Spiel nicht aus.';
+$lang['arcade_tournament_changed'] = 'Das Turnier wurde inzwischen geändert. Bitte öffne es erneut, bevor du deine Änderungen speicherst.';
+$lang['arcade_tournament_limit'] = 'Die Höchstzahl noch nicht abgeschlossener Turniere ist erreicht.';
+$lang['arcade_tournament_capacity'] = 'Die Teilnehmergrenze darf nicht kleiner als die Zahl der bereits angemeldeten Teilnehmer sein.';
 // TFFT - The End...!
 //
 

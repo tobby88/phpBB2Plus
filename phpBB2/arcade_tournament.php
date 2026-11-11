@@ -131,12 +131,8 @@ else if(!empty($HTTP_POST_VARS['submit']))
 {
   arcade_public_tournament_require_token($userdata, $lang);
 //
-//  Check to make sure a user isn't trying to create a tournament when the option is OFF
+//  Validate the submitted captions before opening the owned writer.
 //
-  if($arcade->arcade_config['games_tournament_user'] == 0)
-  {
-    message_die(GENERAL_MESSAGE, $lang['arcade_admin_only'].$lang['tour_return']);
-  }
 	$tour_name = (isset($HTTP_POST_VARS['tour_name']) && is_scalar($HTTP_POST_VARS['tour_name'])) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])) : '';
 	$tour_desc = (isset($HTTP_POST_VARS['tour_desc']) && is_scalar($HTTP_POST_VARS['tour_desc'])) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])) : '';
 	if (phpbb_arcade_text_limit($tour_name, 65535) === null || phpbb_arcade_text_limit($tour_desc, 65535) === null)
@@ -151,57 +147,24 @@ else if(!empty($HTTP_POST_VARS['submit']))
   {
     message_die(GENERAL_MESSAGE, $lang['error_no_tour_info'].$lang['tour_return']);
   }
-  $sql = "SELECT COUNT(*) AS total FROM " . iNA_TOUR . " WHERE tour_active <> 3";
-  if (!$result = $db->sql_query($sql))
+  // Save the event and its initial membership together using current limits.
+  require_once dirname(__FILE__).'/includes/functions_arcade_tournament_manage.php';
+  try
   {
-    message_die(GENERAL_ERROR, $lang['no_tour_data'], '', __LINE__, __FILE__, $sql);
+    $values = array('name'=>$tour_name,'desc'=>$tour_desc,
+      'players'=>phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'tour_max_players'),
+      'turns'=>phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'tour_player_turns'),
+      'block'=>phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'block_plays'),'active'=>0);
+    $saved = phpbb_arcade_tournament_manage($db,'save',0,$values);
+    $tour_id = $saved['id'];
   }
-  $active_tours = $db->sql_fetchrow($result);
-  if ((int) $active_tours['total'] >= (int) $arcade->arcade_config['games_tournament_max'])
+  catch (PhpbbOwnedStorageFailure $error)
   {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised'] . $lang['tour_return']);
+    $key = $error->getMessage();
+    message_die(GENERAL_MESSAGE,(isset($lang[$key])?$lang[$key]:$lang['no_tour_data']).$lang['tour_return']);
   }
-  $block_plays = $arcade->pass_var('block_plays', 0);
-  $tour_max_players = $arcade->pass_var('tour_max_players', 0);
-  $tour_active = 0;
-  if($tour_max_players < 2)
-  {
-    $tour_max_players = $arcade->arcade_config['games_tournament_players'];
-  }
-  if($tour_max_players > $arcade->arcade_config['games_tournament_players'])
-  {
-    $tour_max_players = $arcade->arcade_config['games_tournament_players'];
-  }
-  $tour_player_turns = $arcade->pass_var('tour_player_turns', 0);
-  if($tour_player_turns < 1)
-  {
-    $tour_player_turns = 1;
-  }
-  $block_plays = $block_plays ? 1 : 0;
-  $tour_max_players = (int) $tour_max_players;
-  $tour_player_turns = (int) $tour_player_turns;
-  $sql = "INSERT INTO " . iNA_TOUR . " (tour_name, tour_desc, block_plays, tour_active, tour_max_players, tour_player_turns, start_id, start_date)
-      VALUES ('" . $db->sql_escape($tour_name) . "', '" . $db->sql_escape($tour_desc) . "', $block_plays, $tour_active, $tour_max_players, $tour_player_turns, ".(int) $userdata['user_id'].", ". time() .")";
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-
-  $tour_id = (int) $db->sql_nextid();
-  if ($tour_id <= 0)
-  {
-    message_die(GENERAL_ERROR, $lang['no_tour_data']);
-  }
-  
-  $sql = "INSERT INTO ". iNA_TOUR_PLAY . " (tour_id, user_id) 
-      VALUES ($tour_id, ".(int) $userdata['user_id'].")";
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-
  	$message = $lang['tour_added'];
-  $message .= ($userdata['user_level'] == ADMIN) ? $lang['tour_invite_players'] : $lang['tour_invite_players'];
+  $message .= $lang['tour_invite_players'];
   $message .= $lang['tour_add_games'].$lang['tour_return'];
 	message_die(GENERAL_MESSAGE, $message);
 }

@@ -15,7 +15,7 @@ function phpbb_arcade_tournament_join_ids($ids)
     return array_values($out);
 }
 
-function phpbb_arcade_tournament_join_request()
+function phpbb_arcade_tournament_require_request()
 {
     global $userdata, $HTTP_POST_VARS;
     if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD']!=='POST'
@@ -37,7 +37,7 @@ class PhpbbArcadeTournamentJoinWriter extends PhpbbOwnedStore
     {
         return array(USERS_TABLE, SESSIONS_TABLE, iNA, GROUPS_TABLE, USER_GROUP_TABLE, iNA_CAT, iNA_TOUR, iNA_TOUR_PLAY, iNA_LOG);
     }
-    function join($ids)
+    protected function current_actor($admin = false)
     {
         global $userdata;
         $user = (int)$userdata['user_id']; $sid = $this->escape($userdata['session_id']);
@@ -45,13 +45,32 @@ class PhpbbArcadeTournamentJoinWriter extends PhpbbOwnedStore
         $actors = $this->rows('SELECT user_id,user_active,user_level,user_posts,user_rank,arcade_banned FROM '.USERS_TABLE.' WHERE user_id='.$user.' LOCK IN SHARE MODE');
         if (count($sessions)!==1 || (int)$sessions[0]['session_user_id']!==$user || (int)$sessions[0]['session_logged_in']!==1
             || count($actors)!==1 || empty($actors[0]['user_active'])) { $this->storage_fail('Not_Authorised'); }
+        if ($admin) {
+            $this->rows('SELECT user_id FROM '.JR_ADMIN_TABLE.' WHERE user_id='.$user.' LOCK IN SHARE MODE');
+            global $phpEx;
+            return phpbb_acp_actor($this, 'admin_arcade_tournaments.'.$phpEx);
+        }
+        return $actors[0];
+    }
+    protected function settings($exclusive = false)
+    {
         $settings = array();
-        foreach ($this->rows('SELECT config_name,config_value FROM '.iNA.' ORDER BY config_name LOCK IN SHARE MODE') as $row) { $settings[$row['config_name']] = $row['config_value']; }
-        if (!empty($settings['games_mod_ban_users']) && (int)$actors[0]['user_level']!==ADMIN && !empty($actors[0]['arcade_banned'])) { $this->storage_fail('Not_Authorised'); }
+        foreach ($this->rows('SELECT config_name,config_value FROM '.iNA.' ORDER BY config_name'.($exclusive?' FOR UPDATE':' LOCK IN SHARE MODE')) as $row) { $settings[$row['config_name']] = $row['config_value']; }
+        return $settings;
+    }
+    protected function public_access($actor, $settings)
+    {
+        if (!empty($settings['games_mod_ban_users']) && (int)$actor['user_level']!==ADMIN && !empty($actor['arcade_banned'])) { $this->storage_fail('Not_Authorised'); }
         // Joining has no game-specific requirements, but must obey the same
         // current global and all-games-category access as playing a game.
-        phpbb_arcade_current_access($this, $settings, $actors[0], array('allow_guest'=>0, 'rank_required'=>0,
+        phpbb_arcade_current_access($this, $settings, $actor, array('allow_guest'=>0, 'rank_required'=>0,
             'level_required'=>0, 'group_required'=>0, 'cat_id'=>-1));
+    }
+    function join($ids)
+    {
+        global $userdata;
+        $user = (int)$userdata['user_id'];
+        $actor = $this->current_actor(); $settings = $this->settings(); $this->public_access($actor, $settings);
         $ordered = $ids; sort($ordered, SORT_NUMERIC); $tours = array();
         foreach ($this->rows('SELECT tour_id,tour_name,tour_active,tour_max_players FROM '.iNA_TOUR.' WHERE tour_id IN ('.implode(',', $ordered).') ORDER BY tour_id FOR UPDATE') as $row) {
             $tours[(int)$row['tour_id']] = $row;
@@ -86,7 +105,7 @@ class PhpbbArcadeTournamentJoinWriter extends PhpbbOwnedStore
 function phpbb_arcade_tournament_join($database, $ids)
 {
     global $arcade, $phpbb_root_path;
-    $ids = phpbb_arcade_tournament_join_ids($ids); phpbb_arcade_tournament_join_request();
+    $ids = phpbb_arcade_tournament_join_ids($ids); phpbb_arcade_tournament_require_request();
     if (!$ids) { return array(); }
     $writer = null;
     try { $writer = new PhpbbArcadeTournamentJoinWriter($database, 0); return $writer->join($ids); }

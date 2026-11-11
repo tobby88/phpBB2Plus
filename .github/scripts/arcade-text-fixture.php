@@ -17,7 +17,7 @@ function ax_input($surface,$variable,$key,$raw)
 function ax_public($name,$description)
 {
  global $as_app,$HTTP_POST_VARS,$lang;profile_fixture_request(array('tour_name'=>$name,'tour_desc'=>$description));
- $source=file_get_contents($as_app.'arcade_tournament.php');$a=strpos($source,"\t\$tour_name = (isset(");$b=strpos($source,'  $sql = "SELECT COUNT(*) AS total FROM',$a);
+ $source=file_get_contents($as_app.'arcade_tournament.php');$a=strpos($source,"\t\$tour_name = (isset(");$b=strpos($source,'  // Save the event and its initial membership',$a);
  as_check($a!==false&&$b>$a,'Actual public tournament validation pipeline');eval(substr($source,$a,$b-$a));return array($tour_name,$tour_desc);
 }
 function ax_moderator_source()

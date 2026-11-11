@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic Arcade tournament creation and editing
+
+- Commit a public tournament, its creator membership and optional audit
+  together. Recheck current creation permission, Arcade access and configured
+  event/player limits instead of trusting the request's cached settings.
+- Share the same event limits with ACP creation and reactivation. Reject
+  outdated edit forms and capacities below the existing participant count.
+- Save tournament settings atomically with current root/delegated ACP rights.
+  Keep tournament limit changes in their own settings page, avoiding an unused
+  alternate write path in general Arcade configuration. Existing tables suffice.
+
 ### Atomic Arcade tournament enrolment
 
 - Reserve tournament seats in an owned transaction with current session,
