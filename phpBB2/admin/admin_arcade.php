@@ -69,131 +69,29 @@ $mode = in_array($mode, array('', 'switches', 'messages'), true) ? $mode : '';
 //
 if ( !$mode || $mode == 'switches' || $mode == 'messages' )
 {
-  $posted_point_system = !empty($HTTP_POST_VARS['use_point_system']);
-  $posted_cash_system = !empty($HTTP_POST_VARS['use_cash_system']);
-  $posted_allowance_system = !empty($HTTP_POST_VARS['use_allowance_system']);
-  if ($submit && (($posted_point_system && $posted_cash_system) || ($posted_point_system && $posted_allowance_system) || ($posted_cash_system && $posted_allowance_system)))
+  if ($submit)
   {
-    $message = $lang['admin_arcade_reward_error'];
-		$message .= sprintf($lang['admin_return_arcade'], "<a href=\"" . append_sid("admin_arcade.$phpEx?mode=".$new_mode) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-		message_die(GENERAL_MESSAGE, $message, '', __LINE__, __FILE__, $sql);
-  }  
-
-	$sql = "SELECT * FROM " . iNA . "
-		WHERE config_name IN('use_point_system','use_gamelib','games_path','gamelib_path','use_gk_shop','games_per_page','warn_cheater','report_cheater','use_cash_system','use_rewards_mod','use_allowance_system','default_reward_dbfield','default_cash','games_default_img','games_default_txt','games_offline','games_no_guests','games_tournament_mode','games_default_id','games_cheat_mode','games_per_admin_page','games_image_width','games_image_height','games_auto_size','games_guest_highscore','games_at_highscore','games_show_stats','games_moderators_mode','games_mod_offline','games_mod_ban_users','games_posts_required','games_rank_required','games_group_required','games_use_pms', 'games_total_top', 'games_new_games', 'games_cat_zero', 'games_comments', 'games_rate', 'games_cat_image_width', 'games_cat_image_height', 'games_show_played', 'games_show_fav', 'games_show_all', 'games_pm_new', 'games_pm_highscore', 'games_pm_at_highscore', 'games_pm_comment','default_sort','default_sort_order','games_new_for','games_show_mhm', 'games_default_rate', 'games_use_log')";
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(CRITICAL_ERROR, $lang['no_config_data'], '', __LINE__, __FILE__, $sql);
-	}
-	else
-	{
-		if ($submit && ($arcade->arcade_config['default_reward_dbfield'] != 'user_money') && ($arcade->arcade_config['use_allowance_system']))
-		{
-			$sql = "UPDATE " . iNA . "
-				SET config_value = 'user_money'
-				WHERE config_name = 'default_reward_dbfield'";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, $lang['no_config_update'] . 'default_reward_dbfield', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		
-		if ($submit && ($board_config['default_reward_dbfield'] != $board_config['default_cash']) && ($arcade->arcade_config['use_cash_system']))
-		{
-			$sql = "UPDATE " . iNA . "
-				SET config_value = '" . $db->sql_escape($board_config['default_cash']) . "'
-				WHERE config_name = 'default_reward_dbfield'";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, $lang['no_config_update'] . 'default_reward_dbfield', '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-		while( $row = $db->sql_fetchrow($result) )
-		{
-			$config_name = $row['config_name'];
-			$config_value = $row['config_value'];
-			$default_config[$config_name] = $config_value;
-     
-			$new[$config_name] = $default_config[$config_name];
-			if ($submit && isset($HTTP_POST_VARS[$config_name]) && is_scalar($HTTP_POST_VARS[$config_name]))
-			{
-				$new[$config_name] = stripslashes((string) $HTTP_POST_VARS[$config_name]);
-			}
-
-			if(((isset($HTTP_POST_VARS['games_tournament_mode']) && $HTTP_POST_VARS['games_tournament_mode'] != $arcade->arcade_config['games_tournament_mode'])) || (isset($HTTP_POST_VARS['games_moderators_mode']) && ($HTTP_POST_VARS['games_moderators_mode'] != $arcade->arcade_config['games_moderators_mode'])) || (isset($HTTP_POST_VARS['games_use_pms']) && ($HTTP_POST_VARS['games_use_pms'] != $arcade->arcade_config['games_use_pms'])))
-			{
-//
-//	Navbar reload by xore.
-//
-				$reset_navbar = "\n<script language=\"JavaScript\" type=\"text/javascript\">\n<!--\nparent.nav.location.reload();\n//-->\n</script>";	
-			}
-
-			if($submit)
-			{
-				$boolean_configs = array('use_point_system', 'use_gamelib', 'use_gk_shop', 'warn_cheater', 'report_cheater', 'use_cash_system', 'use_rewards_mod', 'use_allowance_system', 'games_offline', 'games_no_guests', 'games_tournament_mode', 'games_cheat_mode', 'games_auto_size', 'games_guest_highscore', 'games_at_highscore', 'games_show_stats', 'games_moderators_mode', 'games_mod_offline', 'games_mod_ban_users', 'games_use_pms', 'games_new_games', 'games_comments', 'games_rate', 'games_show_played', 'games_show_fav', 'games_show_all', 'games_pm_new', 'games_pm_highscore', 'games_pm_at_highscore', 'games_pm_comment', 'games_show_mhm', 'games_use_log');
-				$integer_configs = array('games_per_page', 'default_cash', 'games_default_id', 'games_per_admin_page', 'games_image_width', 'games_image_height', 'games_posts_required', 'games_rank_required', 'games_group_required', 'games_total_top', 'games_new_for', 'games_cat_image_width', 'games_cat_image_height', 'games_default_rate');
-				if (in_array($config_name, $boolean_configs, true))
-				{
-					$new[$config_name] = (intval($new[$config_name]) === 1) ? '1' : '0';
-				}
-				elseif (in_array($config_name, $integer_configs, true))
-				{
-					$new[$config_name] = (string) min(1000000000, max(0, intval($new[$config_name])));
-				}
-				elseif ($config_name === 'default_sort')
-				{
-					$new[$config_name] = in_array($new[$config_name], $mode_types, true) ? $new[$config_name] : 'default';
-				}
-				elseif ($config_name === 'default_sort_order')
-				{
-					$new[$config_name] = (strtoupper($new[$config_name]) === 'ASC') ? 'ASC' : 'DESC';
-				}
-				elseif ($config_name === 'default_reward_dbfield' && !preg_match('/^[a-z0-9_]{1,64}$/Di', $new[$config_name]))
-				{
-					$new[$config_name] = 'user_money';
-				}
-				elseif (in_array($config_name, array('games_path', 'gamelib_path'), true))
-				{
-					$new[$config_name] = str_replace('\\', '/', trim($new[$config_name]));
-					if ($new[$config_name] === '' || preg_match('/[\x00-\x1f\x7f?#]/', $new[$config_name]) || preg_match('#(^|/)\.\.(/|$)|^[a-z]+://|^/|^[a-z]:#i', $new[$config_name]))
-					{
-						message_die(GENERAL_ERROR, 'Invalid Arcade asset directory.');
-					}
-					$new[$config_name] = rtrim($new[$config_name], '/') . '/';
-				}
-				if (strlen($new[$config_name]) > 255)
-				{
-					message_die(GENERAL_ERROR, 'An Arcade setting exceeds the supported length.');
-				}
-		
-				$sql = "UPDATE " . iNA . "
-					SET config_value = '" . $db->sql_escape($new[$config_name]) . "'
-					WHERE config_name = '" . $db->sql_escape($config_name) . "'";
-
-				if( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, $lang['no_config_update'] . $config_name, '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
-		$new = array_merge(array(
-			'games_group_required' => 0,
-			'games_mod_offline' => 0
-		), $new);
-		if( $submit )
-		{	
-//
-//  Force update of cache files
-//
-      $arcade->clear_cache('config');
-      
-			$message = $lang['admin_config_updated'] . $reset_navbar;
-			$message .= sprintf($lang['admin_return_arcade'], "<a href=\"" . append_sid("$file?mode=".$new_mode) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-			message_die(GENERAL_MESSAGE, $message);
-		}
-	}
+    require_once dirname(__DIR__).'/includes/functions_arcade_config_storage.php';
+    try { $saved=phpbb_arcade_config_save($db,$HTTP_POST_VARS); }
+    catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+    catch (PhpbbOwnedStorageFailure $error)
+    {
+      $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['no_config_update']);
+    }
+    $new_mode=$saved['mode'];
+    if ($saved['reload']) { $reset_navbar="\n<script type=\"text/javascript\">parent.nav.location.reload();</script>"; }
+    $message=$lang['admin_config_updated'].$reset_navbar;
+    $message.=sprintf($lang['admin_return_arcade'],"<a href=\"".append_sid("$file?mode=".$new_mode)."\">","</a>")."<br /><br />".sprintf($lang['Click_return_admin_index'],"<a href=\"".append_sid("index.$phpEx?pane=right")."\">","</a>");
+    message_die(GENERAL_MESSAGE,$message);
+  }
+  // Views read current values and never normalize or write another page's
+  // controls. The cache remains available for unrelated Arcade metadata.
+  $result=$db->sql_query('SELECT config_name,config_value FROM '.iNA);
+  if (!$result) { message_die(GENERAL_ERROR,$lang['no_config_data']); }
+  $new=array();while($row=$db->sql_fetchrow($result)) { $new[$row['config_name']]=$row['config_value']; }
+  $db->sql_freeresult($result);
+  $new=array_merge(array('games_group_required'=>0,'games_mod_offline'=>0),$new);
+  $arcade->arcade_config=array_replace($arcade->arcade_config,$new);
 //
 //  Get Ranks Info
 //
@@ -378,15 +276,9 @@ if ( !$mode || $mode == 'switches' || $mode == 'messages' )
 		$template->assign_block_vars('display_shop_menu', array());
 	}
 
-	if ($arcade->arcade_config['use_rewards_mod'])
-	{
-		$template->assign_block_vars('rewards_menu_on', array());
-
-		if ($arcade->arcade_config['use_cash_system'])
-		{
-			$template->assign_block_vars('cash_default_menu', array());
-		}
-	}
+	// Keep the controls visible so disabled or inconsistent legacy rewards can be repaired.
+	$template->assign_block_vars('rewards_menu_on',array());
+	$template->assign_block_vars('cash_default_menu',array());
 	if ($arcade->arcade_config['games_cheat_mode'])
 	{
 		$template->assign_block_vars('cheat_menu', array());
@@ -619,7 +511,6 @@ if ( !$mode || $mode == 'switches' || $mode == 'messages' )
 		'S_GUEST_TXT' => phpbb_admin_html($arcade->arcade_config['games_default_txt']),
 		'S_GAMES_ZERO_TXT' => phpbb_admin_html($arcade->arcade_config['games_cat_zero']),
 		'S_GAMES_PATH' => phpbb_admin_html($arcade->arcade_config['games_path']),
-		'S_GL_GAMES_PATH' => phpbb_admin_html(isset($arcade->arcade_config['games_gl_path']) ? $arcade->arcade_config['games_gl_path'] : $arcade->arcade_config['games_path']),
 		'S_GAMELIB_PATH' => phpbb_admin_html($arcade->arcade_config['gamelib_path']),
 		'S_HIDDEN_FIELDS' => '<input type="hidden" name="new_mode" value="' . phpbb_admin_html($mode) . '" />' . phpbb_admin_session_field())
 	);

@@ -73,10 +73,6 @@
   </tr>
 <!-- BEGIN display_gamelib_menu -->
   <tr>
-   <td class="row1">{L_GL_GAME_PATH}<span class="gensmall">{L_GL_PATH_INFO}</span></td>
-   <td class="row1" align="right">{L_PATH} {DASH} <input class="post" type="text" size="15" name="games_path" value="{S_GL_GAMES_PATH}" /></td>
-  </tr>
-  <tr>
    <td class="row2">{L_GL_LIB_PATH}<span class="gensmall">{L_GL_LIB_INFO}</span></td>
    <td class="row2" align="right">{L_PATH} {DASH} <input class="post" type="text" size="15" name="gamelib_path" value="{S_GAMELIB_PATH}" /></td>
   </tr>

@@ -984,6 +984,7 @@ INSERT INTO phpbb_ina_data (config_name, config_value) VALUES
   ('games_mod_ban_users', '1'),
   ('games_comment_size', '256'),
   ('games_rank_required', '0'),
+('games_group_required', '0'),
   ('games_level_required', '0'),
   ('games_pm_highscore', '1'),
   ('games_pm_at_highscore', '1'),

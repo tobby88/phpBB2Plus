@@ -406,6 +406,12 @@ jobs:
         env:
           PHPBB_ARCADE_TOUR_ACTION_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Save scoped Arcade settings atomically with current authority and currencies
+        if: matrix.part == 3
+        run: php .github/scripts/check-arcade-config-native.php
+        env:
+          PHPBB_ARCADE_CONFIG_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Migrate historical Arcade progress with complete rollback and CLI checks
         if: matrix.part == 3
         run: php .github/scripts/check-arcade-progress-migration-native.php

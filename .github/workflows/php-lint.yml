@@ -66,6 +66,8 @@ jobs:
 
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
+      - name: Validate the actual three Arcade settings forms and typed scopes
+        run: php .github/scripts/check-arcade-config-policy.php
       - name: Check deletion choice and actual retained-post template
         run: |
           php .github/scripts/check-post-tombstone-policy.php

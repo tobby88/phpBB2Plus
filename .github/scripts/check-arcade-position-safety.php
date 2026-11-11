@@ -18,6 +18,7 @@ $updater = file_get_contents($root . '/update/update_from_153a.php');
 $english = file_get_contents($root . '/phpBB2/language/lang_english/lang_extend_arcade.php');
 $german = file_get_contents($root . '/phpBB2/language/lang_german/lang_extend_arcade.php');
 $admin_config = file_get_contents($root . '/phpBB2/admin/admin_arcade.php');
+$config_writer = file_get_contents($root . '/phpBB2/includes/functions_arcade_config_storage.php');
 $admin_games = file_get_contents($root . '/phpBB2/admin/admin_arcade_games.php');
 $admin_cache = file_get_contents($root . '/phpBB2/admin/admin_arcade_cache.php');
 $admin_log = file_get_contents($root . '/phpBB2/admin/admin_arcade_log.php');
@@ -60,8 +61,8 @@ arcade_position_assert(strpos($admin_config_registration, '$db->') === false, 'b
 arcade_position_assert(strpos($admin_games, "\$module['Arcade_Games']") === false, 'Arcade game management must not create a duplicate AdminCP category');
 arcade_position_assert(substr_count($admin_games, "\$module['Arcade']") === 6, 'all Arcade game-management entries must share the Spielhalle category');
 arcade_position_assert(!is_file($root . '/phpBB2/templates/fisubsilversh/admin/arcade_moderators_body.tpl'), 'the unused Arcade moderator template must remain removed');
-arcade_position_assert(strpos($admin_config, '$db->sql_escape($new[$config_name])') !== false, 'Arcade configuration values must use driver escaping');
-arcade_position_assert(strpos($admin_config, 'Invalid Arcade asset directory.') !== false, 'Arcade asset directories must reject unsafe paths');
+arcade_position_assert(strpos($admin_config, 'phpbb_arcade_config_save($db,$HTTP_POST_VARS)') !== false && strpos($config_writer, '$this->escape($value)') !== false, 'Arcade configuration values must use the owned writer and driver escaping');
+arcade_position_assert(strpos($config_writer, 'phpbb_arcade_local_asset($value)!==$value') !== false, 'Arcade asset directories must reject unsafe paths');
 arcade_position_assert(strpos($admin_config, 'phpbb_admin_html($arcade->arcade_config[\'games_default_txt\'])') !== false, 'Arcade configuration text must be escaped in forms');
 arcade_position_assert(strpos($admin_config, 'phpbb_admin_session_field()') !== false, 'Arcade configuration forms must carry a token');
 arcade_position_assert(strpos($config_template, '{S_HIDDEN_FIELDS}') !== false, 'the main Arcade configuration template must render its hidden fields');

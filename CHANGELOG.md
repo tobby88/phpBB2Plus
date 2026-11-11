@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic and scoped Arcade configuration
+
+- Save General, Switches and Private Messages settings together or roll the
+  entire change back. Recheck current administrator sessions and the exact
+  delegated page permission; one settings page cannot change another's values.
+- Preserve currency field names, current forum reward-wallet precedence and
+  omitted settings. Validate enabled currencies, local asset paths, complete
+  UTF-8 text and existing group/rank selections before publishing changes.
+- Seed the previously omitted group requirement in fresh installations and
+  the full updater. Existing installations can also initialize this one known
+  missing default atomically when saving it in the ACP; views remain read-only.
+- Keep disabled reward controls available for repairs and remove the duplicate
+  games-directory control. Evict configuration caches after committed changes.
+
 ### Atomic Arcade tournament completion, deletion and game selection
 
 - Recheck current administrator sessions/roles and delegated ACP rights for
