@@ -28,6 +28,10 @@ include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
 $userdata			= session_pagestart($user_ip, PAGE_ACTIVITY);
 init_userprefs($userdata);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+// This protocol endpoint skips page_header.php, but returns private user data.
+header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 if (!phpbb_request_source_is_same_origin())
 {
 	print "&opSuccess=Missing info&endvar=1";
