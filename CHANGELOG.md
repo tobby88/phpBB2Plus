@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic Arcade tournament completion, deletion and game selection
+
+- Recheck current administrator sessions/roles and delegated ACP rights for
+  tournament actions. Bind confirmations, delete buttons and selected games
+  to current metadata; stale forms cannot close or change another revision.
+- Commit tournament completion/deletion, games, memberships, invitations,
+  pending/active game capabilities and optional audit together. Preserve
+  unrelated events, global scores and private game progress. Failed writes
+  never leave orphan rows or trigger automatic replay after uncertain commits.
+- Preserve the existing draw and no-winner policies and meaningful zero scores.
+  Optional end notifications run only after confirmed commit, with delivery
+  failures separated from the saved result.
+- Enforce the current game limit for the entire selected batch and reject
+  changed/unavailable/ambiguous games instead of silently inserting a subset.
+
 ### Atomic Arcade tournament creation and editing
 
 - Commit a public tournament, its creator membership and optional audit

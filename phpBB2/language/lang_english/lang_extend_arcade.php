@@ -524,6 +524,7 @@ $lang['arcade_tournament_changed'] = 'The tournament has changed. Please reopen 
 $lang['arcade_tournament_limit'] = 'The maximum number of unfinished tournaments has been reached.';
 $lang['arcade_tournament_capacity'] = 'The player limit cannot be lower than the number of existing participants.';
 $lang['arcade_tournament_settings_invalid'] = 'The tournament settings need to be corrected in the Arcade administration.';
+$lang['arcade_tournament_game_limit'] = 'The selected games exceed the current game limit for this tournament. Please select fewer games.';
 // TFFT - The End...!
 //
 

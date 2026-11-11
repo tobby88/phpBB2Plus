@@ -40,7 +40,7 @@ require('pagestart.' . $phpEx);
 //  Load the Arcade required files
 //
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
-require_once dirname(__DIR__).'/includes/functions_arcade_tournament_manage.php';
+require_once dirname(__DIR__).'/includes/functions_arcade_tournament_actions.php';
 //
 //  Check the phpBB Arcade Mod version
 //
@@ -70,7 +70,8 @@ if (isset($HTTP_POST_VARS['delete_tour']) && is_scalar($HTTP_POST_VARS['delete_t
 {
   phpbb_admin_require_post_session();
   $mode = 'delete';
-  $tour_id = max(0, intval($HTTP_POST_VARS['delete_tour']));
+  try { $delete_token=phpbb_arcade_tournament_action_token($HTTP_POST_VARS['delete_tour']);$tour_id=$delete_token['id']; }
+  catch (PhpbbOwnedStorageFailure $error) { message_die(GENERAL_MESSAGE,$lang['arcade_tournament_changed']); }
 }
 //
 //  Update Tournament Config
@@ -153,60 +154,18 @@ else if(isset($HTTP_POST_VARS['add_games']))
 if(isset($HTTP_POST_VARS['add_game']))
 {
   phpbb_admin_require_post_session();
-  $games_list = isset($HTTP_POST_VARS['game_id']) ? $HTTP_POST_VARS['game_id'] : 0;
-
-  if($tour_id <= 0)
+  try
   {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+    $tour_id=phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'id');
+    $tokens=isset($HTTP_POST_VARS['game_id'])?$HTTP_POST_VARS['game_id']:array();
+    $revision=phpbb_arcade_score_request($HTTP_POST_VARS,'tour_revision','');
+    phpbb_arcade_tournament_action($db,'add',$tour_id,$tokens,$revision);
   }
-  $sql = "SELECT tour_id FROM " . iNA_TOUR . " WHERE tour_id = " . (int) $tour_id;
-  if (!($tour_result = $db->sql_query($sql)) || !$db->sql_fetchrow($tour_result))
+  catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+  catch (PhpbbOwnedStorageFailure $error)
   {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+    $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['no_game_data']);
   }
-  if(is_array($games_list))
-  {
-	$maximum_games = max(1, (int) $arcade->arcade_config['games_tournament_games']);
-	$sql = "SELECT game_name FROM " . iNA_TOUR_DATA . " WHERE tour_id = " . (int) $tour_id;
-	if (!$result = $db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-	}
-	$existing_games = array();
-	while ($existing_game = $db->sql_fetchrow($result))
-	{
-		$existing_games[(string) $existing_game['game_name']] = true;
-	}
-    for($i = (count($games_list)); $i > 0;$i--)
-    {
-	  if (count($existing_games) >= $maximum_games) { break; }
-	  if (!is_scalar($games_list[$i - 1])) { continue; }
-      $selected_game_id = intval($games_list[($i - 1)]);
-      if ($selected_game_id <= 0) { continue; }
-      $sql = "SELECT game_name FROM " . iNA_GAMES . "
-        WHERE game_id = " . $selected_game_id;
-    	if( !$result = $db->sql_query($sql) )
-    	{
-    		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-      }
-      $game_info = $db->sql_fetchrow($result);
-      
-//
-//
-//
-      if (!$game_info || isset($existing_games[(string) $game_info['game_name']])) { continue; }
-      $sql = "INSERT IGNORE INTO " . iNA_TOUR_DATA . "
-        (tour_id, game_name) VALUES (" . (int) $tour_id . ", '" . $db->sql_escape($game_info['game_name']) . "')";
-      if (!$result = $db->sql_query($sql))
-      {
-        message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-      }
-	  $existing_games[(string) $game_info['game_name']] = true;
-    }
-  }
-
-  $arcade->clear_cache('tournaments');
-
 }
 if ($mode == 'delete')
 {
@@ -214,41 +173,12 @@ if ($mode == 'delete')
   {
     message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
   }
-	$sql = "SELECT tour_id FROM " . iNA_TOUR . " WHERE tour_id = $tour_id";
-	$result = $db->sql_query($sql);
-	if (!$result || !$db->sql_fetchrow($result))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-	}
-  $sql = "DELETE FROM " . iNA_TOUR . "
-    WHERE tour_id = ". $tour_id;
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-  $sql = "DELETE FROM " . iNA_TOUR_DATA . "
-    WHERE tour_id = ". $tour_id;
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-  $sql = "DELETE FROM " . iNA_TOUR_PLAY . "
-    WHERE tour_id = ". $tour_id;
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-  $sql = "DELETE FROM " . iNA_TOUR_INVITE . "
-    WHERE tour_id = ". $tour_id;
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-//
-//  Force update of cache files
-//
-  $arcade->clear_cache('tournaments');
-
+  try { phpbb_arcade_tournament_action($db,'delete',$tour_id,array(),$delete_token['revision']); }
+  catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+  catch (PhpbbOwnedStorageFailure $error)
+  {
+    $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['no_tour_data']);
+  }
 	$message = $lang['admin_tournament_deleted'];
 	$message .= sprintf($lang['admin_return_arcade'], "<a href=\"" . append_sid($file) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 	message_die(GENERAL_MESSAGE, $message);
@@ -347,7 +277,7 @@ else if ($mode == 'add_games')
         'NAME' => phpbb_admin_html($game_rows[$i]['game_name']),
         'DESC' => phpbb_admin_html($game_rows[$i]['game_desc']),
         'CAT_ID' => phpbb_admin_html(($game_rows[$i]['cat_id'] > 0) ? $cat_row['cat_name'] : $lang['None']),
-		'SELECT' => '<input type="checkbox" name="game_id[]" value="'.(int) $game_rows[$i]['game_id'].'">'
+		'SELECT' => '<input type="checkbox" name="game_id[]" value="'.(int) $game_rows[$i]['game_id'].':'.phpbb_arcade_game_revision($game_rows[$i]).'">'
 		,'IMAGE' => phpbb_admin_html(ina_find_image($game_rows[$i]['game_path'], $game_rows[$i]['game_name'], $game_rows[$i]['image_path'], './../'))
 		,'IMAGE_WIDTH' => (int) $arcade->arcade_config['games_image_width']
 		,'IMAGE_HEIGHT' => (int) $arcade->arcade_config['games_image_height']
@@ -434,6 +364,7 @@ else for($i = 0; $i < $total_tournaments; $i++)
         
         'EDIT' => append_sid("$file?mode=edit&amp;id=".(int) $tours[$i]['tour_id']),
         'DELETE_ID' => (int) $tours[$i]['tour_id'],
+        'DELETE_REVISION' => phpbb_arcade_tournament_revision($tours[$i]),
 
       ));
 }

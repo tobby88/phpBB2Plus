@@ -80,7 +80,7 @@ $integrations = array(
 	'admin/admin_arcade_cache.php' => array("'S_CONFIG_ACTION' =>", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()'),
 	'admin/admin_arcade_log.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()'),
 	'admin/admin_arcade_cats.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$target_scope', '`group_required`'),
-	'admin/admin_arcade_tournaments.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$maximum_games', 'phpbb_arcade_tournament_manage($db,', 'tour_revision'),
+	'admin/admin_arcade_tournaments.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_tournament_action($db,', 'phpbb_arcade_tournament_manage($db,', 'tour_revision'),
 	'includes/functions_arcade_tournament_manage.php' => array("count(\$events)>=(int)\$settings['games_tournament_max']", 'phpbb_arcade_tournament_revision($rows[0])', '$this->settings(true)'),
 	'admin/admin_album_config_extended.php' => array('$module[\'Photo_Album\'][\'Configuration\']', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'album_admin_editable_config', '$db->sql_escape($config_value)'),
 	'admin/admin_album_cat.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function album_admin_permission_level', 'album_admin_category_change('),

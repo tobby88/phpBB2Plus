@@ -400,6 +400,12 @@ jobs:
         env:
           PHPBB_ARCADE_TOUR_MANAGE_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: End and delete tournaments atomically and bind selected game revisions
+        if: matrix.part == 3
+        run: php .github/scripts/check-arcade-tournament-actions-native.php
+        env:
+          PHPBB_ARCADE_TOUR_ACTION_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Migrate historical Arcade progress with complete rollback and CLI checks
         if: matrix.part == 3
         run: php .github/scripts/check-arcade-progress-migration-native.php

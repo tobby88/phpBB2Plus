@@ -8,7 +8,7 @@ foreach(preg_split('/\r?\n/',$at_source)as$line){
  elseif(strpos($line,'arcade_tournament_player_html(')!==false&&preg_match('/\$(played_players|highest_scorer|last_5_champ_name)\s*\.?=/',$line,$m)){$at_bindings[]=array($m[1],trim($line));}
 }
 as_check(count($at_bindings)===5,'All five actual tournament label/link bindings');
-preg_match_all('/\$sql = "SELECT p\.\*, u\.username FROM " \. iNA_TOUR_PLAY \. " AS p.*?\$tour_id;/s',$at_source,$at_queries);as_check(count($at_queries[0])===2,'Actual finish and view participant JOINs');
+preg_match_all('/\$sql = "SELECT p\.\*, u\.username FROM " \. iNA_TOUR_PLAY \. " AS p.*?\$tour_id;/s',$at_source,$at_queries);as_check(count($at_queries[0])===1,'Actual view participant JOIN; ending locks IDs without copying names');
 function at_render($id,$name){
  global $arcade,$at_bindings,$lang,$phpEx;$out=array();$winner_id=$player_id=$top_player_id=$champion_id=$id;$i=0;$tour_players=array(array('user_id'=>$id,'username'=>$name));
  foreach($at_bindings as$binding){$message=$played_players=$highest_scorer=$last_5_champ_name='';if($binding[0]==='array'){$values=eval('return array('.$binding[1].');');$html=$values['NAME'];}else{eval($binding[1]);$html=${$binding[0]};}$out[$binding[0]]=$html;}return $out;

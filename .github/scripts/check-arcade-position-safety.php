@@ -25,6 +25,7 @@ $admin_scores = file_get_contents($root . '/phpBB2/admin/admin_arcade_scores.php
 $admin_categories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.php');
 $category_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_cats_body.tpl');
 $admin_tournaments = file_get_contents($root . '/phpBB2/admin/admin_arcade_tournaments.php');
+$tournament_actions = file_get_contents($root . '/phpBB2/includes/functions_arcade_tournament_actions.php');
 $config_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_config_body.tpl');
 $import_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_import_body.tpl');
 $message_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_messages_body.tpl');
@@ -92,8 +93,8 @@ arcade_position_assert(strpos($category_template, 'colspan="3"') !== false, 'cat
 arcade_position_assert(strpos($admin_tournaments, "array('', 'add_tour', 'edit', 'add_games')") !== false, 'tournament views must use an allowlisted mode');
 arcade_position_assert(strpos($admin_tournaments, 'phpbb_admin_require_post_session();') !== false && strpos($admin_tournaments, 'phpbb_admin_session_field()') !== false, 'tournament writes must use the central AdminCP token');
 arcade_position_assert(strpos($admin_tournaments, 'arcade_tournament_require_token') === false, 'the duplicate tournament token implementation must not return');
-arcade_position_assert(strpos($admin_tournaments, 'count($existing_games) >= $maximum_games') !== false, 'the configured per-tournament game limit must be enforced');
+arcade_position_assert(strpos($admin_tournaments, "phpbb_arcade_tournament_action(\$db,'add'") !== false && strpos($tournament_actions,"count(\$existing)+count(\$adding)>(int)\$settings['games_tournament_games']") !== false, 'game selection must enforce its current limit in the owned writer');
 arcade_position_assert(strpos($admin_tournaments, "strtoupper((string) \$arcade->arcade_config['default_sort_order']) === 'ASC'") !== false, 'tournament game sorting must use a strict SQL direction');
-arcade_position_assert(strpos($admin_tournaments, 'is_scalar($games_list[$i - 1])') !== false, 'tournament game IDs must reject nested input');
+arcade_position_assert(strpos($tournament_actions,'!is_array($tokens)||count($tokens)>100') !== false && strpos($tournament_actions,'phpbb_arcade_tournament_action_token($token)') !== false, 'game selections must reject nested/unbounded and stale input');
 
 echo "Arcade position safety tests passed.\n";

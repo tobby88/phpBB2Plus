@@ -143,6 +143,8 @@ jobs:
         run: php .github/scripts/check-arcade-tournament-join-policy.php
       - name: Validate tournament creation, settings and edit requests before SQL
         run: php .github/scripts/check-arcade-tournament-manage-policy.php
+      - name: Validate exact tournament and game selection revisions before SQL
+        run: php .github/scripts/check-arcade-tournament-actions-policy.php
       - name: Render stored player names across Arcade pages and comments
         run: php .github/scripts/check-arcade-player-labels.php
       - name: Keep cached Arcade category identities and visibility current

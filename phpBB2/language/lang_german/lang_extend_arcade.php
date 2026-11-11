@@ -530,6 +530,7 @@ $lang['arcade_tournament_changed'] = 'Das Turnier wurde inzwischen geändert. Bi
 $lang['arcade_tournament_limit'] = 'Die Höchstzahl noch nicht abgeschlossener Turniere ist erreicht.';
 $lang['arcade_tournament_capacity'] = 'Die Teilnehmergrenze darf nicht kleiner als die Zahl der bereits angemeldeten Teilnehmer sein.';
 $lang['arcade_tournament_settings_invalid'] = 'Die Turnier-Einstellungen müssen im Adminbereich der Spielhalle korrigiert werden.';
+$lang['arcade_tournament_game_limit'] = 'Die ausgewählten Spiele überschreiten die aktuelle Spielgrenze dieses Turniers. Bitte wähle weniger Spiele aus.';
 // TFFT - The End...!
 //
 

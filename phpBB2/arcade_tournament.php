@@ -200,11 +200,19 @@ else if(!empty($HTTP_POST_VARS['start']))
 else if(!empty($HTTP_POST_VARS['end']))
 {
   arcade_public_tournament_require_token($userdata, $lang);
-  $is_a_draw = false;
-  
-  if($userdata['user_level'] != ADMIN)
+  require_once dirname(__FILE__).'/includes/functions_arcade_tournament_actions.php';
+  try
   {
-    message_die(GENERAL_MESSAGE, $lang['arcade_admin_only'].$lang['tour_return']);
+    $tour_id = phpbb_arcade_tournament_post_int($HTTP_POST_VARS,'id');
+    if (!isset($HTTP_POST_VARS['confirm']))
+    {
+      $preview = phpbb_arcade_tournament_action($db,'preview-end',$tour_id);
+      $end_revision = phpbb_arcade_tournament_revision($preview['tour']);
+    }
+  }
+  catch (PhpbbOwnedStorageFailure $error)
+  {
+    $key=$error->getMessage();message_die(GENERAL_MESSAGE,(isset($lang[$key])?$lang[$key]:$lang['no_tour_data']).$lang['tour_return']);
   }
   if(!isset($HTTP_POST_VARS['confirm']))
   {
@@ -232,7 +240,7 @@ else if(!empty($HTTP_POST_VARS['end']))
 	   	'L_YES' => $lang['Yes'],
 
   		'S_CONFIRM_ACTION' => append_sid("$filename"),
-		'S_HIDDEN_FIELDS' => '<input type="hidden" name="end" value="1"><input type="hidden" name="id" value="'.(int) $tour_id.'"><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '">',
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="end" value="1"><input type="hidden" name="id" value="'.(int) $tour_id.'"><input type="hidden" name="tour_revision" value="'.$end_revision.'"><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '">',
 	   	));
 
 	//
@@ -243,110 +251,30 @@ else if(!empty($HTTP_POST_VARS['end']))
   	include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
     exit;    
   }
-	$sql = "SELECT * FROM " . iNA_TOUR . "
-     WHERE tour_id = " . $tour_id . "
-     AND tour_active <> 3";
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-	$tour = $db->sql_fetchrow($result);
-  if(!is_array($tour))
+  try
   {
-    message_die(GENERAL_ERROR, $lang['no_tour_data']); 
+    $revision = phpbb_arcade_score_request($HTTP_POST_VARS,'tour_revision','');
+    $ended = phpbb_arcade_tournament_action($db,'end',$tour_id,array(),$revision);
   }
-  
-  $message = sprintf($lang['arcade_tournament_end'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
-//
-//  Get Tournament Players
-//
-	$sql = "SELECT p.*, u.username FROM " . iNA_TOUR_PLAY . " AS p
-	  LEFT JOIN " . USERS_TABLE . " AS u
-	    ON p.user_id = u.user_id
-    WHERE tour_id = " . $tour_id;
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_tour_player_data'], "", __LINE__, __FILE__, $sql);
-	}
-	$tour_players = $db->sql_fetchrowset($result);
-	$total_players = count($tour_players);
-//
-//  Get the Top Scores.
-//
-  $sql = "SELECT top_player, COUNT(top_player) as total FROM " . iNA_TOUR_DATA . "
-    WHERE top_score IS NOT NULL
-      AND tour_id = $tour_id
-      GROUP BY top_player
-      ORDER BY total DESC";
- 	if( !$result = $db->sql_query($sql) )
- 	{
- 		message_die(GENERAL_ERROR, $lang['no_tour_data'], "", __LINE__, __FILE__, $sql);
- 	}
-  $tour_data = $db->sql_fetchrowset($result);
-  $row_count = count($tour_data);
-//
-//  Check to make sure it's not a DRAW
-//
-  if ($row_count > 1 && (int) $tour_data[0]['total'] === (int) $tour_data[1]['total'])
+  catch (PhpbbOwnedStorageFailure $error)
   {
-    $is_a_draw = true;
-    message_die(GENERAL_MESSAGE, $message . $lang['tour_msg_draw'] . $lang['tour_return']);
+    $key=$error->getMessage();message_die(GENERAL_MESSAGE,(isset($lang[$key])?$lang[$key]:$lang['no_tour_data']).$lang['tour_return']);
   }
-  $winner_id = ($row_count > 0) ? (int) $tour_data[0]['top_player'] : 0;
+  $tour = $ended['tour'];
+  $message = sprintf($lang['arcade_tournament_end'], htmlspecialchars((string)$tour['tour_name'], ENT_QUOTES, 'UTF-8'));
+  if ($ended['draw']) { message_die(GENERAL_MESSAGE,$message.$lang['tour_msg_draw'].$lang['tour_return']); }
+  $winner_id = $ended['winner'];
   if ($winner_id > 0)
   {
     $message .= sprintf($lang['tour_msg_winner'], arcade_tournament_player_html($winner_id, $arcade->get_username($winner_id), false));
   }
-  $pm_message = '';
-
-  if($is_a_draw == false)
+  // Notifications are optional delivery after a confirmed commit. A failed
+  // delivery must not turn a completed end operation into an error/replay.
+  foreach ($ended['players'] as $recipient)
   {
-    if($winner_id > 0)
-    {
-      $sql = "UPDATE " . iNA_TOUR . "
-        SET tour_active = 3, end_date = " . time() . "
-          , champion = " . $winner_id . "
-        WHERE tour_id = $tour_id";
-    }
-    else
-    {
-      $sql = "DELETE FROM " . iNA_TOUR . "
-        WHERE tour_id = $tour_id";
-    } 
-    $result = $db->sql_query($sql);
-    if(!$result)
-    {
-      message_die(GENERAL_ERROR, $lang['no_tour_update'], "", __LINE__, __FILE__, $sql );
-    }
-    $sql = "DELETE FROM " . iNA_TOUR_DATA . "
-      WHERE tour_id = " . $tour_id;
-    $result = $db->sql_query($sql);
-    if(!$result)
-    {
-      message_die(GENERAL_ERROR, $lang['no_tour_delete_data'], "", __LINE__, __FILE__, $sql );
-    }
-    $sql = "DELETE FROM " . iNA_TOUR_PLAY . "
-      WHERE tour_id = " . $tour_id;
-    if( !$result = $db->sql_query($sql) )
-    {
-    	message_die(GENERAL_ERROR, $lang['no_tour_delete_data'], "", __LINE__, __FILE__, $sql);
-    }
-    $sql = "DELETE FROM " . iNA_TOUR_INVITE . "
-      WHERE tour_id = " . $tour_id;
-    if( !$result = $db->sql_query($sql) )
-    {
-      message_die(GENERAL_ERROR, $lang['no_tour_delete_data'], "", __LINE__, __FILE__, $sql);
-    }
-    
+    try { ina_send_user_pm($recipient,$lang['tour_msg_subject'],$message,(int)$userdata['user_id'],'NO',true); }
+    catch (Exception $ignored) {} catch (Error $ignored) {}
   }
-//
-//  Send a PM to all the users to let them know the tournie has finished
-//
-  for($i = 0; $i < $total_players; $i++)
-  {
-    ina_send_user_pm((int) $tour_players[$i]['user_id'], $lang['tour_msg_subject'], $message.$pm_message, (int) $userdata['user_id']);
-  }
-
   message_die(GENERAL_MESSAGE, $message.$lang['tour_return']);
 }
 //
