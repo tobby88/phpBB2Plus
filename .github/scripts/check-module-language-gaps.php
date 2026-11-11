@@ -44,8 +44,10 @@ eval($body);
 $sites = array(
     array('activity.php', "GENERAL_ERROR, \$lang['no_rate_data']", array('lang_extend_arcade')),
     array('admin/admin_arcade_cats.php', "GENERAL_ERROR, \$lang['no_cat_delete']", array('lang_extend_arcade')),
-    array('includes/classes_arcade.php', "\$this->message .= \$lang['no_score_update']", array('lang_extend_arcade')),
-    array('arcade_tournament.php', "message_die(GENERAL_ERROR, \$lang['no_tour_player_data']", array('lang_extend_arcade')),
+    array('includes/classes_arcade.php', "\$this->message=\$lang['arcade_submission_failed']", array('lang_extend_arcade')),
+    array('newscore.php', "message_die(GENERAL_MESSAGE,\$lang['arcade_submission_failed'])", array('lang_extend_arcade')),
+    array('loader.php', "\$lang['arcade_launch_funds']", array('lang_extend_arcade')),
+    array('arcade_tournament.php', "message_die(GENERAL_MESSAGE, \$lang['Not_Authorised'])", array('lang_main', 'lang_extend_arcade')),
     array('admin/admin_banner.php', "GENERAL_MESSAGE, \$lang['Missing_banner_name']", array('lang_banner')),
     array('admin/admin_captcha_config.php', "\$message = \$lang['captcha_config_updated']", array('lang_main', 'lang_admin', 'lang_admin_captcha')),
     array('admin/admin_jr_admin.php', "GENERAL_ERROR, \$lang['Error_User_Table']", array('lang_jr_admin')),
