@@ -48,12 +48,12 @@ include ($phpbb_root_path . 'includes/page_header.' . $phpEx);
 // get paramters
 //
 $start_date = 0;
-if (isset($_GET['start']) && is_scalar($_GET['start']) && preg_match('/^(19[7-9][1-9]|20[0-6][0-9])(0[1-9]|1[0-2])([0-2][0-9]|3[01])$/D', (string) $_GET['start'], $date_match))
+if (isset($_GET['start']) && is_scalar($_GET['start']) && preg_match('/^([0-9]{4})(0[1-9]|1[0-2])([0-2][0-9]|3[01])$/D', (string) $_GET['start'], $date_match))
 {
 	$year = (int) $date_match[1];
 	$month = (int) $date_match[2];
 	$day = (int) $date_match[3];
-	if (checkdate($month, $day, $year))
+	if ($year >= 1971 && $year <= 2069 && checkdate($month, $day, $year))
 	{
 		$start_date = mktime(0, 0, 0, $month, $day, $year);
 	}

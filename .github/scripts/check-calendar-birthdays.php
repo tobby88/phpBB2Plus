@@ -129,7 +129,7 @@ foreach(array(array(0,0),array(4,0),array(2,3))as$totals)
 {
     $birthdays_count=$totals[0];$topics_count=$totals[1];$start=0;
     eval($footer);$expected=max(1,array_sum($totals));
-    cb_check($template->values['PAGINATION']===generate_pagination('calendar_scheduler.php?d=1&mode=',$expected,3,0)&&$template->values['PAGE_NUMBER']===sprintf($lang['Page_of'],1,ceil($expected/3)),'Page label and links must use the same birthday-plus-topic count');$cases++;
+    cb_check($template->values['PAGINATION']===generate_pagination('calendar_scheduler.php?d=1&mode=&fid=',$expected,3,0)&&$template->values['PAGE_NUMBER']===sprintf($lang['Page_of'],1,ceil($expected/3)),'Page label and links must use the same birthday-plus-topic count');$cases++;
 }
 restore_error_handler();
 echo 'Calendar birthdays: ',$cases,' collector/pagination cases, ',$checks," assertions PASS; real EN/DE messages, privacy, supported dates, counts, paging and tooltip data.\n";

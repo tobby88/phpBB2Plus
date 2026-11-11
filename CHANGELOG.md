@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Calendar navigation across month ends and clock changes
+
+- Keep month arrows and month/year selections in their requested month, using
+  its last day when the previous day does not exist. Accept valid month-view
+  dates in 1980 and 1990 as well as the other supported years.
+- Advance scheduler grid cells by civil dates so autumn clock changes cannot
+  duplicate a day. Build real hour slots for shorter/longer days, label repeated
+  clock hours distinctly and query each selected interval without overlap.
+- Retain the selected forum in hour links, scheduler navigation and pagination.
+  These read-only changes preserve stored event times and existing date policy.
+
 ### Stable shared date formatting and relative labels
 
 - Add timezone seconds to integral database timestamps without floating-point

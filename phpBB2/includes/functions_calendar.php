@@ -28,6 +28,22 @@ include_once($phpbb_root_path . './includes/functions_post.' . $phpEx);
 include_once($phpbb_root_path . './includes/bbcode.' . $phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
+// Month navigation keeps the selected day where it exists, otherwise the last
+// day of the requested month. Keep the calendar's existing server-local dates.
+// false leaves navigation at its supported/native timestamp boundary in place.
+function calendar_month_date($month, $year, $day)
+{
+	$month = (int) $month;
+	$year = (int) $year;
+	if ($month === 0) { $month = 12; $year--; }
+	if ($month === 13) { $month = 1; $year++; }
+	if ($month < 1 || $month > 12 || $year < 1971 || $year > 2069) { return false; }
+	$first = mktime(0, 0, 0, $month, 1, $year);
+	if ($first === false) { return false; }
+	$day = max(1, min((int) $day, (int) date('t', $first)));
+	return mktime(0, 0, 0, $month, $day, $year);
+}
+
 function calendar_normalize_forum_filter($value)
 {
 	if (!is_scalar($value))

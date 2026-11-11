@@ -47,7 +47,7 @@ $date = 0;
 if ( isset($_POST['date']) || isset($_GET['d']) )
 {
 	$date_value = isset($_POST['date']) ? $_POST['date'] : $_GET['d'];
-	$date = is_scalar($date_value) ? intval($date_value) : 0;
+	$date = is_scalar($date_value) && (float) $date_value <= PHP_INT_MAX ? intval($date_value) : 0;
 }
 if ($date < 31536000 || $date > 3155759999)
 {
@@ -64,7 +64,8 @@ if ($start_month >= 1 && $start_month <= 12 && $start_year >= 1971 && $start_yea
 	{
 		$day = date('d', $date);
 	}
-	$date = mktime(0,0,0, $start_month, $day, $start_year);
+	$selected_date = calendar_month_date($start_month, $start_year, $day);
+	if ($selected_date !== false) { $date = $selected_date; }
 }
 
 // mode
@@ -90,17 +91,28 @@ if ( isset($_POST['start']) || isset($_GET['start']) )
 $year	= date('Y', $date);
 $month	= date('m', $date);
 $day	= date('d', $date);
-$hour	= date('H', $date);
-$min	= date('i', $date);
+$day_start = mktime(0, 0, 0, $month, $day, $year);
+$day_end = mktime(0, 0, 0, $month, $day + 1, $year);
+if ($day_start === false || $day_end === false)
+{
+	// A 32-bit runtime cannot represent every date offered by 64-bit hosts.
+	// Keep the normal current-day fallback instead of querying up to epoch zero.
+	$date = time();
+	$year = date('Y', $date); $month = date('m', $date); $day = date('d', $date);
+	$day_start = mktime(0, 0, 0, $month, $day, $year);
+	$day_end = mktime(0, 0, 0, $month, $day + 1, $year);
+}
 if ($mode == 'hour')
 {
-	$start_date	= mktime($hour, 0, 0, $month, $day, $year);
-	$end_date	= mktime($hour+1, 0, 0, $month, $day, $year);
+	// Select the same real-time slot as the hour bar. Rebuilding an ambiguous
+	// local hour with mktime() would collapse the two autumn occurrences.
+	$start_date = $day_start + (int) floor(($date - $day_start) / 3600) * 3600;
+	$end_date = min($start_date + 3600, $day_end);
 }
 else
 {
-	$start_date	= mktime(0, 0, 0, $month, $day, $year);
-	$end_date	= mktime(0 ,0 ,0, $month, $day+1, $year);
+	$start_date = $day_start;
+	$end_date = $day_end;
 }
 
 // get the forum id selected
@@ -170,43 +182,30 @@ make_jumpbox('viewforum.' . $phpEx);
 // Header
 $template->assign_vars(array(
 	'L_CALENDAR_SCHEDULER'	=> $lang['Calendar_scheduler'],
-	'U_CALENDAR_SCHEDULER'	=> append_sid("./calendar_scheduler.$phpEx?d=$date&mode=$mode&start=$start"),
+	'U_CALENDAR_SCHEDULER'	=> append_sid("./calendar_scheduler.$phpEx?d=$date&mode=$mode&start=$start&fid=$fid"),
 	)
 );
 
 // set a bar of hours
-$work_date = mktime( 0, 0, 0, $month, $day, $year );
-for ($i=0; $i <= 24; $i++)
+$hours = array();
+$hour_labels = array();
+for ($work_date = $day_start; $work_date < $day_end; $work_date += 3600)
 {
-	if ($i == 0)
-	{
-		$l_hour = $lang['All_events'];
-		if ($mode != 'hour')
-		{
-			$color = 'quote';
-		}
-		else
-		{
-			$color = 'row2';
-		}
-	}
-	else
-	{
-		$l_hour = date('H', $work_date);
-		if ( ($mode == 'hour') && ($hour == $i-1) )
-		{
-			$color = 'quote';
-		}
-		else
-		{
-			$color = 'row3';
-		}
-		$work_date = $work_date + 3600;
-	}
+	$label = date(date('i', $work_date) === '00' ? 'H' : 'H:i', $work_date);
+	$hours[] = array('time' => $work_date, 'label' => $label);
+	$hour_labels[$label] = isset($hour_labels[$label]) ? $hour_labels[$label] + 1 : 1;
+}
+array_unshift($hours, array('time' => $day_start, 'label' => $lang['All_events']));
+foreach ($hours as $i => $slot)
+{
+	$l_hour = $slot['label'];
+	if ($i > 0 && $hour_labels[$l_hour] > 1) { $l_hour .= ' ' . date('T', $slot['time']); }
+	$selected = $i === 0 ? $mode !== 'hour' : ($mode === 'hour' && $slot['time'] === $start_date);
+	$color = $selected ? 'quote' : ($i === 0 ? 'row2' : 'row3');
 	$template->assign_block_vars('hour', array(
 		'CLASS'		=> $color,
 		'HOUR'		=> $l_hour,
-		'U_HOUR'	=> append_sid("./calendar_scheduler.$phpEx?" . (($i==0) ? '' : 'mode=hour&') . "d=" . mktime( (($i==0) ? 0 : $i-1), 0, 0, $month, $day, $year ) ),
+		'U_HOUR'	=> append_sid("./calendar_scheduler.$phpEx?" . (($i==0) ? '' : 'mode=hour&') . 'd=' . $slot['time'] . "&fid=$fid"),
 		)
 	);
 }
@@ -256,8 +255,10 @@ for ($i=0; $i <= 6; $i++)
 	if ($k > 6) $k = 0;
 }
 
-$prec = mktime(0,0,0, $month-1, $day, $year);
-$next = mktime(0,0,0, $month+1, $day, $year);
+$prec = calendar_month_date($month - 1, $year, $day);
+$next = calendar_month_date($month + 1, $year, $day);
+if ($prec === false) { $prec = $date; }
+if ($next === false) { $next = $date; }
 $template->assign_vars(array(
 	'S_MONTH'			=> $s_month,
 	'S_YEAR'			=> $s_year,
@@ -270,10 +271,10 @@ $template->assign_vars(array(
 );
 
 // get first day of the month
-$offset		= date('w', mktime(0,0,0, $month, 01, $year)) - $first_day_of_week;
+$offset		= date('w', $month_start) - $first_day_of_week;
 if ($offset < 0) $offset = $offset + 7;
+$nb_days = (int) date('t', $month_start) + $offset;
 $offset		= mktime(0,0,0, $month, 01-$offset, $year);
-$nb_days	= intval((mktime(0,0,0, $month+1, 01, $year) - $offset) / 86400);
 $nb_rows	= intval($nb_days / 7);
 
 $start_m	= mktime(0,0,0, $month, 01, $year);
@@ -312,12 +313,12 @@ for ($j=0; $j < $nb_rows; $j++)
 			'DAY' => $cur,
 			)
 		);
-		$offset = $offset + 86400;
+		$offset = mktime(0, 0, 0, date('n', $offset), date('j', $offset) + 1, date('Y', $offset));
 	}
 }
 
 // list of topics
-$period = ($mode == 'hour') ? 3600-1 : 0;
+$period = ($mode == 'hour') ? $end_date - $start_date - 1 : 0;
 $title = get_calendar_title_date($start_date, $period);
 
 // move events to topic_rowset format
@@ -369,7 +370,7 @@ if (!isset($nav_separator))
 $total = $topics_count + $birthdays_count;
 if ($total == 0) $total++;
 $template->assign_vars(array(
-	'PAGINATION' => generate_pagination("calendar_scheduler.$phpEx?d=$date&mode=$mode", $total, $board_config['topics_per_page'], $start),
+	'PAGINATION' => generate_pagination("calendar_scheduler.$phpEx?d=$date&mode=$mode&fid=$fid", $total, $board_config['topics_per_page'], $start),
 	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $total / $board_config['topics_per_page'] )),
 	'L_GOTO_PAGE' => $lang['Goto_page'],
 
