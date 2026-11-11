@@ -1773,7 +1773,6 @@ CREATE TABLE phpbb_ina_scores (
   KEY date (date)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Private progress is independent of leaderboard entries and score resets.
 CREATE TABLE phpbb_ina_game_saves (
   user_id mediumint(8) unsigned NOT NULL,
   game_id mediumint(9) NOT NULL,
