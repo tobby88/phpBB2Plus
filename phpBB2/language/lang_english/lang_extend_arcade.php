@@ -518,6 +518,8 @@ $lang['arcade_mod_delete_score'] = 'Delete score';
 $lang['arcade_points_generated'] = 'List generated in %.4f seconds.';
 //
 $lang['arcade_launch_failed'] = 'The game launch could not be saved completely. Please open the Arcade again.';
+$lang['arcade_submission_failed'] = 'The game result could not be saved completely. Please check the scoreboard before trying again.';
+$lang['arcade_launch_funds'] = 'Your balance is too low to start this game.';
 // TFFT - The End...!
 //
 

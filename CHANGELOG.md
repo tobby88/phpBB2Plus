@@ -6,6 +6,31 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic Arcade submissions and launch activation
+
+- Commit a result's one-time game capability, current/all-time/monthly scores,
+  winner pointers, placement summaries, tournament result, optional reward and
+  controlled audit record together. An unsuccessful write rolls back all of
+  them; an uncertain commit acknowledgement never causes an automatic replay.
+  Both standard and pnFlashGames paths use the same owned transaction.
+- Prepare a pending game key without replacing a running game. Only a valid,
+  completed launch activates it, charges the configured points/currency once,
+  spends a tournament turn and retires the old active key. Publish the guest
+  cookie after that commit. Expire only an owner's obsolete pending candidates.
+- Recheck current account/session, configured bans, exact game revision,
+  category/group/rank/role access and guest IP before writing. Interpret USER,
+  ADMIN and MOD as roles in game lists and launch checks, not numeric ranks.
+  Keep the tournament's played count separate from score submission.
+- Accept typed external wallet columns without permitting core account fields
+  as a currency. Use consistent mode priority and labels for charge, reward
+  and display; missing optional currency modules no longer break rendering.
+  Deliver optional score notifications after commit without turning a failed
+  notification into a failed score response.
+- Stop bulk raw-request logging and mask game/session tokens in SQL diagnostic
+  logs. The full updater and `--arcade-log-privacy-only` redact historical
+  credentials transactionally while preserving records, identities and dates.
+  No new runtime schema or game assets are required.
+
 ### Consistent Arcade launch accounting
 
 - Save a game's play count, category/parent/global counters and the player's

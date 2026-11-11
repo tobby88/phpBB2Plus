@@ -226,52 +226,37 @@ function games_position($games_place)
 	return $games_place . $position_text[$games_place];
 }
 
-function update_ina_session($user_id, $user_ip, $page, $game, $old_hash = FALSE, $win = "NORM", $tour_id = 0)
-{	global $db, $userdata, $lang, $board_config;
-
-	$user_id = (int) $user_id;
-	$page = (int) $page;
-	$tour_id = (int) $tour_id;
-	$user_ip = $db->sql_escape($user_ip);
-	$game = $db->sql_escape($game);
-	$win = preg_match('/^[A-Za-z0-9_-]{1,20}$/D', (string) $win) ? (string) $win : 'NORM';
-	$start_time		= time();
-	$arcade_hash	= bin2hex(phpbb_random_bytes(16));
-	//
-	$ip_num = $db->sql_escape(decode_ip($userdata['session_ip']));
-	$ip_nam = '';
-	
-	$sql = "UPDATE " . iNA_SESSIONS . "
-		SET start_time = '$start_time', page = '$page', game_name = '$game', arcade_hash = '$arcade_hash', user_win = '$win', tour_id = $tour_id";
-	if($old_hash != FALSE)
-	{
-		$sql .= " WHERE arcade_hash = '" . $db->sql_escape($old_hash) . "'";
-	}
-	else
-	{
-		$sql .= " WHERE user_id = '$user_id'";
-		if($user_id == ANONYMOUS)
-		{
-			$sql .= " AND session_ip = '$user_ip'";
-		}
-	}
-	if(!$db->sql_query($sql))
-  {
-    message_die(GENERAL_ERROR, $lang['session_error'], '', __LINE__, __FILE__, $sql);
-  } 
-	if ( !$db->sql_affectedrows() )
-	{
-		$sql = "INSERT INTO " . iNA_SESSIONS . "
-			(game_name, arcade_hash, user_id, start_time, session_ip, page, user_ip, ip_name, tour_id)
-			VALUES ('$game', '$arcade_hash', '$user_id', '$start_time', '$user_ip', '$page', '$ip_num', '$ip_nam', $tour_id)";
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(CRITICAL_ERROR, $lang['session_error'], '', __LINE__, __FILE__, $sql);
-		}
-	}
-	return $arcade_hash;
+function phpbb_arcade_level_allows($level,$required)
+{
+    $level=(int)$level;$required=(int)$required;
+    return $level===ADMIN||$required===USER||($required===MOD&&$level===MOD);
 }
 
+function update_ina_session($user_id, $user_ip, $page, $game, $old_hash = FALSE, $win = "NORM", $tour_id = 0)
+{
+    global $db,$userdata,$lang;
+    $user_id=(int)$user_id;$page=(int)$page;$tour_id=(int)$tour_id;
+    if(($page!==PAGE_PLAYING_GAMES&&$page!==PAGE_ARCADE_TOUR)||($page===PAGE_ARCADE_TOUR?$tour_id<1:$tour_id!==0)){
+        message_die(GENERAL_ERROR,$lang['session_error']);
+    }
+    if(function_exists('ctracker_enforce_request_limit_profile')){
+        ctracker_enforce_request_limit_profile(array('arcade-launch',300,'request_limit_content',60));
+    }
+    $hash=bin2hex(phpbb_random_bytes(16));$now=time();
+    $name=$db->sql_escape($game);$ip=$db->sql_escape($user_ip);$number=$db->sql_escape(decode_ip($userdata['session_ip']));
+    $expired_scope=$user_id===ANONYMOUS?" AND session_ip='$ip'":'';
+    // Failed preparation must not leave expired candidates indefinitely.
+    // Never retire a still-valid or active game before a successful launch.
+    $expired='DELETE FROM '.iNA_SESSIONS.' WHERE user_id='.$user_id.$expired_scope.' AND page='.PAGE_ARCADE_LAUNCH_PENDING.' AND start_time<'.($now-86400);
+    if(!$db->sql_query($expired)){message_die(GENERAL_ERROR,$lang['session_error'],'',__LINE__,__FILE__,$expired);}
+    $win=preg_match('/^[A-Za-z0-9_-]{1,20}$/D',(string)$win)?(string)$win:'NORM';
+    // Preparation never destroys the last working game. Only a successfully
+    // committed launch activates this key and retires older active keys.
+    $sql='INSERT INTO '.iNA_SESSIONS." (game_name,arcade_hash,user_id,start_time,session_ip,page,user_ip,ip_name,user_win,tour_id)
+        VALUES ('$name','$hash',$user_id,$now,'$ip',".PAGE_ARCADE_LAUNCH_PENDING.",'$number','','$win',$tour_id)";
+    if(!$db->sql_query($sql)){message_die(GENERAL_ERROR,$lang['session_error'],'',__LINE__,__FILE__,$sql);}
+    return $hash;
+}
 function games_list($mode, $number, $cat_id, $option = 'played', $image_path = FALSE)
 {	
   global $db, $phpEx, $SID, $userdata, $board_config, $arcade;
@@ -365,7 +350,7 @@ function games_list($mode, $number, $cat_id, $option = 'played', $image_path = F
 		}
 		else
 		{
-		  if(($userdata['user_id'] == ANONYMOUS && $top_games['allow_guest'] == 0) || $top_games['level_required'] > $level_required  || $top_games['rank_required'] > $rank_required || in_array($top_games['group_required'], $group_list) == FALSE)
+		  if(($userdata['user_id'] == ANONYMOUS && $top_games['allow_guest'] == 0) || !phpbb_arcade_level_allows($level_required,$top_games['level_required']) || $top_games['rank_required'] > $rank_required || in_array($top_games['group_required'], $group_list) == FALSE)
 		  {
 			$games_list .= $game_desc . '<br />';
       }
@@ -680,8 +665,12 @@ function game_tour_played()
 //
 // Code from ADR
 //
-function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet = 'NO')
+function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet = 'NO', $optional_delivery = false)
 {
+  $notification_error = function($level, $message, $title = '', $line = 0, $file = '', $sql = '') use ($optional_delivery) {
+    if ($optional_delivery) { throw new RuntimeException('Arcade notification unavailable'); }
+    message_die($level, $message, $title, $line, $file, $sql);
+  };
   if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
   {
     global $db, $phpbb_root_path, $phpEx, $lang, $user_ip, $board_config, $userdata, $arcade, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
@@ -752,7 +741,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 				AND privmsgs_to_userid = ". $dest_user;
 			if (!($result = $db->sql_query($sql)))
 			{
-				message_die(GENERAL_MESSAGE, $lang['No_such_user']);
+				$notification_error(GENERAL_MESSAGE, $lang['No_such_user']);
 			}
 
 			$sql_priority = (SQL_LAYER == 'mysql') ? 'LOW_PRIORITY' : '';
@@ -771,7 +760,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 						AND privmsgs_to_userid = ". $dest_user;
 					if (!$result = $db->sql_query($sql))
 					{	
-						message_die(GENERAL_ERROR, 'Could not find oldest privmsgs (inbox)', '', __LINE__, __FILE__, $sql);
+						$notification_error(GENERAL_ERROR, 'Could not find oldest privmsgs (inbox)', '', __LINE__, __FILE__, $sql);
 					}
 					$old_privmsgs_id = $db->sql_fetchrow($result);
 					$old_privmsgs_id = $old_privmsgs_id ? intval($old_privmsgs_id['privmsgs_id']) : 0;
@@ -785,7 +774,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 						WHERE privmsgs_id = ". $old_privmsgs_id;
 					if(!$db->sql_query($sql))
 					{
-						message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs (inbox)'.$sql, '', __LINE__, __FILE__, $sql);
+						$notification_error(GENERAL_ERROR, 'Could not delete oldest privmsgs (inbox)'.$sql, '', __LINE__, __FILE__, $sql);
 					}
 
 					$sql = "DELETE $sql_priority 
@@ -793,7 +782,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 						WHERE privmsgs_text_id = ". $old_privmsgs_id;
 					if (!$db->sql_query($sql))
 					{
-						message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql);
+						$notification_error(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql);
 					}
 				}
 			}
@@ -808,7 +797,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 					VALUES (1, '$privmsg_subject_sql', $from_id, $to_user_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on)";
 			if(!$db->sql_query($sql_info))
 			{
-				message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql_info);
+				$notification_error(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql_info);
 			}
 
 			$privmsg_sent_id = $db->sql_nextid();
@@ -817,7 +806,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 				VALUES (" . intval($privmsg_sent_id) . ", '$bbcode_uid_sql', '$privmsg_message_sql')";
 			if (!$db->sql_query($sql, END_TRANSACTION))
 			{
-				message_die(GENERAL_ERROR, "Could not insert/update private message sent text.", "", __LINE__, __FILE__, $sql);
+				$notification_error(GENERAL_ERROR, "Could not insert/update private message sent text.", "", __LINE__, __FILE__, $sql);
 			}
 
 			$sql = "UPDATE ". USERS_TABLE ."
@@ -825,13 +814,13 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 				WHERE user_id = ". $to_user_id;
 			if(!$status = $db->sql_query($sql))
 			{
-				message_die(GENERAL_ERROR, 'Could not update private message new/read status for user', '', __LINE__, __FILE__, $sql);
+				$notification_error(GENERAL_ERROR, 'Could not update private message new/read status for user', '', __LINE__, __FILE__, $sql);
 			}
 
 			if($to_userdata['user_notify_pm'] && !empty($to_userdata['user_email']) && $to_userdata['user_active'] && $quiet == 'NO')
 			{
 			include_once($phpbb_root_path . 'includes/emailer.'.$phpEx);
-			$emailer = new emailer($board_config['smtp_delivery']);
+			$emailer = new emailer($board_config['smtp_delivery'], $optional_delivery);
 			$emailer->from($board_config['board_email']);
 			$emailer->replyto($board_config['board_email']);
 			$default_mail_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&

@@ -729,44 +729,8 @@ else if ($mode == 'game')
     message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
   }
 
-  $old_GameData = phpbb_safe_unserialize_array(stripslashes((string) $game_info['gamedata']));
-  if (!is_array($old_GameData))
-  {
-    $old_GameData = array();
-  }
-  $found = false;
-  $games_count = count($old_GameData);
-  for($i = 0; $i < $games_count; $i++)
-  {
-    if(isset($old_GameData[$i]['game_name']) && $old_GameData[$i]['game_name'] === $game_info['game_name'])
-    {
-      $played = isset($old_GameData[$i]['played']) ? (int) $old_GameData[$i]['played'] + 1 : 1;
-      if($played > (int) $game_info['tour_player_turns'])
-      {
-        $gen_simple_header = TRUE;
-        message_die(GENERAL_MESSAGE, "Too Many Turns<br>" . $lang['newscore_close_first']);
-      }
-      $old_GameData[$i]['played'] = $played;
-      $found = true;
-      break;
-    }
-  }
-  if(!$found)
-  {
-    $GameData['game_name'] = $game_info['game_name'];
-    $old_GameData[] = $GameData;
-  }
-  $serialized_game_data = serialize($old_GameData);
-
-  $sql = "UPDATE " . iNA_TOUR_PLAY . "
-    SET last_played_game = '".$db->sql_escape($game_info['game_name'])."', last_played_time = ".time().", gamedata = '".$db->sql_escape($serialized_game_data)."'
-      WHERE user_id = ". (int) $userdata['user_id'] . "
-      AND tour_id = $tour_id";
-	if( !$result = $db->sql_query($sql) )
- 	{
- 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
- 	}
-
+  // The launch transaction validates and charges the tournament turn.
+  $win='NORM';
   $session = update_ina_session($userdata['user_id'], $user_ip, PAGE_ARCADE_TOUR, $game_info['game_name'], '', 'NORM', $tour_id);
 
   require("loader.".$phpEx);

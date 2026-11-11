@@ -163,15 +163,16 @@ function phpbb_reward_number($amount)
 //
 //  New function to get the cash system name from the db filked entered in the Arcade config
 //
-function get_cash_name()
+function get_cash_name($field = null)
 {
-  global $table_prefix, $db, $arcade;
-
-	$cash_field = phpbb_reward_field_name($arcade->arcade_config['default_cash']);
-  $sql = "SELECT `cash_name` FROM ". $table_prefix . "cash 
-	WHERE cash_dbfield = '" . $cash_field . "'";
- 	$cashinfo = $db->sql_fetchrow($db->sql_query($sql));
-
-  return $cashinfo['cash_name'];
-//      $cash_name = get_cash_name()
+  global $table_prefix, $db, $arcade, $lang;
+  $fallback=isset($lang['game_points'])?$lang['game_points']:'Points';
+  if($field===null){$field=isset($arcade->arcade_config['default_cash'])?$arcade->arcade_config['default_cash']:'';}
+  if(!is_string($field)||!preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D',$field)||!is_string($table_prefix)||!preg_match('/^[A-Za-z0-9_]{1,42}$/D',$table_prefix)){return $fallback;}
+  // Currency modules are optional. A missing module/table/name must not make
+  // the Arcade list or an already committed score fail during rendering.
+  $result=$db->sql_query('SELECT cash_name FROM '.$table_prefix."cash WHERE cash_dbfield='".$db->sql_escape($field)."' LIMIT 1");
+  if(!$result){return $fallback;}
+  try{$row=$db->sql_fetchrow($result);}finally{$db->sql_freeresult($result);}
+  return $row&&isset($row['cash_name'])&&is_string($row['cash_name'])&&$row['cash_name']!==''?$row['cash_name']:$fallback;
 }

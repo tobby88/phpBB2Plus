@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
@@ -48,6 +48,7 @@ require_once __DIR__ . '/banner_id_migration.php';
 require_once __DIR__ . '/banner_counter_migration.php';
 require_once __DIR__ . '/profile_text_storage_migration.php';
 require_once __DIR__ . '/arcade_name_storage_migration.php';
+require_once __DIR__ . '/arcade_protocol_log_redaction.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
@@ -78,6 +79,7 @@ function update_usage()
 	echo "  --banner-counters-only Widen banner click and view counters without changing their values\n";
 	echo "  --profile-text-storage-only Widen custom-profile values and defaults without rewriting them\n";
 	echo "  --arcade-name-storage-only Widen historical banned-game references without changing their values\n";
+	echo "  --arcade-log-privacy-only Redact credentials in existing Arcade logs; retain records and metadata\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
@@ -190,7 +192,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only'), $argv)) > 1)
+if (count(array_intersect(array('--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -680,6 +682,17 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 
 try
 {
+	if (in_array('--arcade-log-privacy-only', $argv, true))
+	{
+		if ($apply) {
+			$result=plus_arcade_log_redaction_apply($connection,$table_prefix,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));
+			echo 'Arcade protocol log cleanup complete: '.$result['redacted_rows']." rows redacted; identities and metadata retained.\n";
+		} else {
+			$result=plus_arcade_log_redaction_plan($connection,$table_prefix);
+			echo 'Arcade protocol log cleanup: '.$result['redacted_rows']." existing rows need credential redaction.\nDry run only. No database changes made.\n";
+		}
+		mysqli_close($connection); exit(0);
+	}
 	if (in_array('--arcade-name-storage-only', $argv, true))
 	{
 		$plan = plus_arcade_name_plan($connection, $table_prefix, true, true);
@@ -1547,6 +1560,17 @@ try
 	else { plus_user_posts_print_plan($user_counter_plan); }
 }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; inspect before retrying.\n"); exit(3); }
+try
+{
+    if ($apply) {
+        $result=plus_arcade_log_redaction_apply($connection,$table_prefix,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));
+        echo 'Arcade protocol log cleanup complete: '.$result['redacted_rows']." rows redacted; identities and metadata retained.\n";
+    } else {
+        $result=plus_arcade_log_redaction_plan($connection,$table_prefix);
+        echo 'Arcade protocol log cleanup: '.$result['redacted_rows']." existing rows need credential redaction; no rows will be deleted.\n";
+    }
+}
+catch (Exception $error) { fwrite(STDERR,$error->getMessage()."\nPartial update: keep writers stopped; inspect before retrying.\n"); exit(3); }
 foreach ($version_operations as $sql)
 {
 	echo $sql . ";\n";

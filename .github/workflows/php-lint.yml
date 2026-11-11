@@ -135,6 +135,8 @@ jobs:
         run: php -n .github/scripts/check-shoutbox-author-labels.php
       - name: Render current Arcade summaries with structured caches and session-local links
         run: php .github/scripts/check-arcade-summaries.php
+      - name: Validate protected wallet fields and historical Arcade credential cleanup
+        run: php .github/scripts/check-arcade-submission-policy.php
       - name: Render stored player names across Arcade pages and comments
         run: php .github/scripts/check-arcade-player-labels.php
       - name: Keep cached Arcade category identities and visibility current

@@ -92,24 +92,21 @@ if ($asset_path === '' || !is_file($phpbb_root_path . $asset_path))
 	message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'], phpbb_profile_text($missing_asset)));
 }
 $asset_url = phpbb_profile_text($asset_path);
-// Launches arrive through a GET but create a score capability and update play
-// statistics. Give them a separate bounded bucket without consuming the
-// player's allowance for posts, comments or score submissions.
-if (function_exists('ctracker_enforce_request_limit_profile'))
-{
-	ctracker_enforce_request_limit_profile(array('arcade-launch', 300, 'request_limit_content', 60));
-}
 //
 //	Update Game Played amount.
 //
 require_once($phpbb_root_path . 'includes/functions_arcade_launch_storage.' . $phpEx);
+if((int)$userdata['user_id']===ANONYMOUS&&headers_sent()){message_die(GENERAL_ERROR,$lang['no_cookie_data']);}
 try
 {
 	phpbb_arcade_record_launch($db, $game_info, $session);
 }
 catch (PhpbbOwnedStorageFailure $error)
 {
-	message_die(GENERAL_MESSAGE, $lang['arcade_launch_failed']);
+    message_die(GENERAL_MESSAGE, $error->getMessage()==='arcade_launch_funds'?$lang['arcade_launch_funds']:$lang['arcade_launch_failed']);
+}
+if((int)$userdata['user_id']===ANONYMOUS&&!phpbb_setcookie($board_config['cookie_name'].'_arcade',$session,0,$board_config['cookie_path'],$board_config['cookie_domain'],$board_config['cookie_secure'])){
+    message_die(GENERAL_ERROR,$lang['no_cookie_data']);
 }
 //
 // Check the extension of the game to see what we should do with it.

@@ -376,6 +376,18 @@ jobs:
         env:
           PHPBB_ARCADE_BEST_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Commit Arcade capabilities, scores, tournaments and rewards together
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-submission-native.php
+        env:
+          PHPBB_ARCADE_SUBMISSION_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Redact historical Arcade credentials with paged transactional rollback
+        if: matrix.part == 4
+        run: php .github/scripts/check-arcade-log-redaction-native.php
+        env:
+          PHPBB_ARCADE_LOG_REDACTION_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Keep native Arcade category identities and visibility current
         if: matrix.part == 4
         run: php .github/scripts/check-arcade-category-cache-native.php

@@ -36,6 +36,8 @@ define('PAGE_ACTIVITY', -1355);
 define('PAGE_ARCADE_RATE', -1356);
 define('PAGE_ARCADE_COMMENTS', -1357);
 define('PAGE_ARCADE_SCORE', -1358);
+// Prepared launches cannot submit scores until the owned launch commits.
+define('PAGE_ARCADE_LAUNCH_PENDING', -1360);
 define('PAGE_ARCADE_TOUR', -1359);
 //
 //  Start of Activity Table Data

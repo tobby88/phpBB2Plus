@@ -41,12 +41,12 @@ $arcade_version = $arcade->arcade_config('version');
 //  Build the required information from what we have received.
 //
 $sql                    = '';
-$mode                   = $arcade->pass_var('func', '');
-$gameData               = $arcade->pass_var('gameData', '');
-$game_id                = (int) $arcade->pass_var('gid' , 0);
-$arcade->score          = $arcade->pass_var('score', 0);
+$mode                   = $arcade->pass_var('func', '', true);
+$gameData               = $arcade->pass_var('gameData', '', true);
+$game_id                = (int) $arcade->pass_var('gid' , 0, true);
+$arcade->score          = $arcade->pass_var('score', 0, true);
 $arcade->user_id        = $userdata['user_id'];
-$arcade->arcade_hash    = $arcade->pass_var('arcade_hash', '');
+$arcade->arcade_hash    = $arcade->pass_var('arcade_hash', '', true);
 $arcade_cookie_name     = $board_config['cookie_name'] . '_arcade';
 $arcade->arcade_cookie  = isset($_COOKIE[$arcade_cookie_name]) ? $_COOKIE[$arcade_cookie_name] : '';
 $accepted_request       = false;
@@ -71,19 +71,7 @@ switch($mode)
       $arcade->game_name  = $session_info['game_name'];
       $arcade->time_taken = time() - $session_info['start_time'];
       $arcade->score_type = ARCADE_pnFlashGames;
-	  $session_hash_sql = $db->sql_escape($session_info['arcade_hash']);
-	  $sql = "DELETE FROM " . iNA_SESSIONS . "
-		WHERE arcade_hash = '" . $session_hash_sql . "'";
-	  if (!$db->sql_query($sql) || (int) $db->sql_affectedrows() !== 1)
-	  {
-		print "&opSuccess=Missing info&endvar=1";
-		break;
-	  }
-      $score_error = $arcade->newscore();
-      if($score_error === '' && $session_info['page'] == PAGE_ARCADE_TOUR)
-      {
-        $arcade->tour_score();
-      }
+	        $score_error = $arcade->newscore();
       if($score_error === '')
       {
         print "&opSuccess=true&endvar=1";
@@ -170,7 +158,7 @@ switch($mode)
 //
 //  Arcade LOG
 //
-if ($accepted_request && $arcade->arcade_config['games_use_log'] == 1)
+if ($accepted_request && $mode !== 'storeScore' && $arcade->arcade_config['games_use_log'] == 1)
 {
 	$log = $db->sql_escape('pnFlashGames action=' . substr((string) $mode, 0, 32));
 	$sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)

@@ -524,6 +524,8 @@ $lang['arcade_points_generated'] = 'Liste in %.4f Sekunden erstellt.';
 
 //
 $lang['arcade_launch_failed'] = 'Der Spielstart konnte nicht vollständig gespeichert werden. Bitte öffne die Spielhalle erneut.';
+$lang['arcade_submission_failed'] = 'Das Spielergebnis konnte nicht vollständig gespeichert werden. Bitte prüfe die Bestenliste, bevor du es erneut versuchst.';
+$lang['arcade_launch_funds'] = 'Dein Guthaben reicht für dieses Spiel nicht aus.';
 // TFFT - The End...!
 //
 

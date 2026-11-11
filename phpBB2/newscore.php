@@ -72,20 +72,10 @@ if (!phpbb_request_source_is_same_origin())
 	message_die(GENERAL_ERROR, 'Cross-site score submissions are not accepted.');
 }
 phpbb_arcade_enforce_protocol_limit();
+$arcade->arcade_config('use_rewards_mod');
 //
 //  Check Arcade Config and Include extra files.
 //
-if($arcade->arcade_config('use_rewards_mod')) 
-{
-	if($arcade->arcade_config['use_point_system'])
-	{
-		require($phpbb_root_path . 'includes/functions_points.'.$phpEx); 
-	}
-	else if($arcade->arcade_config['use_cash_system'] || $arcade->arcade_config['use_allowance_system']) 
-	{
-		require($phpbb_root_path . 'includes/rewards_api.'.$phpEx);
-	}
-} 
 $ip_num				     = decode_ip($userdata['session_ip']); 
 $ip_nam				     = $ip_num;
 $gen_simple_header = TRUE; 
@@ -111,11 +101,11 @@ $detected_score_type = null;
 //
 //  Collect as much passed data as we can :)
 //
-$mode             = $arcade->pass_var('mode', '');
-$gscore           = $arcade->pass_var('gscore', 0);
-$gname            = $arcade->pass_var('gname', '');
-$score            = $arcade->pass_var('score', 0);
-$gamename         = $arcade->pass_var('game_name', '');
+$mode             = $arcade->pass_var('mode', '', true);
+$gscore           = $arcade->pass_var('gscore', 0, true);
+$gname            = $arcade->pass_var('gname', '', true);
+$score            = $arcade->pass_var('score', 0, true);
+$gamename         = $arcade->pass_var('game_name', '', true);
 //
 //  Collect Arcade session information
 //
@@ -133,7 +123,6 @@ if (!is_scalar($session_hash) || !preg_match('/^[a-f0-9]{32}$/iD', (string) $ses
 {
 	$arcade->message_die(GENERAL_ERROR, $lang['no_session_data'] . $lang['newscore_close']);
 }
-$session_hash_sql = $db->sql_escape($session_hash);
 $session_game_name_sql = $db->sql_escape($session_info['game_name']);
 //
 //  Are we in the Tournament System ???
@@ -178,8 +167,8 @@ switch($game_info['score_type'])
     case ARCADE_GET:
     	if ($mode && !$arcade->arcade_config['games_cheat_mode'])
     	{
-        $arcade->game_name  = $arcade->pass_var('game_name', '');
-        $arcade->score      = $arcade->pass_var('score', 0);
+        $arcade->game_name  = $arcade->pass_var('game_name', '', true);
+        $arcade->score      = $arcade->pass_var('score', 0, true);
     	}
       else
       {
@@ -190,8 +179,8 @@ switch($game_info['score_type'])
 //  Whoo's Mode
 //      
     case ARCADE_POST:
-      $arcade->game_name  = $arcade->pass_var('game_name', '');
-      $arcade->score      = $arcade->pass_var('score', 0);
+      $arcade->game_name  = $arcade->pass_var('game_name', '', true);
+      $arcade->score      = $arcade->pass_var('score', 0, true);
       break;
 //
 //  dEfEndErs Mode
@@ -201,42 +190,42 @@ switch($game_info['score_type'])
       {
         $cheat_mode = TRUE;
       }
-      $arcade->game_name  = $arcade->pass_var('game_name', '');
-      $arcade->score      = $arcade->pass_var('score', 0);
+      $arcade->game_name  = $arcade->pass_var('game_name', '', true);
+      $arcade->score      = $arcade->pass_var('score', 0, true);
       break;
 //
 //  IBProArcade Games
 // 
     case ARCADE_IBPRO:
-      $arcade->game_name  = $arcade->pass_var('gname', '');
-      $arcade->score      = $arcade->pass_var('gscore', 0);
+      $arcade->game_name  = $arcade->pass_var('gname', '', true);
+      $arcade->score      = $arcade->pass_var('gscore', 0, true);
       break;
 //
 //  IBProArcade v3 Games
 //
     case ARCADE_IBPROv3:
-      $arcade->score      = $arcade->pass_var('gscore', 0);
+      $arcade->score      = $arcade->pass_var('gscore', 0, true);
       break;
 //
 //  Mixed Mode (Used when game send differing info back)
 //
     case ARCADE_MIXED:
-      $arcade->game_name  = $arcade->pass_var('game_name', '');
-      $arcade->score      = $arcade->pass_var('score', 0);
+      $arcade->game_name  = $arcade->pass_var('game_name', '', true);
+      $arcade->score      = $arcade->pass_var('score', 0, true);
       break;
 //
 //  pnFlashGames Mode, used here for v1 support
 //
     case ARCADE_pnFlashGames:
-      $arcade->game_name  = $arcade->pass_var('game_name', '');
-      $arcade->score      = $arcade->pass_var('score', 0);
+      $arcade->game_name  = $arcade->pass_var('game_name', '', true);
+      $arcade->score      = $arcade->pass_var('score', 0, true);
       break;
 //
 //  VBulletin Arcade v3 Games
 //
     case ARCADE_vBULLETIN:
-      $arcade->game_name  = $arcade->pass_var('gamename', '');
-      $arcade->score      = $arcade->pass_var('score', 0);
+      $arcade->game_name  = $arcade->pass_var('gamename', '', true);
+      $arcade->score      = $arcade->pass_var('score', 0, true);
       break;  
 //
 //  Default will be Zero or Junk, so we need to see if the user is admin or mod
@@ -327,28 +316,7 @@ else
 	$arcade->score = round((float) $arcade->score, 4);
 }
 
-// Consume the score session only after the protocol and game data have passed
-// the checks above. This keeps malformed requests from destroying valid games.
-$sql = "DELETE FROM " . iNA_SESSIONS . "
-	WHERE arcade_hash = '" . $session_hash_sql . "'";
-if (!$db->sql_query($sql))
-{
-	$arcade->message_die(GENERAL_ERROR, $lang['session_error'] . $lang['newscore_close'], '', __LINE__, __FILE__, $sql);
-}
-if ((int) $db->sql_affectedrows() !== 1)
-{
-	$arcade->message_die(GENERAL_ERROR, $lang['no_session_data'] . $lang['newscore_close']);
-}
-if ($detected_score_type !== null && !$cheat_mode)
-{
-	$sql = "UPDATE " . iNA_GAMES . "
-		SET score_type = " . (int) $detected_score_type . "
-		WHERE game_name = '" . $session_game_name_sql . "' LIMIT 1";
-	if (!$db->sql_query($sql))
-	{
-		$arcade->message_die(GENERAL_ERROR, $lang['no_game_update'] . $lang['newscore_close'], '', __LINE__, __FILE__, $sql);
-	}
-}
+// Validated results claim their capability in the shared owned transaction.
 //
 //  Check to see if we know what mode to work in
 //
@@ -368,28 +336,13 @@ $template->set_filenames(array('body' => 'arcade_saved_body.tpl'));
 //
 if(!empty($game_name))
 {
-	$bonus = 0;
-	if ($start_time)
-	{
-		$end_time		= time();
-		$total_time		= $end_time - $start_time;
-	}
-	else
-	{
-		$total_time = 0;	
-	}
 	if(empty($user_name))
 	{
 		$user_name = $arcade->get_username($arcade->user_id); 
 	}
 	$arcade_user_id = (int) $arcade->user_id;
-	$ip_num_sql = $db->sql_escape($ip_num);
-	$user_name_sql = $db->sql_escape((string) $user_name);
-	$user_name_display = phpbb_stored_text($user_name);
-	$score_sql = is_finite((float) $arcade->score) ? (string) ((float) $arcade->score) : '0';
 	$game_desc	= $game_info['game_desc'];
 	$game_id	= (int) $game_info['game_id'];
-	$type = $arcade->sort_method($game_info['reverse_list']);
 
 	if ( ( ($arcade->user_id == ANONYMOUS) && !$game_info['allow_guest'] ) || ( $userdata['user_level'] != ADMIN && !$game_info['game_avail'] ) )
 	{
@@ -406,264 +359,21 @@ if(!empty($game_name))
 		if ($arcade->score <> 0 && (strtoupper($user_name) != "TEST")) 
    	{ 
 //
-//  Tournament Addition.. 
-//
-      if($in_tournament == TRUE)
-      {
-        $arcade->tour_score();
-      }
-//
-//  Get Players Position.
-//
-			$count_position = 1;
-			$sql = "SELECT score FROM " . iNA_SCORES . "
-				WHERE game_name = '" . $session_game_name_sql . "'
-          ORDER BY score $type, date ASC";
-	    if(!$result = $db->sql_query($sql)) 
-	    {
-				$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql); 
-			}
-			while($score_info = $db->sql_fetchrow($result))
-			{
-				if(($arcade->score < $score_info['score']) && !$game_info['reverse_list'] || ($arcade->score > $score_info['score']) && $game_info['reverse_list'])
-				{
-					$count_position++;
-				}
-			}
-			$saved_text .= sprintf($lang['game_your_score'], (games_position($count_position)), $arcade->score);
-			if($result) { $db->sql_freeresult($result); }
-//
-//  Begin Normal Score Save.
-//
-			if( $arcade->user_id != ANONYMOUS || $arcade->arcade_config['games_guest_highscore'])
-			{
-				$top_score = best_game_player(iNA_SCORES, $game_name, $type);
-			  if (($arcade->score >= doubleval($top_score['score']) && !$game_info['reverse_list']) || ($arcade->score <= doubleval($top_score['score']) && $game_info['reverse_list']) || ($game_info['reverse_list'] && $top_score['score'] == NULL))
-				{
-					if($arcade->score != doubleval($top_score['score']))
-					{
-						$saved_text .= $lang['game_new_high_score'];
-						$bonus = $game_info['game_bonus']; 
-						$first_place_set = TRUE;
-            $allow_comment = TRUE;
-    			  if (($arcade->score > doubleval($top_score['score']) && !$game_info['reverse_list']) || ($arcade->score < doubleval($top_score['score']) && $game_info['reverse_list']) )
-    			  {
-      				swap_place($top_score['player_id'], $arcade->user_id,'first_places',$game_info);
-      			}
-					}
-				}
-//
-// Check to see if the user has already got a Highscore entry and update it.
-// 
-		    $sql = "SELECT score FROM " . iNA_SCORES . "
-					WHERE game_name = '" . $session_game_name_sql . "'
-						AND player_id = " . $arcade_user_id . "
-            ORDER BY score
-					LIMIT 0,1";
-		    if(!$result = $db->sql_query($sql)) 
-		    {
-					$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql); 
-				}
-				$score_info = $db->sql_fetchrow($result);
-				if ($score_info)
-				{	
-    			if($result) { $db->sql_freeresult($result); }
-//
-//	Yep they have a score. Now check to see if we need to update the entry.
-//
-					if (( ($arcade->score > $score_info['score']) && !$game_info['reverse_list'] ) || ( ($arcade->score < $score_info['score']) && $game_info['reverse_list'] ))
-					{
-						$first_place_set = TRUE;
-						$allow_comment = TRUE;
-						$saved_text .= sprintf($lang['game_score_text'], $user_name_display, $lang['game_score_updated']);
-						$sql = "UPDATE " . iNA_SCORES . " 
-							SET score = " . $score_sql . ", player_ip = '$ip_num_sql', date = " . time() . ", time_taken = ". (int) $total_time ."
-								WHERE player_id = " . $arcade_user_id . "
-									AND game_name = '" . $session_game_name_sql . "'";
-						if( !$update_result = $db->sql_query($sql) )
-						{ 
-							$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql); 
-						}
-					} 
-//
-//	Nope, did not have a good enough score this time :(
-//
-					else
-					{
-						$saved_text .= sprintf($lang['game_score_text'], $user_name_display, $lang['game_no_high_score']);
-					}
-				}
-				else
-				{
-          $allow_comment = TRUE;
-					$saved_text .= sprintf($lang['game_score_text'], $user_name_display, $lang['game_score_saved']);
-					$sql = "INSERT INTO " . iNA_SCORES . " (game_name, player_id, player_ip, score, date, time_taken)
-						VALUES ('$session_game_name_sql', $arcade_user_id, '$ip_num_sql', $score_sql, " . time() . ", ". (int) $total_time .")";
-					if( !$result = $db->sql_query($sql) ) 
-					{
-						$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql); 
-					}
-				}
-			}	
-// 
-// Update All Time High Scores.
-//
-			if ($arcade->user_id != ANONYMOUS && $arcade->arcade_config['games_at_highscore'])
-			{
-				$top_at_score = best_game_player(iNA_AT_SCORES, $game_name, $type);
-				if (($arcade->score >= doubleval($top_at_score['score']) && !$game_info['reverse_list']) || ($arcade->score <= doubleval($top_at_score['score']) && $game_info['reverse_list']) || ($game_info['reverse_list'] && $top_at_score['score'] == NULL))
-				{
-					if($arcade->score != doubleval($top_at_score['score']))
-					{
-						$saved_text .= $lang['game_new_at_high_score'];
-						$bonus = $bonus + $game_info['at_game_bonus']; 
-            $first_place_set = TRUE;
-            $allow_comment = TRUE;
-    				if (($arcade->score > doubleval($top_at_score['score']) && !$game_info['reverse_list']) || ($arcade->score < doubleval($top_at_score['score']) && $game_info['reverse_list']) )
-      			{
-            	swap_place($top_at_score['player_id'], $arcade->user_id, 'at_first_places', $game_info);
+            //  All score data and the single-use capability commit together.
+            require_once($phpbb_root_path.'includes/functions_arcade_submission.'.$phpEx);
+            try
+            {
+                $submission=phpbb_arcade_submit_score($db,$game_info,$session_info,$arcade->score,'standard',$detected_score_type);
             }
-					}
-				}
-//
-// Check to see if they have a All Time highscore entry.
-//
-				$sql = "SELECT score FROM " . iNA_AT_SCORES . "
-					WHERE game_name = '" . $session_game_name_sql . "'
-						AND player_id = " . $arcade_user_id . "
-							ORDER BY score
-							LIMIT 0,1";
-				if(!$result = $db->sql_query($sql))
-				{
-					$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql);
-				}
-				$at_score_info = $db->sql_fetchrow($result);
-				if($at_score_info)
-				{ 
-    			$db->sql_freeresult($result);
-					if ((( $arcade->score > $at_score_info['score'] ) && !$game_info['reverse_list'] ) || (( $arcade->score < $at_score_info['score'] ) && $game_info['reverse_list'] ))
-					{
-						$sql = "UPDATE " . iNA_AT_SCORES . " 
-							SET score = ". $score_sql . ", player_name = '$user_name_sql', player_ip = '$ip_num_sql', date = " . time() . ", time_taken = ". (int) $total_time ."
-								WHERE player_id = " . $arcade_user_id . " AND game_name = '" . $session_game_name_sql . "'";
-						if( !$update_result = $db->sql_query($sql) ) 
-						{
-							$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql); 
-						}
-						$saved_text .= $lang['Your'] . " " . $lang['game_at_highscores'] . " " . $lang['game_score_updated'] . '<br />';
-						$allow_comment = TRUE;
-					} 
-				}
-				else
-				{
-					$sql = "INSERT INTO " . iNA_AT_SCORES . " (game_name, player_id, player_name, player_ip, score, date, time_taken) 
-						VALUES ('$session_game_name_sql', $arcade_user_id, '$user_name_sql', '$ip_num_sql', $score_sql, " . time() . ", ". (int) $total_time .")";
-					if( !$result = $db->sql_query($sql) ) 
-					{
-						$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql);
-					}
-					$saved_text .= $lang['game_at_highscores'] . " " . $lang['game_score_saved'] . '<br />';
-          $allow_comment = TRUE;
-				}
-			}
-			else if ($arcade->user_id == ANONYMOUS)
-			{
-				$saved_text .= $lang['at_score_no_guest'];
-			}
-//
-//  BEGIN Monthly Highscore Mod
-//
-      if(($arcade->user_id != ANONYMOUS) && ($game_info['game_avail'] == 1) && $arcade->arcade_config['games_show_mhm'] && $arcade->score >= 0 && $arcade->score <= 99999999.9999)
-      {
-//
-//  Check if an Score exist for this game.
-//
-			$sql = "SELECT highscore_id, highscore_score FROM " . iNA_HIGHSCORES . "
-				WHERE highscore_year = '".date('Y')."'
-				AND highscore_mon = '".date('m')."'
-				AND highscore_game = '" . $session_game_name_sql . "'
-    				ORDER BY highscore_score ".$type."
-    				LIMIT 0,1";
-  			if(!$result = $db->sql_query($sql))
-   			{
-   				$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
-   			}
-			$highscore = $db->sql_fetchrow($result);
-			if($result) { $db->sql_freeresult($result); }
-			if (!$highscore || $highscore['highscore_score'] === '')
-   			{
-//
-//  Add to the Monthly Highscores list
-//
-				$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_user_id, highscore_player, highscore_score, highscore_date)
-					VALUES ('".date('Y')."', '".date('m')."', '$session_game_name_sql', " . (int) $arcade->user_id . ", '$user_name_sql', $score_sql, " . time() . ")";
-   				if( !$result = $db->sql_query($sql) )
-   				{
-   					$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'], "", __LINE__, __FILE__, $sql);
-   				}
-   				$new_highscore = "1";
-   				$message_highscore = $lang['highscore_new_mon_score'];
-   			}
-   			else
-   			{
-//
-//  Update the Monthly Highscores list
-//
-   				if ((($arcade->score > $highscore['highscore_score']) && (!$game_info['reverse_list'])) || (($arcade->score < $highscore['highscore_score']) && ($game_info['reverse_list'])))
-   				{
-					$sql = "UPDATE " . iNA_HIGHSCORES . "
-						SET highscore_user_id = " . (int) $arcade->user_id . ", highscore_player = '$user_name_sql', highscore_score = ". $score_sql . ", highscore_date = " . time() . "
-						WHERE highscore_id = ". (int) $highscore['highscore_id'];
-   					if( !$result = $db->sql_query($sql) )
-   					{
-   						$arcade->message_die(GENERAL_ERROR, $lang['no_score_update'], "", __LINE__, __FILE__, $sql);
-   					}
-   					$new_highscore = "1";
-   					$message_highscore = $lang['highscore_new_mon_score'];
-   				}
-          else
-          {
-   					$message_highscore = $lang['highscore_no_new_mon_score'];
-   				}
-   			}
-   		}
-//
-//	Update Users Money / Reward / Points
-//
-			if($arcade->arcade_config['use_rewards_mod'] && $arcade->arcade_config['use_point_system'] && $arcade->user_id != ANONYMOUS) 
-    	{ 
-				if(intval($game_info['game_reward']) > 0)
-				{
-					$reward = (intval($arcade->score) / intval($game_info['game_reward'])) + $bonus; 
-				}
-				else
-				{
-					$reward = $bonus;
-	      }
-	      if($reward > 0)
-	      {
-	    		add_points($arcade->user_id,$reward); 
-	    		$saved_text .= sprintf($lang['games_updated_points'], $reward, $board_config['points_name']);
-	    	}
-      } 
-   		else if($arcade->arcade_config['use_rewards_mod'] && ($arcade->arcade_config['use_cash_system'] || $arcade->arcade_config['use_allowance_system']) && $arcade->user_id != ANONYMOUS) 
-   		{ 
-	   		if(intval($game_info['game_reward']) > 0)
-	   		{
-	   			$reward = (intval($arcade->score) / intval($game_info['game_reward'])) + $bonus; 
-	   		}
-			  else
-			  {
-				 $reward = $bonus;
-			  }
-			  if($reward > 0)
-			  {
-				  add_reward($arcade->user_id,$reward); 
-      	  $saved_text .= sprintf($lang['games_updated_points'], $reward, get_cash_name());
-			  }
-     	} 
- 		} 
- 		else if ($arcade->score <= 0) 
+            catch(PhpbbOwnedStorageFailure $error)
+            {
+                message_die(GENERAL_MESSAGE,$lang['arcade_submission_failed']);
+            }
+            phpbb_arcade_submission_notify($submission);
+            $feedback=phpbb_arcade_submission_feedback($submission);
+            $saved_text=$feedback['saved'];$first_place_set=$feedback['first'];$allow_comment=$feedback['comment'];$message_highscore=$feedback['monthly'];
+            }
+        else if ($arcade->score <= 0)
 		{
   		$saved_text = $lang['game_no_score_saved'];
   	}
@@ -777,24 +487,7 @@ if ( !$db->sql_query($sql) )
 	$arcade->message_die(GENERAL_ERROR, $lang['session_error'] . $lang['newscore_close'], '', __LINE__, __FILE__, $sql);
 }
 //
-//  Auto Prune System
-//
-$arcade->prune_scores($game_id);
-//
-//  Log Gmae results..
-//
-$log = '';
-foreach($HTTP_POST_VARS as $key => $value)
-{
-	if (is_scalar($value))
-	{
-		$log .= (string) $key . '=>' . (string) $value . ' ';
-	}
-}
-$log = $db->sql_escape(substr($log, 0, 4000));
-$sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-  VALUES (" . (int) $userdata['user_id'] . ", 'GAME', '$log', " . time() . ")";
-$db->sql_query($sql);
+// Scores were pruned and safely audited in the accepted transaction.
 //
 // Generate the page 
 //

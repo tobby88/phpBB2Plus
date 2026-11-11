@@ -162,16 +162,9 @@ $GUEST_ONLY = FALSE;
 //
 //  Check for rewards option and Initilize
 //
-if ($arcade->arcade_config['use_rewards_mod'])
+if ($arcade->arcade_config['use_rewards_mod'] && ($arcade->arcade_config['use_cash_system'] || $arcade->arcade_config['use_allowance_system']))
 {
-	if ( $arcade->arcade_config['use_point_system'] )
-	{
-		include($phpbb_root_path . 'includes/functions_points.'.$phpEx);
-	}
-	if ( $arcade->arcade_config['use_cash_system'] || $arcade->arcade_config['use_allowance_system'] )
-	{
-		include($phpbb_root_path . 'includes/rewards_api.'.$phpEx);
-	}
+    include_once($phpbb_root_path . 'includes/rewards_api.'.$phpEx);
 }
 //
 //  Check to see if we are looking at a Catagory
@@ -395,66 +388,13 @@ if( $mode != '' )
   		$gen_simple_header = TRUE;
       $win = '';   
     } 
-    $session = update_ina_session($userdata['user_id'], $user_ip, PAGE_PLAYING_GAMES, $game_info['game_name'], '', $win);
-		$game_charge = $game_info['game_charge'];
-		$gamepath = 'loader.' . $phpEx . '?gid=' . $session;
 
 		if(!$game_id)
 		{
 			$arcade->message_die(GENERAL_MESSAGE, $lang['no_game_data']);
 		}
-		if($userdata['user_id'] < 0)
-		{
-      $cookie = phpbb_setcookie($board_config['cookie_name'].'_arcade',$session,0,$board_config['cookie_path'],$board_config['cookie_domain'],$board_config['cookie_secure']);
-      if($cookie == FALSE)
-      {
-      	$arcade->message_die(GENERAL_ERROR, $lang['no_cookie_data']); 
-      }
-    }
-
-		if(((!$game_info['allow_guest'] && ($userdata['user_id'] == ANONYMOUS)) || (intval($userdata['user_posts']) < intval($arcade->arcade_config['games_posts_required'])) || (intval($userdata['user_rank']) < intval($game_info['rank_required']))) && $userdata['user_level'] != ADMIN && $userdata['user_id'] != MOD)
-		{
-			message_die(GENERAL_MESSAGE, $lang['games_no_guests'], $lang['Information']);
-		}
 		
-		if($arcade->arcade_config['use_point_system'] && $arcade->arcade_config['use_rewards_mod'] && $game_charge > 0)
-		{
-			if ($userdata['user_points'] >= $game_charge && ( $userdata['user_id'] != ANONYMOUS ))
-			{
-				subtract_points($user_id,$game_charge);
-      }
-			else
-			{
-				message_die(GENERAL_MESSAGE, $lang['not_enough_points'], '', __LINE__, __FILE__, $sql);
-			}
-		}
-		
-		if(((($arcade->arcade_config['use_cash_system'] || $arcade->arcade_config['use_allowance_system']) && $arcade->arcade_config['use_rewards_mod'])) && $game_charge > 0 )
-		{
-			if ((get_reward($userdata['user_id'])) >= $game_charge && ( $userdata['user_id'] != ANONYMOUS ))
-			{
-				subtract_reward($user_id,$game_charge);
-      }
-			else
-			{
-				if(isset($arcade->arcade_config['use_cash_system']))
-				{
-          $cash_name = get_cash_name();
-				  $not_enough_points = sprintf($lang['not_enough_points'], $cash_name);
-				  
-					message_die(GENERAL_MESSAGE, $not_enough_points, '', __LINE__, __FILE__, $sql);
-				}
-				else if(isset($board_config['points_name']))
-				{
-				  $not_enough_points = sprintf($lang['not_enough_points'], $board_config['points_name']);
-					message_die(GENERAL_MESSAGE, $not_enough_points, '', __LINE__, __FILE__, $sql);
-				}
-				else
-				{
-					message_die(GENERAL_MESSAGE, $lang['not_enough_reward'], '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
+		// Game costs are charged only inside the successful owned launch.
 //
 //	Stop unauth users from playing games.
 //
@@ -462,12 +402,11 @@ if( $mode != '' )
     {
       message_die(GENERAL_MESSAGE, $lang['games_not_enough_posts'], 'Information');
     }
-    if(((!$game_info['allow_guest'] && ($userdata['user_id'] == ANONYMOUS)) || (intval($userdata['user_rank']) < intval($game_info['rank_required']))) && $userdata['user_level'] != ADMIN )
+    if(!phpbb_arcade_level_allows($userdata['user_level'],$game_info['level_required'])||(((!$game_info['allow_guest'] && ($userdata['user_id'] == ANONYMOUS)) || (intval($userdata['user_rank']) < intval($game_info['rank_required']))) && $userdata['user_level'] != ADMIN ))
     {
     	$arcade->message_die(GENERAL_MESSAGE, $lang['games_no_guests'], 'Information');
     }
-//		$header_location = ( @preg_match("/Microsoft|WebSTAR|Xitami/", getenv("SERVER_SOFTWARE")) ) ? "Refresh: 0; URL=" : "Location: ";
-//		header($header_location . append_sid($gamepath, true));
+        $session=update_ina_session($userdata['user_id'],$user_ip,PAGE_PLAYING_GAMES,$game_info['game_name'],'',$win);
 		require($phpbb_root_path.'loader.'.$phpEx);
 		exit;
 	}
@@ -808,7 +747,7 @@ if( $mode != '' )
     
     for($i = 0; $i < $row_count; $i++)
     {
-			if(($userdata['user_id'] != ANONYMOUS && ($rows[$i]['level_required'] < $userdata['user_level']) && ($rows[$i]['rank_required'] < $userdata['user_rank'])) || ($userdata['user_id'] == ANONYMOUS && $rows[$i]['allow_guest']))
+			if(phpbb_arcade_level_allows($userdata['user_level'],$rows[$i]['level_required'])&&($userdata['user_level']==ADMIN||$rows[$i]['rank_required']<=$userdata['user_rank'])&&($userdata['user_id']!=ANONYMOUS||$rows[$i]['allow_guest']))
 			{
 					$game_link = "<a href=\"javascript:Gk_PopTart('$filename?mode=game&amp;id=" . (int) $rows[$i]['game_id'] . "&amp;ex_user=" . (int) $user_id . "$SID', 'Game_Window', '" . (int) $rows[$i]['win_width'] . "', '" . (int) $rows[$i]['win_height'] . "', 'no')\" onClick=\"blur()\">" . arcade_output_html($rows[$i]['game_desc']) . "</a>";
 			}
@@ -985,9 +924,9 @@ if( $mode != '' )
 //
 //  If user is not ADMIN or MOD then make sure we only get the games this user can view
 //
-		if( $userdata['user_level'] != ADMIN && $userdata['user_level'] != MOD )
+		if( $userdata['user_level'] != ADMIN )
 		{
-	    $sql_and .= " AND game_avail = 1 AND level_required <= ".$level_required." AND rank_required <= " . $rank_required . " AND g.group_required IN (" . $group_list . ")";
+	    $sql_and .= " AND game_avail = 1 AND level_required IN (".($level_required==MOD?'0,2':'0').") AND rank_required <= " . $rank_required . " AND g.group_required IN (" . $group_list . ")";
 		}
 		if($arcade->cat_id > 0)
 		{
@@ -1476,9 +1415,9 @@ if( $mode != '' )
 			{
 				$sql .= " AND cat_id = '$arcade->cat_id'";
 			}
-			if($userdata['user_level'] != ADMIN && $userdata['user_level'] != MOD)
+			if($userdata['user_level'] != ADMIN)
 			{
-				$sql .= " AND game_avail = 1 AND level_required <= ".$level_required." AND rank_required <= " . $rank_required . " AND group_required IN (" . $group_list . ")";
+				$sql .= " AND game_avail = 1 AND level_required IN (".($level_required==MOD?'0,2':'0').") AND rank_required <= " . $rank_required . " AND group_required IN (" . $group_list . ")";
 			}
 			if ( !($result = $db->sql_query($sql)) )
 			{
@@ -1492,23 +1431,8 @@ if( $mode != '' )
 				$page_number = sprintf($lang['Page_of'], ( floor( $start / $arcade->arcade_config['games_per_page'] ) + 1 ), ceil( $total_games / $arcade->arcade_config['games_per_page'] ));
 			}
 		}
-		if ($arcade->arcade_config['use_rewards_mod'] && $arcade->arcade_config['default_cash'] && $arcade->arcade_config['use_cash_system'] && $userdata['user_id'] != ANONYMOUS)
-		{
-      $cash_name = get_cash_name();
-			$player_points = sprintf($lang['games_total_points'], $userdata[$arcade->arcade_config['default_cash']], $cash_name);
-		}
-		else if ($arcade->arcade_config['use_rewards_mod'] && $board_config['points_name'] && $arcade->arcade_config['use_point_system'] && $userdata['user_id'] != ANONYMOUS)
-		{
-			$player_points = sprintf($lang['games_total_points'], $userdata[$board_config['default_reward_dbfield']], $board_config['points_name']);
-		}
-		else if ($arcade->arcade_config['use_rewards_mod'] && $arcade->arcade_config['default_reward_dbfield'] && $arcade->arcade_config['use_point_system'] && $userdata['user_id'] != ANONYMOUS)
-		{
-			$player_points = sprintf($lang['games_total_points'], $userdata[$arcade->arcade_config['default_reward_dbfield']], $lang['game_points']);
-		}
-		else
-		{
-      $player_points = '';
-    }
+        require_once($phpbb_root_path.'includes/functions_arcade_submission.'.$phpEx);
+        $player_points=phpbb_arcade_wallet_display($arcade->arcade_config,$userdata);
 		if((($mod_id && $mod_id == $user_id) || $userdata['user_level'] == ADMIN) && $arcade->arcade_config['games_moderators_mode'])
 		{
 			$moderate_label = isset($lang['Rules_moderate2']) ? $lang['Rules_moderate2'] : 'Moderieren';

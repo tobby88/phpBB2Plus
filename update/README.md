@@ -1,5 +1,26 @@
 # Database updates and maintenance
 
+Arcade results and game launches now use owned transactions on the existing
+canonical InnoDB tables; no new columns are needed. Before deploying, retain a
+current backup. Old Arcade diagnostic rows can contain game/session keys.
+Preview their cleanup, then apply only with all web/cron writers stopped and
+drained and a verified backup:
+
+```sh
+php update/update_from_153a.php --arcade-log-privacy-only
+php update/update_from_153a.php --arcade-log-privacy-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+This mode changes only credential-bearing diagnostic values in `ina_log`.
+It preserves rows, record/user IDs, names, timestamps and unrelated values;
+unframed password/cookie payloads are replaced in full because their field
+boundaries cannot be recovered reliably. Long hexadecimal tokens in legacy
+SQL errors are masked too. Preview performs no writes; repeat application is
+a no-op. Custom triggers/cascades and nontransactional storage require review
+before applying. The full post-1.53a updater includes the same cleanup after
+its storage migrations. Existing saved game scores and game assets are not
+rewritten by this cleanup.
+
 Before deploying the updated Arcade game editor, widen the historical banned
 game reference to match the 50-character game-name capacity:
 
