@@ -24,6 +24,7 @@ $admin_cache = file_get_contents($root . '/phpBB2/admin/admin_arcade_cache.php')
 $admin_log = file_get_contents($root . '/phpBB2/admin/admin_arcade_log.php');
 $admin_scores = file_get_contents($root . '/phpBB2/admin/admin_arcade_scores.php');
 $admin_categories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.php');
+$category_writer = file_get_contents($root . '/phpBB2/includes/functions_arcade_category_storage.php');
 $category_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_cats_body.tpl');
 $admin_tournaments = file_get_contents($root . '/phpBB2/admin/admin_arcade_tournaments.php');
 $tournament_actions = file_get_contents($root . '/phpBB2/includes/functions_arcade_tournament_actions.php');
@@ -85,11 +86,11 @@ arcade_position_assert(strpos($admin_scores, "array('scores','at_scores','delete
 arcade_position_assert(strpos($admin_scores, 'phpbb_admin_require_post_session();') !== false, 'Arcade score writes must verify the central AdminCP token');
 arcade_position_assert(strpos($admin_scores, "'player_id'=>\$row_player,'score_revision'=>\$row_revision") !== false, 'score editing must bind the submitted player to the displayed row');
 arcade_position_assert(substr_count($admin_scores, 'phpbb_arcade_score_change($db,') === 2, 'score edits and deletions must atomically refresh highscore state');
-arcade_position_assert(strpos($admin_categories, '$target_scope') !== false && strpos($admin_categories, 'WHERE cat_id = " . (int) $target_cat') !== false, 'category ordering must swap one adjacent category in the same hierarchy level');
-arcade_position_assert(substr_count($admin_categories, "SET cat_type = 'p', cat_parent = 0") >= 2, 'category removal or demotion must promote child categories');
-arcade_position_assert(strpos($admin_categories, '`group_required`') !== false, 'new categories must persist their group restriction');
-arcade_position_assert(strpos($admin_categories, '$normalized_link = phpbb_normalize_external_url($desc);') !== false, 'link categories must validate their destination URL');
-arcade_position_assert(strpos($admin_categories, 'phpbb_arcade_local_asset($icon_input)') !== false, 'category icons must stay on a relative local asset path');
+arcade_position_assert(strpos($admin_categories, 'phpbb_arcade_category_change($db,$HTTP_POST_VARS)') !== false && strpos($category_writer, "$"."layout['children'][$"."parent]") !== false, 'owned category ordering must follow actual branches and same-parent siblings');
+arcade_position_assert(substr_count($category_writer, "$"."nodes[$"."child]['cat_parent']='0'") >= 2, 'category removal or demotion must promote child categories atomically');
+arcade_position_assert(strpos($category_writer, "'group_required'=>$"."request['group_required']") !== false, 'new categories must persist their group restriction');
+arcade_position_assert(strpos($category_writer, "phpbb_normalize_external_url($"."request['desc'])") !== false, 'link categories must validate their destination URL');
+arcade_position_assert(strpos($category_writer, 'phpbb_arcade_local_asset($icon)') !== false, 'category icons must stay on a relative local asset path');
 arcade_position_assert(strpos($category_template, 'colspan="3"') !== false, 'category action header markup must be valid');
 arcade_position_assert(strpos($admin_tournaments, "array('', 'add_tour', 'edit', 'add_games')") !== false, 'tournament views must use an allowlisted mode');
 arcade_position_assert(strpos($admin_tournaments, 'phpbb_admin_require_post_session();') !== false && strpos($admin_tournaments, 'phpbb_admin_session_field()') !== false, 'tournament writes must use the central AdminCP token');

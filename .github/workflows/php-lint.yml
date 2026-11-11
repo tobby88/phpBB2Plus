@@ -66,6 +66,8 @@ jobs:
 
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
+      - name: Check category branches, stale forms, widths and exact historical counters
+        run: php .github/scripts/check-arcade-category-policy.php
       - name: Match global Arcade numeric bounds to canonical per-game fields
         run: php .github/scripts/check-arcade-bulk-policy.php
       - name: Validate Arcade log filters, selected identities and explicit form ownership

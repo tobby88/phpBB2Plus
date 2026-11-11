@@ -18,7 +18,7 @@
  </tr>
 
  <tr>
-   <td class="row1">{L_ICON}<span class="gensmall">{L_ICON_INFO}</td>
+   <td class="row1">{L_ICON}<span class="gensmall">{L_ICON_INFO}</span></td>
    <td class="row2" width="20%"><input class="post" type="text" size="40" name="icon" value="{ICON}" /></td>
  </tr>
 
@@ -56,7 +56,6 @@
  <tr>
    <td class="row2" colspan="2" align="center"><span class="gentblsmall">{L_DESC_INFO}</span>
      <textarea rows="10" cols="100%" wrap="virtual" name="desc" class="post">{DESC}</textarea></td>
-   </td>
  </tr>
 
  <tr>

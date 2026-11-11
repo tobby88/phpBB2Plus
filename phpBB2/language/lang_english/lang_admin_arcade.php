@@ -24,6 +24,10 @@ if ( !defined('IN_PHPBB') )
 }
 
 // Admin
+$lang['arcade_category_invalid'] = 'Invalid category settings. Please check the selected type, parent, group, moderator and supported field lengths.';
+$lang['arcade_category_changed'] = 'The category or its position has changed. Please reload the categories and try again.';
+$lang['arcade_category_repair'] = 'Some category relationships are inconsistent. Synchronize the categories before changing them.';
+$lang['arcade_category_missing_group'] = 'Unavailable group (%d) — choose a valid group';
 $lang['arcade_log_invalid'] = 'Invalid log selection. Please reload the log and try again.';
 $lang['arcade_log_changed'] = 'The selected log entries have changed or no longer match this filter. Please reload the log.';
 $lang['admin_main_header'] = 'This control panel will help you maintain and control the online activities.<br />If you are currently having a problem with our MOD, then please contact us at <a href="http://www.phpbb-arcade.com"  target=_blank class="copyright">www.phpbb-arcade.com</a> so we may help fix the problem.';
@@ -175,7 +179,7 @@ $lang['admin_cat_menu'] = 'Online Arcade Categories Menu';
 $lang['admin_cat_header'] = 'This control panel will help you maintain the categories for your online activities.<br />If you are currently having a problem with our MOD, then please contact us at <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a> so we may help fix the problem.';
 $lang['admin_cat_saved'] = 'Category Saved Successfully<br /><br />';
 $lang['admin_cat_deleted'] = 'Category Deleted<br /><br />';
-$lang['admin_cat_delete_confirm'] = 'Are you sure you want to delete this category? Games in it will become uncategorized.';
+$lang['admin_cat_delete_confirm'] = 'Delete this category? Its games will be retained without a category; its child categories will become main categories.';
 $lang['admin_cat_not_deleted'] = 'Category NOT Deleted<br /><br />';
 $lang['admin_cat_icon'] = '<b>ICON</b><br />';
 $lang['admin_cat_icon_info'] = 'Path to the image file for this category. If blank No image will be displayed.';

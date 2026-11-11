@@ -79,7 +79,7 @@ $integrations = array(
 	'admin/admin_arcade_reset.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_statistics_reset($db, $mode)', 'arcade_statistics_title'),
 	'admin/admin_arcade_cache.php' => array("'S_CONFIG_ACTION' =>", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_cache_save($db,$_POST)'),
 	'admin/admin_arcade_log.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_log_remove($db,$HTTP_POST_VARS)'),
-	'admin/admin_arcade_cats.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$target_scope', '`group_required`'),
+	'admin/admin_arcade_cats.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_category_change($db,$HTTP_POST_VARS)', 'phpbb_arcade_category_revision(', 'tree_revision'),
 	'admin/admin_arcade_tournaments.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_tournament_action($db,', 'phpbb_arcade_tournament_manage($db,', 'tour_revision'),
 	'includes/functions_arcade_tournament_manage.php' => array("count(\$events)>=(int)\$settings['games_tournament_max']", 'phpbb_arcade_tournament_revision($rows[0])', '$this->settings(true)'),
 	'admin/admin_album_config_extended.php' => array('$module[\'Photo_Album\'][\'Configuration\']', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'album_admin_editable_config', '$db->sql_escape($config_value)'),

@@ -6,6 +6,23 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic Arcade category lifecycle and complete branch ordering
+
+- Move whole parent branches and reorder children only among actual siblings,
+  including across gaps or duplicate legacy order values. Store a compact
+  preorder within existing column widths instead of deriving positions from IDs.
+- Bind mutations to current category metadata and topology. Recheck current
+  administrator sessions, exact delegated rights and group/moderator references;
+  stale forms and failed writes leave the entire operation unchanged.
+- Create categories with native identities. Delete or convert categories while
+  retaining every game, promoting children and updating assignments atomically.
+- Synchronize logical relationships and counters without physical table repair
+  or optimization. Preserve offline games' historical plays, exact wide totals,
+  meaningful last-play metadata and existing external-link visit counters.
+- Read fresh ACP metadata, handle nullable legacy fields on PHP 8.5 and retain
+  missing group selections until explicitly repaired. Cache eviction follows
+  attempted commits, without replay after uncertain acknowledgements.
+
 ### Independently committed global Arcade game values
 
 - Recheck current administrator sessions and exact delegated global-settings

@@ -406,6 +406,12 @@ jobs:
         env:
           PHPBB_ARCADE_TOUR_ACTION_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Commit complete category lifecycle with branch ordering and preserved games
+        if: matrix.part == 3
+        run: php .github/scripts/check-arcade-category-native.php
+        env:
+          PHPBB_ARCADE_CATEGORY_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Commit whole-game Arcade values with canonical widths and current authority
         if: matrix.part == 3
         run: php .github/scripts/check-arcade-bulk-native.php

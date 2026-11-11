@@ -1,4 +1,7 @@
 <!-- phpBB Arcade Admin Categories Template v2.1.7 -->
+<!-- BEGIN repair_needed -->
+<p class="gen">{repair_needed.MESSAGE}</p>
+<!-- END repair_needed -->
 
 <form action="{S_CONFIG_ACTION}" method="post">
   {S_SESSION_FIELD}
@@ -32,7 +35,7 @@
     </tr>
     <!-- END cats --> 
     <tr> 
-      <td colspan="14" class="cat" align="center"> 
+      <td colspan="6" class="cat" align="center">
         <input type="submit" name="add_cat" value="{L_ADD}" class="mainoption" />
         <input type="submit" name="resync_cats" value="{L_RESYNC}" class="mainoption" />
       </td>

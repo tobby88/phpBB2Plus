@@ -74,6 +74,7 @@ function phpbb_acp_actor($db,$route)
 		'admin_arcade_cache.'.$phpEx,
 		'admin_arcade_log.'.$phpEx,
 		'admin_arcade_set.'.$phpEx,
+		'admin_arcade_cats.'.$phpEx,
 		'admin_kb_art.'.$phpEx,
 		'admin_kb_cat.'.$phpEx,
 		'admin_pa_category.'.$phpEx,

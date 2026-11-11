@@ -27,6 +27,10 @@ if ( !defined('IN_PHPBB') )
 }
 
 // Admin
+$lang['arcade_category_invalid'] = 'Ungültige Kategorieangaben. Bitte prüfe Typ, Oberkategorie, Gruppe, Moderator und die zulässigen Feldlängen.';
+$lang['arcade_category_changed'] = 'Die Kategorie oder ihre Position hat sich geändert. Bitte lade die Kategorien neu und versuche es erneut.';
+$lang['arcade_category_repair'] = 'Einige Kategoriezuordnungen sind inkonsistent. Bitte synchronisiere die Kategorien vor weiteren Änderungen.';
+$lang['arcade_category_missing_group'] = 'Nicht verfügbare Gruppe (%d) — bitte neu auswählen';
 $lang['arcade_log_invalid'] = 'Ungültige Protokollauswahl. Bitte lade das Protokoll neu und versuche es erneut.';
 $lang['arcade_log_changed'] = 'Die ausgewählten Protokolleinträge haben sich geändert oder passen nicht mehr zu diesem Filter. Bitte lade das Protokoll neu.';
 $lang['admin_main_header'] = 'Mit Hilfe dieses Control Panels kannst Du Deine Online Spiele verwalten<br />Solltest Du irgendwelche Probleme mit unserem MOD haben, dann kontaktiere uns bitte unter <a href="http://www.phpbb-arcade.com"  target=_blank class="copyright">www.phpbb-arcade.com</a>. Dort können wir versuchen die Probleme zu lösen.';
@@ -178,7 +182,7 @@ $lang['admin_cat_menu'] = 'Kategorien Menü';
 $lang['admin_cat_header'] = 'Mit diesem Menu kannst Du Deine Kategorien und die Spiele verwalten. Solltest Du hier auf Probleme stossen, dann kontaktiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a>, damit wir diese lösen können.';
 $lang['admin_cat_saved'] = 'Kategorie wurde gespeichert.<br /><br />';
 $lang['admin_cat_deleted'] = 'Kategorie wurde gelöscht.<br /><br />';
-$lang['admin_cat_delete_confirm'] = 'Möchtest Du diese Kategorie wirklich löschen? Enthaltene Spiele werden keiner Kategorie mehr zugeordnet.';
+$lang['admin_cat_delete_confirm'] = 'Diese Kategorie löschen? Ihre Spiele bleiben ohne Kategorie erhalten; ihre Unterkategorien werden zu Hauptkategorien.';
 $lang['admin_cat_not_deleted'] = 'Kategorie wurde NICHT gelöscht.<br /><br />';
 $lang['admin_cat_icon'] = '<b>Kategorien Bild</b><br />';
 $lang['admin_cat_icon_info'] = 'Pfad zum Bild ür diese Kategorie. Wenn Du das Feld leer läßt, wird nichts angezeigt.';
