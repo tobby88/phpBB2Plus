@@ -13,6 +13,7 @@ $root = dirname(dirname(__DIR__));
 $rate = file_get_contents($root . '/phpBB2/arcade_rate.php');
 $comment = file_get_contents($root . '/phpBB2/arcade_comment.php');
 $tournament = file_get_contents($root . '/phpBB2/arcade_tournament.php');
+$tournament_join = file_get_contents($root . '/phpBB2/includes/functions_arcade_tournament_storage.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
 $adminCategories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.php');
 $modcp = file_get_contents($root . '/phpBB2/arcade_modcp.php');
@@ -28,7 +29,8 @@ $modcp_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/arc
 arcade_secondary_assert(strpos($rate, "!is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'ratings must reject nested tokens');
 arcade_secondary_assert(substr_count($comment, "include(\$phpbb_root_path . 'includes/page_tail.'.\$phpEx);\n\texit;") >= 2, 'comment confirmation and edit pages must stop after their page tail');
 arcade_secondary_assert(strpos($comment, 'min(1000000, intval(phpbb_request_scalar') !== false, 'comment offsets must be scalar and bounded');
-arcade_secondary_assert(strpos($tournament, 'count($normalized_join_tours) >= 100') !== false, 'tournament join batches must be bounded');
+arcade_secondary_assert(strpos($tournament, 'phpbb_arcade_tournament_join($db, $join_tour)') !== false &&
+    strpos($tournament_join, 'count($ids)>100') !== false, 'tournament joins must use the bounded owned writer');
 arcade_secondary_assert(strpos($tournament, "is_scalar(\$HTTP_POST_VARS['tour_name'])") !== false, 'tournament text fields must be scalar');
 arcade_secondary_assert(strpos($tournament, "is_scalar(\$HTTP_GET_VARS['tour_token'])") !== false, 'tournament play tokens must be scalar');
 arcade_secondary_assert(strpos($classes, 'if (!is_finite($passed_var))') !== false, 'numeric Arcade inputs must reject non-finite values');
