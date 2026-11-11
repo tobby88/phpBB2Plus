@@ -1,4 +1,5 @@
 <?php
+
 /***************************************************************************
  *                         lang_admin_arcade.php [German]
  *                         ------------------------------
@@ -26,6 +27,8 @@ if ( !defined('IN_PHPBB') )
 }
 
 // Admin
+$lang['arcade_log_invalid'] = 'Ungültige Protokollauswahl. Bitte lade das Protokoll neu und versuche es erneut.';
+$lang['arcade_log_changed'] = 'Die ausgewählten Protokolleinträge haben sich geändert oder passen nicht mehr zu diesem Filter. Bitte lade das Protokoll neu.';
 $lang['admin_main_header'] = 'Mit Hilfe dieses Control Panels kannst Du Deine Online Spiele verwalten<br />Solltest Du irgendwelche Probleme mit unserem MOD haben, dann kontaktiere uns bitte unter <a href="http://www.phpbb-arcade.com"  target=_blank class="copyright">www.phpbb-arcade.com</a>. Dort können wir versuchen die Probleme zu lösen.';
 $lang['admin_config_menu'] = 'Online Arcade Konfigurations Menü';
 $lang['admin_game_menu'] = 'Online Arcade/Activity Menü';

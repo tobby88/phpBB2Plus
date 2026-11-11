@@ -406,6 +406,12 @@ jobs:
         env:
           PHPBB_ARCADE_TOUR_ACTION_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Render strict Arcade logs and delete selected or filtered entries atomically
+        if: matrix.part == 3
+        run: php .github/scripts/check-arcade-log-native.php
+        env:
+          PHPBB_ARCADE_LOG_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Save scoped Arcade settings atomically with current authority and currencies
         if: matrix.part == 3
         run: php .github/scripts/check-arcade-config-native.php

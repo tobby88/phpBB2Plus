@@ -1,5 +1,9 @@
 <!-- phpBB Arcade Log Template v2.1.8 -->
 
+<form id="arcade_log_delete" action="{S_ACTION}" method="post">
+  {S_FORM_TOKEN}<input type="hidden" name="sort" value="{SORT}" />
+</form>
+
 <table width="100%" cellpadding="4" cellspacing="0" border="0" align="center" class="bodyline">
   <tr>
     <th class="thHead" colspan="3">{LOG_TXT}</th>
@@ -22,21 +26,17 @@
       </form>
     </td>
   </tr>
-  <form action="{S_ACTION}" method="post">
-  {S_FORM_TOKEN}
 <!-- BEGIN log_record_none -->
-    <td colspan="3"><center>{NONE}</center></td>
+  <tr><td colspan="3"><center>{NONE}</center></td></tr>
 <!-- END log_record_none -->
 <!-- BEGIN log_record -->
   <tr>
-    <td width="5%"><input type="checkbox" name="record_no[]" value="{log_record.RECORD_NO}"></td>
-    <td>&raquo; <i>{log_record.RECORD_DATE}</i> &raquo; {log_record.RECORD_NAME} &raquo; <b><i>{log_record.RECORD_USERNAME}</i></b> &raquo; {log_record.RECORD_DATA}</td>
+    <td width="5%"><input type="checkbox" form="arcade_log_delete" name="record_no[]" value="{log_record.RECORD_NO}" /></td>
+    <td colspan="2">&raquo; <i>{log_record.RECORD_DATE}</i> &raquo; {log_record.RECORD_NAME} &raquo; <b><i>{log_record.RECORD_USERNAME}</i></b> &raquo; {log_record.RECORD_DATA}</td>
   </tr>
 <!-- END log_record -->
   <tr>
-    <input type="hidden" name="sort" value="{SORT}">
-    <td width="5%" class="catLeft"><input type="image" value="delete" src="{DELETE_IMG}" border="0" /></td>
-  </form>  
+    <td width="5%" class="catLeft"><input type="submit" form="arcade_log_delete" name="delete" value="{L_DELETE}" class="liteoption" /></td>
     <td width="90%" class="cat">
       <form action="{S_ACTION}" method="post">{S_FORM_TOKEN}<center>
         <input type="submit" name="purge" value="{PURGE}">

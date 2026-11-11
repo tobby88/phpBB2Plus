@@ -1,4 +1,5 @@
 <?php
+
 /***************************************************************************
  *                         lang_admin_arcade.php [english]
  *                         ------------------------------
@@ -23,6 +24,8 @@ if ( !defined('IN_PHPBB') )
 }
 
 // Admin
+$lang['arcade_log_invalid'] = 'Invalid log selection. Please reload the log and try again.';
+$lang['arcade_log_changed'] = 'The selected log entries have changed or no longer match this filter. Please reload the log.';
 $lang['admin_main_header'] = 'This control panel will help you maintain and control the online activities.<br />If you are currently having a problem with our MOD, then please contact us at <a href="http://www.phpbb-arcade.com"  target=_blank class="copyright">www.phpbb-arcade.com</a> so we may help fix the problem.';
 $lang['admin_config_menu'] = 'Online Arcade Configuration Menu';
 $lang['admin_game_menu'] = 'Online Arcade/Activity Menu';

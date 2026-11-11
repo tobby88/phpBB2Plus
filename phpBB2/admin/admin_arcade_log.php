@@ -55,9 +55,7 @@ $file = basename(__FILE__);
 $start        = max(0, (int) $arcade->pass_var('start', 0, true));
 $sort         = (int) $arcade->pass_var('sort', 0, true);
 $sort         = ($sort >= 0 && $sort <= 5) ? $sort : 0;
-$purge        = (isset($HTTP_POST_VARS['purge']) && is_scalar($HTTP_POST_VARS['purge'])) ? (string) $HTTP_POST_VARS['purge'] : '';
-$x            = (isset($HTTP_POST_VARS['x']) && is_scalar($HTTP_POST_VARS['x'])) ? intval($HTTP_POST_VARS['x']) : 0;
-$y            = (isset($HTTP_POST_VARS['y']) && is_scalar($HTTP_POST_VARS['y'])) ? intval($HTTP_POST_VARS['y']) : 0;
+$write_requested = isset($HTTP_POST_VARS['purge']) || isset($HTTP_POST_VARS['delete']) || isset($HTTP_POST_VARS['x']) || isset($HTTP_POST_VARS['y']);
 $pagination   = '';
 $page_number  = '';
 //
@@ -91,47 +89,17 @@ switch($sort)
 //
 //  Purge the records
 //
-if($purge != '')
+if ($write_requested)
 {
-  phpbb_admin_require_post_session();
-  if($sort < 1)
-  {
-    $sql = "TRUNCATE " . iNA_LOG;
-  }
-  else
-  {
-    $sql = "DELETE FROM " . iNA_LOG . " " . $where;
-  }
-  if(!($result = $db->sql_query($sql)))
-  {
-    message_die(GENERAL_ERROR, '', '', __LINE__, __FILE__, $sql);
-  }  
-}
-//
-//  Delete the selected records.
-//
-if($x > 0 && $y > 0)
-{
-  phpbb_admin_require_post_session();
-  $record_no = isset($HTTP_POST_VARS['record_no']) ? $HTTP_POST_VARS['record_no'] : 0;
-  
-  if(is_array($record_no))
-  {
-    for($i = 0; $i < count($record_no); $i++)
+    phpbb_admin_require_post_session();
+    require_once dirname(__DIR__).'/includes/functions_arcade_log_storage.php';
+    try { phpbb_arcade_log_remove($db,$HTTP_POST_VARS); }
+    catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+    catch (PhpbbOwnedStorageFailure $error)
     {
-      $record_id = intval($record_no[$i]);
-      if ($record_id <= 0) { continue; }
-      $sql = "DELETE FROM " . iNA_LOG . "
-        WHERE record_no = " . $record_id;
-      if(!($result = $db->sql_query($sql)))
-      {
-        message_die(GENERAL_ERROR, '', '', __LINE__, __FILE__, $sql);
-      }
+        $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['no_config_update']);
     }
-  }
 }
-//
-//
 //
 $template->set_filenames(array('body' => 'admin/arcade_log_body.tpl'));
 
@@ -149,15 +117,16 @@ $record_count = $log['total'];
 //
 //  Get the Info from the table
 //
-$sql = "SELECT u.username, l.*, COUNT(l.record_no) AS count FROM " . iNA_LOG . " l
+$sql = "SELECT u.username, l.* FROM " . iNA_LOG . " l
   LEFT JOIN " . USERS_TABLE . " u ON l.user_id = u.user_id
   $where
-  GROUP BY record_no
   ORDER BY record_no DESC";
 //
 //  Use the games per page to display the results
 //
 $games_per_admin_page = max(1, intval(isset($arcade->arcade_config['games_per_admin_page']) ? $arcade->arcade_config['games_per_admin_page'] : 20));
+// A deletion can empty the last page; keep remaining records reachable.
+$start = $record_count ? min($start, (int) (floor(($record_count - 1) / $games_per_admin_page) * $games_per_admin_page)) : 0;
 if($games_per_admin_page > 0)
 {
   $sql .= " LIMIT ".$start.",".$games_per_admin_page;
@@ -205,12 +174,12 @@ $template->assign_vars(array(
   'LOG_TXT_INFO' => $lang['admin_arcade_log_info'],
   'RECORD_TXT' => $lang['record_number'],
   
-  'DELETE_IMG' => './../' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . '" title="' . $lang['Delete'],
   
   'RECORDS' => sprintf($lang['arcade_log_records'], $record_count),
   'VERSION' => sprintf($lang['activitiy_mod_info'], $arcade->version),
   
   'PURGE' => $lang['arcade_log_purge'],
+  'L_DELETE' => $lang['Delete'],
   'SORT' => $sort,
   'PAGE_NO' => $page_number,
   'PAGINATION' => $pagination,

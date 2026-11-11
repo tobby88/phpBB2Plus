@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic Arcade log management and strict list queries
+
+- Recheck current Log-page administrator sessions and delegated rights while
+  deleting entries. Commit selected batches or filtered purges together;
+  invalid filters, stale/mismatched selections and failed writes delete nothing.
+- Replace implicit-commit TRUNCATE with transactional DELETE, preserving log
+  identities and unrelated caller transactions. Never replay uncertain commits.
+- Remove the redundant aggregate/grouping from the list query so it works with
+  ONLY_FULL_GROUP_BY. Keep remaining entries reachable after last-page deletion.
+- Use a normal localized delete button with explicit form ownership, without
+  image-coordinate requirements or malformed image/form markup.
+
 ### Preserve Arcade cache units and atomic settings
 
 - Preserve saved TTLs when their minute controls are absent, including enabling
