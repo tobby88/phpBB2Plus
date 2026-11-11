@@ -71,6 +71,7 @@ function phpbb_acp_actor($db,$route)
 		'admin_arcade_reset.'.$phpEx.'?mode=home',
 		'admin_arcade_tournaments.'.$phpEx,
 		'admin_arcade.'.$phpEx,'admin_arcade.'.$phpEx.'?mode=switches','admin_arcade.'.$phpEx.'?mode=messages',
+		'admin_arcade_cache.'.$phpEx,
 		'admin_kb_art.'.$phpEx,
 		'admin_kb_cat.'.$phpEx,
 		'admin_pa_category.'.$phpEx,

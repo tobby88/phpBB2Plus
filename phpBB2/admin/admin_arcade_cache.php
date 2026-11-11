@@ -55,61 +55,21 @@ $file = basename(__FILE__);
 $submit = isset($_POST['submit']);
 if ($submit)
 {
-	phpbb_admin_require_post_session();
-  $use_cache = (isset($_POST['use_cache']) && is_scalar($_POST['use_cache']) && intval($_POST['use_cache']) === 1) ? 1 : 0;
-//
-//  First Set the Main Cache Option
-//
-	$sql = "UPDATE " . iNA . "
- 			SET config_value = '".$use_cache."'
-		WHERE config_name = 'use_cache'";
- 	if( !$db->sql_query($sql) )
- 	{
- 		message_die(GENERAL_ERROR, $lang['no_config_update'] . $use_cache, '', __LINE__, __FILE__, $sql);
- 	}
-//
-//  First Load the Main Config Option's
-//
-	$sql = "SELECT * FROM " . iNA . "
-		WHERE config_name IN('config_cache','categories_cache','games_cache','highscore_cache', 'at_highscore_cache')";
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(CRITICAL_ERROR, $lang['no_config_data'], '', __LINE__, __FILE__, $sql);
-	}
-	while( $row = $db->sql_fetchrow($result) )
-	{
-//
-//  Build Array for database updates
-//
-		$config_name = $row['config_name'];
-		$config_value = $row['config_value'];
-		$default_config[$config_name] = $config_value;
-//
-//  next update the different Cache settings
-//
-		$new[$config_name] = phpbb_admin_post_string($config_name, $default_config[$config_name]);
-    $newvalue = max(0, min(10080, intval($new[$config_name]))) * 60;
-
-		$sql = "UPDATE " . iNA . "
-  			SET config_value = '" . $newvalue . "'
-			WHERE config_name = '$config_name'";
-		
-  	if(!$db->sql_query($sql))
-  	{
-  		message_die(GENERAL_ERROR, $lang['no_config_update'] . $config_name, '', __LINE__, __FILE__, $sql);
-  	}
-  }
-	$db->sql_freeresult($result);
-//
-//  Clear the cached copy of the config
-//
-  $arcade->clear_cache('config');
+    phpbb_admin_require_post_session();
+    require_once dirname(__DIR__).'/includes/functions_arcade_config_storage.php';
+    try { phpbb_arcade_cache_save($db,$_POST); }
+    catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+    catch (PhpbbOwnedStorageFailure $error)
+    {
+        $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['no_config_update']);
+    }
 }
-//
-//  Load the config back into memory
-//
-$config_version = $arcade->arcade_config('version','./../');
+// Read current values directly; the ACP must not display another request's
+// cached settings or create/normalize configuration rows while rendering.
+$result=$db->sql_query('SELECT config_name,config_value FROM '.iNA);
+if (!$result) { message_die(GENERAL_ERROR,$lang['no_config_data']); }
+while ($row=$db->sql_fetchrow($result)) { $arcade->arcade_config[$row['config_name']]=$row['config_value']; }
+$db->sql_freeresult($result);
 //
 //  Check to see if we have the cache system set to ON
 //

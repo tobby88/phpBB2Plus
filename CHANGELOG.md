@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve Arcade cache units and atomic settings
+
+- Preserve saved TTLs when their minute controls are absent, including enabling
+  caching from the disabled form. Convert only submitted minutes to bounded
+  seconds and preserve existing second-resolution values through the form.
+- Commit the cache toggle, submitted TTLs and optional audit together with
+  current, exact Cache-page authority. Failed writes cannot leave partial
+  settings; read current values directly when displaying this ACP page.
+
 ### Atomic and scoped Arcade configuration
 
 - Save General, Switches and Private Messages settings together or roll the

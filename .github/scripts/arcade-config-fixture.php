@@ -15,3 +15,13 @@ function ac_call($mode='',$values=array()){
  global $db;profile_fixture_request(array_replace(array('sid'=>'fixture-import','submit'=>'1','new_mode'=>$mode),$values));$_SERVER['REQUEST_METHOD']='POST';
  try{return array('error'=>false,'result'=>phpbb_arcade_config_save($db,$GLOBALS['HTTP_POST_VARS']));}catch(PhpbbOwnedStorageFailure$e){return array('error'=>true,'key'=>$e->getMessage());}catch(PhpbbAclException$e){return array('error'=>true,'key'=>$e->getMessage());}
 }
+function ac_cache_controller($post=array(),$view=false){
+ global $as_app,$db,$arcade,$userdata,$HTTP_POST_VARS,$HTTP_GET_VARS,$lang,$phpEx,$phpbb_root_path,$board_config;
+ $template=new ArcadeConfigTemplate();$file='admin_arcade_cache.php';$version=ARCADE_VERSION;profile_fixture_request($view?array():array_replace(array('sid'=>'fixture-import','submit'=>'1'),$post));$_SERVER['REQUEST_METHOD']=$view?'GET':'POST';
+ $s=file_get_contents($as_app.'admin/admin_arcade_cache.php');$a=strpos($s,'$submit = isset(');as_check($a!==false,'Actual complete cache controller');$body=str_replace("require_once dirname(__DIR__).'/includes/functions_arcade_config_storage.php';","require_once \$as_app.'includes/functions_arcade_config_storage.php';",substr($s,$a));
+ try{eval($body);throw new RuntimeException('Actual cache controller must report or render');}catch(ArcadeSummaryExit$e){return array('body'=>$e->getMessage(),'template'=>$template);}catch(ArcadeConfigViewExit$e){return array('body'=>'view','template'=>$template);}
+}
+function ac_cache_call($post=array()){
+ global $db;profile_fixture_request(array_replace(array('sid'=>'fixture-import','submit'=>'1'),$post));$_SERVER['REQUEST_METHOD']='POST';
+ try{return array('error'=>false,'result'=>phpbb_arcade_cache_save($db,$GLOBALS['HTTP_POST_VARS']));}catch(PhpbbOwnedStorageFailure$e){return array('error'=>true,'key'=>$e->getMessage());}catch(PhpbbAclException$e){return array('error'=>true,'key'=>$e->getMessage());}
+}

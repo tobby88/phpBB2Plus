@@ -96,3 +96,69 @@ function phpbb_arcade_config_save($database,$request)
     $writer=null;try{$writer=new PhpbbArcadeConfigWriter($database,$input['mode']);return $writer->save($input['values']);}
     finally{if($writer){try{if($writer->commit_attempted){try{$arcade->clear_cache('config',$phpbb_root_path);}catch(Exception$ignored){}catch(Error$ignored){}}}finally{$writer->release();}}}
 }
+
+function phpbb_arcade_cache_input($request)
+{
+    if (!is_array($request)) { throw new PhpbbOwnedStorageFailure('arcade_config_invalid'); }
+    $fields=array('use_cache','config_cache','categories_cache','games_cache','highscore_cache','at_highscore_cache');
+    $values=array();
+    foreach ($request as $key=>$raw)
+    {
+        if (!is_string($raw)) { throw new PhpbbOwnedStorageFailure('arcade_config_invalid'); }
+        if (in_array($key,array('sid','submit'),true)) { continue; }
+        if (!in_array($key,$fields,true)) { throw new PhpbbOwnedStorageFailure('arcade_config_invalid'); }
+        $value=trim(phpbb_request_raw_value($raw));
+        if ($key==='use_cache')
+        {
+            if (!in_array($value,array('0','1'),true)) { throw new PhpbbOwnedStorageFailure('arcade_config_invalid'); }
+        }
+        else
+        {
+            if (!preg_match('/^-?[0-9]{1,12}(?:\.[0-9]{1,17})?$/D',$value)) { throw new PhpbbOwnedStorageFailure('arcade_config_invalid'); }
+            // Only submitted controls are minutes. Omitted database values
+            // already contain seconds and must remain unchanged. Fractional
+            // minutes preserve existing second-resolution TTLs in the form.
+            $value=(string)(int)round(min(10080,max(0,(float)$value))*60);
+        }
+        $values[$key]=$value;
+    }
+    return $values;
+}
+
+class PhpbbArcadeCacheWriter extends PhpbbArcadeConfigWriter
+{
+    function __construct($database)
+    {
+        $this->mode='cache';
+        PhpbbArcadeImportWriter::__construct($database);
+    }
+    protected function actor()
+    {
+        global $phpEx;
+        return phpbb_acp_actor($this,'admin_arcade_cache.'.$phpEx);
+    }
+}
+
+function phpbb_arcade_cache_save($database,$request)
+{
+    global $arcade,$phpbb_root_path;
+    $values=phpbb_arcade_cache_input($request);phpbb_attach_quota_post($request);
+    if (!phpbb_request_source_is_same_origin()) { throw new PhpbbOwnedStorageFailure('Session_invalid'); }
+    $writer=null;
+    try { $writer=new PhpbbArcadeCacheWriter($database);return $writer->save($values); }
+    finally
+    {
+        if ($writer)
+        {
+            try
+            {
+                if ($writer->commit_attempted)
+                {
+                    try { $arcade->clear_cache('config',$phpbb_root_path); }
+                    catch (Exception $ignored) {} catch (Error $ignored) {}
+                }
+            }
+            finally { $writer->release(); }
+        }
+    }
+}
