@@ -19,7 +19,8 @@ foreach (array('admin/admin_arcade_scores.php','arcade_modcp.php') as $file) {
     }
 }
 al_check(count($ml_confirmations) === 2, 'Both confirmation routes');
-al_check(preg_match('/^\s*\$user_name_display = (.+);/m', al_source('newscore.php'), $m) === 1, 'Actual score result label'); $ml_score = $m[1];
+al_check(strpos(al_source('newscore.php'), 'phpbb_arcade_submission_feedback($submission)') !== false, 'Controller uses shared committed-score feedback');
+al_check(preg_match('/sprintf\(\$lang\[\'game_score_text\'\],(.*),\$status\)/', al_source('includes/functions_arcade_submission.php'), $m) === 1, 'Actual shared score result label'); $ml_score = $m[1];
 $ml_kb = al_fragment('includes/functions_kb.php', '$registered=isset($postrow[$i][\'user_id\'])', '$post_date = create_date');
 al_check(preg_match_all('/if \(\$row\[\'post_edit_count\'\]\).*?else\s*\{\s*\$editmessage = \'\';\s*\}/s', al_source('ajax.php'), $m) === 2, 'Both actual caption branches'); $ml_captions = $m[0];
 function ml_context($locale, $logged = true) {
@@ -42,7 +43,7 @@ function ml_registered($record, $raw) {
         $shown_score = $route === 'admin/admin_arcade_scores.php' ? phpbb_arcade_score_number($target['score']) : $score;
         ml_expect($out[$route], sprintf($lang['arcade_score_sure'], $shown_score, $player_id . ' (' . $expected . ')'), 'Current account in actual score confirmation');
     }
-    $user_name = $key; $out['score'] = eval('return ' . $GLOBALS['ml_score'] . ';'); ml_expect($out['score'], $expected, 'Score result name');
+    $result = array('username'=>$key); $out['score'] = eval('return ' . $GLOBALS['ml_score'] . ';'); ml_expect($out['score'], $expected, 'Score result name');
     $view_profile = $view_userdata = $record;
     $out['staff'] = eval('return ' . al_binding('staff.php','L_ABOUT_USER') . ';'); ml_expect($out['staff'], sprintf($lang['Staff_about'],$expected), 'Staff profile heading');
     $out['options'] = eval('return ' . al_binding('profile_options.php','L_USER') . ';'); ml_expect($out['options'],$expected,'Profile option breadcrumb');
