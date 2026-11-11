@@ -20,7 +20,7 @@ function al_check($ok, $message) {
     $GLOBALS['al_checks']++;
 }
 $al_functions = file_get_contents($al_root . 'includes/functions.php');
-foreach (array('phpbb_stored_text','phpbb_realpath','create_date','phpbb_profile_details_visible','phpbb_profile_email_uri','get_userdata') as $fn) {
+foreach (array('phpbb_stored_text','phpbb_realpath','phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text','create_date','phpbb_profile_details_visible','phpbb_profile_email_uri','get_userdata') as $fn) {
     al_check(preg_match('/^function ' . $fn . '\(.*?^\}/ms', $al_functions, $al_match) === 1, 'Actual shared function: ' . $fn);
     eval($al_match[0]);
 }

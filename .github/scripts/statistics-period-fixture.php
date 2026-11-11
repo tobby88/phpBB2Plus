@@ -27,7 +27,7 @@ function sp_freeze($source) {
     return $out;
 }
 $sp_functions = file_get_contents($sp_root . 'includes/functions.php');
-foreach (array('create_date','phpbb_stored_text') as $function) {
+foreach (array('phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text','create_date','phpbb_stored_text') as $function) {
     sp_check(preg_match('/^function ' . $function . '\(.*?^\}/ms', $sp_functions, $sp_match) === 1, 'Actual formatter: ' . $function);
     eval(sp_freeze($sp_match[0]));
 }
