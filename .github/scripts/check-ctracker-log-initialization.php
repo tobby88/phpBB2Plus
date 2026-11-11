@@ -20,10 +20,12 @@ try{
   if($id===6){cli_check($lines===array($entry."\n"),'Debug log remains header-free');}
   else{
    cli_check(count($lines)===2&&strpos($lines[0],'1|||')===0&&$lines[1]===$entry."\n",'First event follows exactly one real header');
+   cli_check($manager->metadata_kind(explode('|||',$lines[0]))==='created','Actual initialized header retains its meaning through the real line reader');
    $second='0|||2|||synthetic-second|||referrer|||agent|||ip|||host';
    cli_check($manager->write_to_log($id,$second),'Second event write succeeds');
    $next=$manager->read_log_lines($id,10);
    cli_check(count($next)===3&&$next[0]===$lines[0]&&$next[1]===$lines[1]&&$next[2]===$second."\n"&&$manager->check_log_size($id)===2,'Existing nonempty log is never reinitialized');
+   cli_check($manager->delete_logfile($id),'Clear own initialized log');$cleared=$manager->read_log_lines($id,10);cli_check(count($cleared)===1&&$manager->metadata_kind(explode('|||',$cleared[0]))==='cleared','Actual clear marker survives the same reader framing');
   }
   $cases++;
  }}

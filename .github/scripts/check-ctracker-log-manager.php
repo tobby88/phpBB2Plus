@@ -188,7 +188,8 @@ if (strpos($download_source, 'ctracker_log_debug_download();') === false ||
 }
 
 foreach(array(array('1','1156000217','null','null','null','null','null'),array('1','0','null','null','null','null','null','unknown'))as$marker){if($manager->metadata_kind($marker)!=='legacy'){throw new RuntimeException('An inherited marker must not claim an observed log clearing');}}
-foreach(array('created','cleared')as$kind){if($manager->metadata_kind(array('1','1','null','null','null','null','null',$kind))!==$kind){throw new RuntimeException('Explicit log metadata kind lost');}}
+foreach(array('created','cleared')as$kind){foreach(array('',"\n","\r\n")as$ending){if($manager->metadata_kind(explode('|||','1|||1|||null|||null|||null|||null|||null|||'.$kind.$ending))!==$kind){throw new RuntimeException('Explicit log metadata kind or its physical record ending lost');}}}
+foreach(array('created ',' cleared','cleared-junk',null,array('created'))as$unknown){if($manager->metadata_kind(array('1','1','null','null','null','null','null',$unknown))!=='legacy'){throw new RuntimeException('Only exact creation/clear markers may claim a known event');}}
 if($manager->metadata_kind(array('0','1'))!==false){throw new RuntimeException('Event mistaken for metadata');}
 echo "CrackerTracker log rotation and counter checks passed.\n";
 

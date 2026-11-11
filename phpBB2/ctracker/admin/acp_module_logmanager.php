@@ -122,7 +122,7 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 			$metadata_caption = $metadata_kind === 'cleared' ? 'ctracker_log_manager_sysmsg' : ($metadata_kind === 'created' ? 'ctracker_log_manager_initialized' : 'ctracker_log_manager_legacy_marker');
 
 			$template->assign_block_vars('show_system_message', array(
-					'L_SYS_MSG'		=>	sprintf($lang[$metadata_caption], date($board_config['default_dateformat'], $lastclean)),
+					'L_SYS_MSG'		=>	sprintf($lang[$metadata_caption], phpbb_admin_html(create_date($board_config['default_dateformat'], $lastclean, $board_config['board_timezone']))),
 					'L_DELETE'		=> $lang['ctracker_log_manager_delete'],
 					'LOG_ID'		=> $logid)
 				);
@@ -134,7 +134,7 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 
 			$template->assign_block_vars('show_log', array(
 					'TABLE_CLASS'	=> ( $i % 2 == 0)? 'row1' : 'row2',
-					'L_OUTPUT_1'	=> date($board_config['default_dateformat'], $entrytime),
+					'L_OUTPUT_1'	=> phpbb_admin_html(create_date($board_config['default_dateformat'], $entrytime, $board_config['board_timezone'])),
 					'L_OUTPUT_2'	=> phpbb_admin_html($line[2]),
 					'L_OUTPUT_3'	=> phpbb_admin_html($line[3]),
 					'L_OUTPUT_4'	=> phpbb_admin_html($line[4]),

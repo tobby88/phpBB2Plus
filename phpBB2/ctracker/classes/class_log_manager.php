@@ -439,7 +439,10 @@ class log_manager
         if (!is_array($fields) || !isset($fields[0]) || (string)$fields[0] !== '1') { return false; }
         // Historical packages shipped a dated seed marker. Its presence does
         // not prove that an administrator cleared the site's logs that day.
-        return isset($fields[7]) && in_array($fields[7], array('created','cleared'), true) ? $fields[7] : 'legacy';
+        // read_log_lines preserves record endings. Only remove that framing;
+        // other whitespace or an unknown token still denotes a legacy marker.
+        $kind=isset($fields[7])&&is_string($fields[7])?rtrim($fields[7],"\r\n"):'';
+        return in_array($kind, array('created','cleared'), true) ? $kind : 'legacy';
     }
 
     function check_log_size($file_id)

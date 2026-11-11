@@ -4,6 +4,7 @@ define('IN_PHPBB',true);define('IN_ADMIN',true);define('CTRACKER_ACP',true);
 $root=dirname(dirname(__DIR__));$app=$root.'/phpBB2/';$phpbb_root_path=$app;$phpEx='php';$table_prefix='fixture_';
 require$app.'includes/php_compat.php';require$app.'includes/constants.php';require$app.'attach_mod/includes/constants.php';require$app.'db/mysqli.php';
 require$app.'ctracker/classes/class_log_manager.php';require$app.'ctracker/classes/class_log_authority.php';require$app.'includes/functions_jr_admin.php';require __DIR__.'/native-fixture-locks.php';date_default_timezone_set('UTC');
+require __DIR__.'/ctracker-log-controller-fixture.php';
 class CtLogControllerExit extends RuntimeException{}
 function message_die($level,$message){throw new CtLogControllerExit($message);}
 function append_sid($url){return$url;}
@@ -42,6 +43,7 @@ function cl_reset($id=7){
 function cl_controller($mode,$id='5',$overrides=array()){
  global$template,$lang,$images,$phpEx,$phpbb_root_path,$board_config;
  $_POST=array_merge(array('mode'=>$mode,'logid'=>$id,'sid'=>'log-own-session'),$overrides);
+ ctracker_log_fixture_date_runtime($GLOBALS['app']);
  include$GLOBALS['app'].'ctracker/admin/acp_module_logmanager.php';
 }
 function cl_denied($call,$message){$before=cl_fingerprint();$denied=false;ob_start();try{$call();}catch(CtrackerLogAuthorityFailure$error){$denied=true;}catch(CtLogControllerExit$error){$denied=true;}finally{$output=ob_get_clean();}cl_check($denied&&$output===''&&cl_fingerprint()===$before&&cl_closed(),$message.' before log bytes/output; owned connection released');}

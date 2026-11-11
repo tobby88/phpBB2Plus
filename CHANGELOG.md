@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Accurate CrackerTracker log metadata and dates
+
+- Recognize the log writer's explicit creation and clearing markers with LF or
+  CRLF record endings; inherited package markers remain an unknown history.
+- Display log events and metadata dates using the forum's timezone and
+  translated calendar names. Escape formatted dates as text in the admin view.
+  Existing log bytes, recorded timestamps and counters remain unchanged.
+
 ### Preserve valid Arcade history across category and game deletion
 
 - Use the same snapshot rules for category resync, reparenting, conversion and
