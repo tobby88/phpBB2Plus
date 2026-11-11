@@ -396,7 +396,7 @@ $lang['admin_set_at_highscore_limit'] = 'Allzeit-Bestenlisten-Limit festlegen';
 $lang['admin_set_submit'] = 'Auf alle Spiele anwenden';
 $lang['admin_set_invalid'] = 'Bitte eine nicht negative ganze Zahl im unterstützten Wertebereich eingeben.';
 $lang['admin_set_failed'] = 'Die Arcade-Masseneinstellung konnte nicht gespeichert werden.';
-$lang['admin_set_updated'] = 'Der Wert %d wurde auf alle Spiele angewendet.';
+$lang['admin_set_updated'] = 'Der Wert %s wurde auf alle Spiele angewendet.';
 
 /******************************************************************************
 // PM Message System

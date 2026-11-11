@@ -391,7 +391,7 @@ $lang['admin_set_at_highscore_limit'] = 'Set all-time highscore limit';
 $lang['admin_set_submit'] = 'Apply to all games';
 $lang['admin_set_invalid'] = 'Enter a non-negative whole number within the supported range.';
 $lang['admin_set_failed'] = 'The Arcade bulk setting could not be saved.';
-$lang['admin_set_updated'] = 'The value %d was applied to all games.';
+$lang['admin_set_updated'] = 'The value %s was applied to all games.';
 
 /******************************************************************************
 // PM Message System

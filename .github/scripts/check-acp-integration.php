@@ -74,7 +74,7 @@ $integrations = array(
 	'admin/admin_extensions.php' => array("\$module['Extensions']['Extension_control']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$add_forum || $delete_forum'),
 	'admin/admin_attach_cp.php' => array("\$module['Attachments']['Control_Panel']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$normalized_delete_ids'),
 	'admin/admin_arcade.php' => array('$module[\'Arcade\'][\'Configuration\']', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_config_save($db,$HTTP_POST_VARS)'),
-	'admin/admin_arcade_set.php' => array('phpbb_admin_require_post_session();', '$field_maximums', "preg_match('/^\\d+\$/D'", 'UPDATE " . iNA_GAMES'),
+	'admin/admin_arcade_set.php' => array('phpbb_admin_require_post_session();', 'phpbb_arcade_bulk_limits()', 'phpbb_arcade_bulk_save($db,$mode,$_POST)'),
 	'admin/admin_arcade_games.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_game_save($db, $game_id,', 'phpbb_arcade_game_revision($game_info)', 'phpbb_arcade_game_remove($db,', 'phpbb_arcade_scores_reset($db,'),
 	'admin/admin_arcade_reset.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_statistics_reset($db, $mode)', 'arcade_statistics_title'),
 	'admin/admin_arcade_cache.php' => array("'S_CONFIG_ACTION' =>", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_cache_save($db,$_POST)'),

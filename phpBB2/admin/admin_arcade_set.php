@@ -51,15 +51,15 @@ $file = basename(__FILE__);
 //
 // Check to see what mode we should operate in.
 // 
-$allowed_fields = array('game_charge', 'game_bonus', 'at_game_bonus', 'game_reward', 'highscore_limit', 'at_highscore_limit');
+require_once dirname(__DIR__).'/includes/functions_arcade_bulk_storage.php';
+$allowed_fields = array_keys(phpbb_arcade_bulk_limits());
 $mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '';
 if (!in_array($mode, $allowed_fields, true))
 {
 	$mode = '';
 }
 
-$is_update = (isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST' && $mode !== '' &&
-	isset($_POST[$mode]) && is_scalar($_POST[$mode]));
+$is_update = (isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST' && $mode !== '');
 if ($is_update)
 {
 	phpbb_admin_require_post_session();
@@ -106,29 +106,12 @@ if (!$is_update)
 //
 else //if( $mode == "set_charge")
 {
-	$value_input = trim((string) $_POST[$mode]);
-	$field_maximums = array(
-		'game_charge' => 4294967295,
-		'game_reward' => 4294967295,
-		'game_bonus' => 65535,
-		'at_game_bonus' => 65535,
-		'highscore_limit' => 2147483647,
-		'at_highscore_limit' => 65535
-	);
-	if (!preg_match('/^\d+$/D', $value_input) || (float) $value_input > $field_maximums[$mode])
-	{
-		$message = $lang['admin_set_invalid'] . '<br /><br />' .
-			sprintf($lang['admin_return_arcade'], '<a href="' . append_sid($file) . '">', '</a>');
-		message_die(GENERAL_MESSAGE, $message);
-	}
-
-	$setting = (int) $value_input;
-	$sql = "UPDATE " . iNA_GAMES . " SET $mode = $setting";
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, $lang['admin_set_failed'], '', __LINE__, __FILE__, $sql);
-	}
-
+    try { $setting=phpbb_arcade_bulk_save($db,$mode,$_POST); }
+    catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+    catch (PhpbbOwnedStorageFailure $error)
+    {
+        $key=$error->getMessage();message_die(GENERAL_MESSAGE,isset($lang[$key])?$lang[$key]:$lang['admin_set_failed']);
+    }
 	$message = sprintf($lang['admin_set_updated'], $setting) . '<br /><br />' .
 		sprintf($lang['admin_return_arcade'], '<a href="' . append_sid($file) . '">', '</a>');
 	message_die(GENERAL_MESSAGE, $message);

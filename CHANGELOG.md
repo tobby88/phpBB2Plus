@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Independently committed global Arcade game values
+
+- Recheck current administrator sessions and exact delegated global-settings
+  rights through the whole update. Report success only after an independent
+  owned transaction commits; unrelated caller rollbacks cannot discard it.
+- Align all six numeric bounds with the canonical per-game editor, including
+  the actual signed SMALLINT limits of both all-time fields. Preserve unsigned
+  fees/rewards and wide textual highscore limits as exact decimal strings.
+- Keep other game metadata, scores, user data and valid caches unchanged;
+  failed writes roll back and uncertain commits are never replayed.
+
 ### Atomic Arcade log management and strict list queries
 
 - Recheck current Log-page administrator sessions and delegated rights while
