@@ -41,6 +41,10 @@ $arcade_name_plan=array();
 function plus_arcade_log_redaction_apply($connection,$prefix,$backup,$maintenance){if($GLOBALS['fixture_case']==='arcade-log-privacy-failure'){throw new Exception('Injected Arcade credential cleanup failure');}return array('redacted_rows'=>0);}
 function plus_arcade_progress_apply($connection,$prefix,$backup,$maintenance){if($GLOBALS['fixture_case']==='arcade-progress-failure'){throw new Exception('Injected Arcade progress migration failure');}return array('created'=>0,'imported'=>0);}
 function plus_arcade_progress_plan($connection,$prefix){return array();}
+function plus_arcade_counters_apply($connection,$prefix,$backup,$maintenance){if($GLOBALS['fixture_case']==='arcade-counter-failure'){throw new Exception('Injected Arcade category counter failure');}return 0;}
+function plus_arcade_counters_plan($connection,$prefix){return array('changes'=>array());}
+function plus_arcade_counters_print_plan($plan){}
+function plus_arcade_counters_evict($forum_root){if($GLOBALS['fixture_case']==='arcade-counter-cache-failure'){throw new Exception('Injected counter cache eviction failure');}}
 function plus_arcade_log_redaction_plan($connection,$prefix){return array('redacted_rows'=>0);}
 function plus_kb_counter_apply($connection,$prefix,$backup,$maintenance){if($GLOBALS['fixture_case']==='kb-counter-failure'){throw new Exception('Injected counter failure');}return 0;}
 function plus_kb_counter_print_plan($plan){}
@@ -72,7 +76,7 @@ function mysqli_close($connection){}
 $connection=new \PDO('sqlite::memory:');$connection->setAttribute(\PDO::ATTR_ERRMODE,\PDO::ERRMODE_EXCEPTION);
 $connection->exec('CREATE TABLE fixture_config (config_name TEXT PRIMARY KEY,config_value TEXT)');$connection->exec('CREATE TABLE fixture_steps (step TEXT)');
 register_shutdown_function(function() use($connection){echo 'FIXTURE_STATE='.json_encode(array('version'=>$connection->query("SELECT config_value FROM fixture_config WHERE config_name='version'")->fetchColumn(),'steps'=>(int)$connection->query('SELECT COUNT(*) FROM fixture_steps')->fetchColumn()))."\n";});
-$dbname='fixture';$table_prefix='fixture_';$apply=$GLOBALS['fixture_case']!=='dry';
+$dbname='fixture';$table_prefix='fixture_';$forum_root='fixture-forum';$apply=$GLOBALS['fixture_case']!=='dry';
 $operations=array("INSERT INTO fixture_steps VALUES ('first')",$GLOBALS['fixture_case']==='schema-failure'?'FAIL_FIXTURE':"INSERT INTO fixture_steps VALUES ('second')");
 PHP;
 $version_command=escapeshellarg(PHP_BINARY).' -d display_errors=0';
@@ -80,7 +84,7 @@ if(DIRECTORY_SEPARATOR==='\\'){$version_command.=' -d '.escapeshellarg('extensio
 // Older Windows CLI versions parse only the first stdin buffer when the script
 // itself is piped. Read the entire actual updater tail before evaluating it.
 $version_command.=' -r '.escapeshellarg('$fixture=stream_get_contents(STDIN);if(substr($fixture,0,5)===\'<?php\'){eval(substr($fixture,5));}else{exit(4);}');
-foreach(array('success','dry','schema-failure','engine-failure','session-engine-failure','storage-failure','ip-mask-failure','album-file-journal-failure','download-file-journal-failure','download-storage-failure','banner-id-failure','banner-counter-failure','profile-text-failure','arcade-name-failure','arcade-log-privacy-failure','arcade-progress-failure','kb-counter-failure','user-counter-failure','kb-rating-capacity-failure','post-author-capacity-failure','album-text-capacity-failure','album-photo-text-capacity-failure','album-discussion-capacity-failure','album-rating-capacity-failure','album-comment-parent-failure','post-tombstone-failure','identity-ack') as $version_case){
+foreach(array('success','dry','schema-failure','engine-failure','session-engine-failure','storage-failure','ip-mask-failure','album-file-journal-failure','download-file-journal-failure','download-storage-failure','banner-id-failure','banner-counter-failure','profile-text-failure','arcade-name-failure','arcade-log-privacy-failure','arcade-progress-failure','arcade-counter-failure','arcade-counter-cache-failure','kb-counter-failure','user-counter-failure','kb-rating-capacity-failure','post-author-capacity-failure','album-text-capacity-failure','album-photo-text-capacity-failure','album-discussion-capacity-failure','album-rating-capacity-failure','album-comment-parent-failure','post-tombstone-failure','identity-ack') as $version_case){
  $input=str_replace("namespace VersionPipelineFixture;","namespace VersionPipelineFixture;\n\$GLOBALS['fixture_case']='".$version_case."';",$version_prelude)."\n".$version_helpers."\n\$version_operations=update_version_identity_sql('fixture_config',null);\n".$version_tail;
  $pipes=array();$process=proc_open($version_command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));version_check(is_resource($process),'Child fixture process available');fwrite($pipes[0],$input);fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($process);
  version_check(preg_match('/FIXTURE_STATE=(\{[^\r\n]+\})/',$out,$m)===1,'Actual execution tail reported final state: '.$err);$state=json_decode($m[1],true);
