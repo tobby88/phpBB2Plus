@@ -49,7 +49,7 @@ foreach (array('newscore' => $newscore, 'IBProArcade' => $ibpro, 'pnFlashGames' 
 arcade_score_assert(strpos($classes, "'[redacted]'") !== false, 'Arcade diagnostic logs must redact capabilities and session credentials');
 arcade_score_assert(strpos($classes, '$error_text_sql') === false, 'missing or expired game sessions must not amplify the diagnostic table');
 arcade_score_assert(strpos($ibpro, 'foreach($HTTP_POST_VARS') === false && strpos($pnflash, 'foreach($HTTP_POST_VARS') === false, 'score bridges must not duplicate raw request values into bulk logs');
-arcade_score_assert(strpos($pnflash, 'if ($accepted_request &&') !== false, 'pnFlashGames must not log rejected protocol calls as games');
+arcade_score_assert(strpos($pnflash, 'phpbb_arcade_progress_transfer(') !== false && strpos($pnflash, 'INSERT INTO ') === false, 'pnFlashGames progress and audit writes must share the owned transaction');
 arcade_score_assert(strpos($functions, '$privmsg_subject_sql = $db->sql_escape($privmsg_subject)') !== false, 'Arcade PM notifications must use database-driver escaping');
 arcade_score_assert(strpos($functions, "'USERNAME' => \$to_userdata['username']") !== false, 'Arcade PM emails must use the loaded recipient name');
 arcade_score_assert(strpos($functions, "is_dir(\$phpbb_root_path . 'language/lang_' . \$to_userdata['user_lang'])") !== false, 'Arcade PM language templates must stay inside an installed language directory');

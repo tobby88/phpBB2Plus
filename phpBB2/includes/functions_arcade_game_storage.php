@@ -49,7 +49,7 @@ class PhpbbArcadeGameWriter extends PhpbbArcadeImportWriter
  protected $game_id;
  function __construct($database,$id){if(!is_int($id)||$id<0||$id>8388607){throw new PhpbbOwnedStorageFailure('no_game_save');}$this->game_id=$id;parent::__construct($database);}
  protected function actor(){global $phpEx;return phpbb_acp_actor($this,'admin_arcade_games.'.$phpEx.'?mode='.($this->game_id?'edit_games':'add_game'));}
- protected function storage_tables(){ $tables=array_merge(parent::storage_tables(),array(GROUPS_TABLE,RANKS_TABLE));foreach(phpbb_arcade_game_references()as$ref){$tables[]=$ref[0];}return array_values(array_unique($tables)); }
+ protected function storage_tables(){ $tables=array_merge(parent::storage_tables(),array(GROUPS_TABLE,RANKS_TABLE,iNA_GAME_SAVES));foreach(phpbb_arcade_game_references()as$ref){$tables[]=$ref[0];}return array_values(array_unique($tables)); }
  protected function pin_tables()
  {
   parent::pin_tables();$table=$this->escape(iNA_BANNED);

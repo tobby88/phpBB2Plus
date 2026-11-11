@@ -42,14 +42,11 @@ $arcade_version = $arcade->arcade_config('version');
 //
 $sql                    = '';
 $mode                   = $arcade->pass_var('func', '', true);
-$gameData               = $arcade->pass_var('gameData', '', true);
-$game_id                = (int) $arcade->pass_var('gid' , 0, true);
 $arcade->score          = $arcade->pass_var('score', 0, true);
 $arcade->user_id        = $userdata['user_id'];
 $arcade->arcade_hash    = $arcade->pass_var('arcade_hash', '', true);
 $arcade_cookie_name     = $board_config['cookie_name'] . '_arcade';
 $arcade->arcade_cookie  = isset($_COOKIE[$arcade_cookie_name]) ? $_COOKIE[$arcade_cookie_name] : '';
-$accepted_request       = false;
 //
 //  Process the pnFlashGame command
 //
@@ -66,7 +63,6 @@ switch($mode)
 
     if(!empty($session_info))
     {
-	  $accepted_request = true;
       $arcade->tour_id    = $session_info['tour_id'];
       $arcade->game_name  = $session_info['game_name'];
       $arcade->time_taken = time() - $session_info['start_time'];
@@ -83,70 +79,16 @@ switch($mode)
     break;
 
   case "loadGame":
-//
-//  Load a Saved Game (allows for continue option)
-//
-    if(($userdata['user_id'] != ANONYMOUS))
-    {
-	  $session_info = $arcade->get_session();
-	  if(!$session_info)
-      {
-        print "&opSuccess=Missing info&endvar=1";
-		break;
-      }
-	  $accepted_request = true;
-
-	  $session_game_name_sql = $db->sql_escape($session_info['game_name']);
-      $sql = "SELECT gameData FROM " . iNA_SCORES . "
-          WHERE player_id = " . (int) $arcade->user_id . "
-          AND game_name = '" . $session_game_name_sql . "'";
-      if(!($result = $db->sql_query($sql)))
-      {
-        $arcade->log_error(__LINE__, __FILE__, $sql);
-      }
-      $game_info = $db->sql_fetchrow($result);
-
-	  print 'gameData=' . rawurlencode($game_info ? (string) $game_info['gameData'] : '') . "&opSuccess=true&endvar=1";
-    }
-    else
-    {
-      print "&opSuccess=Missing info&endvar=1";
-    }
-
-    break;
-
   case "saveGame":
-//
-//  Save a part, NOT THE SCORE, But the users position etc.
-//
-    if(($userdata['user_id'] != ANONYMOUS) && ($gameData))
-    {
-	  $session_info = $arcade->get_session();
-	  if(!$session_info)
-      {
-        print "&opSuccess=Missing info&endvar=1";
-		break;
-      }
-	  $accepted_request = true;
-
-	  $game_data_value = substr(html_entity_decode($gameData, ENT_QUOTES, 'UTF-8'), 0, 65535);
-	  $game_data_sql = $db->sql_escape($game_data_value);
-	  $session_game_name_sql = $db->sql_escape($session_info['game_name']);
-	  $sql = "UPDATE " . iNA_SCORES . " SET gameData = '" . $game_data_sql . "'
-		  WHERE player_id = " . (int) $userdata['user_id'] . "
-		  AND game_name = '" . $session_game_name_sql . "'";
-       if(!($result = $db->sql_query($sql)))
-      {
-        $arcade->log_error(__LINE__, __FILE__, $sql);
-      }
-
-      print "&opSuccess=true&endvar=1";
-    }
-    else
-    {
-      print "&opSuccess=Missing info&endvar=1";
-    }
-
+    require_once($phpbb_root_path.'includes/functions_arcade_progress_storage.'.$phpEx);
+    try {
+      $hash = phpbb_arcade_progress_request($HTTP_GET_VARS, $HTTP_POST_VARS, 'arcade_hash', '');
+      $gid = phpbb_arcade_progress_request($HTTP_GET_VARS, $HTTP_POST_VARS, 'gid', '0');
+      $data = $mode === 'saveGame' ? phpbb_arcade_progress_request($HTTP_GET_VARS, $HTTP_POST_VARS, 'gameData') : null;
+      $saved = phpbb_arcade_progress_transfer($db, $mode, $hash, $gid, $data);
+      print ($mode === 'loadGame' ? 'gameData='.rawurlencode($saved) : '')."&opSuccess=true&endvar=1";
+    } catch (Exception $error) { print "&opSuccess=Missing info&endvar=1"; }
+      catch (Error $error) { print "&opSuccess=Missing info&endvar=1"; }
     break;
 
   default:
@@ -155,15 +97,4 @@ switch($mode)
     break;
 
 }
-//
-//  Arcade LOG
-//
-if ($accepted_request && $mode !== 'storeScore' && $arcade->arcade_config['games_use_log'] == 1)
-{
-	$log = $db->sql_escape('pnFlashGames action=' . substr((string) $mode, 0, 32));
-	$sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)
-		VALUES (".(int) $userdata['user_id'].", 'GAME', '$log', ".time().")";
-	$db->sql_query($sql);
-}
-
 ?>

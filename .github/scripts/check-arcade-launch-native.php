@@ -80,7 +80,7 @@ try {
     $control=new sql_db($host,'root',$password,'',false);as_check($control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Own disposable launch schema');$created=true;
     $db=new ArcadeLaunchNativeDatabase($host,'root',$password,$schema,false);$ag_peer=new sql_db($host,'root',$password,$schema,false);$su_observer=new sql_db($host,'root',$password,$schema,false);
     $ag_tables=array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,RANKS_TABLE,iNA_GAMES,iNA_CAT,iNA,iNA_TOUR,iNA_LOG,USER_GROUP_TABLE);
-    foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));
+    $ag_tables[]=iNA_GAME_SAVES;foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));
     $canonical=file_get_contents($as_app.'install/schemas/mysql_schema.sql');
     foreach($ag_tables as$table){$suffix=substr($table,8);as_check(preg_match('/CREATE TABLE phpbb_'.preg_quote($suffix,'/').' \(.*?\) ENGINE=InnoDB[^;]*;/s',$canonical,$m)===1,'Canonical launch table '.$suffix);ag_sql(str_replace('phpbb_'.$suffix,$table,$m[0]));}
     ag_sql('ALTER TABLE fixture_users ADD games_block_pm tinyint(1) NOT NULL DEFAULT 1,ADD arcade_banned int NOT NULL DEFAULT 0');

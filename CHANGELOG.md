@@ -6,6 +6,26 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Private Arcade game progress
+
+- Preserve complete pnFlashGames checkpoints as opaque UTF-8 protocol data,
+  including zero, empty values, whitespace and literal entities. Reject values
+  beyond the 65,535-byte storage limit instead of silently shortening them.
+- Store progress independently of highscores, so the first save works before
+  a score exists and leaderboard resets/pruning do not remove checkpoints.
+  Stable game IDs retain progress across renames; actual game/account removal
+  deletes only the corresponding private saves.
+- Recheck current forum sessions, account status, active game capabilities,
+  category/group/rank access and tournament membership on an owned connection.
+  Progress and its content-free audit record commit together; failed writes
+  never report success, consume game capabilities or alter scores/rewards.
+- Add canonical InnoDB/utf8mb4 progress storage to fresh installations and the
+  full post-1.53a updater. The targeted `--arcade-progress-only` path copies
+  historical checkpoints in a transaction without changing original scores or
+  overwriting newer saves. Ambiguous old game identities require review.
+- Retain PHP 5.6/7.4/8.5 checks and rebalance existing native CI partitions by
+  measured runtime without dropping suites.
+
 ### Atomic Arcade submissions and launch activation
 
 - Commit a result's one-time game capability, current/all-time/monthly scores,

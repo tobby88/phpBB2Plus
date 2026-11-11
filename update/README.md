@@ -1,5 +1,28 @@
 # Database updates and maintenance
 
+Before deploying the private Arcade game-progress reader/writer, preview and
+apply its schema/data migration with all web/cron writers stopped and a current
+verified backup:
+
+```sh
+php update/update_from_153a.php --arcade-progress-only
+php update/update_from_153a.php --arcade-progress-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+This creates `ina_game_saves` with canonical InnoDB/DYNAMIC/utf8mb4 storage and
+copies existing owners' historical `ina_scores.gameData` without modifying the
+source rows. Duplicate historical score rows resolve to the best score for
+that game's ordering, then newest score date and stable data bytes. An unknown
+historical save time stays zero. Existing new saves, including an explicit
+empty save, always win. Orphaned scores remain untouched; ambiguous game names
+stop the copy for review. A failed copy rolls back all copied rows (the newly
+created empty table may remain because MySQL DDL commits independently).
+Repeated application preserves current saves. Legacy source tables must first
+have modern storage; use the full post-1.53a updater for an older installation.
+The full updater includes this migration before its final version marker.
+Progress survives leaderboard resets and game renames, while removing the game
+or its owning account removes the corresponding private `ina_game_saves` record.
+
 Arcade results and game launches now use owned transactions on the existing
 canonical InnoDB tables; no new columns are needed. Before deploying, retain a
 current backup. Old Arcade diagnostic rows can contain game/session keys.

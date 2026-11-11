@@ -371,16 +371,28 @@ jobs:
           PHPBB_ARCADE_LAUNCH_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Preserve native current, all-time and monthly best scores independently
-        if: matrix.part == 4
+        if: matrix.part == 3
         run: php .github/scripts/check-arcade-best-score-native.php
         env:
           PHPBB_ARCADE_BEST_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Commit Arcade capabilities, scores, tournaments and rewards together
-        if: matrix.part == 4
+        if: matrix.part == 3
         run: php .github/scripts/check-arcade-submission-native.php
         env:
           PHPBB_ARCADE_SUBMISSION_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Preserve private Arcade progress without changing highscores
+        if: matrix.part == 3
+        run: php .github/scripts/check-arcade-progress-native.php
+        env:
+          PHPBB_ARCADE_PROGRESS_NATIVE: '1'
+          PHPBB_ARCADE_GAME_PASSWORD: fixture-only
+      - name: Migrate historical Arcade progress with complete rollback and CLI checks
+        if: matrix.part == 3
+        run: php .github/scripts/check-arcade-progress-migration-native.php
+        env:
+          PHPBB_ARCADE_PROGRESS_MIGRATION_NATIVE: '1'
           PHPBB_ARCADE_GAME_PASSWORD: fixture-only
       - name: Redact historical Arcade credentials with paged transactional rollback
         if: matrix.part == 4

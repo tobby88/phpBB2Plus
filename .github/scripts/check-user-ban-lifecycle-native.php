@@ -5,7 +5,7 @@ foreach(array('IN_ADMIN'=>true,'USER'=>0,'MOD'=>2,'DELETED'=>-1,'ANONYMOUS'=>-1,
  'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','AUTH_ACCESS_TABLE'=>'fixture_auth_access','FORUMS_TABLE'=>'fixture_forums',
  'POSTS_TABLE'=>'fixture_posts','TOPICS_TABLE'=>'fixture_topics','TOPICS_WATCH_TABLE'=>'fixture_topics_watch','BOOKMARK_TABLE'=>'fixture_bookmarks',
  'BANLIST_TABLE'=>'fixture_banlist','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','SHOUTBOX_TABLE'=>'fixture_shout','VOTE_USERS_TABLE'=>'fixture_vote_voters',
- 'PM_WRITE_RECEIPTS_TABLE'=>'fixture_pm_write_receipts','PRIVMSGS_TABLE'=>'fixture_privmsgs','PRIVMSGS_TEXT_TABLE'=>'fixture_privmsgs_text',
+ 'iNA_GAME_SAVES'=>'fixture_ina_game_saves','PM_WRITE_RECEIPTS_TABLE'=>'fixture_pm_write_receipts','PRIVMSGS_TABLE'=>'fixture_privmsgs','PRIVMSGS_TEXT_TABLE'=>'fixture_privmsgs_text',
  'USER_REMOVALS_TABLE'=>'fixture_user_removals','USER_REMOVAL_ITEMS_TABLE'=>'fixture_user_removal_items','PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth',
  'PRIVMSGS_READ_MAIL'=>0,'PRIVMSGS_NEW_MAIL'=>1,'PRIVMSGS_SENT_MAIL'=>2,'PRIVMSGS_SAVED_IN_MAIL'=>3,'PRIVMSGS_SAVED_OUT_MAIL'=>4,'PRIVMSGS_UNREAD_MAIL'=>5,'PRIVMSGS_PENDING_SENT_MAIL'=>6)as$k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_user_prune.php';
@@ -24,7 +24,7 @@ class UblConnection{
 class UblDatabase extends sql_db{function sql_dedicated_connection(){return new UblConnection(parent::sql_dedicated_connection());}}
 $main=new UblDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);$db=$main;
 $ubl_mode='';$ubl_failure='';$ubl_hook=null;
-$ubl_tables=array('users','sessions','sessions_keys','jr_admin_users','groups','user_group','auth_access','forums','posts','topics','topics_watch','bookmarks','banlist','shout','removed_author_names','vote_voters','pm_write_receipts','privmsgs','privmsgs_text','user_removals','user_removal_items','pa_auth','attach_quota','attachments','attachments_desc');
+$ubl_tables=array('users','sessions','sessions_keys','jr_admin_users','groups','user_group','auth_access','forums','posts','topics','topics_watch','bookmarks','banlist','shout','removed_author_names','vote_voters','ina_game_saves','pm_write_receipts','privmsgs','privmsgs_text','user_removals','user_removal_items','pa_auth','attach_quota','attachments','attachments_desc');
 function ubl_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Fixture SQL: '.json_encode($GLOBALS['peer']->sql_error()));return $r;}
 function ubl_rows($sql){$r=ubl_sql($sql);$rows=$GLOBALS['peer']->sql_fetchrowset($r);$GLOBALS['peer']->sql_freeresult($r);foreach($rows as &$row){foreach(array_keys($row)as$key){if(is_int($key)){unset($row[$key]);}}}unset($row);return $rows;}
 function ubl_insert($table,$values){foreach(ubl_rows('SHOW COLUMNS FROM '.$table)as$c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}$encoded=array();foreach($values as$v){$encoded[]=$v===null?'NULL':"'".$GLOBALS['peer']->sql_escape((string)$v)."'";}ubl_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).') VALUES ('.implode(',',$encoded).')');}
@@ -35,6 +35,7 @@ function ubl_reset(){
  $userdata=array('user_id'=>1,'session_id'=>'fixture-admin','session_logged_in'=>true,'session_admin'=>true);
  foreach(array('fixture-admin'=>1,'target-session'=>2,'other-session'=>3)as$sid=>$id){ubl_insert('fixture_sessions',array('session_id'=>$sid,'session_user_id'=>$id,'session_logged_in'=>1,'session_admin'=>$id===1?1:0));}
  foreach(array(2,3)as$id){ubl_insert('fixture_sessions_keys',array('key_id'=>md5('fixture-'.$id),'user_id'=>$id));}
+ foreach(array(2,3)as$id){ubl_insert('fixture_ina_game_saves',array('user_id'=>$id,'game_id'=>41,'game_data'=>'private progress '.$id));}
  ubl_insert('fixture_banlist',array('ban_userid'=>2,'ban_ip'=>'7f0000ff','ban_ip_mask'=>'ffffffff','ban_email'=>'keep@example.invalid'));
  ubl_insert('fixture_banlist',array('ban_userid'=>2,'ban_ip'=>'0aff0000','ban_ip_mask'=>'ff00ffff','ban_email'=>null));
  ubl_insert('fixture_banlist',array('ban_userid'=>2,'ban_ip'=>'','ban_ip_mask'=>'','ban_email'=>'mail@example.invalid'));
@@ -54,6 +55,7 @@ function ubl_done($before){
  ats_check(!ubl_rows('SELECT ban_id FROM fixture_banlist WHERE ban_userid=2')&&count(ubl_rows('SELECT ban_id FROM fixture_banlist WHERE ban_userid=0'))===3&&count(ubl_rows('SELECT ban_id FROM fixture_banlist WHERE ban_userid=3'))===1,'Only removed user components disappear');
  ats_check(!ubl_rows('SELECT user_id FROM fixture_users WHERE user_id=2')&&!ubl_rows('SELECT job_id FROM fixture_user_removals')&&!ubl_rows('SELECT job_id FROM fixture_user_removal_items'),'Complete actual removal clears account/recovery metadata');
  ats_check(!ubl_rows('SELECT session_id FROM fixture_sessions WHERE session_user_id=2')&&!ubl_rows('SELECT user_id FROM fixture_sessions_keys WHERE user_id=2')&&count(ubl_rows('SELECT user_id FROM fixture_sessions_keys WHERE user_id=3'))===1,'Only removed account credentials revoked');
+ ats_check(!ubl_rows('SELECT game_data FROM fixture_ina_game_saves WHERE user_id=2')&&ubl_rows('SELECT game_data FROM fixture_ina_game_saves WHERE user_id=3')[0]['game_data']==='private progress 3','Only removed account private progress is deleted through every real removal workflow');
  $lock=new attach_mutation_lock($GLOBALS['peer'],false);ats_check($lock->acquired,'Actual removal releases its owner');$lock->release();
 }
 try{

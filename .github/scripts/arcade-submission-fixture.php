@@ -92,6 +92,7 @@ function su_controller($route='standard',$post=null)
     // Instrument only local source bootstrap resolution; all protocol,
     // validation, SQL, transaction and template binding code remains actual.
     $body=str_replace("require_once(\$phpbb_root_path.'includes/functions_arcade_submission.'.\$phpEx);","require_once(\$as_app.'includes/functions_arcade_submission.'.\$phpEx);",$body);
+    $body=str_replace("require_once(\$phpbb_root_path.'includes/functions_arcade_progress_storage.'.\$phpEx);","require_once(\$as_app.'includes/functions_arcade_progress_storage.'.\$phpEx);",$body);
     if($route!=='standard'){$body=preg_replace('/\?>\s*$/','',$body);as_check(substr_count($body,'exit;')===1,'Only the explicit protocol delivery exit is instrumented');$body=str_replace('exit;','throw new ArcadeSubmissionProtocolExit();',$body);}
     ob_start();
     try{eval($body);return array('error'=>false,'vars'=>$template->vars,'output'=>ob_get_contents());}
@@ -112,7 +113,7 @@ function su_schema()
 {
     global $as_app,$ag_tables;
     $ag_tables=array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,RANKS_TABLE,USER_GROUP_TABLE,iNA_GAMES,iNA_CAT,iNA,iNA_TOUR,iNA_LOG);
-    foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));
+    $ag_tables[]=iNA_GAME_SAVES;foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));
     $schema=file_get_contents($as_app.'install/schemas/mysql_schema.sql');foreach($ag_tables as$table){$suffix=substr($table,8);as_check(preg_match('/CREATE TABLE phpbb_'.preg_quote($suffix,'/').' \(.*?\) ENGINE=InnoDB[^;]*;/s',$schema,$m)===1,'Canonical submission fixture '.$suffix);ag_sql(str_replace('phpbb_'.$suffix,$table,$m[0]));}
     ag_sql('ALTER TABLE fixture_users ADD games_block_pm tinyint(1) NOT NULL DEFAULT 1,ADD arcade_banned int NOT NULL DEFAULT 0,ADD user_points DECIMAL(18,8) NOT NULL DEFAULT 100,ADD user_wallet DECIMAL(18,8) NOT NULL DEFAULT 100');
 }

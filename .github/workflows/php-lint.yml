@@ -137,6 +137,8 @@ jobs:
         run: php .github/scripts/check-arcade-summaries.php
       - name: Validate protected wallet fields and historical Arcade credential cleanup
         run: php .github/scripts/check-arcade-submission-policy.php
+      - name: Preserve opaque Arcade progress input and reject invalid requests before SQL
+        run: php .github/scripts/check-arcade-progress-policy.php
       - name: Render stored player names across Arcade pages and comments
         run: php .github/scripts/check-arcade-player-labels.php
       - name: Keep cached Arcade category identities and visibility current

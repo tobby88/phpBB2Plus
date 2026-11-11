@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
@@ -49,6 +49,7 @@ require_once __DIR__ . '/banner_counter_migration.php';
 require_once __DIR__ . '/profile_text_storage_migration.php';
 require_once __DIR__ . '/arcade_name_storage_migration.php';
 require_once __DIR__ . '/arcade_protocol_log_redaction.php';
+require_once __DIR__ . '/arcade_progress_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
@@ -80,6 +81,7 @@ function update_usage()
 	echo "  --profile-text-storage-only Widen custom-profile values and defaults without rewriting them\n";
 	echo "  --arcade-name-storage-only Widen historical banned-game references without changing their values\n";
 	echo "  --arcade-log-privacy-only Redact credentials in existing Arcade logs; retain records and metadata\n";
+	echo "  --arcade-progress-only Create/verify private game saves without changing scores or existing progress\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
@@ -182,7 +184,7 @@ if (in_array('--self-test', $argv, true))
 		!preg_match('/banner_id\s+mediumint\(8\)\s+UNSIGNED\s+NOT NULL\s+AUTO_INCREMENT/i', $create_statements['phpbb_banner']) ||
 		!preg_match('/PRIMARY KEY\s*\(banner_id\)/i', $create_statements['phpbb_banner']))
 	{ fwrite(STDERR, "Schema self-test failed: banner IDs must be unique and automatically allocated.\n"); exit(3); }
-	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 46 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_atomic_blocklist_ids || !$schema_has_stable_login_history || $basic_has_legacy_blocklist || !$schema_has_current_contacts || !$schema_has_split_password_timestamps || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
+	if ($arcade_tables !== 18 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 46 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_atomic_blocklist_ids || !$schema_has_stable_login_history || $basic_has_legacy_blocklist || !$schema_has_current_contacts || !$schema_has_split_password_timestamps || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
 	{
 		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", split password timestamps " . ($schema_has_split_password_timestamps ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", blocklist IDs " . ($schema_has_atomic_blocklist_ids ? 'atomic' : 'legacy') . ", login history " . ($schema_has_stable_login_history ? 'stable' : 'legacy') . ", legacy blocklist seeds " . ($basic_has_legacy_blocklist ? 'present' : 'none') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
@@ -192,7 +194,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only'), $argv)) > 1)
+if (count(array_intersect(array('--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -682,6 +684,14 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 
 try
 {
+	if (in_array('--arcade-progress-only', $argv, true))
+	{
+		$plan=plus_arcade_progress_plan($connection,$table_prefix);$legacy=plus_arcade_progress_legacy_plan($connection,$table_prefix);echo 'Legacy saves to copy: '.$legacy['missing']."\n";
+		foreach($plan as$sql){echo $sql.";\n";}
+		if($apply){$count=plus_arcade_progress_apply($connection,$table_prefix,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));echo "Arcade progress storage complete: {$count['created']} tables created; {$count['imported']} legacy saves copied. Existing scores preserved.\n";}
+		else{echo "Dry run only. No database changes made.\n";}
+		mysqli_close($connection);exit(0);
+	}
 	if (in_array('--arcade-log-privacy-only', $argv, true))
 	{
 		if ($apply) {
@@ -961,6 +971,8 @@ update_queue_session_engine($operations, $connection, $dbname, $table_prefix . '
 // Arcade and CrackerTracker tables.
 foreach ($create_statements as $generic_table => $generic_sql)
 {
+	// This exact private-state schema has its own no-adoption migration.
+	if ($generic_table === 'phpbb_ina_game_saves') { continue; }
 	$table = preg_replace('/^phpbb_/', $table_prefix, $generic_table);
 	if (!update_table_exists($connection, $dbname, $table))
 	{
@@ -1371,6 +1383,8 @@ foreach (array(
 }
 $legacy_cleanup_count = count($operations) - $legacy_cleanup_start;
 
+try { $arcade_progress_plan=plus_arcade_progress_plan($connection,$table_prefix); }
+catch(Exception$error){fwrite(STDERR,$error->getMessage()."\nNo changes made.\n");exit(3);}
 $version_table = $table_prefix . 'config';
 $version_sql = 'SELECT config_value FROM ' . update_quote_identifier($version_table) . " WHERE config_name = 'version'";
 $version_operations = update_version_identity_sql($version_table, update_scalar($connection, $version_sql));
@@ -1378,7 +1392,7 @@ $version_operations = update_version_identity_sql($version_table, update_scalar(
 echo ($apply ? 'APPLY' : 'DRY RUN') . " post-1.53a database update\n";
 echo "Database: $dbname\n";
 echo "Table prefix: $table_prefix\n";
-echo 'Operations: ' . (count($operations) + count($album_username_snapshot_operations) + count($version_operations) + count($style_ids_plan) + count($kb_counter_plan['changes']) + ($user_counter_plan['changes'] ? 1 : 0) + count($rating_plan) + count($author_plan)) . "\n\n";
+echo 'Operations: ' . (count($operations) + count($arcade_progress_plan) + count($album_username_snapshot_operations) + count($version_operations) + count($style_ids_plan) + count($kb_counter_plan['changes']) + ($user_counter_plan['changes'] ? 1 : 0) + count($rating_plan) + count($author_plan)) . "\n\n";
 
 if ($legacy_cleanup_count > 0)
 {
@@ -1571,6 +1585,12 @@ try
     }
 }
 catch (Exception $error) { fwrite(STDERR,$error->getMessage()."\nPartial update: keep writers stopped; inspect before retrying.\n"); exit(3); }
+try
+{
+    if($apply){$count=plus_arcade_progress_apply($connection,$table_prefix,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));echo "Arcade progress storage complete: {$count['created']} tables created; {$count['imported']} legacy saves copied. Existing scores preserved.\n";}
+    else{foreach(plus_arcade_progress_plan($connection,$table_prefix)as$sql){echo $sql.";\n";}}
+}
+catch(Exception$error){fwrite(STDERR,$error->getMessage()."\nPartial update: keep writers stopped; inspect before retrying.\n");exit(3);}
 foreach ($version_operations as $sql)
 {
 	echo $sql . ";\n";

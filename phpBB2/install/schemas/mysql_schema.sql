@@ -1773,6 +1773,16 @@ CREATE TABLE phpbb_ina_scores (
   KEY date (date)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Private progress is independent of leaderboard entries and score resets.
+CREATE TABLE phpbb_ina_game_saves (
+  user_id mediumint(8) unsigned NOT NULL,
+  game_id mediumint(9) NOT NULL,
+  game_data text NOT NULL,
+  saved_at bigint(20) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, game_id),
+  KEY game_id (game_id)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_ina_sessions (
   session_id varchar(32) DEFAULT NULL,
   user_id mediumint(8) NOT NULL DEFAULT 0,

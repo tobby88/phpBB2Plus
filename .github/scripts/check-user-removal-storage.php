@@ -1,7 +1,7 @@
 <?php
 define('PHPBB_GROUP_STORAGE_FIXTURE_ONLY', true);
 require __DIR__ . '/check-group-storage.php';
-foreach (array('IN_ADMIN'=>true,'DELETED'=>-1,'ANONYMOUS'=>-1,'USER_REMOVALS_TABLE'=>'fixture_user_removals','USER_REMOVAL_ITEMS_TABLE'=>'fixture_user_removal_items','PM_WRITE_RECEIPTS_TABLE'=>'fixture_receipts','SESSIONS_KEYS_TABLE'=>'fixture_keys','JR_ADMIN_TABLE'=>'fixture_junior','TOPICS_WATCH_TABLE'=>'fixture_watches','BOOKMARK_TABLE'=>'fixture_bookmarks','BANLIST_TABLE'=>'fixture_bans','SHOUTBOX_TABLE'=>'fixture_shouts','VOTE_USERS_TABLE'=>'fixture_votes','PRIVMSGS_TEXT_TABLE'=>'fixture_pm_text','QUOTA_TABLE'=>'fixture_quotas','PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
+foreach (array('IN_ADMIN'=>true,'DELETED'=>-1,'ANONYMOUS'=>-1,'USER_REMOVALS_TABLE'=>'fixture_user_removals','USER_REMOVAL_ITEMS_TABLE'=>'fixture_user_removal_items','iNA_GAME_SAVES'=>'fixture_game_saves','PM_WRITE_RECEIPTS_TABLE'=>'fixture_receipts','SESSIONS_KEYS_TABLE'=>'fixture_keys','JR_ADMIN_TABLE'=>'fixture_junior','TOPICS_WATCH_TABLE'=>'fixture_watches','BOOKMARK_TABLE'=>'fixture_bookmarks','BANLIST_TABLE'=>'fixture_bans','SHOUTBOX_TABLE'=>'fixture_shouts','VOTE_USERS_TABLE'=>'fixture_votes','PRIVMSGS_TEXT_TABLE'=>'fixture_pm_text','QUOTA_TABLE'=>'fixture_quotas','PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 require_once $forum_root.'includes/php_compat.php';
 require $forum_root.'includes/functions_user_removal.php';
 foreach (array('phpbb_admin_html','phpbb_admin_session_field') as $function) { eval(group_test_function(file_get_contents($forum_root.'admin/pagestart.php'),$function)); }
@@ -39,7 +39,7 @@ function removal_fixture($actor=1)
 	$p->exec('ALTER TABLE fixture_shouts ADD shout_author_removed INTEGER DEFAULT 0');
 	$p->exec('CREATE TABLE fixture_removed_author_names(author_user_id INTEGER NOT NULL,author_name_hash CHAR(64) NOT NULL,author_name VARCHAR(255) NOT NULL,recorded_at INTEGER NOT NULL,PRIMARY KEY(author_user_id,author_name_hash))');
 	$p->exec('CREATE TABLE fixture_votes (vote_user_id INTEGER)'); $p->exec('INSERT INTO fixture_votes VALUES (9),(8)');
-	foreach (array('fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
+	foreach (array('fixture_game_saves'=>'user_id','fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
 	{
 		$extra=$table==='fixture_bans'?",ban_ip TEXT DEFAULT '',ban_email TEXT DEFAULT '',ban_ip_mask TEXT DEFAULT ''":'';
 		$p->exec('CREATE TABLE '.$table.' ('.$column.' INTEGER'.$extra.')'); $p->exec('INSERT INTO '.$table.' ('.$column.') VALUES (0),(9),(8)');
@@ -90,7 +90,7 @@ function removal_assert_completed()
 	mutation_check(group_value('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=8')===1 && $mutation_server->pdo->query('SELECT shout_username FROM fixture_shouts WHERE shout_user_id=-1')->fetchColumn()==="O'Brien Grüße",'Other shouts preserved and target shout anonymized');
 	mutation_check(group_value('SELECT group_moderator FROM fixture_groups WHERE group_id=10')===1 && group_value('SELECT user_pending FROM fixture_memberships WHERE group_id=10 AND user_id=1')===0,'Successor leader has approved membership');
 	mutation_check(group_value('SELECT user_level FROM fixture_users WHERE user_id=1')===1,'Administrator role preserved');
-	foreach (array('fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
+	foreach (array('fixture_game_saves'=>'user_id','fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
 	{
 		mutation_check(group_value('SELECT COUNT(*) FROM '.$table.' WHERE '.$column.'=9')===0 && group_value('SELECT COUNT(*) FROM '.$table)===2,'Only target references removed; global and unrelated rows retained: '.$table);
 	}

@@ -18,7 +18,8 @@ function phpbb_cleanup_removed_user_references($database, $user_id)
 		BANLIST_TABLE => 'ban_userid',
 		// Ordinary PM deletion retains replay receipts. Only removal of the
 		// owning account makes these per-sender request identities obsolete.
-		PM_WRITE_RECEIPTS_TABLE => 'user_id'
+		PM_WRITE_RECEIPTS_TABLE => 'user_id',
+		iNA_GAME_SAVES => 'user_id'
 	);
 	foreach ($targets as $table => $column)
 	{

@@ -84,6 +84,9 @@ class PhpbbArcadeActionWriter extends PhpbbArcadeGameWriter
         $played = (string)$game['played'];
         if (!preg_match('/^[0-9]{1,10}$/D', $played) || (float)$played > 4294967295) { $this->storage_fail(); }
         $players = $this->affected_players(array($game), array(iNA_SCORES=>'highscore_id', iNA_AT_SCORES=>'at_highscore_id'));
+        // Stable game IDs preserve saves across renames and leaderboard
+        // resets; deleting the game itself removes its private checkpoints.
+        $this->query('DELETE FROM '.iNA_GAME_SAVES.' WHERE game_id='.$this->game_id);
         foreach (array(array(iNA_SCORES,'game_name'), array(iNA_AT_SCORES,'game_name'), array(iNA_GAMES_COMMENT,'comment_game_name'),
             array(iNA_GAMES_COMMENT,'game_name'), array(iNA_GAMES_RATE,'rate_game_name'), array(iNA_SESSIONS,'game_name'), array(iNA_TOUR_DATA,'game_name')) as $ref) {
             $this->query('DELETE FROM '.$ref[0].' WHERE '.$ref[1]."='$name'");

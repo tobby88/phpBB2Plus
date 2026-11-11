@@ -45,6 +45,7 @@ define('PAGE_ARCADE_TOUR', -1359);
 define('iNA', $table_prefix.'ina_data');
 define('iNA_GAMES', $table_prefix.'ina_games');
 define('iNA_SCORES', $table_prefix.'ina_scores');
+define('iNA_GAME_SAVES', $table_prefix.'ina_game_saves');
 //
 //  dEfEndEr's Additional Info for Arcade v2.0.1 Onwards
 //

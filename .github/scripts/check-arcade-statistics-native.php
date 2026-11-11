@@ -31,7 +31,7 @@ try{
     $db=new ArcadeGameNativeDatabase($host,'root',$password,$schema,false);$ag_peer=new sql_db($host,'root',$password,$schema,false);
     as_check($db->db_connect_id&&$ag_peer->db_connect_id,'Independent native statistics connections');
     $ag_tables=array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,RANKS_TABLE,iNA_GAMES,iNA_CAT);
-    foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));
+    $ag_tables[]=iNA_GAME_SAVES;foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));
     $canonical=file_get_contents($as_app.'install/schemas/mysql_schema.sql');
     foreach($ag_tables as$table){$suffix=substr($table,strlen('fixture_'));as_check(preg_match('/CREATE TABLE phpbb_'.preg_quote($suffix,'/').' \(.*?\) ENGINE=InnoDB[^;]*;/s',$canonical,$m)===1,'Canonical statistics fixture '.$suffix);ag_sql(str_replace('phpbb_'.$suffix,$table,$m[0]));}
     as_open();$ag_routes=aif_routes();$routes=jr_admin_authorization_routes();$keys=array_keys($routes,'admin_arcade_reset.php?mode=home',true);as_check(count($keys)===1,'Actual delegated statistics module');$ag_routes['reset']=$keys[0];
