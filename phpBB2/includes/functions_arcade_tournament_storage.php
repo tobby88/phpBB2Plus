@@ -76,7 +76,7 @@ class PhpbbArcadeTournamentJoinWriter extends PhpbbOwnedStore
                     $status = 'tour_joined';
                 }
             }
-            $results[] = array('status'=>$status, 'name'=>$tour['tour_name']);
+            $results[] = array('status'=>$status, 'name'=>(string)$tour['tour_name']);
         }
         $this->commit_attempted = true; $this->commit();
         return $results;
