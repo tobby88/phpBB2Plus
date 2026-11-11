@@ -55,3 +55,42 @@ try{
  foreach($kinds as$kind){foreach($endings as$ending){acp_log_date_case('Europe/Berlin',5.75,1735689599,'l j F Y H:i',$kind,$ending);}}
  echo 'CrackerTracker ACP log dates: ',$locale,' ',$log_cases," actual-controller/metadata-kind/LF/CRLF/unterminated/timezone/translation/escaping/read-only cases PASS.\n";
 }finally{restore_error_handler();if($made){$real=realpath($base);if(!$real||is_link($base)||dirname($real)!==realpath(sys_get_temp_dir())||!preg_match('/^codex_ct_log_dates_[a-f0-9]{16}$/D',basename($real))){throw new RuntimeException('Exact own date fixture cleanup required');}if(is_file($path)){unlink($path);}rmdir($base.'/cache');rmdir($base.'/ctracker/logfiles');rmdir($base.'/ctracker');rmdir($base);}}
+
+// Complete, unmodified scanner/recovery GET modules with a read-only result
+// adapter. Their publishing/authority paths remain covered by native fixtures.
+require$app.'ctracker/classes/class_ct_adminfunctions.php';
+define('CTRACKER_FILECHK','scan_date_hash');define('CTRACKER_FILESCANNER','scan_date_scan');define('CTRACKER_BACKUP','scan_date_backup');
+class CtScanDateResult {public$rows,$open=true;function __construct($rows){$this->rows=$rows;}}
+class CtScanDateDatabase {
+ public$rows,$queries=array(),$results=array(),$fail;
+ function __construct($rows,$fail){$this->rows=$rows;$this->fail=$fail;}
+ function sql_query($sql){$this->queries[]=$sql;if(!in_array($sql,array('SELECT * FROM '.CTRACKER_FILECHK,'SELECT * FROM '.CTRACKER_FILESCANNER,"SELECT * FROM ".CTRACKER_BACKUP." WHERE config_name = 'ct_last_backup'"),true)){throw new RuntimeException('Scanner date view attempted unexpected SQL');}if($this->fail){return false;}$result=new CtScanDateResult($this->rows);$this->results[]=$result;return$result;}
+ function sql_fetchrow($result){if(!$result->open){throw new RuntimeException('Scanner date view read a released result');}return$result->rows?array_shift($result->rows):false;}
+ function sql_freeresult($result){if(!$result->open){throw new RuntimeException('Scanner date view released a result twice');}$result->open=false;}
+}
+class CtScanDateTemplate {
+ public$vars=array(),$blocks=array(),$rendered=0;function set_filenames($files){}function assign_vars($vars){$this->vars=array_replace($this->vars,$vars);}function assign_block_vars($name,$row){$this->blocks[$name][]=$row;}function pparse($name){$this->rendered++;}
+}
+function ct_scan_date_case($module,$server,$offset,$stamp,$format,$listing=false,$empty=false,$marker_name='ct_last_backup'){
+ global$app,$phpbb_root_path,$phpEx,$lang,$images,$userdata,$board_config,$db,$template,$ctracker_config,$scan_root,$scan_cases;
+ date_default_timezone_set($server);$board_config['board_timezone']=$offset;$board_config['default_dateformat']=$format;$phpbb_root_path=$scan_root.'/';$userdata['session_id']='scan-date-fixture';
+ $ctracker_config=(object)array('settings'=>array('last_file_scan'=>$stamp,'last_checksum_scan'=>$stamp));$settings=$ctracker_config->settings;$rows=array();
+ if($module==='systemrestore'){if($stamp!==null&&$stamp!==false){$rows[]=array('config_name'=>$marker_name,'config_value'=>$stamp);}}
+ elseif($listing&&!$empty){$rows=$module==='changedfiles'?array(array('filepath'=>'probe.php','hash'=>hash_file('sha256',$scan_root.'/probe.php'))):array(array('filepath'=>'literal & <file>.php','safety'=>'0'));}
+ $db=new CtScanDateDatabase($rows,$stamp===false&&$module==='systemrestore');$template=new CtScanDateTemplate();$_SERVER['REQUEST_METHOD']='GET';$_POST=array();$_GET=$module==='systemrestore'?array('mode'=>'backup'):($listing?array('action'=>$module==='changedfiles'?'chk':'display'):array());$file_hash=hash_file('sha256',$scan_root.'/probe.php');
+ include$app.'ctracker/admin/acp_module_'.$module.'.php';
+ if($module==='systemrestore'){$valid=ct_adminfunctions::valid_backup_timestamp($stamp);$want=$valid?sprintf($lang['ctracker_rec_last_saved'],acp_log_date_expected($format,(int)$stamp,$offset)):$lang['ctracker_rec_never_saved'];if($template->vars['L_SAVE_STATUS']!==$want||isset($template->blocks['restore_available'])!==$valid||isset($template->blocks['restore_unavailable'])===$valid||$template->vars['L_RESTORE']!==$lang[$valid?'ctracker_rec_restore':'ctracker_rec_pab']){throw new RuntimeException('Actual recovery timestamp/availability differs');}}
+ else{$caption=$module==='changedfiles'?'ctracker_fchk_subhead':'ctracker_fscan_subhead';$want=sprintf($lang[$caption],(int)$stamp>0?acp_log_date_expected($format,(int)$stamp,$offset):$lang['ctracker_never']);if($template->vars['L_SUBHEADLINE']!==$want){throw new RuntimeException('Actual scanner timezone/date/fallback differs');}if($listing){if(!isset($template->blocks['header_table_cell'])||count(isset($template->blocks['file_output'])?$template->blocks['file_output']:array())!==($empty?0:1)){throw new RuntimeException('Actual scanner result list differs');}if(!$empty&&$module==='filescanner'&&$template->blocks['file_output'][0]['PATH']!=='literal &amp; &lt;file&gt;.php'){throw new RuntimeException('Actual scanner literal path escaping differs');}}}
+ foreach($db->results as$result){if($result->open){throw new RuntimeException('Metadata view retained a consumed SQL result');}}
+ if($template->rendered!==1||$ctracker_config->settings!==$settings||$db->rows!==$rows||hash_file('sha256',$scan_root.'/probe.php')!==$file_hash||isset($template->blocks['akt_complete'])||isset($template->blocks['infobox'])){throw new RuntimeException('Read-only date view changed scan/backup data or reported a write');}$scan_cases++;
+}
+$scan_root=sys_get_temp_dir().'/codex_ct_scan_dates_'.bin2hex(phpbb_random_bytes(8));$made=false;$scan_cases=0;$images=array('ctracker_fc_icon_1'=>'one.gif','ctracker_fc_icon_2'=>'two.gif','ctracker_recovery'=>'recovery.gif');
+set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
+try{
+ if(!mkdir($scan_root,0700)||file_put_contents($scan_root.'/probe.php',"<?php echo 'Own unchanged date fixture';\n")===false){throw new RuntimeException('Own scan date fixture unavailable');}$made=true;
+ $index=0;foreach(array('changedfiles','filescanner','systemrestore')as$module){foreach(array('UTC','Europe/Berlin','Pacific/Auckland')as$server){foreach(array(-12,-3.5,0,1,5.75,12,14)as$offset){foreach(array('Y-m-d H:i','l j F Y H:i','Y-m-d < H:i > "')as$format){ct_scan_date_case($module,$server,$offset,(string)$stamps[$index%4],$format,$index%2===0);$index++;}}}}
+ foreach(array('changedfiles','filescanner')as$module){foreach(array(0,'0')as$zero){ct_scan_date_case($module,'UTC',5.75,$zero,'l j F Y H:i',true);}ct_scan_date_case($module,'UTC',-3.5,'1700000000','Y-m-d H:i',true,true);}
+ foreach(array(null,false,0,'0','','invalid','0123','123junk',-1,array('123'),str_repeat('9',30))as$marker){ct_scan_date_case('systemrestore','Europe/Berlin',5.75,$marker,'l j F Y H:i');}
+ foreach(array('CT_LAST_BACKUP','Ct_Last_Backup')as$name){ct_scan_date_case('systemrestore','UTC',5.75,'1700000000','Y-m-d H:i',false,false,$name);}
+ echo 'CrackerTracker ACP scanner dates: ',$locale,' ',$scan_cases," actual-module/timezone/translation/escaping/never/backup-state/read-only/result-release cases PASS.\n";
+}finally{restore_error_handler();if($made){$real=realpath($scan_root);if(!$real||is_link($scan_root)||dirname($real)!==realpath(sys_get_temp_dir())||!preg_match('/^codex_ct_scan_dates_[a-f0-9]{16}$/D',basename($real))){throw new RuntimeException('Exact own scan date cleanup required');}unlink($scan_root.'/probe.php');rmdir($scan_root);}}

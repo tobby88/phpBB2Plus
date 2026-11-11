@@ -116,6 +116,7 @@ else if ( $action == 'display' )
 			'COLOR'  => $color)
 		);		
 	}
+	$db->sql_freeresult($result);
 }
 else
 {
@@ -134,7 +135,7 @@ else
  */
 $last_file_scan = intval($ctracker_config->settings['last_file_scan']);
 $last_file_scan_text = ($last_file_scan > 0)
-	? date($board_config['default_dateformat'], $last_file_scan)
+	? phpbb_admin_html(create_date($board_config['default_dateformat'], $last_file_scan, $board_config['board_timezone']))
 	: $lang['ctracker_never'];
 $template->assign_vars(array(
 	'L_HEADLINE' 		=> $lang['ctracker_fscan_head'],

@@ -98,6 +98,7 @@ else if ( $action == 'chk' )
 			'COLOR'  => $color)
 		);
 	}
+	$db->sql_freeresult($result);
 }
 else
 {
@@ -123,7 +124,7 @@ $template->set_filenames(array(
  */
 $last_checksum_scan = intval($ctracker_config->settings['last_checksum_scan']);
 $last_checksum_scan_text = ($last_checksum_scan > 0)
-	? date($board_config['default_dateformat'], $last_checksum_scan)
+	? phpbb_admin_html(create_date($board_config['default_dateformat'], $last_checksum_scan, $board_config['board_timezone']))
 	: $lang['ctracker_never'];
 $template->assign_vars(array(
 	'L_HEADLINE' 		=> $lang['ctracker_fchk_head'],

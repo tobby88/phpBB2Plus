@@ -16,6 +16,7 @@ class IntegrityDatabase
 	var $rows = array();
 	function sql_query($sql) { integrity_assert($sql === 'SELECT * FROM fixture_hash', 'Report must remain read-only'); return true; }
 	function sql_fetchrow($result) { return $this->rows ? array_shift($this->rows) : false; }
+	function sql_freeresult($result) {}
 }
 class IntegrityTemplate
 {

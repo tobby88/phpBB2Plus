@@ -68,12 +68,15 @@ else
 {
 	while ( $row = $db->sql_fetchrow($result) )
 	{
-		$backup[$row['config_name']] = $row['config_value'];
+		// The WHERE lookup already resolves this key using the DB collation;
+		// its stored spelling need not match a case-sensitive PHP array key.
+		$backup['ct_last_backup'] = $row['config_value'];
 	}
+	$db->sql_freeresult($result);
 	if (isset($backup['ct_last_backup']) && ct_adminfunctions::valid_backup_timestamp($backup['ct_last_backup']))
 	{
 		$saved_now = true;
-		$save_status = sprintf($lang['ctracker_rec_last_saved'], date($board_config['default_dateformat'], intval($backup['ct_last_backup'])));
+		$save_status = sprintf($lang['ctracker_rec_last_saved'], phpbb_admin_html(create_date($board_config['default_dateformat'], intval($backup['ct_last_backup']), $board_config['board_timezone'])));
 	}
 	else
 	{

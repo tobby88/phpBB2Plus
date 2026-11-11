@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Consistent CrackerTracker scan and recovery status dates
+
+- Render checksum scans, file scans and saved configuration snapshots with
+  the forum's timezone, translated calendar names and escaped date text.
+- Retain the existing never-scanned and unavailable-backup states; viewing
+  status leaves results and snapshots unchanged and releases consumed queries.
+- Recognize a completed backup marker returned with a different stored letter
+  case, matching the database lookup and the existing restore operation.
+
 ### Complete UTF-8 and stable CrackerTracker log columns
 
 - Keep complete UTF-8 characters when limiting log fields, request URLs,

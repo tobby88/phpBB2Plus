@@ -2,6 +2,7 @@
 // Native fixture only: exercise the real driver, owned lock and restore SQL.
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_CT_RECOVERY_NATIVE') !== '1')
 { echo "Native CrackerTracker recovery fixture skipped.\n"; return; }
+date_default_timezone_set('UTC');
 define('IN_PHPBB', true); define('CTRACKER_ACP', true);
 define('CONFIG_TABLE', 'fixture_config'); define('CTRACKER_BACKUP', 'fixture_backup');
 define('CTRACKER_FILECHK', 'fixture_filechk'); define('CTRACKER_FILESCANNER', 'fixture_filescanner');
@@ -40,6 +41,25 @@ function recovery_value($table, $name, $value) {
  $db = $GLOBALS['db'];
  recovery_sql('INSERT INTO ' . $table . " VALUES ('" . $db->sql_escape($name) . "','" . $db->sql_escape($value) . "') ON DUPLICATE KEY UPDATE config_value=VALUES(config_value)");
 }
+class NativeRecoveryViewTemplate {
+ public$vars=array(),$blocks=array(),$rendered=0;function set_filenames($files){}function assign_vars($vars){$this->vars=array_replace($this->vars,$vars);}function assign_block_vars($key,$row){$this->blocks[$key][]=$row;}function pparse($key){$this->rendered++;}
+}
+function native_recovery_view($available){
+ global$source,$db,$lang,$board_config,$phpEx,$phpbb_root_path,$userdata,$template,$images,$view_cases;
+ $old_lang=$lang;$old_board=isset($board_config)?$board_config:array();$old_post=$_POST;$old_get=isset($_GET)?$_GET:array();$old_method=$_SERVER['REQUEST_METHOD'];
+ $r=recovery_sql('SELECT config_name,config_value FROM '.CTRACKER_BACKUP.' ORDER BY HEX(config_name)');$before=$db->sql_fetchrowset($r);$db->sql_freeresult($r);$config=recovery_values();
+ try{
+  require_once __DIR__.'/ctracker-log-controller-fixture.php';$board_config=array('default_lang'=>'english','default_dateformat'=>'Y-m-d H:i','board_timezone'=>5.75);ctracker_log_fixture_date_runtime($source);
+  $bootstrap=file_get_contents($source.'admin/pagestart.php');$a=strpos($bootstrap,"if (!function_exists('phpbb_admin_post_session_valid'))");$b=strpos($bootstrap,'if (empty($no_page_header))',$a);if($a===false||$b<=$a){throw new RuntimeException('Actual ACP view helpers unavailable');}eval(substr($bootstrap,$a,$b-$a));
+  require$source.'language/lang_english/lang_cback_ctracker.php';$images=array('ctracker_recovery'=>'recovery.gif');$template=new NativeRecoveryViewTemplate();$_POST=array();$_GET=array('mode'=>'backup');$_SERVER['REQUEST_METHOD']='GET';
+  include$source.'ctracker/admin/acp_module_systemrestore.php';
+  recovery_check($template->rendered===1&&isset($template->blocks['restore_available'])===$available&&isset($template->blocks['restore_unavailable'])!==$available&&!isset($template->blocks['infobox']),'Actual native recovery view follows database marker lookup without a GET mutation');
+  if($available){$marker=null;foreach($before as$row){if(strcasecmp($row['config_name'],'ct_last_backup')===0){$marker=$row['config_value'];}}recovery_check($marker!==null&&$template->vars['L_SAVE_STATUS']===sprintf($lang['ctracker_rec_last_saved'],phpbb_admin_html(create_date($board_config['default_dateformat'],(int)$marker,$board_config['board_timezone']))),'Actual native recovery view retains forum-local saved date');}else{recovery_check($template->vars['L_SAVE_STATUS']===$lang['ctracker_rec_never_saved'],'Unmatched binary-collation marker remains unavailable');}
+  $r=recovery_sql('SELECT config_name,config_value FROM '.CTRACKER_BACKUP.' ORDER BY HEX(config_name)');$after=$db->sql_fetchrowset($r);$db->sql_freeresult($r);recovery_check($before===$after&&recovery_values()===$config,'Native recovery GET preserves snapshot and forum settings');$view_cases++;
+ }finally{$lang=$old_lang;$board_config=$old_board;$_POST=$old_post;$_GET=$old_get;$_SERVER['REQUEST_METHOD']=$old_method;}
+}
+function append_sid($url){return$url;}
+$view_cases=0;
 set_error_handler(function($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try {
  recovery_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,user_level INT,user_active INT) ENGINE=InnoDB');
@@ -82,8 +102,12 @@ try {
  $expected = recovery_values(); $expected['site_desc'] = "Saved Grüße 😀 O'Brien";
  $admin->restore_configuration();
  recovery_check(recovery_values() === $expected, 'Configuration restore must not rewind internal state');
+ foreach(array('ct_last_backup','CT_LAST_BACKUP','Ct_Last_Backup')as$name){recovery_sql("UPDATE fixture_backup SET config_name='$name' WHERE config_name='ct_last_backup'");native_recovery_view(true);}
+ recovery_sql("UPDATE fixture_backup SET config_name='ct_last_backup' WHERE config_name='ct_last_backup'");
  // Old or custom backups can use different collation, case, accents or padding.
  recovery_sql('ALTER TABLE fixture_backup CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin');
+ recovery_sql("UPDATE fixture_backup SET config_name='CT_LAST_BACKUP' WHERE config_name='ct_last_backup'");native_recovery_view(false);
+ recovery_sql("UPDATE fixture_backup SET config_name='ct_last_backup' WHERE config_name='CT_LAST_BACKUP'");native_recovery_view(true);
  foreach ($protected as $name) {
   recovery_value(CTRACKER_BACKUP, strtoupper($name), 'stale-upper');
   recovery_value(CTRACKER_BACKUP, str_replace('e', 'é', $name) . ' ', 'stale-accent');
@@ -107,6 +131,7 @@ try {
  catch (NativeRecoveryExit $e) { recovery_check($e->getMessage() === 'empty', 'No restorable settings'); }
  recovery_check(recovery_values() === $expected, 'Metadata-only backup does not modify configuration');
  echo 'Native CrackerTracker credentials, scanners and protected recovery state passed on PHP ' . PHP_VERSION . "\n";
+ echo 'Native CrackerTracker recovery view: '.$view_cases." actual-controller/case-collation/date/read-only cases PASS.\n";
 } finally {
  if (isset($lock)) { $lock->release(); }
  $db->sql_close(); $control->sql_query('DROP DATABASE ' . $fixture); $control->sql_close();
