@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current Arcade last-play scope and links
+
+- Move known last-play snapshots with games, including combined renames and
+  parent changes. Preserve recorded players/times, exact identities and totals;
+  failed writes roll back the entire edit.
+- Suppress missing, ambiguous and out-of-scope last games in category views.
+  Link to the game's actual category, retain offline history without broken
+  links and apply the current viewer's rank/group/category visibility rules.
+- Upgrade old metadata caches without caching account names or viewer rights.
+  Reconcile existing snapshots through the full updater or the targeted
+  `--arcade-last-play-only` repair, without inventing historical events.
+- Retain URL sessions in game links and show removed accounts with the existing
+  generic translated label instead of linking an empty profile name.
+
 ### Consistent Arcade parent counters on catalogue edits
 
 - Transfer historical plays between the affected parent categories when moving

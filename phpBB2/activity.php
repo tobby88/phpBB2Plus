@@ -971,9 +971,9 @@ if( $mode != '' )
 //  Check for Last Played Info
 //
       		$last_played = '';
-      		if($catrows[$i]['last_player'])
+		if(phpbb_arcade_last_play_visible($catrows[$i],$group_array,$rank_required,$level_required,$userdata['user_level']==ADMIN))
       		{
-       			if($catrows[$i]['last_player'] != ANONYMOUS)
+			if($catrows[$i]['last_player'] != ANONYMOUS && $catrows[$i]['username'] !== null)
        			{
        				$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['last_player'] . "");
        				if($catrows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
@@ -987,18 +987,17 @@ if( $mode != '' )
        			}
        			else
        			{
-       				$profile = $lang['Guest'];
+				$profile = (int)$catrows[$i]['last_player']>0 ? $lang['Former_member'] : $lang['Guest'];
        			}
 //
 //  Last Game (check length and output short version if required)
 //    
-            $last_game_desc = phpbb_text_excerpt($catrows[$i]['game_desc'], 25);
 //
 //  Build the Last Played Info
 //
-			$last_played = '<a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $catrows[$i]['cat_id'] . '#'. (int) $catrows[$i]['game_id'].'" class="gensmall">' . arcade_output_html($last_game_desc);
-       			$last_played .= '</a><br />' . create_date($board_config['default_dateformat'], $catrows[$i]['last_time'], $board_config['board_timezone']);
-       			$last_played .= '<br />' . $profile;
+			$last_played = phpbb_arcade_last_play_link($catrows[$i],$filename,$userdata['user_level']==ADMIN);
+			$last_played .= '<br />' . create_date($board_config['default_dateformat'], $catrows[$i]['last_time'], $board_config['board_timezone']);
+			$last_played .= '<br />' . $profile;
       		}
 
        		$template->assign_block_vars("cats", array(
@@ -1549,9 +1548,9 @@ else
 //  Check for Last Played Info
 //
 		$last_played = '';
-		if($catrows[$i]['last_player'])
+		if(phpbb_arcade_last_play_visible($catrows[$i],$group_array,$rank_required,$level_required,$userdata['user_level']==ADMIN))
 		{
- 			if($catrows[$i]['last_player'] != ANONYMOUS)
+			if($catrows[$i]['last_player'] != ANONYMOUS && $catrows[$i]['username'] !== null)
  			{
  				$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['last_player'] . "");
  				if($catrows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
@@ -1565,18 +1564,17 @@ else
  			}
  			else
  			{
- 				$profile = $lang['Guest'];
+				$profile = (int)$catrows[$i]['last_player']>0 ? $lang['Former_member'] : $lang['Guest'];
  			}
 //
 //  Last Game (check length and output short version if required)
 //    
-      $last_game_desc = phpbb_text_excerpt($catrows[$i]['game_desc'], 25);
 //
 //  Build the Last Played Info
 //
-			$last_played = '<a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $catrows[$i]['cat_id'] . '#'. (int) $catrows[$i]['game_id'].'" class="gensmall">' . arcade_output_html($last_game_desc);
- 			$last_played .= '</a><br />' . create_date($board_config['default_dateformat'], $catrows[$i]['last_time'], $board_config['board_timezone']);
- 			$last_played .= '<br />' . $profile;
+			$last_played = phpbb_arcade_last_play_link($catrows[$i],$filename,$userdata['user_level']==ADMIN);
+			$last_played .= '<br />' . create_date($board_config['default_dateformat'], $catrows[$i]['last_time'], $board_config['board_timezone']);
+			$last_played .= '<br />' . $profile;
 		}
 //
 //  Output Each Category
@@ -1633,9 +1631,12 @@ else
 //
 //  All Games Output
 //
-  if ($arcade->arcade_config['games_show_all'])
+  if ($arcade->arcade_config['games_show_all'] && !empty($catrows))
 	{
- 		if($catrows[0]['last_player'] != ANONYMOUS)
+        $last_played_all = '';
+        if(phpbb_arcade_last_play_visible($catrows[0],$group_array,$rank_required,$level_required,$userdata['user_level']==ADMIN))
+        {
+		if($catrows[0]['last_player'] != ANONYMOUS && $catrows[0]['username'] !== null)
  		{
  			$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[0]['last_player'] . "");
  			if($catrows[0]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
@@ -1649,15 +1650,15 @@ else
  		}
  		else
  		{
- 			$profile = $lang['Guest'];
+			$profile = (int)$catrows[0]['last_player']>0 ? $lang['Former_member'] : $lang['Guest'];
  		}
-    $last_game_desc = phpbb_text_excerpt($catrows[0]['game_desc'], 25);
 //
 //  Build the Last Played Info
 //
-	$last_played_all = '<a href="' . $filename . '?mode=cat&amp;cat_id=0#'.(int) $catrows[0]['game_id'].'" class="gensmall">' . arcade_output_html($last_game_desc);
-    $last_played_all .= '</a><br />' . create_date($board_config['default_dateformat'], $catrows[0]['last_time'], $board_config['board_timezone']);
+	$last_played_all = phpbb_arcade_last_play_link($catrows[0],$filename,$userdata['user_level']==ADMIN);
+    $last_played_all .= '<br />' . create_date($board_config['default_dateformat'], $catrows[0]['last_time'], $board_config['board_timezone']);
     $last_played_all .= '<br />' . $profile;
+        }
 //
 //  Turn the All Games Section ON
 //
@@ -1666,7 +1667,7 @@ else
 		'DESC' => arcade_output_html($arcade->arcade_config['games_cat_zero']),
   		'TOTAL_GAMES' => $arcade->convert_score($catrows[0]['total_games']),
   		'TOTAL_PLAYED' => $arcade->convert_score($catrows[0]['total_played']),
-  		'LAST_ALL' => ($catrows[0]['last_player']) ? $last_played_all : '',
+		'LAST_ALL' => $last_played_all,
   		'ICON' => '<img src="images/games.gif" border="0">',
 		));
 	}

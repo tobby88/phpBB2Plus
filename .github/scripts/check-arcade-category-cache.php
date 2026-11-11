@@ -7,7 +7,7 @@ class ArcadeCategoryFixtureDatabase
     function sql_query($sql)
     {
         $this->queries[]=$sql;
-        if(strpos($sql,'SELECT c.*, g.game_name, game_id, game_desc')===0){
+        if(strpos($sql,'SELECT c.*, g.game_name, g.game_id, g.game_desc')===0){
             as_check(strpos($sql,'JOIN fixture_users')===false,'Cached category SELECT excludes account fields');
             $kind='categories';$rows=$this->rows;
         }elseif(preg_match('/^SELECT user_id, username, user_allow_viewonline FROM fixture_users WHERE user_id IN \(([0-9,]+)\)$/D',$sql,$m)){
@@ -20,10 +20,10 @@ class ArcadeCategoryFixtureDatabase
     function sql_fetchrow($r){return isset($r->rows[$r->offset])?$r->rows[$r->offset++]:false;}
     function sql_freeresult($r){$this->opened--;}
 }
-function ac_row($id,$player){return array('cat_id'=>(string)$id,'last_player'=>$player,'cat_name'=>'Raw &amp; <category>','cat_desc'=>'Literal &#39;','game_name'=>'fixture_game','game_id'=>'9','game_desc'=>'Raw &amp; <game>','cat_order'=>'2','total_played'=>'1234567890123');}
+function ac_row($id,$player){return array('cat_id'=>(string)$id,'last_player'=>$player,'cat_name'=>'Raw &amp; <category>','cat_desc'=>'Literal &#39;','game_name'=>'fixture_game','game_id'=>'9','game_desc'=>'Raw &amp; <game>','cat_order'=>'2','total_played'=>'1234567890123','last_game'=>'fixture_game','last_time'=>'100','last_game_cat_id'=>'1','last_game_avail'=>'1','last_game_rank'=>'0','last_game_level'=>'0','last_game_group'=>'0','last_game_cat_group'=>'0','last_game_parent_group'=>'0','last_game_category_valid'=>'1');}
 function ac_clean($rows){foreach($rows as$key=>$row){unset($rows[$key]['username'],$rows[$key]['user_allow_viewonline']);}return $rows;}
-function ac_payload($expected){$p=as_payload('categories');as_check(isset($p['data'])&&$p['data']===array('version'=>1,'categories'=>$expected),'Actual cache contains only exact unchanged category/game metadata');}
-function ac_result($actual,$expected,$users){as_check(ac_clean($actual)===$expected,'Ordering, keys and all raw metadata remain unchanged');foreach($actual as$row){$id=(int)$row['last_player'];as_check($row['username']===(isset($users[$id])?$users[$id]['username']:null),'Current account name, never cached identity');as_check($row['user_allow_viewonline']===(isset($users[$id])?$users[$id]['user_allow_viewonline']:0),'Current visibility or fail-closed missing account');}as_check($GLOBALS['db']->opened===0,'Every SELECT result is released');}
+function ac_payload($expected){$expected=array_map('phpbb_arcade_last_play_projection',$expected);$p=as_payload('categories');as_check(isset($p['data'])&&$p['data']===array('version'=>2,'categories'=>$expected),'Actual cache contains only scope-validated category/game metadata');}
+function ac_result($actual,$expected,$users){$expected=array_map('phpbb_arcade_last_play_projection',$expected);as_check(ac_clean($actual)===$expected,'Identity refresh preserves category ordering, keys and scope-validated raw metadata');foreach($actual as$row){$id=(int)$row['last_player'];as_check($row['username']===(isset($users[$id])?$users[$id]['username']:null),'Current account name, never cached identity');as_check($row['user_allow_viewonline']===(isset($users[$id])?$users[$id]['user_allow_viewonline']:0),'Current visibility or fail-closed missing account');}as_check($GLOBALS['db']->opened===0,'Every SELECT result is released');}
 function ac_visible($row){
     global $as_app,$as_cases,$lang,$userdata;$source=file_get_contents($as_app.'activity.php');
     as_check(preg_match_all('/if\(\$catrows\[(?:\$i|0)\]\[\'user_allow_viewonline\'\] \|\| \$userdata\[\'user_level\'\] == ADMIN \|\| \$userdata\[\'user_level\'\] == MOD\)\s*\{.*?\}\s*else\s*\{.*?\}/s',$source,$parts)===3,'Actual category, subcategory and all-games visibility branches');
@@ -39,9 +39,9 @@ try{
         $db->users[7]['username']=phpbb_username_key('Renamed & Member');$db->users[7]['user_allow_viewonline']='0';$n=count($db->queries);$out=$arcade->read_cat('./');ac_result($out,$db->rows,$db->users);ac_payload($db->rows);as_check(count($db->queries)===$n+1,'Cache hit refreshes accounts without reloading metadata');ac_visible($out[1]);$as_cases++;
         unset($db->users[7]);$out=$arcade->read_cat('./');ac_result($out,$db->rows,$db->users);ac_payload($db->rows);$as_cases++;
     }}
-    $bad=array('old rendered cache',array(ac_row(1,7)+array('username'=>'Old name','user_allow_viewonline'=>1)),array('version'=>2,'categories'=>$db->rows),array('version'=>'1','categories'=>$db->rows),array('version'=>1,'categories'=>array(false)));
-    foreach(array(array(),8388608,-8388609,'7 OR 1=1',true)as$id){$bad[]=array('version'=>1,'categories'=>array(ac_row(1,$id)));}
-    $bad[]=array('version'=>1,'categories'=>array(ac_row(1,7)+array('username'=>null)));$bad[]=array('version'=>1,'categories'=>array(ac_row(1,7)+array('user_allow_viewonline'=>0)));
+    $bad=array('old rendered cache',array(ac_row(1,7)+array('username'=>'Old name','user_allow_viewonline'=>1)),array('version'=>3,'categories'=>$db->rows),array('version'=>'2','categories'=>$db->rows),array('version'=>2,'categories'=>array(false)));
+    foreach(array(array(),8388608,-8388609,'7 OR 1=1',true)as$id){$bad[]=array('version'=>2,'categories'=>array(ac_row(1,$id)));}
+    $bad[]=array('version'=>2,'categories'=>array(ac_row(1,7)+array('username'=>null)));$bad[]=array('version'=>2,'categories'=>array(ac_row(1,7)+array('user_allow_viewonline'=>0)));
     foreach($bad as$payload){as_check($arcade->write_cache('categories',$payload,'./'),'Own legacy/malformed fixture cache');$n=count($db->queries);$out=$arcade->read_cat('./');ac_result($out,$db->rows,$db->users);ac_payload($db->rows);as_check(count($db->queries)===$n+2,'Legacy/malformed caches rebuild from real metadata SELECT');$as_cases++;}
     $db->rows=array();$arcade->clear_cache('categories','./');as_check($arcade->read_cat('./')===array(),'An empty installation has no fabricated categories');$n=count($db->queries);as_check($arcade->read_cat('./')===array()&&count($db->queries)===$n,'Empty metadata is cached without any account query');$as_cases++;
     $db->rows=array(ac_row(0,null),ac_row(1,-1),ac_row(2,0));$arcade->clear_cache('categories','./');$n=count($db->queries);ac_result($arcade->read_cat('./'),$db->rows,array());as_check(count($db->queries)===$n+1,'Guest-only categories require no account query');$as_cases++;

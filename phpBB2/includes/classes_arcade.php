@@ -30,6 +30,8 @@ define('ARCADE_VERSION', '2.1.8');
 //  Arcade Class Definition
 //  Currently the main reason i'm using classes is due to mod clashes.
 //
+require_once dirname(__FILE__).'/functions_arcade_last_play.php';
+
 class arcade
 {
 //
@@ -76,12 +78,14 @@ class arcade
     $cached = $this->read_cache('categories', $this->arcade_config['categories_cache'], $cache_path);
     $rows = false;
     if (is_array($cached) && isset($cached['version'], $cached['categories'])
-        && $cached['version'] === 1 && is_array($cached['categories']))
+        && $cached['version'] === 2 && is_array($cached['categories']))
     {
       $rows = $cached['categories'];
       foreach ($rows as $row)
       {
         if (!is_array($row) || !array_key_exists('last_player', $row)
+            || !array_key_exists('last_time', $row) || count(array_diff(phpbb_arcade_last_play_aliases(),array_keys($row)))
+            || serialize(phpbb_arcade_last_play_projection($row)) !== serialize($row)
             || array_key_exists('username', $row) || array_key_exists('user_allow_viewonline', $row)
             || ($row['last_player'] !== null && (!(is_int($row['last_player']) || is_string($row['last_player']))
                 || !preg_match('/^-?[0-9]{1,8}$/D', (string) $row['last_player'])
@@ -94,17 +98,28 @@ class arcade
     }
     if ($rows === false)
     {
-      $cat_sql = "SELECT c.*, g.game_name, game_id, game_desc
+      $cat_sql = "SELECT c.*, g.game_name, g.game_id, g.game_desc,
+         COALESCE(g.cat_id,0) last_game_cat_id,g.game_avail last_game_avail,
+         g.rank_required last_game_rank,g.level_required last_game_level,
+         g.group_required last_game_group,COALESCE(gc.group_required,0) last_game_cat_group,
+         COALESCE(gp.group_required,0) last_game_parent_group,
+         CASE WHEN g.game_id IS NOT NULL AND (g.cat_id IS NULL OR g.cat_id<=0 OR (gc.cat_type='p' AND gc.cat_parent=0) OR (gc.cat_type='s' AND gp.cat_type='p')) THEN 1 ELSE 0 END last_game_category_valid
          FROM " . iNA_CAT . " c
-         LEFT JOIN " . iNA_GAMES . " g ON g.game_name = c.last_game
-         ORDER BY c.cat_order ASC, cat_id ASC";
+         LEFT JOIN " . iNA_GAMES . " g ON g.game_name=c.last_game AND g.game_id>0
+           AND c.cat_type IN ('p','s')
+           AND (c.cat_id=-1 OR g.cat_id=c.cat_id OR (c.cat_type='p' AND EXISTS
+             (SELECT 1 FROM ".iNA_CAT." child WHERE child.cat_id=g.cat_id AND child.cat_type='s' AND child.cat_parent=c.cat_id)))
+           AND NOT EXISTS (SELECT 1 FROM ".iNA_GAMES." duplicate_game WHERE duplicate_game.game_id<>g.game_id AND duplicate_game.game_name=g.game_name)
+         LEFT JOIN ".iNA_CAT." gc ON gc.cat_id=CASE WHEN g.cat_id>0 THEN g.cat_id ELSE -1 END
+         LEFT JOIN ".iNA_CAT." gp ON gc.cat_type='s' AND gp.cat_id=gc.cat_parent
+         ORDER BY c.cat_order ASC, c.cat_id ASC";
       $result = $db->sql_query($cat_sql);
       if (!$result) { message_die(GENERAL_ERROR, $lang['no_cat_data']); }
       try { $rows = $db->sql_fetchrowset($result); }
       finally { $db->sql_freeresult($result); }
       if (!is_array($rows)) { message_die(GENERAL_ERROR, $lang['no_cat_data']); }
-      foreach ($rows as $key => $row) { unset($rows[$key]['username'], $rows[$key]['user_allow_viewonline']); }
-      $this->write_cache('categories', array('version' => 1, 'categories' => $rows), $cache_path);
+      foreach ($rows as $key => $row) { unset($row['username'], $row['user_allow_viewonline']);$rows[$key]=phpbb_arcade_last_play_projection($row); }
+      $this->write_cache('categories', array('version' => 2, 'categories' => $rows), $cache_path);
     }
 
     $this->categories = $rows;

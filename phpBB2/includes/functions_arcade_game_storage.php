@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_arcade_import_storage.php';
 require_once dirname(__FILE__) . '/functions_arcade_rankings.php';
+require_once dirname(__FILE__) . '/functions_arcade_last_play.php';
 
 function phpbb_arcade_game_fields()
 {
@@ -50,11 +51,11 @@ class PhpbbArcadeGameWriter extends PhpbbArcadeImportWriter
  function __construct($database,$id){if(!is_int($id)||$id<0||$id>8388607){throw new PhpbbOwnedStorageFailure('no_game_save');}$this->game_id=$id;parent::__construct($database);}
  protected function actor(){global $phpEx;return phpbb_acp_actor($this,'admin_arcade_games.'.$phpEx.'?mode='.($this->game_id?'edit_games':'add_game'));}
  protected function storage_tables(){ $tables=array_merge(parent::storage_tables(),array(GROUPS_TABLE,RANKS_TABLE,iNA_GAME_SAVES));foreach(phpbb_arcade_game_references()as$ref){$tables[]=$ref[0];}return array_values(array_unique($tables)); }
- protected function game_category_topology()
+ protected function game_category_topology($last_play=false)
  {
   // Match the launch writer: pin the complete, shallow category topology after
   // the game lock, so a parent change cannot split a catalogue counter update.
-  $rows=$this->rows('SELECT cat_id,cat_parent,cat_type FROM '.iNA_CAT.' ORDER BY cat_id FOR UPDATE');$categories=array();
+  $rows=$this->rows('SELECT cat_id,cat_parent,cat_type'.($last_play?',last_game,last_player,last_time':'').' FROM '.iNA_CAT.' ORDER BY cat_id FOR UPDATE');$categories=array();
   foreach($rows as$row){$categories[(int)$row['cat_id']]=$row;}
   if(!isset($categories[-1])||$categories[-1]['cat_type']!=='p'){$this->storage_fail('no_cat_data');}
   return $categories;
@@ -104,7 +105,10 @@ class PhpbbArcadeGameWriter extends PhpbbArcadeImportWriter
   if($this->rows('SELECT game_id FROM '.iNA_GAMES." WHERE game_name='$name'".($this->game_id?' AND game_id<>'.$this->game_id:'').' FOR UPDATE')){$this->storage_fail('admin_game_exists');}
   if($old&&($renaming||$reset['current']||$reset['all_time'])){$old_name=$this->escape((string)$old['game_name']);if($this->rows('SELECT game_id FROM '.iNA_GAMES." WHERE game_name='$old_name' AND game_id<>".$this->game_id.' FOR UPDATE')){$this->storage_fail('arcade_game_changed');}}
   foreach(array('group_required'=>array(GROUPS_TABLE,'group_id',' AND group_single_user=0'),'rank_required'=>array(RANKS_TABLE,'rank_id',''))as$key=>$target){if((int)$values[$key]>0&&(!$old||(string)$old[$key]!==$values[$key])&&!$this->rows('SELECT '.$target[1].' FROM '.$target[0].' WHERE '.$target[1].'='.$values[$key].$target[2].' LOCK IN SHARE MODE')){$this->storage_fail('no_game_save');}}
-  $new_cat=(int)$values['cat_id'];$old_cat=$old?(int)$old['cat_id']:-1;$present=$this->game_category_topology();
+  $new_cat=(int)$values['cat_id'];$old_cat=$old?(int)$old['cat_id']:-1;$moving=$old&&$old_cat!==$new_cat;$history_games=array();$history_resolved=array();
+  if($moving){foreach($this->rows('SELECT game_id,game_name,cat_id,game_avail FROM '.iNA_GAMES.' ORDER BY game_id FOR UPDATE')as$row){$history_games[(int)$row['game_id']]=$row;}}
+  $present=$this->game_category_topology($moving);
+  if($moving){$history_resolved=phpbb_arcade_last_play_resolved($this->rows(phpbb_arcade_last_play_resolution_sql(iNA_CAT,iNA_GAMES)));}
   $old_targets=$this->game_play_categories($old_cat,$present);$new_targets=$this->game_play_categories($new_cat,$present,true);
   $cats=array_keys($old_targets+$new_targets);sort($cats,SORT_NUMERIC);
   $affected=array();if($ranking_change&&$old){foreach(array('highscore_id','at_highscore_id')as$key){if((int)$old[$key]>0){$affected[]=(int)$old[$key];}}foreach(array(iNA_SCORES,iNA_AT_SCORES)as$table){foreach($this->ranked_players($table,(string)$old['game_name'],!empty($old['reverse_list']))as$row){if((int)$row['player_id']>0){$affected[]=(int)$row['player_id'];}}}}
@@ -130,6 +134,12 @@ class PhpbbArcadeGameWriter extends PhpbbArcadeImportWriter
     $winner=$top?(int)$top[0]['player_id']:0;$this->query('UPDATE '.iNA_GAMES.' SET '.$target[1].'='.$winner.' WHERE game_id='.$id);
    }
    $this->rebuild_rankings($affected);
+  }
+  if($moving){
+   $history_games[$id]['cat_id']=$values['cat_id'];$history_games[$id]['game_name']=$values['game_name'];$history_games[$id]['game_avail']=$values['game_avail'];$scopes=$old_targets+$new_targets;
+   foreach($history_resolved as$source=>$resolved_id){if($resolved_id===$id){$scopes[$source]=true;}}
+   $renamed=$renaming?array($id=>$values['game_name']):array();
+   foreach(phpbb_arcade_last_play_plan($present,$history_games,$history_resolved,$scopes,$renamed)as$category=>$metadata){$set=array();foreach($metadata as$key=>$value){$set[]=$key.'='.($value===null?'NULL':"'".$this->escape($value)."'");}$this->query('UPDATE '.iNA_CAT.' SET '.implode(',',$set).' WHERE cat_id='.(int)$category);}
   }
   $this->commit_attempted=true;$this->commit();return array('id'=>$id,'created'=>$old===null,'cat_id'=>$new_cat);
  }
