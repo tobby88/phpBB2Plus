@@ -111,7 +111,7 @@ class log_manager
 
 	function redact_query_string($query_string)
 	{
-		$query_string = is_scalar($query_string) ? substr((string) $query_string, 0, 8192) : '';
+		$query_string = $this->log_text_prefix($query_string, 8192);
 		if ($query_string === '')
 		{
 			return '';
@@ -136,7 +136,7 @@ class log_manager
 
 	function redact_url_query($url)
 	{
-		$url = is_scalar($url) ? substr((string) $url, 0, 8192) : '';
+		$url = $this->log_text_prefix($url, 8192);
 		$query_offset = strpos($url, '?');
 		if ($query_offset === false)
 		{
@@ -179,8 +179,29 @@ class log_manager
 	function clean_log_value($value, $max_length)
 	{
 		$value = is_scalar($value) ? (string) $value : '';
-		$value = str_replace(array('|||', "\r", "\n", "\0"), '', $value);
-		return substr($value, 0, max(0, intval($max_length)));
+		$value = str_replace(array("\r", "\n", "\0"), '', $value);
+		return $this->log_text_prefix($value, $max_length, true);
+	}
+
+	// Keep the byte ceiling without cutting a complete UTF-8 character. Invalid
+	// input bytes are recorded explicitly as ASCII escapes, never guessed to be
+	// another encoding. This also works before the forum/mbstring bootstrap.
+	private function log_text_prefix($value, $max_length, $field = false)
+	{
+		$value=is_scalar($value)?(string)$value:'';$limit=max(0,intval($max_length));$length=strlen($value);$out='';$written=0;
+		for($at=0;$at<$length&&$written<$limit;){
+			$lead=ord($value[$at]);$width=$lead<0x80?1:($lead>=0xc2&&$lead<=0xdf?2:($lead>=0xe0&&$lead<=0xef?3:($lead>=0xf0&&$lead<=0xf4?4:0)));
+			$valid=$width>0&&$at+$width<=$length;
+			if($valid){for($next=1;$next<$width;$next++){$byte=ord($value[$at+$next]);if($byte<0x80||$byte>0xbf){$valid=false;break;}}}
+			if($valid&&$width>=3){$second=ord($value[$at+1]);if(($lead===0xe0&&$second<0xa0)||($lead===0xed&&$second>0x9f)||($lead===0xf0&&$second<0x90)||($lead===0xf4&&$second>0x8f)){$valid=false;}}
+			$part=$valid?substr($value,$at,$width):sprintf('\\x%02X',$lead);
+			// Even a single trailing pipe would overlap the following |||
+			// separator. Quote every field pipe, retaining the original bytes.
+			if($valid&&$field&&$lead===0x7c){$part='\\x7C';}
+			$bytes=strlen($part);if($bytes>$limit-$written){break;}
+			$out.=$part;$written+=$bytes;$at+=$valid?$width:1;
+		}
+		return $out;
 	}
 
 
@@ -321,7 +342,7 @@ class log_manager
 		{
 			return $this->ct_file_error();
 		}
-		$str_log = is_scalar($str_log) ? substr(str_replace(array("\r", "\n", "\0"), '', (string) $str_log), 0, 8192) : '';
+		$str_log = $this->log_text_prefix(is_scalar($str_log) ? str_replace(array("\r", "\n", "\0"), '', (string) $str_log) : '', 8192);
 
 		// Write down new log entry
 		$logentry = @fopen($path, 'ab');

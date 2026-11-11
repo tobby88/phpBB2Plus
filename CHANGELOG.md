@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Complete UTF-8 and stable CrackerTracker log columns
+
+- Keep complete UTF-8 characters when limiting log fields, request URLs,
+  referers and direct/debug records by bytes. Explicitly quote malformed input
+  bytes instead of interpreting them as a different character encoding.
+- Quote field pipes so a trailing character cannot overlap the next column's
+  separator. Retain control stripping, privacy redaction, original byte limits,
+  log locking and counting, including early logging without optional libraries.
+
 ### Accurate CrackerTracker log metadata and dates
 
 - Recognize the log writer's explicit creation and clearing markers with LF or
