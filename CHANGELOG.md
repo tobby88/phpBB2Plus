@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Faster native profile conflict checks
+
+- Probe every profile write, authority lock and commit boundary using real
+  competing database connections. Keep separate rollback requests for effective
+  revocations; combine blocked, non-mutating probes in one successful request.
+- Avoid repeating the complete 22-table fixture setup for each blocked probe,
+  while retaining full committed-state, cookie and avatar publication checks.
+
 ### Atomic Arcade category lifecycle and complete branch ordering
 
 - Move whole parent branches and reorder children only among actual siblings,

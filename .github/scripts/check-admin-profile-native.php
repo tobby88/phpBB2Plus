@@ -171,7 +171,7 @@ try{
  ap_sql('ALTER TABLE fixture_users ADD user_custom_fixture MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL');
  // Keep fixture DDL tolerant of short internal InnoDB background locks.
  // Only a synchronous peer contention probe needs an immediate1205.
- ap_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
+ ap_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;$authority_requests=$authority_probes=0;
  foreach(array('root','junior') as $actor){foreach(array('edit','new','password','self','rename','block','unblock','avatar','ban','disable','mixed-edit','mixed-ban','equal-ban','unchanged-ban','manual-ban','missing-warnings') as $scenario){
   ap_reset($actor,$scenario);$before=ap_snap();$ok=ap_run($scenario);ats_check($ok===true,'Authorized '.$actor.' '.$scenario.' '.json_encode(isset($ap_sql_error)?$ap_sql_error:null));$after=ap_snap();$writes=$ap_write;$boundaries=array_values(array_filter($ap_queries,'ap_boundary'));
   ats_check($db===$ap_main,'Restore main connection');
@@ -216,14 +216,29 @@ try{
   $authority=$actor==='root'?'role':'delegation';
   foreach(array('inactive','missing','foreign','logout','acp','case',$authority) as $kind){ap_reset($actor,$scenario);ap_sql(ap_revoke($kind));$before=ap_snap();ats_check(ap_run($scenario)==='error'&&ap_snap()===$before&&!$ap_cookies,'Entry authority '.$kind.' '.$scenario);$cases++;}
   if(in_array($scenario,array('edit','new','avatar'),true)){
-   foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
-    ap_reset($actor,$scenario);$before=ap_snap();$seen=0;$reached=$blocked=false;
-    $ap_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked){if(!ap_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['ap_hook']=null;$reached=true;
+   // An effective early revocation needs its own request and rollback proof.
+   // After the authority row is locked, failed peer probes change no rows:
+   // exercise every remaining boundary in that same real request instead of
+   // reseeding 22 tables and repeating the entire profile for each conflict.
+   foreach(array('missing',$authority) as $kind){$next=1;while($next<=count($boundaries)){
+    ap_reset($actor,$scenario);$before=ap_snap();$seen=$tested=$blocked_probes=0;$effective=false;
+    $ap_hook=function($sql)use($kind,&$next,&$seen,&$tested,&$blocked_probes,&$effective){
+     if(!ap_boundary($sql)||++$seen<$next){return;}
+     ats_check($seen===$next,'Probe every authority boundary in order');$next++;$tested++;
      $probe=native_fixture_conflict_query($GLOBALS['peer'],ap_revoke($kind));
-     if(!$probe[0]){$e=$probe[1];ats_check((int)$e['code']===1205,'Real peer lock timeout');$blocked=true;}};
-    $result=ap_run($scenario);ats_check($reached,'Every write/commit/authority-lock boundary reached');
-    if($blocked){ats_check($result===true&&ap_committed(ap_snap())===ap_committed($after),'Revocation serializes after complete profile');ap_sql(ap_revoke($kind));$serialized++;}
-    else{ats_check($result==='error'&&ap_without_authority(ap_snap())===ap_without_authority($before)&&!$ap_cookies,'Effective revocation aborts complete profile');}$cases++;
+     if(!$probe[0]){$e=$probe[1];ats_check((int)$e['code']===1205,'Real peer lock timeout');$blocked_probes++;}
+     else{ats_check($blocked_probes===0,'Authority lock cannot disappear before commit');$effective=true;$GLOBALS['ap_hook']=null;}
+    };
+    $result=ap_run($scenario);$ap_hook=null;$authority_requests++;
+    ats_check($tested>0,'Every requested authority boundary reached');
+    if($blocked_probes){
+     ats_check(!$effective&&$seen===count($boundaries)&&$next===count($boundaries)+1,'All remaining write/commit/authority-lock boundaries probed');
+     ats_check($result===true&&ap_committed(ap_snap())===ap_committed($after),'Revocation serializes after complete profile');
+     ats_check(count($ap_cookies)===($scenario==='self'?1:0),'Serialized request publishes only confirmed cookies');
+     if($scenario==='avatar'){ats_check(!is_file($ap_files.'/before.png')&&is_file($ap_files.'/after.png'),'Serialized avatar request completes file publication');}
+     ap_sql(ap_revoke($kind));$serialized+=$blocked_probes;
+    }else{ats_check($effective&&$tested===1&&$result==='error'&&ap_without_authority(ap_snap())===ap_without_authority($before)&&!$ap_cookies,'Effective revocation aborts complete profile');}
+    $authority_probes+=$tested;$cases+=$tested;
    }}
   }
  }}
@@ -272,6 +287,7 @@ try{
   }
  }
  echo 'Native ACP profile: '.$cases.' boundary/failure cases, '.$serialized." serialized revocations passed.\n";
+ echo 'Native ACP profile authority probes: '.$authority_probes.' boundaries in '.$authority_requests." independent requests.\n";
 }finally{
  if(isset($admin_profile_scope)&&$admin_profile_scope!==null){$admin_profile_scope->release();}
  $ap_hook=null;$ap_fail=0;$ap_commit='';$ap_main->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();
