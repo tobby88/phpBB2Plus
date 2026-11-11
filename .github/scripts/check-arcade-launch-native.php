@@ -16,11 +16,17 @@ class ArcadeLaunchNativeDatabase extends ArcadeGameNativeDatabase
         global $ag_peer,$ag_async,$su_observer;
         if ($this->owned && !$this->fired && strpos($sql,'UPDATE fixture_ina_games SET played=')===0
             && in_array($this->fault,array('serialize-reset','serialize-logout'),true)) {
+            // Observe after the first real write, while the owned transaction
+            // remains open. MariaDB may expose a read-only lock holder with
+            // an unassigned trx_id before its first DML, hiding the join.
+            $result=parent::sql_query($sql,$transaction);
+            as_check($result!==false,'Actual launch counter write remains uncommitted');
             $this->fired=true;
             if ($this->fault==='serialize-reset') { as_check($ag_peer->sql_query('START TRANSACTION'),'Competing reset owns its transaction'); }
             $change=$this->fault==='serialize-reset'?'UPDATE fixture_ina_games SET played=0':"DELETE FROM fixture_sessions WHERE session_id='fixture-import'";
             as_check(mysqli_query($ag_peer->db_connect_id,$change,MYSQLI_ASYNC),'Queue competing reset/logout');
             $ag_async=true;native_fixture_wait_for_lock($su_observer,mysqli_thread_id($ag_peer->db_connect_id),mysqli_thread_id($this->db_connect_id),'as_check');
+            return $result;
         }
         return parent::sql_query($sql,$transaction);
     }
