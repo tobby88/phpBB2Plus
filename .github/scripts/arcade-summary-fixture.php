@@ -5,7 +5,7 @@ $as_app=dirname(dirname(__DIR__)).'/phpBB2/';$phpbb_root_path=$as_app;$phpEx='ph
 require $as_app.'includes/php_compat.php';require $as_app.'includes/constants.php';
 $as_cases=$as_checks=0;
 function as_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['as_checks']++;}
-function as_function($file,$name){$source=file_get_contents($file);as_check(preg_match('/^function '.preg_quote($name,'/').'\(.*?^\}/ms',$source,$part)===1,'Actual complete function '.$name);eval($part[0]);}
+function as_function($file,$name){if($name==='create_date'){foreach(array('phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text')as$dependency){if(!function_exists($dependency)){as_function($file,$dependency);}}}$source=file_get_contents($file);as_check(preg_match('/^function '.preg_quote($name,'/').'\(.*?^\}/ms',$source,$part)===1,'Actual complete function '.$name);eval($part[0]);}
 foreach(array('phpbb_profile_text','phpbb_stored_text','phpbb_rtrim','phpbb_ltrim','phpbb_serialized_data_read','phpbb_serialized_data_write','phpbb_data_cache_read','phpbb_data_cache_write')as$name){as_function($as_app.'includes/functions.php',$name);}
 as_function($as_app.'includes/sessions.php','append_sid');
 class ArcadeSummaryExit extends RuntimeException {}

@@ -1503,21 +1503,68 @@ function phpbb_local_day_start($year, $month, $day, $tz)
 		- (int) round(3600 * ($tz + date('I')));
 }
 
+// Preserve integral database values exactly; never round or clamp a timestamp
+// outside the native integer range. Fractional numeric inputs remain supported.
+function phpbb_date_number($value)
+{
+	if (is_int($value)) { return $value; }
+	if (is_string($value)) {
+		$value=trim($value," \t\r\n\v\f");
+		if (preg_match('/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$/D',$value)!==1) { return null; }
+		if (preg_match('/^([+-]?)([0-9]+)(?:\.0*)?$/D',$value,$parts)===1) {
+			$digits=ltrim($parts[2],'0');if($digits===''){return 0;}
+			$negative=$parts[1]==='-';$limit=$negative?substr((string)(-PHP_INT_MAX-1),1):(string)PHP_INT_MAX;
+			if(strlen($digits)>strlen($limit)||(strlen($digits)===strlen($limit)&&strcmp($digits,$limit)>0)){return null;}
+			return (int)(($negative?'-':'').$digits);
+		}
+		$value=(float)$value;
+	}
+	if(!is_float($value)||!is_finite($value)){return null;}
+	$upper=PHP_INT_SIZE>=8?(float)PHP_INT_MAX:(float)PHP_INT_MAX+1.0;$lower=(float)(-PHP_INT_MAX-1);
+	$whole=$value<0?ceil($value):floor($value);
+	if($whole>=$upper||$whole<$lower){return null;}
+	return $whole===$value?(int)$whole:$value;
+}
+
+function phpbb_date_integer_sum($left,$right)
+{
+	if(!is_int($left)||!is_int($right)||($right>0&&$left>PHP_INT_MAX-$right)||($right<0&&$left<(-PHP_INT_MAX-1)-$right)){return null;}
+	return $left+$right;
+}
+
+function phpbb_date_timestamp($epoch,$timezone)
+{
+	$epoch=phpbb_date_number($epoch);$timezone=phpbb_date_number($timezone);
+	if($epoch===null||$timezone===null){return null;}
+	// Keep the forum's existing current-server DST adjustment.
+	$offset=phpbb_date_number(3600*($timezone+(int)date('I')));if($offset===null){return null;}
+	if(is_int($epoch)&&is_int($offset)){return phpbb_date_integer_sum($epoch,$offset);}
+	// Ordinary fractional inputs retain native truncation/rounding behavior.
+	// Wide integral epochs must not pass through a double just to add seconds.
+	if(is_int($epoch)&&abs((float)$epoch)>9007199254740991.0){
+		$whole=(int)$offset;$sum=phpbb_date_integer_sum($epoch,$whole);if($sum===null){return null;}$fraction=$offset-$whole;
+		return $sum>0&&$fraction<0?$sum-1:($sum<0&&$fraction>0?$sum+1:$sum);
+	}
+	$sum=phpbb_date_number($epoch+$offset);return $sum===null?null:(int)$sum;
+}
+
+function phpbb_date_text($format,$timestamp)
+{
+	global $board_config,$lang;
+	$unknown=isset($lang['Unknown'])&&is_string($lang['Unknown'])?$lang['Unknown']:'Unknown';
+	if(!is_scalar($format)||!is_int($timestamp)){return $unknown;}
+	try{$text=@gmdate((string)$format,$timestamp);}catch(Exception$error){return $unknown;}catch(Error$error){return $unknown;}
+	if(!is_string($text)){return $unknown;}
+	static $locale=null,$dictionary=null,$translate=array();
+	$current=isset($board_config['default_lang'])&&is_string($board_config['default_lang'])?$board_config['default_lang']:'english';
+	$words=$current!=='english'&&isset($lang['datetime'])&&is_array($lang['datetime'])?$lang['datetime']:array();
+	if($current!==$locale||$words!==$dictionary){$locale=$current;$dictionary=$words;$translate=array();foreach($words as$from=>$to){if(!is_string($from)||$from===''||!is_string($to)){$translate=array();break;}$translate[$from]=$to;}}
+	return $translate?strtr($text,$translate):$text;
+}
+
 function create_date($format, $gmepoch, $tz)
 {
-	global $board_config, $lang;
-	static $translate;
-
-	if ( empty($translate) && $board_config['default_lang'] != 'english' )
-	{
-		foreach ($lang['datetime'] as $match => $replace)
-		{
-			$translate[$match] = $replace;
-		}
-	}
-
-	return ( !empty($translate) ) ? strtr(@gmdate($format, $gmepoch + (3600 * ($tz+date("I")))), $translate) : @gmdate($format, $gmepoch + (3600 * ($tz+date("I"))));
-
+	return phpbb_date_text($format,phpbb_date_timestamp($gmepoch,$tz));
 }
 //-- mod : today at   yesterday at ------------------------------------------------------------------------
 //-- add
@@ -1526,19 +1573,15 @@ function create_date($format, $gmepoch, $tz)
 //
 function create_date_day($format, $gmepoch, $tz)
 {
-   global $board_config, $lang;
-
-   $date_day = create_date($format, $gmepoch, $tz);
-    if ( $gmepoch >= $board_config['time_today'] && $gmepoch < $board_config['time_today'] + 86400)
-    {
-       $date_day = sprintf($lang['Today_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz));
-    }
-      else if ( $gmepoch >= $board_config['time_yesterday'] && $gmepoch < $board_config['time_today'])
-    {
-       $date_day = sprintf($lang['Yesterday_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz));
-    }
-
-   return $date_day;
+	global $board_config,$lang;
+	$epoch=phpbb_date_number($gmepoch);$timestamp=phpbb_date_timestamp($epoch,$tz);$text=phpbb_date_text($format,$timestamp);
+	if($epoch===null||$timestamp===null||!is_scalar($format)||!isset($board_config['default_timeformat'])||!is_scalar($board_config['default_timeformat'])){return $text;}
+	$today=isset($board_config['time_today'])?phpbb_date_number($board_config['time_today']):null;
+	$yesterday=isset($board_config['time_yesterday'])?phpbb_date_number($board_config['time_yesterday']):null;
+	// Subtraction avoids overflowing a valid high-valued local day boundary.
+	if($today!==null&&$epoch>=$today&&$epoch-$today<86400&&isset($lang['Today_at'])&&is_string($lang['Today_at'])){return sprintf($lang['Today_at'],phpbb_date_text($board_config['default_timeformat'],$timestamp));}
+	if($today!==null&&$yesterday!==null&&$epoch>=$yesterday&&$epoch<$today&&isset($lang['Yesterday_at'])&&is_string($lang['Yesterday_at'])){return sprintf($lang['Yesterday_at'],phpbb_date_text($board_config['default_timeformat'],$timestamp));}
+	return $text;
 }
 //-- end mod : today at   yesterday at ------------------------------------------------------------------------
 //

@@ -10,7 +10,7 @@ function ctracker_log_fixture_date_runtime($root)
  // Load the actual common.php date dependency without duplicating the cache
  // helpers already exercised independently by these isolated ACP fixtures.
  if(!function_exists('create_date')){
-  $source=file_get_contents($root.'includes/functions.php');$a=strpos($source,'function create_date(');$b=strpos($source,'function create_date_day(',$a);
+  $source=file_get_contents($root.'includes/functions.php');$a=strpos($source,'function phpbb_date_number(');$b=strpos($source,'function create_date_day(',$a);
   if($a===false||$b<=$a){throw new RuntimeException('Actual forum date runtime unavailable');}eval(substr($source,$a,$b-$a));
  }
  global $board_config;$board_config=array_replace(array('default_lang'=>'english','board_timezone'=>0,'default_dateformat'=>'Y-m-d H:i:s'),isset($board_config)&&is_array($board_config)?$board_config:array());

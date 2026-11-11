@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Stable shared date formatting and relative labels
+
+- Add timezone seconds to integral database timestamps without floating-point
+  precision loss. Return the existing translated Unknown label for invalid or
+  unrepresentable values instead of throwing an error or clamping a date.
+- Preserve ordinary fractional input behavior and the existing server-DST
+  convention. Validate relative-date inputs and avoid overflowing day bounds.
+- Refresh calendar translations when the active language or dictionary changes.
+
 ### Consistent CrackerTracker scan and recovery status dates
 
 - Render checksum scans, file scans and saved configuration snapshots with

@@ -14,7 +14,7 @@ function bp_freeze($source){
     }return $out;
 }
 $bp_functions=file_get_contents($bp_root.'includes/functions.php');
-foreach(array('create_date','mkrealdate','realdate','phpbb_realpath')as$fn){
+foreach(array('phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text','create_date','mkrealdate','realdate','phpbb_realpath')as$fn){
     if(function_exists($fn)){continue;}bp_check(preg_match('/^function '.$fn.'\(.*?^\}/ms',$bp_functions,$m)===1,'Actual date/path function '.$fn);eval(bp_freeze($m[0]));
 }
 $bp_sessions=file_get_contents($bp_root.'includes/sessions.php');bp_check(preg_match('/^function append_sid\(.*?^\}/ms',$bp_sessions,$m)===1,'Actual template URL helper');eval($m[0]);$SID='sid=birthday_fixture';
