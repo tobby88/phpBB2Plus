@@ -47,7 +47,8 @@ class PhpbbArcadeTournamentWriter extends PhpbbArcadeTournamentJoinWriter
     {
         foreach(phpbb_arcade_tournament_setting_keys()as$key){
             $min=$key==='games_tournament_players'?2:($key==='games_tournament_user'?0:1);$max=$key==='games_tournament_user'?1:10000;
-            if(!isset($settings[$key])||!preg_match('/^(?:0|[1-9][0-9]{0,4})$/D',$settings[$key])||(int)$settings[$key]<$min||(int)$settings[$key]>$max){$this->storage_fail('Owned_storage_upgrade');}
+            if(!isset($settings[$key])){$this->storage_fail('Owned_storage_upgrade');}
+            if(!preg_match('/^(?:0|[1-9][0-9]{0,4})$/D',$settings[$key])||(int)$settings[$key]<$min||(int)$settings[$key]>$max){$this->storage_fail('arcade_tournament_settings_invalid');}
         }
     }
     protected function audit($settings,$actor,$action,$id=0)
@@ -81,7 +82,10 @@ class PhpbbArcadeTournamentWriter extends PhpbbArcadeTournamentJoinWriter
     }
     function configure($request)
     {
-        $actor=$this->current_actor(true);$settings=$this->settings(true);$this->limits($settings);$values=array();
+        $actor=$this->current_actor(true);$settings=$this->settings(true);$values=array();
+        // Administrators must be able to repair numeric legacy values (e.g.
+        // zero limits accepted by the former general settings page).
+        foreach(phpbb_arcade_tournament_setting_keys()as$key){if(!isset($settings[$key])){$this->storage_fail('Owned_storage_upgrade');}}
         foreach(phpbb_arcade_tournament_setting_keys()as$key){
             $v=array_key_exists($key,$request)?$request[$key]:$settings[$key];
             if(!is_string($v)||!preg_match('/^[0-9]{1,10}$/D',$v)){ $this->storage_fail('error_no_tour_info'); }

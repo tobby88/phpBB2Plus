@@ -523,6 +523,7 @@ $lang['arcade_launch_funds'] = 'Your balance is too low to start this game.';
 $lang['arcade_tournament_changed'] = 'The tournament has changed. Please reopen it before saving your changes.';
 $lang['arcade_tournament_limit'] = 'The maximum number of unfinished tournaments has been reached.';
 $lang['arcade_tournament_capacity'] = 'The player limit cannot be lower than the number of existing participants.';
+$lang['arcade_tournament_settings_invalid'] = 'The tournament settings need to be corrected in the Arcade administration.';
 // TFFT - The End...!
 //
 
