@@ -1515,3 +1515,8 @@ jobs:
         env:
           PHPBB_LINK_ROTATION_NATIVE: '1'
           PHPBB_LINK_ROTATION_PASSWORD: fixture-only
+      - name: Check isolated CrackerTracker quotas and cooldowns on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-ctracker-rate-storage.php
+        env:
+          PHPBB_RATE_NATIVE: '1'
+          PHPBB_RATE_TEST_PASSWORD: fixture-only

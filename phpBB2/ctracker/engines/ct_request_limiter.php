@@ -94,119 +94,46 @@ function ctracker_request_limit_profile($script, $post, $get)
 	return array('write', 60, 'request_limit_write', 120);
 }
 
-function ctracker_rate_limit_increment($bucket, $identity, $window_seconds, $limit)
+require_once dirname(__DIR__).'/classes/class_rate_storage.php';
+
+function ctracker_rate_limit_increment($bucket,$identity,$window_seconds,$limit)
 {
-	global $db;
-
-	$bucket = is_scalar($bucket) ? (string) $bucket : '';
-	$identity = is_scalar($identity) ? (string) $identity : '';
-	$window_seconds = max(1, min(86400, intval($window_seconds)));
-	$limit = max(1, min(10000, intval($limit)));
-	if ($bucket === '' || $identity === '')
-	{
-		return false;
-	}
-
-	$now = time();
-	$window_start = intval(floor($now / $window_seconds) * $window_seconds);
-	$bucket_hash = hash('sha256', $bucket . "\0" . $identity);
-	// A request can wait after capturing its timestamp while another worker
-	// commits a newer window. Never rewind that window or discard its quota.
-	// Assignment order matters: compare the old window before advancing it.
-	$sql = 'INSERT INTO ' . CTRACKER_RATE_LIMITS . "
-		(bucket_hash, window_start, request_count, updated_at)
-		VALUES ('" . $db->sql_escape($bucket_hash) . "', $window_start, 1, $now)
-		ON DUPLICATE KEY UPDATE
-			request_count = IF(window_start >= VALUES(window_start), LEAST(request_count, 4294967294) + 1, 1),
-			window_start = GREATEST(window_start, VALUES(window_start)),
-			updated_at = GREATEST(updated_at, VALUES(updated_at))";
-	if (!$db->sql_query($sql))
-	{
-		return false;
-	}
-
-	$sql = 'SELECT request_count, window_start FROM ' . CTRACKER_RATE_LIMITS . "
-		WHERE bucket_hash = '" . $db->sql_escape($bucket_hash) . "'";
-	if (!($result = $db->sql_query($sql)))
-	{
-		return false;
-	}
-	$row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-
-	if (mt_rand(1, 100) === 1)
-	{
-		// A failed mail delivery retains a recent attempt window but restores the
-		// previous success timestamp. Do not garbage-collect that retry guard.
-		$db->sql_query('DELETE FROM ' . CTRACKER_RATE_LIMITS . ' WHERE updated_at < ' . ($now - 172800) . ' AND window_start < ' . ($now - 172800));
-	}
-
-	if (!$row || !isset($row['request_count'], $row['window_start'])) { return false; }
-	return ((float) $row['request_count'] > $limit)
-		? (int) max(1, min($window_seconds, (float) $row['window_start'] + $window_seconds - time()))
-		: 0;
+    global $db;
+    $hash=ctracker_rate_arguments($bucket,$identity);if($hash===false||!is_scalar($window_seconds)||!is_scalar($limit)){return false;}
+    $window_seconds=max(1,min(86400,intval($window_seconds)));$limit=max(1,min(10000,intval($limit)));$now=time();$start=(int)(floor($now/$window_seconds)*$window_seconds);$scope=null;
+    try{
+        $scope=new CtrackerRateScope($db,true);
+        $scope->query('INSERT INTO '.CTRACKER_RATE_LIMITS." (bucket_hash,window_start,request_count,updated_at) VALUES ('".$scope->escape($hash)."', $start, 1, $now) ON DUPLICATE KEY UPDATE request_count=IF(window_start>=VALUES(window_start),LEAST(request_count,4294967294)+1,1),window_start=GREATEST(window_start,VALUES(window_start)),updated_at=GREATEST(updated_at,VALUES(updated_at))");
+        $rows=$scope->rows('SELECT request_count,window_start,updated_at FROM '.CTRACKER_RATE_LIMITS." WHERE bucket_hash='".$scope->escape($hash)."' FOR UPDATE");
+        if(count($rows)!==1||(float)$rows[0]['request_count']<1||(float)$rows[0]['window_start']<$start||(float)$rows[0]['updated_at']<$now){ctracker_rate_storage_fail();}
+        $retry=(float)$rows[0]['request_count']>$limit?(int)max(1,min($window_seconds,(float)$rows[0]['window_start']+$window_seconds-time())):0;
+        $scope->commit();
+        if(mt_rand(1,100)===1){try{$scope->collect($now);}catch(Exception$ignored){}catch(Error$ignored){}}
+        return $retry;
+    }catch(Exception$error){return false;}catch(Error$error){return false;}finally{if($scope!==null){$scope->release();}}
 }
 
-/**
- * Return the remaining rolling cooldown since the last successful action.
- *
- * This is intentionally separate from the fixed-window request counter: a
- * registration form with validation errors must not consume the cooldown.
- * Missing or temporarily unavailable storage fails open, like the main
- * limiter, so a database update cannot make the board unavailable.
- */
-function ctracker_rate_limit_cooldown_remaining($bucket, $identity, $cooldown_seconds)
+function ctracker_rate_limit_cooldown_remaining($bucket,$identity,$cooldown_seconds)
 {
-	global $db;
-
-	$bucket = is_scalar($bucket) ? (string) $bucket : '';
-	$identity = is_scalar($identity) ? (string) $identity : '';
-	$cooldown_seconds = max(1, min(86400, intval($cooldown_seconds)));
-	if ($bucket === '' || $identity === '')
-	{
-		return false;
-	}
-
-	$bucket_hash = hash('sha256', $bucket . "\0" . $identity);
-	$sql = 'SELECT updated_at FROM ' . CTRACKER_RATE_LIMITS . "
-		WHERE bucket_hash = '" . $db->sql_escape($bucket_hash) . "'";
-	if (!($result = $db->sql_query($sql)))
-	{
-		return false;
-	}
-	$row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if (!$row || empty($row['updated_at']))
-	{
-		return 0;
-	}
-
-	return max(0, (intval($row['updated_at']) + $cooldown_seconds) - time());
+    global $db;
+    $hash=ctracker_rate_arguments($bucket,$identity);if($hash===false||!is_scalar($cooldown_seconds)){return false;}$cooldown_seconds=max(1,min(86400,intval($cooldown_seconds)));$scope=null;
+    try{
+        $scope=new CtrackerRateScope($db);$rows=$scope->rows('SELECT updated_at FROM '.CTRACKER_RATE_LIMITS." WHERE bucket_hash='".$scope->escape($hash)."'");
+        if(!$rows){return 0;}if(count($rows)!==1||!isset($rows[0]['updated_at'])||preg_match('/^[0-9]{1,10}$/D',(string)$rows[0]['updated_at'])!==1){ctracker_rate_storage_fail();}
+        return (int)min(PHP_INT_MAX,max(0,(float)$rows[0]['updated_at']+$cooldown_seconds-time()));
+    }catch(Exception$error){return false;}catch(Error$error){return false;}finally{if($scope!==null){$scope->release();}}
 }
 
-/** Record a successful action for a later rolling-cooldown check. */
-function ctracker_rate_limit_mark_success($bucket, $identity)
+function ctracker_rate_limit_mark_success($bucket,$identity)
 {
-	global $db;
-
-	$bucket = is_scalar($bucket) ? (string) $bucket : '';
-	$identity = is_scalar($identity) ? (string) $identity : '';
-	if ($bucket === '' || $identity === '')
-	{
-		return false;
-	}
-
-	$now = time();
-	$bucket_hash = hash('sha256', $bucket . "\0" . $identity);
-	$sql = 'INSERT INTO ' . CTRACKER_RATE_LIMITS . "
-		(bucket_hash, window_start, request_count, updated_at)
-		VALUES ('" . $db->sql_escape($bucket_hash) . "', $now, 1, $now)
-		ON DUPLICATE KEY UPDATE window_start = GREATEST(window_start, VALUES(window_start)),
-			request_count = LEAST(request_count, 4294967294) + 1,
-			updated_at = GREATEST(updated_at, VALUES(updated_at))";
-	return (bool) $db->sql_query($sql);
+    global $db;
+    $hash=ctracker_rate_arguments($bucket,$identity);if($hash===false){return false;}$now=time();$scope=null;
+    try{
+        $scope=new CtrackerRateScope($db,true);$scope->query(ctracker_rate_success_sql($scope->connection,$hash,$now));$rows=$scope->rows('SELECT window_start,request_count,updated_at FROM '.CTRACKER_RATE_LIMITS." WHERE bucket_hash='".$scope->escape($hash)."' FOR UPDATE");
+        if(count($rows)!==1||(float)$rows[0]['window_start']<$now||(float)$rows[0]['updated_at']<$now||(float)$rows[0]['request_count']<1){ctracker_rate_storage_fail();}
+        $scope->commit();return true;
+    }catch(Exception$error){return false;}catch(Error$error){return false;}finally{if($scope!==null){$scope->release();}}
 }
-
 function ctracker_enforce_request_limit_profile($profile)
 {
 	global $ctracker_config;

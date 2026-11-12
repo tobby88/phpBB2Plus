@@ -163,7 +163,7 @@ class PhpbbRegistrationScope
 	function finish()
 	{
 		if (!$this->transactional || $this->confirmed) { phpbb_registration_error(); }
-		if ($this->rate_identity !== null && !ctracker_rate_limit_mark_success('registration-success', $this->rate_identity)) { phpbb_registration_error(); }
+		if ($this->rate_identity !== null && !ctracker_rate_success_on_registration($this, 'registration-success', $this->rate_identity)) { phpbb_registration_error(); }
 		$this->commit_attempted = true; $this->control('COMMIT');
 		$this->transactional = false; $this->confirmed = true; $this->release();
 	}

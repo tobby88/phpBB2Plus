@@ -3,7 +3,11 @@
 define('IN_PHPBB', true);
 define('CTRACKER_REQUEST_LIMITER_NO_AUTO_RUN', true);
 define('CTRACKER_RATE_LIMITS', 'phpbb_ctracker_rate_limits');
-require dirname(dirname(__DIR__)) . '/phpBB2/ctracker/engines/ct_request_limiter.php';
+$limiter_source=file_get_contents(dirname(dirname(__DIR__)).'/phpBB2/ctracker/engines/ct_request_limiter.php');
+foreach(array('ctracker_request_limit_profile','ctracker_enforce_request_limit_profile','ctracker_enforce_request_limit','ctracker_enforce_login_identity_limit')as$name){if(preg_match('/^function '.$name.'\(.*?^\}/ms',$limiter_source,$m)!==1){throw new RuntimeException('Actual dispatcher boundary missing');}eval($m[0]);}
+// API spy only: real SQL/atomic persistence belongs to the native storage suite.
+function ctracker_rate_limit_increment($bucket,$identity,$window,$limit){$GLOBALS['limiter_calls'][]=func_get_args();return 0;}
+$limiter_calls=array();
 
 function limiter_assert_profile($expected, $script, $post, $get, &$errors)
 {
@@ -42,57 +46,23 @@ if ($content_profile !== array('content', 300, 'request_limit_content', 60))
 	$errors[] = 'Content actions must use the dedicated five-minute configurable profile.';
 }
 
-class limiter_test_db
-{
-	var $count = 0;
-	var $last_updated_at = 0;
-
-	function sql_escape($value) { return addslashes((string) $value); }
-	function sql_query($sql)
-	{
-		if (strpos($sql, 'INSERT INTO') === 0)
-		{
-			$this->count++;
-			$this->last_updated_at = time();
-		}
-		return true;
-	}
-	function sql_fetchrow($result) { return array('request_count' => $this->count, 'window_start' => $this->last_updated_at, 'updated_at' => $this->last_updated_at); }
-	function sql_freeresult($result) { return true; }
-}
-
-$db = new limiter_test_db();
-if (ctracker_rate_limit_increment('test', 'identity', 60, 1) !== 0 ||
-	ctracker_rate_limit_increment('test', 'identity', 60, 1) <= 0)
-{
-	$errors[] = 'Atomic rate-limit counter did not allow then throttle as expected.';
-}
-
 $ctracker_config = new stdClass();
 $ctracker_config->settings = array(
 	'loginfeature' => '1', 'logincount' => '20',
 	'request_limit_enabled' => '1', 'request_limit_upload' => '30'
 );
 $ctracker_config->user_ip_value = '192.0.2.10';
-$before_identity_count = $db->count;
+$before_identity_count = count($limiter_calls);
 ctracker_enforce_login_identity_limit('Example User');
-if ($db->count !== $before_identity_count + 1)
+if (count($limiter_calls) !== $before_identity_count + 1)
 {
-	$errors[] = 'Per-IP/account login limiter did not use the atomic store.';
+	$errors[] = 'Per-IP/account login limiter did not call the rate-storage API.';
 }
-$before_upload_count = $db->count;
+$before_upload_count = count($limiter_calls);
 ctracker_enforce_request_limit_profile(array('upload', 3600, 'request_limit_upload', 30));
-if ($db->count !== $before_upload_count + 1)
+if (count($limiter_calls) !== $before_upload_count + 1)
 {
-	$errors[] = 'Explicit upload hand-off limiter did not use the atomic store.';
-}
-
-$db->last_updated_at = 0;
-if (ctracker_rate_limit_cooldown_remaining('registration-success', '192.0.2.10', 30) !== 0 ||
-	!ctracker_rate_limit_mark_success('registration-success', '192.0.2.10') ||
-	ctracker_rate_limit_cooldown_remaining('registration-success', '192.0.2.10', 30) <= 0)
-{
-	$errors[] = 'Successful-registration cooldown did not remain per identity.';
+	$errors[] = 'Explicit upload hand-off limiter did not call the rate-storage API.';
 }
 
 $userfunctions_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_userfunctions.php');

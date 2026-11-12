@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Make CrackerTracker quotas independent and atomic
+
+- Count each attempt and decide its quota while owning the same row lock, so
+  concurrent requests cannot incorrectly reject the first permitted attempt.
+- Commit ordinary request counters independently of a caller's transaction;
+  keep registration success and its cooldown atomic with account creation.
+- Refuse writes to noncanonical rate tables and preserve borrowed pending work.
+  Keep the existing fail-open behavior when storage is unavailable and never
+  retry an unconfirmed commit. Bound optional cleanup in a separate transaction.
+- Exercise the real mysqli implementation on MariaDB and MySQL 8.4, including
+  overlapping requests, commit acknowledgement loss and SQL boundary failures.
+  Existing installer/full-updater schema already covers the canonical table.
+
 ### Restore rotating Link logos and safe index defaults
 
 - Emit one flat structured logo list and build images/anchors through standard
