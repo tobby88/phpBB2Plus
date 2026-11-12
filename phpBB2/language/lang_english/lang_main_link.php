@@ -24,7 +24,7 @@
 
 /// Links_MOD 
 $lang['Site_links'] = "Links";
-$lang['Link_lock_submit_site'] = 'Submit site was locked';
+$lang['Link_lock_submit_site'] = 'Link submissions are currently closed';
 $lang['Link_title'] = "Site Name";
 $lang['Link_desc'] = "Site Description";
 $lang['Link_url'] = "Site URL";
@@ -56,4 +56,7 @@ $lang['Search_site'] = "Search Site";
 $lang['Search_site_title'] = "Search Site Name/Description:";
 $lang['Descend_by_hits'] = "Descend By Hits";
 $lang['Descend_by_joindate'] = "Descend By Date";
+$lang['Link_storage_failed'] = 'The link could not be saved. Please try again later.';
+$lang['Link_save_unconfirmed'] = 'The save could not be confirmed. Please check the link list before submitting it again.';
+$lang['Link_notification_failed'] = 'The link was saved, but some notifications could not be delivered.';
 ?>

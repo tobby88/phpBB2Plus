@@ -2,16 +2,22 @@
 
 $root = dirname(dirname(__DIR__));
 $submission = file_get_contents($root . '/phpBB2/link_register.php');
+$storage = file_get_contents($root . '/phpBB2/includes/functions_link_submission.php');
+$notices = file_get_contents($root . '/phpBB2/includes/functions_link_notifications.php');
 $listing = file_get_contents($root . '/phpBB2/links.php');
 
-if ($submission === false || $listing === false) {
+if ($submission === false || $listing === false || $storage === false || $notices === false) {
     fwrite(STDERR, "Unable to read link sources.\n");
     exit(1);
 }
 
 $checks = array(
-    'link submissions require POST' => strpos($submission, "strtoupper(\$_SERVER['REQUEST_METHOD']) !== 'POST'") !== false,
-    'link submissions use timing-safe SID comparison' => strpos($submission, "hash_equals((string) \$userdata['session_id']") !== false,
+    'controller uses the transactional link writer' => strpos($submission, 'phpbb_submit_link($db, $_POST, $userdata)') !== false && strpos($submission, 'INSERT INTO') === false,
+    'notices run only after confirmed storage' => strpos($submission, 'if (isset($outcome))') !== false && strpos($submission, 'Link_notification_failed') !== false,
+    'writer enforces POST and exact token' => strpos($storage, "$"."method!=='POST'") !== false && strpos($storage, 'hash_equals($sid,phpbb_request_raw_value($post[\'sid\']))') !== false,
+    'writer checks actual session and current active role' => strpos($storage, 's.session_logged_in=1') !== false && strpos($storage, 'u.user_active<>0') !== false && strpos($storage, "HEX(s.session_id)=HEX('") !== false,
+    'notice PMs have an owned transaction and cannot evict mail' => strpos($notices, 'new PhpbbLinkScope($database,phpbb_link_notification_tables(true))') !== false && strpos($notices, 'DELETE FROM') === false,
+    'notice mail opts into recoverable delivery' => strpos($notices, "new emailer($"."board_config['smtp_delivery'],true)") !== false,
     'link form carries the SID' => strpos($listing, "'S_LINK_TOKEN' => '<input type=\"hidden\" name=\"sid\"") !== false,
 	'link listing result batches are capped' => strpos($listing, '$linkspp = max(1, min(100, intval($link_config[\'linkspp\'])));') !== false,
 	'link redirects require positive integer IDs' => strpos($listing, 'if($link_id > 0)') !== false,
@@ -20,18 +26,22 @@ $checks = array(
 	'link search uses database-driver escaping' => strpos($listing, '$search_keywords_sql = links_like_sql($search_keywords);') !== false,
 	'link search data and totals use the same predicate' => substr_count($listing, "link_desc LIKE '%\$search_keywords_sql%'") === 2,
 	'link configuration has runtime defaults' => strpos($listing, "'site_logo' => '',") !== false,
-    'link values use database-driver escaping' => substr_count($submission, '$db->sql_escape($link_') >= 4,
-    'submitter IP uses database-driver escaping' => strpos($submission, '$user_ip_sql = $db->sql_escape($user_ip);') !== false,
-    'submitted URLs use the shared external boundary' => strpos($submission, 'phpbb_normalize_external_url($value)') !== false,
-    'overlong URLs are rejected rather than truncated' => strpos($submission, "strlen(\$link_url) <= 100") !== false,
-    'only active administrators are notified' => strpos($submission, 'user_level = " . ADMIN . " AND user_active = 1') !== false,
-    'mail languages are path-allowlisted' => strpos($submission, "preg_match('/^[a-z0-9_-]+$/i', (string) \$to_userdata['user_lang'])") !== false,
-    'notification PM text uses database-driver escaping' => strpos($submission, '$privmsg_message_sql = $db->sql_escape($privmsg_message);') !== false,
-    'notification PM subject uses database-driver escaping' => strpos($submission, '$privmsg_subject_sql = $db->sql_escape($privmsg_subject);') !== false,
-    'notification PM identifies the submitter as sender' => strpos($submission, "'\$privmsg_subject_sql', \$user_id, \$admin_user_id") !== false,
 );
 
-$checks['failed inserts are not overwritten unconditionally'] = strpos($submission, "\t\t\t  \$message = \$lang['Link_update_success'];\n\t\t\t}") !== false;
+define('IN_PHPBB', true);
+require $root . '/phpBB2/includes/functions_link_submission.php';
+$input=array('link_title'=>str_repeat('ä',49).'€😀','link_desc'=>str_repeat('😀',255).'trailing','link_category'=>'1','link_url'=>'https://example.invalid/?a=1&amp;b=2','link_logo_src'=>'');
+$normalized=phpbb_link_submission_input($input);
+$checks['Unicode limits count whole characters']=$normalized['link_title']===$input['link_title']&&$normalized['link_desc']===str_repeat('😀',255);
+$checks['URLs retain their canonical exact value']=$normalized['link_url']==='https://example.invalid/?a=1&b=2';
+foreach(array('link_title'=>array('bad'),'link_desc'=>"bad\xc3",'link_category'=>'1e0','link_url'=>'javascript:alert(1)','link_logo_src'=>str_repeat('x',121))as$key=>$value){
+    $bad=$input;$bad[$key]=$value;$refused=false;try{phpbb_link_submission_input($bad);}catch(PhpbbLinkException$error){$refused=true;}$checks['invalid input refused: '.$key]=$refused;
+}
+$input['link_title']="Literal \\path 'quote'";
+$checks['raw input keeps literal slashes']=phpbb_link_submission_input($input)['link_title']===$input['link_title'];
+define('PHPBB_LEGACY_REQUEST_ESCAPED', true);
+foreach($input as$key=>$value){$input[$key]=addslashes($value);}
+$checks['legacy request escaping removed exactly once']=phpbb_link_submission_input($input)['link_title']==="Literal \\path 'quote'";
 
 $failed = array();
 foreach ($checks as $label => $passed) {

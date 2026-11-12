@@ -24,7 +24,7 @@
 
 /// Links_MOD
 $lang['Site_links'] = "Links";
-$lang['Link_lock_submit_site'] = 'Eingetragene Seite wurde gesperrt';
+$lang['Link_lock_submit_site'] = 'Das Einreichen neuer Links ist derzeit gesperrt';
 $lang['Link_title'] = "Name der Seite";
 $lang['Link_desc'] = "Beschreibung der Seite";
 $lang['Link_url'] = "URL der Seite";
@@ -56,4 +56,7 @@ $lang['Search_site'] = "Suche Seite";
 $lang['Search_site_title'] = "Suche Seite Name/Beschreibung:";
 $lang['Descend_by_hits'] = "Ansicht nach Hits";
 $lang['Descend_by_joindate'] = "Ansicht nach Datum";
+$lang['Link_storage_failed'] = 'Der Link konnte nicht gespeichert werden. Bitte versuche es später erneut.';
+$lang['Link_save_unconfirmed'] = 'Die Speicherung konnte nicht bestätigt werden. Bitte prüfe die Linkliste, bevor du den Link erneut einreichst.';
+$lang['Link_notification_failed'] = 'Der Link wurde gespeichert, aber nicht alle Benachrichtigungen konnten zugestellt werden.';
 ?>

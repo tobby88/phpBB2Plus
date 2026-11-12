@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Store Link submissions and optional notices coherently
+
+- Keep Unicode titles/descriptions intact at their character limits and decode
+  legacy request escaping exactly once. Reject invalid/overlong URLs.
+- Validate the current exact session, active account, role, category and Link
+  settings on an independent transaction; serialize the submission cooldown.
+- Confirm the stored link before notifying administrators. Optional mail or PM
+  failures show a warning beside the successful submission acknowledgement.
+- Refresh notification recipients/settings and language. Publish complete PM
+  parent, text and counters atomically without evicting existing inbox entries.
+  No schema or data migration is required.
+
 ### Apply current attachment configuration consistently
 
 - Resolve PN and post attachment extension groups and delivery modes through
