@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Render stored topic titles consistently in statistics
+
+- Display the original topic title in the most-viewed, most-active and top
+  attachment lists without encoding stored HTML entities twice.
+- Decode the stored title before calculating attachment-title excerpts. Keep
+  literal entity text, UTF-8 characters, full tooltips and HTML escaping intact;
+  filenames and attachment comments retain their raw-text handling.
+
 ### Exclude deleted posts from moderator IP information
 
 - Reject direct IP-information requests for deleted posts, just like missing

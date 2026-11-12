@@ -1,11 +1,13 @@
 <?php
 require __DIR__ . '/statistics-period-fixture.php';
+require $sp_root.'includes/functions_post_subject.php';
 foreach (array('POST_USERS_URL'=>'u','POST_POST_URL'=>'p','AUTH_READ'=>2,'AUTH_DOWNLOAD'=>20,'AUTH_LIST_ALL'=>0,
     'ATTACH_VERSION'=>'2.4.3','FORUMS_TABLE'=>'fixture_forums','TOPICS_TABLE'=>'fixture_topics',
     'ATTACHMENTS_TABLE'=>'fixture_attachments','ATTACHMENTS_DESC_TABLE'=>'fixture_attachments_desc','CONFIG_TABLE'=>'fixture_config') as $key=>$value) { define($key,$value); }
 sp_check(preg_match('/^function get_db_stat\(.*?^\}/ms', $sp_functions, $sr_match) === 1, 'Actual newest-account reader'); eval($sr_match[0]);
 $sr_cases = 0;
 function sr_text($html) { return html_entity_decode(strip_tags($html), ENT_QUOTES, 'UTF-8'); }
+function sr_stored_topic($raw){return phpbb_storage_subject(html_entity_decode(htmlspecialchars($raw,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),ENT_QUOTES,'UTF-8'));}
 function sr_context($file) {
     global $board_config,$lang,$phpbb_root_path,$phpEx,$userdata;
     $GLOBALS['sp_clock'] = strtotime('2026-11-08 12:00:00 UTC');
@@ -72,6 +74,26 @@ function sr_name_suite($set_name) {
         }
     }
 }
+class StatisticsRenderingForums {
+    var $allowed;
+    function __construct($allowed){$this->allowed=$allowed;}
+    function forum_auth($viewer){return $this->allowed?'3':'';}
+}
+function sr_topic_list($kind,$allowed=true){
+    global $db,$lang,$board_config,$phpbb_root_path,$phpEx,$userdata;
+    $source=sr_context($kind);$statistics=new StatisticsRenderingForums($allowed);$template=new StatisticsPeriodTemplate();$return_limit=10;$theme=array('td_class1'=>'row1','td_class2'=>'row2');
+    eval(sp_freeze(substr($source,5)));return $template;
+}
+function sr_topic_title_suite($set_title){
+    global $userdata;$cases=0;
+    foreach(array(false,true)as$logged){$userdata=array('user_id'=>$logged?4:-1,'session_logged_in'=>$logged);
+        foreach(array('A&B','&amp;','&#39;','<b>A "quoted"</b>','Grüße 😀','0','',str_repeat('ä',29).'&😀tail')as$raw){call_user_func($set_title,$raw);
+            foreach(array('most_viewed_topics'=>'VIEWS','most_active_topics'=>'REPLIES')as$kind=>$metric){$template=sr_topic_list($kind);sp_check(count($template->blocks)===1,'Actual topic module returns only its authorized row');$row=$template->blocks[0];sp_check(sr_text($row['TITLE'])===$raw&&strpos($row['TITLE'],'<')===false,'Stored topic title displays one layer with escaped markup');sp_check($row[$metric]===($metric==='VIEWS'?9:5)&&$row['RANK']===1&&strpos($row['URL'],'viewtopic.php?t=1')!==false,'Topic ranking, count and numeric link unchanged');$cases++;}
+        }
+        foreach(array('most_viewed_topics','most_active_topics')as$kind){sp_check(!sr_topic_list($kind,false)->blocks,'No authorized forum means no topic rows');$cases++;}
+    }
+    echo 'Statistics topic titles: ',$cases," actual-module cases PASS; stored entities, literal entities, quotes, markup, UTF-8, guest/member views, original ranking and forum scope.\n";
+}
 function sr_excerpt_cases() {
     $short = str_repeat('ä',14).'😀-lange-Datei.txt';
     return array(array('', '',false),array('A&B &#39; &amp; <tag>','A&B &#39; &amp; <tag>',false),
@@ -104,9 +126,10 @@ function sr_check_excerpt($template,$case) {
     sp_check(count($template->blocks)===1, 'Only attachment with both read and download access appears'); $row=$template->blocks[0];
     $full=htmlspecialchars($case[0],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     foreach (array('POST_TITLE','VIEW_ATTACHMENT','COMMENT') as $field) {
-        $html=$row[$field]; sp_check(sr_text($html)===$case[1], 'Actual title/file/comment excerpt counts UTF-8 characters');
+        $expected=$case;$field_full=$full;if($field==='POST_TITLE'){$raw=html_entity_decode(sr_stored_topic($case[0]),ENT_QUOTES,'UTF-8');$excerpt=statistics_text_excerpt($raw);$expected=array($raw,$excerpt!==''?$excerpt:$raw,$excerpt!=='');$field_full=htmlspecialchars($raw,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
+        $html=$row[$field]; sp_check(sr_text($html)===$expected[1], 'Actual title/file/comment excerpt counts UTF-8 characters');
         sp_check(preg_match('//u',$html)===1 && strpos($html,'<img')===false && strpos($html,'onerror="')===false, 'Actual emitted HTML is valid UTF-8 and cannot turn raw text into attributes/markup');
-        sp_check($case[2] ? strpos($html,'title="'.$full.'"')!==false : strpos($html,'title=')===false, 'Complete raw-text tooltip only when shortened');
+        sp_check($expected[2] ? strpos($html,'title="'.$field_full.'"')!==false : strpos($html,'title=')===false, 'Complete raw-text tooltip only when shortened');
     }
     sp_check($row['FILENAME']===$full, 'Full filename keeps literal entities and HTML escaping');
     sp_check(strpos($row['POST_TITLE'],'viewtopic.php?p=1#1')!==false && strpos($row['VIEW_ATTACHMENT'],'download.php?id=11')!==false, 'Actual topic/download IDs unchanged');

@@ -41,9 +41,11 @@ try{
         sr_change('DELETE FROM fixture_users WHERE user_id=7');sr_change("INSERT INTO fixture_users(user_id,username,user_password) VALUES(9,'Old account','')");
     },function(){sr_change('DELETE FROM fixture_users WHERE user_id IN (7,9)');sr_change("INSERT INTO fixture_users(user_id,username,user_password,user_posts,user_regdate) VALUES(7,'Member','',3,1)");});
     foreach(sr_excerpt_cases()as$case){
-        $value=$db->sql_escape($case[0]);sr_change("UPDATE fixture_topics SET topic_title='$value' WHERE topic_id=1");sr_change("UPDATE fixture_attachments_desc SET real_filename='$value',comment='$value' WHERE attach_id=11");
+        $value=$db->sql_escape($case[0]);$topic_value=$db->sql_escape(sr_stored_topic($case[0]));sr_change("UPDATE fixture_topics SET topic_title='$topic_value' WHERE topic_id=1");sr_change("UPDATE fixture_attachments_desc SET real_filename='$value',comment='$value' WHERE attach_id=11");
         $before=sr_snapshot();sr_check_excerpt(sr_attachments(),$case);sp_check(sr_snapshot()===$before,'Actual native attachment JOIN and renderer leave history unchanged');
     }
+    sr_change('UPDATE fixture_topics SET topic_views=99,topic_replies=99 WHERE topic_id<>1');
+    sr_topic_title_suite(function($raw){$value=$GLOBALS['db']->sql_escape(sr_stored_topic($raw));sr_change("UPDATE fixture_topics SET topic_title='$value',topic_views=9,topic_replies=5 WHERE topic_id=1");$before=sr_snapshot();foreach(array('most_viewed_topics','most_active_topics')as$kind){sr_topic_list($kind);sp_check(sr_snapshot()===$before,'Actual topic module reads do not change canonical data');}});
     $before=sr_snapshot();$denied=sr_attachments(false);sp_check(!$denied->blocks&&sr_snapshot()===$before,'Denied viewer sees no data and cannot modify source');$sr_cases++;
     echo 'Statistics rendering native: ',$sr_cases,' cases, ',$sp_checks," assertions PASS; canonical InnoDB joins, current/legacy names, real cache rename/retirement/name reuse, attachment ACLs, Unicode excerpts and unchanged data.\n";
 }finally{

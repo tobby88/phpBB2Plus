@@ -111,7 +111,7 @@ for ($i = 0; $i < $num_attachments; $i++)
 { 
 	$class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
-	$post_title = (string) $attachments[$i]['topic_title'];
+	$post_title = html_entity_decode((string) $attachments[$i]['topic_title'], ENT_QUOTES, 'UTF-8');
 	$post_title_2 = statistics_text_excerpt($post_title);
 
 	$post_id = intval($attachments[$i]['post_id']);
