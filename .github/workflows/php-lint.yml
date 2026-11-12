@@ -498,6 +498,9 @@ jobs:
       - name: Preserve UTF-8 entities and nested BBCode in News excerpts
         run: php .github/scripts/check-news-excerpts.php
 
+      - name: Preserve UTC News archive dates and wide timestamp labels
+        run: php .github/scripts/check-news-periods.php
+
       - name: Test alternate output safety
         run: php .github/scripts/check-alternate-output-safety.php
 

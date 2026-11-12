@@ -491,8 +491,10 @@ class NewsDataAccess
   **/
   function fetchDay( $day, $month, $year )
   {
-    $interval_begin = gmmktime(0,0,0,$month,$day,$year);
-    $interval_end   = $interval_begin + 86400;
+    $bounds = phpbb_news_archive_bounds($year, $month, $day);
+    if ($bounds === null || (int)$month === 0 || (int)$day === 0) { return array(); }
+    $interval_begin = $bounds[0]->format('U');
+    $interval_end = $bounds[1]->format('U');
     
     $auth_sql = get_user_news_auth_access('topic');
 
@@ -517,7 +519,7 @@ class NewsDataAccess
         t.news_id = n.news_id AND
         t.news_id > 0 AND
         t.topic_time >= ' . $interval_begin . ' AND
-        t.topic_time <= ' . $interval_end . ' ' . $auth_sql . '
+        t.topic_time < ' . $interval_end . ' ' . $auth_sql . '
       ORDER BY
         t.topic_time DESC';
 
@@ -552,8 +554,11 @@ class NewsDataAccess
   **/
   function fetchDays( $month, $year )
   {
-    $interval_begin = mktime( 0, 0, 0, $month, 1, $year);
-    $interval_end   = mktime( 0, 0, 0, $month + 1, 1, $year);
+    $days = array_fill(1, 31, 0);
+    $bounds = phpbb_news_archive_bounds($year, $month);
+    if ($bounds === null || (int)$month === 0) { return $days; }
+    $interval_begin = $bounds[0]->format('U');
+    $interval_end = $bounds[1]->format('U');
 
     $auth_sql = get_user_news_auth_access('topic');
 
@@ -565,7 +570,7 @@ class NewsDataAccess
       WHERE
         n.news_id = t.news_id AND
         t.news_id > 0 AND
-        t.topic_time > ' . $interval_begin . ' AND
+        t.topic_time >= ' . $interval_begin . ' AND
         t.topic_time < ' . $interval_end. ' ' . $auth_sql . '
       ORDER BY
         t.topic_time DESC';
@@ -575,11 +580,10 @@ class NewsDataAccess
       message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
-    $days = array_fill( 1, 32, 0 );
-
     while( $row = $this->db->sql_fetchrow($result) )
     {
-      $days[ intval( create_date('j', $row['topic_time'], 0)) ]++;
+      $day = (int)phpbb_news_utc_text('j', $row['topic_time']);
+      if (isset($days[$day])) { $days[$day]++; }
     }
 
     $this->db->sql_freeresult( $result );
@@ -600,8 +604,11 @@ class NewsDataAccess
   **/
   function fetchMonths( $year )
   {
-    $interval_begin = mktime( 0, 0, 0, 1, 1, $year);
-    $interval_end   = mktime( 0, 0, 0, 1, 1, $year+1);
+    $months = array_fill(1, 12, 0);
+    $bounds = phpbb_news_archive_bounds($year);
+    if ($bounds === null) { return $months; }
+    $interval_begin = $bounds[0]->format('U');
+    $interval_end = $bounds[1]->format('U');
 
     $auth_sql = get_user_news_auth_access('topic');
 
@@ -613,7 +620,7 @@ class NewsDataAccess
       WHERE
         n.news_id = t.news_id AND
         t.news_id > 0 AND
-        t.topic_time > ' . $interval_begin . ' AND
+        t.topic_time >= ' . $interval_begin . ' AND
         t.topic_time < ' . $interval_end. ' ' . $auth_sql . '
       ORDER BY
         t.topic_time DESC';
@@ -623,11 +630,10 @@ class NewsDataAccess
       message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
-    $months = array_fill( 1, 12, 0 );
-
     while( $row = $this->db->sql_fetchrow($result) )
     {
-      $months[ intval( create_date('n', $row['topic_time'], 0)) ]++;
+      $month = (int)phpbb_news_utc_text('n', $row['topic_time']);
+      if (isset($months[$month])) { $months[$month]++; }
     }
 
     $this->db->sql_freeresult( $result );
@@ -667,10 +673,10 @@ class NewsDataAccess
 
     if( $row = $this->db->sql_fetchrow($result) )
     {
-	if ($row['min_time'] != '' && $row['max_time'] != '')
+	if (phpbb_news_utc_clock($row['min_time']) !== null && phpbb_news_utc_clock($row['max_time']) !== null)
 	{
-      $years['min'] = intval( create_date('Y', $row['min_time'], 0));
-      $years['max'] = intval( create_date('Y', $row['max_time'], 0));
+      $years['min'] = (int)phpbb_news_utc_text('Y', $row['min_time']);
+      $years['max'] = (int)phpbb_news_utc_text('Y', $row['max_time']);
     }
     }
 

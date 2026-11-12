@@ -322,23 +322,25 @@ if( $article_id <= 0 )
 
   function renderDay( $year, $month, $day, $key = '' )
   {
+    $bounds = phpbb_news_archive_bounds($year, $month, $day);
+    if ($bounds === null || (int)$month === 0 || (int)$day === 0) { $this->prepareArticles(array()); return; }
     $this->setBlockVariables( 'arch.year', array(
                   'YEAR' => $year
                   ) );
 
     $this->setBlockVariables( 'arch.year.month', array(
-                'L_MONTH' => date( 'F', mktime( 0,0,0,$month,1,0 ) ),
+                'L_MONTH' => $this->htmlText(phpbb_news_utc_text('F', $bounds[0]->format('U'))),
                 'POST_COUNT' => '',
                 'MONTH' => $month
                 ) );
 
     $this->setBlockVariables( 'arch.year.month.day', array(
-                'L_DAY' => date( 'jS', mktime( 0,0,0,$month,$day,0 ) ),
+                'L_DAY' => $this->htmlText(phpbb_news_utc_text('jS', $bounds[0]->format('U'))),
                 'POST_COUNT' => '',
                 'DAY' => $day
                 ) );
 
-    $articles = $this->data->fetchDay( $day, $month, $year, $key );
+    $articles = $this->data->fetchDay( $day, $month, $year );
 
     $this->prepareArticles( $articles, true );
   }
@@ -351,8 +353,10 @@ if( $article_id <= 0 )
     {
       if( $days[$d] > 0 )
       {
+        $bounds = phpbb_news_archive_bounds($year, $month, $d);
+        if ($bounds === null) { continue; }
         $this->setBlockVariables( 'arch.year.month.day', array(
-                    'L_DAY' => date( 'jS', mktime( 0,0,0,$month,$d,0 ) ),
+                    'L_DAY' => $this->htmlText(phpbb_news_utc_text('jS', $bounds[0]->format('U'))),
                     'POST_COUNT' => '('.$days[$d].')',
                     'DAY' => $d
                     ) );
@@ -368,8 +372,10 @@ if( $article_id <= 0 )
     {
       if( $months[$m] > 0 )
       {
+        $bounds = phpbb_news_archive_bounds($year, $m);
+        if ($bounds === null) { continue; }
         $this->setBlockVariables( 'arch.year.month', array(
-                    'L_MONTH' => date( 'F', mktime( 0,0,0,$m,1,0 ) ),
+                    'L_MONTH' => $this->htmlText(phpbb_news_utc_text('F', $bounds[0]->format('U'))),
                     'POST_COUNT' => '('.$months[$m].')',
                     'MONTH' => $m
                     ) );
@@ -767,7 +773,7 @@ if( $article_id <= 0 )
 
   function getDateComp( $format, $timestamp )
   {
-    return gmdate( $format, $timestamp );
+    return phpbb_news_utc_text($format, $timestamp);
   }
 }
 ?>

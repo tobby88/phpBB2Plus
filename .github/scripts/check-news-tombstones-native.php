@@ -22,6 +22,7 @@ try{
  $canonical=file_get_contents($nt_app.'install/schemas/mysql_schema.sql');foreach($nn_tables as$table){nt_check(preg_match('/CREATE TABLE phpbb_'.$table.'\s*\(.*?\) ENGINE=InnoDB[^;]*;/s',$canonical,$m)===1,'Canonical table '.$table);nn_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}
  nn_sql("INSERT INTO fixture_users(user_id,username,user_password,user_regdate) VALUES(-1,'Anonymous','',1),(7,'Current &amp; member','',1),(8,'Viewer','',1),(9,'Administrator','',1)");
  nn_sql('INSERT INTO fixture_forums(forum_id,cat_id,auth_view,auth_read) VALUES(3,1,0,0),(9,1,5,5)');nn_sql("INSERT INTO fixture_news(news_id,news_category,news_image) VALUES(1,'News &amp; category','general.gif')");
+ if(defined('PHPBB_NEWS_PERIOD_FIXTURE')){require __DIR__.'/news-period-native-fixture.php';nn_period_suite();}else{
  foreach(array(100=>array(3,7,999,0,''),200=>array(3,-1,-1,0,'Real guest'),300=>array(3,-1,777,0,'Former alias'),400=>array(3,-1,-1,1,'OLD_AUTHOR_MUST_NOT_LEAK'),900=>array(9,7,7,0,''))as$topic=>$seed){
   $id=(int)($topic/10);$time=1700000000+$id;$removed=$topic===300?1:0;
   nn_sql("INSERT INTO fixture_topics(topic_id,forum_id,topic_first_post_id,topic_last_post_id,topic_poster,topic_title,topic_time,news_id,topic_replies) VALUES($topic,".$seed[0].",$id,$id,".$seed[2].",'Context &amp; $id',$time,1,".($topic===100?5:0).')');
@@ -42,4 +43,5 @@ try{
   nt_check(nn_snapshot()===$before,'Every reader leaves canonical data unchanged');
  }}
  echo 'News readers native: ',$cases,' cases, ',$nt_checks," assertions PASS; canonical InnoDB joins, actual ACLs, stale/orphan topic authors, pagination/counts, deleted articles/comments/RSS, controlled failures and unchanged data.\n";
+ }
 }finally{if($db){$db->sql_close();}if($created){nt_check(preg_match('/^codex_news_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Drop exclusive owned schema');}if($control){$control->sql_close();}restore_error_handler();}

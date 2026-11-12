@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Keep News archive periods on one UTC clock
+
+- Include the first midnight and exclude the following period's midnight in
+  day, month and year readers. Keep counts and archive links independent of
+  server timezone and daylight-saving changes, with existing forum ACLs.
+- Use exact decimal timestamp bounds and UTC date components on 32-bit PHP
+  too. Reject invalid calendar dates instead of normalizing them into another
+  day; keep translated archive labels escaped and source rows unchanged.
+
 ### Preserve UTF-8 and complete BBCode in News excerpts
 
 - Count complete UTF-8 characters and stored HTML entities when shortening
