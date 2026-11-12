@@ -161,6 +161,8 @@ $template->assign_vars(array(
     'L_DESCEND_BY_HITS'=>$lang['Descend_by_hits'], 'L_DESCEND_BY_JOINDATE'=>$lang['Descend_by_joindate'], 'L_LINK_JOINED'=>$lang['Joined'],
     'L_LINK_HITS'=>$lang['link_hits'], 'L_LINK_SUBMITER'=>$lang['link_submiter'], 'L_LINK_TITLE1'=>$title, 'L_SEARCH_SITE_TITLE'=>$lang['Search_site_title'],
     'SEARCH_KEYWORDS'=>links_html($search_keywords), 'LINK_CAT_OPTION'=>$link_cat_option, 'LINK_WIDTH'=>50, 'FOLDER_IMG'=>$images['folder'],
+    'LINK_FORM_ERROR_ATTR'=>links_html($lang['Link_form_invalid']), 'LINK_PREVIEW_ERROR_ATTR'=>links_html($lang['Link_preview_invalid']), 'LINK_PREVIEW_ALT_ATTR'=>links_html($lang['Links_Preview']),
+    'LINK_LOGO_REQUIRED'=>$link_config['allow_no_logo'] === '1' ? '' : 'required="required"',
     'PAGINATION'=>$pagination, 'PAGE_NUMBER'=>sprintf($lang['Page_of'], (int)floor($start/$linkspp)+1, max(1, (int)ceil($total_links/$linkspp))), 'L_GOTO_PAGE'=>$lang['Goto_page']
 ));
 if ($t === 'index')
@@ -191,7 +193,7 @@ else
     }
     foreach ($listing['rows'] as $i=>$row)
     {
-        $author = links_html($lang['Guest']);
+        $author = links_html($lang[(int)$row['user_id'] > 0 ? 'Former_member' : 'Guest']);
         if (isset($row['username']) && (int)$row['user_id'] > 0)
         {
             $author = '<a href="' . links_html(append_sid("profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . '=' . (int)$row['user_id'])) . '" target="_blank" rel="noopener noreferrer">' . links_html($row['username']) . '</a>';

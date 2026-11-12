@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Repair shared Link submission forms and logo previews
+
+- Replace four duplicated forms and unused checks with one valid shared form,
+  connected validation and whole-character limits matching the writer.
+- Leave optional logos blank instead of submitting an invalid HTTP placeholder;
+  retain required logos, category selection and the session token.
+- Preview validated images inline without opening arbitrary URLs or retaining
+  a browser opener; suppress the referrer and clear stale invalid previews.
+- Distinguish missing positive account IDs as former members and real guests
+  as guests. Preserve current names and profile links for existing accounts.
+
 ### Keep public Link lists searchable and complete
 
 - Preserve active links after their submitting account has disappeared; use a

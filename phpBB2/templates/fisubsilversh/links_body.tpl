@@ -1,29 +1,4 @@
-<script language="JavaScript" type="text/javascript">
-<!--
-function checkForm() {
-	formErrors = false;    
-
-	if (document.linkdata.link_title.value == '') {
-		formErrors = '{L_LINK_TITLE}';	
-	} else if (document.linkdata.link_url.value == 'http://') {
-		formErrors = '{L_LINK_URL}';	
-	} else if (document.linkdata.link_logo_src.value == 'http://' ) {
-		formErrors = '{L_LINK_LOGO_SRC}';	
-	} else if (document.linkdata.link_category.value == '' ) {
-		formErrors = '{L_LINK_CATEGORY}';	
-	} else if (document.linkdata.link_desc.value == '' ) {
-		formErrors = '{L_LINK_DESC}';	
-	}
-
-	if (formErrors) {
-		alert('{L_PLEASE_ENTER_YOUR}' + formErrors);
-		return false;
-	} 
-	
-	return true;
-}
-//-->
-</script>
+<script type="text/javascript" src="includes/javascript/links_form.js"></script>
  
 <table width="100%" cellspacing="2" cellpadding="2" border="0" align="center">
 	<tr> 
@@ -71,45 +46,8 @@ function checkForm() {
 		<!-- END logout -->
 		
 		<!-- BEGIN submit -->
-		<table border="0" cellpadding="0" cellspacing="1" width="100%" class="forumline">
-		  <tr> 
-			<th class="thHead" align="left">&nbsp;{L_LINK_REGISTER}</th>
-		  </tr>
-		<form name="linkdata" method="post" action="{U_LINK_REG}">{S_LINK_TOKEN}
-		<tr><td class="row1">
-		<table border="0" cellpadding="2" cellspacing="0" width="100%">
-			<tr> 
-			  <td class="row1"><span class="gensmall">
-			  {L_LINK_REGISTER_RULE}
-			  </span></td>
-			</tr>			
-			<tr> 
-			  <td class="row1"><br /><span class="gensmall">{L_LINK_TITLE}</span><br /><input type="text" name="link_title" value="" size="15" maxlength="20" class="post" style="width:160px"></td>
-			</tr>
-			<tr> 
-			  <td class="row1"><span class="gensmall">{L_LINK_URL}</span><br /><input type="text" name="link_url" value="http://" size="15" maxlength="100" style="width:160px" class="post"></td>
-			</tr>
-			<tr> 
-			  <td class="row1"><span class="gensmall">{L_LINK_LOGO_SRC}</span><br /><input type="text" size="15" maxlength="120" style="width:160px" name="link_logo_src" value="http://" class="post"><br /><span class="gensmall">[<a href="javascript: void(0)" onclick="var img_src=document.linkdata.link_logo_src.value;if(img_src=='http://' || img_src=='') img_src='images/links/no_logo88a.gif';_preview=window.open(img_src, '_preview', 'toolbar=no,width=200,height=100,top=300,left=300');">{L_PREVIEW}</a>]</span><br /><br /></td>
-			</tr>
-			<tr> 
-			  <td class="row1">
-			  	<span class="gensmall">{L_LINK_CATEGORY}</span><br />
-				<select name="link_category" style="width:160px">{LINK_CAT_OPTION}</select>
-			  </td>
-			</tr>
-			<tr> 
-			  <td class="row1"><span class="gensmall">{L_LINK_DESC}</span><br /><textarea name="link_desc" cols="15" rows="4" class="post" style="width:160px" maxsize="120" wrap="VIRTUAL"></textarea></td>
-			</tr>
-			
-		</table>
-		</td></tr>
-		<tr> 
-		  <td class="cat" align="center"><input type="submit" name="addlink" value="{L_SUBMIT}" class="liteoption"></td>
-		</tr>
-		</form>
-		</table>
-		<!-- END submit -->
+        <!-- INCLUDE links_submit.tpl -->
+        <!-- END submit -->
 	  </td>
 	  <td width="10" nowrap="nowrap">&nbsp;</td>
 	  <!-- END lock -->

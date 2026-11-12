@@ -60,4 +60,6 @@ $lang['Link_storage_failed'] = 'The link could not be saved. Please try again la
 $lang['Link_save_unconfirmed'] = 'The save could not be confirmed. Please check the link list before submitting it again.';
 $lang['Link_notification_failed'] = 'The link was saved, but some notifications could not be delivered.';
 $lang['Link_list_unavailable'] = 'The link list is currently unavailable. Please try again later.';
+$lang['Link_form_invalid'] = 'Please check the highlighted field and the length of your input.';
+$lang['Link_preview_invalid'] = 'Please enter a valid HTTP or HTTPS address for the logo.';
 ?>
