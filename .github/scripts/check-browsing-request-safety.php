@@ -23,7 +23,12 @@ browsing_request_assert(strpos($forum, "phpbb_request_scalar(\$_POST, 'selected_
 browsing_request_assert(strpos($forum, '$url = phpbb_normalize_external_url($url);') !== false, 'external forum links must share the external URL boundary');
 browsing_request_assert(strpos($header, "preg_match('/^(Root|[") !== false, 'navigation keys must follow the hierarchy grammar');
 browsing_request_assert(strpos($portal, "substr(phpbb_request_scalar(\$_GET, 'key'), 0, 100)") !== false, 'archive keys must be scalar and bounded');
-browsing_request_assert(substr_count($news, "min(1000000, intval(phpbb_request_scalar(\$_GET, 'start'") >= 2, 'news offsets must be bounded at every render path');
+browsing_request_assert(strpos($news, "\$start = phpbb_request_scalar(\$_GET, 'start', 0);") !== false
+	&& substr_count($news, '$this->page_start = $this->paginationStart($start);') === 2
+	&& strpos($news, '$start = max(0, min(1000000, (int)$requested));') !== false,
+	'news list and comment offsets must share the bounded scalar page resolver');
+browsing_request_assert(strpos($news, 'generate_pagination($base_url, $this->item_count, $this->page_size, $this->page_start)') !== false,
+	'news navigation must use the resolved query offset and page size');
 browsing_request_assert(strpos($news, "\$news_mode = phpbb_request_scalar(\$_GET, 'news')") !== false, 'news modes must be scalar');
 
 echo "Browsing request safety tests passed.\n";
