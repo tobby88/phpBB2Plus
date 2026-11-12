@@ -710,16 +710,14 @@ if ($plus_config['index_layout'] == 'index_body_plus.tpl')
 	));
 }	
 	
-$site_description = isset($board_config['site_desc']) ? (string) $board_config['site_desc'] : '';
-if(strlen($site_description) > 75)
-{
-	$site_description = substr($site_description,0,75);
-	$site_description .= "...";
-}
+// Normalize the existing stored-text layer (and malformed legacy bytes)
+// before counting visible UTF-8 characters, then escape the resulting text.
+$site_description = html_entity_decode(phpbb_stored_text(isset($board_config['site_desc']) ? $board_config['site_desc'] : ''), ENT_QUOTES, 'UTF-8');
+$site_description = phpbb_text_excerpt($site_description, 75);
 		
 $page_title = isset($page_title) ? $page_title : '';
 $sitename_html = phpbb_stored_text(isset($board_config['sitename']) ? $board_config['sitename'] : '');
-$site_description_html = phpbb_stored_text($site_description);
+$site_description_html = htmlspecialchars($site_description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $page_title_html = phpbb_stored_text($page_title);
 $template->assign_vars(array(
 	'SITENAME' => $sitename_html,

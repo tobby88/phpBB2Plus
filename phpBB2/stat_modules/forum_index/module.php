@@ -17,7 +17,7 @@ if ( !defined('IN_PHPBB') )
 
 $template->assign_vars(array(
 	'U_INDEX' => append_sid('index.'.$phpEx),
-	'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']))
+	'L_INDEX' => sprintf($lang['Forum_Index'], phpbb_stored_text($board_config['sitename'])))
 );
 
 ?>

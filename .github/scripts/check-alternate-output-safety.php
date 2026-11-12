@@ -35,4 +35,5 @@ alternate_output_assert(strpos($header, "'SITE_DESCRIPTION' => \$site_descriptio
 alternate_output_assert(strpos($header, "'PAGE_TITLE' => \$page_title_html") !== false, 'public headers must normalize and escape page titles');
 alternate_output_assert(substr_count($admin_header, 'phpbb_stored_text(') >= 3, 'administration headers must escape stored site and page labels');
 
+require __DIR__.'/../fixtures/site-header-text.php';
 echo "Alternate output safety tests passed.\n";

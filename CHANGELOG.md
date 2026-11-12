@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve UTF-8 and stored-text boundaries in site labels
+
+- Shorten the public site description at 75 visible UTF-8 characters instead
+  of bytes. Normalize its stored entity layer before calculating the excerpt,
+  retain replacement handling for malformed legacy text, and escape the output.
+- Render the statistics index link with the same escaped site label as the
+  public header, preserving both English and German link text.
+
 ### Render stored topic titles consistently in statistics
 
 - Display the original topic title in the most-viewed, most-active and top
