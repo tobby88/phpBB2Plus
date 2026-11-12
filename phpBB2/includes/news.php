@@ -568,20 +568,13 @@ if( $article_id <= 0 )
   */
   function trimString( $source, $length )
   {
-    $length = intval( $length );
-
-    if( $length <= 0 || strlen( $source ) < $length )
-    {
-      return $source;
-    }
-
-    $result = trim( $source );  // Remove leading and trailing whitespace.
-    $result = strip_tags( $result );  // Remove any html or php tags.
-    $result = html_entity_decode( $result );  // Convert special entities to characters.
-
-    $result = substr( $result, 0, $length );
-
-    return htmlspecialchars( $result );
+    $length = max(0, (int) $length);
+    if ($length === 0) { return $source; }
+    $result = html_entity_decode(strip_tags(trim((string) $source)), ENT_QUOTES, 'UTF-8');
+    $result = html_entity_decode(phpbb_profile_text($result), ENT_QUOTES, 'UTF-8');
+    $characters = preg_split('//u', $result, $length < PHP_INT_MAX - 1 ? $length + 2 : -1, PREG_SPLIT_NO_EMPTY);
+    if ($characters === false) { throw new PhpbbBbcodeParseException('News label matching failed'); }
+    return htmlspecialchars(implode('', array_slice($characters, 0, $length)), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   }
 
   function xmlText($value)
@@ -606,39 +599,66 @@ if( $article_id <= 0 )
   */
   function trimText( &$text, $size, &$trimmed )
   {
-    $pos = strpos( $text, htmlspecialchars( '<!--break-->' ) );
-    if( ($pos !== false) && ($pos < strlen( $text )) ) {
-      $trimmed = true;
-      return substr( $text, 0, $pos );
-    }
-    // Breaks up the message by blocks of bbcodes.
-    // The message is divided into two parts,
-    // 1. text inside a pair of bbcode tags.
-    // 2. text not contained inside a pair of bbcode tags.
-    $segments = preg_split(
-          '#(\[([a-zA-Z]+?).*?\].+?\[/\\2.*?\])#s' ,
-          $text, -1,
-          PREG_SPLIT_NO_EMPTY | PREG_SPLIT_OFFSET_CAPTURE );
-
-    foreach( $segments as $segment )
-    {
-      if( ($segment[1] + strlen($segment[0]) > $size) &&
-        ($segment[1] <= $size) )
-      // $size fall inside the current block.
-      {
-        $trimmed = true;
-        return substr( $text, 0, $size );
-      }
-      elseif( $segment[1] > $size )
-      // We have gone past the trim point.
-      {
-        $trimmed = true;
-        return substr( $text, 0, $segment[1] );
-      }
-    }
     $trimmed = false;
-    return $text;
+    $size = max(0, (int) $size);
+    if ($size === 0) { return $text; }
+    // Substitute malformed legacy bytes in this display copy only. Preserve
+    // the stored entity layer; decoding it here would turn text into markup.
+    $source = html_entity_decode(phpbb_profile_text($text), ENT_QUOTES, 'UTF-8');
+    $cut = strpos($source, htmlspecialchars('<!--break-->', ENT_QUOTES, 'UTF-8'));
+    if ($cut === false) { $cut = $this->textPrefixOffset($source, $size); }
 
+    // Keep complete paired blocks, including nested tags of the same name.
+    // Offsets stay in bytes after the character/entity boundary is resolved.
+    // Consume an unterminated candidate once too, rather than repeatedly
+    // scanning its remaining suffix for every opening bracket.
+    if (preg_match_all('#\[[^\]\r\n]*\]?#', $source, $tokens, PREG_OFFSET_CAPTURE) === false)
+    {
+      throw new PhpbbBbcodeParseException('News tag matching failed');
+    }
+    $open = array(); $ranges = array();
+    foreach ($tokens[0] as $token)
+    {
+      $matched = preg_match('#^\[(/?)([a-zA-Z]+|\*)([^\]\r\n]*)\]$#D', $token[0], $tag);
+      if ($matched === false) { throw new PhpbbBbcodeParseException('News tag matching failed'); }
+      if ($matched !== 1) { continue; }
+      $start = $token[1]; $end = $start + strlen($token[0]);
+      $ranges[] = array($start, $end);
+      $name = strtolower($tag[2]);
+      if ($tag[1] === '') { $open[$name][] = $start; }
+      elseif (!empty($open[$name]))
+      {
+        $ranges[] = array(array_pop($open[$name]), $end);
+      }
+    }
+    usort($ranges, function($a, $b) { return $a[0] === $b[0] ? $b[1] - $a[1] : $a[0] - $b[0]; });
+    foreach ($ranges as $range)
+    {
+      if ($cut > $range[0] && $cut < $range[1]) { $cut = $range[1]; }
+    }
+    $trimmed = $cut < strlen($source);
+    return $cut === 0 ? '' : substr($source, 0, $cut);
+  }
+
+  // Byte offset after a bounded number of UTF-8 characters. A stored entity
+  // counts as its decoded character while its original bytes remain intact.
+  private function textPrefixOffset($source, $size)
+  {
+    $parts = preg_split('/(&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]+);)/i', $source, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE | PREG_SPLIT_NO_EMPTY);
+    if ($parts === false) { throw new PhpbbBbcodeParseException('News entity matching failed'); }
+    foreach ($parts as $part)
+    {
+      $decoded = html_entity_decode($part[0], ENT_QUOTES, 'UTF-8');
+      $characters = preg_split('//u', $decoded, $size < PHP_INT_MAX - 1 ? $size + 2 : -1, PREG_SPLIT_NO_EMPTY);
+      if ($characters === false) { throw new PhpbbBbcodeParseException('News character matching failed'); }
+      if (count($characters) > $size)
+      {
+        return $part[1] + strlen(implode('', array_slice($characters, 0, $size)));
+      }
+      $size -= count($characters);
+      if ($size === 0) { return $part[1] + strlen($part[0]); }
+    }
+    return strlen($source);
   }
 
   // }}}

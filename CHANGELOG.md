@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve UTF-8 and complete BBCode in News excerpts
+
+- Count complete UTF-8 characters and stored HTML entities when shortening
+  previews, without changing the original post or its entity encoding.
+- Retain complete nested BBCode, code and list blocks, including manual break
+  markers, and show read-more links only when content was actually shortened.
+- Keep plain News labels escaped and character-safe. Bound malformed tag
+  scanning and report parser failures without silently dropping the body.
+
 ### Respect deleted posts in news, portal, RSS and text exports
 
 - Retain deleted positions as compact translated placeholders without parsing

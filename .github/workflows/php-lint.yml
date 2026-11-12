@@ -495,6 +495,9 @@ jobs:
       - name: Render deleted news articles, comments, RSS and topic exports
         run: php .github/scripts/check-news-tombstones.php
 
+      - name: Preserve UTF-8 entities and nested BBCode in News excerpts
+        run: php .github/scripts/check-news-excerpts.php
+
       - name: Test alternate output safety
         run: php .github/scripts/check-alternate-output-safety.php
 
