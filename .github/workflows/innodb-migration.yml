@@ -1432,6 +1432,12 @@ jobs:
         env:
           PHPBB_LINK_SETTINGS_NATIVE: '1'
           PHPBB_LINK_SETTINGS_PASSWORD: fixture-only
+      - name: Check public Link redirects and optional exact click counters
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-link-click-native.php
+        env:
+          PHPBB_LINK_CLICK_NATIVE: '1'
+          PHPBB_LINK_CLICK_PASSWORD: fixture-only
   pm-download-mysql:
     name: Attachment downloads (MySQL 8.4, PHP 8.5)
     runs-on: ubuntu-latest
@@ -1482,3 +1488,8 @@ jobs:
         env:
           PHPBB_LINK_SETTINGS_NATIVE: '1'
           PHPBB_LINK_SETTINGS_PASSWORD: fixture-only
+      - name: Check public Link redirects and click counters on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-link-click-native.php
+        env:
+          PHPBB_LINK_CLICK_NATIVE: '1'
+          PHPBB_LINK_CLICK_PASSWORD: fixture-only

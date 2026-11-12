@@ -20,8 +20,8 @@ $checks = array(
     'notice mail opts into recoverable delivery' => strpos($notices, "new emailer($"."board_config['smtp_delivery'],true)") !== false,
     'link form carries the SID' => strpos($listing, "'S_LINK_TOKEN' => '<input type=\"hidden\" name=\"sid\"") !== false,
 	'link listing result batches are capped' => strpos($listing, '$linkspp = max(1, min(100, intval($link_config[\'linkspp\'])));') !== false,
-	'link redirects require positive integer IDs' => strpos($listing, 'if($link_id > 0)') !== false,
-	'link redirect IP values use database-driver escaping' => strpos($listing, '$user_ip_sql = $db->sql_escape($user_ip);') !== false,
+	'link redirects use the owned current click provider' => strpos($listing, 'phpbb_link_click($db, isset($_GET[\'link_id\']) ? $_GET[\'link_id\'] : null, $user_ip)') !== false,
+	'link redirect decisions are not browser cached' => strpos($listing, 'Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0') !== false,
 	'link listing URLs use the shared external boundary' => strpos($listing, 'phpbb_normalize_external_url($value)') !== false,
 	'link search uses database-driver escaping' => strpos($listing, '$search_keywords_sql = links_like_sql($search_keywords);') !== false,
 	'link search data and totals use the same predicate' => substr_count($listing, "link_desc LIKE '%\$search_keywords_sql%'") === 2,
@@ -30,6 +30,10 @@ $checks = array(
 
 define('IN_PHPBB', true);
 require $root . '/phpBB2/includes/functions_link_submission.php';
+require $root . '/phpBB2/includes/functions_link_click.php';
+foreach(array(1,'28',16777215)as$value){$checks['exact click ID '.(string)$value]=phpbb_link_visit_id($value)===(int)$value;}
+foreach(array(null,array(28),true,28.5,'0','-1','028','28e0','28junk','16777216')as$index=>$value){$checks['invalid click ID '.$index]=phpbb_link_visit_id($value)===false;}
+$checks['unsigned count saturates without PHP integer overflow']=phpbb_link_next_hit('4294967294')==='4294967295'&&phpbb_link_next_hit('4294967295')==='4294967295'&&phpbb_link_next_hit('999')==='1000';
 $input=array('link_title'=>str_repeat('ä',49).'€😀','link_desc'=>str_repeat('😀',255).'trailing','link_category'=>'1','link_url'=>'https://example.invalid/?a=1&amp;b=2','link_logo_src'=>'');
 $normalized=phpbb_link_submission_input($input);
 $checks['Unicode limits count whole characters']=$normalized['link_title']===$input['link_title']&&$normalized['link_desc']===str_repeat('😀',255);

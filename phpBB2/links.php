@@ -83,38 +83,19 @@ init_userprefs($userdata);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_main_link.' . $phpEx);
 
 //
-// Count and forwrad
+// Count and forward
 //
-if(!empty($_GET['action']) && is_scalar($_GET['action']) && $_GET['action'] == "go" && !empty($_GET['link_id']) && is_scalar($_GET['link_id']))
+if (isset($_GET['action']) && is_string($_GET['action']) && $_GET['action'] === 'go')
 {
-	$link_id = max(0, intval($_GET['link_id']));
-	// Secure check
-	if($link_id > 0)
+	header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');
+	header('Pragma: no-cache');
+	header('Referrer-Policy: no-referrer');
+	require_once($phpbb_root_path . 'includes/functions_link_click.' . $phpEx);
+	$link_url = phpbb_link_click($db, isset($_GET['link_id']) ? $_GET['link_id'] : null, $user_ip);
+	if ($link_url !== false)
 	{
-		$sql = "SELECT link_id, link_url, last_user_ip
-			FROM " . LINKS_TABLE . "
-			WHERE link_id = $link_id
-			AND link_active = 1";
-
-		if($result = $db->sql_query($sql))
-		{
-			$row = $db->sql_fetchrow($result);
-			if($row && ($link_url = links_http_url($row['link_url'])))
-			{
-				if($user_ip != $row['last_user_ip'])
-				{
-					$user_ip_sql = $db->sql_escape($user_ip);
-					// Update
-					$sql = "UPDATE " . LINKS_TABLE . "
-						SET link_hits = link_hits + 1, last_user_ip = '$user_ip_sql'
-						WHERE link_id = $link_id";
-					$result = $db->sql_query($sql);
-				}
-
-				header('Location: ' . $link_url, true, 302);
-				exit;
-			}
-		}
+		header('Location: ' . $link_url, true, 302);
+		exit;
 	}
 }
 

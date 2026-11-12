@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Keep public Link redirects and click counts consistent
+
+- Reject malformed link IDs instead of redirecting to another entry. Validate
+  the current active HTTP(S) destination and prevent cached redirect decisions.
+- Serialize only the visited link row, preserve consecutive-IP deduplication
+  under concurrent requests, and saturate unsigned counters without overflow.
+- Keep navigation available when only optional statistics fail: use a fresh
+  independent read and never retry counting after a lost commit acknowledgement.
+  HEAD requests do not count; other HTTP methods cannot trigger redirects.
+- Verify actual headers/controllers, concurrent processes, native row locks,
+  SQL failures and ownership on PHP 5.6, 7.4 and 8.5 and MySQL/MariaDB.
+
 ### Commit complete Link settings and category changes
 
 - Save all Link settings together with current ACP session/account/module
