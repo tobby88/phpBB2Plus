@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve borrowed transactions in the shared writer
+
+- Verify autocommit and an idle transaction before taking ownership of a
+  dedicated connection or acquiring the shared writer coordinator.
+- Refuse reused, busy, manual or foreign-schema providers without committing,
+  rolling back or closing their caller's pending work, including failed or
+  throwing identity queries. Release only connections already owned by the
+  service. The shared Arcade, mail and CAPTCHA consumers retain their normal
+  atomic writes, current authorization and canonical storage checks.
+- Exercise the actual CAPTCHA consumer and every current SQL boundary on
+  MariaDB/MySQL. Existing installer and update schemas require no changes.
+
 ### Preserve literal percent sequences in passwords and text
 
 - Distinguish a literal `%00` in already parsed form content from an actual

@@ -20,7 +20,11 @@ abstract class PhpbbOwnedStore
    if(!is_object($database)||!method_exists($database,'sql_dedicated_connection')){$this->storage_fail();}
    $source=$this->identity($database);$candidate=$database->sql_dedicated_connection();
    if(!is_object($candidate)||$candidate===$database||!isset($candidate->db_connect_id)||$candidate->db_connect_id===$database->db_connect_id){$candidate=null;$this->storage_fail();}
-   $own=$this->identity($candidate);if($own['schema_name']!==$source['schema_name']||$own['id']===$source['id']){$candidate=null;$this->storage_fail();}
+   $own=$this->identity($candidate);if($own['schema_name']!==$source['schema_name']||$own['id']===$source['id']||$own['automatic']!=='1'){$candidate=null;$this->storage_fail();}
+   // Establish an idle connection before acquiring a lock or taking ownership.
+   // This one-shot statement refuses a borrowed active transaction without
+   // committing, rolling back or closing work which still belongs to its caller.
+   if(!$candidate->sql_query('SET TRANSACTION READ WRITE')){$candidate=null;$this->storage_fail();}
    $this->lock='attachment:'.md5($source['schema_name']."\0".ATTACHMENTS_TABLE);
    $owner=$this->direct_rows($candidate,"SELECT IS_USED_LOCK('".$this->lock."') owner");
    if(count($owner)!==1){$this->storage_fail();}
@@ -36,8 +40,8 @@ abstract class PhpbbOwnedStore
    $this->query('SET SESSION innodb_lock_wait_timeout=5');
    $this->query('START TRANSACTION');$this->transaction=true;
    $this->pin_tables();
-  } catch(Exception$error){if($candidate){$candidate->sql_close();}$this->release();throw$error;}
-  catch(Error$error){if($candidate){$candidate->sql_close();}$this->release();$this->storage_fail();}
+  } catch(Exception$error){$this->release();throw$error;}
+  catch(Error$error){$this->release();$this->storage_fail();}
  }
  protected function direct_rows($database,$sql)
  {
@@ -47,9 +51,9 @@ abstract class PhpbbOwnedStore
  }
  protected function identity($database)
  {
-  $rows=$this->direct_rows($database,'SELECT CONNECTION_ID() id,DATABASE() schema_name');
+  $rows=$this->direct_rows($database,'SELECT CONNECTION_ID() id,DATABASE() schema_name,@@SESSION.autocommit automatic');
   if(count($rows)!==1||!is_string($rows[0]['schema_name'])||$rows[0]['schema_name']===''||!preg_match('/^[1-9][0-9]*$/D',(string)$rows[0]['id'])){$this->storage_fail();}
-  return array('id'=>(string)$rows[0]['id'],'schema_name'=>$rows[0]['schema_name']);
+  return array('id'=>(string)$rows[0]['id'],'schema_name'=>$rows[0]['schema_name'],'automatic'=>isset($rows[0]['automatic'])?(string)$rows[0]['automatic']:'');
  }
  protected function query($sql)
  {

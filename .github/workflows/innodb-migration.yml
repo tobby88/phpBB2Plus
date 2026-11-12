@@ -1004,6 +1004,12 @@ jobs:
         env:
           PHPBB_CONFIRMATION_NATIVE: '1'
           PHPBB_CONFIRMATION_PASSWORD: fixture-only
+      - name: Preserve borrowed connections before shared writer ownership
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-owned-connection-native.php
+        env:
+          PHPBB_OWNED_NATIVE: '1'
+          PHPBB_OWNED_PASSWORD: fixture-only
       - if: matrix.part == 4
         run: php .github/scripts/check-profile-account-defaults.php
         env:
@@ -1526,3 +1532,8 @@ jobs:
         env:
           PHPBB_KB_COUNTER_NATIVE: '1'
           PHPBB_KB_COUNTER_PASSWORD: fixture-only
+      - name: Check shared writer ownership and actual CAPTCHA consumer on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-owned-connection-native.php
+        env:
+          PHPBB_OWNED_NATIVE: '1'
+          PHPBB_OWNED_PASSWORD: fixture-only
