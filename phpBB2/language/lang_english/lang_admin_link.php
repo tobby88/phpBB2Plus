@@ -98,4 +98,8 @@ $lang['Click_return_admin_links'] = "Click %sHere%s to return to Links Manage";
 $lang['Preview'] = "Preview Logo";
 $lang['Search_site'] = "Search Site";
 $lang['Search_site_title'] = "Search Site Name/Description:";
+$lang['Link_storage_failed'] = 'The link could not be saved. Please try again later.';
+$lang['Link_save_unconfirmed'] = 'The change could not be confirmed. Please check Link Management before repeating it.';
+$lang['Link_target_changed'] = 'The selected link no longer exists or the selection is invalid.';
+$lang['Link_category_not_exist'] = 'The selected link category no longer exists.';
 ?>

@@ -1420,6 +1420,12 @@ jobs:
         env:
           PHPBB_LINK_NATIVE: '1'
           PHPBB_LINK_PASSWORD: fixture-only
+      - name: Check actual Link ACP mutations and current delegated authority
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-link-admin-native.php
+        env:
+          PHPBB_LINK_ADMIN_NATIVE: '1'
+          PHPBB_LINK_ADMIN_PASSWORD: fixture-only
   pm-download-mysql:
     name: Attachment downloads (MySQL 8.4, PHP 8.5)
     runs-on: ubuntu-latest
@@ -1460,3 +1466,8 @@ jobs:
         env:
           PHPBB_LINK_NATIVE: '1'
           PHPBB_LINK_PASSWORD: fixture-only
+      - name: Check Link ACP mutations on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-link-admin-native.php
+        env:
+          PHPBB_LINK_ADMIN_NATIVE: '1'
+          PHPBB_LINK_ADMIN_PASSWORD: fixture-only

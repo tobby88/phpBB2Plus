@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Keep Link administration current and preserve complete stored values
+
+- Add, edit and delete Links on an independent canonical transaction, checking
+  the current exact ACP session, active account and actual admin or delegated
+  Link module grant. Preserve existing file-level Junior Admin permissions.
+- Use character-safe titles/descriptions and reject invalid or overlong URLs
+  rather than silently changing their destinations. Decode request escaping once.
+- Reject missing targets/categories and invalid selections; unchanged edits
+  still succeed. Verify stored values and preserve original ownership, dates
+  and counters on edits. A failed write never publishes a partial change.
+- Keep ACP search terms within whole-character limits and show localized errors
+  for invalid input or unconfirmed saves. No migration is required.
+
 ### Store Link submissions and optional notices coherently
 
 - Keep Unicode titles/descriptions intact at their character limits and decode

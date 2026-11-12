@@ -99,4 +99,8 @@ $lang['Click_return_admin_links'] = "Klicke %shier%s um zur Links Verwaltung zur
 $lang['Preview'] = "Logo Vorschau";
 $lang['Search_site'] = "Suche Seite";
 $lang['Search_site_title'] = "Suche Seite Name/Beschreibung:";
+$lang['Link_storage_failed'] = 'Der Link konnte nicht gespeichert werden. Bitte versuche es später erneut.';
+$lang['Link_save_unconfirmed'] = 'Die Änderung konnte nicht bestätigt werden. Bitte prüfe die Link-Verwaltung, bevor du sie erneut ausführst.';
+$lang['Link_target_changed'] = 'Der ausgewählte Link ist nicht mehr vorhanden oder die Auswahl ist ungültig.';
+$lang['Link_category_not_exist'] = 'Die ausgewählte Link-Kategorie ist nicht mehr vorhanden.';
 ?>

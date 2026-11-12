@@ -38,6 +38,7 @@ $phpbb_root_path = "../";
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_link.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_link_admin.' . $phpEx);
 
 function admin_links_html($value)
 {
@@ -63,13 +64,10 @@ function admin_links_request_scalar($name, $default)
 	return $default;
 }
 
-function admin_links_post_scalar($name, $default)
-{
-	return isset($_POST[$name]) && is_scalar($_POST[$name]) ? (string) $_POST[$name] : $default;
-}
-
 // Check link_id
-$link_id = max(0, (int) admin_links_request_scalar('link_id', '0'));
+$link_id_input = admin_links_request_scalar('link_id', '0');
+try { $link_id = $link_id_input === '0' ? 0 : phpbb_link_admin_id($link_id_input); }
+catch (PhpbbLinkException $error) { message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); }
 $mode = trim(admin_links_request_scalar('mode', ''));
 $action = trim(admin_links_request_scalar('action', ''));
 if ($mode === '')
@@ -173,7 +171,8 @@ switch ($mode)
 		$start = max(0, (int) admin_links_request_scalar('start', '0'));
 		if ( isset($_POST['search_keywords']) || isset($_GET['search_keywords']) )
 		{
-			$search_keywords = substr(trim(admin_links_request_scalar('search_keywords', '')), 0, 100);
+			try { $search_keywords = phpbb_link_text_input(admin_links_request_scalar('search_keywords', ''), 100); }
+			catch (PhpbbLinkException $error) { message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); }
 		}
 		else
 		{
@@ -327,94 +326,19 @@ switch ($mode)
 		break;
 	case 'update':
 		phpbb_admin_require_post_session();
-		$action_success = false;
-		$link_title = substr(trim(admin_links_post_scalar('link_title', '')), 0, 100);
-		$link_desc = substr(trim(admin_links_post_scalar('link_desc', '')), 0, 255);
-		$link_category = max(0, (int) admin_links_post_scalar('link_category', '0'));
-		$link_url = substr(admin_links_http_url(admin_links_post_scalar('link_url', '')), 0, 100);
-		$link_logo_src = substr(admin_links_http_url(admin_links_post_scalar('link_logo_src', '')), 0, 120);
-		$link_active = admin_links_post_scalar('link_active', '0') === '1' ? 1 : 0;
-		$link_title_sql = $db->sql_escape($link_title);
-		$link_desc_sql = $db->sql_escape($link_desc);
-		$link_url_sql = $db->sql_escape($link_url);
-		$link_logo_src_sql = $db->sql_escape($link_logo_src);
-
-		$link_joined = time();
-		$user_id = intval($userdata['user_id']);
-
-		switch ($action)
+		try
 		{
-			case 'add':
-				if($link_title && $link_desc && isset($link_categories[$link_category]) && $link_url)
-				{
-					$sql = "INSERT INTO " . LINKS_TABLE . " (link_title, link_desc, link_category, link_url, link_logo_src, link_joined, link_active, user_id , user_ip)
-						VALUES ('$link_title_sql', '$link_desc_sql', '$link_category', '$link_url_sql', '$link_logo_src_sql', '$link_joined', '$link_active', '$user_id', '$user_ip')";
-
-					if ( !$db->sql_query($sql) )
-					{
-						$message = $lang['Link_admin_add_fail'];
-					}
-					else
-					{
-						$message = $lang['Link_admin_add_success'];
-						$action_success = TRUE;
-					}
-				}
-				else
-				{
-					$message = $lang['Link_incomplete'];
-				}
-				break;
-			case 'modify':
-				if($link_id && $link_title && $link_desc && isset($link_categories[$link_category]) && $link_url)
-				{
-
-					$sql = "UPDATE " . LINKS_TABLE . " SET link_title = '$link_title_sql', link_desc = '$link_desc_sql', link_url = '$link_url_sql',
-					       link_logo_src = '$link_logo_src_sql', link_category = '$link_category', link_active = '$link_active' WHERE link_id = '" . intval($link_id) . "'";
-
-					if ( !$db->sql_query($sql) )
-					{
-						$message = $lang['Link_admin_update_fail'];
-					}
-					else
-					{
-						$message = $lang['Link_admin_update_success'];
-						$action_success = TRUE;
-					}
-				}
-				else
-				{
-					$message = $lang['Link_incomplete'];
-				}
-				break;
-			case 'delete':
-
-				if($link_id)
-				{
-					$sql = "DELETE FROM " . LINKS_TABLE . " WHERE link_id = '" . intval($link_id) . "'";
-
-					if ( !$db->sql_query($sql) )
-					{
-						$message = $lang['Link_admin_delete_fail'];
-					}
-					else
-					{
-						$message = $lang['Link_admin_delete_success'];
-						$action_success = TRUE;
-					}
-				}
-				else
-				{
-					$message = $lang['Link_admin_delete_fail'];
-				}
-				break;
-		} // Close Update Switch
-
-		if(!$action_success)
-		{
-			$message .= '<br /><br />' . sprintf($lang['Click_return_admin_links'], '<a href="' . append_sid("admin_links.$phpEx?mode=view") . '">', '</a>');
+			$result = phpbb_link_admin_mutate($db, $_POST, $userdata);
+			$messages = array('add'=>'Link_admin_add_success','modify'=>'Link_admin_update_success','delete'=>'Link_admin_delete_success');
+			$message = $lang[$messages[$result['action']]];
 		}
-
+		catch (PhpbbLinkException $error)
+		{
+			$key = $error->getMessage();
+			$message = isset($lang[$key]) ? $lang[$key] : $lang['Link_storage_failed'];
+		}
+		catch (Exception $error) { $message = $lang['Link_storage_failed']; }
+		catch (Error $error) { $message = $lang['Link_storage_failed']; }
 		$message .= '<br /><br />' . sprintf($lang['Click_return_admin_links'], '<a href="' . append_sid("admin_links.$phpEx?mode=view") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
 
