@@ -11,8 +11,11 @@ define('POSTS_TEXT_TABLE','fixture_posts_text');
 require $ats_source.'includes/functions_report_storage.php';
 $report_body=substr($controller,$start,$bootstrap-$start).substr($controller,$after+strlen('init_userprefs($userdata);'));
 function rs_reset($actor='admin'){
+ card_report_seed(function()use($actor){rs_reset_rows($actor);});
+}
+function rs_reset_rows($actor='admin'){
  global $board_config,$userdata;
- card_reset($actor);lp_query('DELETE FROM fixture_posts_text');
+ card_reset_rows($actor);lp_query('DELETE FROM fixture_posts_text');
  lp_insert('fixture_posts_text',array('post_id'=>30,'post_subject'=>"Synthetic Grüße ' 😀",'post_text'=>'Synthetic post'));
  lp_query('UPDATE fixture_topics SET topic_first_post_id=30 WHERE topic_id=40');lp_query('UPDATE fixture_posts SET post_bluecard=3 WHERE post_id=30');lp_query('UPDATE fixture_forums SET auth_bluecard='.AUTH_MOD.' WHERE forum_id=20');
  foreach(array('bluecard_limit'=>3,'bluecard_limit_2'=>1,'report_forum'=>0)as$key=>$value){lp_insert('fixture_config',array('config_name'=>$key,'config_value'=>$value));$board_config[$key]=$value;}
@@ -129,4 +132,6 @@ try{
   ats_check(rs_success(rs_run($action))&&$seen&&$blocked,'Current marker remains locked through report/reset publication');$deleted_cases++;$deleted_serialized++;
  }
  echo 'Report tombstones native: '.$deleted_cases.' cases, '.$deleted_serialized." serialized deletions PASS; actual EN/DE report/reset controller, stale forms, unchanged rejected data, ordinary replies after deleted first posts and no live mail.\n";
+ require_once __DIR__.'/../fixtures/card-report-seed-checks.php';
+ card_report_seed_checks('report',array('admin','moderator','guest'),array('users','sessions','sessions_keys','banlist','config','groups','user_group','auth_access','forums','posts','topics','posts_text'),'rs_reset_rows','rs_reset','INSERT INTO fixture_posts_text (');
 }finally{$main->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}

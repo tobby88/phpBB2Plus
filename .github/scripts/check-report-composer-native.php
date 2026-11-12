@@ -17,9 +17,12 @@ class ReportComposerReadDatabase {
  function sql_query($sql,$transaction=false){$this->queries[]=$sql;ats_check(preg_match('/^SELECT\b/i',ltrim($sql))===1,'Composer must never issue writes or transaction commands');if(count($this->queries)===$this->failure){return false;}return $this->db->sql_query($sql,$transaction);}
 }
 function rc_reset($actor='admin'){
+ card_report_seed(function()use($actor){rc_reset_rows($actor);});
+}
+function rc_reset_rows($actor='admin'){
  // Only the owned fixture peer seeds data in a transaction. The real form
  // reader never owns, commits, rolls back or changes any transaction.
- lp_query('START TRANSACTION');try{rs_reset($actor==='member'?'moderator':$actor);if($actor==='member'){lp_query('UPDATE fixture_users SET user_level=0 WHERE user_id=1');lp_query('DELETE FROM fixture_user_group');}lp_query('UPDATE fixture_forums SET auth_bluecard='.($actor==='guest'?AUTH_ALL:AUTH_REG).' WHERE forum_id=20');lp_insert('fixture_forums',array('forum_id'=>21,'auth_view'=>AUTH_ALL,'auth_read'=>AUTH_ALL,'auth_post'=>AUTH_ALL));lp_query('COMMIT');}catch(Exception$e){lp_query('ROLLBACK');throw$e;}
+ rs_reset_rows($actor==='member'?'moderator':$actor);if($actor==='member'){lp_query('UPDATE fixture_users SET user_level=0 WHERE user_id=1');lp_query('DELETE FROM fixture_user_group');}lp_query('UPDATE fixture_forums SET auth_bluecard='.($actor==='guest'?AUTH_ALL:AUTH_REG).' WHERE forum_id=20');lp_insert('fixture_forums',array('forum_id'=>21,'auth_view'=>AUTH_ALL,'auth_read'=>AUTH_ALL,'auth_post'=>AUTH_ALL));
  $GLOBALS['tree']=array('keys'=>array('f20'=>0),'data'=>array(array('forum_id'=>20,'auth_view'=>AUTH_ALL,'auth_read'=>AUTH_ALL,'auth_bluecard'=>AUTH_ALL)));
 }
 function rc_snapshot(){ $out=array();foreach($GLOBALS['rc_tables']as$table){$rows=card_rows('SELECT * FROM fixture_'.$table);usort($rows,function($a,$b){return strcmp(serialize($a),serialize($b));});$out[$table]=$rows;}return$out; }
@@ -61,4 +64,6 @@ try{
   for($failure=1;$failure<=$query_count;$failure++){$before=rc_snapshot();$result=rc_run(30,$failure);ats_check(!$result['ok']&&rc_snapshot()===$before&&strpos($result['message'],'SELECT ')===false,'Every actual reader/auth SQL failure is controlled without data changes');$rc_failure_cases++;}
  }}
  echo 'Report composer native: '.$rc_cases.' cases, '.$rc_failure_cases." SQL failures PASS; actual posting fragment/current auth, EN/DE, canonical InnoDB, all SQL modes, independent source access, current sessions, deleted/missing/canonical first posts, unchanged data and read-only queries.\n";
+ require_once __DIR__.'/../fixtures/card-report-seed-checks.php';
+ card_report_seed_checks('report composer',array('admin','moderator','member','guest'),$rc_tables,'rc_reset_rows','rc_reset','INSERT INTO fixture_posts_text (');
 }finally{$main->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}
