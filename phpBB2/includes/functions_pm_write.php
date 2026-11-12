@@ -256,7 +256,18 @@ function phpbb_pm_claim_notification($nonce)
 {
 	global $db;
 	$nonce = phpbb_pm_write_nonce($nonce); phpbb_mailbox_post_request();
-	$lock = attach_require_mutation_lock($db);
+	// Notification follows an acknowledged save. Busy/broken readers must throw
+	// to the optional caller rather than terminate its successful response.
+	$lock = new attach_mutation_lock($db);
+	if (!$lock->acquired) { phpbb_acl_error('PM_cleanup_failed'); }
+	if ($lock->connection === $db || (isset($db->db_connect_id, $lock->connection->db_connect_id)
+		&& (is_object($db->db_connect_id) || is_resource($db->db_connect_id)) && $db->db_connect_id === $lock->connection->db_connect_id))
+	{
+		$name = 'attachment:' . md5($db->dbname . "\0" . ATTACHMENTS_TABLE);
+		$lock->connection = null; $lock->acquired = false;
+		$r = $db->sql_query("SELECT RELEASE_LOCK('" . $name . "')"); if ($r) { $db->sql_freeresult($r); }
+		phpbb_acl_error('PM_cleanup_failed');
+	}
 	try
 	{
 		$writer = new PhpbbPmWriteDatabase($lock->connection);

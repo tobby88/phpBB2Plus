@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Keep private-message completion independent of optional email
+
+- Confirm a saved private message even if notification delivery, its claim or
+  current recipient lookup fails. Show a localized warning without asking the
+  sender to repeat the message, and preserve at-most-once notification claims.
+- Recheck current recipient identity, address, language and preferences against
+  the claimed, complete and still-unread message. Skip deleted/read/edited or
+  mismatched messages, and release database owners before mail transport.
+- Reject a reused notification connection without closing or committing the
+  caller. No database migration is required.
+
 ### Refresh pending Knowledge Base email before delivery
 
 - Recheck the current article and notification setting independently after

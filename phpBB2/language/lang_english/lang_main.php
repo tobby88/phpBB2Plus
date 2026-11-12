@@ -493,6 +493,7 @@ $lang['PM_write_pending'] = 'This message has not finished saving. Please try ag
 $lang['PM_resume_title'] = 'Unfinished private messages';
 $lang['PM_resume_explain'] = 'These accepted requests have not finished saving. Resume the recorded request without sending a second message. Completed changes cannot be undone here.';
 $lang['PM_resume'] = 'Resume saving';
+$lang['PM_notification_failed'] = 'Your private message was saved, but its email notification could not be sent. Please do not send the private message again.';
 $lang['PM_save_limit_exceeded'] = 'The selected messages exceed the capacity of your saved mailbox. Please select fewer messages. Nothing has been moved or deleted.';
 
 $lang['Login_check_pm'] = 'Log in to check your private messages';

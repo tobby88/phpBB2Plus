@@ -1,0 +1,68 @@
+<?php
+if(PHP_SAPI!=='cli'||getenv('PHPBB_PM_NOTIFY_NATIVE')!=='1'){echo "PM mail checks require explicitly enabled disposable storage.\n";return;}
+if(!in_array('mail',array_map('trim',explode(',',ini_get('disable_functions'))),true)){throw new RuntimeException('Native PM mail requires disabled mail');}
+putenv('PHPBB_KB_COUNTER_NATIVE=1');putenv('PHPBB_KB_COUNTER_PORT='.(getenv('PHPBB_PM_NOTIFY_PORT')?:'3306'));putenv('PHPBB_KB_COUNTER_PASSWORD='.(getenv('PHPBB_PM_NOTIFY_PASSWORD')?:''));
+class PnTemplate{var$vars=array();function assign_vars($vars){$this->vars=array_merge($this->vars,$vars);}}
+function pn_classes(){
+ class PnOwner extends KpOwnerConnection {
+  function __construct($connection){parent::__construct($connection);$GLOBALS['pn_open']++;}
+  function sql_query($sql,$transaction=false){
+   $GLOBALS['pn_queries'][]=$sql;$r=parent::sql_query($sql,$transaction);
+   if($r&&strpos($sql,'UPDATE fixture_pm_write_receipts SET notify_state = 2')===0&&$this->connection->sql_affectedrows()===1){$GLOBALS['pn_claim_pending']=true;}
+   return$r;
+  }
+  function sql_close(){if($this->db_connect_id){$GLOBALS['pn_open']--;try{$this->connection->sql_close();}finally{$this->db_connect_id=false;}if($GLOBALS['pn_claim_pending']){$GLOBALS['pn_claim_pending']=false;$callback=$GLOBALS['pn_after_claim'];$GLOBALS['pn_after_claim']=null;if(is_callable($callback)){call_user_func($callback);$GLOBALS['pn_expected']=kp_snapshot();}}}}
+ }
+ class PnDatabase extends KpDatabase {
+  function sql_dedicated_connection(){ $base=parent::sql_dedicated_connection();if(!$base||$base===$this){return$base;}$owner=new PnOwner($base->connection);$GLOBALS['kp_owner_connections'][]=$owner;return$owner; }
+ }
+}
+function pn_data(){return array('subject'=>'Synthetic PN Größe 😀','text'=>'Synthetic body Grüße 😀','bbcode_uid'=>'','ip'=>'7f000001','recipient'=>3,'html'=>0,'bbcode'=>0,'smilies'=>0,'sig'=>0);}
+function pn_prepare($locale){
+ global$kp_source,$lang,$board_config,$pn_fault,$pn_claim_pending,$pn_after_claim,$pn_queries,$pn_expected,$pn_nonce,$pn_id,$pn_open,$kp_hook;
+ kp_check($pn_open===0,'Prior PM owner released');$pn_fault='';$pn_claim_pending=false;$pn_after_claim=null;$pn_queries=array();$pn_expected=null;$kp_hook=null;kp_reset('ordinary');$lang=array();require$kp_source.'language/lang_'.$locale.'/lang_main.php';$recipient_locale=$locale==='english'?'german':'english';
+ kp_sql("UPDATE fixture_users SET username='Recipient Grüße 😀 &amp;',user_allow_pm=1,user_notify_pm=1,user_email='previous@example.invalid',user_lang='".$recipient_locale."' WHERE user_id=3");
+ $board_config=array_merge($board_config,array('script_path'=>'/','cookie_secure'=>1,'server_port'=>443,'server_name'=>'forum.example.invalid','smtp_delivery'=>0,'board_email'=>'board@example.invalid','board_email_sig'=>'Synthetic<br />signature','sitename'=>'Synthetic board','default_lang'=>$locale,'sendmail_fix'=>0));
+ $pn_nonce=str_repeat('b',32);$pn_id=phpbb_pm_write_message($pn_nonce,0,'',pn_data(),0);kp_check($pn_id>0&&kp_rows('SELECT notify_state FROM fixture_pm_write_receipts')===array(array('notify_state'=>'1')),'Actual durable PM and eligible notification');$pn_queries=array();
+}
+function pn_normalize_claim($snapshot){foreach($snapshot[PM_WRITE_RECEIPTS_TABLE]as&$row){unset($row['notify_state']);}unset($row);return$snapshot;}
+function pn_finish(){
+ global$phpbb_root_path,$kp_source,$lang,$template,$pn_mail,$pn_expected,$pn_nonce,$pn_open,$kp_hook;
+ $before=kp_snapshot();$pn_expected=null;$pn_mail=array();$template=new PnTemplate();$phpbb_root_path=__DIR__.'/../fixtures/pm-notifications-native/';
+ try{phpbb_pm_complete_response($pn_nonce);throw new RuntimeException('Complete PM response must terminate');}catch(KpMessageExit$error){$response=$error;}finally{$phpbb_root_path=$kp_source;$kp_hook=null;}
+ kp_check($pn_open===0&&$response->level===GENERAL_MESSAGE&&strpos($response->getMessage(),$lang['Message_sent'])!==false,'Every actual completed PM stays a successful response');
+ kp_check(isset($template->vars['META'])&&strpos($template->vars['META'],'folder=inbox')!==false,'Successful inbox navigation retained');
+ kp_check(pn_normalize_claim(kp_snapshot())===pn_normalize_claim($pn_expected===null?$before:$pn_expected),'Notification only changes its claim; deliberate fixture mutations tracked separately');
+ return array('response'=>$response,'mail'=>$pn_mail,'warning'=>strpos($response->getMessage(),$lang['PM_notification_failed'])!==false);
+}
+function pn_suite(){
+ global$kp_source,$pn_app,$pn_open,$pn_fault,$pn_after_claim,$pn_claim_pending,$pn_expected,$pn_queries,$pn_id,$pn_nonce,$kp_hook,$kp_factory,$userdata,$db,$peer;
+ require_once$kp_source.'attach_mod/includes/functions_delete.php';require$kp_source.'includes/functions_pm_controller.php';$pn_app=$kp_source;$pn_open=0;$pn_fault='';$pn_after_claim=null;$pn_claim_pending=false;$pn_queries=array();
+ $functions=file_get_contents($kp_source.'includes/functions.php');kp_check(preg_match('/^function phpbb_profile_text\(.*?^\}/ms',$functions,$m)===1,'Actual response text helper');eval($m[0]);$cases=$failures=0;
+ foreach(array('english','german')as$locale){
+  foreach(array('ordinary','construct','template','transport-false','transport-exception','invalid-address','address','language','renamed','optout','inactive','deleted-user','deleted-message','missing-text','receipt-hash','receipt-owner','receipt-target','later-edit','read','readiness-missing-factory','readiness-borrow-factory','actor-inactive','claim-missing-factory','claim-borrow-factory','claim-write-failure','claim-lost-ack')as$kind){
+   pn_prepare($locale);
+   if(in_array($kind,array('construct','template','transport-false','transport-exception'),true)){$pn_fault=$kind;}
+   elseif($kind==='invalid-address'){kp_sql("UPDATE fixture_users SET user_email='invalid' WHERE user_id=3");}
+   elseif($kind==='claim-missing-factory'||$kind==='claim-borrow-factory'){$kp_factory=$kind==='claim-missing-factory'?'missing':'borrow';}
+   elseif($kind==='claim-write-failure'||$kind==='claim-lost-ack'){$kp_hook=function($phase,$sql,$owner)use($kind){if(strpos($sql,'UPDATE fixture_pm_write_receipts SET notify_state = 2')===0&&$phase===($kind==='claim-write-failure'?'before':'after')){return false;}};}
+   elseif($kind!=='ordinary'){$pn_after_claim=function()use($kind,$locale){
+    global$userdata,$pn_id,$pn_nonce,$db,$kp_factory;
+    if($kind==='address'){kp_sql("UPDATE fixture_users SET user_email='current@example.invalid' WHERE user_id=3");}elseif($kind==='language'){kp_sql("UPDATE fixture_users SET user_lang='".$locale."' WHERE user_id=3");}elseif($kind==='renamed'){kp_sql("UPDATE fixture_users SET username='Current Grüße 😀 &amp;' WHERE user_id=3");}elseif($kind==='optout'){kp_sql('UPDATE fixture_users SET user_notify_pm=0 WHERE user_id=3');}elseif($kind==='inactive'){kp_sql('UPDATE fixture_users SET user_active=0 WHERE user_id=3');}elseif($kind==='deleted-user'){kp_sql('DELETE FROM fixture_users WHERE user_id=3');}elseif($kind==='deleted-message'){kp_sql('DELETE FROM fixture_privmsgs WHERE privmsgs_id='.(int)$pn_id);}elseif($kind==='missing-text'){kp_sql('DELETE FROM fixture_privmsgs_text WHERE privmsgs_text_id='.(int)$pn_id);}elseif($kind==='receipt-hash'){kp_sql("UPDATE fixture_pm_write_receipts SET request_hash='changed'");}elseif($kind==='receipt-owner'){kp_sql('UPDATE fixture_pm_write_receipts SET user_id=2');}elseif($kind==='receipt-target'){kp_sql('UPDATE fixture_privmsgs SET privmsgs_to_userid=2 WHERE privmsgs_id='.(int)$pn_id);}elseif($kind==='later-edit'){$data=pn_data();$data['subject']='Edited after claim';phpbb_pm_write_message(str_repeat('c',32),$pn_id,$pn_nonce,$data,0);}elseif($kind==='read'){$prior=$userdata;$post=$_POST;try{$userdata['user_id']=3;phpbb_pm_read_message($pn_id,'inbox',0);}finally{$userdata=$prior;$_POST=$post;}}elseif($kind==='actor-inactive'){kp_sql('UPDATE fixture_users SET user_active=0 WHERE user_id=4');}elseif($kind==='readiness-missing-factory'||$kind==='readiness-borrow-factory'){$kp_factory=$kind==='readiness-missing-factory'?'missing':'borrow';}
+   };}
+   try{$result=pn_finish();}finally{$kp_factory='normal';}
+   $error=in_array($kind,array('construct','template','transport-false','transport-exception','invalid-address','readiness-missing-factory','readiness-borrow-factory','claim-missing-factory','claim-borrow-factory','claim-write-failure','claim-lost-ack'),true);$attempt=in_array($kind,array('ordinary','transport-false','transport-exception','address','language','renamed','actor-inactive'),true);
+   kp_check($result['warning']===$error&&count($result['mail'])===($attempt?1:0)&&$db->db_connect_id,'Optional PM response and attempts '.$locale.'/'.$kind);
+   $receipts=kp_rows("SELECT notify_state FROM fixture_pm_write_receipts WHERE request_token='".$pn_nonce."'");$claim_failed=in_array($kind,array('claim-missing-factory','claim-borrow-factory','claim-write-failure'),true);kp_check(count($receipts)===1&&(int)$receipts[0]['notify_state']===($claim_failed?1:2),'Claim acknowledgement preserved without reset/replay');
+   if($attempt){$mail=$result['mail'][0];$language=$kind==='language'?$locale:($locale==='english'?'german':'english');$tpl=file_get_contents($kp_source.'language/lang_'.$language.'/email/privmsg_notify.tpl');kp_check(preg_match('/^Subject: ([^\r\n]+)/',$tpl,$subject)===1&&$mail['subject']===$subject[1],'Actual current recipient-language template');kp_check($mail['to']===($kind==='address'?'current@example.invalid':'previous@example.invalid'),'Current recipient email after real claim release');kp_check($mail['vars']['USERNAME']===($kind==='renamed'?'Current Grüße 😀 &':'Recipient Grüße 😀 &'),'Current decoded recipient name');kp_check($mail['vars']['U_INBOX']==='https://forum.example.invalid/privmsg.php?folder=inbox','Actual inbox link');}
+   if(!$claim_failed){$pn_fault='transport-false';$again=pn_finish();kp_check($again['warning']===($kind==='actor-inactive')&&!$again['mail'],'Repeated completion never retries claimed notification: '.$kind);}$cases++;
+  }
+  foreach(array(false,true)as$borrow){pn_prepare($locale);$db->sql_query('START TRANSACTION');$r=$db->sql_query('SELECT user_email FROM fixture_users WHERE user_id=3');$old=$db->sql_fetchrow($r);$db->sql_freeresult($r);$pn_after_claim=function()use($borrow){kp_sql("UPDATE fixture_users SET user_email='fresh@example.invalid' WHERE user_id=3");if($borrow){$GLOBALS['kp_factory']='borrow';}};
+   try{$result=pn_finish();$r=$db->sql_query('SELECT user_email,@@SESSION.in_transaction active_transaction FROM fixture_users WHERE user_id=3');$same=$db->sql_fetchrow($r);$db->sql_freeresult($r);kp_check($result['warning']===$borrow&&count($result['mail'])===($borrow?0:1)&&$same['user_email']===$old['user_email']&&(int)$same['active_transaction']===1&&$db->db_connect_id,'Completion/readiness leaves caller snapshot open');if(!$borrow){kp_check($result['mail'][0]['to']==='fresh@example.invalid','Readiness ignores caller snapshot');}$cases++;}finally{$kp_factory='normal';$db->sql_query('ROLLBACK');}
+  }
+  pn_prepare($locale);$claimed=phpbb_pm_claim_notification($pn_nonce);$pn_queries=array();$ready=phpbb_pm_notification_ready($db,$pn_nonce,$claimed,4);kp_check($ready!==false,'Actual claimed context reference');$reference=$pn_queries;$positions=array();$seen=array();$index=0;foreach($reference as$sql){$index++;$key=null;if($index<=3){$key='initial-'.$index;}elseif($sql==='START TRANSACTION'){$key='start';}elseif(strpos($sql,'information_schema.TABLES')!==false){$key='metadata';}elseif(strpos($sql,'SELECT u.user_id,u.username,u.user_email,u.user_lang FROM')===0){$key='context';}if($key!==null&&!isset($seen[$key])){$seen[$key]=true;$positions[]=$index;}}
+  foreach($positions as$position){$before=kp_snapshot();$count=0;$kp_hook=function($phase,$sql,$owner)use($position,&$count){return$phase==='before'&&++$count===$position?false:null;};$failed=false;try{phpbb_pm_notification_ready($db,$pn_nonce,$claimed,4);}catch(Exception$error){$failed=true;}finally{$kp_hook=null;}kp_check($failed&&$pn_open===0&&kp_snapshot()===$before,'Readiness SQL failure cannot alter claim/message');$failures++;}
+ }
+ echo 'PM notification completion native: '.$cases.' cases, '.$failures." SQL failures PASS; actual publication/claim/read/edit, real EN/DE mailer/templates, optional response, current recipients, no duplicate mail and isolated caller snapshots.\n";
+}
+$pn_boot_file=__DIR__.'/check-kb-publication-native.php';$pn_boot=file_get_contents($pn_boot_file);$pn_anchor='if(!empty($kp_write_mode)){kp_write_suite();return;}';if(substr_count($pn_boot,$pn_anchor)!==1){throw new RuntimeException('Actual canonical setup boundary');}$pn_boot=str_replace($pn_anchor,'if(!empty($kp_write_mode)){pn_suite();return;}',$pn_boot);$pn_anchor='$db = new KpDatabase(';if(substr_count($pn_boot,$pn_anchor)!==1){throw new RuntimeException('Native owner factory boundary');}$pn_boot=str_replace($pn_anchor,'pn_classes();$db = new PnDatabase(',$pn_boot);$pn_anchor='if(!empty($kp_write_mode)){$kp_tables=array_merge($kp_tables,array(PRIVMSGS_TABLE,PRIVMSGS_TEXT_TABLE));}';if(substr_count($pn_boot,$pn_anchor)!==1){throw new RuntimeException('Canonical PM participant boundary');}$pn_boot=str_replace($pn_anchor,$pn_anchor.'$kp_tables=array_unique(array_merge($kp_tables,array(CONFIG_TABLE,SESSIONS_KEYS_TABLE,BANLIST_TABLE,PM_WRITE_RECEIPTS_TABLE,ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE)));',$pn_boot);$kp_write_mode=true;$pn_eval='';foreach(token_get_all($pn_boot)as$t){$pn_eval.=is_array($t)?($t[0]===T_DIR?var_export(__DIR__,true):$t[1]):$t;}eval(substr($pn_eval,5));

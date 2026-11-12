@@ -484,6 +484,7 @@ $lang['PM_write_pending'] = 'Diese Nachricht ist noch nicht vollständig gespeic
 $lang['PM_resume_title'] = 'Unvollständig gespeicherte private Nachrichten';
 $lang['PM_resume_explain'] = 'Diese angenommenen Anfragen wurden noch nicht vollständig gespeichert. Setze den gespeicherten Vorgang fort, ohne eine zweite Nachricht zu senden. Bereits abgeschlossene Änderungen können hier nicht rückgängig gemacht werden.';
 $lang['PM_resume'] = 'Speichern fortsetzen';
+$lang['PM_notification_failed'] = 'Deine private Nachricht wurde gespeichert, aber die E-Mail-Benachrichtigung konnte nicht gesendet werden. Bitte sende die private Nachricht nicht erneut.';
 $lang['PM_save_limit_exceeded'] = 'Die ausgewählten Nachrichten überschreiten die Kapazität deines gespeicherten Postfachs. Bitte wähle weniger Nachrichten aus. Es wurde nichts verschoben oder gelöscht.';
 
 $lang['Login_check_pm'] = 'Einloggen, um private Nachrichten zu lesen';

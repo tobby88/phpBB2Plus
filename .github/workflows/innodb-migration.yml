@@ -628,6 +628,12 @@ jobs:
         env:
           PHPBB_KB_NOTIFY_NATIVE: '1'
           PHPBB_KB_NOTIFY_PASSWORD: fixture-only
+      - name: Check native PM completion and current notification recipients
+        if: matrix.part == 3
+        run: php -d disable_functions=mail .github/scripts/check-pm-notifications-native.php
+        env:
+          PHPBB_PM_NOTIFY_NATIVE: '1'
+          PHPBB_PM_NOTIFY_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php

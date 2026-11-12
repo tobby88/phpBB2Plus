@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_pm_write.php';
+require_once dirname(__FILE__) . '/functions_login_storage.php';
 
 function phpbb_pm_revision($value)
 {
@@ -49,30 +50,66 @@ function phpbb_pm_write_error($error)
 	message_die(GENERAL_ERROR, $message);
 }
 
-function phpbb_pm_complete_response($nonce)
+// The receipt is already claimed at most once. Refresh the complete, still
+// unread message and recipient independently; release all reads before mail.
+function phpbb_pm_notification_ready($database, $nonce, $claimed, $sender_id)
 {
-	global $board_config, $lang, $template, $phpbb_root_path, $phpEx;
-	$user = phpbb_pm_claim_notification($nonce);
-	if ($user !== false)
-	{
+	$nonce = phpbb_pm_write_nonce($nonce);
+	$recipient = is_array($claimed) && isset($claimed['user_id']) ? attach_delete_id_array(array($claimed['user_id'])) : false;
+	$sender = attach_delete_id_array(array($sender_id));
+	if (!$recipient || !$sender) { phpbb_acl_error('PM_journal_changed'); }
+	$owner = new PhpbbLoginDatabase($database, array(PRIVMSGS_TABLE, PRIVMSGS_TEXT_TABLE, PM_WRITE_RECEIPTS_TABLE));
+	try {
+		$token = $owner->sql_escape($nonce);
+		$rows = $owner->rows('SELECT u.user_id,u.username,u.user_email,u.user_lang FROM ' . PM_WRITE_RECEIPTS_TABLE . ' r'
+			. ' JOIN ' . PRIVMSGS_TABLE . ' p ON p.privmsgs_id=r.message_id AND p.privmsgs_from_userid=r.user_id'
+			. ' AND HEX(p.privmsgs_write_token)=HEX(r.request_token) AND HEX(p.privmsgs_write_hash)=HEX(r.request_hash)'
+			. ' JOIN ' . PRIVMSGS_TEXT_TABLE . ' t ON t.privmsgs_text_id=p.privmsgs_id'
+			. ' JOIN ' . USERS_TABLE . ' u ON u.user_id=p.privmsgs_to_userid'
+			. " WHERE HEX(r.request_token)=HEX('" . $token . "') AND r.user_id=" . $sender[0] . ' AND r.notify_state=2'
+			. ' AND u.user_id=' . $recipient[0] . ' AND u.user_active=1 AND u.user_notify_pm=1'
+			. ' AND p.privmsgs_write_payload IS NULL AND p.privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ') LOCK IN SHARE MODE');
+		return count($rows) === 1 ? $rows[0] : false;
+	} finally { $owner->release(); }
+}
+
+// Saving the PM succeeded before this optional side effect. Never replay its
+// claim or turn a notification failure into a failed/duplicate message send.
+function phpbb_pm_optional_notification($nonce)
+{
+	global $db, $userdata, $board_config, $lang, $phpbb_root_path, $phpEx;
+	try {
+		$sender = $userdata['user_id'];
+		$user = phpbb_pm_claim_notification($nonce);
+		if ($user === false) { return true; }
+		$user = phpbb_pm_notification_ready($db, $nonce, $user, $sender);
+		if ($user === false) { return true; }
+		if (!filter_var($user['user_email'], FILTER_VALIDATE_EMAIL)) { return false; }
 		$script_name = trim($board_config['script_path'], '/') . '/privmsg.' . $phpEx;
 		$protocol = $board_config['cookie_secure'] ? 'https://' : 'http://';
 		$port = (int)$board_config['server_port'];
 		$authority = trim($board_config['server_name']) . (($port > 0 && $port !== ($board_config['cookie_secure'] ? 443 : 80)) ? ':' . $port : '');
 		require_once $phpbb_root_path . 'includes/emailer.' . $phpEx;
-		$emailer = new emailer($board_config['smtp_delivery']);
+		$emailer = new emailer($board_config['smtp_delivery'], true);
 		$emailer->from($board_config['board_email']);
 		$emailer->replyto($board_config['board_email']);
 		$emailer->use_template('privmsg_notify', $user['user_lang']);
 		$emailer->email_address($user['user_email']);
 		$emailer->set_subject($lang['Notification_subject']);
-		$emailer->assign_vars(array('USERNAME'=>$user['username'], 'SITENAME'=>$board_config['sitename'],
+		$emailer->assign_vars(array('USERNAME'=>html_entity_decode($user['username'], ENT_QUOTES, 'UTF-8'), 'SITENAME'=>$board_config['sitename'],
 			'EMAIL_SIG'=>!empty($board_config['board_email_sig']) ? str_replace('<br />', "\n", '-- ' . "\n" . $board_config['board_email_sig']) : '',
 			'U_INBOX'=>$protocol . $authority . '/' . ltrim($script_name, '/') . '?folder=inbox'));
-		$emailer->send(); $emailer->reset();
-	}
+		$sent = $emailer->send(); $emailer->reset(); return (bool)$sent;
+	} catch (Exception $error) { return false; }
+	catch (Error $error) { return false; }
+}
+
+function phpbb_pm_complete_response($nonce)
+{
+	global $board_config, $lang, $template, $phpbb_root_path, $phpEx;
+	$notified = phpbb_pm_optional_notification($nonce);
 	$template->assign_vars(array('META'=>'<meta http-equiv="refresh" content="3;url=' . phpbb_profile_text(append_sid('privmsg.' . $phpEx . '?folder=inbox')) . '" />'));
-	$message = $lang['Message_sent'] . '<br /><br />' . sprintf($lang['Click_return_inbox'], '<a href="' . append_sid('privmsg.' . $phpEx . '?folder=inbox') . '">', '</a> ')
+	$message = $lang['Message_sent'] . ($notified ? '' : '<br /><br />' . $lang['PM_notification_failed']) . '<br /><br />' . sprintf($lang['Click_return_inbox'], '<a href="' . append_sid('privmsg.' . $phpEx . '?folder=inbox') . '">', '</a> ')
 		. '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid('index.' . $phpEx) . '">', '</a>');
 	message_die(GENERAL_MESSAGE, $message);
 }

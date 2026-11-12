@@ -12,17 +12,19 @@ $a=strpos($functions,'function phpbb_profile_text('); $b=strpos($functions,'func
 pm_repair_check($a!==false && $b>$a,'Actual HTML escaping helper');
 eval(substr($functions,$a,$b-$a));
 $helper = file_get_contents($root.'includes/functions_pm_controller.php');
-$a=strpos($helper,'function phpbb_pm_revision('); $b=strpos($helper,'function phpbb_pm_complete_response(', $a);
-pm_repair_check($a!==false && $b>$a,'Actual controller helper boundaries');
-eval(substr($helper,$a,$b-$a));
-// Namespace only the response's transport. The real mailer file may be loaded,
-// but cannot be instantiated or send mail by this isolated response fixture.
+$a=strpos($helper,'function phpbb_pm_revision(');$ready=strpos($helper,'function phpbb_pm_notification_ready(', $a);$optional=strpos($helper,'function phpbb_pm_optional_notification(', $ready);$b=strpos($helper,'function phpbb_pm_complete_response(', $optional);
+pm_repair_check($a!==false&&$ready>$a&&$optional>$ready&&$b>$optional,'Actual controller helper boundaries');
+eval(substr($helper,$a,$ready-$a));
+// Legacy controller/transport fixture only. Current native SQL readiness is
+// covered separately with the real mailer and canonical MariaDB tables.
+eval('namespace PmWriteResponseFixture; function phpbb_pm_notification_ready($db,$nonce,$claimed,$sender){return $claimed;}');
+eval('namespace PmWriteResponseFixture;'.substr($helper,$optional,$b-$optional));
 eval('namespace PmWriteResponseFixture;'.substr($helper,$b));
 eval('namespace PmWriteResponseFixture; class emailer {
- function __construct($smtp) { $GLOBALS["pm_mail_vars"]=array(); }
+ function __construct($smtp,$optional=false) { \pm_repair_check($optional===true,"PM notice is optional after save");$GLOBALS["pm_mail_vars"]=array(); }
  function __call($name,$arguments) { $GLOBALS["pm_mail_calls"][$name]=$arguments; }
  function assign_vars($vars) { $GLOBALS["pm_mail_vars"]=$vars; }
- function send() { \pm_repair_check($GLOBALS["pm_repair_server"]->owner===null,"No SMTP inside database lock"); $GLOBALS["pm_mail_count"]++; }
+ function send() { \pm_repair_check($GLOBALS["pm_repair_server"]->owner===null,"No SMTP inside database lock"); $GLOBALS["pm_mail_count"]++;return true; }
 }');
 function phpbb_pm_complete_response($nonce) { \PmWriteResponseFixture\phpbb_pm_complete_response($nonce); }
 class PmWriteDisplayForum extends PmRepairForum
