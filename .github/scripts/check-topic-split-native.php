@@ -1,6 +1,7 @@
 <?php
 // Actual mysqli driver, canonical owned tables and an independent peer.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_SPLIT_NATIVE')!=='1'){echo "Native topic split checks require an explicitly enabled disposable database.\n";return;}
+require_once __DIR__.'/native-fixture-locks.php';
 define('IN_PHPBB',true);$phpEx='php';$table_prefix='fixture_';
 $phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';
 require $phpbb_root_path.'includes/constants.php';require $phpbb_root_path.'attach_mod/includes/constants.php';
@@ -72,13 +73,19 @@ function sp_reset($actor='root'){
 function sp_run($mode='selected',$target=4){try{return phpbb_split_topic($GLOBALS['db'],3,100,$target,$mode==='after'?array(13):array(12,14),$mode,"Split Grüße O'Reilly \\ 😀");}catch(PhpbbTopicSplitException $e){return 'error';}}
 function sp_boundary($sql){return preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)||$sql==='COMMIT'||strpos($sql,' LOCK IN SHARE MODE')!==false;}
 function sp_revoke($kind){$changes=array('missing'=>"DELETE FROM fixture_sessions WHERE session_id='review-sid'",'foreign'=>"UPDATE fixture_sessions SET session_user_id=9 WHERE session_id='review-sid'",'logout'=>"UPDATE fixture_sessions SET session_logged_in=0 WHERE session_id='review-sid'",'case'=>"UPDATE fixture_sessions SET session_id='REVIEW-SID' WHERE session_id='review-sid'",'role'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=8','inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=8','grant'=>'UPDATE fixture_auth_access SET auth_mod=0 WHERE forum_id=3','membership'=>'DELETE FROM fixture_user_group WHERE user_id=8','read'=>'UPDATE fixture_forums SET auth_read=5 WHERE forum_id=3','target'=>'UPDATE fixture_forums SET auth_post=5 WHERE forum_id=4');return $changes[$kind];}
+function sp_probe_revoke($kind)
+{
+ $probe=native_fixture_conflict_query($GLOBALS['peer'],sp_revoke($kind));
+ $GLOBALS['sp_probe_counts'][$probe[0]?'completed':'blocked']++;
+ return $probe;
+}
 class SplitNativeTemplate {var $vars=array();function assign_vars($vars){$this->vars=$vars;}}
 try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $canonical=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');
  require dirname(dirname(__DIR__)).'/update/innodb_migration.php';$migrated=plus_storage_tables($canonical,'fixture_');
  foreach($sp_tables as $suffix){$name='phpbb_'.$suffix;sp_check(in_array('fixture_'.$suffix,$migrated,true),'Normal migration covers '.$suffix);sp_check(preg_match('/CREATE TABLE '.$name.'\s*\([\s\S]*?;/',$canonical,$match)===1,'Canonical table '.$suffix);sp_sql(str_replace($name,'fixture_'.$suffix,$match[0]));preg_match_all('/ALTER TABLE '.$name.'\s+[\s\S]*?;/',$canonical,$extra);foreach($extra[0] as $ddl){sp_sql(str_replace($name,'fixture_'.$suffix,$ddl));}}
- sp_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
+ sp_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;$sp_probe_counts=array('blocked'=>0,'completed'=>0);$sp_expected_probes=0;
  foreach(array('root','moderator') as $actor){foreach(array('selected','after') as $action){
   sp_reset($actor);$before=sp_snap();$out=sp_run($action);sp_check(is_array($out)&&$out['topic_id']===301,'Complete split '.$actor.'/'.$action.' '.json_encode($sp_error));$after=sp_snap();$writes=$sp_write;$boundaries=array_values(array_filter($sp_queries,'sp_boundary'));
   $selected=$action==='after'?array(13,14):array(12,14);sp_check($out['post_ids']===$selected,'Exact selected/timestamp-tied post set');
@@ -96,9 +103,9 @@ try{
   for($n=1;$n<=$writes;$n++){sp_reset($actor);$before=sp_snap();$sp_fail=$n;sp_check(sp_run($action)==='error'&&sp_snap()===$before,'Whole split rollback at write '.$n.'/'.$action);$cases++;}
   foreach(array('fail','ack') as $kind){sp_reset($actor);$before=sp_snap();$sp_commit=$kind;sp_check(sp_run($action)==='error'&&sp_snap()===($kind==='fail'?$before:$after),'Lost/failed COMMIT leaves all-before/all-after');$sp_commit='';if($kind==='ack'){sp_check(sp_run($action)==='error'&&sp_snap()===$after,'Uncertain complete split does not duplicate topic');}$cases++;}
   if($action==='selected'){foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
-   sp_reset($actor);$seen=0;$reached=$blocked=false;$revoked=null;
+   sp_reset($actor);$seen=0;$reached=$blocked=false;$revoked=null;$sp_expected_probes++;
    $sp_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!sp_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['sp_hook']=null;$reached=true;
-    if(!$GLOBALS['peer']->sql_query(sp_revoke($kind))){$e=$GLOBALS['peer']->sql_error();sp_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=sp_snap();}};
+    $probe=sp_probe_revoke($kind);if(!$probe[0]){$e=$probe[1];sp_check((int)$e['code']===1205,'Independent authority lock timeout');$blocked=true;}else{$revoked=sp_snap();}};
    $out=sp_run($action);sp_check($reached,'Every write/commit boundary reached');
    if($blocked){sp_check(is_array($out)&&$out['topic_id']===301&&sp_snap()===$after,'Revocation serializes after complete split');sp_sql(sp_revoke($kind));$serialized++;}
    else{sp_check($out==='error'&&sp_snap()===$revoked,'Effective revocation undoes entire split but keeps peer change');}$cases++;
@@ -106,7 +113,7 @@ try{
   echo $actor.'/'.$action." native split rollback/current-authority boundaries passed\n";
  }}
  foreach(array('missing','foreign','logout','case','inactive','role') as $kind){sp_reset();sp_sql(sp_revoke($kind));$before=sp_snap();sp_check(sp_run()==='error'&&sp_snap()===$before,'Exact current entry authority '.$kind);$cases++;}
- foreach(array('membership','read','target') as $kind){sp_reset('moderator');$blocked=false;$revoked=null;$sp_hook=function($sql)use($kind,&$blocked,&$revoked){if(strpos($sql,'UPDATE fixture_posts p JOIN')!==0){return;}$GLOBALS['sp_hook']=null;if(!$GLOBALS['peer']->sql_query(sp_revoke($kind))){$e=$GLOBALS['peer']->sql_error();sp_check((int)$e['code']===1205,'Permission row lock');$blocked=true;}else{$revoked=sp_snap();}};$out=sp_run();sp_check($blocked?is_array($out):$out==='error'&&sp_snap()===$revoked,'Changed permission rollback or serialization');$cases++;}
+ foreach(array('membership','read','target') as $kind){sp_reset('moderator');$blocked=false;$revoked=null;$sp_expected_probes++;$sp_hook=function($sql)use($kind,&$blocked,&$revoked){if(strpos($sql,'UPDATE fixture_posts p JOIN')!==0){return;}$GLOBALS['sp_hook']=null;$probe=sp_probe_revoke($kind);if(!$probe[0]){$e=$probe[1];sp_check((int)$e['code']===1205,'Permission row lock');$blocked=true;}else{$revoked=sp_snap();}};$out=sp_run();sp_check($blocked?is_array($out):$out==='error'&&sp_snap()===$revoked,'Changed permission rollback or serialization');$cases++;}
  foreach($sp_participants as $s){sp_reset();sp_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=sp_snap();sp_check(sp_run()==='error'&&sp_snap()===$before,'Reject legacy participant '.$s);sp_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
  foreach(array('row','table-charset','column-charset') as $kind){sp_reset();$ddl=$kind==='row'?'ROW_FORMAT=COMPACT':($kind==='table-charset'?'DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci':'MODIFY session_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL');sp_sql('ALTER TABLE fixture_sessions '.$ddl);$before=sp_snap();sp_check(sp_run()==='error'&&sp_snap()===$before,'Reject alternate storage '.$kind);sp_sql('ALTER TABLE fixture_sessions ROW_FORMAT=DYNAMIC, DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, MODIFY session_id CHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL');$cases++;}
  sp_reset();$before=sp_snap();$killed=false;$sp_hook=function($sql)use(&$killed){if(strpos($sql,'INSERT INTO fixture_topics_watch')!==0){return;}$GLOBALS['sp_hook']=null;$killed=true;sp_sql('KILL CONNECTION '.(int)mysqli_thread_id($GLOBALS['sp_writer']->db_connect_id));};sp_check(sp_run()==='error'&&$killed&&sp_snap()===$before,'Real disconnect undoes new topic/posts/counters/flags');
@@ -124,5 +131,8 @@ try{
  define('CACHE_TREE',true);$sp_source_root=$phpbb_root_path;$sp_cache=sys_get_temp_dir().'/phpbb-split-cache-'.bin2hex(phpbb_random_bytes(8));sp_check(mkdir($sp_cache,0700)&&mkdir($sp_cache.'/cache',0700),'Owned cache directory');
  try{$phpbb_root_path=$sp_cache.'/';foreach(array('success','failure','ack') as $kind){sp_reset();file_put_contents($sp_cache.'/cache/tree.cache','stale');if($kind==='failure'){$sp_fail=3;}if($kind==='ack'){$sp_commit='ack';}$out=sp_run();sp_check(is_array($out)===($kind==='success')&&!file_exists($sp_cache.'/cache/tree.cache'),'Cache invalidated after confirmed/failed/uncertain split');}}
  finally{$phpbb_root_path=$sp_source_root;if(is_file($sp_cache.'/cache/tree.cache')){unlink($sp_cache.'/cache/tree.cache');}rmdir($sp_cache.'/cache');rmdir($sp_cache);}
+ sp_check($sp_probe_counts['blocked']>0&&$sp_probe_counts['completed']>0&&array_sum($sp_probe_counts)===$sp_expected_probes,'Real conflict and completed-revocation coverage retained: '.json_encode($sp_probe_counts).'/'.$sp_expected_probes);
+ sp_check((string)sp_rows('SELECT @@SESSION.innodb_lock_wait_timeout AS fixture_wait')[0]['fixture_wait']==='1','Normal peer timeout restored after all contention probes');
+ echo 'Native topic split contention: '.$sp_probe_counts['blocked'].' real conflicts and '.$sp_probe_counts['completed']." completed changes; original peer timeout restored.\n";
  echo 'Native topic split: '.$cases.' failure/boundary cases, '.$serialized." serialized changes; both modes and actual controllers passed.\n";
 }finally{$sp_hook=null;$sp_fail=0;$sp_prefix=$sp_commit='';$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
