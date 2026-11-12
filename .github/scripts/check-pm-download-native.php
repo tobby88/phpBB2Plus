@@ -107,7 +107,7 @@ function pd_text_defaults_checks(){
 }
 function pd_suite(){
     global$kp_source,$pn_open,$pn_claim_pending,$pn_after_claim,$pn_queries,$pd_body,$pd_after_extensions,$pd_factory,$pd_busy,$kp_hook,$kp_factory,$db,$userdata,$peer,$pd_root_fault;
-    require_once$kp_source.'attach_mod/includes/functions_delete.php';require$kp_source.'includes/functions_pm_controller.php';
+    require_once$kp_source.'attach_mod/includes/functions_delete.php';require$kp_source.'includes/functions_pm_controller.php';require$kp_source.'includes/functions_post_attachment_access.php';
     $pn_open=0;$pn_claim_pending=false;$pn_after_claim=null;$pn_queries=array();$pd_factory='normal';$pd_root_fault='';$pd_root_queries=array();$pd_after_extensions=null;
     if(getenv('PHPBB_PM_DOWNLOAD_MYSQL')==='8.4'){$server=kp_rows('SELECT VERSION() version,@@GLOBAL.innodb_flush_log_at_trx_commit commit_flush');kp_check(count($server)===1&&preg_match('/^8\.4\./',$server[0]['version'])&&stripos($server[0]['version'],'mariadb')===false&&(int)$server[0]['commit_flush']===1,'Actual MySQL 8.4 with normal commit durability required');echo "PM download MySQL 8.4: canonical server confirmed.\n";}
     $source=str_replace("\r\n","\n",file_get_contents($kp_source.'download.php'));
@@ -176,5 +176,5 @@ function pd_suite(){
 $pd_file=__DIR__.'/check-pm-notifications-native.php';$pd_source=file_get_contents($pd_file);
 if(substr_count($pd_source,'pn_suite();return;')!==1||substr_count($pd_source,'pn_classes();$db = new PnDatabase(')!==1){throw new RuntimeException('Actual canonical PM fixture boundaries');}
 $pd_source=str_replace('pn_suite();return;','pd_suite();return;',$pd_source);$pd_source=str_replace('pn_classes();$db = new PnDatabase(','pn_classes();pd_classes();$db = new PdDatabase(',$pd_source);
-$pd_source=str_replace('ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE','ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE,ATTACH_CONFIG_TABLE,EXTENSIONS_TABLE,EXTENSION_GROUPS_TABLE,CATEGORIES_TABLE,SHOUTBOX_TABLE',$pd_source);
+$pd_source=str_replace('ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE','ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE,ATTACH_CONFIG_TABLE,EXTENSIONS_TABLE,EXTENSION_GROUPS_TABLE,CATEGORIES_TABLE,SHOUTBOX_TABLE,AUTH_ACCESS_TABLE',$pd_source);
 $pd_eval='';foreach(token_get_all($pd_source)as$t){$pd_eval.=is_array($t)?($t[0]===T_DIR?var_export(__DIR__,true):$t[1]):$t;}eval(substr($pd_eval,5));

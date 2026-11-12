@@ -1408,8 +1408,14 @@ jobs:
         env:
           PHPBB_PUBLIC_PROFILE_NATIVE: '1'
           PHPBB_PUBLIC_PROFILE_PASSWORD: fixture-only
+      - name: Check current public attachment parents, ACLs and delivery
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-post-download-native.php
+        env:
+          PHPBB_PM_NOTIFY_NATIVE: '1'
+          PHPBB_PM_NOTIFY_PASSWORD: fixture-only
   pm-download-mysql:
-    name: PM downloads (MySQL 8.4, PHP 8.5)
+    name: Attachment downloads (MySQL 8.4, PHP 8.5)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -1433,6 +1439,12 @@ jobs:
           coverage: none
       - name: Check actual MySQL attachment authorization and reader lifecycle
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
+        env:
+          PHPBB_PM_NOTIFY_NATIVE: '1'
+          PHPBB_PM_NOTIFY_PASSWORD: fixture-only
+          PHPBB_PM_DOWNLOAD_MYSQL: '8.4'
+      - name: Check current public attachment parents, ACLs and delivery
+        run: php -d disable_functions=mail .github/scripts/check-post-download-native.php
         env:
           PHPBB_PM_NOTIFY_NATIVE: '1'
           PHPBB_PM_NOTIFY_PASSWORD: fixture-only

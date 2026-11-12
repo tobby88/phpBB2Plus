@@ -10,8 +10,9 @@ function native_workflow_partition($source)
 		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
 		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
 		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 1
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-pm-download-native\.php$/m',$extra) !== 1)
+		|| preg_match_all('/^        run:/m',$extra) !== 2
+		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-pm-download-native\.php$/m',$extra) !== 1
+		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-post-download-native\.php$/m',$extra) !== 1)
 	{ throw new RuntimeException('Only the unconditional reviewed MySQL attachment suite may run outside the matrix'); }
 	$start = strpos($matrix_source,'    steps:'); if ($start === false) { throw new RuntimeException('Native CI steps missing'); }
 	$parts = array(1=>0,2=>0,3=>0,4=>0,5=>0,6=>0); $setup = 0; $database_checks = 0;

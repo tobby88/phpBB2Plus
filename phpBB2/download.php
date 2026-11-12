@@ -21,6 +21,7 @@ $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.' . $phpEx);
 require_once($phpbb_root_path . 'includes/functions_privmsgs.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_post_attachment_access.' . $phpEx);
 
 //
 // Delete the / * to uncomment the block, and edit the values (read the comments) to
@@ -272,11 +273,6 @@ if (!$download_id)
 	message_die(GENERAL_ERROR, $lang['No_attachment_selected']);
 }
 
-if ($attach_config['disable_mod'] && $userdata['user_level'] != ADMIN)
-{
-	message_die(GENERAL_MESSAGE, $lang['Attachment_feature_disabled']);
-}
-
 $sql = 'SELECT *
 	FROM ' . ATTACHMENTS_DESC_TABLE . '
 	WHERE attach_id = ' . (int) $download_id;
@@ -298,7 +294,8 @@ $db->sql_freeresult($result);
 // get forum_id for attachment authorization or private message authorization
 $authorised = false;
 $pm_download_id = 0;
-$download_admin = $userdata['user_level'] == ADMIN;
+$post_download_id = 0;
+$download_admin = false;
 
 $sql = 'SELECT *
 	FROM ' . ATTACHMENTS_TABLE . '
@@ -318,29 +315,12 @@ for ($i = 0; $i < $num_auth_pages && $authorised == false; $i++)
 
 	if ($auth_pages[$i]['post_id'] != 0)
 	{
-		$sql = 'SELECT forum_id
-			FROM ' . POSTS_TABLE . '
-			WHERE post_id = ' . (int) $auth_pages[$i]['post_id'];
-
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not query post information', '', __LINE__, __FILE__, $sql);
-		}
-
-		$row = $db->sql_fetchrow($result);
-		if (!$row)
-		{
-			continue;
-		}
-
-		$forum_id = $row['forum_id'];
-
-		$is_auth = array();
-		$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
-
-		if ($is_auth['auth_view'] && $is_auth['auth_read'] && $is_auth['auth_download'])
+		$post_attachment = phpbb_post_attachment_context($db, $auth_pages[$i]['post_id'], $userdata, $download_id);
+		if ($post_attachment !== false)
 		{
 			$authorised = TRUE;
+			$post_download_id = (int)$auth_pages[$i]['post_id'];
+			$attachment = $post_attachment;
 		}
 	}
 	else
@@ -393,6 +373,23 @@ if ($pm_download_id > 0)
 	if ($attachment === false) { message_die(GENERAL_MESSAGE, $lang['Sorry_auth_view_attach']); }
 	$attachment['physical_filename'] = basename($attachment['physical_filename']);
 	$download_admin = (int)$attachment['pm_download_level'] === ADMIN;
+}
+else if ($post_download_id > 0)
+{
+	$attachment = phpbb_post_attachment_context($db, $post_download_id, $userdata, $download_id);
+	if ($attachment === false) { message_die(GENERAL_MESSAGE, $lang['Sorry_auth_view_attach']); }
+	$attachment['physical_filename'] = basename($attachment['physical_filename']);
+	$download_admin = (int)$attachment['post_download_level'] === ADMIN;
+	// The current parent read also resolves the current extension policy/mode.
+	// Do not retain a group decision from before the last authorization check.
+	$extension = strtolower(trim((string)$attachment['extension']));
+	$allowed_extensions = $attachment['post_download_mode'] === null ? array() : array($extension);
+	$download_mode = array($extension => $attachment['post_download_mode'] === null ? INLINE_LINK : (int)$attachment['post_download_mode']);
+}
+
+if (!empty($attach_config['disable_mod']) && !$download_admin)
+{
+	message_die(GENERAL_MESSAGE, $lang['Attachment_feature_disabled']);
 }
 
 // disallowed ?

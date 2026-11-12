@@ -12,10 +12,10 @@ $errors = array();
 
 foreach (array(
 	'$thumbnail_prefix',
-	"\$is_auth['auth_view'] && \$is_auth['auth_read'] && \$is_auth['auth_download']",
+	'phpbb_post_attachment_context($db,',
 	"header('X-Content-Type-Options: nosniff')",
 	"header('Cache-Control: private, no-store, max-age=0')",
-	'if (!$row)'
+	"\$attachment['post_download_level']"
 ) as $marker)
 {
 	if (strpos($attachment, $marker) === false)

@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Refresh post attachment permissions and parents before delivery
+
+- Resolve post downloads from current sessions/accounts, forum rules and group
+  grants using a separate read. Preserve guest, registered, moderator and admin
+  rules without trusting the cached category tree or caller transaction.
+- Require a surviving post, matching topic/forum and current attachment link;
+  deletion placeholders never expose attachments. Another authorized public or
+  private parent may still allow a shared file.
+- Refresh file metadata, extension-group policy and delivery mode before output;
+  cached admin roles never bypass disabled extensions. Keep ordinary download
+  counters, thumbnails and redirects, with no database migration required.
+
 ### Refresh private attachment download permissions before delivery
 
 - Resolve private-message attachment access using an independent current read:
