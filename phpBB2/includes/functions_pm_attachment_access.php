@@ -17,11 +17,25 @@ class PhpbbPmAttachmentReader
 			&& $connection->db_connect_id === $database->db_connect_id)) { phpbb_acl_error('PM_cleanup_failed'); }
 		$this->connection = $connection;
 		try {
-			$state = $this->rows('SELECT @@SESSION.autocommit AS pm_autocommit,@@SESSION.in_transaction AS pm_transaction');
-			if (count($state) !== 1 || (int)$state[0]['pm_autocommit'] !== 1 || (int)$state[0]['pm_transaction'] !== 0) {
+			$state = $this->rows('SELECT @@SESSION.autocommit AS pm_autocommit');
+			if (count($state) !== 1 || (int)$state[0]['pm_autocommit'] !== 1) {
 				// An adapter returning somebody else's active transaction must not
 				// have that work committed, rolled back or closed by this reader.
 				$this->connection = null; phpbb_acl_error('PM_cleanup_failed');
+			}
+			// Both MySQL and MariaDB reject next-transaction characteristics
+			// with error 1568 inside an active transaction. Unlike START, this
+			// cannot implicitly commit borrowed work; no server-only status
+			// variable is needed. The authorization SELECT remains read-only.
+			try { $ready = $connection->sql_query('SET TRANSACTION READ ONLY'); }
+			catch (Exception $error) {
+				if ((int)$error->getCode() === 1568) { $this->connection = null; }
+				throw $error;
+			}
+			if (!$ready) {
+				$error = $connection->sql_error();
+				if (isset($error['code']) && (int)$error['code'] === 1568) { $this->connection = null; }
+				phpbb_acl_error('PM_cleanup_failed');
 			}
 		} catch (Exception $error) { $this->release(); throw $error; }
 		catch (Error $error) { $this->release(); throw $error; }

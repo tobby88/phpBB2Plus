@@ -21,7 +21,7 @@ function pd_classes(){
         }
         function sql_dedicated_connection(){
             if($GLOBALS['pd_factory']==='alias'){return new KpOwnerConnection($this);}
-            if($GLOBALS['pd_factory']==='busy'){return$GLOBALS['pd_busy'];}
+            if(in_array($GLOBALS['pd_factory'],array('busy','busy-autocommit'),true)){return$GLOBALS['pd_busy'];}
             if($GLOBALS['pd_factory']==='throw'){throw new RuntimeException('Synthetic private connection details');}
             return parent::sql_dedicated_connection();
         }
@@ -77,10 +77,14 @@ function pd_revoke($kind){
     elseif($kind==='filename'){kp_sql("UPDATE fixture_attachments_desc SET physical_filename='fresh.bin',real_filename='Fresh Grüße.bin'");}
     elseif($kind==='extension'){kp_sql("UPDATE fixture_attachments_desc SET extension='blocked'");}
 }
+function pd_caller_view(){
+    $out=array();foreach(array('fixture_users','fixture_sessions','fixture_attachments')as$table){$r=$GLOBALS['db']->sql_query('SELECT * FROM '.$table);kp_check($r,'Actual caller snapshot read');$out[$table]=$GLOBALS['db']->sql_fetchrowset($r);$GLOBALS['db']->sql_freeresult($r);}return$out;
+}
 function pd_suite(){
     global$kp_source,$pn_open,$pn_claim_pending,$pn_after_claim,$pn_queries,$pd_body,$pd_after_extensions,$pd_factory,$pd_busy,$kp_hook,$kp_factory,$db,$userdata,$peer,$pd_root_fault;
     require_once$kp_source.'attach_mod/includes/functions_delete.php';require$kp_source.'includes/functions_pm_controller.php';
     $pn_open=0;$pn_claim_pending=false;$pn_after_claim=null;$pn_queries=array();$pd_factory='normal';$pd_root_fault='';$pd_root_queries=array();$pd_after_extensions=null;
+    if(getenv('PHPBB_PM_DOWNLOAD_MYSQL')==='8.4'){$server=kp_rows('SELECT VERSION() version,@@GLOBAL.innodb_flush_log_at_trx_commit commit_flush');kp_check(count($server)===1&&preg_match('/^8\.4\./',$server[0]['version'])&&stripos($server[0]['version'],'mariadb')===false&&(int)$server[0]['commit_flush']===1,'Actual MySQL 8.4 with normal commit durability required');echo "PM download MySQL 8.4: canonical server confirmed.\n";}
     $source=str_replace("\r\n","\n",file_get_contents($kp_source.'download.php'));
     $start=strpos($source,"\$sql = 'SELECT *\n\tFROM ' . ATTACHMENTS_DESC_TABLE");kp_check($start!==false,'Actual complete download branch');$pd_body=substr($source,$start);
     putenv('SERVER_SOFTWARE=fixture-only');$cases=$failures=0;
@@ -123,20 +127,21 @@ function pd_suite(){
         pd_check(pd_route(),false,'Late extension cannot reuse a stale allow list');$cases++;
         pd_prepare($locale);kp_sql('UPDATE fixture_extension_groups SET download_mode='.PHYSICAL_LINK);kp_sql("UPDATE fixture_attachments_desc SET extension='bin',mimetype='image/png'");$result=pd_route();pd_check($result,true,'Actual physical redirect');kp_check($result->kind==='redirect'&&strpos($result->value,'synthetic.bin')!==false,'Controlled redirect uses bound descriptor');$cases++;
         foreach(array(false,true)as$thumb){pd_prepare($locale);$result=pd_route(true,$thumb);pd_check($result,true,'Actual thumbnail/stream');kp_check($result->kind==='stream'&&$result->value['physical_filename']===($thumb?THUMB_DIR.'/t_synthetic.bin':'synthetic.bin'),'Thumbnail path derives from current descriptor');$cases++;}
-        foreach(array('missing','borrow','alias','throw','busy')as$factory){
+        pd_prepare($locale);$kp_hook=function($phase,$sql){kp_check(stripos($sql,'in_transaction')===false,'Production reader uses portable transaction setup');};try{pd_check(pd_route(),true,'No MariaDB-only transaction status query');}finally{$kp_hook=null;}$cases++;
+        foreach(array('missing','borrow','alias','throw','busy','busy-autocommit')as$factory){
             pd_prepare($locale);$before=kp_snapshot();$pd_factory=$factory;$kp_factory=in_array($factory,array('missing','borrow'),true)?$factory:'normal';
-            if($factory==='busy'){$pd_busy=new sql_db($db->server,$db->user,getenv('PHPBB_PM_NOTIFY_PASSWORD')?:'',$db->dbname,false);kp_check($pd_busy->sql_query('START TRANSACTION'),'Owned busy fixture');kp_check($pd_busy->sql_query("UPDATE fixture_users SET username='Pending fixture' WHERE user_id=2"),'Owned pending work');}
-            try{$result=pd_route();pd_check($result,false,'Invalid dedicated factory '.$factory);kp_check($result->level===GENERAL_ERROR&&$result->getMessage()===$GLOBALS['lang']['PM_cleanup_failed'],'Factory errors reveal no connection details');kp_check($db->db_connect_id&&kp_snapshot()===$before,'Invalid factory does not mutate/close caller');if($factory==='busy'){$r=$pd_busy->sql_query('SELECT @@in_transaction active');$row=$pd_busy->sql_fetchrow($r);$pd_busy->sql_freeresult($r);kp_check($pd_busy->db_connect_id&&(int)$row['active']===1,'Busy borrowed transaction remains open');}}
-            finally{$pd_factory='normal';$kp_factory='normal';if($factory==='busy'){$pd_busy->sql_query('ROLLBACK');$pd_busy->sql_close();}}$cases++;
+            if(in_array($factory,array('busy','busy-autocommit'),true)){$pd_busy=new sql_db($db->server,$db->user,getenv('PHPBB_PM_NOTIFY_PASSWORD')?:'',$db->dbname,false);if($factory==='busy'){kp_check($pd_busy->sql_query('START TRANSACTION'),'Owned busy fixture');kp_check($pd_busy->sql_query("UPDATE fixture_users SET username='Pending fixture' WHERE user_id=2"),'Owned pending work');}else{kp_check($pd_busy->sql_query('SET autocommit=0'),'Owned non-autocommit fixture');}}
+            try{$result=pd_route();pd_check($result,false,'Invalid dedicated factory '.$factory);kp_check($result->level===GENERAL_ERROR&&$result->getMessage()===$GLOBALS['lang']['PM_cleanup_failed'],'Factory errors reveal no connection details');kp_check($db->db_connect_id&&kp_snapshot()===$before,'Invalid factory does not mutate/close caller');if(in_array($factory,array('busy','busy-autocommit'),true)){$r=$pd_busy->sql_query('SELECT @@autocommit automatic');$row=$pd_busy->sql_fetchrow($r);$pd_busy->sql_freeresult($r);kp_check($pd_busy->db_connect_id&&(int)$row['automatic']===($factory==='busy'?1:0),'Borrowed connection/mode remains open');if($factory==='busy'){$r=$pd_busy->sql_query('SELECT username FROM fixture_users WHERE user_id=2');$row=$pd_busy->sql_fetchrow($r);$pd_busy->sql_freeresult($r);kp_check($row['username']==='Pending fixture'&&kp_rows('SELECT username FROM fixture_users WHERE user_id=2')[0]['username']!=='Pending fixture','Borrowed uncommitted work remains private and pending');}}}
+            finally{$pd_factory='normal';$kp_factory='normal';if(in_array($factory,array('busy','busy-autocommit'),true)){$pd_busy->sql_query('ROLLBACK');$pd_busy->sql_close();}}$cases++;
         }
-        foreach(array('SELECT @@SESSION.autocommit','SELECT d.*,u.user_level')as$needle){foreach(array('before','after')as$phase){
+        foreach(array('SELECT @@SESSION.autocommit','SET TRANSACTION READ ONLY','SELECT d.*,u.user_level')as$needle){foreach(array('before','after')as$phase){
             pd_prepare($locale);$before=kp_snapshot();$reached=false;$kp_hook=function($event,$sql)use($needle,$phase,&$reached){if($event===$phase&&strpos($sql,$needle)===0){$reached=true;return false;}};
             try{pd_check(pd_route(),false,'Native reader SQL failure');kp_check($reached&&kp_snapshot()===$before,'Read failure leaves all data unchanged');}finally{$kp_hook=null;}$failures++;
         }}
         foreach(array('SELECT *','SELECT e.extension, g.download_mode','UPDATE '.ATTACHMENTS_DESC_TABLE)as$needle){pd_prepare($locale);$pd_root_fault=$needle;$before=kp_snapshot();pd_check(pd_route(),false,'Actual controller SQL failure');kp_check(kp_snapshot()===$before,'Controller failure does not emit bytes or change counters');$pd_root_fault='';$failures++;}
         foreach(array('missing','inactive','demoted','link')as$kind){
-            pd_prepare($locale);if($kind==='demoted'){pd_login(1,ADMIN);}$db->sql_query('START TRANSACTION');$r=$db->sql_query('SELECT * FROM fixture_users');$db->sql_freeresult($r);$r=$db->sql_query('SELECT * FROM fixture_sessions');$db->sql_freeresult($r);$r=$db->sql_query('SELECT * FROM fixture_attachments');$db->sql_freeresult($r);
-            try{pd_revoke($kind);$before=kp_snapshot();pd_check(pd_route(),false,'Caller RR snapshot '.$kind);$r=$db->sql_query('SELECT @@in_transaction active');$row=$db->sql_fetchrow($r);$db->sql_freeresult($r);kp_check((int)$row['active']===1&&$db->db_connect_id&&kp_snapshot()===$before,'Caller transaction remains open and unchanged');}
+            pd_prepare($locale);if($kind==='demoted'){pd_login(1,ADMIN);}$db->sql_query('START TRANSACTION');$view=pd_caller_view();$old=kp_snapshot();
+            try{pd_revoke($kind);$before=kp_snapshot();kp_check($before!==$old,'Independent revocation actually committed');pd_check(pd_route(),false,'Caller RR snapshot '.$kind);kp_check($db->db_connect_id&&pd_caller_view()===$view&&kp_snapshot()===$before,'Caller retains original repeatable-read snapshot and open connection');}
             finally{$db->sql_query('ROLLBACK');}$cases++;
         }
     }

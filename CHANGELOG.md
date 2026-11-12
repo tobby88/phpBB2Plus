@@ -15,6 +15,8 @@ changes consolidated after that baseline without implying active maintenance.
   preflight reads, including file metadata and the disabled-extension admin
   exception. Keep caller transactions intact and release readers before delivery.
 - Preserve existing public attachment behavior. No database migration is needed.
+- Use portable next-transaction read-only setup on MySQL and MariaDB; the same
+  download cases also run against a dedicated MySQL 8.4 service.
 
 ### Bind private-message actions to current database sessions
 

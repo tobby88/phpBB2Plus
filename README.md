@@ -1797,6 +1797,8 @@ changes. Changes limited to Markdown documentation, style templates/CSS/images,
 or the pure BBCode renderer and its listed regressions skip that database matrix.
 Template, CSS and BBCode changes still run the PHP compatibility workflow.
 Superseded native workflow runs are cancelled automatically.
+Private-message attachment downloads additionally run their native controller
+and connection-lifecycle cases against MySQL 8.4 with PHP 8.5.
 
 ## Credits and licensing
 
