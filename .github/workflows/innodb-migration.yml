@@ -117,6 +117,12 @@ jobs:
         env:
           PHPBB_NEWS_READERS_NATIVE: '1'
           PHPBB_NEWS_READERS_PASSWORD: fixture-only
+      - name: Check complete News comment and article pagination
+        if: matrix.part == 2
+        run: php .github/scripts/check-news-pagination-native.php
+        env:
+          PHPBB_NEWS_READERS_NATIVE: '1'
+          PHPBB_NEWS_READERS_PASSWORD: fixture-only
       - name: Keep failed login counters bounded without skipping the limiter
         if: matrix.part == 2
         run: php .github/scripts/check-login-counter-native.php

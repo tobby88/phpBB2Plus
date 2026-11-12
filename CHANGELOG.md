@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Keep News queries and navigation on the same page
+
+- Use one effective page size for article/comment queries and navigation,
+  including configured limits, the 100-row cap and component overrides. Resolve
+  invalid or outdated offsets to a valid page and retain legacy article aliases.
+- Build pagination links from the validated News index URL and the actual
+  article/category context. Do not render comments for a missing, inaccessible
+  or non-news parent; retain deleted markers and existing author visibility.
+- Add unique ID tie-breakers after the existing date/title sort keys so equal
+  values cannot leave page ordering dependent on the database query plan.
+
 ### Keep News archive periods on one UTC clock
 
 - Include the first midnight and exclude the following period's midnight in

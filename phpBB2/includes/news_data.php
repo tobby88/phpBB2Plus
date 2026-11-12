@@ -339,6 +339,7 @@ class NewsDataAccess
         t.topic_first_post_id = pt.post_id AND
         p.poster_id = u.user_id AND
         t.news_id = n.news_id AND
+        t.news_id > 0 AND
         t.topic_id = ' . $article_id . ' ' . $auth_sql . '
       LIMIT 1';
     if( !($result = $this->db->sql_query($sql)) )
@@ -403,7 +404,7 @@ class NewsDataAccess
         pt.post_id = p.post_id AND
         p.poster_id = u.user_id ' . $auth_sql . '
       ORDER BY
-        p.post_time DESC LIMIT ' . $start . ', ' . $num_items;
+        p.post_time DESC, p.post_id DESC LIMIT ' . $start . ', ' . $num_items;
 
     if( !($result = $this->db->sql_query($sql)) )
     {
@@ -749,16 +750,16 @@ class NewsDataAccess
     switch( $sort )
     {
       case SORT_DATE_ASC:
-      $sql .= 'ORDER BY t.topic_time ASC LIMIT ';
+      $sql .= 'ORDER BY t.topic_time ASC, t.topic_id ASC LIMIT ';
       break;
       case SORT_ALPH_ASC:
-      $sql .= 'ORDER BY t.topic_title ASC LIMIT ';
+      $sql .= 'ORDER BY t.topic_title ASC, t.topic_id ASC LIMIT ';
       break;
       case SORT_ALPH_DEC:
-      $sql .= 'ORDER BY t.topic_title DESC LIMIT ';
+      $sql .= 'ORDER BY t.topic_title DESC, t.topic_id DESC LIMIT ';
       break;
       default:
-      $sql .= 'ORDER BY t.topic_time DESC LIMIT ';
+      $sql .= 'ORDER BY t.topic_time DESC, t.topic_id DESC LIMIT ';
       break;
     }
 

@@ -501,6 +501,9 @@ jobs:
       - name: Preserve UTC News archive dates and wide timestamp labels
         run: php .github/scripts/check-news-periods.php
 
+      - name: Keep News queries and navigation on the same page
+        run: php .github/scripts/check-news-pagination.php
+
       - name: Test alternate output safety
         run: php .github/scripts/check-alternate-output-safety.php
 

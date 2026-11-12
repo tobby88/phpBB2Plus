@@ -24,7 +24,7 @@ class NewsTextDatabase{
  function sql_fetchrow($r){return isset($r->rows[$r->offset])?$r->rows[$r->offset++]:false;}
  function sql_fetchrowset($r){return$r->rows;}function sql_freeresult($r){return true;}
 }
-class NewsCommentRows{var $rows;function __construct($rows){$this->rows=$rows;}function fetchPosts($id,$start=0){return$this->rows;}function fetchPostsCount($id){return count($this->rows);}}
+class NewsCommentRows{var $rows;function __construct($rows){$this->rows=$rows;}function fetchPosts($id,$start=0){return$this->rows;}function fetchPostsCount($id){return count($this->rows);}function setItemCount($size){}function getItemCount(){return count($this->rows);}}
 function nt_context($locale,$logged){
  global$lang,$board_config,$userdata,$theme,$plus_config,$phpbb_root_path,$phpEx;
  $phpbb_root_path=$GLOBALS['nt_app'];$phpEx='php';$lang=array();$lang_extend_admin=false;require$phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';require$phpbb_root_path.'language/lang_'.$locale.'/lang_news.php';

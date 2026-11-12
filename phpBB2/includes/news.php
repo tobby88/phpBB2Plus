@@ -51,6 +51,10 @@ class NewsModule
   var $item_count;
   var $syndication;
   var $index_file;
+  var $page_size = DEFAULT_NUM_ITEMS;
+  var $page_start = 0;
+  var $page_topic = 0;
+  var $page_category = 0;
 
   /**
   * Class constructor.
@@ -229,31 +233,27 @@ class NewsModule
   */
   function renderArticles( $article_id = 0, $num_items = 0 )
   {
-    $this->item_count = 1;
-	$article_id = max(0, (int) $article_id);
-	$num_items = max(0, min(100, (int) $num_items));
+    $this->item_count = 0;
+    $article_id = max(0, (int)$article_id);
+    $num_items = max(0, min(100, (int)$num_items));
+    $configured = isset($this->config['news_item_num']) ? (int)$this->config['news_item_num'] : DEFAULT_NUM_ITEMS;
+    $this->setPageSize($num_items > 0 ? $num_items : $configured);
+    $this->page_topic = $article_id;
+    $this->page_category = $article_id > 0 ? 0 : max(0, intval(phpbb_request_scalar($_GET, 'cat_id', 0)));
+    $this->page_start = 0;
+    $start = phpbb_request_scalar($_GET, 'start', 0);
 
-	  $catid = max(0, intval(phpbb_request_scalar($_GET, 'cat_id', 0)));
-	  $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
-      $this->item_count = $this->data->fetchArticlesCount( $catid );
-
-if( $article_id <= 0 )
+    if ($article_id === 0)
     {
-      if( $num_items > 0 ) {
-        $this->data->setItemCount( $num_items );
-      }
-      else {
-        $this->data->setItemCount( $this->config['news_item_num'] );
-      }
-
-      $articles = $this->data->fetchArticles( 0, $catid, $start );
-        }
+      $this->item_count = max(0, (int)$this->data->fetchArticlesCount($this->page_category));
+      $this->page_start = $this->paginationStart($start);
+      $articles = $this->data->fetchArticles(0, $this->page_category, $this->page_start);
+    }
     else
     {
-	  $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
-
-      $articles = $this->data->fetchArticle( $article_id );
-      $this->renderComments( $article_id, $start );
+      $articles = $this->data->fetchArticle($article_id);
+      // A missing or inaccessible parent must not render orphan comments.
+      if ($articles) { $this->renderComments($article_id, $start); }
     }
 
     $this->prepareArticles( $articles, ($article_id <= 0) );
@@ -273,8 +273,13 @@ if( $article_id <= 0 )
     global $userdata, $lang, $board_config;
     $trimmed = false;
 
-    $comments = $this->data->fetchPosts( $article_id, $start );
-    $this->item_count = $this->data->fetchPostsCount( $article_id );
+    $article_id = max(0, (int)$article_id);
+    $this->setPageSize($this->data->getItemCount());
+    $this->page_topic = $article_id;
+    $this->page_category = 0;
+    $this->item_count = max(0, (int)$this->data->fetchPostsCount($article_id));
+    $this->page_start = $this->paginationStart($start);
+    $comments = $this->item_count > 0 ? $this->data->fetchPosts($article_id, $this->page_start) : array();
 
     if( is_array( $comments ) )
     {
@@ -540,26 +545,37 @@ if( $article_id <= 0 )
 
   function renderPagination( )
   {
-    global $CFG;
-
-    if( $this->item_count > $this->config['news_item_num'] )
+    if ($this->item_count > $this->page_size)
     {
-      $base_url = $this->config['news_index_file'] . '?news=article';
-	  $pagination_topic_id = max(0, intval(phpbb_request_scalar($_GET, 'topic_id', 0)));
-	  $pagination_cat_id = max(0, intval(phpbb_request_scalar($_GET, 'cat_id', 0)));
-	  if ($pagination_topic_id > 0)
+      $base_url = $this->index_file . '?news=article';
+      if ($this->page_topic > 0)
       {
-		$base_url .= '&amp;topic_id=' . $pagination_topic_id;
+        $base_url .= '&amp;topic_id=' . $this->page_topic;
       }
-	  if ($pagination_cat_id > 0)
+      elseif ($this->page_category > 0)
       {
-		$base_url .= '&amp;cat_id=' . $pagination_cat_id;
+        $base_url .= '&amp;cat_id=' . $this->page_category;
       }
 
       $this->setBlockVariables( 'pagination', array(
-		  'PAGINATION' => generate_pagination($base_url, $this->item_count, $this->config['news_item_num'], max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0)))))
+          'PAGINATION' => generate_pagination($base_url, $this->item_count, $this->page_size, $this->page_start)
           ));
     }
+  }
+
+  private function setPageSize($requested)
+  {
+    $size = (int)$requested;
+    $this->data->setItemCount($size > 0 ? min(100, $size) : DEFAULT_NUM_ITEMS);
+    $this->page_size = $this->data->getItemCount();
+  }
+
+  private function paginationStart($requested)
+  {
+    $start = max(0, min(1000000, (int)$requested));
+    $start = (int)floor($start / $this->page_size) * $this->page_size;
+    $last = $this->item_count > 0 ? (int)floor(($this->item_count - 1) / $this->page_size) * $this->page_size : 0;
+    return min($start, $last);
   }
 
   /**
