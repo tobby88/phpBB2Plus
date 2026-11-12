@@ -68,7 +68,7 @@ function cf_denied($callable,$label){$denied=false;try{call_user_func($callable)
 function cf_fragment($source,$start,$end){$source=str_replace("\r\n","\n",$source);$begin=strpos($source,$start);$stop=$begin===false?false:strpos($source,$end,$begin);if($begin===false||$stop===false){throw new RuntimeException('Actual renderer fragment missing');}return substr($source,$begin,$stop-$begin);}
 $registration=cf_fragment(file_get_contents($root.'includes/usercp_register.php'),"\t// Visual Confirmation\n","\t//\n\t// Let's do an overall check");
 $posting_render=cf_fragment(file_get_contents($root.'posting.php'),'// Visual confirmation for guests','// Generate smilies listing');
-$posting_check=cf_fragment(file_get_contents($root.'posting.php'),"\t\t\tif ( \$ctracker_config->settings['vconfirm_guest'] != 1", "\t\t\t\$username = \$request_scalar");
+$posting_check=cf_fragment(file_get_contents($root.'posting.php'),"\t\t\tif ( \$ctracker_config->settings['vconfirm_guest'] != 1", "\t\t\t\$username =");
 $image_query=cf_fragment(file_get_contents($root.'includes/usercp_confirm.php'),'// Try and grab code for this id and session','// If we have a row');
 function cf_image_code($sid,$id){
     global$db,$image_query;$userdata=array('session_id'=>$sid);$confirm_id=$id;eval($image_query);
