@@ -113,59 +113,13 @@ $topic_type = ($request_scalar($_POST, 'topictype') !== '') ? intval($request_sc
 $topic_type = ( in_array($topic_type, array(POST_NORMAL, POST_STICKY, POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)) ) ? $topic_type : POST_NORMAL;
 //-- mod : calendar --------------------------------------------------------------------------------
 //-- add
-$year	= ($request_scalar($_POST, 'topic_calendar_year') !== '') ? intval($request_scalar($_POST, 'topic_calendar_year')) : '';
-$month	= ($request_scalar($_POST, 'topic_calendar_month') !== '') ? intval($request_scalar($_POST, 'topic_calendar_month')) : '';
-$day	= ($request_scalar($_POST, 'topic_calendar_day') !== '') ? intval($request_scalar($_POST, 'topic_calendar_day')) : '';
-$hour	= ($request_scalar($_POST, 'topic_calendar_hour') !== '') ? intval($request_scalar($_POST, 'topic_calendar_hour')) : '';
-$min	= ($request_scalar($_POST, 'topic_calendar_min') !== '') ? intval($request_scalar($_POST, 'topic_calendar_min')) : '';
-$d_day	= ($request_scalar($_POST, 'topic_calendar_duration_day') !== '') ? intval($request_scalar($_POST, 'topic_calendar_duration_day')) : '';
-$d_hour	= ($request_scalar($_POST, 'topic_calendar_duration_hour') !== '') ? intval($request_scalar($_POST, 'topic_calendar_duration_hour')) : '';
-$d_min	= ($request_scalar($_POST, 'topic_calendar_duration_min') !== '') ? intval($request_scalar($_POST, 'topic_calendar_duration_min')) : '';
-if ( empty($year) || empty($month) || empty($day) )
-{
-	$year = '';
-	$month = '';
-	$day = '';
-	$hour = '';
-	$min = '';
-	$d_day = '';
-	$d_hour = '';
-	$d_min = '';
-}
-if (empty($hour) && empty($min))
-{
-	$hour = '';
-	$min = '';
-	$d_hour = '';
-	$d_min = '';
-}
+$calendar_input = calendar_post_input($_POST);
+$topic_calendar_time = $calendar_input['time'];
+$topic_calendar_duration = $calendar_input['duration'];
+$s_topic_calendar_year = $s_topic_calendar_month = $s_topic_calendar_day = '';
+$topic_calendar_hour = $topic_calendar_min = '';
+$topic_calendar_duration_day = $topic_calendar_duration_hour = $topic_calendar_duration_min = '';
 
-// start event
-$topic_calendar_time = 0;
-$s_topic_calendar_year = '';
-$s_topic_calendar_month = '';
-$s_topic_calendar_day = '';
-$topic_calendar_hour = '';
-$topic_calendar_min = '';
-$topic_calendar_duration_day = '';
-$topic_calendar_duration_hour = '';
-$topic_calendar_duration_min = '';
-if (!empty($year))
-{
-	$topic_calendar_time = mktime( intval($hour), intval($min), 0, intval($month), intval($day), intval($year) );
-}
-
-// duration
-$topic_calendar_duration = 0;
-$d_dur = $d_day . $d_hour . $d_min;
-if ( !empty($topic_calendar_time) && !empty($d_dur) )
-{
-	$topic_calendar_duration = intval($d_day) * 86400 + intval($d_hour) * 3600 + intval($d_min) * 60;
-	if ($topic_calendar_duration < 0)
-	{
-		$topic_calendar_duration = 0;
-	}
-}
 //-- fin mod : calendar ----------------------------------------------------------------------------
 
 //-- mod : announces -------------------------------------------------------------------------------
@@ -587,6 +541,25 @@ if ( !$is_auth[$is_auth_type] || (!empty($is_auth_type_cal) && !$is_auth[$is_aut
 	redirect(append_sid("login.$phpEx?redirect=posting.$phpEx&" . $redirect, true));
 }
 
+// Resolve calendar fields after loading the saved event and current controls.
+// Missing/unauthorized controls preserve metadata; replies cannot change it.
+if ($mode === 'newtopic' || ($mode === 'editpost' && $post_data['first_post']))
+{
+	$saved_calendar_time = isset($post_data['topic_calendar_time']) ? (int)$post_data['topic_calendar_time'] : 0;
+	$saved_calendar_duration = isset($post_data['topic_calendar_duration']) ? $post_data['topic_calendar_duration'] : 0;
+	if (!empty($is_auth['auth_cal']) && $calendar_input['present'])
+	{
+		$calendar_input = calendar_post_input($_POST,$saved_calendar_time);
+		$topic_calendar_time = $calendar_input['time']; $topic_calendar_duration = $calendar_input['duration'];
+		if (($submit || $refresh) && $calendar_input['error'] !== '')
+		{
+			$error_msg .= ($error_msg !== '' ? '<br />' : '') . $lang[$calendar_input['error']];
+		}
+	}
+	else { $topic_calendar_time = $saved_calendar_time; $topic_calendar_duration = $saved_calendar_duration; }
+}
+else { $topic_calendar_time = $topic_calendar_duration = 0; }
+
 //
 // Set toggles for various options
 //
@@ -869,19 +842,6 @@ else if ( $submit || $confirm )
 			$subject = trim($request_scalar($_POST, 'subject'));
 			$topic_desc = trim($request_scalar($_POST, 'topic_desc'));
 			$message = $request_scalar($_POST, 'message');
-			//-- mod : calendar --------------------------------------------------------------------------------
-//-- add
-			$post_calendar_time = isset($post_data['topic_calendar_time']) ? intval($post_data['topic_calendar_time']) : 0;
-			$post_calendar_duration = isset($post_data['topic_calendar_duration']) ? intval($post_data['topic_calendar_duration']) : 0;
-			$topic_calendar_time = ( $topic_calendar_time != $post_calendar_time && !$is_auth['auth_cal']) ? $post_calendar_time : $topic_calendar_time;
-			if (empty($topic_calendar_time)) $topic_calendar_time = 0;
-			$topic_calendar_duration = ( $topic_calendar_duration != $post_calendar_duration && !$is_auth['auth_cal']) ? $post_calendar_duration : $topic_calendar_duration;
-			if ( !empty($topic_calendar_duration) )
-			{
-				$topic_calendar_duration--;
-			}
-			if (empty($topic_calendar_time) || empty($topic_calendar_duration)) $topic_calendar_duration = 0;
-//-- fin mod : calendar ----------------------------------------------------------------------------
 			$poll_title = ($is_auth['auth_pollcreate']) ? $request_scalar($_POST, 'poll_title') : '';
 			$poll_options = (isset($_POST['poll_option_text']) && is_array($_POST['poll_option_text']) && $is_auth['auth_pollcreate']) ? array_filter($_POST['poll_option_text'], 'is_scalar') : array();
 			$poll_length = ($is_auth['auth_pollcreate']) ? intval($request_scalar($_POST, 'poll_length', 0)) : 0;
@@ -925,7 +885,7 @@ if ($lock_subject)
 	$url = "<a href='viewtopic.$phpEx?" . POST_POST_URL . "=" .$lock_subject."#".$lock_subject."'> ";
 	$message = addslashes(sprintf($lang['Link_to_post'],$url,"</a>")).$message;	
 }
-				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $username, $subject, $message, $poll_title, $poll_options, $poll_length, $topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
+				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $username, $subject, $message, $poll_title, $poll_options, $poll_length, $topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, max(0,(int)($topic_calendar_duration - 1)), $news_category);
 				if ($mode == 'editpost' && !empty($is_auth['auth_mod']) && empty($post_data['_edit_audit_completed']))
 				{
 				log_action('edit', $topic_id, $userdata['user_id'], $userdata['username']);
@@ -1450,10 +1410,7 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 		);
 
 		// get the date
-		$post_calendar_time = isset($post_data['topic_calendar_time']) ? intval($post_data['topic_calendar_time']) : 0;
-		$post_calendar_duration = isset($post_data['topic_calendar_duration']) ? intval($post_data['topic_calendar_duration']) : 0;
-		$topic_calendar_time = ( !isset($_POST['topic_calendar_year']) || (($topic_calendar_time != $post_calendar_time) && !$is_auth['auth_cal']) ) ? $post_calendar_time : $topic_calendar_time;
-		$topic_calendar_duration = ( (!isset($_POST['topic_calendar_duration_day']) && !isset($_POST['topic_calendar_duration_hour']) && !isset($_POST['topic_calendar_duration_min']) ) || (($topic_calendar_duration != $post_calendar_duration) && !$is_auth['auth_cal']) ) ? $post_calendar_duration : $topic_calendar_duration;
+		// Already resolved against the saved event and available controls.
 
 		// get the components of the event date
 		$year	= '';
@@ -1482,6 +1439,15 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 			$d_hour = intval($d_dur / 3600);
 			$d_dur = $d_dur - 3600 * $d_hour;
 			$d_min = intval($d_dur / 60);
+		}
+
+		// An invalid date has no timestamp to split. Retain safe numeric fields
+		// so a preview/error can be corrected instead of displaying a new date.
+		if ($calendar_input['present'] && $calendar_input['error'] !== '')
+		{
+			$year=$calendar_input['fields']['year']; $month=$calendar_input['fields']['month']; $day=$calendar_input['fields']['day'];
+			$hour=$calendar_input['fields']['hour']; $min=$calendar_input['fields']['min'];
+			$d_day=$calendar_input['fields']['duration_day']; $d_hour=$calendar_input['fields']['duration_hour']; $d_min=$calendar_input['fields']['duration_min'];
 		}
 
 		// raz if no date
@@ -1521,8 +1487,10 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 		$selected = empty($year) ? ' selected="selected"' : '';
 	$s_topic_calendar_year .= '<option value="0"' . $selected . '> ---- </option>';
 
-		$start_year = ( (intval($year) > 1971 ) && (intval($year) <= date('Y', time())) ) ? intval($year) : date('Y', time());
-		for ($i = $start_year; $i <= date('Y', time())+10; $i++)
+		$current_year = (int)date('Y');
+		$start_year = ((int)$year >= 1971 && (int)$year < $current_year) ? (int)$year : $current_year;
+		$end_year = ((int)$year >= $current_year && (int)$year <= 2069) ? max($current_year+10,(int)$year) : $current_year+10;
+		for ($i = $start_year; $i <= $end_year; $i++)
 		{
 			$selected = ( intval($year) == $i) ? ' selected="selected"' : '';
 			$s_topic_calendar_year .= '<option value="' . $i . '"' . $selected . '>' . $i . '</option>';

@@ -23,7 +23,7 @@ function fe_submit($options=array())
   if(!empty($options['controller'])){
    $posting=file_get_contents($GLOBALS['phpbb_root_path'].'posting.php');ae_check(preg_match("/submit_post\\(\\\$mode,[^\\n]+\\);\\s*if \\(\\\$mode == 'editpost'[\\s\\S]+?log_action\\('edit'[^\\n]+\\);\\s*\\}/",$posting,$branch)===1,'Actual full-editor controller and audit branch');
    $mode='editpost';$return_message=$return_meta='';$username='';$subject=addslashes(htmlspecialchars($subject,ENT_COMPAT,'UTF-8'));$message=addslashes($text);$poll_title=addslashes($poll_title);$topic_announce_duration=$post_icon=$topic_calendar_time=$topic_calendar_duration=0;$is_auth=$GLOBALS['is_auth'];$userdata=$GLOBALS['userdata'];eval($branch[0]);
-  }else{submit_post('editpost',$post_data,$message,$meta,$forum_id,$topic_id,$post_id,$poll_id,$topic_type,$bbcode_on,$html_on,$smilies_on,$attach_sig,$bbcode_uid,isset($options['username'])?$options['username']:'',addslashes(htmlspecialchars($subject,ENT_COMPAT,'UTF-8')),addslashes($text),addslashes($poll_title),$poll_options,$poll_length,$topic_desc,0,0,isset($options['calendar'])?$options['calendar']:0,0,$news_category);}
+  }else{submit_post('editpost',$post_data,$message,$meta,$forum_id,$topic_id,$post_id,$poll_id,$topic_type,$bbcode_on,$html_on,$smilies_on,$attach_sig,$bbcode_uid,isset($options['username'])?$options['username']:'',addslashes(htmlspecialchars($subject,ENT_COMPAT,'UTF-8')),addslashes($text),addslashes($poll_title),$poll_options,$poll_length,$topic_desc,0,0,isset($options['calendar'])?$options['calendar']:0,isset($options['calendar_duration'])?$options['calendar_duration']:0,$news_category);}
   return array('post_data'=>$post_data,'uid'=>$bbcode_uid,'poll_id'=>$poll_id);
  }
  catch(RuntimeException $e){$GLOBALS['fe_exception']=$e->getMessage();ae_check($post_data===$before,'Failure does not mark audit or mutate caller flags');return 'error';}
@@ -79,6 +79,7 @@ $body= <<<'PHP'
  }
  foreach(array(array('name'),str_repeat('ä',256),"bad\xc3","bad\0name",'<b>') as $bad){fe_fixture('moderator');$before=fe_snapshot();ae_check(fe_submit(array('username'=>$bad))==='error'&&fe_snapshot()===$before,'Malformed/unprepared guest identity refuses whole edit');$cases++;}
  fe_fixture('moderator');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(25) NULL');$before=fe_snapshot();ae_check(fe_submit(array('username'=>phpbb_post_author_key(str_repeat('ü',26))))==='error'&&$fe_exception===$lang['Post_author_upgrade']&&fe_snapshot()===$before,'Old byline capacity refuses the whole edit explicitly without clipping guest identity');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(1530) NULL');$cases++;
+ require $phpbb_root_path.'../.github/fixtures/calendar-posting-native.php';
  echo 'Native full editor: '.$cases.' failure/authority/storage cases, '.$serialized." serialized changes; content, options, index, counters and audit passed.\n";
 }finally{$ae_hook=null;$ae_fail='';$ae_ack=false;$ae_failwrite=0;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
 PHP;

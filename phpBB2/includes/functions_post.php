@@ -27,6 +27,7 @@ if (!defined('IN_PHPBB'))
 
 require_once dirname(__FILE__) . '/functions_username.php';
 require_once dirname(__FILE__) . '/functions_post_author.php';
+require_once dirname(__FILE__) . '/functions_calendar_posting.php';
 
 $html_entities_match = array('#&(?!(\#[0-9]+;))#', '#<#', '#>#', '#"#');
 $html_entities_replace = array('&amp;', '&lt;', '&gt;', '&quot;');
@@ -281,6 +282,9 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		$required = array($mode === 'newtopic' ? 'auth_post' : 'auth_reply');
 		if ($mode === 'newtopic')
 		{
+			$calendar_values = calendar_post_stored_values($topic_calendar_time,$topic_calendar_duration);
+			if ($calendar_values === null) { throw new PhpbbPostSubmitException('Calendar_input_error'); }
+			$topic_calendar_time = $calendar_values['time']; $topic_calendar_duration = $calendar_values['duration'];
 			if ($news_id) { $topic_type = POST_NEWS; }
 			$type_permissions = array(POST_NORMAL=>'auth_post', POST_STICKY=>'auth_sticky', POST_ANNOUNCE=>'auth_announce', POST_GLOBAL_ANNOUNCE=>'auth_global_announce', POST_NEWS=>'auth_news');
 			if (!isset($type_permissions[(int)$topic_type])) { throw new PhpbbPostSubmitException('No_valid_mode'); }

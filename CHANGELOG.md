@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Stable calendar dates and durations during posting
+
+- Validate original date/time components before conversion, including invalid
+  leap dates and nonexistent spring clock hours. Report an input error instead
+  of silently moving the event to another day or time.
+- Keep form duration unchanged through previews and validation retries. Convert
+  to the existing inclusive stored duration only at the final submission call.
+- Preserve the saved occurrence of an unchanged repeated autumn hour. Include
+  saved historical/future years in the editor's year selection.
+- Validate integral calendar values in both new-topic and full-edit writers
+  against the current signed-INT storage capacity. Invalid input cannot publish
+  partial content or be silently clipped by a database SQL mode.
+- Keep existing metadata when calendar controls are unavailable. Existing
+  calendar storage, date policy and permission checks remain in use.
+
 ### Complete UTF-8 and formatted calendar previews
 
 - Limit topic titles and event previews by complete characters and decoded

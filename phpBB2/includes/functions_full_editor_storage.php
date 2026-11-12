@@ -6,6 +6,7 @@ require_once dirname(__FILE__) . '/functions_posting_storage.php';
 require_once dirname(__FILE__) . '/functions_post_submit_storage.php';
 require_once dirname(__FILE__) . '/functions_post_subject.php';
 require_once dirname(__FILE__) . '/functions_post_edit.php';
+require_once dirname(__FILE__) . '/functions_calendar_posting.php';
 
 class PhpbbFullEditorDatabase extends PhpbbPostSubmitDatabase
 {
@@ -118,9 +119,11 @@ function phpbb_submit_full_edit($database, $forum_id, $topic_id, $post_id, $inpu
 			if ($type !== (int)$topic['topic_type']) { $db->required[] = $types[$type]; if (isset($types[(int)$topic['topic_type']])) { $db->required[] = $types[(int)$topic['topic_type']]; } }
 			if ($news !== (int)$topic['news_id']) { $db->required[] = 'auth_news'; }
 			$topic_values['topic_type'] = $type; $topic_values['news_id'] = $news;
-			foreach (array('topic_calendar_time','topic_calendar_duration') as $key)
+			$calendar_values = empty($auth['auth_cal']) ? null : calendar_post_stored_values($input['topic_calendar_time'],$input['topic_calendar_duration']);
+			if (!empty($auth['auth_cal']) && $calendar_values === null) { $db->fail('Calendar_input_error'); }
+			foreach (array('topic_calendar_time'=>'time','topic_calendar_duration'=>'duration') as $key=>$field)
 			{
-				$value = empty($auth['auth_cal']) ? (int)$topic[$key] : (int)$input[$key];
+				$value = empty($auth['auth_cal']) ? (int)$topic[$key] : $calendar_values[$field];
 				if ($value !== (int)$topic[$key]) { $db->required[] = 'auth_cal'; }
 				$topic_values[$key] = $value;
 			}

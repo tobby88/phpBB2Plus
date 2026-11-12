@@ -45,7 +45,7 @@ function ps_submit($mode, $options = array())
  $message=$meta='';$forum_id=3;$topic_id=$mode==='reply'?100:0;$post_id=$poll_id=0;$topic_type=isset($options['type'])?$options['type']:POST_NORMAL;
  $bbcode_on=1;$html_on=$smilies_on=$attach_sig=0;$bbcode_uid='1234567890';$poll_options=!empty($options['poll'])?array(1=>'Grüße 😀',2=>"O'Reilly"):array();$poll_length=1;$topic_desc='Description';$news_category=isset($options['news'])?$options['news']:0;
  try {
-  submit_post($mode,$post_data,$message,$meta,$forum_id,$topic_id,$post_id,$poll_id,$topic_type,$bbcode_on,$html_on,$smilies_on,$attach_sig,$bbcode_uid,isset($options['username'])?$options['username']:'',isset($options['subject'])?$options['subject']:addslashes("Quasarword Grüße O'Reilly 😀"),addslashes("[b:1234567890]Quasarword Grüße[/b:1234567890] \\ & 😀"),$poll_options?'Poll':'',$poll_options,$poll_length,$topic_desc,0,0,!empty($options['calendar'])?1234567890:0,0,$news_category);
+  submit_post($mode,$post_data,$message,$meta,$forum_id,$topic_id,$post_id,$poll_id,$topic_type,$bbcode_on,$html_on,$smilies_on,$attach_sig,$bbcode_uid,isset($options['username'])?$options['username']:'',isset($options['subject'])?$options['subject']:addslashes("Quasarword Grüße O'Reilly 😀"),addslashes("[b:1234567890]Quasarword Grüße[/b:1234567890] \\ & 😀"),$poll_options?'Poll':'',$poll_options,$poll_length,$topic_desc,0,0,array_key_exists('calendar_time',$options)?$options['calendar_time']:(!empty($options['calendar'])?1234567890:0),isset($options['calendar_duration'])?$options['calendar_duration']:0,$news_category);
   return array('post_id'=>$post_id,'topic_id'=>$topic_id,'poll_id'=>$poll_id,'post_data'=>$post_data);
  } catch (RuntimeException $e) {
   $GLOBALS['ps_exception']=$e->getMessage();

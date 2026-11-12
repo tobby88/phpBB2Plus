@@ -27,6 +27,7 @@ if ( !defined('IN_PHPBB') )
 include_once($phpbb_root_path . './includes/functions_post.' . $phpEx);
 include_once($phpbb_root_path . './includes/bbcode.' . $phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
+require_once dirname(__FILE__) . '/functions_calendar_posting.php';
 
 // Month navigation keeps the selected day where it exists, otherwise the last
 // day of the requested month. Keep the calendar's existing server-local dates.
