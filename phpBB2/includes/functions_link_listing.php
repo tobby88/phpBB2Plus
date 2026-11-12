@@ -25,6 +25,13 @@ function phpbb_link_list_like($scope,$value)
 	$value=str_replace(array('!','%','_'),array('!!','!%','!_'),$value);return"'".$scope->escape('%'.$value.'%')."' ESCAPE '!'";
 }
 
+function phpbb_link_public_config($rows)
+{
+	$decoded=phpbb_link_settings_decode($rows);$config=$decoded['values'];$defaults=phpbb_link_settings_defaults();
+	foreach($config as$key=>$value){try{$config[$key]=phpbb_link_setting_value($key,$value);}catch(PhpbbLinkException$error){$config[$key]=$key==='lock_submit_site'?'1':$defaults[$key];}}
+	return$config;
+}
+
 function phpbb_link_listing($database,$request)
 {
 	if(!is_array($request)||!isset($request['t'],$request['cat'],$request['mode'],$request['order'],$request['start'],$request['query'])
@@ -33,8 +40,7 @@ function phpbb_link_listing($database,$request)
 		||!is_int($request['start'])||$request['start']<0||$request['start']>2147483647||!is_string($request['query'])||preg_match('/^.{0,100}$/usD',$request['query'])!==1){phpbb_link_visit_fail();}
 	$scope=new PhpbbLinkVisitScope($database,false,true);
 	try{
-		$decoded=phpbb_link_settings_decode($scope->rows('SELECT config_name,config_value FROM '.LINK_CONFIG_TABLE.' ORDER BY HEX(config_name),HEX(config_value)'));$config=$decoded['values'];$defaults=phpbb_link_settings_defaults();
-		foreach($config as$key=>$value){try{$config[$key]=phpbb_link_setting_value($key,$value);}catch(PhpbbLinkException$error){$config[$key]=$key==='lock_submit_site'?'1':$defaults[$key];}}
+		$config=phpbb_link_public_config($scope->rows('SELECT config_name,config_value FROM '.LINK_CONFIG_TABLE.' ORDER BY HEX(config_name),HEX(config_value)'));
 		$categories=$scope->rows('SELECT c.cat_id,c.cat_title,c.cat_order,COUNT(l.link_id) link_count FROM '.LINK_CATEGORIES_TABLE.' c LEFT JOIN '.LINKS_TABLE.' l ON l.link_category=c.cat_id AND l.link_active=1 GROUP BY c.cat_id,c.cat_title,c.cat_order ORDER BY c.cat_order,c.cat_id');
 		$out=array('config'=>$config,'categories'=>$categories,'category'=>null,'rows'=>array(),'total'=>0,'start'=>0,'size'=>(int)$config['linkspp']);
 		foreach($categories as$row){if((int)$row['cat_id']===$request['cat']){$out['category']=$row;}}

@@ -1444,6 +1444,12 @@ jobs:
         env:
           PHPBB_LINK_LIST_NATIVE: '1'
           PHPBB_LINK_LIST_PASSWORD: fixture-only
+      - name: Check optional Link rotation and index settings
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-link-rotation-native.php
+        env:
+          PHPBB_LINK_ROTATION_NATIVE: '1'
+          PHPBB_LINK_ROTATION_PASSWORD: fixture-only
   pm-download-mysql:
     name: Attachment downloads (MySQL 8.4, PHP 8.5)
     runs-on: ubuntu-latest
@@ -1504,3 +1510,8 @@ jobs:
         env:
           PHPBB_LINK_LIST_NATIVE: '1'
           PHPBB_LINK_LIST_PASSWORD: fixture-only
+      - name: Check optional Link rotation and index settings on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-link-rotation-native.php
+        env:
+          PHPBB_LINK_ROTATION_NATIVE: '1'
+          PHPBB_LINK_ROTATION_PASSWORD: fixture-only

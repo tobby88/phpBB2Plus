@@ -204,7 +204,12 @@ if ( ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_c
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- delete
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
-if ($plus_config['show_links'])
+require_once $phpbb_root_path . 'includes/functions_link_rotation.' . $phpEx;
+$link_index = phpbb_link_index_logo($db, !empty($plus_config['show_links']));
+$link_self_img = $link_index['logo'];
+$site_logo_width = $link_index['width'];
+$site_logo_height = $link_index['height'];
+if (!empty($plus_config['show_links']))
 {
 	if (file_exists($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/lang_main_link.".$phpEx))
 	{
@@ -220,23 +225,6 @@ if ($plus_config['show_links'])
 	}
 
     $template->assign_block_vars('switch_show_links', array());
-	
-	$sql = "SELECT *
-		FROM ". LINK_CONFIG_TABLE;
-	if(!$result = $db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
-	}
-	$link_config = array();
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		$link_config_name = $row['config_name'];
-		$link_config_value = $row['config_value'];
-		$link_config[$link_config_name] = $link_config_value;
-	}
-	$link_self_img = isset($link_config['site_logo']) ? $link_config['site_logo'] : '';
-	$site_logo_height = isset($link_config['height']) ? $link_config['height'] : '';
-	$site_logo_width = isset($link_config['width']) ? $link_config['width'] : '';
 }
 $l_today_text = '';
 $l_today_users = '';

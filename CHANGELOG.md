@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Restore rotating Link logos and safe index defaults
+
+- Emit one flat structured logo list and build images/anchors through standard
+  DOM methods. Preserve every valid active logo, including dynamic image URLs,
+  stable popularity ordering and the configured visible window.
+- Rotate with one function timer, pause during hover/focus or hidden pages, and
+  resume safely after page restoration. Avoid markup parsing and referrer leaks.
+- Share validated settings/defaults and historical aliases with the Link pages.
+  Read each widget from an independent consistent snapshot; optional failures
+  render an empty/default widget without interrupting the forum index.
+- Always initialize escaped self-logo/dimensions, including when links are off.
+  The iframe uses background session handling and preserves gzip negotiation.
+
 ### Repair shared Link submission forms and logo previews
 
 - Replace four duplicated forms and unused checks with one valid shared form,

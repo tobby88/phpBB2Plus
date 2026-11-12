@@ -707,6 +707,11 @@ jobs:
           php .github/scripts/check-link-forms.php
           node .github/scripts/check-link-form-client.js
 
+      - name: Test actual Link rotation frame and browser lifecycle
+        run: |
+          php .github/scripts/check-link-rotation-view.php
+          node .github/scripts/check-link-rotation-client.js
+
       - name: Test attachment deletion selections and post/PM ownership
         run: php .github/scripts/check-attachment-delete-selection.php
 

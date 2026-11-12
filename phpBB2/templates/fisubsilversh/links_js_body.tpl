@@ -1,40 +1,46 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE html>
 <html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset={S_CONTENT_ENCODING}">
-</head>
-<body style="margin-top:0px;margin-left:0px;background-color:#eaedf4">
-<script language="JavaScript">
-<!-- 
-var linkrow = new Array({LINKS_LOGO});
-var interval = {DISPLAY_INTERVAL};
-var link_start = 0;
-var link_num = {DISPLAY_LOGO_NUM};
-document.write('<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td><div id="links"></div></td></tr></table>');
-function writeDiv(){
-	var link_innerHTML = '';
-	if(linkrow.length > link_num)
-	{
-		for(var i=0; i<link_num; i++)
-		{
-			link_innerHTML += linkrow[(i + link_start) % linkrow.length];
-		}
-		document.all.links.innerHTML=link_innerHTML;
-		(link_start < linkrow.length - 1) ? link_start ++ : link_start = 0;
-		setTimeout("writeDiv()",interval);
-	}
-	else
-	{
-		for(var j=0; j<linkrow.length; j++)
-		{
-			link_innerHTML += linkrow[j];	
-		}
-		document.all.links.innerHTML=link_innerHTML;
-	}
-}
-	
-writeDiv();
-// -->
+<head><meta charset="UTF-8" /></head>
+<body style="margin:0;background-color:{T_BODY_BGCOLOR}">
+<div id="links" style="white-space:nowrap;line-height:0"></div>
+<script type="text/javascript">
+(function () {
+    'use strict';
+    var items = {LINKS_LOGO}, interval = {DISPLAY_INTERVAL}, visible = {DISPLAY_LOGO_NUM};
+    var width = {SITE_LOGO_WIDTH}, height = {SITE_LOGO_HEIGHT};
+    var target = document.getElementById('links'), start = 0, timer = null;
+    var hovered = false, focused = false, stopped = false;
+    if (!target || !Array.isArray(items)) { return; }
+    function cancel() { if (timer !== null) { window.clearTimeout(timer); timer = null; } }
+    function schedule() {
+        cancel();
+        if (!stopped && !hovered && !focused && document.visibilityState !== 'hidden' && items.length > visible) {
+            timer = window.setTimeout(function () { timer = null; start = (start + 1) % items.length; draw(); }, interval);
+        }
+    }
+    function draw() {
+        while (target.firstChild) { target.removeChild(target.firstChild); }
+        for (var i = 0; i < Math.min(visible, items.length); i++) {
+            var item = items[(start + i) % items.length];
+            var anchor = document.createElement('a'), image = document.createElement('img');
+            anchor.setAttribute('href', item.url);
+            anchor.setAttribute('target', '_blank'); anchor.setAttribute('rel', 'noopener noreferrer');
+            image.setAttribute('alt', item.title); image.setAttribute('width', width); image.setAttribute('height', height);
+            image.setAttribute('referrerpolicy', 'no-referrer'); image.setAttribute('src', item.image);
+            image.style.border = '0'; image.style.margin = '0 1px'; image.style.verticalAlign = 'top';
+            anchor.appendChild(image); target.appendChild(anchor);
+        }
+        schedule();
+    }
+    target.addEventListener('mouseenter', function () { hovered = true; cancel(); });
+    target.addEventListener('mouseleave', function () { hovered = false; schedule(); });
+    target.addEventListener('focusin', function () { focused = true; cancel(); });
+    target.addEventListener('focusout', function (event) { focused = target.contains(event.relatedTarget); schedule(); });
+    document.addEventListener('visibilitychange', schedule);
+    window.addEventListener('pagehide', function () { stopped = true; cancel(); });
+    window.addEventListener('pageshow', function () { stopped = false; schedule(); });
+    draw();
+}());
 </script>
 </body>
 </html>

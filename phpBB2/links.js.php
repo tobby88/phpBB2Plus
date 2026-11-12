@@ -21,6 +21,7 @@
 ***************************************************************************/ 
 
 define('IN_PHPBB', true);
+define('SESSION_BACKGROUND', true);
 
 $phpbb_root_path = "./";
 include($phpbb_root_path . 'extension.inc');
@@ -43,6 +44,7 @@ if (!empty($board_config['gzip_compress']) && extension_loaded('zlib') && phpbb_
 header ("Cache-Control: no-store, no-cache, must-revalidate");
 header ("Cache-Control: pre-check=0, post-check=0, max-age=0", false);
 header ("Pragma: no-cache");
+header("Content-Type: text/html; charset=UTF-8");
 header ("Expires: " . gmdate("D, d M Y H:i:s", time()) . " GMT");
 header ("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 
@@ -60,59 +62,19 @@ $template->set_filenames(array(
 ));
 
 //
-// Grab data
-//
-$sql = "SELECT *
-		FROM ". LINK_CONFIG_TABLE;
-	if(!$result = $db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
-	}
-	
-	$link_config = array();
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		$link_config_name = $row['config_name'];
-		$link_config_value = $row['config_value'];
-		$link_config[$link_config_name] = $link_config_value;
-	}
-	$link_self_img = isset($link_config['site_logo']) ? $link_config['site_logo'] : '';
-	$site_logo_height = isset($link_config['height']) ? max(1, min(1000, intval($link_config['height']))) : 31;
-	$site_logo_width = isset($link_config['width']) ? max(1, min(1000, intval($link_config['width']))) : 88;
-	$display_interval = isset($link_config['display_interval']) ? max(250, intval($link_config['display_interval'])) : 5000;
-	$display_logo_num = isset($link_config['display_logo_num']) ? max(1, intval($link_config['display_logo_num'])) : 1;
-
-$sql = "SELECT link_id, link_title, link_logo_src
-	FROM " . LINKS_TABLE . "
-	WHERE link_active = 1
-	ORDER BY link_hits DESC";
-
-$links_logo = array();
-// If failed just render an empty list.
-if( $result = $db->sql_query($sql) )
-{
-	while($row = $db->sql_fetchrow($result))
-	{
-		$logo = phpbb_normalize_external_url($row['link_logo_src'], array('gif', 'jpg', 'jpeg', 'png', 'webp'));
-		if ($logo !== false)
-		{
-			$links_logo[] = '<a href="' . htmlspecialchars(append_sid("links.$phpEx?action=go&amp;link_id=" . intval($row['link_id'])), ENT_QUOTES, 'UTF-8', false)
-				. '" target="_blank" rel="noopener noreferrer"><img src="' . htmlspecialchars($logo, ENT_QUOTES, 'UTF-8')
-				. '" alt="' . htmlspecialchars($row['link_title'], ENT_QUOTES, 'UTF-8', false) . '" width="' . $site_logo_width
-				. '" height="' . $site_logo_height . '" border="0" hspace="1" /></a>';
-		}
-	}
-
-}
-
+// Read the optional widget from one fresh read-only snapshot.
+require_once $phpbb_root_path . 'includes/functions_link_rotation.' . $phpEx;
+try { $rotation = phpbb_link_rotation($db, $phpEx); }
+catch (Exception $error) { $rotation = phpbb_link_rotation_empty(); }
+catch (Error $error) { $rotation = phpbb_link_rotation_empty(); }
+$payload = json_encode($rotation['logos'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$background = isset($theme['td_color1']) && is_string($theme['td_color1']) && preg_match('/^(?:[a-f0-9]{3}|[a-f0-9]{6})$/iD', $theme['td_color1']) ? $theme['td_color1'] : 'eaedf4';
 $template->assign_vars(array(
-	'S_CONTENT_ENCODING' => $lang['ENCODING'],
-	'T_BODY_BGCOLOR' => '#'.$theme['td_color1'],
-	'DISPLAY_INTERVAL' => $display_interval,
-	'DISPLAY_LOGO_NUM' => $display_logo_num,
-	'LINKS_LOGO' => json_encode($links_logo, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)
+    'S_CONTENT_ENCODING'=>'UTF-8', 'T_BODY_BGCOLOR'=>'#'.$background,
+    'DISPLAY_INTERVAL'=>$rotation['interval'], 'DISPLAY_LOGO_NUM'=>$rotation['visible'],
+    'SITE_LOGO_WIDTH'=>$rotation['width'], 'SITE_LOGO_HEIGHT'=>$rotation['height'],
+    'LINKS_LOGO'=>is_string($payload) ? $payload : '[]'
 ));
-
 $template->pparse("body");
 
 $db->sql_close();
