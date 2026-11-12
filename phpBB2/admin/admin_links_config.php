@@ -39,54 +39,26 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_link.' . $phpEx);
 
+require_once($phpbb_root_path . 'includes/functions_link_settings.' . $phpEx);
 $submit = isset($_POST['submit']);
+if ($submit) { phpbb_admin_require_post_session(); }
+try
+{
+	$new = $submit ? phpbb_link_settings_save($db, $_POST, $userdata) : phpbb_link_settings_load($db);
+}
+catch (PhpbbLinkException $error)
+{
+	$key = $error->getMessage();
+	message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Link_storage_failed']);
+}
+catch (Exception $error) { message_die(GENERAL_MESSAGE, $lang['Link_storage_failed']); }
+catch (Error $error) { message_die(GENERAL_MESSAGE, $lang['Link_storage_failed']); }
 if ($submit)
 {
-	phpbb_admin_require_post_session();
+	$message = $lang['Link_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_link_config'], '<a href="' . append_sid("admin_links_config.$phpEx") . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 
-
-//
-// Pull all config data
-//
-$default_config = array();
-$new = array();
-$sql = "SELECT * FROM " . LINK_CONFIG_TABLE;
-if(!$result = $db->sql_query($sql))
-{
-	message_die(CRITICAL_ERROR, "Could not query Links config information", "", __LINE__, __FILE__, $sql);
-}
-else
-{
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		$config_name = $row['config_name'];
-		$config_value = $row['config_value'];
-		$default_config[$config_name] = $config_value;
-
-		$new[$config_name] = $submit ? phpbb_admin_post_string($config_name, $default_config[$config_name]) : $default_config[$config_name];
-
-		if ($submit)
-		{
-			$sql = "UPDATE " . LINK_CONFIG_TABLE . " SET
-				config_value = '" . $db->sql_escape($new[$config_name]) . "'
-				WHERE config_name = '" . $db->sql_escape($config_name) . "'";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Failed to update Link configuration for $config_name", "", __LINE__, __FILE__, $sql);
-			}
-		}
-	}
-	$db->sql_freeresult($result);
-
-	if ($submit)
-	{
-		$message = $lang['Link_config_updated'] . "<br /><br />" . sprintf($lang['Click_return_link_config'], "<a href=\"" . append_sid("admin_links_config.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-
-		message_die(GENERAL_MESSAGE, $message);
-	}
-}
-	
 $template->set_filenames(array(
 	"body" => "admin/admin_link_config_body.tpl")
 );

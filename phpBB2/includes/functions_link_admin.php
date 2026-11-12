@@ -9,8 +9,11 @@ function phpbb_link_admin_id($value)
 	return(int)$value;
 }
 
-function phpbb_link_admin_actor($scope,$viewer)
+function phpbb_link_admin_actor($scope,$viewer,$file=null)
 {
+	global$phpEx;
+	if($file===null){$file='admin_links.'.$phpEx;}
+	if(!in_array($file,array('admin_links.'.$phpEx,'admin_links_cat.'.$phpEx,'admin_links_config.'.$phpEx),true)){phpbb_link_fail('Not_Authorised');}
 	$id=phpbb_link_admin_id(isset($viewer['user_id'])?$viewer['user_id']:null);
 	if($id>8388607||empty($viewer['session_logged_in'])||empty($viewer['session_admin'])||!isset($viewer['session_id'])||!is_string($viewer['session_id'])||$viewer['session_id']===''||strlen($viewer['session_id'])>32){phpbb_link_fail('Not_Authorised');}
 	$sid=$scope->escape($viewer['session_id']);
@@ -19,11 +22,11 @@ function phpbb_link_admin_actor($scope,$viewer)
 	if(count($users)!==1){phpbb_link_fail('Not_Authorised');}
 	if((int)$users[0]['user_level']===ADMIN){return$id;}
 	$grants=$scope->rows('SELECT user_jr_admin FROM '.JR_ADMIN_TABLE.' WHERE user_id='.$id.' LOCK IN SHARE MODE');
-	$routes=jr_admin_authorization_routes();global$phpEx;
+	$routes=jr_admin_authorization_routes();
 	if(count($grants)!==1||$routes===false){phpbb_link_fail('Not_Authorised');}
 	// Preserve the established ACP file-level delegation: either registered
 	// Link menu grant authorizes this file; unrelated modules never do.
-	foreach(explode(EXPLODE_SEPERATOR_CHAR,$grants[0]['user_jr_admin'])as$hash){if(isset($routes[$hash])&&jr_admin_route_matches_file($routes[$hash],'admin_links.'.$phpEx)){return$id;}}
+	foreach(explode(EXPLODE_SEPERATOR_CHAR,$grants[0]['user_jr_admin'])as$hash){if(isset($routes[$hash])&&jr_admin_route_matches_file($routes[$hash],$file)){return$id;}}
 	phpbb_link_fail('Not_Authorised');
 }
 

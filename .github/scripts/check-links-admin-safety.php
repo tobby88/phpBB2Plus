@@ -23,7 +23,7 @@ require $root . '/phpBB2/includes/functions_link_admin.php';
 foreach(array(1,'41',16777215)as$value){if(phpbb_link_admin_id($value)!==(int)$value){$errors[]='Exact valid Link ID changed';}}
 foreach(array(0,-1,true,1.5,'01','1e0','1foo','16777216',array(1),null)as$value){$refused=false;try{phpbb_link_admin_id($value);}catch(PhpbbLinkException$error){$refused=true;}if(!$refused){$errors[]='Invalid Link ID accepted';}}
 $store=file_get_contents($root.'/phpBB2/includes/functions_link_admin.php');
-foreach(array('s.session_admin=1','HEX(s.session_id)=HEX(',"' LOCK IN SHARE MODE'",'jr_admin_authorization_routes()',"jr_admin_route_matches_file($"."routes[$"."hash],'admin_links.'",'phpbb_link_submission_input($post)')as$marker){if(strpos($store,$marker)===false){$errors[]='Missing Link ACP provider boundary: '.$marker;}}
+foreach(array('s.session_admin=1','HEX(s.session_id)=HEX(',"' LOCK IN SHARE MODE'",'jr_admin_authorization_routes()', 'jr_admin_route_matches_file($routes[$hash],$file)',"array('admin_links.'",'phpbb_link_submission_input($post)')as$marker){if(strpos($store,$marker)===false){$errors[]='Missing Link ACP provider boundary: '.$marker;}}
 
 foreach ($required as $marker)
 {

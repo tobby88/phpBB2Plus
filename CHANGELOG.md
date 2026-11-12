@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Commit complete Link settings and category changes
+
+- Save all Link settings together with current ACP session/account/module
+  authority. Validate flags, numeric ranges, URLs and local image paths before
+  writing; preserve unknown settings and support historical key aliases.
+- Render complete configuration defaults even when older/fresh installations
+  omit optional settings. Missing values are filled on an ordinary save.
+- Create, rename, relocate, delete and reorder categories atomically with their
+  affected links. Preserve all other link metadata, reject missing/current
+  targets and leave no partial changes on a failed write.
+- Sort by stable positions instead of adding/subtracting fixed offsets, so old,
+  equal and maximum order values work. Keep original order values on renames.
+- Keep confirmation forms and localized messages, remove obsolete direct-write
+  branches, and align form limits with validated settings. No schema migration
+  or manual database change is required.
+
 ### Keep Link administration current and preserve complete stored values
 
 - Add, edit and delete Links on an independent canonical transaction, checking

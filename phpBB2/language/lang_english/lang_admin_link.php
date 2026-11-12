@@ -102,4 +102,7 @@ $lang['Link_storage_failed'] = 'The link could not be saved. Please try again la
 $lang['Link_save_unconfirmed'] = 'The change could not be confirmed. Please check Link Management before repeating it.';
 $lang['Link_target_changed'] = 'The selected link no longer exists or the selection is invalid.';
 $lang['Link_category_not_exist'] = 'The selected link category no longer exists.';
+$lang['Link_settings_invalid'] = 'Please check the Link settings: image dimensions and banner count 1–1000, links per page 1–100, rotation interval 250–2147483647 milliseconds. URLs must be valid.';
+$lang['Link_settings_ambiguous'] = 'The Link settings contain ambiguous or duplicate keys. Nothing was saved.';
+$lang['Link_category_target_invalid'] = 'Please select a different existing destination category, or deletion of all contained links.';
 ?>

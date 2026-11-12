@@ -13,31 +13,31 @@
 	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_SITE_LOGO}</span></td>
-	  <td class="row2"><input class="post" type="text" maxlength="100" size="60" name="site_logo" value="{SITE_LOGO}" /></td>
+	  <td class="row2"><input class="post" type="text" maxlength="255" size="60" name="site_logo" value="{SITE_LOGO}" /></td>
 	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_SITE_URL}</span></td>
-	  <td class="row2"><input class="post" type="text" maxlength="100" size="60" name="site_url" value="{SITE_URL}" /></td>
+	  <td class="row2"><input class="post" type="text" maxlength="255" size="60" name="site_url" value="{SITE_URL}" /></td>
 	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_WIDTH}</span></td>
-	  <td class="row2"><input class="post" type="text" maxlength="5" size="5" name="width" value="{WIDTH}" /></td>
+	  <td class="row2"><input class="post" type="text" maxlength="4" size="5" name="width" value="{WIDTH}" /></td>
 	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_HEIGHT}</span></td>
-	  <td class="row2"><input class="post" type="text" maxlength="2" size="5" name="height" value="{HEIGHT}" /></td>
+	  <td class="row2"><input class="post" type="text" maxlength="4" size="5" name="height" value="{HEIGHT}" /></td>
 	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_LINKSPP}</span></td>
-	  <td class="row2"><input class="post" type="text" maxlength="9" size="5" name="linkspp" value="{LINKSPP}" /></td>
+	  <td class="row2"><input class="post" type="text" maxlength="3" size="5" name="linkspp" value="{LINKSPP}" /></td>
 	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_DISPLAY_INTERVAL}</span></td>
-	  <td class="row2"><input class="post" type="text" maxlength="9" size="5" name="display_interval" value="{INTERVAL}" /></td>
+	  <td class="row2"><input class="post" type="text" maxlength="10" size="5" name="display_interval" value="{INTERVAL}" /></td>
 	</tr>
 	<tr>
 	  <td class="row1"><span class="genmed">{L_DISPLAY_LOGO_NUM}</span></td>
-	  <td class="row2"><input class="post" type="text" maxlength="9" size="5" name="display_logo_num" value="{LOGO_NUM}" /></td>
+	  <td class="row2"><input class="post" type="text" maxlength="4" size="5" name="display_logo_num" value="{LOGO_NUM}" /></td>
 	</tr>
 	<!-- tr>
 	  <td class="row1"><span class="genmed">{L_ALLOW_GUEST_SUBMIT_SITE}</span></td>
