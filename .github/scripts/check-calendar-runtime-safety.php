@@ -162,3 +162,49 @@ foreach (array('english','german') as $locale) {
 cn_check(calendar_month_date(1,1970,1)===false && calendar_month_date(1,2070,1)===false,'Month helper refuses unsupported target years');
 restore_error_handler();
 echo 'Calendar navigation: ',$navigation_cases,' actual-controller cases, ',$navigation_checks," assertions PASS; supported years, clamped months, DST grids/hour windows, EN/DE and persistent forum filters.\n";
+
+// Follow the real rendered form from an existing mixed-result page. The
+// providers supply isolated rows, while controller parsing, row conversion,
+// count arithmetic, hidden fields and Extreme Styles output stay unmodified.
+$selection_cases=0;$selection_checks_before=$navigation_checks;
+set_error_handler(function($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
+foreach (array('english','german') as $locale) {
+    foreach (array(array('UTC','2027-01-31 15:12:00'),array('Europe/Berlin','2026-10-25 00:30:00'),array('Europe/Berlin','2026-10-25 01:30:00'),array('Australia/Lord_Howe','2026-04-04 15:15:00'),array('Pacific/Auckland','2024-02-29 15:12:00')) as $vector) {
+        $stamp=(new DateTimeImmutable($vector[1],new DateTimeZone('UTC')))->getTimestamp();
+        $clock=(new DateTimeImmutable('@'.$stamp))->setTimezone(new DateTimeZone($vector[0]));
+        foreach (array('','hour') as $mode) { foreach (array(3,6) as $offset) {
+            $original=cn_run('calendar_scheduler',array('d'=>(string)$stamp,'mode'=>$mode,'start'=>(string)$offset,'fid'=>'f6'),array(),$vector[0],1,$locale,array('birthdays'=>5,'topics'=>6));
+            $expected=array_slice(array('b0','b1','b2','b3','b4','t0','t1','t2','t3','t4','t5'),$offset,3);
+            cn_check(array_column($original['display_rows'],'topic_id')===$expected,'Ordinary GET pagination retains mixed birthday/topic rows and offset');
+            cn_check($original['vars']['PAGE_NUMBER']===sprintf($lang['Page_of'],(int)($offset/3)+1,4),'Ordinary current-selection page count stays unchanged');
+            $form=cn_form(cn_render($original));cn_check($form['action']==='./calendar_scheduler.php','Rendered form uses the assigned canonical action');
+            cn_check(!array_key_exists('start',$form['post']),'Selection form does not carry the previous result page');
+            cn_check(isset($form['post']['date'],$form['post']['mode'],$form['post']['selected_id']) && $form['post']['date']===(string)$stamp && $form['post']['mode']===$mode && $form['post']['selected_id']==='f6','Rendered form retains exact date/mode/filter context');
+            foreach (array('month','year','forum') as $change) { foreach (array(false,true) as $cached) {
+                $post=$form['post'];if($cached){$post['start']=(string)$offset;}
+                if($change==='month'){$post['start_month']=(string)((int)$clock->format('n')===12?1:(int)$clock->format('n')+1);$post['start_year']=(string)((int)$clock->format('Y')+((int)$clock->format('n')===12?1:0));}
+                elseif($change==='year'){$post['start_year']=(string)((int)$clock->format('Y')+1);}
+                else{$post['selected_id']='f7';}
+                // A stale query string and cached pre-fix hidden start must
+                // not take precedence over a newly submitted selection.
+                $result=cn_run('calendar_scheduler',array('start'=>'999','fid'=>'f6'),$post,$vector[0],1,$locale,array('birthdays'=>0,'topics'=>1));
+                cn_check(array_column($result['display_rows'],'topic_id')===array('t0'),'New selection starts at its available first result, including cached forms');
+                cn_check($result['vars']['PAGE_NUMBER']===sprintf($lang['Page_of'],1,1),'Selection never carries an old page number into a smaller result set');
+                $selected=cn_form(cn_render($result));cn_check(!isset($selected['post']['start']),'Next rendered selection form stays free of a page offset');
+                if($change==='forum'){
+                    cn_check($result['date']===$stamp,'Forum-only form submission preserves the exact selected timestamp');
+                    cn_check(cn_day_window($result)===cn_day_window($original),'Forum-only selection preserves its real day/hour interval, including repeated/half-hour DST slots');
+                    cn_check($selected['post']['selected_id']==='f7','New forum remains selected in the next rendered form');
+                }else{
+                    $target=new DateTimeImmutable($post['start_year'].'-'.sprintf('%02d',(int)$post['start_month']).'-01 00:00:00',new DateTimeZone($vector[0]));
+                    $target=$target->setDate((int)$post['start_year'],(int)$post['start_month'],min((int)$clock->format('j'),(int)$target->format('t')));
+                    cn_check($result['date']===$target->getTimestamp(),'Month/year selection keeps the existing clamped-day behavior');
+                }
+                $selection_cases++;
+            }}
+            $selection_cases++;
+        }}
+    }
+}
+restore_error_handler();
+echo 'Calendar selections: ',$selection_cases,' actual rendered-form/controller cases, ',($navigation_checks-$selection_checks_before)," assertions PASS; mixed pagination, new/cached selections, exact DST hours, EN/DE and canonical action.\n";

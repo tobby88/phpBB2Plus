@@ -55,6 +55,7 @@ if ($date < 31536000 || $date > 3155759999)
 }
 
 // date per jumpbox
+$selection_submitted = array_key_exists('selected_id', $_POST);
 $start_month = (isset($_POST['start_month']) && is_scalar($_POST['start_month'])) ? intval($_POST['start_month']) : 0;
 $start_year = (isset($_POST['start_year']) && is_scalar($_POST['start_year'])) ? intval($_POST['start_year']) : 0;
 if ($start_month >= 1 && $start_month <= 12 && $start_year >= 1971 && $start_year <= 2069)
@@ -65,7 +66,17 @@ if ($start_month >= 1 && $start_month <= 12 && $start_year >= 1971 && $start_yea
 		$day = date('d', $date);
 	}
 	$selected_date = calendar_month_date($start_month, $start_year, $day);
-	if ($selected_date !== false) { $date = $selected_date; }
+	if ($selected_date !== false)
+	{
+		$selection_submitted = true;
+		// The form always includes the displayed month/year, even when only
+		// the forum changes. Keep the exact selected hour in that case,
+		// including either occurrence of an ambiguous autumn clock hour.
+		if ((int) date('n', $date) !== $start_month || (int) date('Y', $date) !== $start_year)
+		{
+			$date = $selected_date;
+		}
+	}
 }
 
 // mode
@@ -81,7 +92,7 @@ if ( !in_array($mode, array('hour')) )
 }
 // start
 $start = 0;
-if ( isset($_POST['start']) || isset($_GET['start']) )
+if ( !$selection_submitted && (isset($_POST['start']) || isset($_GET['start'])) )
 {
 	$start_value = isset($_POST['start']) ? $_POST['start'] : $_GET['start'];
 	$start = is_scalar($start_value) ? max(0, min(1000000, intval($start_value))) : 0;
@@ -361,7 +372,6 @@ topic_list('TOPIC_LIST_SCHEDULER', 'topics_list_box', $topic_rowset, $title, $sp
 // system
 $s_hidden_fields = '<input type="hidden" name="mode" value="' . $mode . '" />';
 $s_hidden_fields .= '<input type="hidden" name="date" value="' . $date . '" />';
-$s_hidden_fields .= '<input type="hidden" name="start" value="' . $start . '" />';
 if (!isset($nav_separator))
 {
 	$nav_separator = '&nbsp;->&nbsp;';

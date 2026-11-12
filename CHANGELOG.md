@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Calendar selection forms and existing result pages
+
+- Start a newly submitted month, year or forum selection on its first result
+  page, including older cached forms that still carry a previous page offset.
+  Preserve normal pagination within the current selection.
+- Keep the exact selected day/hour when only the forum changes; the unchanged
+  month/year fields no longer reset it to midnight or merge autumn occurrences.
+- Submit the scheduler form through its assigned action and omit the obsolete
+  hidden page offset. Existing event storage and permissions stay unchanged.
+
 ### Calendar navigation across month ends and clock changes
 
 - Keep month arrows and month/year selections in their requested month, using

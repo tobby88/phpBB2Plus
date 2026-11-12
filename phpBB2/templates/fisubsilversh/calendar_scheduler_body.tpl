@@ -1,4 +1,4 @@
-<form name="_calendar_scheduler" method="post" action="{ACTION}">
+<form name="_calendar_scheduler" method="post" action="{S_ACTION}">
 <table width="100%" cellspacing="2" cellpadding="2" border="0" align="center">
 <tr>
 	<td align="left" valign="middle" class="nav" width="100%"><span class="nav"><a href="{U_INDEX}" class="nav">{L_INDEX}</a>{NAV_SEPARATOR}<a href="{U_CALENDAR_SCHEDULER}" class="nav">{L_CALENDAR_SCHEDULER}</a></span></td>
