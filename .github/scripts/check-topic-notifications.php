@@ -73,7 +73,7 @@ try
 
 	// Real auth(), no cached tree shortcut; inactive/banned/blocked/invalid mail
 	// identities must not become delivery tasks, even with an old watch row.
-	foreach(array('UPDATE fixture_forums SET auth_view=5','UPDATE fixture_forums SET auth_read=5','UPDATE fixture_users SET user_active=0 WHERE user_id=9',"UPDATE fixture_users SET user_email='invalid' WHERE user_id=9",'UPDATE fixture_users SET user_blocktime=2147483647 WHERE user_id=9','INSERT INTO fixture_bans VALUES (9)') as $change)
+	foreach(array('UPDATE fixture_posts SET post_deleted=1 WHERE post_id=10','UPDATE fixture_forums SET auth_view=5','UPDATE fixture_forums SET auth_read=5','UPDATE fixture_users SET user_active=0 WHERE user_id=9',"UPDATE fixture_users SET user_email='invalid' WHERE user_id=9",'UPDATE fixture_users SET user_blocktime=2147483647 WHERE user_id=9','INSERT INTO fixture_bans VALUES (9)') as $change)
 	{
 		notification_fixture(); $mutation_server->pdo->exec($change);
 		mutation_check(phpbb_topic_notifications_prepare($db,10)===array(),'Reject currently unauthorized recipient: '.$change);
@@ -89,7 +89,7 @@ try
 	mutation_check(phpbb_topic_notification_ready($db,$tasks[0])===false,'Revoke ACL between preparation and delivery');
 	mutation_check((int)posting_value('SELECT SUM(notify_status) FROM fixture_watches')===0,'Suppressed claim becomes retryable, not a permanent notification');
 
-	foreach(array('UPDATE fixture_topics SET forum_id=4','DELETE FROM fixture_posts WHERE post_id=10','DELETE FROM fixture_watches WHERE user_id=9','UPDATE fixture_users SET user_active=0 WHERE user_id=9') as $change)
+	foreach(array('UPDATE fixture_topics SET forum_id=4','UPDATE fixture_posts SET post_deleted=1 WHERE post_id=10','DELETE FROM fixture_posts WHERE post_id=10','DELETE FROM fixture_watches WHERE user_id=9','UPDATE fixture_users SET user_active=0 WHERE user_id=9') as $change)
 	{
 		notification_fixture(); $tasks=phpbb_topic_notifications_prepare($db,10); $mutation_server->pdo->exec($change);
 		mutation_check(phpbb_topic_notification_ready($db,$tasks[0])===false,'Recheck changed target/account/watch before mail: '.$change);

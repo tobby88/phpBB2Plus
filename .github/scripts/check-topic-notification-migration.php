@@ -21,4 +21,6 @@ $fixture_table_exists=false; $fixture_columns=array(); $operations=array(); upda
 migration_check(!$operations,'No attempt to alter an absent base table');
 $schema=file_get_contents($root.'/phpBB2/install/schemas/mysql_schema.sql');
 migration_check(preg_match("/notify_claim char\(32\) NOT NULL default ''/i",$schema) && preg_match("/notify_claimed_at int\(10\) UNSIGNED NOT NULL default '0'/i",$schema),'Fresh install and existing-install migration agree');
+$tombstone=file_get_contents($root.'/update/post_tombstone_migration.php');
+migration_check(strpos($source,"require_once __DIR__ . '/post_tombstone_migration.php';")!==false && strpos($source,'plus_post_tombstone_apply(')!==false && strpos($tombstone,"'post_deleted'=>'tinyint'")!==false && preg_match("/post_deleted tinyint(?:\([0-9]+\))? NOT NULL DEFAULT '?0'?/i",$schema),'Notification deletion predicate is supported by the existing installer and full update path');
 echo "Topic notification additive migration and resumption checks passed.\n";

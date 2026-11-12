@@ -105,6 +105,12 @@ jobs:
         env:
           PHPBB_FIXTURE_LOCKS_NATIVE: '1'
           PHPBB_FIXTURE_LOCKS_PASSWORD: fixture-only
+      - name: Check native topic notifications and deleted-target delivery suppression
+        if: matrix.part == 5
+        run: php .github/scripts/check-topic-notifications-native.php
+        env:
+          PHPBB_TOPIC_NOTIFY_NATIVE: '1'
+          PHPBB_TOPIC_NOTIFY_PASSWORD: fixture-only
       - name: Check deleted News readers and current forum ACLs
         if: matrix.part == 2
         run: php .github/scripts/check-news-tombstones-native.php

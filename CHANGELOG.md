@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Stop queued notifications for deleted replies
+
+- Require an undeleted post both when reserving topic notifications and at the
+  final delivery check. Suppress an already deleted target and release a claim
+  if the post was deleted after preparation, allowing later replies to notify.
+- Retain current recipient/forum checks, retry claims, read acknowledgements
+  and normal locked-topic notifications. The existing tombstone installer and
+  updater already provide the required deletion column; no schema change.
+
 ### Keep News queries and navigation on the same page
 
 - Use one effective page size for article/comment queries and navigation,

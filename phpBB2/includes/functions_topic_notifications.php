@@ -6,7 +6,7 @@ function phpbb_topic_notification_context($db, $post_id)
 {
 	$rows = phpbb_topic_preference_rows($db, 'SELECT t.topic_id, t.forum_id, t.topic_title, p.poster_id FROM ' . POSTS_TABLE . ' p JOIN ' . TOPICS_TABLE
 		. ' t ON t.topic_id = p.topic_id AND t.forum_id = p.forum_id JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = t.forum_id'
-		. ' WHERE p.post_id = ' . (int) $post_id . ' AND t.topic_moved_id = 0 AND t.topic_status IN (' . TOPIC_UNLOCKED . ',' . TOPIC_LOCKED . ')');
+		. ' WHERE p.post_id = ' . (int) $post_id . ' AND p.post_deleted = 0 AND t.topic_moved_id = 0 AND t.topic_status IN (' . TOPIC_UNLOCKED . ',' . TOPIC_LOCKED . ')');
 	return $rows ? $rows[0] : false;
 }
 function phpbb_topic_notification_recipient($db, $user_id, $forum_id)
