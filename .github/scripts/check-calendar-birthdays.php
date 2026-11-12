@@ -100,13 +100,16 @@ $db->rows=$saved_rows;date_default_timezone_set('UTC');
 $template=file_get_contents($root.'templates/fisubsilversh/calendar_box.tpl');
 $line=''; foreach(explode("\n",$template) as $candidate){if(strpos($candidate,'data-calendar-message=')!==false){$line=$candidate;break;}}
 cb_check($line!=='' && strpos($line,"this.getAttribute('data-calendar-message')")!==false,'Actual template must read tooltip data without JavaScript interpolation');
-$encoded=$event['event_message']; $html=str_replace('{_calendar_box._row._cell.switch_filled._event.EVENT_MESSAGE}',$encoded,$line);
+$functions=file_get_contents($root.'includes/functions_calendar.php');
+eval(calendar_fixture_function($functions,'calendar_event_message_attribute'));
+if(preg_match('/^\s*\x27EVENT_MESSAGE\x27\s*=>\s*(.+),\s*$/m',$functions,$binding)!==1){throw new RuntimeException('Actual calendar message binding missing');}
+$events=array($event);$ind=0;$encoded=eval('return '.$binding[1].';');
+$html=str_replace('{_calendar_box._row._cell.switch_filled._event.EVENT_MESSAGE}',$encoded,$line);
 preg_match('/data-calendar-message="([^"]*)"/',$html,$data);
 cb_check(isset($data[1]) && html_entity_decode($data[1],ENT_QUOTES,'UTF-8')===$markup,'Tooltip data attribute must retain quotes, UTF-8, backslashes, entities and line breaks');
 preg_match('/onMouseOver="([^"]*)"/',$html,$handler);
 cb_check(isset($handler[1]) && strpos($handler[1],'O\'Reilly')===false && strpos($handler[1],'EVENT_MESSAGE')===false,'User text must not enter the executable event handler');
-$functions=file_get_contents($root.'includes/functions_calendar.php');
-cb_check(strpos($functions,"'EVENT_MESSAGE'\t=> \$events[\$ind]['event_message']")!==false,'Actual calendar binding must preserve the already encoded tooltip value');
+cb_check($encoded===$event['event_message'],'Actual calendar binding must preserve the already encoded birthday tooltip value');
 // Actual scheduler arithmetic, isolated from only its two data collectors.
 eval('namespace BirthdaySchedulerFixture; function get_birthday(&$e,&$n,$a,$b,$limit,$start,$max){$n=count($GLOBALS["cb_brows"]);foreach(array_slice($GLOBALS["cb_brows"],$start,$max)as$r){$e[]=$r;}} function get_event_topics(&$e,&$n,$a,$b,$limit,$start,$max,$fid){if($start<0||$max<0){throw new \\RuntimeException("Negative topic page");}$n=count($GLOBALS["cb_trows"]);foreach(array_slice($GLOBALS["cb_trows"],$start,$max)as$r){$e[]=$r;}}');
 $scheduler=file_get_contents($root.'calendar_scheduler.php');
