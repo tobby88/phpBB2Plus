@@ -13,7 +13,7 @@ function phpbb_link_rotation_item($row,$extension)
 	$id=phpbb_link_visit_id($row['link_id']);$image=phpbb_normalize_external_url($row['link_logo_src']);
 	if($id===false||$image===false||preg_match('//u',$image)!==1){return false;}
 	$title=isset($row['link_title'])&&is_string($row['link_title'])&&preg_match('//u',$row['link_title'])===1?html_entity_decode($row['link_title'],ENT_QUOTES,'UTF-8'):'';
-	return array('url'=>append_sid('links.'.$extension.'?action=go&link_id='.$id,false),'image'=>$image,'title'=>$title);
+	return array('url'=>append_sid('links.'.$extension.'?action=go&link_id='.$id,true),'image'=>$image,'title'=>$title);
 }
 
 function phpbb_link_rotation($database,$extension)
