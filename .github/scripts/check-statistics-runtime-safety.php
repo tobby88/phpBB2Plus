@@ -25,8 +25,8 @@ statistics_runtime_assert(strpos($admin, 'max(1, min(100, intval(') !== false, '
 
 $escaped_modules = array(
 	'most_used_languages' => "htmlspecialchars((string) \$lang_data[\$i]['user_lang']",
-	'most_viewed_topics' => "htmlspecialchars((string) \$topic_data[\$i]['topic_title']",
-	'most_active_topics' => "htmlspecialchars((string) \$topic_data[\$i]['topic_title']",
+	'most_viewed_topics' => "phpbb_stored_text(\$topic_data[\$i]['topic_title'])",
+	'most_active_topics' => "phpbb_stored_text(\$topic_data[\$i]['topic_title'])",
 	'top_posters' => "phpbb_stored_text(\$user_data[\$i]['username'])",
 	'site_hist_month_top_posters' => "phpbb_stored_text(\$user_data[\$i]['username'])",
 	'site_hist_week_top_posters' => "phpbb_stored_text(\$user_data[\$i]['username'])",
