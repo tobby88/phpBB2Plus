@@ -65,7 +65,9 @@ function phpbb_report_post($database, $request, $user_ip)
             if ((int)$rule['ban_userid']===$actor_id || phpbb_ip_ban_matches($rule['ban_ip'],$rule['ban_ip_mask'],$user_ip)
                 || ($logged && phpbb_email_ban_matches($rule['ban_email'],$actor['user_email']))) { phpbb_card_error('Not_Authorised'); }
         }
-        $posts=$owner->rows('SELECT p.post_id,p.topic_id,p.forum_id,p.post_bluecard,f.forum_name,pt.post_subject FROM ' . POSTS_TABLE . ' p JOIN ' . TOPICS_TABLE . ' t ON t.topic_id=p.topic_id AND t.forum_id=p.forum_id AND t.topic_moved_id=0 JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=p.forum_id JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id=p.post_id WHERE p.post_id=' . $post_id . ' FOR UPDATE');
+        // A form opened before deletion must not publish a new report or reset
+        // a tombstone's counter. Read the current marker under the owning lock.
+        $posts=$owner->rows('SELECT p.post_id,p.topic_id,p.forum_id,p.post_bluecard,f.forum_name,pt.post_subject FROM ' . POSTS_TABLE . ' p JOIN ' . TOPICS_TABLE . ' t ON t.topic_id=p.topic_id AND t.forum_id=p.forum_id AND t.topic_moved_id=0 JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=p.forum_id JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id=p.post_id WHERE p.post_id=' . $post_id . ' AND p.post_deleted=0 FOR UPDATE');
         if (count($posts)!==1) { phpbb_card_error('No_such_post'); } $post=$posts[0];
         $access=$owner->forum_access((int)$post['forum_id'],$actor);
         if (!$access || !$access['auth_view'] || !$access['auth_read'] || ($mode==='report_reset' ? !$access['moderator'] : !$access['auth_bluecard'])) { phpbb_card_error('Not_Authorised'); }
@@ -81,7 +83,7 @@ function phpbb_report_post($database, $request, $user_ip)
             foreach (array('bluecard_limit','bluecard_limit_2','report_forum') as $key) {
                 if (!isset($policy[$key]) || !preg_match('/^[0-9]{1,10}$/D',(string)$policy[$key]) || (float)$policy[$key]>2147483647) { phpbb_card_error(); }
             }
-            $first=$owner->rows('SELECT pt.post_subject FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_first_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id=p.post_id WHERE t.topic_id=' . (int)$post['topic_id']);
+            $first=$owner->rows('SELECT CASE WHEN p.post_deleted=0 THEN pt.post_subject ELSE t.topic_title END AS post_subject FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_first_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id=p.post_id WHERE t.topic_id=' . (int)$post['topic_id']);
             if (count($first)!==1) { phpbb_card_error('No_such_post'); } $subject=$first[0]['post_subject'];
             $start=max(1,(int)$policy['bluecard_limit_2']); $interval=max(1,(int)$policy['bluecard_limit']);
             $notify=$count>$old && $count>=$start && ($count-$start)%$interval===0;
@@ -92,7 +94,7 @@ function phpbb_report_post($database, $request, $user_ip)
                 $destination_access=$owner->forum_access((int)$policy['report_forum'],$actor);
                 if ($destination_access && $destination_access['auth_view'] && $destination_access['auth_read'] && ($destination_access['status']===0 || $destination_access['moderator'])) {
                     $quoted=$owner->sql_escape('('.$post_id.')'.$subject);
-                    $existing=$owner->rows('SELECT t.topic_id,t.topic_status FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_first_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id JOIN ' . POSTS_TEXT_TABLE . " pt ON pt.post_id=p.post_id WHERE t.forum_id=" . (int)$policy['report_forum'] . " AND t.topic_moved_id=0 AND pt.post_subject='$quoted' ORDER BY t.topic_id LIMIT 1");
+                    $existing=$owner->rows('SELECT t.topic_id,t.topic_status FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_first_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id JOIN ' . POSTS_TEXT_TABLE . " pt ON pt.post_id=p.post_id WHERE t.forum_id=" . (int)$policy['report_forum'] . " AND t.topic_moved_id=0 AND p.post_deleted=0 AND pt.post_subject='$quoted' ORDER BY t.topic_id LIMIT 1");
                     if ($old>0 && $existing && $destination_access['auth_reply'] && ((int)$existing[0]['topic_status']===0 || $destination_access['moderator'])) { $reply=(int)$existing[0]['topic_id']; $destination=(int)$policy['report_forum']; }
                     elseif ($destination_access['auth_post']) { $destination=(int)$policy['report_forum']; }
                 }

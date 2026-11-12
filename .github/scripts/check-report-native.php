@@ -94,4 +94,39 @@ try{
  ats_check(rs_success(rs_run('report'))&&lp_rows('SELECT * FROM fixture_caller')===array(),'Report owner cannot commit caller transaction');$main->sql_query('ROLLBACK');$cases++;
  rs_reset();$lp_reuse=true;$before=rs_snapshot();ats_check(!rs_success(rs_run('report'))&&rs_snapshot()===$before&&$main->db_connect_id!==null,'Reused factory cannot commit or close caller');$cases++;
  echo 'Native complete report/reset: '.$cases.' boundary/failure cases and '.$serialized." serialized changes passed.\n";
+ // Retain the original suite/count above. Exercise the complete stale form
+ // dispatch with canonical tombstones as well as retained legacy text.
+ $deleted_cases=0;$deleted_serialized=0;$saved_lang=$lang;
+ foreach(array('english','german')as$language){
+  $lang=array();require $ats_source.'language/lang_'.$language.'/lang_main.php';
+  foreach(array('admin','moderator')as$actor){foreach(array('report','report_reset')as$action){foreach(array('erased','retained')as$body){
+   rs_reset($actor);lp_query('UPDATE fixture_posts SET post_deleted=1,poster_id=-1,post_bluecard=3,post_username=\'\' WHERE post_id=30');
+   if($body==='erased'){lp_query("UPDATE fixture_posts_text SET post_subject='',post_text='',bbcode_uid='' WHERE post_id=30");}
+   lp_query("UPDATE fixture_users SET user_email='recipient@example.invalid' WHERE user_id=1");lp_query("UPDATE fixture_config SET config_value='20' WHERE config_name='report_forum'");
+   $before=rs_snapshot();$message=rs_run($action);
+   ats_check(strpos($message,$lang['No_such_post'])===0&&!rs_success($message)&&rs_snapshot()===$before&&!$lp_committed,'Deleted target refuses stale '.$language.'/'.$actor.'/'.$action.'/'.$body.' without writes/notification/composer');
+   ats_check(strpos($message,'posting.php?mode=')===false&&strpos($message,$lang['Report_notification_failed'])===false,'Deleted target has no notification or composer side effects');$deleted_cases++;
+   rs_reset($actor);ats_check(rs_success(rs_run($action))&&rs_count()===($action==='report'?4:0),'Ordinary action after deleted rejection still releases all owners');$deleted_cases++;
+  }}}
+  foreach(array('erased','retained')as$body){
+   rs_reset();lp_query("UPDATE fixture_topics SET topic_first_post_id=31,topic_title='Remaining Grüße 😀' WHERE topic_id=40");
+   lp_insert('fixture_posts',array('post_id'=>31,'poster_id'=>-1,'forum_id'=>20,'topic_id'=>40,'post_deleted'=>1));
+   lp_insert('fixture_posts_text',array('post_id'=>31,'post_subject'=>$body==='retained'?'DELETED_SUBJECT_MUST_NOT_LEAK':'','post_text'=>$body==='retained'?'DELETED_BODY_MUST_NOT_LEAK':''));
+   $before=rs_snapshot();profile_fixture_request(array('report_x'=>'1','sid'=>'fixture-actor','post_id'=>'30'));$_SERVER['REQUEST_METHOD']='POST';$outcome=phpbb_report_post($db,$_POST,$user_ip);
+   ats_check($outcome['subject']==='Remaining Grüße 😀'&&$outcome['count']===4&&rs_count()===4,'Report ordinary reply uses remaining topic title after first-post deletion '.$language.'/'.$body);
+   ats_check(strpos(json_encode($outcome),'MUST_NOT_LEAK')===false&&rs_snapshot()[2]===$before[2],'Deleted first post contents remain unread and unchanged');$deleted_cases++;
+  }
+  rs_reset('moderator');lp_query("UPDATE fixture_config SET config_value='21' WHERE config_name='report_forum'");
+  lp_insert('fixture_forums',array('forum_id'=>21,'auth_view'=>AUTH_ALL,'auth_read'=>AUTH_ALL,'auth_post'=>AUTH_REG,'auth_reply'=>AUTH_REG));
+  lp_insert('fixture_topics',array('topic_id'=>41,'forum_id'=>21,'topic_first_post_id'=>31));
+  lp_insert('fixture_posts',array('post_id'=>31,'poster_id'=>-1,'forum_id'=>21,'topic_id'=>41,'post_deleted'=>1));
+  lp_insert('fixture_posts_text',array('post_id'=>31,'post_subject'=>"(30)Synthetic Grüße ' 😀",'post_text'=>'DELETED_BODY_MUST_NOT_LEAK'));
+  $message=rs_run('report');ats_check(rs_success($message)&&rs_count()===4&&strpos($message,'newtopic&f=21')!==false&&strpos($message,'reply&t=41')===false,'Deleted report destination cannot match retained subject '.$language);$deleted_cases++;
+ }
+ $lang=$saved_lang;
+ foreach(array('report','report_reset')as$action){
+  rs_reset('moderator');$seen=$blocked=false;$lp_hook=function($query)use(&$seen,&$blocked){if($query!=='COMMIT'||$seen){return;}$seen=true;$GLOBALS['lp_hook']=null;lp_query('SET SESSION innodb_lock_wait_timeout=0');try{$r=$GLOBALS['peer']->sql_query('UPDATE fixture_posts SET post_deleted=1,poster_id=-1 WHERE post_id=30');$error=$GLOBALS['peer']->sql_error();ats_check(!$r&&(int)$error['code']===1205,'Deletion is serialized through actual report commit');$blocked=true;}finally{lp_query('SET SESSION innodb_lock_wait_timeout=1');}};
+  ats_check(rs_success(rs_run($action))&&$seen&&$blocked,'Current marker remains locked through report/reset publication');$deleted_cases++;$deleted_serialized++;
+ }
+ echo 'Report tombstones native: '.$deleted_cases.' cases, '.$deleted_serialized." serialized deletions PASS; actual EN/DE report/reset controller, stale forms, unchanged rejected data, ordinary replies after deleted first posts and no live mail.\n";
 }finally{$main->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}

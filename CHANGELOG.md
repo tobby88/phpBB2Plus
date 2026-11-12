@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Reject stale reports for deleted posts
+
+- Check the current deletion marker while holding the report mutation lock.
+  A stale report/reset form cannot change counters, notify moderators or offer
+  a report composer for an already deleted post.
+- Keep ordinary replies reportable after the first post was deleted, using the
+  remaining topic title without reading its deleted subject. Do not reuse a
+  report destination through a deleted first post. No schema change is needed.
+
 ### Stop queued notifications for deleted replies
 
 - Require an undeleted post both when reserving topic notifications and at the
