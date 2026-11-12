@@ -598,6 +598,12 @@ jobs:
         env:
           PHPBB_REPORT_NATIVE: '1'
           PHPBB_REPORT_PASSWORD: fixture-only
+      - name: Check native report composer source access and current sessions
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-report-composer-native.php
+        env:
+          PHPBB_REPORT_COMPOSER_NATIVE: '1'
+          PHPBB_REPORT_COMPOSER_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php

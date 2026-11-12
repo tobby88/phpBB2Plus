@@ -1115,16 +1115,11 @@ else
 	//
 if ($postreport)
 {
-	$sql = 'SELECT topic_id FROM '.POSTS_TABLE.' WHERE post_id="'.$postreport.'"';
-	if( !($result = $db->sql_query($sql) )) 
-		message_die(GENERAL_ERROR, "Couldn't get post subject information"); 
-	$post_details = $db->sql_fetchrow($result);
-	$post_topic_id=$post_details['topic_id'];
-	$sql = 'SELECT pt.post_subject FROM '.POSTS_TEXT_TABLE.' pt, '.POSTS_TABLE.' p WHERE p.topic_id="'.$post_topic_id.'" AND pt.post_id=p.post_id ORDER BY p.post_time ASC LIMIT 1';
-	if( !($result = $db->sql_query($sql) )) 
-		message_die(GENERAL_ERROR, "Couldn't get topic subject information".$sql); 
-	$post_details = $db->sql_fetchrow($result);
-	$subject='('.$postreport.')'.$post_details['post_subject'];
+	require_once($phpbb_root_path . 'includes/functions_report_composer.' . $phpEx);
+	try { $subject='('.$postreport.')'.phpbb_report_composer_subject($db,$postreport,$userdata); }
+	catch (PhpbbCardException $e) { message_die(GENERAL_MESSAGE,$e->getMessage()!=='Card_storage_failed' && isset($lang[$e->getMessage()]) ? $lang[$e->getMessage()] : $lang['Report_storage_failed']); }
+	catch (Exception $e) { message_die(GENERAL_MESSAGE,$lang['Report_storage_failed']); }
+	catch (Error $e) { message_die(GENERAL_MESSAGE,$lang['Report_storage_failed']); }
 	$lock_subject=$postreport;
 } else
 {

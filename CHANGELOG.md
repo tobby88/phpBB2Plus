@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Authorize the source when opening a report composer
+
+- Require a current session/account and current view/read/report permission
+  for the reported source, independently of access to the destination forum.
+  Ignore stale role and forum-tree snapshots and reject deleted or inconsistent
+  sources with a controlled message.
+- Read the canonical first-post subject, falling back to the remaining topic
+  title for a deleted first post. Integer identifiers also work with the
+  `ANSI_QUOTES` SQL mode; missing rows no longer produce PHP warnings.
+
 ### Reject stale reports for deleted posts
 
 - Check the current deletion marker while holding the report mutation lock.
