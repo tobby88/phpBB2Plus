@@ -6,7 +6,7 @@ putenv('PHPBB_POST_SUBMIT_NATIVE=1');putenv('PHPBB_POST_SUBMIT_PORT='.(getenv('P
 $head=str_replace('codex_post_submit_','codex_full_editor_',$head);$head=str_replace("'vote_desc','vote_results');\$ae_columns","'vote_desc','vote_results','logs','vote_voters');\$ae_columns",$head);
 function fe_fixture($actor='member',$poll=true)
 {
- ps_fixture($actor);ae_sql('ALTER TABLE fixture_logs AUTO_INCREMENT=1');$GLOBALS['client_ip']='2001:db8::42';
+ ps_fixture($actor);ae_reset_identity('logs',1);$GLOBALS['client_ip']='2001:db8::42';
  if($poll){ae_insert('fixture_vote_desc',array('vote_id'=>1,'topic_id'=>100,'vote_text'=>'Poll','vote_start'=>1,'vote_length'=>86400));foreach(array(1,2,3) as $id){ae_insert('fixture_vote_results',array('vote_id'=>1,'vote_option_id'=>$id,'vote_option_text'=>'Option '.$id));}ae_sql('UPDATE fixture_topics SET topic_vote=1');}
 }
 function fe_snapshot()

@@ -12,7 +12,7 @@ function pd_files($reset=false)
 }
 function pd_fixture($actor='member',$kind='reply')
 {
- ps_fixture($actor);pd_files(true);ae_sql('ALTER TABLE fixture_logs AUTO_INCREMENT=1');$GLOBALS['client_ip']='2001:db8::42';
+ ps_fixture($actor);pd_files(true);ae_reset_identity('logs',1);$GLOBALS['client_ip']='2001:db8::42';
  if(getenv('PHPBB_POST_DELETE_TOMBSTONE_ONLY')!=='1'){ae_sql("INSERT INTO fixture_config(config_name,config_value)VALUES('post_delete_allow_permanent','1') ON DUPLICATE KEY UPDATE config_value='1'");$_POST['delete_permanently']='1';}
  ae_sql('UPDATE fixture_forums SET auth_delete=1');
  if($kind==='single'){ae_sql('DELETE FROM fixture_posts WHERE post_id=20');ae_sql('DELETE FROM fixture_posts_text WHERE post_id=20');ae_sql('DELETE FROM fixture_search_wordmatch WHERE post_id=20');ae_sql('UPDATE fixture_forums SET forum_posts=1,forum_last_post_id=10');ae_sql('UPDATE fixture_topics SET topic_replies=0,topic_last_post_id=10');}

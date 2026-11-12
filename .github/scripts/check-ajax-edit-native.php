@@ -33,6 +33,22 @@ class AjaxNativeDatabase extends sql_db {function sql_dedicated_connection(){$c=
 $db=new AjaxNativeDatabase($host,'root',$password,$schema,false);
 function ae_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ae_check($r,'Fixture SQL: '.json_encode($GLOBALS['peer']->sql_error()));return $r;}
 function ae_rows($sql){$r=ae_sql($sql);$rows=$GLOBALS['peer']->sql_fetchrowset($r);$GLOBALS['peer']->sql_freeresult($r);foreach($rows as &$row){foreach(array_keys($row) as $key){if(is_int($key)){unset($row[$key]);}}}unset($row);return $rows;}
+function ae_identity_can_skip($version){
+ return is_string($version)&&preg_match('/(?:^|-)([0-9]+\.[0-9]+\.[0-9]+)-MariaDB(?:-|$)/i',$version,$match)===1&&version_compare($match[1],'10.3.0','>=');
+}
+function ae_reset_identity($suffix,$next){
+ ae_check(is_string($suffix)&&in_array($suffix,array('search_wordlist','posts','topics','vote_desc','logs'),true)&&is_int($next)&&$next>0&&$next<=2147483647,'Exact fixture identity reset target');
+ $rows=ae_rows("SELECT DATABASE() AS owned_schema,VERSION() AS server_version,AUTO_INCREMENT AS next_id FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('fixture_".$suffix."')");
+ ae_check(count($rows)===1&&preg_match('/^codex_[a-z0-9_]+_[a-f0-9]{12,16}$/D',$rows[0]['owned_schema'])===1&&preg_match('/^[1-9][0-9]*$/D',(string)$rows[0]['next_id'])===1,'Owned native auto-increment table required');
+ // MariaDB exposes its current in-memory counter here, including allocated
+ // values from rolled-back writes. Unknown/MySQL servers keep the original DDL.
+ if(ae_identity_can_skip($rows[0]['server_version'])){
+  $transaction=ae_rows('SELECT @@SESSION.in_transaction AS active_transaction');
+  ae_check(count($transaction)===1&&(string)$transaction[0]['active_transaction']==='0','Fixture identity reset must not commit an open transaction');
+  if((string)$rows[0]['next_id']===(string)$next){return false;}
+ }
+ ae_sql('ALTER TABLE fixture_'.$suffix.' AUTO_INCREMENT='.$next);return true;
+}
 function ae_insert($table,$values){foreach($GLOBALS['ae_columns'][$table] as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}$encoded=array();foreach($values as $v){$encoded[]="'".$GLOBALS['peer']->sql_escape((string)$v)."'";}ae_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).') VALUES ('.implode(',',$encoded).')');}
 $ae_tables=array('users','sessions','forums','topics','posts','posts_text','user_group','auth_access','search_wordlist','search_wordmatch','config');$ae_columns=array();
 function ae_snapshot(){
@@ -41,7 +57,7 @@ function ae_snapshot(){
 function ae_fixture($actor='member',$common=false){
  global $ae_hook,$ae_queries,$ae_fail,$ae_ack,$ae_write,$ae_failwrite,$userdata,$board_config;
  $ae_hook=null;$ae_queries=array();$ae_fail='';$ae_ack=false;$ae_write=$ae_failwrite=0;$GLOBALS['ae_error']=null;
- ae_sql('START TRANSACTION');foreach($GLOBALS['ae_tables'] as $s){ae_sql('DELETE FROM fixture_'.$s);}ae_sql('COMMIT');ae_sql('ALTER TABLE fixture_search_wordlist AUTO_INCREMENT=3');ae_sql('START TRANSACTION');
+ ae_sql('START TRANSACTION');foreach($GLOBALS['ae_tables'] as $s){ae_sql('DELETE FROM fixture_'.$s);}ae_sql('COMMIT');ae_reset_identity('search_wordlist',3);ae_sql('START TRANSACTION');
  foreach(array(8,9) as $id){ae_insert('fixture_users',array('user_id'=>$id,'username'=>"Grüße O'Reilly 😀",'user_level'=>$id===8&&$actor==='root'?ADMIN:USER,'user_active'=>1));}
  ae_insert('fixture_sessions',array('session_id'=>'edit-sid','session_user_id'=>8,'session_logged_in'=>1,'session_admin'=>0));
  ae_insert('fixture_forums',array('forum_id'=>3,'forum_name'=>'fixture','auth_view'=>AUTH_REG,'auth_read'=>AUTH_REG,'auth_edit'=>AUTH_REG,'forum_status'=>$actor==='moderator'?FORUM_LOCKED:FORUM_UNLOCKED));

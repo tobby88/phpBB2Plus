@@ -18,7 +18,7 @@ function append_sid($url) { return $url; }
 function ps_fixture($actor = 'member')
 {
  ae_fixture($actor); global $userdata, $board_config, $user_ip, $ctracker_config, $is_auth;
- foreach(array('posts'=>21,'topics'=>101,'vote_desc'=>1) as $suffix=>$next){ae_sql('ALTER TABLE fixture_'.$suffix.' AUTO_INCREMENT='.$next);}
+ foreach(array('posts'=>21,'topics'=>101,'vote_desc'=>1) as $suffix=>$next){ae_reset_identity($suffix,$next);}
  ae_sql('UPDATE fixture_forums SET count_posts=1, forum_posts=2, forum_topics=1, forum_last_post_id=20, auth_post=1, auth_reply=1, auth_pollcreate=1');
  ae_sql('UPDATE fixture_topics SET topic_replies=1, topic_first_post_id=10, topic_last_post_id=20');
  ae_sql('UPDATE fixture_users SET user_posts=2 WHERE user_id=8');

@@ -54,6 +54,7 @@ $body= <<<'PHP'
  if(getenv('PHPBB_TOPIC_TOMBSTONE_NATIVE')==='1'){
   require $phpbb_root_path.'../.github/scripts/topic-tombstone-native-cases.php';
  }else{
+ require $phpbb_root_path.'../.github/fixtures/native-identity-reset.php';
  $matrix=array(array('moderator','root'),array('moderator','moderator'),array('prune_auto','root'),array('prune_auto','moderator'),array('prune_admin','root'),array('prune_admin','delegate'),array('forum_purge','root'),array('forum_purge','delegate'),array('forum_move','root'),array('forum_move','delegate'));
  if(getenv('PHPBB_TOPIC_REMOVAL_TAIL')!=='1' && getenv('PHPBB_TOPIC_REMOVAL_EXTRA')!=='1'){
  foreach($matrix as $entry){list($policy,$actor)=$entry;tr_fixture($policy,$actor);$before=tr_snapshot();$out=tr_submit($policy);ae_check(is_array($out),'Success '.$policy.'/'.$actor.' '.$br_exception.' '.json_encode($ae_error));$after=tr_snapshot();$queries=$ae_queries;
