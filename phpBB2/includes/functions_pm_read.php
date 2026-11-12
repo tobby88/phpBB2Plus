@@ -8,12 +8,13 @@ require_once dirname(__FILE__) . '/php_compat.php';
 // Neither MyISAM nor lost SQL acknowledgements require a simulated rollback.
 class PhpbbPmReadDatabase extends PhpbbAclDatabase
 {
-	var $actor; var $affected = 0;
+	var $actor; var $affected = 0; var $session_id;
 	function __construct($connection)
 	{
 		global $userdata;
 		parent::__construct($connection, 'PM_cleanup_failed');
 		$this->actor = isset($userdata['user_id']) ? (int)$userdata['user_id'] : 0;
+		$this->session_id = isset($userdata['session_id']) ? $userdata['session_id'] : '';
 		$this->authority();
 	}
 	function authority()
@@ -23,6 +24,7 @@ class PhpbbPmReadDatabase extends PhpbbAclDatabase
 			|| (int)$userdata['user_id'] !== $this->actor) { phpbb_acl_error('Not_Authorised'); }
 		$guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active FROM ' . USERS_TABLE
 			. ' WHERE user_id = ' . $this->actor . ') pm_reader WHERE user_active <> 0)';
+		$guard .= ' AND ' . phpbb_pm_current_session_guard($this, $this->actor, $this->session_id);
 		$rows = parent::sql_query('SELECT 1 AS allowed WHERE ' . $guard);
 		$allowed = $this->connection->sql_fetchrow($rows); $this->connection->sql_freeresult($rows);
 		if (!$allowed) { phpbb_acl_error('Not_Authorised'); }

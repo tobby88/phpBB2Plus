@@ -52,7 +52,7 @@ try
 		foreach(array('inbox','outbox','sentbox','savebox') as $selected_folder)
 		{
 			pm_cleanup_fixture();$folder=$selected_folder;$id=$folder==='sentbox'?21:20;
-			$userdata['user_id']=in_array($folder,array('outbox','sentbox'),true)?8:7;
+			pm_fixture_login(in_array($folder,array('outbox','sentbox'),true)?8:7);
 			if($folder==='savebox'){$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=3 WHERE privmsgs_id=20');}
 			$before_text=$mutation_server->pdo->query('SELECT * FROM fixture_message_text ORDER BY 1')->fetchAll(PDO::FETCH_ASSOC);
 			phpbb_pm_delete_attachments(array($id),$userdata['user_id'],$folder);
@@ -63,10 +63,10 @@ try
 		}
 		foreach(array('get','sid','foreign','mixed','pending','invalid','inactive') as $case)
 		{
-			pm_cleanup_fixture();$userdata['user_id']=7;$ids=array(20);$expected=$lang['Not_Authorised'];
+			pm_cleanup_fixture();pm_fixture_login(7);$ids=array(20);$expected=$lang['Not_Authorised'];
 			if($case==='get'){$_SERVER['REQUEST_METHOD']='GET';$expected=$lang['Session_invalid'];}
 			elseif($case==='sid'){$_POST['sid']='bad';$expected=$lang['Session_invalid'];}
-			elseif($case==='foreign'){$userdata['user_id']=99;}
+			elseif($case==='foreign'){pm_fixture_login(99);}
 			elseif($case==='mixed'){$ids=array(20,21);}
 			elseif($case==='pending'){$mutation_server->pdo->exec("UPDATE fixture_messages SET privmsgs_write_payload='pending' WHERE privmsgs_id=20");$expected=$lang['PM_write_pending'];}
 			elseif($case==='inactive'){$mutation_server->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=7');}
@@ -76,7 +76,7 @@ try
 		}
 		foreach(array('moved','pending','revoked') as $case)
 		{
-			pm_cleanup_fixture();$userdata['user_id']=7;
+			pm_cleanup_fixture();pm_fixture_login(7);
 			$mutation_server->hook=function($sql) use($case)
 			{
 				if(strpos($sql,'DELETE FROM fixture_links')!==0){return;}$s=$GLOBALS['mutation_server'];$s->hook=null;
@@ -89,7 +89,7 @@ try
 		}
 		foreach(array('guest','bad-sid','foreign','own') as $case)
 		{
-			pm_cleanup_fixture();$userdata['user_id']=$case==='foreign'?99:7;$folder='inbox';$mode='';$privmsg_id=20;$sid='fixture-sid';$_POST['pm_delete_attach']='1';$_POST['mark']=array(20);
+			pm_cleanup_fixture();pm_fixture_login($case==='foreign'?99:7);$folder='inbox';$mode='';$privmsg_id=20;$sid='fixture-sid';$_POST['pm_delete_attach']='1';$_POST['mark']=array(20);
 			if($case==='guest'){$userdata['session_logged_in']=false;}
 			if($case==='bad-sid'){$sid='bad';}
 			$caught='';$redirected=false;try{pm_attachment_gate();}catch(PmAttachmentRedirect $e){$redirected=true;}catch(RuntimeException $e){$caught=$e->getMessage();}
@@ -106,7 +106,7 @@ try
 			pm_cleanup_fixture();$privmsg_id=20;$post_id=321;$folder='outbox';$expected=$lang['Not_Authorised'];$refresh=false;
 			$probe=(new ReflectionClass('PmAttachmentRouteProbe'))->newInstanceWithoutConstructor();
 			if($case==='guest'){$userdata['session_logged_in']=false;}
-			elseif($case==='recipient'){$userdata['user_id']=7;}
+			elseif($case==='recipient'){pm_fixture_login(7);}
 			elseif($case==='read'){$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=0 WHERE privmsgs_id=20');}
 			elseif($case==='pending'){$mutation_server->pdo->exec("UPDATE fixture_messages SET privmsgs_write_payload='pending' WHERE privmsgs_id=20");$expected=$lang['PM_write_pending'];}
 			elseif($case==='inactive'){$mutation_server->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=8');}

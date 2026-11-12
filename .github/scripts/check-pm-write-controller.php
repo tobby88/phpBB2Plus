@@ -146,9 +146,9 @@ try
 			}
 			pm_controller_fixture($engine); $pm_repair_server->failure='INSERT INTO fixture_text ';
 			pm_controller_result(function() use($nonce) { pm_controller_send('post',$nonce); },false);
-			$pm_repair_server->failure=''; $userdata['user_id']=8;
+			$pm_repair_server->failure=''; pm_fixture_login(8);
 			pm_repair_check(phpbb_pm_pending_writes_html()==='','Recipient cannot see sender recovery actions');
-			$userdata['user_id']=1; $_POST=array('sid'=>'fixture-sid','pm_write_nonce'=>$nonce,'pm_retry'=>1);
+			pm_fixture_login(1); $_POST=array('sid'=>'fixture-sid','pm_write_nonce'=>$nonce,'pm_retry'=>1);
 			$_SERVER['REQUEST_METHOD']='GET';
 			$message=pm_controller_result(function() { pm_controller_form(''); },false);
 			pm_repair_check(strpos($message,phpbb_profile_text($lang['Session_invalid']))===0,'GET cannot resume accepted write');

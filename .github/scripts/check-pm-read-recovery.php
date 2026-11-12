@@ -138,7 +138,7 @@ try
 			{
 				pm_read_fixture($engine); $before = pm_repair_snapshot('fixture_pm');
 				if ($case === 'inactive') { $pm_repair_server->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=8'); }
-				if ($case === 'foreign') { $userdata['user_id'] = 1; }
+				if ($case === 'foreign') { pm_fixture_login(1); }
 				if ($case === 'already-read') { $pm_repair_server->pdo->exec('UPDATE fixture_pm SET privmsgs_type=0 WHERE privmsgs_id=12'); }
 				if ($case === 'inactive') { mailbox_storage_fail(function() { phpbb_pm_read_message(12, 'inbox', 0); }, $lang['Not_Authorised']); }
 				else { phpbb_pm_read_message($case === 'missing' ? 999 : 12, $case === 'outbox' ? 'outbox' : 'inbox', 0); }

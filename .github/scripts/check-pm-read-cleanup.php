@@ -28,7 +28,7 @@ try
 				$id = pm_pending_fixture($engine, $links);
 				phpbb_pm_resume_reads(0); phpbb_pm_resume_reads(0); pm_read_assert_complete();
 				$id = pm_pending_fixture($engine, $links);
-				$userdata['user_id'] = 1; $userdata['user_level'] = ADMIN; $userdata['session_admin'] = true;
+				pm_fixture_login(1); $userdata['user_level'] = ADMIN; $userdata['session_admin'] = true;
 				pm_repair_check(phpbb_pm_repair_messages(array($id), 'missing_text', time()) === 0, 'Old original date does not turn pending copy into missing-text corruption');
 				pm_repair_check(phpbb_pm_repair_messages(array($id), 'abandoned_copy', time()) === 0, 'Matching read intent protects pending copy');
 				$pm_repair_server->pdo->exec('DELETE FROM fixture_pm WHERE privmsgs_id=12');
@@ -41,7 +41,7 @@ try
 			{
 				foreach (array(false,true) as $lost_ack)
 				{
-					$id = pm_pending_fixture($engine); $userdata['user_id'] = 1;
+					$id = pm_pending_fixture($engine); pm_fixture_login(1);
 					$pm_repair_server->pdo->exec('DELETE FROM fixture_pm WHERE privmsgs_id=12');
 					if ($lost_ack)
 					{
@@ -66,7 +66,7 @@ try
 			{
 				$id = pm_pending_fixture($engine);
 				$original = $pm_repair_server->pdo->query('SELECT * FROM fixture_pm WHERE privmsgs_id=12')->fetch(PDO::FETCH_ASSOC);
-				$userdata['user_id'] = 1; $pm_repair_server->pdo->exec('DELETE FROM fixture_pm WHERE privmsgs_id=12');
+				pm_fixture_login(1); $pm_repair_server->pdo->exec('DELETE FROM fixture_pm WHERE privmsgs_id=12');
 				$pm_repair_server->hook = function($sql) use ($case, $original, $id)
 				{
 					if (strpos($sql, 'DELETE FROM fixture_pm WHERE') !== 0) { return; }
@@ -85,7 +85,7 @@ try
 				pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm WHERE privmsgs_id=' . $id) === 1, 'Current SQL predicate protects ' . $case);
 				pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_text WHERE privmsgs_text_id=' . $id) === 1 && pm_repair_value('SELECT COUNT(*) FROM fixture_links WHERE privmsgs_id=' . $id) === 1, 'No dependent loss when candidate ceases to qualify');
 			}
-			pm_pending_fixture($engine); $userdata['user_id'] = 20; phpbb_pm_resume_reads(0);
+			pm_pending_fixture($engine); pm_fixture_login(20); phpbb_pm_resume_reads(0);
 			pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm WHERE privmsgs_type=6') === 1, 'Unrelated account cannot publish or clean another user staging');
 			echo $engine . ' ' . $locale . " PM read resumption and abandoned-copy cleanup passed.\n";
 		}

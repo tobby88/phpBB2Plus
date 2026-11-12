@@ -16,7 +16,7 @@ function pm_write_fixture($engine)
 	$pdo->exec('CREATE UNIQUE INDEX privmsgs_write_token ON fixture_pm (privmsgs_write_token)');
 	$pdo->exec('DROP TABLE IF EXISTS fixture_write_receipts');
 	$pdo->exec('CREATE TABLE fixture_write_receipts (request_token CHAR(32) PRIMARY KEY,request_hash CHAR(64),user_id INTEGER,message_id INTEGER,created_at INTEGER,notify_state INTEGER NOT NULL DEFAULT 0)'.($GLOBALS['native']?' ENGINE='.$engine:''));
-	$GLOBALS['userdata']['user_id'] = 1; $_SERVER['REQUEST_METHOD'] = 'POST'; $_POST = array('sid'=>'fixture-sid');
+	pm_fixture_login(1); $_SERVER['REQUEST_METHOD'] = 'POST'; $_POST = array('sid'=>'fixture-sid');
 }
 function pm_write_data($subject = 'Neuer Betreff')
 {
@@ -110,13 +110,13 @@ try
 			// even after the failed writer released its dedicated connection.
 			pm_write_fixture($engine);$nonce=str_repeat('a',32);$pm_repair_server->failure='UPDATE fixture_pm SET privmsgs_to_userid';
 			mailbox_storage_fail(function() use($nonce) { phpbb_pm_write_message($nonce,12,'',pm_write_data(),0); },$lang['PM_cleanup_failed']);
-			$pm_repair_server->failure='';$userdata['user_id']=8;
+			$pm_repair_server->failure='';pm_fixture_login(8);
 			mailbox_storage_fail(function(){phpbb_pm_read_message(12,'inbox',0);},$lang['PM_write_pending']);
 			mailbox_storage_fail(function(){phpbb_pm_save_messages(array(12),8,'inbox',0);},$lang['PM_write_pending']);
 			mailbox_storage_fail(function(){phpbb_pm_delete_messages(array(12),8,'inbox');},$lang['PM_write_pending']);
 			pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm WHERE privmsgs_copy_token IS NOT NULL')===0, 'Reader cannot copy partially edited body/header');
-			$userdata['user_id']=1;phpbb_pm_retry_write($nonce,0);pm_write_assert(12,$nonce,false);
-			$userdata['user_id']=8;phpbb_pm_read_message(12,'inbox',0);
+			pm_fixture_login(1);phpbb_pm_retry_write($nonce,0);pm_write_assert(12,$nonce,false);
+			pm_fixture_login(8);phpbb_pm_read_message(12,'inbox',0);
 			pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm p,fixture_text t,fixture_text original WHERE p.privmsgs_copy_token IS NOT NULL AND t.privmsgs_text_id=p.privmsgs_id AND original.privmsgs_text_id=12 AND HEX(t.privmsgs_text)=HEX(original.privmsgs_text)')===1, 'Resumed edit produces one consistent sent copy');
 			pm_write_fixture($engine);$create=str_repeat('b',32);$edit=str_repeat('d',32);
 			$id=phpbb_pm_write_message($create,0,'',pm_write_data(),0);
@@ -130,7 +130,7 @@ try
 			foreach(array('foreign','get','wrong-sid','disabled','nonce-reuse','invalid-upload-plan') as $case)
 			{
 				pm_write_fixture($engine);$nonce=str_repeat('e',32);$data=pm_write_data();$expected=$lang['Not_Authorised'];
-				if($case==='foreign'){$userdata['user_id']=8;$expected=$lang['PM_journal_changed'];}
+				if($case==='foreign'){pm_fixture_login(8);$expected=$lang['PM_journal_changed'];}
 				elseif($case==='get'){$_SERVER['REQUEST_METHOD']='GET';$expected=$lang['Session_invalid'];}
 				elseif($case==='wrong-sid'){$_POST['sid']='wrong';$expected=$lang['Session_invalid'];}
 				elseif($case==='disabled'){$pm_repair_server->pdo->exec('UPDATE fixture_users SET user_allow_pm=0 WHERE user_id=1');}

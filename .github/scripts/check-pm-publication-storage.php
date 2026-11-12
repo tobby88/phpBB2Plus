@@ -8,7 +8,7 @@ function publication_storage_fixture($engine)
 	mailbox_storage_fixture($engine);
 	$GLOBALS['pm_repair_server']->pdo->exec('ALTER TABLE fixture_users ADD COLUMN user_last_privmsg INTEGER DEFAULT 0');
 	$GLOBALS['pm_repair_server']->pdo->exec('UPDATE fixture_pm SET privmsgs_date=500 WHERE privmsgs_id=12');
-	$GLOBALS['userdata']['user_id']=1;
+	pm_fixture_login(1);
 }
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try

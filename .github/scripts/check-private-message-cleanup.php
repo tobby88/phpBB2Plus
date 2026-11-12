@@ -3,6 +3,7 @@ define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY',true);
 require __DIR__ . '/check-attachment-mutation.php';
 require_once __DIR__ . '/pm-repair-journal-fixture.php';
 require_once __DIR__ . '/pm-mailbox-journal-fixture.php';
+require_once __DIR__ . '/pm-current-session-fixture.php';
 define('PRIVMSGS_TEXT_TABLE', 'fixture_message_text');
 define('USERS_TABLE', 'fixture_users');
 define('SESSIONS_TABLE','fixture_sessions');
@@ -49,9 +50,9 @@ function pm_repair_expect_failure($callback,$expected){
 // Ordinary-controller fixtures impersonate the requested owner explicitly.
 // Dedicated capability tests call the real API with mismatched actors instead.
 function pm_fixture_owner_call($name,$args,$owner_index) {
- $prior=$GLOBALS['userdata']; $GLOBALS['userdata']['user_id']=(int)$args[$owner_index];
+ $prior=$GLOBALS['userdata']; pm_fixture_login((int)$args[$owner_index]);
  try { return call_user_func_array($name,$args); }
- finally { $GLOBALS['userdata']=$prior; }
+ finally { pm_fixture_login($prior['user_id']); $GLOBALS['userdata']=$prior; }
 }
 function pm_fixture_delete(){return pm_fixture_owner_call('phpbb_pm_delete_messages',func_get_args(),1);}
 function pm_fixture_trim(){return pm_fixture_owner_call('phpbb_pm_trim_oldest',func_get_args(),0);}

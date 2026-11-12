@@ -97,7 +97,7 @@ try
             foreach (array('foreign','pending','outbox') as $case)
             {
                 pm_read_controller_fixture($engine);
-                if ($case !== 'pending') { $userdata['user_id'] = 1; }
+                if ($case !== 'pending') { pm_fixture_login(1); }
                 else { $pm_repair_server->pdo->exec("UPDATE fixture_pm SET privmsgs_write_payload='pending' WHERE privmsgs_id=12"); }
                 $before = pm_repair_snapshot('fixture_pm');
                 if ($case === 'pending') { mailbox_storage_fail(function() { pm_read_controller_run(); }, $lang['PM_write_pending']); }
@@ -144,7 +144,7 @@ try
             }
             foreach (array('edit','quote') as $compose_mode)
             {
-                pm_read_controller_fixture($engine); $userdata['user_id'] = $compose_mode === 'edit' ? 1 : 8;
+                pm_read_controller_fixture($engine); pm_fixture_login($compose_mode === 'edit' ? 1 : 8);
                 pm_repair_check((bool)pm_compose_source($compose_mode), 'Completed message can enter ' . $compose_mode);
                 $pm_repair_server->pdo->exec("UPDATE fixture_pm SET privmsgs_write_payload='pending edit' WHERE privmsgs_id=12");
                 pm_repair_check(!pm_compose_source($compose_mode), 'Partial content cannot enter ' . $compose_mode);

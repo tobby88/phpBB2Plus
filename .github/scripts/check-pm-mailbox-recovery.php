@@ -6,7 +6,7 @@ function mailbox_fixture($single = true)
 	global $userdata;
 	pm_cleanup_fixture();
 	if ($single) { pm_fixture_delete(array(20),7,'inbox'); }
-	$userdata['user_id']=8; $userdata['user_level']=0;
+	pm_fixture_login(8); $userdata['user_level']=0;
 }
 function mailbox_fail($callback, $expected)
 {
@@ -82,7 +82,7 @@ try
 		foreach(array('foreign','guest','inactive','missing','GET','bad-sid','actor-changed','owner-changed') as $case)
 		{
 			mailbox_fixture();$expected=$lang['Not_Authorised'];
-			if($case==='foreign'){$userdata['user_id']=7;}
+			if($case==='foreign'){pm_fixture_login(7);}
 			elseif($case==='guest'){$userdata['session_logged_in']=false;}
 			elseif($case==='inactive'){$mutation_server->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=8');}
 			elseif($case==='missing'){$mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=8');}
@@ -105,16 +105,16 @@ try
 		// A pending owner journal is not an authority to inspect another mailbox.
 		mailbox_fixture();$mutation_server->failure='DELETE FROM fixture_message_text';
 		mailbox_fail(function(){phpbb_pm_delete_messages(array(21),8,'sentbox');},$lang['PM_cleanup_failed']);
-		$mutation_server->failure='';$userdata['user_id']=7;
+		$mutation_server->failure='';pm_fixture_login(7);
 		mailbox_fail(function(){phpbb_pm_recover_mailbox(8,'sentbox');},$lang['Not_Authorised']);
 		mutation_check(phpbb_pm_recover_mailbox(7,'sentbox')===0 && $mutation_server->count_rows(PM_DELETE_JOBS_TABLE)===1,'Other mailbox recovery leaves pending job intact');
-		$userdata['user_id']=8;phpbb_pm_recover_mailbox(8,'sentbox');mailbox_finished();
+		pm_fixture_login(8);phpbb_pm_recover_mailbox(8,'sentbox');mailbox_finished();
 		// Real foreign-mailbox quota paths, with current source/send capability.
-		mailbox_fixture(false);$userdata['user_id']=7;
+		mailbox_fixture(false);pm_fixture_login(7);
 		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=0 WHERE privmsgs_id=20');
 		mutation_check(phpbb_pm_trim_oldest(8,'sentbox',1,'read',20)===1,'Recipient read may trim sender sentbox');
 		mutation_check($mutation_server->count_rows(PRIVMSGS_TABLE)===1 && is_file($upload_dir.'/fixture.txt'),'Read source and shared attachment preserved');
-		mailbox_fixture(false);$userdata['user_id']=99;
+		mailbox_fixture(false);pm_fixture_login(99);
 		mailbox_fail(function(){phpbb_pm_trim_oldest(8,'sentbox',1,'read',20);},$lang['Not_Authorised']);
 		mailbox_fixture(false);
 		mutation_check(phpbb_pm_trim_oldest(7,'inbox',1,'send')===1,'Sender may enforce delivery recipient quota');
@@ -128,9 +128,9 @@ try
 		// Both participants may remove the same NEW/UNREAD parent. An old
 		// pre-delete journal of one must not permanently block the other.
 		mailbox_fixture(false);$mutation_server->failure='DELETE FROM fixture_messages WHERE';
-		$userdata['user_id']=7;
+		pm_fixture_login(7);
 		mailbox_fail(function(){phpbb_pm_delete_messages(array(20),7,'inbox');},$lang['PM_cleanup_failed']);
-		$mutation_server->failure='';$userdata['user_id']=8;
+		$mutation_server->failure='';pm_fixture_login(8);
 		mutation_check(phpbb_pm_delete_messages(array(20),8,'outbox')===1 && $mutation_server->count_rows(PM_DELETE_JOBS_TABLE)===0,'Authorized other participant supersedes metadata of an undeleted shared parent');
 		mutation_check($mutation_server->count_rows(PRIVMSGS_TABLE)===1 && is_file($upload_dir.'/fixture.txt'),'Independent sent copy still survives');
 		mailbox_fixture();$mutation_server->pdo->exec('UPDATE fixture_descriptions SET thumbnail=1');
@@ -168,7 +168,7 @@ try
 		phpbb_pm_delete_messages(array(21),8,'sentbox');
 		mutation_check(pm_scalar('SELECT COUNT(*) FROM fixture_descriptions WHERE attach_id=99')===1 && is_file($upload_dir.'/fixture.txt'),'Another descriptor with same filename protects shared bytes');
 		// Savebox recovery does not evict the newly saved selection again.
-		mailbox_fixture(false);$userdata['user_id']=7;
+		mailbox_fixture(false);pm_fixture_login(7);
 		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=3 WHERE privmsgs_id=21');
 		$mutation_server->failure='DELETE FROM fixture_message_text';
 		mailbox_fail(function(){phpbb_pm_save_messages(array(20),7,'inbox',1);},$lang['PM_cleanup_failed']);
@@ -177,11 +177,11 @@ try
 		mutation_check(phpbb_pm_save_messages(array(20),7,'inbox',1)===0,'Stale repeated save cannot evict another message');
 		// Recipient-triggered quota cleanup can continue under the sender's
 		// own recovery capability after its source-read context is gone.
-		mailbox_fixture(false);$userdata['user_id']=7;
+		mailbox_fixture(false);pm_fixture_login(7);
 		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=0 WHERE privmsgs_id=20');
 		$mutation_server->failure='DELETE FROM fixture_message_text';
 		mailbox_fail(function(){phpbb_pm_trim_oldest(8,'sentbox',1,'read',20);},$lang['PM_cleanup_failed']);
-		$mutation_server->failure='';$userdata['user_id']=8;
+		$mutation_server->failure='';pm_fixture_login(8);
 		phpbb_pm_recover_mailbox(8,'sentbox');
 		mutation_check($mutation_server->count_rows(PM_DELETE_JOBS_TABLE)===0 && pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_id=20')===1,'Mailbox owner can finish previously authorized foreign-actor quota cleanup');
 		mailbox_fixture();$delivered=false;

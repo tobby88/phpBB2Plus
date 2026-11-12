@@ -45,7 +45,7 @@ try
 				elseif ($case === 'no-email') { $pdo->exec("UPDATE fixture_users SET user_email='' WHERE user_id=8"); }
 				elseif ($case === 'deleted') { $pdo->exec('DELETE FROM fixture_pm WHERE privmsgs_id='.$id); }
 				elseif ($case === 'later-edit') { phpbb_pm_write_message(str_repeat('b',32),$id,$nonce,pm_write_data('New subject'),0); }
-				elseif ($case === 'foreign') { $userdata['user_id']=8; }
+				elseif ($case === 'foreign') { pm_fixture_login(8); }
 				elseif ($case === 'get') { $_SERVER['REQUEST_METHOD']='GET'; }
 				elseif ($case === 'bad-sid') { $_POST['sid']='wrong'; }
 				if ($case === 'get' || $case === 'bad-sid')

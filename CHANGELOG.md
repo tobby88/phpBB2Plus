@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Bind private-message actions to current database sessions
+
+- Recheck the exact session identity, logged-in state and account binding for
+  reading, sending, editing, retrying, attachments and mailbox actions. Carry
+  the session condition into writes so revocation also stops an ongoing action.
+- Keep completed durable stages resumable after a new login. No database
+  migration is required.
+
 ### Keep private-message completion independent of optional email
 
 - Confirm a saved private message even if notification delivery, its claim or

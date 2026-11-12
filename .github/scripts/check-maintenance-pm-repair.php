@@ -34,6 +34,7 @@ class PmRepairServer {
 }
 class PmRepairForum {
  public $dbname='pm-counter-fixture';
+ function sql_escape($s){return substr($GLOBALS['pm_repair_server']->pdo->quote($s),1,-1);}
  function sql_query($sql){throw new RuntimeException('Unlocked main connection used');}
  function sql_dedicated_connection(){return new PmRepairConnection($GLOBALS['pm_repair_server']);}
 }

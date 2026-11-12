@@ -2,18 +2,33 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
 
+// Bind every PM capability to its original, still-current database session.
+// Keep the same condition in mutation SQL, not only in the preceding check.
+function phpbb_pm_current_session_guard($database, $actor, $session_id)
+{
+	global $userdata;
+	if (!is_string($session_id) || $session_id === '' || strlen($session_id) > 32
+		|| !isset($userdata['session_id']) || !is_string($userdata['session_id'])
+		|| !hash_equals($session_id, $userdata['session_id'])) { phpbb_acl_error('Not_Authorised'); }
+	$sid = $database->sql_escape($session_id);
+	return 'EXISTS (SELECT 1 FROM ' . SESSIONS_TABLE . " pm_current_session WHERE pm_current_session.session_id='" . $sid
+		. "' AND HEX(pm_current_session.session_id)=HEX('" . $sid . "') AND pm_current_session.session_user_id=" . (int)$actor
+		. ' AND pm_current_session.session_logged_in=1)';
+}
+
 // This is a mailbox capability, never an ACP permission. Quota actions may
 // legitimately run for another user's mailbox, but only from their current
 // delivery/read context. Recovery itself never deletes a surviving parent.
 class PhpbbMailboxDatabase extends PhpbbAclDatabase
 {
-	var $owner; var $folder; var $actor; var $policy; var $source; var $affected = 0;
+	var $owner; var $folder; var $actor; var $policy; var $source; var $affected = 0; var $session_id;
 	function __construct($connection, $owner, $folder, $policy, $source = 0)
 	{
 		global $userdata;
 		parent::__construct($connection, 'PM_cleanup_failed');
 		$this->owner = (int)$owner; $this->folder = $folder; $this->policy = $policy; $this->source = (int)$source;
 		$this->actor = isset($userdata['user_id']) ? (int)$userdata['user_id'] : 0;
+		$this->session_id = isset($userdata['session_id']) ? $userdata['session_id'] : '';
 		if (!phpbb_pm_mailbox_condition($this->owner, $folder)
 			|| !in_array($policy, array('owner','recover','send','read','staging'), true)) { phpbb_acl_error('Not_Authorised'); }
 		if (in_array($policy, array('owner','recover','staging'), true) && $this->actor !== $this->owner) { phpbb_acl_error('Not_Authorised'); }
@@ -32,6 +47,7 @@ class PhpbbMailboxDatabase extends PhpbbAclDatabase
 			. ' WHERE user_id = ' . $this->actor . ') mailbox_actor WHERE user_active <> 0'
 			. ($this->policy === 'send' ? ' AND user_allow_pm <> 0' : '') . ')';
 		$guard .= ' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $this->owner . ') mailbox_owner)';
+		$guard .= ' AND ' . phpbb_pm_current_session_guard($this, $this->actor, $this->session_id);
 		if ($this->policy === 'read')
 		{
 			$guard .= ' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $this->source

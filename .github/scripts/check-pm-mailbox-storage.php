@@ -7,6 +7,7 @@ $end=strpos($fixture,'set_error_handler(');
 if($end===false){throw new RuntimeException('Owning PM fixture definitions missing');}
 eval(substr($fixture,5,$end-5));
 require_once __DIR__.'/pm-mailbox-journal-fixture.php';
+require_once __DIR__.'/pm-current-session-fixture.php';
 function mailbox_storage_fixture($engine)
 {
 	global $pm_repair_server,$userdata;
@@ -16,7 +17,7 @@ function mailbox_storage_fixture($engine)
 	$pdo->exec('ALTER TABLE fixture_users ADD COLUMN user_allow_pm INTEGER DEFAULT 1');
 	$pdo->exec("INSERT INTO fixture_descriptions VALUES(1,'not-a-real-upload.txt',0)");
 	$pdo->exec('INSERT INTO fixture_links VALUES(1,12,0),(1,18,0)');
-	$userdata['user_id']=8; $userdata['user_level']=0; $userdata['session_admin']=false;
+	pm_fixture_login(8); $userdata['user_level']=0; $userdata['session_admin']=false;
 }
 function mailbox_storage_fail($callback,$expected)
 {
@@ -66,7 +67,7 @@ try
 					pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_links WHERE privmsgs_id=18')===1 && pm_repair_value('SELECT COUNT(*) FROM fixture_descriptions')===1,'Native cleanup retains shared registration; never touches real files');
 				}
 			}
-			mailbox_storage_fixture($engine);$userdata['user_id']=9;
+			mailbox_storage_fixture($engine);pm_fixture_login(9);
 			mailbox_storage_fail(function(){phpbb_pm_delete_messages(array(12),8,'inbox');},$lang['Not_Authorised']);
 			mailbox_storage_fixture($engine);
 			$pm_repair_server->hook=function($sql)
@@ -76,7 +77,7 @@ try
 			};
 			mailbox_storage_fail(function(){phpbb_pm_delete_messages(array(12),8,'inbox');},$lang['Not_Authorised']);
 			pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm WHERE privmsgs_id=12')===1,'Native current-actor SQL guard prevents deletion');
-			mailbox_storage_fixture($engine);$userdata['user_id']=1;
+			mailbox_storage_fixture($engine);pm_fixture_login(1);
 			pm_repair_check(phpbb_pm_trim_oldest(8,'inbox',1,'send')===1,'Native sender quota capability');
 			mailbox_storage_fixture($engine);
 			$pm_repair_server->pdo->exec('UPDATE fixture_pm SET privmsgs_type=0 WHERE privmsgs_id=12');
