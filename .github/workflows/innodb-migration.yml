@@ -604,6 +604,12 @@ jobs:
         env:
           PHPBB_REPORT_COMPOSER_NATIVE: '1'
           PHPBB_REPORT_COMPOSER_PASSWORD: fixture-only
+      - name: Check native current report notification recipients and transport
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-report-notifications-native.php
+        env:
+          PHPBB_REPORT_NOTIFY_NATIVE: '1'
+          PHPBB_REPORT_NOTIFY_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php

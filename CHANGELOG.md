@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Recheck report notification recipients before delivery
+
+- Recheck the current undeleted source, pending report counter, recipient
+  account, moderator membership, forum visibility/read access and user/email
+  bans immediately before each optional report email. Refresh its address,
+  language, source subject and forum name instead of using stale captured data.
+- Suppress notifications after deletion or counter reset, retain normal mails
+  and current accessible moves, and release database locks before transport.
+  A mail failure never undoes the committed report; no schema change is needed.
+
 ### Authorize the source when opening a report composer
 
 - Require a current session/account and current view/read/report permission
