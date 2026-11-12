@@ -5,6 +5,7 @@ $submission = file_get_contents($root . '/phpBB2/link_register.php');
 $storage = file_get_contents($root . '/phpBB2/includes/functions_link_submission.php');
 $notices = file_get_contents($root . '/phpBB2/includes/functions_link_notifications.php');
 $listing = file_get_contents($root . '/phpBB2/links.php');
+$list_store = file_get_contents($root . '/phpBB2/includes/functions_link_listing.php');
 
 if ($submission === false || $listing === false || $storage === false || $notices === false) {
     fwrite(STDERR, "Unable to read link sources.\n");
@@ -18,19 +19,20 @@ $checks = array(
     'writer checks actual session and current active role' => strpos($storage, 's.session_logged_in=1') !== false && strpos($storage, 'u.user_active<>0') !== false && strpos($storage, "HEX(s.session_id)=HEX('") !== false,
     'notice PMs have an owned transaction and cannot evict mail' => strpos($notices, 'new PhpbbLinkScope($database,phpbb_link_notification_tables(true))') !== false && strpos($notices, 'DELETE FROM') === false,
     'notice mail opts into recoverable delivery' => strpos($notices, "new emailer($"."board_config['smtp_delivery'],true)") !== false,
-    'link form carries the SID' => strpos($listing, "'S_LINK_TOKEN' => '<input type=\"hidden\" name=\"sid\"") !== false,
-	'link listing result batches are capped' => strpos($listing, '$linkspp = max(1, min(100, intval($link_config[\'linkspp\'])));') !== false,
+    'link form carries the SID' => strpos($listing, "'S_LINK_TOKEN'=>'<input type=\"hidden\" name=\"sid\"") !== false,
+	'link listing result batches use shared validated settings' => strpos($list_store, 'phpbb_link_setting_value($key,$value)') !== false,
 	'link redirects use the owned current click provider' => strpos($listing, 'phpbb_link_click($db, isset($_GET[\'link_id\']) ? $_GET[\'link_id\'] : null, $user_ip)') !== false,
 	'link redirect decisions are not browser cached' => strpos($listing, 'Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0') !== false,
 	'link listing URLs use the shared external boundary' => strpos($listing, 'phpbb_normalize_external_url($value)') !== false,
-	'link search uses database-driver escaping' => strpos($listing, '$search_keywords_sql = links_like_sql($search_keywords);') !== false,
-	'link search data and totals use the same predicate' => substr_count($listing, "link_desc LIKE '%\$search_keywords_sql%'") === 2,
-	'link configuration has runtime defaults' => strpos($listing, "'site_logo' => '',") !== false,
+	'link search uses explicit SQL-mode-independent LIKE escaping' => strpos($list_store, "$"."scope->escape('%'.$"."value.'%')") !== false && strpos($list_store, "ESCAPE '!'") !== false,
+	'link search data and totals use one snapshot' => strpos($list_store, 'new PhpbbLinkVisitScope($database,false,true)') !== false,
+	'link configuration has shared runtime defaults' => strpos($list_store, 'phpbb_link_settings_defaults()') !== false,
 );
 
 define('IN_PHPBB', true);
 require $root . '/phpBB2/includes/functions_link_submission.php';
 require $root . '/phpBB2/includes/functions_link_click.php';
+require $root . '/phpBB2/includes/functions_link_listing.php';
 foreach(array(1,'28',16777215)as$value){$checks['exact click ID '.(string)$value]=phpbb_link_visit_id($value)===(int)$value;}
 foreach(array(null,array(28),true,28.5,'0','-1','028','28e0','28junk','16777216')as$index=>$value){$checks['invalid click ID '.$index]=phpbb_link_visit_id($value)===false;}
 $checks['unsigned count saturates without PHP integer overflow']=phpbb_link_next_hit('4294967294')==='4294967295'&&phpbb_link_next_hit('4294967295')==='4294967295'&&phpbb_link_next_hit('999')==='1000';

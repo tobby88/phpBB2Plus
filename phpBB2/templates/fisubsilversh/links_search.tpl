@@ -123,7 +123,7 @@ function checkForm() {
 		<tr>
 			  <form method="post" action="{U_SITE_SEARCH}">
 			  <td class="cat" align="right" nowrap="nowrap" colspan="2"><span class="genmed">
-			  {L_SEARCH_SITE_TITLE}<input type="text" style="width: 200px" class="post" name="search_keywords" size="30" />&nbsp;<input type="submit" name="submit" value="{L_SUBMIT}" class="catbutton" />&nbsp;</span></td>
+			  {L_SEARCH_SITE_TITLE}<input type="text" style="width: 200px" class="post" name="search_keywords" value="{SEARCH_KEYWORDS}" size="30" />&nbsp;<input type="submit" name="submit" value="{L_SUBMIT}" class="catbutton" />&nbsp;</span></td>
 			  </form>
 		</tr>
 		<!-- BEGIN linkrow -->

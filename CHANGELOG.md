@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Keep public Link lists searchable and complete
+
+- Preserve active links after their submitting account has disappeared; use a
+  generic author label and keep counts and visible pages consistent.
+- Search whole UTF-8 characters, literal zero, backslashes and LIKE punctuation
+  correctly in every SQL mode; decode legacy request escaping exactly once.
+- Read configuration, category counts, totals and rows in one independent
+  read-only snapshot. Clamp obsolete offsets to an existing aligned page and
+  render empty categories/results without warnings. Keep stable ordering.
+- Share rendering across list modes, preserve unsigned counters, show controlled
+  localized read failures, and retain the escaped search term in its form.
+
 ### Keep public Link redirects and click counts consistent
 
 - Reject malformed link IDs instead of redirecting to another entry. Validate

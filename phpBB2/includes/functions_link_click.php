@@ -23,7 +23,7 @@ function phpbb_link_next_hit($value)
 class PhpbbLinkVisitScope
 {
 	var$connection=null;var$transactional=false;var$writable=false;
-	function __construct($database,$write=false)
+	function __construct($database,$write=false,$snapshot=false)
 	{
 		if(!is_object($database)||empty($database->db_connect_id)||!isset($database->dbname)||!is_string($database->dbname)||$database->dbname===''||!method_exists($database,'sql_dedicated_connection')){phpbb_link_visit_fail();}
 		try{$candidate=$database->sql_dedicated_connection();}catch(Exception$error){phpbb_link_visit_fail();}catch(Error$error){phpbb_link_visit_fail();}
@@ -40,7 +40,7 @@ class PhpbbLinkVisitScope
 		try{
 			$this->control('SET SESSION lock_wait_timeout=1');
 			$this->control('SET SESSION innodb_lock_wait_timeout=1');
-			$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+			$this->control('SET SESSION TRANSACTION ISOLATION LEVEL '.($snapshot&&!$write?'REPEATABLE READ':'READ COMMITTED'));
 			if($write){$this->control("SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES')");}
 			$this->control($write?'START TRANSACTION':'START TRANSACTION READ ONLY');$this->transactional=true;
 			if(!is_string(LINKS_TABLE)||preg_match('/^[A-Za-z0-9_]{1,64}$/D',LINKS_TABLE)!==1){phpbb_link_visit_fail();}

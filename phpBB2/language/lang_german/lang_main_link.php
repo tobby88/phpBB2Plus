@@ -59,4 +59,5 @@ $lang['Descend_by_joindate'] = "Ansicht nach Datum";
 $lang['Link_storage_failed'] = 'Der Link konnte nicht gespeichert werden. Bitte versuche es später erneut.';
 $lang['Link_save_unconfirmed'] = 'Die Speicherung konnte nicht bestätigt werden. Bitte prüfe die Linkliste, bevor du den Link erneut einreichst.';
 $lang['Link_notification_failed'] = 'Der Link wurde gespeichert, aber nicht alle Benachrichtigungen konnten zugestellt werden.';
+$lang['Link_list_unavailable'] = 'Die Linkliste ist derzeit nicht verfügbar. Bitte versuche es später erneut.';
 ?>

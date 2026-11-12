@@ -59,4 +59,5 @@ $lang['Descend_by_joindate'] = "Descend By Date";
 $lang['Link_storage_failed'] = 'The link could not be saved. Please try again later.';
 $lang['Link_save_unconfirmed'] = 'The save could not be confirmed. Please check the link list before submitting it again.';
 $lang['Link_notification_failed'] = 'The link was saved, but some notifications could not be delivered.';
+$lang['Link_list_unavailable'] = 'The link list is currently unavailable. Please try again later.';
 ?>
