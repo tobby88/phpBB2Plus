@@ -22,6 +22,9 @@ $tpl=file_get_contents($ats_source.'templates/fisubsilversh/admin/attach_quota_b
 ats_check(substr_count($tpl,'maxlength="40"')===2,'Full-precision size fields');
 echo "Quota input/size/assignment controls passed\n";
 if(PHP_SAPI!=='cli'||getenv('PHPBB_QUOTA_NATIVE')!=='1'){return;}
+// Synchronous peer probes must report real row conflicts without waiting for
+// their caller. Restore the ordinary timeout before reset/DDL and owner reuse.
+require_once __DIR__.'/native-fixture-locks.php';
 require $ats_source.'db/mysqli.php';$port=getenv('PHPBB_QUOTA_PORT')?:'3306';$password=getenv('PHPBB_QUOTA_PASSWORD')?:'';
 ats_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Loopback port');$host='127.0.0.1:'.$port;
 $control=new sql_db($host,'root',$password,'',false);$fixture='codex_quota_'.bin2hex(function_exists('random_bytes')?random_bytes(8):openssl_random_pseudo_bytes(8));
@@ -113,7 +116,7 @@ try{
   foreach(array('inactive','missing','admin-off','foreign','logout','case',$actor==='root'?'role':'grant') as $kind){qreset($actor);qsql(qrevoke($kind));$before=qsnap();ats_check(qrun($qform)==='Not_Authorised'&&qsnap()===$before,'Entry revocation preserves all tables');$cases++;}
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    qreset($actor);$before=qsnap();$seen=0;$reached=$blocked=false;
-   $qhook=function($sql)use($nth,$kind,&$seen,&$reached,&$blocked){if(!qboundary($sql)||++$seen!==$nth){return;}$GLOBALS['qhook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(qrevoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Only native timeout serializes revocation');$blocked=true;}};
+   $qhook=function($sql)use($nth,$kind,&$seen,&$reached,&$blocked){if(!qboundary($sql)||++$seen!==$nth){return;}$GLOBALS['qhook']=null;$reached=true;list($probe,$e)=native_fixture_conflict_query($GLOBALS['peer'],qrevoke($kind));if(!$probe){ats_check((int)$e['code']===1205,'Only native timeout serializes revocation');$blocked=true;}};
    $outcome=qrun($qform);ats_check($reached,'Every write/commit exercised');if($blocked){ats_check($outcome==='saved','Serialized revocation follows commit');qsql(qrevoke($kind));$serialized++;}else{ats_check($outcome==='Not_Authorised'&&qsnap()===$before,'Revocation rolls back all quota/default/assignment changes');}
    ats_check(qrun($qform)==='Not_Authorised','Following request denied');$cases++;
   }}
@@ -140,7 +143,7 @@ try{
   }
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($aboundaries);$nth++){
    qreset($actor,$mode);$before=qsnap();$seen=0;$blocked=$reached=false;
-   $qhook=function($sql)use($nth,$kind,&$seen,&$blocked,&$reached){if(!qboundary($sql)||++$seen!==$nth){return;}$GLOBALS['qhook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(qrevoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Assignment revocation native timeout');$blocked=true;}};
+   $qhook=function($sql)use($nth,$kind,&$seen,&$blocked,&$reached){if(!qboundary($sql)||++$seen!==$nth){return;}$GLOBALS['qhook']=null;$reached=true;list($probe,$e)=native_fixture_conflict_query($GLOBALS['peer'],qrevoke($kind));if(!$probe){ats_check((int)$e['code']===1205,'Assignment revocation native timeout');$blocked=true;}};
    $outcome=qassignment($mode,$request);ats_check($reached,'Every assignment boundary reached');if($blocked){ats_check($outcome==='saved','Assignment commits before serialized revocation');qsql(qrevoke($kind));$serialized++;}else{ats_check($outcome==='Not_Authorised'&&qsnap()===$before,'Revocation rolls back both assignments');}
    ats_check(qassignment($mode,$request)==='Not_Authorised','Next assignment request denied');$cases++;
   }}
@@ -158,7 +161,7 @@ try{
  qreset('delegated','user');$before=qsnap();$denied=false;try{phpbb_attach_quota_assign($db,'user',3,array(1=>'1'),array('sid'=>'fixture-admin'));}catch(PhpbbAclException $e){$denied=$e->getMessage()==='Not_Authorised';}ats_check($denied&&qsnap()===$before,'Delegated user admin cannot change administrator quota');
  qreset();qsql('UPDATE fixture_users SET user_level=1 WHERE user_id=2');$userdata['user_id']=2;qsql('UPDATE fixture_sessions SET session_user_id=2');$denied=false;try{phpbb_attach_quota_assign($db,'user',1,array(1=>'1'),array('sid'=>'fixture-admin'));}catch(PhpbbAclException $e){$denied=$e->getMessage()==='Not_Authorised';}ats_check($denied,'First administrator protection applies before quota changes');
  // Actual management/default writer and quota deletion use compatible row locks.
- qreset();$defaultBlocked=false;$qhook=function($sql)use(&$defaultBlocked){if(strpos($sql,'DELETE FROM '.QUOTA_TABLE)===0){$GLOBALS['qhook']=null;if(!$GLOBALS['peer']->sql_query("UPDATE ".ATTACH_CONFIG_TABLE." SET config_value='2' WHERE config_name='default_upload_quota'")){$e=$GLOBALS['peer']->sql_error();$defaultBlocked=(int)$e['code']===1205;}}};
+ qreset();$defaultBlocked=false;$qhook=function($sql)use(&$defaultBlocked){if(strpos($sql,'DELETE FROM '.QUOTA_TABLE)===0){$GLOBALS['qhook']=null;list($probe,$e)=native_fixture_conflict_query($GLOBALS['peer'],"UPDATE ".ATTACH_CONFIG_TABLE." SET config_value='2' WHERE config_name='default_upload_quota'");if(!$probe){$defaultBlocked=(int)$e['code']===1205;}}};
  ats_check(qrun($qform)==='saved'&&$defaultBlocked,'Concurrent default update waits for quota deletion');$denied=false;try{phpbb_attach_settings_save($db,array('sid'=>'fixture-admin','default_upload_quota'=>'2'),'manage');}catch(PhpbbAclException $e){$denied=$e->getMessage()==='invalid';}ats_check($denied,'Management cannot restore a deleted quota reference');
  qreset();$legacy=false;$_POST=array('sid'=>'fixture-admin');try{process_quota_settings('user',2,QUOTA_UPLOAD_LIMIT,999);}catch(AttachSettingsExit $e){$legacy=$e->getMessage()==='invalid';}ats_check($legacy,'Legacy assignment API uses guarded reference validation');
  // Execute the distinct production group-admin writer, not just its lock class.
