@@ -412,7 +412,10 @@ function update_queue_text_empty_defaults(&$operations, $connection, $database, 
 		$type = update_scalar($connection, 'SELECT DATA_TYPE' . $where);
 		if (!in_array($type, array('tinytext','text','mediumtext','longtext'), true)
 			|| update_scalar($connection, 'SELECT IS_NULLABLE' . $where) !== 'NO'
-			|| update_scalar($connection, 'SELECT COLUMN_DEFAULT' . $where) !== null) { continue; }
+			|| update_scalar($connection, 'SELECT COLUMN_DEFAULT' . $where) !== null
+			// MySQL can report NULL for a newly altered expression default while
+			// marking it DEFAULT_GENERATED. It is still an existing default.
+			|| strpos((string) update_scalar($connection, 'SELECT EXTRA' . $where), 'DEFAULT_GENERATED') !== false) { continue; }
 		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ALTER COLUMN ' . update_quote_identifier($column) . " SET DEFAULT (CONCAT(''))";
 	}
 }
