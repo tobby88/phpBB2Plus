@@ -3,8 +3,8 @@
 // controlled sink; no real config, mail, users, uploads or file bytes are used.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_PM_NOTIFY_NATIVE')!=='1'){return;}
 function pud_prepare($locale,$actor='member'){
- global$kp_source,$lang,$userdata,$tree,$pd_after_extensions,$pd_root_fault,$pd_factory,$kp_factory,$kp_hook;
- $pd_after_extensions=null;$pd_root_fault='';$pd_factory='normal';$kp_factory='normal';$kp_hook=null;kp_reset('ordinary');
+ global$kp_source,$lang,$userdata,$tree,$pd_after_context,$pd_root_fault,$pd_factory,$kp_factory,$kp_hook;
+ $pd_after_context=null;$pd_root_fault='';$pd_factory='normal';$kp_factory='normal';$kp_hook=null;kp_reset('ordinary');
  $lang=array();require$kp_source.'language/lang_'.$locale.'/lang_main.php';require$kp_source.'language/lang_'.$locale.'/lang_main_attach.php';
  $userdata['user_level']=0;pd_login($actor==='admin'?1:4);
  if($actor==='guest'){$userdata['session_logged_in']=false;$userdata['user_id']=ANONYMOUS;$userdata['user_level']=ADMIN;}
@@ -18,8 +18,8 @@ function pud_prepare($locale,$actor='member'){
  $rows=kp_rows('SELECT * FROM fixture_forums WHERE forum_id=1');$tree=array('keys'=>array('f1'=>0),'data'=>array($rows[0]),'type'=>array('f'));
 }
 function pud_snapshot($rows){foreach($rows[ATTACHMENTS_DESC_TABLE]as&$row){unset($row['download_count']);}unset($row);return$rows;}
-function pud_check($allowed,$label,$thumb=false){
- $before=kp_snapshot();$result=pd_route(true,$thumb);pd_check($result,$allowed,$label);
+function pud_check($allowed,$label,$thumb=false,$cached_disabled=false){
+ $before=kp_snapshot();$result=pd_route(true,$thumb,$cached_disabled);pd_check($result,$allowed,$label);
  kp_check(pud_snapshot(kp_snapshot())===pud_snapshot($before),'Public download changes only counter: '.$label);
  $count=kp_rows('SELECT download_count FROM fixture_attachments_desc WHERE attach_id=1');
  if($count){$old=$before[ATTACHMENTS_DESC_TABLE][0]['download_count'];kp_check((int)$count[0]['download_count']===(int)$old+($allowed&&!$thumb?1:0),'Only delivered full attachments increment counter: '.$label);}
@@ -60,7 +60,7 @@ function pud_group(){
  kp_sql('INSERT INTO fixture_auth_access(group_id,forum_id,auth_view,auth_read,auth_download,auth_mod) VALUES(10,1,1,1,1,0)');
 }
 function pud_suite(){
- global$kp_source,$pn_open,$pn_claim_pending,$pn_after_claim,$pn_queries,$pd_body,$userdata,$pd_after_extensions,$kp_hook,$db,$pd_factory,$kp_factory,$pd_busy,$pd_root_fault;
+ global$kp_source,$pn_open,$pn_claim_pending,$pn_after_claim,$pn_queries,$pd_body,$userdata,$pd_after_context,$kp_hook,$db,$pd_factory,$kp_factory,$pd_busy,$pd_root_fault;
  require_once$kp_source.'attach_mod/includes/functions_delete.php';require$kp_source.'includes/functions_pm_controller.php';require$kp_source.'includes/functions_post_attachment_access.php';
  require_once$kp_source.'attach_mod/includes/functions_includes.php';require_once$kp_source.'includes/auth.php';
  $pn_open=0;$pn_claim_pending=false;$pn_after_claim=null;$pn_queries=array();
@@ -79,13 +79,15 @@ function pud_suite(){
   foreach(array('deleted','acl','link','missing','foreign','logout','inactive','disabled','filename','extension','group','grant','pending-group','demoted','extension-group','extension-missing','physical-mode')as$kind){
    pud_prepare($locale,$kind==='demoted'?'admin':'member');if(in_array($kind,array('group','grant','pending-group'),true)){pud_group();}if($kind==='demoted'){kp_sql('UPDATE fixture_forums SET auth_read='.AUTH_ADMIN);}
    if($kind==='physical-mode'){kp_sql("UPDATE fixture_attachments_desc SET mimetype='image/png'");}
-   $reached=false;$expected=null;$pd_after_extensions=function()use($kind,&$reached,&$expected){$reached=true;pud_revoke($kind);$expected=kp_snapshot();};$result=pd_route();$allowed=in_array($kind,array('filename','physical-mode'),true);pd_check($result,$allowed,'Late public change '.$kind);kp_check($reached&&pud_snapshot(kp_snapshot())===pud_snapshot($expected),'Late change persists without other data changes');if($kind==='filename'){kp_check($result->value['physical_filename']==='fresh.bin'&&$result->value['real_filename']==='Fresh Grüße.bin','Late descriptor replaces stale path/name');}if($kind==='physical-mode'){kp_check($result->kind==='redirect','Late extension mode replaces initial transport policy');}$cases++;
+   $reached=false;$expected=null;$pd_after_context=function()use($kind,&$reached,&$expected){$reached=true;pud_revoke($kind);$expected=kp_snapshot();};$result=pd_route();$allowed=in_array($kind,array('filename','physical-mode'),true);pd_check($result,$allowed,'Late public change '.$kind);kp_check($reached&&pud_snapshot(kp_snapshot())===pud_snapshot($expected),'Late change persists without other data changes');if($kind==='filename'){kp_check($result->value['physical_filename']==='fresh.bin'&&$result->value['real_filename']==='Fresh Grüße.bin','Late descriptor replaces stale path/name');}if($kind==='physical-mode'){kp_check($result->kind==='redirect','Late extension mode replaces initial transport policy');}$cases++;
   }
   pud_prepare($locale);$userdata['user_level']=ADMIN;pud_revoke('extension');pud_check(false,'Cached admin never bypasses disabled extension');$cases++;
   pud_prepare($locale,'admin');pud_revoke('extension');pud_check(true,'Current admin retains disabled-extension access');$cases++;
   pud_prepare($locale,'admin');pud_revoke('disabled');pud_check(true,'Current admin retains disabled-feature access');$cases++;
   pud_prepare($locale,'admin');pud_revoke('deleted');pud_check(false,'Deleted public post is unavailable even to admin');$cases++;
   pud_prepare($locale,'guest');pud_revoke('extension');pud_check(false,'Guest never inherits cached admin extension bypass');$cases++;
+  pud_prepare($locale);$context=phpbb_post_attachment_context($db,1,$userdata,1);kp_check(array_key_exists('post_download_mode',$context)&&$context['post_download_mode']===$context['attachment_download_mode'],'Previous controller mode key remains available during provider-first rollout');pud_check(true,'Current enabled feature overrides obsolete disabled cache',false,true);$cases++;
+  pud_prepare($locale);kp_sql("UPDATE fixture_attachments_desc SET extension=' BiN '");pud_check(true,'Public descriptor extension normalization matches current group');$cases++;
   pud_prepare($locale);pud_group();kp_sql('INSERT INTO fixture_auth_access(group_id,forum_id,auth_view,auth_read,auth_download,auth_mod) VALUES(11,1,0,1,1,0)');kp_sql('INSERT INTO fixture_user_group(group_id,user_id,user_pending) VALUES(11,4,0)');kp_sql('UPDATE fixture_auth_access SET auth_read=0,auth_download=0 WHERE group_id=10');pud_check(true,'Different current groups may grant different required fields');$cases++;
   pud_prepare($locale);pud_revoke('deleted');kp_sql("INSERT INTO fixture_posts(post_id,topic_id,forum_id,poster_id,post_time,poster_ip) VALUES(2,1,1,4,123,'7f000001')");kp_sql('INSERT INTO fixture_attachments(attach_id,post_id,privmsgs_id,user_id_1,user_id_2) VALUES(1,2,0,4,0)');pud_check(true,'Another surviving public parent may still own shared file');$cases++;
   pud_prepare($locale);pud_revoke('deleted');kp_sql("INSERT INTO fixture_privmsgs(privmsgs_id,privmsgs_type,privmsgs_subject,privmsgs_from_userid,privmsgs_to_userid,privmsgs_date,privmsgs_ip) VALUES(10,0,'Synthetic',3,4,123,'7f000001')");kp_sql('INSERT INTO fixture_attachments(attach_id,post_id,privmsgs_id,user_id_1,user_id_2) VALUES(1,0,10,4,3)');pud_check(true,'Authorized private copy remains a valid separate parent');$cases++;
@@ -94,7 +96,7 @@ function pud_suite(){
   pud_prepare($locale);kp_sql('UPDATE fixture_extension_groups SET download_mode='.PHYSICAL_LINK);kp_sql("UPDATE fixture_attachments_desc SET extension='bin',mimetype='image/png'");$result=pud_check(true,'Physical redirect');kp_check($result->kind==='redirect'&&strpos($result->value,'synthetic.bin')!==false,'Actual redirect uses current descriptor');$cases++;
   foreach(array('missing','inactive','acl','link')as$kind){pud_prepare($locale);$db->sql_query('START TRANSACTION');$view=pd_caller_view();pud_revoke($kind);$before=kp_snapshot();try{pd_check(pd_route(true,true),false,'Old caller snapshot '.$kind);kp_check(pd_caller_view()===$view&&kp_snapshot()===$before&&$db->db_connect_id,'Caller snapshot/transaction and current data preserved');}finally{$db->sql_query('ROLLBACK');}$cases++;}
   foreach(array('SELECT @@SESSION.autocommit','SET TRANSACTION READ ONLY','SELECT d.*,u.user_level')as$needle){foreach(array('before','after')as$phase){pud_prepare($locale);$before=kp_snapshot();$reached=false;$kp_hook=function($event,$sql)use($needle,$phase,&$reached){if($event===$phase&&strpos($sql,$needle)===0){$reached=true;return false;}};try{pd_check(pd_route(),false,'Public reader SQL failure');kp_check($reached&&kp_snapshot()===$before,'SQL failure never delivers or mutates');}finally{$kp_hook=null;}$failures++;}}
-  foreach(array('SELECT *','SELECT e.extension, g.download_mode','UPDATE '.ATTACHMENTS_DESC_TABLE)as$needle){pud_prepare($locale);$pd_root_fault=$needle;$before=kp_snapshot();pd_check(pd_route(),false,'Public controller SQL failure');kp_check(kp_snapshot()===$before,'Controller failure preserves data/counter');$pd_root_fault='';$failures++;}
+  foreach(array("SELECT *\n\tFROM ".ATTACHMENTS_DESC_TABLE."\n","SELECT *\n\tFROM ".ATTACHMENTS_TABLE."\n",'UPDATE '.ATTACHMENTS_DESC_TABLE)as$needle){pud_prepare($locale);$pd_root_fault=$needle;$before=kp_snapshot();pd_check(pd_route(),false,'Public controller SQL failure');kp_check(kp_snapshot()===$before,'Controller failure preserves data/counter');$pd_root_fault='';$failures++;}
   pud_prepare($locale);foreach(array(null,false,0,-1,'1 OR 1=1',array(1),'999999999999999999999')as$bad){kp_check(!phpbb_post_attachment_context($db,$bad,$userdata,1)&&!phpbb_post_attachment_context($db,1,$userdata,$bad),'Malformed public ids refused');$cases++;}
  }
  echo 'Post download native: '.$cases.' controller/ACL/guest/parent/metadata cases, '.$failures." SQL failures PASS; canonical storage, current groups and sessions, late changes, caller snapshots, counters and controlled transport.\n";

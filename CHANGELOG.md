@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Apply current attachment configuration consistently
+
+- Resolve PN and post attachment extension groups and delivery modes through
+  the same current descriptor read, including changes during preflight.
+- Apply the current global attachment switch to private-message parent/file
+  access as well. Preserve actual admin exceptions and reject stale cached roles;
+  an obsolete disabled snapshot no longer blocks a currently enabled feature.
+- Normalize stored extension names consistently and select duplicate legacy
+  extension rows deterministically. Remove the redundant preflight extension
+  query/list. No schema or data migration is required.
+
 ### Refresh post attachment permissions and parents before delivery
 
 - Resolve post downloads from current sessions/accounts, forum rules and group

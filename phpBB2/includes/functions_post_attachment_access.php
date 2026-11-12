@@ -19,9 +19,8 @@ function phpbb_post_attachment_context($database, $post_id, $viewer, $attachment
 		// Share the already transaction-safe, independent, SELECT-only reader.
 		$owner = new PhpbbPmAttachmentReader($database);
 		$level = $logged ? 'u.user_level' : '0';
-		$sql = 'SELECT d.*,' . $level . ' AS post_download_level,'
-			. ' (SELECT g.download_mode FROM ' . EXTENSIONS_TABLE . ' e JOIN ' . EXTENSION_GROUPS_TABLE . ' g ON g.group_id=e.group_id'
-			. ' WHERE g.allow_group=1 AND LOWER(TRIM(e.extension))=LOWER(TRIM(d.extension)) ORDER BY e.ext_id DESC LIMIT 1) AS post_download_mode FROM ' . POSTS_TABLE . ' p'
+		$sql = 'SELECT d.*,' . $level . ' AS post_download_level,' . phpbb_attachment_extension_mode_sql()
+			. ' AS attachment_download_mode FROM ' . POSTS_TABLE . ' p'
 			. ' JOIN ' . TOPICS_TABLE . ' t ON t.topic_id=p.topic_id AND t.forum_id=p.forum_id'
 			. ' JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=p.forum_id'
 			. ' JOIN ' . ATTACHMENTS_TABLE . ' a ON a.post_id=p.post_id AND a.privmsgs_id=0 AND a.attach_id=' . $files[0]
@@ -48,6 +47,8 @@ function phpbb_post_attachment_context($database, $post_id, $viewer, $attachment
 		$sql .= ' AND (' . $level . '=' . (int)ADMIN . ' OR NOT EXISTS (SELECT 1 FROM ' . ATTACH_CONFIG_TABLE
 			. " c WHERE c.config_name='disable_mod' AND c.config_value<>'0')) LIMIT 1";
 		$rows = $owner->rows($sql);
+		// Keep the earlier public-controller key during provider-first rollout.
+		if ($rows) { $rows[0]['post_download_mode'] = $rows[0]['attachment_download_mode']; }
 		return $rows ? $rows[0] : false;
 	} catch (Exception $error) { message_die(GENERAL_ERROR, $lang['Error_no_attachment']); }
 	catch (Error $error) { message_die(GENERAL_ERROR, $lang['Error_no_attachment']); }

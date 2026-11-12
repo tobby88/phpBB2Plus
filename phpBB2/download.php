@@ -341,32 +341,8 @@ if (!$authorised)
 	message_die(GENERAL_MESSAGE, $lang['Sorry_auth_view_attach']);
 }
 
-//
-// Get Information on currently allowed Extensions
-//
-$sql = "SELECT e.extension, g.download_mode
-	FROM " . EXTENSION_GROUPS_TABLE . " g, " . EXTENSIONS_TABLE . " e
-	WHERE (g.allow_group = 1) AND (g.group_id = e.group_id)";
-
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query Allowed Extensions.', '', __LINE__, __FILE__, $sql);
-}
-
-$rows = $db->sql_fetchrowset($result);
-$num_rows = $db->sql_numrows($result);
-$allowed_extensions = array();
-$download_mode = array();
-
-for ($i = 0; $i < $num_rows; $i++)
-{
-	$extension = strtolower(trim($rows[$i]['extension']));
-	$allowed_extensions[] = $extension;
-	$download_mode[$extension] = $rows[$i]['download_mode'];
-}
-
-// Extension lookup and other preflight reads must not preserve a revoked PM
-// decision or stale file metadata. Recheck immediately before preparing delivery.
+// Parent discovery must not preserve a revoked permission or stale descriptor.
+// Recheck the selected parent immediately before preparing delivery.
 if ($pm_download_id > 0)
 {
 	$attachment = phpbb_pm_download_attachment($db, $pm_download_id, $userdata, (bool)$attach_config['allow_pm_attach'], $download_id);
@@ -380,20 +356,16 @@ else if ($post_download_id > 0)
 	if ($attachment === false) { message_die(GENERAL_MESSAGE, $lang['Sorry_auth_view_attach']); }
 	$attachment['physical_filename'] = basename($attachment['physical_filename']);
 	$download_admin = (int)$attachment['post_download_level'] === ADMIN;
-	// The current parent read also resolves the current extension policy/mode.
-	// Do not retain a group decision from before the last authorization check.
-	$extension = strtolower(trim((string)$attachment['extension']));
-	$allowed_extensions = $attachment['post_download_mode'] === null ? array() : array($extension);
-	$download_mode = array($extension => $attachment['post_download_mode'] === null ? INLINE_LINK : (int)$attachment['post_download_mode']);
 }
 
-if (!empty($attach_config['disable_mod']) && !$download_admin)
-{
-	message_die(GENERAL_MESSAGE, $lang['Attachment_feature_disabled']);
-}
+// Both current parent reads resolve extension policy/mode and the global
+// feature switch. Do not reuse earlier configuration or group decisions.
+$extension = strtolower(trim((string)$attachment['extension']));
+$allowed_extensions = $attachment['attachment_download_mode'] === null ? array() : array($extension);
+$download_mode = array($extension => $attachment['attachment_download_mode'] === null ? INLINE_LINK : (int)$attachment['attachment_download_mode']);
 
 // disallowed ?
-$attachment['extension'] = strtolower((string) $attachment['extension']);
+$attachment['extension'] = $extension;
 if (!in_array($attachment['extension'], $allowed_extensions, true) && !$download_admin)
 {
 	message_die(GENERAL_MESSAGE, sprintf($lang['Extension_disabled_after_posting'], $attachment['extension']));

@@ -58,6 +58,14 @@ class PhpbbPmAttachmentReader
 	}
 }
 
+// Correlates with the descriptor alias d in both parent authorization reads.
+// Duplicate legacy extension rows use the highest eligible extension id.
+function phpbb_attachment_extension_mode_sql()
+{
+	return '(SELECT g.download_mode FROM ' . EXTENSIONS_TABLE . ' e JOIN ' . EXTENSION_GROUPS_TABLE . ' g ON g.group_id=e.group_id'
+		. ' WHERE g.allow_group=1 AND LOWER(TRIM(e.extension))=LOWER(TRIM(d.extension)) ORDER BY e.ext_id DESC LIMIT 1)';
+}
+
 function phpbb_pm_attachment_context($database, $message_id, $viewer, $allow_pm_attach, $attachment_id = 0)
 {
 	global $lang;
@@ -75,7 +83,8 @@ function phpbb_pm_attachment_context($database, $message_id, $viewer, $allow_pm_
 		foreach (array('inbox','outbox','sentbox','savebox') as $folder) {
 			$mailboxes[] = '(' . str_replace('privmsgs_', 'p.privmsgs_', phpbb_pm_mailbox_condition($viewer_ids[0], $folder)) . ')';
 		}
-		$sql = 'SELECT ' . ($attachments[0] ? 'd.*,' : 'p.privmsgs_id,') . 'u.user_level AS pm_download_level FROM ' . PRIVMSGS_TABLE . ' p'
+		$sql = 'SELECT ' . ($attachments[0] ? 'd.*,' : 'p.privmsgs_id,') . 'u.user_level AS pm_download_level'
+			. ($attachments[0] ? ',' . phpbb_attachment_extension_mode_sql() . ' AS attachment_download_mode' : '') . ' FROM ' . PRIVMSGS_TABLE . ' p'
 			. ' JOIN ' . USERS_TABLE . ' u ON u.user_id=' . $viewer_ids[0] . ' AND u.user_active<>0'
 			. ' JOIN ' . SESSIONS_TABLE . ' s ON s.session_user_id=u.user_id AND s.session_logged_in=1'
 			. " AND s.session_id='" . $sid . "' AND HEX(s.session_id)=HEX('" . $sid . "')";
@@ -86,7 +95,8 @@ function phpbb_pm_attachment_context($database, $message_id, $viewer, $allow_pm_
 		$sql .= ' WHERE p.privmsgs_id=' . $message_ids[0] . ' AND p.privmsgs_write_payload IS NULL AND p.privmsgs_type IN ('
 			. PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ')'
 			. ' AND (u.user_level=' . (int)ADMIN . ' OR (' . ($allow_pm_attach ? '1' : '0') . '=1 AND EXISTS (SELECT 1 FROM '
-			. ATTACH_CONFIG_TABLE . " c WHERE c.config_name='allow_pm_attach' AND c.config_value='1') AND (" . implode(' OR ', $mailboxes) . '))) LIMIT 1';
+			. ATTACH_CONFIG_TABLE . " c WHERE c.config_name='allow_pm_attach' AND c.config_value='1') AND NOT EXISTS (SELECT 1 FROM "
+			. ATTACH_CONFIG_TABLE . " c WHERE c.config_name='disable_mod' AND c.config_value<>'0') AND (" . implode(' OR ', $mailboxes) . '))) LIMIT 1';
 		$rows = $owner->rows($sql);
 		return $rows ? $rows[0] : false;
 	} catch (Exception $error) { message_die(GENERAL_ERROR, $lang['PM_cleanup_failed']); }

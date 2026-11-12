@@ -2,28 +2,38 @@
 // Actual download controller, installer tables and mysqli connections. Only the
 // final header/file transport terminates in a sink; no file bytes or mail leave.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_PM_NOTIFY_NATIVE')!=='1'){return;}
-$pd_root_queries=array();$pd_root_fault='';$pd_after_extensions=null;$pd_factory='normal';
+$pd_root_queries=array();$pd_root_fault='';$pd_after_context=null;$pd_factory='normal';
 class PdDispatch extends RuntimeException {
     var $kind;var $value;
     function __construct($kind,$value){parent::__construct('Synthetic download sink');$this->kind=$kind;$this->value=$value;}
 }
 eval('namespace PdDownloadTransport; function send_file_to_browser($attachment,$dir){throw new \\PdDispatch("stream",$attachment);} function header($value){throw new \\PdDispatch("redirect",$value);}');
 function pd_classes(){
+    class PdReaderConnection {
+        var $inner;var $db_connect_id;
+        function __construct($inner){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;}
+        function __call($name,$args){return call_user_func_array(array($this->inner,$name),$args);}
+        function sql_query($sql,$transaction=false){
+            $result=$this->inner->sql_query($sql,$transaction);
+            if($result&&strpos($sql,'SELECT d.*,')===0&&is_callable($GLOBALS['pd_after_context'])){
+                $callback=$GLOBALS['pd_after_context'];$GLOBALS['pd_after_context']=null;call_user_func($callback);
+            }
+            return$result;
+        }
+        function sql_close(){try{return$this->inner->sql_close();}finally{$this->db_connect_id=false;}}
+    }
     class PdDatabase extends PnDatabase {
         function sql_query($sql='',$transaction=false){
             $GLOBALS['pd_root_queries'][]=$sql;
             if($GLOBALS['pd_root_fault']!==''&&strpos($sql,$GLOBALS['pd_root_fault'])===0){return false;}
-            $result=parent::sql_query($sql,$transaction);
-            if($result&&strpos($sql,'SELECT e.extension, g.download_mode')===0&&is_callable($GLOBALS['pd_after_extensions'])){
-                $callback=$GLOBALS['pd_after_extensions'];$GLOBALS['pd_after_extensions']=null;call_user_func($callback);
-            }
-            return$result;
+            return parent::sql_query($sql,$transaction);
         }
         function sql_dedicated_connection(){
             if($GLOBALS['pd_factory']==='alias'){return new KpOwnerConnection($this);}
             if(in_array($GLOBALS['pd_factory'],array('busy','busy-autocommit'),true)){return$GLOBALS['pd_busy'];}
             if($GLOBALS['pd_factory']==='throw'){throw new RuntimeException('Synthetic private connection details');}
-            return parent::sql_dedicated_connection();
+            $connection=parent::sql_dedicated_connection();
+            return is_object($connection)&&$connection!==$this?new PdReaderConnection($connection):$connection;
         }
     }
 }
@@ -32,8 +42,8 @@ function pd_login($id,$cached_level=0){
     kp_sql('UPDATE fixture_sessions SET session_user_id='.(int)$id);
 }
 function pd_prepare($locale){
-    global$pd_after_extensions,$pd_root_queries,$pd_root_fault,$pd_factory,$kp_hook,$lang;
-    $pd_after_extensions=null;$pd_root_queries=array();$pd_root_fault='';$pd_factory='normal';$kp_hook=null;
+    global$pd_after_context,$pd_root_queries,$pd_root_fault,$pd_factory,$kp_hook,$lang;
+    $pd_after_context=null;$pd_root_queries=array();$pd_root_fault='';$pd_factory='normal';$kp_hook=null;
     $GLOBALS['kp_last_sql_failure']=null;
     try{pn_prepare($locale);}catch(Exception$error){$failure=$GLOBALS['kp_last_sql_failure'];if(getenv('PHPBB_PM_DOWNLOAD_MYSQL')==='8.4'&&is_array($failure)&&!empty($failure['code'])){throw new RuntimeException('MySQL PM setup SQL ('.(int)$failure['code'].'): '.$failure['message'].' ['.$failure['context'].']');}throw$error;}
     require$GLOBALS['kp_source'].'language/lang_'.$locale.'/lang_main_attach.php';pd_login(4);
@@ -44,10 +54,10 @@ function pd_prepare($locale){
     kp_sql('INSERT INTO fixture_attachments(attach_id,post_id,privmsgs_id,user_id_1,user_id_2) VALUES(1,0,'.(int)$GLOBALS['pn_id'].',4,3)');
     kp_sql('UPDATE fixture_privmsgs SET privmsgs_attachment=1 WHERE privmsgs_id='.(int)$GLOBALS['pn_id']);
 }
-function pd_route($allow=true,$thumb=false){
+function pd_route($allow=true,$thumb=false,$cached_disabled=false){
     global$db,$userdata,$lang,$pd_body;
     $download_id=1;$thumbnail=$thumb;$upload_dir='synthetic-no-files';
-    $attach_config=array('allow_pm_attach'=>$allow,'allow_ftp_upload'=>0,'download_path'=>'');
+    $attach_config=array('allow_pm_attach'=>$allow,'allow_ftp_upload'=>0,'download_path'=>'','disable_mod'=>$cached_disabled);
     try{eval('namespace PdDownloadTransport;'.$pd_body);throw new RuntimeException('Actual download must reach a controlled sink or denial');}
     catch(PdDispatch$result){return$result;}
     catch(KpMessageExit$result){return$result;}
@@ -78,6 +88,10 @@ function pd_revoke($kind){
     elseif($kind==='demoted'){kp_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=1');}
     elseif($kind==='filename'){kp_sql("UPDATE fixture_attachments_desc SET physical_filename='fresh.bin',real_filename='Fresh Grüße.bin'");}
     elseif($kind==='extension'){kp_sql("UPDATE fixture_attachments_desc SET extension='blocked'");}
+    elseif($kind==='extension-group'){kp_sql('UPDATE fixture_extension_groups SET allow_group=0');}
+    elseif($kind==='extension-missing'){kp_sql('DELETE FROM fixture_extensions');}
+    elseif($kind==='feature-off'){kp_sql("INSERT INTO fixture_attachments_config VALUES('disable_mod','1')");}
+    elseif($kind==='physical-mode'){kp_sql('UPDATE fixture_extension_groups SET download_mode='.PHYSICAL_LINK);}
 }
 function pd_caller_view(){
     $out=array();foreach(array('fixture_users','fixture_sessions','fixture_attachments')as$table){$r=$GLOBALS['db']->sql_query('SELECT * FROM '.$table);kp_check($r,'Actual caller snapshot read');$out[$table]=$GLOBALS['db']->sql_fetchrowset($r);$GLOBALS['db']->sql_freeresult($r);}return$out;
@@ -106,16 +120,16 @@ function pd_text_defaults_checks(){
     kp_check($checks===13,'Complete text default migration checks');echo 'PM text defaults migration: '.$checks." canonical/legacy/idempotency/data/metadata/custom cases PASS.\n";
 }
 function pd_suite(){
-    global$kp_source,$pn_open,$pn_claim_pending,$pn_after_claim,$pn_queries,$pd_body,$pd_after_extensions,$pd_factory,$pd_busy,$kp_hook,$kp_factory,$db,$userdata,$peer,$pd_root_fault;
+    global$kp_source,$pn_open,$pn_claim_pending,$pn_after_claim,$pn_queries,$pd_body,$pd_after_context,$pd_factory,$pd_busy,$kp_hook,$kp_factory,$db,$userdata,$peer,$pd_root_fault;
     require_once$kp_source.'attach_mod/includes/functions_delete.php';require$kp_source.'includes/functions_pm_controller.php';require$kp_source.'includes/functions_post_attachment_access.php';
-    $pn_open=0;$pn_claim_pending=false;$pn_after_claim=null;$pn_queries=array();$pd_factory='normal';$pd_root_fault='';$pd_root_queries=array();$pd_after_extensions=null;
+    $pn_open=0;$pn_claim_pending=false;$pn_after_claim=null;$pn_queries=array();$pd_factory='normal';$pd_root_fault='';$pd_root_queries=array();$pd_after_context=null;
     if(getenv('PHPBB_PM_DOWNLOAD_MYSQL')==='8.4'){$server=kp_rows('SELECT VERSION() version,@@GLOBAL.innodb_flush_log_at_trx_commit commit_flush');kp_check(count($server)===1&&preg_match('/^8\.4\./',$server[0]['version'])&&stripos($server[0]['version'],'mariadb')===false&&(int)$server[0]['commit_flush']===1,'Actual MySQL 8.4 with normal commit durability required');echo "PM download MySQL 8.4: canonical server confirmed.\n";}
     $source=str_replace("\r\n","\n",file_get_contents($kp_source.'download.php'));
     $start=strpos($source,"\$sql = 'SELECT *\n\tFROM ' . ATTACHMENTS_DESC_TABLE");kp_check($start!==false,'Actual complete download branch');$pd_body=substr($source,$start);
     putenv('SERVER_SOFTWARE=fixture-only');$cases=$failures=0;
     foreach(array('english','german')as$locale){
-        foreach(array('ordinary','missing','foreign','logout','case','replacement','inactive','deleted-user','disabled','missing-setting','parent','pending','staging','owner','link','link-target','public-link','descriptor','stale-admin','current-admin','inactive-admin','demoted','front-admin','admin-disabled','cached-admin-extension')as$kind){
-            pd_prepare($locale);$allow=true;$expected=in_array($kind,array('ordinary','current-admin','front-admin','admin-disabled'),true);
+        foreach(array('ordinary','missing','foreign','logout','case','replacement','inactive','deleted-user','disabled','missing-setting','parent','pending','staging','owner','link','link-target','public-link','descriptor','stale-admin','current-admin','inactive-admin','demoted','front-admin','admin-disabled','cached-admin-extension','feature-off','feature-off-admin')as$kind){
+            pd_prepare($locale);$allow=true;$expected=in_array($kind,array('ordinary','current-admin','front-admin','admin-disabled','feature-off-admin'),true);
             if(in_array($kind,array('stale-admin','current-admin','inactive-admin','demoted'),true)){$userdata['user_level']=ADMIN;$allow=false;}
             if($kind==='current-admin'||$kind==='demoted'){pd_login(1,ADMIN);}
             elseif($kind==='inactive-admin'){kp_sql('UPDATE fixture_users SET user_level=1,user_active=0 WHERE user_id=4');}
@@ -123,11 +137,13 @@ function pd_suite(){
             if($kind==='demoted'){pd_revoke($kind);}
             if($kind==='front-admin'){pd_login(1);kp_sql('UPDATE fixture_sessions SET session_admin=0');$allow=false;}
             if($kind==='admin-disabled'){pd_login(1);pd_revoke('disabled');$allow=false;}
+            if($kind==='feature-off-admin'){pd_login(1);pd_revoke('feature-off');}
+            if($kind==='feature-off'){kp_check(!phpbb_pm_attachment_access($db,$GLOBALS['pn_id'],$userdata,true),'Parent-only API obeys current global feature switch');}
             if($kind==='cached-admin-extension'){$userdata['user_level']=ADMIN;pd_revoke('extension');}
             $before=kp_snapshot();$result=pd_route($allow);pd_check($result,$expected,$locale.'/'.$kind);
             if(!$expected){kp_check(kp_snapshot()===$before,'Denied route changes no counters or private data: '.$kind);}$cases++;
         }
-        pd_prepare($locale);kp_sql('UPDATE fixture_users SET user_level=1 WHERE user_id=4');$userdata['user_level']=ADMIN;pd_revoke('extension');$pd_after_extensions=function(){kp_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=4');};pd_check(pd_route(),false,'Owner demotion removes disabled-extension bypass');$cases++;
+        pd_prepare($locale);kp_sql('UPDATE fixture_users SET user_level=1 WHERE user_id=4');$userdata['user_level']=ADMIN;pd_revoke('extension');$pd_after_context=function(){kp_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=4');};pd_check(pd_route(),false,'Owner demotion removes disabled-extension bypass');$cases++;
         pd_prepare($locale);$before=kp_snapshot();
         foreach(array(null,0,-1,false,'1 OR 1=1',array(1),'999999999999999999999')as$bad){
             kp_check(!phpbb_pm_download_attachment($db,$bad,$userdata,true,1)&&!phpbb_pm_download_attachment($db,$GLOBALS['pn_id'],$userdata,true,$bad)&&!phpbb_pm_attachment_access($db,$bad,$userdata,true),'Malformed complete target rejected');$cases++;
@@ -139,17 +155,22 @@ function pd_suite(){
             $expected=$actor===1?$type!==6:($actor===4?in_array($type,array(1,2,4,5),true):($actor===3&&in_array($type,array(0,1,3,5),true)));
             pd_check(pd_route(),$expected,'Current mailbox type/actor '.$actor.'/'.$type);$cases++;
         }}
-        foreach(array('missing','foreign','logout','case','inactive','disabled','parent','pending','owner','link','link-target','descriptor','filename','extension','demoted')as$kind){
+        foreach(array('missing','foreign','logout','case','inactive','disabled','parent','pending','owner','link','link-target','descriptor','filename','extension','demoted','extension-group','extension-missing','feature-off','physical-mode')as$kind){
             pd_prepare($locale);if($kind==='demoted'){pd_login(1,ADMIN);}
-            $reached=false;$pd_after_extensions=function()use($kind,&$reached){$reached=true;pd_revoke($kind);};
-            $result=pd_route();$expected=$kind==='filename';pd_check($result,$expected,'Late controller transition '.$kind);kp_check($reached,'Actual extension-query checkpoint reached');
-            if($expected){kp_check($result->value['physical_filename']==='fresh.bin'&&$result->value['real_filename']==='Fresh Grüße.bin','Actual stream uses current descriptor');}
+            if($kind==='physical-mode'){kp_sql("UPDATE fixture_attachments_desc SET mimetype='image/png'");}
+            $reached=false;$pd_after_context=function()use($kind,&$reached){$reached=true;pd_revoke($kind);};
+            $result=pd_route();$expected=in_array($kind,array('filename','physical-mode'),true);pd_check($result,$expected,'Late controller transition '.$kind);kp_check($reached,'Actual first-context query checkpoint reached');
+            if($kind==='filename'){kp_check($result->value['physical_filename']==='fresh.bin'&&$result->value['real_filename']==='Fresh Grüße.bin','Actual stream uses current descriptor');}
+            elseif($kind==='physical-mode'){kp_check($result->kind==='redirect'&&strpos($result->value,'synthetic.bin')!==false,'Current configured mode replaces earlier stream decision');}
             else{$rows=kp_rows('SELECT download_count FROM fixture_attachments_desc');kp_check(!$rows||(int)$rows[0]['download_count']===0,'Late denial precedes download counter/transport');}$cases++;
         }
-        pd_prepare($locale);$pd_after_extensions=function(){kp_sql("INSERT INTO fixture_extensions(ext_id,group_id,extension,comment) VALUES(2,1,'png','Synthetic')");kp_sql('UPDATE fixture_extension_groups SET download_mode='.PHYSICAL_LINK);kp_sql("UPDATE fixture_attachments_desc SET physical_filename='fresh.png',extension='png',mimetype='image/png'");};
-        // The preflight extension list is deliberately still BIN; the changed
-        // extension must be refused rather than use the old file/mode bypass.
-        pd_check(pd_route(),false,'Late extension cannot reuse a stale allow list');$cases++;
+        pd_prepare($locale);$pd_after_context=function(){kp_sql("INSERT INTO fixture_extensions(ext_id,group_id,extension,comment) VALUES(2,1,'png','Synthetic')");kp_sql('UPDATE fixture_extension_groups SET download_mode='.PHYSICAL_LINK);kp_sql("UPDATE fixture_attachments_desc SET physical_filename='fresh.png',extension='png',mimetype='image/png'");};
+        // The new descriptor and its newly allowed extension/mode are resolved
+        // together; it must use the current PNG path, never the old BIN path.
+        $result=pd_route();pd_check($result,true,'Late extension uses current allowed policy');kp_check($result->kind==='redirect'&&strpos($result->value,'fresh.png')!==false,'New allowed extension uses fresh physical filename and mode');$cases++;
+        pd_prepare($locale);pd_check(pd_route(true,false,true),true,'Stale disabled cache cannot override currently enabled feature');$cases++;
+        pd_prepare($locale);kp_sql("UPDATE fixture_attachments_desc SET extension=' BiN '");pd_check(pd_route(),true,'Descriptor extension normalization agrees with policy lookup');$cases++;
+        foreach(array(1,0)as$enabled){pd_prepare($locale);kp_sql("INSERT INTO fixture_extension_groups(group_id,group_name,cat_id,allow_group,download_mode) VALUES(2,'Legacy duplicate',0,".$enabled.','.PHYSICAL_LINK.')');kp_sql("INSERT INTO fixture_extensions(ext_id,group_id,extension,comment) VALUES(2,2,' BIN ','Legacy duplicate')");kp_sql("UPDATE fixture_attachments_desc SET mimetype='image/png'");$result=pd_route();pd_check($result,true,'Legacy duplicate extension');kp_check($result->kind===($enabled?'redirect':'stream'),'Highest eligible legacy extension selects mode; disabled later group cannot hide earlier grant');$cases++;}
         pd_prepare($locale);kp_sql('UPDATE fixture_extension_groups SET download_mode='.PHYSICAL_LINK);kp_sql("UPDATE fixture_attachments_desc SET extension='bin',mimetype='image/png'");$result=pd_route();pd_check($result,true,'Actual physical redirect');kp_check($result->kind==='redirect'&&strpos($result->value,'synthetic.bin')!==false,'Controlled redirect uses bound descriptor');$cases++;
         foreach(array(false,true)as$thumb){pd_prepare($locale);$result=pd_route(true,$thumb);pd_check($result,true,'Actual thumbnail/stream');kp_check($result->kind==='stream'&&$result->value['physical_filename']===($thumb?THUMB_DIR.'/t_synthetic.bin':'synthetic.bin'),'Thumbnail path derives from current descriptor');$cases++;}
         pd_prepare($locale);$kp_hook=function($phase,$sql){kp_check(stripos($sql,'in_transaction')===false,'Production reader uses portable transaction setup');};try{pd_check(pd_route(),true,'No MariaDB-only transaction status query');}finally{$kp_hook=null;}$cases++;
@@ -163,7 +184,7 @@ function pd_suite(){
             pd_prepare($locale);$before=kp_snapshot();$reached=false;$kp_hook=function($event,$sql)use($needle,$phase,&$reached){if($event===$phase&&strpos($sql,$needle)===0){$reached=true;return false;}};
             try{pd_check(pd_route(),false,'Native reader SQL failure');kp_check($reached&&kp_snapshot()===$before,'Read failure leaves all data unchanged');}finally{$kp_hook=null;}$failures++;
         }}
-        foreach(array('SELECT *','SELECT e.extension, g.download_mode','UPDATE '.ATTACHMENTS_DESC_TABLE)as$needle){pd_prepare($locale);$pd_root_fault=$needle;$before=kp_snapshot();pd_check(pd_route(),false,'Actual controller SQL failure');kp_check(kp_snapshot()===$before,'Controller failure does not emit bytes or change counters');$pd_root_fault='';$failures++;}
+        foreach(array("SELECT *\n\tFROM ".ATTACHMENTS_DESC_TABLE."\n","SELECT *\n\tFROM ".ATTACHMENTS_TABLE."\n",'UPDATE '.ATTACHMENTS_DESC_TABLE)as$needle){pd_prepare($locale);$pd_root_fault=$needle;$before=kp_snapshot();pd_check(pd_route(),false,'Actual controller SQL failure');kp_check(kp_snapshot()===$before,'Controller failure does not emit bytes or change counters');$pd_root_fault='';$failures++;}
         foreach(array('missing','inactive','demoted','link')as$kind){
             pd_prepare($locale);if($kind==='demoted'){pd_login(1,ADMIN);}$db->sql_query('START TRANSACTION');$view=pd_caller_view();$old=kp_snapshot();
             try{pd_revoke($kind);$before=kp_snapshot();kp_check($before!==$old,'Independent revocation actually committed');pd_check(pd_route(),false,'Caller RR snapshot '.$kind);kp_check($db->db_connect_id&&pd_caller_view()===$view&&kp_snapshot()===$before,'Caller retains original repeatable-read snapshot and open connection');}
