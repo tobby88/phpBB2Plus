@@ -1010,6 +1010,12 @@ jobs:
         env:
           PHPBB_OWNED_NATIVE: '1'
           PHPBB_OWNED_PASSWORD: fixture-only
+      - name: Check current account authority and atomic absence return
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-absence-native.php
+        env:
+          PHPBB_ABSENCE_NATIVE: '1'
+          PHPBB_ABSENCE_PASSWORD: fixture-only
       - if: matrix.part == 4
         run: php .github/scripts/check-profile-account-defaults.php
         env:
@@ -1537,3 +1543,8 @@ jobs:
         env:
           PHPBB_OWNED_NATIVE: '1'
           PHPBB_OWNED_PASSWORD: fixture-only
+      - name: Check actual absence popup and current authority on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-absence-native.php
+        env:
+          PHPBB_ABSENCE_NATIVE: '1'
+          PHPBB_ABSENCE_PASSWORD: fixture-only

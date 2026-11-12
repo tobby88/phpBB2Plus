@@ -1544,6 +1544,9 @@ $lang['User_absence_text'] = 'Absence Message';
 $lang['User_absent'] = '<b>Absence Message:</b><br /><br />%s is %s.<br /><br /><i>%s</i><br /><br />So you can not send a message to %s!';
 $lang['Absence_notify'] = 'You have set absence.<br />Do you want to disable this?';
 $lang['Absence_deleted'] = 'You have successfully disabled your absence.<br /><br />Welcome back!';
+$lang['Absence_save_failed'] = 'The absence status could not be saved. Please reload the page and try again.';
+$lang['Absence_save_unconfirmed'] = 'The change could not be confirmed. Please reload your profile and check the absence status before retrying.';
+$lang['Absence_storage_upgrade'] = 'Please run the database update before changing the absence status.';
 
 // Top 5 Posters in EzPortal Mod
 $lang['Top_Posters'] = 'Top Posters';

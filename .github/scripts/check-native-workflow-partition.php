@@ -10,7 +10,7 @@ function native_workflow_partition($source)
 		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
 		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
 		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 11
+		|| preg_match_all('/^        run:/m',$extra) !== 12
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-pm-download-native\.php$/m',$extra) !== 1
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-post-download-native\.php$/m',$extra) !== 1
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-registration-native\.php$/m',$extra) !== 1
@@ -30,8 +30,10 @@ function native_workflow_partition($source)
 		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-kb-fixture-seeds-native\\.php$/m',$extra) !== 1
 		|| strpos($extra,"PHPBB_KB_COUNTER_NATIVE: '1'") === false
 		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-owned-connection-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_OWNED_NATIVE: '1'") === false)
-	{ throw new RuntimeException('Only the unconditional reviewed MySQL attachment, Link and rate-storage suites may run outside the matrix'); }
+		|| strpos($extra,"PHPBB_OWNED_NATIVE: '1'") === false
+		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-absence-native\\.php$/m',$extra) !== 1
+		|| strpos($extra,"PHPBB_ABSENCE_NATIVE: '1'") === false)
+	{ throw new RuntimeException('Only the unconditional reviewed MySQL suites may run outside the matrix'); }
 	$start = strpos($matrix_source,'    steps:'); if ($start === false) { throw new RuntimeException('Native CI steps missing'); }
 	$parts = array(1=>0,2=>0,3=>0,4=>0,5=>0,6=>0); $setup = 0; $database_checks = 0;
 	foreach (preg_split('/(?=^      - )/m',substr($matrix_source,$start)) as $step)

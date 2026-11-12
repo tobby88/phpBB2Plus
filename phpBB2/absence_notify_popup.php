@@ -11,6 +11,7 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_absence_storage.' . $phpEx);
 
 //
 // Start session management
@@ -50,12 +51,15 @@ if ( $submit )
 		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 	}
 
-	$sql = "UPDATE " . USERS_TABLE . "
-		SET user_absence = 0
-		WHERE user_id = " . (int) $userdata['user_id'];
-	if ( !$db->sql_query($sql) )
+	try
 	{
-	   message_die(GENERAL_ERROR, "Could not update user data.", '', __LINE__, __FILE__, $sql);
+		phpbb_absence_return($db, $userdata, (string) $_POST['sid']);
+		$userdata['user_absence'] = 0;
+	}
+	catch (PhpbbOwnedStorageFailure $error)
+	{
+		$key = $error->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Absence_save_failed']);
 	}
 	
 	$template->assign_block_vars('updated', array(

@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Save absence returns against the current account and session
+
+- Replace the popup's cached-user update with an independent atomic writer.
+  Check the exact live login, session expiry, current active/unblocked account
+  and session lifetime before saving and again before completion.
+- Clear only the owner's absence flag; retain the message, mode and every other
+  profile field. Keep repeated returns safe and publish the cache/UI success
+  only after a confirmed commit. Localize failures, update guidance and lost
+  acknowledgement separately in English and German.
+- Retain POST/token checks, canonical storage and caller transaction isolation.
+  Exercise actual popup actions, SQL failures and real serialized revocations
+  on MariaDB/MySQL. Existing installer/updater tables need no schema changes.
+
 ### Preserve borrowed transactions in the shared writer
 
 - Verify autocommit and an idle transaction before taking ownership of a

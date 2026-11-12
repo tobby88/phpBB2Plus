@@ -1528,6 +1528,9 @@ $lang['User_absence_text'] = 'Abwesenheitsnachricht';
 $lang['User_absent'] = '<b>Abwesenheitsnachricht:</b><br /><br />%s ist %s.<br /><br /><i>%s</i><br /><br />Du kannst %s daher keine Nachricht senden!';
 $lang['Absence_notify'] = 'Du hast Abwesenheit eingestellt.<br />Willst Du dieses jetzt abschalten?';
 $lang['Absence_deleted'] = 'Du hast erfolgreich die Abwesenheit ausgeschaltet.<br /><br />Willkommen zurück!';
+$lang['Absence_save_failed'] = 'Der Abwesenheitsstatus konnte nicht gespeichert werden. Bitte lade die Seite neu und versuche es erneut.';
+$lang['Absence_save_unconfirmed'] = 'Die Änderung konnte nicht bestätigt werden. Bitte lade dein Profil neu und prüfe den Abwesenheitsstatus, bevor du es erneut versuchst.';
+$lang['Absence_storage_upgrade'] = 'Bitte führe vor dem Ändern des Abwesenheitsstatus das Datenbankupdate aus.';
 
 // Top 5 Posters in EzPortal Mod
 $lang['Top_Posters'] = 'Top Poster';
