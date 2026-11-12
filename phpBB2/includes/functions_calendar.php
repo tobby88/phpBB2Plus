@@ -180,6 +180,7 @@ function get_calendar_title_date($calendar_start, $calendar_duration)
 		$day	= intval( date('d', $calendar_start) );
 		$hour	= intval( date('H', $calendar_start) );
 		$min	= intval( date('i', $calendar_start) );
+		if (calendar_post_is_all_day($calendar_start,$calendar_duration ? $calendar_duration+1 : 0)) { $hour = $min = 0; }
 		if ( !empty($calendar_duration) )
 		{
 			$d_dur = intval($calendar_duration);

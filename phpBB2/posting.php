@@ -549,7 +549,7 @@ if ($mode === 'newtopic' || ($mode === 'editpost' && $post_data['first_post']))
 	$saved_calendar_duration = isset($post_data['topic_calendar_duration']) ? $post_data['topic_calendar_duration'] : 0;
 	if (!empty($is_auth['auth_cal']) && $calendar_input['present'])
 	{
-		$calendar_input = calendar_post_input($_POST,$saved_calendar_time);
+		$calendar_input = calendar_post_input($_POST,$saved_calendar_time,$saved_calendar_duration);
 		$topic_calendar_time = $calendar_input['time']; $topic_calendar_duration = $calendar_input['duration'];
 		if (($submit || $refresh) && $calendar_input['error'] !== '')
 		{
@@ -1425,6 +1425,7 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 			$day	= intval( date('d', $topic_calendar_time) );
 			$hour	= intval( date('H', $topic_calendar_time) );
 			$min	= intval( date('i', $topic_calendar_time) );
+			if (calendar_post_is_all_day($topic_calendar_time,$topic_calendar_duration)) { $hour = $min = 0; }
 		}
 
 		// get the components of the duration
@@ -1433,12 +1434,8 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 		$d_min	= '';
 		if ( !empty($topic_calendar_time) && !empty($topic_calendar_duration) )
 		{
-			$d_dur = intval($topic_calendar_duration);
-			$d_day = intval($d_dur / 86400);
-			$d_dur = $d_dur - 86400 * $d_day;
-			$d_hour = intval($d_dur / 3600);
-			$d_dur = $d_dur - 3600 * $d_hour;
-			$d_min = intval($d_dur / 60);
+			$duration_parts = calendar_post_duration_parts($topic_calendar_time,$topic_calendar_duration);
+			$d_day = $duration_parts['day']; $d_hour = $duration_parts['hour']; $d_min = $duration_parts['min'];
 		}
 
 		// An invalid date has no timestamp to split. Retain safe numeric fields

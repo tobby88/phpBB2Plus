@@ -15,3 +15,4 @@ try{
  echo "Full-editor poll form preserves identities, draft text and bounded allocation.\n";
 }finally{restore_error_handler();}
 require dirname(__DIR__).'/fixtures/calendar-posting-form.php';
+require dirname(__DIR__).'/fixtures/calendar-allday-form.php';

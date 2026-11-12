@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Whole calendar days across timezone transitions
+
+- Store newly entered day-only durations between local day boundaries rather
+  than assuming every day has 86400 seconds. Keep ordinary timed durations as
+  elapsed intervals, including when a day starts after a midnight clock jump.
+- Render saved whole-day intervals as whole days again in the editor. Retain
+  their inclusive last second in the actual calendar reader and overview.
+- Handle half-hour/quarter-hour changes, missing midnights and skipped dates
+  without overflowing native timestamp arithmetic on 32-bit PHP.
+- Preserve unchanged historical intervals and seconds the minute-only controls
+  cannot represent, including the signed-INT capacity boundary. Recalculate
+  changed dates/durations, and keep explicit calendar removal available.
+- Existing stored events are not rewritten; no schema migration is needed.
+
 ### Stable calendar dates and durations during posting
 
 - Validate original date/time components before conversion, including invalid
