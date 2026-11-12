@@ -18,8 +18,9 @@ ats_check($control->sql_query('CREATE DATABASE '.$fixture.' CHARACTER SET utf8mb
 class GmnConnection
 {
  var $db;var $db_connect_id;
- function __construct($db){$this->db=$db;$this->db_connect_id=$db->db_connect_id;}
+ function __construct($db){$this->db=$db;$this->db_connect_id=$db->db_connect_id;$GLOBALS['gmn_open']++;}
  function __call($method,$args){return call_user_func_array(array($this->db,$method),$args);}
+ function sql_close(){if($this->db_connect_id!==null){$GLOBALS['gmn_open']--;try{return$this->db->sql_close();}finally{$this->db_connect_id=null;}}}
  function sql_query($sql,$tx=false){
   if(!empty($GLOBALS['gmn_acknowledged'])){$GLOBALS['gmn_after_queries'][]=$sql;}
   $GLOBALS['gmn_queries'][]=$sql;if(is_callable($GLOBALS['gmn_hook'])){call_user_func($GLOBALS['gmn_hook'],$sql);}
@@ -34,18 +35,22 @@ class GmnDatabase extends sql_db {function sql_dedicated_connection(){return new
 $db=new GmnDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
 $gmn_hook=null;$gmn_fail=$gmn_write=0;$gmn_commit='';$gmn_queries=array();
 $gmn_after_commit=null;$gmn_acknowledged=false;$gmn_after_queries=array();
+$gmn_open=0;
 $gmn_tables=array('groups','user_group','auth_access','forums','pa_auth','attach_quota','quota_limits','users','sessions','jr');
+require_once __DIR__.'/../fixtures/group-membership-seed.php';
 function gmn_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native fixture SQL: '.($r?'':json_encode($GLOBALS['peer']->sql_error())));return $r;}
 function gmn_rows($sql){return phpbb_group_rows($GLOBALS['peer'],$sql);}
 function gmn_snap(){
  $out=array();foreach($GLOBALS['gmn_tables'] as $s){$rows=gmn_rows('SELECT * FROM fixture_'.$s);usort($rows,function($a,$b){return strcmp(json_encode($a),json_encode($b));});$out[$s]=$rows;}return $out;
 }
 function gmn_reset($actor='root'){
+ gmn_seed(function()use($actor){gmn_reset_rows($actor);});
+}
+function gmn_reset_rows($actor='root'){
  global $userdata,$gmn_actor,$gmn_hook,$gmn_fail,$gmn_write,$gmn_commit,$gmn_queries;
  $gmn_hook=null;$gmn_fail=$gmn_write=0;$gmn_commit='';$gmn_queries=array();
  $GLOBALS['gmn_after_commit']=null;$GLOBALS['gmn_acknowledged']=false;$GLOBALS['gmn_after_queries']=array();
  foreach($GLOBALS['gmn_tables'] as $s){gmn_sql('DELETE FROM fixture_'.$s);}
- gmn_sql('ALTER TABLE fixture_groups AUTO_INCREMENT=1');
  gmn_sql("INSERT INTO fixture_users (user_id,user_level,user_active,username) VALUES (1,1,1,'actor'),(2,2,1,'old'),(3,0,1,'new'),(4,2,1,'member'),(5,0,1,'unrelated')");
  gmn_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1),('old-session',2,1,0),('new-session',3,1,0),('member-session',4,1,0),('unrelated-session',5,1,1)");
  gmn_sql("INSERT INTO fixture_groups (group_id,group_type,group_name,group_description,group_moderator,group_single_user) VALUES (10,0,'before','before',2,0),(11,0,'other','other',5,0),(12,0,'personal','personal',4,1)");
@@ -90,9 +95,9 @@ try{
  foreach(array('users'=>"user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255),user_email VARCHAR(255) DEFAULT 'fixture@example.invalid',user_lang VARCHAR(20) DEFAULT 'german'",
   'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT',
   'jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT','pa_auth'=>'group_id INT,cat_id INT') as $s=>$columns){gmn_sql('CREATE TABLE fixture_'.$s.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
- // A synchronous revoker cannot release its caller's lock while waiting.
- // Keep genuine serialization checks with the guarded fixture-only timeout.
- native_fixture_peer_nowait($peer);$cases=$serialized=0;
+ // Ordinary setup retains its real wait; only actual conflict probes use zero.
+ require __DIR__.'/../fixtures/group-membership-seed-checks.php';
+ gmn_seed_checks();$cases=$serialized=0;
  $scenarios=array();foreach(array('root','leader') as $actor){foreach(array('status'=>1,'add'=>'unrelated','approve'=>array(3),'deny'=>array(3),'remove'=>array(4)) as $action=>$value){$scenarios[]=array($actor,$action,$value);}}
  foreach(array('join'=>'outsider','unsubscribe'=>'member','unsubscribe_pending'=>'pending') as $action=>$actor){$scenarios[]=array($actor,$action,null);}
  foreach($scenarios as $scenario){list($actor,$action,$value)=$scenario;
@@ -118,7 +123,7 @@ try{
   foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    gmn_reset($actor);$before=gmn_snap();$seen=0;$reached=$blocked=false;
    $gmn_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked){if(!gmn_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['gmn_hook']=null;$reached=true;
-    if(!$GLOBALS['peer']->sql_query(gmn_revoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Only native lock timeout counts as serialization');$blocked=true;}};
+    list($result,$e)=native_fixture_conflict_query($GLOBALS['peer'],gmn_revoke($kind));if(!$result){ats_check((int)$e['code']===1205,'Only native lock timeout counts as serialization');$blocked=true;}};
    $actual=gmn_run($action,$value);ats_check($reached,'Every write/commit/authority lock exercised');
    if($blocked){ats_check(is_array($actual)&&$actual===$out&&gmn_snap()===$after,'Revocation serialized after complete save');gmn_sql(gmn_revoke($kind));$serialized++;}
    else{ats_check($actual==='error'&&gmn_without_authority(gmn_snap(),$kind)===gmn_without_authority($before,$kind),'Effective concurrent revocation rolls back all membership/roles/sessions');}$cases++;
