@@ -22,6 +22,15 @@ class GroupLogicForum extends MutationForum
 {
 	function sql_dedicated_connection() { return new GroupLogicConnection('fixture','','','',false); }
 }
+// SQL/notification logic adapter only. Canonical metadata, independent real
+// transactions and peer-lock release are checked by the native mail suite.
+class GroupNotificationLogicReader
+{
+	var $lock;
+	function __construct($database,$participants) { $this->lock=new attach_mutation_lock($database); if(!$this->lock->acquired){throw new RuntimeException('Busy fixture');} }
+	function rows($sql) { $db=$this->lock->connection;$r=$db->sql_query($sql);try{return $db->sql_fetchrowset($r);}finally{$db->sql_freeresult($r);} }
+	function release() { $this->lock->release(); }
+}
 // Extract unchanged function bodies; do not load common.php or a real forum DB.
 function group_test_function($source,$name)
 {
@@ -224,6 +233,7 @@ try
 	mutation_check(group_value('SELECT COUNT(*) FROM fixture_sessions') === 6,'Malformed POST group must not fall back to a valid GET group');
 	group_fixture(); $_POST['g'] = 3; mutation_check(groupcp_change('approve',array(10))['changed'] === array(10),'Actual controller wrapper applies approved membership');
 	$notification_source = file_get_contents($forum_root . 'includes/functions_group_notifications.php');
+	eval(str_replace('new PhpbbLoginDatabase(', 'new GroupNotificationLogicReader(', group_test_function($notification_source,'phpbb_group_notification_ready')));
 	$notification = group_test_function($notification_source,'phpbb_group_notify');
 	// Only the transport constructor/include is substituted. Recipient routing,
 	// template/language selection, optional failure handling and text are real.

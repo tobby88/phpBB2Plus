@@ -35,7 +35,7 @@ $db=new GmnDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($hos
 $gmn_hook=null;$gmn_fail=$gmn_write=0;$gmn_commit='';$gmn_queries=array();
 $gmn_after_commit=null;$gmn_acknowledged=false;$gmn_after_queries=array();
 $gmn_tables=array('groups','user_group','auth_access','forums','pa_auth','attach_quota','quota_limits','users','sessions','jr');
-function gmn_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native fixture SQL');return $r;}
+function gmn_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native fixture SQL: '.($r?'':json_encode($GLOBALS['peer']->sql_error())));return $r;}
 function gmn_rows($sql){return phpbb_group_rows($GLOBALS['peer'],$sql);}
 function gmn_snap(){
  $out=array();foreach($GLOBALS['gmn_tables'] as $s){$rows=gmn_rows('SELECT * FROM fixture_'.$s);usort($rows,function($a,$b){return strcmp(json_encode($a),json_encode($b));});$out[$s]=$rows;}return $out;

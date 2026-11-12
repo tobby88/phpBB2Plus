@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Refresh group notification membership and recipients before delivery
+
+- Resolve group email against current membership, group name and recipient
+  identity using an independent connection. Notify the current group leader
+  about a still-pending request; skip withdrawn requests, removed members,
+  deleted/personal groups and deleted/inactive accounts.
+- Preserve legitimate notifications when a group becomes closed/hidden, use
+  current addresses and language, and release readers before optional mail.
+  Delivery/read failures cannot undo a committed membership change.
+- Native MariaDB coverage uses real membership changes and English/German
+  mail templates with captured final transport. No database migration needed.
+
 ### Refresh moderation card notice targets before delivery
 
 - Read the target account's current address, language, name and warning count
