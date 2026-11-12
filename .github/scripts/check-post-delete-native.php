@@ -13,6 +13,7 @@ function pd_files($reset=false)
 function pd_fixture($actor='member',$kind='reply')
 {
  ps_fixture($actor);pd_files(true);ae_reset_identity('logs',1);$GLOBALS['client_ip']='2001:db8::42';
+ ae_sql('START TRANSACTION');try{
  if(getenv('PHPBB_POST_DELETE_TOMBSTONE_ONLY')!=='1'){ae_sql("INSERT INTO fixture_config(config_name,config_value)VALUES('post_delete_allow_permanent','1') ON DUPLICATE KEY UPDATE config_value='1'");$_POST['delete_permanently']='1';}
  ae_sql('UPDATE fixture_forums SET auth_delete=1');
  if($kind==='single'){ae_sql('DELETE FROM fixture_posts WHERE post_id=20');ae_sql('DELETE FROM fixture_posts_text WHERE post_id=20');ae_sql('DELETE FROM fixture_search_wordmatch WHERE post_id=20');ae_sql('UPDATE fixture_forums SET forum_posts=1,forum_last_post_id=10');ae_sql('UPDATE fixture_topics SET topic_replies=0,topic_last_post_id=10');}
@@ -20,6 +21,7 @@ function pd_fixture($actor='member',$kind='reply')
  ae_insert('fixture_attachments_desc',array('attach_id'=>1,'physical_filename'=>'owned.txt','real_filename'=>'owned.txt','thumbnail'=>1));ae_insert('fixture_attachments',array('attach_id'=>1,'post_id'=>$post));ae_sql('UPDATE fixture_posts SET post_attachment=1 WHERE post_id='.$post);ae_sql('UPDATE fixture_topics SET topic_attachment=1');
  foreach(array('topics_watch','bookmarks','topic_view') as $table){ae_insert('fixture_'.$table,array('topic_id'=>100,'user_id'=>8));}
  if($kind!=='reply'){ae_insert('fixture_vote_desc',array('vote_id'=>1,'topic_id'=>100,'vote_text'=>'Poll'));foreach(array(1,2) as $id){ae_insert('fixture_vote_results',array('vote_id'=>1,'vote_option_id'=>$id,'vote_option_text'=>'Option '.$id));}ae_sql('UPDATE fixture_topics SET topic_vote=1');}
+ ae_sql('COMMIT');}catch(Exception$error){ae_sql('ROLLBACK');throw$error;}
  return $post;
 }
 function pd_snapshot(){ $out=ps_snapshot();foreach($out['logs'] as &$row){$row['log_time']='timestamp';}unset($row);return $out; }

@@ -7,6 +7,7 @@ $head=str_replace('codex_post_delete_','codex_topic_removal_',$head);$head=str_r
 function tr_fixture($policy,$actor='root')
 {
  pd_fixture($actor==='moderator'?'moderator':'root');$GLOBALS['br_policy']=$policy;$GLOBALS['br_exception']='';
+ ae_sql('START TRANSACTION');try{
  ae_sql("UPDATE fixture_forums SET forum_link='',main_type='c',cat_id=1,prune_enable=1,prune_next=0");
  ae_insert('fixture_categories',array('cat_id'=>1,'cat_main_type'=>'c','cat_main'=>0));
  ae_insert('fixture_forums',array('forum_id'=>4,'forum_name'=>'Other forum','forum_link'=>'','count_posts'=>0,'main_type'=>'c','cat_id'=>1));
@@ -17,6 +18,7 @@ function tr_fixture($policy,$actor='root')
  ae_sql('UPDATE fixture_forums SET forum_posts=(SELECT COUNT(*) FROM fixture_posts p WHERE p.forum_id=fixture_forums.forum_id),forum_topics=(SELECT COUNT(*) FROM fixture_topics t WHERE t.forum_id=fixture_forums.forum_id),forum_last_post_id=(SELECT COALESCE(MAX(post_id),0) FROM fixture_posts p WHERE p.forum_id=fixture_forums.forum_id)');
  if($actor==='delegate'){ae_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=8');$module=$policy==='prune_admin'?md5('ForumsPruneadmin_forum_prune.php'):md5('ForumsManageadmin_forums.php');ae_insert('fixture_jr_admin_users',array('user_id'=>8,'user_jr_admin'=>$module));}
  $admin=in_array($policy,array('prune_admin','forum_purge','forum_move'),true);$GLOBALS['userdata']['session_admin']=$admin;ae_sql('UPDATE fixture_sessions SET session_admin='.($admin?1:0));
+ ae_sql('COMMIT');}catch(Exception$error){ae_sql('ROLLBACK');throw$error;}
  $_SERVER['REQUEST_METHOD']=$policy==='prune_auto'?'GET':'POST';$_POST=$policy==='prune_auto'?array():array('sid'=>'edit-sid');
  if(getenv('PHPBB_TOPIC_TOMBSTONE_NATIVE')!=='1'&&$policy!=='prune_auto'){$_POST['delete_permanently']='1';}
 }
@@ -55,6 +57,7 @@ $body= <<<'PHP'
   require $phpbb_root_path.'../.github/scripts/topic-tombstone-native-cases.php';
  }else{
  require $phpbb_root_path.'../.github/fixtures/native-identity-reset.php';
+ require $phpbb_root_path.'../.github/fixtures/native-seed-batches.php';
  $matrix=array(array('moderator','root'),array('moderator','moderator'),array('prune_auto','root'),array('prune_auto','moderator'),array('prune_admin','root'),array('prune_admin','delegate'),array('forum_purge','root'),array('forum_purge','delegate'),array('forum_move','root'),array('forum_move','delegate'));
  if(getenv('PHPBB_TOPIC_REMOVAL_TAIL')!=='1' && getenv('PHPBB_TOPIC_REMOVAL_EXTRA')!=='1'){
  foreach($matrix as $entry){list($policy,$actor)=$entry;tr_fixture($policy,$actor);$before=tr_snapshot();$out=tr_submit($policy);ae_check(is_array($out),'Success '.$policy.'/'.$actor.' '.$br_exception.' '.json_encode($ae_error));$after=tr_snapshot();$queries=$ae_queries;

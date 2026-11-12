@@ -19,6 +19,7 @@ function ps_fixture($actor = 'member')
 {
  ae_fixture($actor); global $userdata, $board_config, $user_ip, $ctracker_config, $is_auth;
  foreach(array('posts'=>21,'topics'=>101,'vote_desc'=>1) as $suffix=>$next){ae_reset_identity($suffix,$next);}
+ ae_sql('START TRANSACTION');try{
  ae_sql('UPDATE fixture_forums SET count_posts=1, forum_posts=2, forum_topics=1, forum_last_post_id=20, auth_post=1, auth_reply=1, auth_pollcreate=1');
  ae_sql('UPDATE fixture_topics SET topic_replies=1, topic_first_post_id=10, topic_last_post_id=20');
  ae_sql('UPDATE fixture_users SET user_posts=2 WHERE user_id=8');
@@ -29,6 +30,7 @@ function ps_fixture($actor = 'member')
   $userdata['user_id']=ANONYMOUS;$userdata['session_logged_in']=false;
  }
  if($actor==='root'){ae_sql('UPDATE fixture_forums SET forum_status=1');}
+ ae_sql('COMMIT');}catch(Exception$error){ae_sql('ROLLBACK');throw$error;}
  $board_config['flood_interval']=0;$is_auth=array('auth_mod'=>true);$user_ip='7f000001';
  $ctracker_config=new stdClass();$ctracker_config->settings=array('spammer_blockmode'=>0,'spam_attack_boost'=>0);
  $GLOBALS['ps_aftercommit']=0;$GLOBALS['ps_exception']='';
