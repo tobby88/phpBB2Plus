@@ -297,6 +297,8 @@ $db->sql_freeresult($result);
 
 // get forum_id for attachment authorization or private message authorization
 $authorised = false;
+$pm_download_id = 0;
+$download_admin = $userdata['user_level'] == ADMIN;
 
 $sql = 'SELECT *
 	FROM ' . ATTACHMENTS_TABLE . '
@@ -343,9 +345,12 @@ for ($i = 0; $i < $num_auth_pages && $authorised == false; $i++)
 	}
 	else
 	{
-		if (phpbb_pm_attachment_access($db, $auth_pages[$i]['privmsgs_id'], $userdata, (bool) $attach_config['allow_pm_attach']))
+		$pm_attachment = phpbb_pm_download_attachment($db, $auth_pages[$i]['privmsgs_id'], $userdata, (bool) $attach_config['allow_pm_attach'], $attachment['attach_id']);
+		if ($pm_attachment !== false)
 		{
 			$authorised = TRUE;
+			$pm_download_id = (int)$auth_pages[$i]['privmsgs_id'];
+			$attachment = $pm_attachment;
 		}
 	}
 }
@@ -380,9 +385,19 @@ for ($i = 0; $i < $num_rows; $i++)
 	$download_mode[$extension] = $rows[$i]['download_mode'];
 }
 
+// Extension lookup and other preflight reads must not preserve a revoked PM
+// decision or stale file metadata. Recheck immediately before preparing delivery.
+if ($pm_download_id > 0)
+{
+	$attachment = phpbb_pm_download_attachment($db, $pm_download_id, $userdata, (bool)$attach_config['allow_pm_attach'], $download_id);
+	if ($attachment === false) { message_die(GENERAL_MESSAGE, $lang['Sorry_auth_view_attach']); }
+	$attachment['physical_filename'] = basename($attachment['physical_filename']);
+	$download_admin = (int)$attachment['pm_download_level'] === ADMIN;
+}
+
 // disallowed ?
 $attachment['extension'] = strtolower((string) $attachment['extension']);
-if (!in_array($attachment['extension'], $allowed_extensions, true) && $userdata['user_level'] != ADMIN)
+if (!in_array($attachment['extension'], $allowed_extensions, true) && !$download_admin)
 {
 	message_die(GENERAL_MESSAGE, sprintf($lang['Extension_disabled_after_posting'], $attachment['extension']));
 }

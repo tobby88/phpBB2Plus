@@ -640,6 +640,12 @@ jobs:
         env:
           PHPBB_PM_NOTIFY_NATIVE: '1'
           PHPBB_PM_NOTIFY_PASSWORD: fixture-only
+      - name: Check native private-message attachment download authorization
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
+        env:
+          PHPBB_PM_NOTIFY_NATIVE: '1'
+          PHPBB_PM_NOTIFY_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php

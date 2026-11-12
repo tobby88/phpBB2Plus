@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_pm_mailbox_journal.php';
+require_once dirname(__FILE__) . '/functions_pm_attachment_access.php';
 
 function phpbb_pm_mailbox_condition($user_id, $folder)
 {
@@ -14,34 +15,6 @@ function phpbb_pm_mailbox_condition($user_id, $folder)
 		case 'savebox': return '((privmsgs_from_userid = ' . $user_id . ' AND privmsgs_type = ' . PRIVMSGS_SAVED_OUT_MAIL . ') OR (privmsgs_to_userid = ' . $user_id . ' AND privmsgs_type = ' . PRIVMSGS_SAVED_IN_MAIL . '))';
 	}
 	return false;
-}
-
-// Attachment links are not authorization records: their participant IDs can
-// outlive an account, mailbox copy or message. Check the current parent/copy.
-function phpbb_pm_attachment_access($database, $message_id, $viewer, $allow_pm_attach)
-{
-	$message_ids = attach_delete_id_array(array($message_id));
-	$viewer_ids = isset($viewer['user_id']) ? attach_delete_id_array(array($viewer['user_id'])) : false;
-	if (!$message_ids || !$viewer_ids || empty($viewer['session_logged_in'])) { return false; }
-	$is_admin = isset($viewer['user_level']) && $viewer['user_level'] == ADMIN;
-	if (!$is_admin && !$allow_pm_attach) { return false; }
-	// Neither an unfinished write nor its unpublished sent-copy staging row
-	// is a downloadable message, including via a previously known attachment ID.
-	$where = 'privmsgs_id = ' . $message_ids[0] . ' AND privmsgs_write_payload IS NULL AND privmsgs_type IN ('
-		. PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_SENT_MAIL . ','
-		. PRIVMSGS_SAVED_IN_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ')';
-	if (!$is_admin)
-	{
-		$mailboxes = array();
-		foreach (array('inbox', 'outbox', 'sentbox', 'savebox') as $folder)
-		{
-			$mailboxes[] = '(' . phpbb_pm_mailbox_condition($viewer_ids[0], $folder) . ')';
-		}
-		$where .= ' AND (' . implode(' OR ', $mailboxes) . ')';
-	}
-	$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
-	$row = $database->sql_fetchrow($result); $database->sql_freeresult($result);
-	return (bool) $row;
 }
 
 function phpbb_pm_cleanup_query($database, $sql)

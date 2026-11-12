@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Refresh private attachment download permissions before delivery
+
+- Resolve private-message attachment access using an independent current read:
+  exact live session, active account, actual admin role, current setting and
+  ownership of the visible mailbox copy. Reject missing or unfinished parents.
+- Bind downloads to their current attachment link and descriptor. Recheck after
+  preflight reads, including file metadata and the disabled-extension admin
+  exception. Keep caller transactions intact and release readers before delivery.
+- Preserve existing public attachment behavior. No database migration is needed.
+
 ### Bind private-message actions to current database sessions
 
 - Recheck the exact session identity, logged-in state and account binding for

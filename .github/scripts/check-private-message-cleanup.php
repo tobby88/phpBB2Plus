@@ -7,6 +7,8 @@ require_once __DIR__ . '/pm-current-session-fixture.php';
 define('PRIVMSGS_TEXT_TABLE', 'fixture_message_text');
 define('USERS_TABLE', 'fixture_users');
 define('SESSIONS_TABLE','fixture_sessions');
+define('ATTACH_CONFIG_TABLE','fixture_pm_download_config');
+require_once __DIR__.'/../fixtures/pm-download-model.php';
 define('JR_ADMIN_TABLE','fixture_jr_admin'); $phpEx='php'; $phpbb_root_path=$forum_root;
 require $forum_root . 'includes/functions_privmsgs.php';
 $lang['PM_cleanup_failed'] = 'pm database';
@@ -38,6 +40,8 @@ function pm_cleanup_fixture()
 	$mutation_server->pdo->exec('CREATE TABLE fixture_jr_admin (user_id INTEGER,user_jr_admin TEXT)');
 	$mutation_server->pdo->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER)');
 	$mutation_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',8,1,1)");
+	$mutation_server->pdo->exec('CREATE TABLE fixture_pm_download_config (config_name VARCHAR(191) PRIMARY KEY,config_value VARCHAR(255))');
+	$mutation_server->pdo->exec("INSERT INTO fixture_pm_download_config VALUES ('allow_pm_attach','1')");
 	file_put_contents($upload_dir.'/fixture.txt','owned');
 	mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','pm',20);
 	mutation_pm()->duplicate_attachment_pm(1,20,21);
@@ -251,41 +255,43 @@ try
 	mutation_check(strpos($prune_controller,'phpbb_prune_user_remove($db, $_POST,')!==false && strpos($prune_controller,'SELECT privmsgs_id')===false && strpos($prune_controller,'SET privmsgs_to_userid')===false,'Standalone prune controller delegates its entire durable account/PN lifecycle');
 
 	pm_cleanup_fixture(); $lock=attach_require_mutation_lock($db);
+	$download_database=new PmDownloadModelForum();
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=0');
 	try {
-		$viewer=array('user_id'=>7,'user_level'=>0,'session_logged_in'=>true);
+		$viewer=array('user_id'=>7,'user_level'=>0,'session_logged_in'=>true,'session_id'=>'fixture-sid');
 		foreach(range(0,5) as $type) {
 			$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type='.$type.' WHERE privmsgs_id=20');
-			$viewer['user_id']=7;
-			mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,true)===in_array($type,array(0,1,3,5),true),'Recipient download requires recipient-owned copy');
-			$viewer['user_id']=8;
-			mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,true)===in_array($type,array(1,2,4,5),true),'Sender download requires sender-owned copy');
+			$viewer['user_id']=7;pm_fixture_login(7);
+			mutation_check(phpbb_pm_attachment_access($download_database,20,$viewer,true)===in_array($type,array(0,1,3,5),true),'Recipient download requires recipient-owned copy');
+			$viewer['user_id']=8;pm_fixture_login(8);
+			mutation_check(phpbb_pm_attachment_access($download_database,20,$viewer,true)===in_array($type,array(1,2,4,5),true),'Sender download requires sender-owned copy');
 		}
-		$viewer['user_id']=99; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Unrelated viewer cannot download private attachment');
-		$viewer['user_id']=8; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,false),'Disabled PM attachments deny ordinary download');
-		$viewer['user_level']=ADMIN; mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,false),'Administrator retains access to an existing parent');
+		$viewer['user_id']=99;pm_fixture_login(99); mutation_check(!phpbb_pm_attachment_access($download_database,20,$viewer,true),'Unrelated viewer cannot download private attachment');
+		$viewer['user_id']=8;pm_fixture_login(8); mutation_check(!phpbb_pm_attachment_access($download_database,20,$viewer,false),'Disabled PM attachments deny ordinary download');
+		$viewer['user_level']=ADMIN;$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8'); mutation_check(phpbb_pm_attachment_access($download_database,20,$viewer,false),'Administrator retains access to an existing parent');
 		foreach(array(0,ADMIN) as $level)
 		{
-			$viewer['user_level']=$level;
+			$viewer['user_level']=$level;$mutation_server->pdo->exec('UPDATE fixture_users SET user_level='.(int)$level.' WHERE user_id=8');
 			$mutation_server->pdo->exec("UPDATE fixture_messages SET privmsgs_write_payload='pending' WHERE privmsgs_id=20");
-			mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Unfinished write attachments remain unavailable even to admin');
+			mutation_check(!phpbb_pm_attachment_access($download_database,20,$viewer,true),'Unfinished write attachments remain unavailable even to admin');
 			$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload=NULL,privmsgs_type=6 WHERE privmsgs_id=20');
-			mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Staging sent-copy attachments remain unavailable even to admin');
+			mutation_check(!phpbb_pm_attachment_access($download_database,20,$viewer,true),'Staging sent-copy attachments remain unavailable even to admin');
 			$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=5 WHERE privmsgs_id=20');
-			mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Published parent restores download access');
+			mutation_check(phpbb_pm_attachment_access($download_database,20,$viewer,true),'Published parent restores download access');
 		}
-		$viewer['session_logged_in']=false; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Logged-out metadata cannot grant access');
+		$viewer['session_logged_in']=false; mutation_check(!phpbb_pm_attachment_access($download_database,20,$viewer,true),'Logged-out metadata cannot grant access');
 		$viewer['session_logged_in']=true; $viewer['user_id']=-1;
 		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_to_userid=-1,privmsgs_from_userid=-1');
-		mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Deleted participant sentinel never authorizes guest downloads');
-		$viewer['user_id']=8; $mutation_server->pdo->exec('DELETE FROM fixture_messages WHERE privmsgs_id=20');
-		mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Orphan attachment link cannot grant even admin access without a message');
-		foreach(array(null,0,'20 OR 1=1') as $bad) { mutation_check(!phpbb_pm_attachment_access($lock->connection,$bad,$viewer,true),'Malformed PM download target rejected'); }
-		$mutation_server->failure='SELECT privmsgs_id FROM fixture_messages';
-		mutation_expect_failure(function()use($lock,$viewer){phpbb_pm_attachment_access($lock->connection,21,$viewer,true);},'pm database');
+		mutation_check(!phpbb_pm_attachment_access($download_database,20,$viewer,true),'Deleted participant sentinel never authorizes guest downloads');
+		$viewer['user_id']=8;pm_fixture_login(8); $mutation_server->pdo->exec('DELETE FROM fixture_messages WHERE privmsgs_id=20');
+		mutation_check(!phpbb_pm_attachment_access($download_database,20,$viewer,true),'Orphan attachment link cannot grant even admin access without a message');
+		foreach(array(null,0,'20 OR 1=1') as $bad) { mutation_check(!phpbb_pm_attachment_access($download_database,$bad,$viewer,true),'Malformed PM download target rejected'); }
+		$mutation_server->failure='SELECT p.privmsgs_id,';
+		mutation_expect_failure(function()use($download_database,$viewer){phpbb_pm_attachment_access($download_database,21,$viewer,true);},'pm database');
 	}
 	finally { $lock->release(); }
 	$download=file_get_contents($forum_root.'download.php');
-	mutation_check(strpos($download,'phpbb_pm_attachment_access($db,')!==false && strpos($download,"\$userdata['user_id'] == \$auth_pages[\$i]['user_id_")===false,'Download uses authoritative parent ownership rather than stale link participants');
+	mutation_check(strpos($download,'phpbb_pm_download_attachment($db,')!==false && strpos($download,"\$userdata['user_id'] == \$auth_pages[\$i]['user_id_")===false,'Download uses authoritative parent ownership rather than stale link participants');
 	// Real module authorization with only its grant lookup replaced: mutation SQL
 	// must still go through the fixture's actual owning connection.
 	$phpEx='php';
