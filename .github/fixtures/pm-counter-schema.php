@@ -1,0 +1,18 @@
+<?php
+function pm_counter_schema_checks(){
+ $schema_checks=0;$names=array('users','pm','junior','sessions');
+ $cold=new PmCounterServer('InnoDB');pm_counter_check(!$cold->native_schema_reused,'First native schema is created');$expected=$cold->schema_signature($names);$schema_checks++;
+ $cold->pdo->exec("INSERT INTO fixture_users VALUES (999,'Stale fixture',0,1,17,18)");$cold->pdo->exec("INSERT INTO fixture_sessions VALUES ('stale',999,1,1)");$cold->pdo->exec("INSERT INTO fixture_junior VALUES (999,'stale')");$cold->pdo->exec("UPDATE fixture_pm SET body='stale',privmsgs_write_payload='pending'");
+ $warm=new PmCounterServer('InnoDB');pm_counter_check($warm->native_schema_reused&&$warm->schema_signature($names)===$expected,'Matching native definitions are reused');$schema_checks++;
+ pm_counter_check((int)$warm->pdo->query('SELECT COUNT(*) FROM fixture_users')->fetchColumn()===6&&(int)$warm->pdo->query('SELECT COUNT(*) FROM fixture_pm')->fetchColumn()===7&&(int)$warm->pdo->query('SELECT COUNT(*) FROM fixture_sessions')->fetchColumn()===0&&(int)$warm->pdo->query('SELECT COUNT(*) FROM fixture_junior')->fetchColumn()===0&&(int)$warm->pdo->query("SELECT COUNT(*) FROM fixture_pm WHERE body='stale' OR privmsgs_write_payload IS NOT NULL")->fetchColumn()===0&&!$warm->pdo->inTransaction(),'All original data and empty authority tables restored outside any transaction');$schema_checks++;
+ $warm->pdo->exec('ALTER TABLE fixture_pm ADD COLUMN fixture_extra INTEGER NULL');$drift=new PmCounterServer('InnoDB');pm_counter_check(!$drift->native_schema_reused&&$drift->schema_signature($names)===$expected,'Changed native columns force exact schema reconstruction');$schema_checks++;
+ $drift->pdo->exec('DROP TABLE fixture_junior');$missing=new PmCounterServer('InnoDB');pm_counter_check(!$missing->native_schema_reused&&$missing->schema_signature($names)===$expected,'Missing native tables force reconstruction');$schema_checks++;
+ $missing->pdo->exec('CREATE TRIGGER fixture_counter_probe BEFORE INSERT ON fixture_users FOR EACH ROW SET NEW.user_new_privmsg=77');$trigger=new PmCounterServer('InnoDB');pm_counter_check(!$trigger->native_schema_reused&&$trigger->schema_signature($names)===$expected&&(int)$trigger->pdo->query('SELECT user_new_privmsg FROM fixture_users WHERE user_id=1')->fetchColumn()===0,'Unexpected native triggers are removed by exact reconstruction');$schema_checks++;
+ $legacy=new PmCounterServer('MyISAM');pm_counter_check(!$legacy->native_schema_reused&&$legacy->schema_signature($names)!==$expected,'Requested legacy engine is physically distinct');$schema_checks++;
+ $legacy_warm=new PmCounterServer('MyISAM');pm_counter_check($legacy_warm->native_schema_reused&&$legacy_warm->schema_signature($names)===$legacy->schema_signature($names),'Legacy fixture cases retain their real engine and fresh rows');$schema_checks++;
+ $switched=new PmCounterServer('InnoDB');pm_counter_check(!$switched->native_schema_reused&&$switched->schema_signature($names)===$expected,'Switching back restores exact InnoDB definitions');$schema_checks++;
+ $forum=new PmCounterForum();pm_counter_check($forum->dbname===$switched->pdo->query('SELECT DATABASE()')->fetchColumn()&&preg_match('/^codex_pm_counter_[a-f0-9]{16}$/D',$forum->dbname)===1,'Lock namespace follows the actual owned database');$schema_checks++;
+ unset($cold,$warm,$drift,$missing,$trigger,$legacy,$legacy_warm,$switched,$forum);
+ echo 'Native PM counter fixture schema: ',$schema_checks," checks PASS; exact warm reuse, fresh data, column/missing-table/trigger drift, both engines, switch-back, closed seed transaction and actual lock namespace.\n";
+}
+if($native){pm_counter_schema_checks();}

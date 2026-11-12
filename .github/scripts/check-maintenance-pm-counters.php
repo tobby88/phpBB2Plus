@@ -12,20 +12,40 @@ class PmCounterRows {public $rows;function __construct($rows){$this->rows=$rows;
 $dsn=getenv('PHPBB_PM_COUNTER_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
 if($native){pm_counter_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_pm_counter_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class PmCounterServer {
- public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
+ public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();public $native_schema_reused=false;
+ function schema_signature($names){
+  $signature=array();$tables=array();foreach($names as$name){$row=$this->pdo->query('SHOW CREATE TABLE fixture_'.$name)->fetch(PDO::FETCH_NUM);if(!is_array($row)||!isset($row[1])){throw new RuntimeException('Native counter fixture schema unavailable');}$signature[$name]=hash('sha256',$row[1]);$tables[]=$this->pdo->quote('fixture_'.$name);}
+  $signature['__triggers']=(bool)$this->pdo->query('SELECT 1 FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND EVENT_OBJECT_TABLE IN ('.implode(',',$tables).') LIMIT 1')->fetchColumn();return $signature;
+ }
  function __construct($engine){
+  static $native_schemas=array();
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_PM_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_new_privmsg INTEGER,user_unread_privmsg INTEGER','pm'=>'privmsgs_id INTEGER PRIMARY KEY,privmsgs_to_userid INTEGER,privmsgs_from_userid INTEGER,privmsgs_type INTEGER,body VARCHAR(255)','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
   $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
-  foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
-  $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
-  $this->pdo->exec("INSERT INTO fixture_pm VALUES (1,8,1,1,'Grüße'),(2,8,1,5,'Unread'),(3,8,1,0,'Read'),(4,8,1,2,'Sent'),(5,8,1,3,'Saved'),(6,8,1,4,'Saved out'),(7,77,8,1,'Sender only')");
-  $this->pdo->exec('ALTER TABLE fixture_pm ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
-
+  $names=array_keys($definitions);$key=$GLOBALS['native']?$GLOBALS['dsn'].'|'.$engine:'';
+  if($GLOBALS['native']&&isset($native_schemas[$key])){
+   try{$this->native_schema_reused=$this->schema_signature($names)===$native_schemas[$key];}catch(PDOException $error){$this->native_schema_reused=false;}
+  }
+  if(!$this->native_schema_reused){
+   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
+   $this->pdo->exec('ALTER TABLE fixture_pm ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
+   if($GLOBALS['native']){$native_schemas[$key]=$this->schema_signature($names);}
+  }
+  // Batch only fixture seeding. The real maintenance still uses its original
+  // connections and normal durability; every case gets all original rows.
+  $seed_transaction=$GLOBALS['native']&&$engine==='InnoDB';
+  if($seed_transaction){$this->pdo->beginTransaction();}
+  try{
+   if($this->native_schema_reused){foreach($names as$name){$this->pdo->exec('DELETE FROM fixture_'.$name);}}
+   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
+   $this->pdo->exec("INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type,body) VALUES (1,8,1,1,'Grüße'),(2,8,1,5,'Unread'),(3,8,1,0,'Read'),(4,8,1,2,'Sent'),(5,8,1,3,'Saved'),(6,8,1,4,'Saved out'),(7,77,8,1,'Sender only')");
+   if($seed_transaction){$this->pdo->commit();}
+  }catch(Exception $error){if($seed_transaction&&$this->pdo->inTransaction()){$this->pdo->rollBack();}throw $error;}
  }
 }
 class PmCounterForum {
  public $dbname='pm-counter-fixture';
+ function __construct(){if($GLOBALS['native']){pm_counter_check(preg_match('/;dbname=(codex_pm_counter_[a-f0-9]{16});/',$GLOBALS['dsn'],$match)===1,'Actual native lock namespace');$this->dbname=$match[1];}}
  function sql_query($sql){throw new RuntimeException('Unlocked main connection used');}
  function sql_dedicated_connection(){return new PmCounterConnection($GLOBALS['pm_counter_server']);}
 }
@@ -68,10 +88,11 @@ function pm_counter_run($expected='',$request=null){
 }
 function pm_counter_many($count){
  $pdo=$GLOBALS['pm_counter_server']->pdo;$pdo->exec('DELETE FROM fixture_pm');$pdo->exec('UPDATE fixture_users SET user_new_privmsg=0,user_unread_privmsg=0 WHERE user_id>0');
- for($id=100;$id<100+$count;$id++){$pdo->exec("INSERT INTO fixture_users VALUES (".$id.",'Batch',0,1,1,1)");}
+ $rows=array();for($id=100;$id<100+$count;$id++){$rows[]="(".$id.",'Batch',0,1,1,1)";}if($rows){$pdo->exec('INSERT INTO fixture_users VALUES '.implode(',',$rows));}
 }
 $controller=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($controller,'// Synchronize both PM counters from current mailbox state.');$b=strpos($controller,"case 'check_config':",$a);
 pm_counter_check($a!==false&&$b>$a,'Actual counter controller stage found');$branch="switch(\$function){case 'check_pm':".substr($controller,$a,$b-$a).'}';
+require dirname(__DIR__).'/fixtures/pm-counter-schema.php';
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{
  foreach($native?array('MyISAM','InnoDB'):array('SQLite') as $engine){foreach(array('english','german') as $locale){
