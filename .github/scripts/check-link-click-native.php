@@ -3,6 +3,7 @@
 // Only response headers/exit are captured; no live links, HTTP, mail or accounts.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_LINK_CLICK_NATIVE')!=='1'){echo "Link clicks require explicitly enabled disposable storage.\n";return;}
 if(!in_array('mail',array_map('trim',explode(',',ini_get('disable_functions'))),true)){throw new RuntimeException('Real mail must be disabled');}
+require_once __DIR__.'/native-connection-release-fixture.php';
 function lc_controller_source($root){$source=file_get_contents($root.'links.php');$a=strpos($source,'// Count and forward');$b=strpos($source,'// Output the basic page',$a);if($a===false||$b<=$a){throw new RuntimeException('Actual public click controller boundary');}$body=substr($source,$a,$b-$a);if(substr_count($body,'header(')!==4){throw new RuntimeException('All four actual headers must be captured');}return str_replace('header(','lc_header(',$body);}
 if(getenv('PHPBB_LINK_CLICK_WORKER')==='1'){
  define('IN_PHPBB',true);$phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';$phpEx='php';$table_prefix='fixture_';
@@ -50,7 +51,7 @@ function lc_run(){
   // and prove the otherwise unreferenced connection is actually reclaimed.
   for($i=$offset;$i<count($GLOBALS['kp_owner_connections']);$i++){$owner=$GLOBALS['kp_owner_connections'][$i];if(isset($owned[spl_object_hash($owner)])){kp_check(!$owner->connection->db_connect_id,'Every accepted owner explicitly closed before response');}$GLOBALS['kp_owner_connections'][$i]=null;}
   $GLOBALS['kp_owner_connections']=array_values(array_filter($GLOBALS['kp_owner_connections']));unset($owner);
-  if($GLOBALS['lc_ids']){kp_check(!kp_rows('SELECT ID FROM information_schema.PROCESSLIST WHERE ID IN ('.implode(',',$GLOBALS['lc_ids']).')'),'Rejected fresh and accepted owned connections do not leak');}
+  if($GLOBALS['lc_ids']){kp_check(native_connections_released('kp_rows',$GLOBALS['lc_ids']),'Rejected fresh and accepted owned connections do not leak');}
  }
  $GLOBALS['lc_queries']=$queries;return$result;
 }

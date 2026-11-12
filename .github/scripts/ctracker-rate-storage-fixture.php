@@ -1,6 +1,7 @@
 <?php
 // The actual mysqli factory and canonical schema, never an SQL emulator.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_RATE_NATIVE')!=='1'){echo "Native rate-storage fixture requires PHPBB_RATE_NATIVE=1; skipped.\n";return;}
+require_once __DIR__.'/native-connection-release-fixture.php';
 define('IN_PHPBB',true);define('CTRACKER_REQUEST_LIMITER_NO_AUTO_RUN',true);$table_prefix='fixture_';$root=dirname(dirname(__DIR__));$phpbb_root_path=$root.'/phpBB2/';$phpEx='php';
 require$root.'/phpBB2/includes/php_compat.php';require$root.'/phpBB2/includes/constants.php';require$root.'/phpBB2/db/mysqli.php';require$root.'/phpBB2/ctracker/engines/ct_request_limiter.php';
 function rate_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
@@ -31,7 +32,7 @@ function rate_call($name,$args,$collect=false){
  global$db,$rate_queries,$rate_owned,$rate_ids;$original=$db;$db=$GLOBALS['rate_root'];$offset=count($GLOBALS['rate_owners']);$rate_queries=array();$rate_owned=array();$rate_ids=array();mt_srand($GLOBALS[$collect?'rate_collect_seed':'rate_no_collect_seed']);
  try{return call_user_func_array('ctracker_rate_limit_'.$name,$args);}finally{
   $db=$original;for($i=$offset;$i<count($GLOBALS['rate_owners']);$i++){$owner=$GLOBALS['rate_owners'][$i];if(isset($rate_owned[spl_object_hash($owner)])){rate_check(!$owner->connection->db_connect_id,'Owned rate connection explicitly closed');}$GLOBALS['rate_owners'][$i]=null;}$GLOBALS['rate_owners']=array_values(array_filter($GLOBALS['rate_owners']));unset($owner);
-  if($rate_ids){rate_check(!rate_rows('SELECT ID FROM information_schema.PROCESSLIST WHERE ID IN ('.implode(',',$rate_ids).')'),'No fresh rejected or accepted owner connection leak');}
+  if($rate_ids){rate_check(native_connections_released('rate_rows',$rate_ids),'No fresh rejected or accepted owner connection leak');}
  }
 }
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});$cases=$failures=0;
@@ -60,6 +61,7 @@ try{
  rate_reset();rate_seed(hash('sha256','keep-old'),$old,1,$old);$rate_hook=function($phase,$sql){return$phase==='before'&&strpos($sql,'DELETE FROM ')===0?false:null;};rate_check(rate_call('increment',array('gc-failure','ip',600,1),true)===0&&count(rate_row())===2,'Optional cleanup failure cannot undo or invalidate committed count');$cases++;
  rate_reset();$rate_hook=function($phase,$sql,$owner){if($phase==='after'&&strpos($sql,'INSERT INTO ')===0){$p=$GLOBALS['rate_insert'];rate_check($owner->connection->sql_query('DELETE FROM '.CTRACKER_RATE_LIMITS." WHERE bucket_hash='".$p['hash']."'")!==false,'Synthetic same-transaction missing readback');}};rate_check(rate_call('increment',array('missing-row','ip',600,1))===false&&!rate_row(),'Missing own readback refuses decision and rolls back');$cases++;
  rate_reset();$rate_ids=array();rate_check(rate_call('increment',array('','ip',600,1))===false&&rate_call('mark_success',array('bucket',''))===false&&!$rate_queries,'Empty identities rejected before SQL');$cases++;
+ rate_check(!native_connections_released('rate_rows',array((int)rate_rows('SELECT CONNECTION_ID() id')[0]['id']))&&rate_rows('SELECT 1 present')[0]['present']==='1','Release observer must reject a genuinely retained connection without closing it');$cases++;
  rate_reset();rate_sql('DROP TABLE '.CTRACKER_RATE_LIMITS);rate_check(rate_call('increment',array('missing','ip',600,1))===false&&rate_call('mark_success',array('missing','ip'))===false&&rate_call('cooldown_remaining',array('missing','ip',30))===false,'Missing table remains controlled fail-open');$cases++;
  echo 'CrackerTracker rate storage native: '.$cases.' cases, '.$failures." SQL failures PASS; actual mysqli/canonical schema, exact own quota decision, ordering/saturation/cooldowns, isolated committed attempts, legacy-write refusal, bounded optional cleanup and preserved caller transactions.\n";
 }finally{
