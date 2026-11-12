@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Refresh pending Knowledge Base email before delivery
+
+- Recheck the current article and notification setting independently after
+  commit. Skip approved/deleted articles and disabled notices, and use the
+  current title, board address and board language for legitimate pending edits.
+- Dedicated English/German plain-text templates remove literal HTML breaks,
+  escaped newlines and mixed caller/board languages. Release the read owner
+  before delivery, restore caller settings and keep mail failures optional.
+- No database migration is required.
+
 ### Refresh group notification membership and recipients before delivery
 
 - Resolve group email against current membership, group name and recipient

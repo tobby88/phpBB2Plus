@@ -622,6 +622,12 @@ jobs:
         env:
           PHPBB_GROUP_NOTIFY_NATIVE: '1'
           PHPBB_GROUP_NOTIFY_PASSWORD: fixture-only
+      - name: Check native current pending KB email and plain-text templates
+        if: matrix.part == 1
+        run: php -d disable_functions=mail .github/scripts/check-kb-notifications-native.php
+        env:
+          PHPBB_KB_NOTIFY_NATIVE: '1'
+          PHPBB_KB_NOTIFY_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php
