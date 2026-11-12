@@ -34,7 +34,9 @@ function pd_login($id,$cached_level=0){
 function pd_prepare($locale){
     global$pd_after_extensions,$pd_root_queries,$pd_root_fault,$pd_factory,$kp_hook,$lang;
     $pd_after_extensions=null;$pd_root_queries=array();$pd_root_fault='';$pd_factory='normal';$kp_hook=null;
-    pn_prepare($locale);require$GLOBALS['kp_source'].'language/lang_'.$locale.'/lang_main_attach.php';pd_login(4);
+    $GLOBALS['kp_last_sql_failure']=null;
+    try{pn_prepare($locale);}catch(Exception$error){$failure=$GLOBALS['kp_last_sql_failure'];if(getenv('PHPBB_PM_DOWNLOAD_MYSQL')==='8.4'&&is_array($failure)&&!empty($failure['code'])){throw new RuntimeException('MySQL PM setup SQL ('.(int)$failure['code'].'): '.$failure['message'].' ['.$failure['context'].']');}throw$error;}
+    require$GLOBALS['kp_source'].'language/lang_'.$locale.'/lang_main_attach.php';pd_login(4);
     kp_sql("INSERT INTO fixture_attachments_config VALUES('allow_pm_attach','1')");
     kp_sql("INSERT INTO fixture_extension_groups(group_id,group_name,cat_id,allow_group,download_mode) VALUES(1,'Synthetic',0,1,".INLINE_LINK.')');
     kp_sql("INSERT INTO fixture_extensions(ext_id,group_id,extension,comment) VALUES(1,1,'bin','Synthetic')");

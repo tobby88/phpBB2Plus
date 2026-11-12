@@ -112,7 +112,10 @@ function phpbb_pm_write_complete($db, $row, $limit)
 		|| !hash_equals((string)$row['privmsgs_write_hash'], phpbb_pm_write_fingerprint($content, $intent['message_id'], $intent['revision']))) { phpbb_acl_error('PM_journal_changed'); }
 	$key = phpbb_pm_write_guard($db, $row);
 	$recipient = (int)$content['recipient'];
-	$target = 'EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $recipient . ')';
+	// This guard is also used by UPDATE users; MySQL cannot directly select
+	// that target table again. DISTINCT keeps the one-row lookup materialized.
+	$target = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id FROM ' . USERS_TABLE
+		. ' WHERE user_id = ' . $recipient . ') write_recipient)';
 	$guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $key . ') write_source) AND ' . $target;
 	if (!phpbb_acl_rows($db, 'SELECT 1 AS allowed WHERE ' . $guard)) { phpbb_acl_error('PM_journal_changed'); }
 	$body = $db->sql_escape($content['text']); $uid = $db->sql_escape($content['bbcode_uid']);

@@ -34,6 +34,7 @@ class KpOwnerConnection {
  function sql_query($sql, $transaction = false) {
   if (is_callable($GLOBALS['kp_hook']) && call_user_func($GLOBALS['kp_hook'], 'before', $sql, $this) === false) { return false; }
   $result = $this->connection->sql_query($sql, $transaction);
+  if(!$result){$error=$this->connection->sql_error();$GLOBALS['kp_last_sql_failure']=array('code'=>$error['code'],'message'=>$error['message'],'context'=>preg_match('/^(?:SELECT|UPDATE|INSERT INTO|DELETE FROM) [A-Za-z0-9_*.,]+/',$sql,$m)?$m[0]:'native owner');}
   if (is_callable($GLOBALS['kp_hook']) && call_user_func($GLOBALS['kp_hook'], 'after', $sql, $this) === false) { return false; }
   return $result;
  }

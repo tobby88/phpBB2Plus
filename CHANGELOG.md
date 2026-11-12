@@ -14,12 +14,15 @@ changes consolidated after that baseline without implying active maintenance.
 - Bind downloads to their current attachment link and descriptor. Recheck after
   preflight reads, including file metadata and the disabled-extension admin
   exception. Keep caller transactions intact and release readers before delivery.
-- Preserve existing public attachment behavior. No database migration is needed.
+- Preserve existing public attachment behavior; authorization uses existing
+  tables and columns.
 - Use portable next-transaction read-only setup on MySQL and MariaDB; the same
   download cases also run against a dedicated MySQL 8.4 service.
 - Express the original category, absence and shout text defaults portably in
   the installer. The full updater supplies missing required TEXT defaults while
   preserving existing values, custom defaults, nullability and column metadata.
+- Keep the PM recipient guard materialized when updating user metadata, avoiding
+  MySQL's restriction on reading the same update target through a subquery.
 
 ### Bind private-message actions to current database sessions
 
