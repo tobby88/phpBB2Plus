@@ -610,6 +610,12 @@ jobs:
         env:
           PHPBB_REPORT_NOTIFY_NATIVE: '1'
           PHPBB_REPORT_NOTIFY_PASSWORD: fixture-only
+      - name: Check native current moderation card notification targets
+        if: matrix.part == 4
+        run: php -d disable_functions=mail .github/scripts/check-card-notifications-native.php
+        env:
+          PHPBB_CARD_NOTIFY_NATIVE: '1'
+          PHPBB_CARD_NOTIFY_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php

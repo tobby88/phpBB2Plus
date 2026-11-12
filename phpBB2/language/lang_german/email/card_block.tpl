@@ -4,7 +4,7 @@ Charset: UTF-8
 Hallo! {WARNED_POSTER}!
 
 
-Dein  Account  {SITENAME}  wurde  für  {BLOCK_TIME} gesperrt, und zwar
+Dein  Account  {SITENAME}  wurde  für  {BLOCK_MINUTES} Minuten gesperrt, und zwar
 wegen deines folgenden Beitrags:
 
 {POST_URL}

@@ -3,7 +3,7 @@ Charset: UTF-8
 
 Hello, {WARNED_POSTER}
 
-You account on {SITENAME} has been blocked for {BLOCK_TIME}.
+You account on {SITENAME} has been blocked for {BLOCK_MINUTES} minutes.
 
 The reasons for this can be numerous, you have been blocked becouse of this post {POST_URL} that you have made.
 If you don't see why you've been blocked you could try contact {WARNER}, who blocked you, explaining your post,

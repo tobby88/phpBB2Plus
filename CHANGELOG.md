@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Refresh moderation card notice targets before delivery
+
+- Read the target account's current address, language, name and warning count
+  from an independent connection before an optional warning/ban/block email.
+  Skip a deleted account or a notice whose moderation state was reversed.
+- Keep legitimate notices to banned/inactive accounts, including user-account
+  unbans when independent IP/email bans remain. Release all database locks
+  before mail I/O and preserve the committed moderation on transport failure.
+  Existing storage fields suffice; no schema migration is needed.
+- Render block-duration units in the recipient's email template language;
+  retain the older formatted placeholder for compatible custom templates.
+
 ### Recheck report notification recipients before delivery
 
 - Recheck the current undeleted source, pending report counter, recipient

@@ -43,6 +43,12 @@ function card_run($action,$options=array()){
 }
 function card_success($out){foreach(array('Ban_update_red','Ban_update_green','Ban_update_yellow','Block_update','user_already_banned')as$key){$prefix=strtok($GLOBALS['lang'][$key],'%');if(strpos($out,$prefix)===0){return true;}}return false;}
 function card_rows($sql){$rows=lp_rows($sql);foreach($rows as$i=>$row){foreach($row as$key=>$value){if(is_int($key)){unset($rows[$i][$key]);}}}return $rows;}
+function card_peer_conflict($sql){
+ $old=lp_rows('SELECT @@SESSION.innodb_lock_wait_timeout AS row_wait,@@SESSION.lock_wait_timeout AS metadata_wait')[0];
+ lp_query('SET SESSION innodb_lock_wait_timeout=0');lp_query('SET SESSION lock_wait_timeout=0');
+ try{$r=$GLOBALS['peer']->sql_query($sql);return array($r,$GLOBALS['peer']->sql_error());}
+ finally{lp_query('SET SESSION innodb_lock_wait_timeout='.(int)$old['row_wait']);lp_query('SET SESSION lock_wait_timeout='.(int)$old['metadata_wait']);}
+}
 function card_snapshot(){return array(card_rows('SELECT ban_userid,ban_ip,ban_email,ban_ip_mask FROM fixture_banlist ORDER BY ban_id'),card_rows('SELECT user_id,user_warnings,user_block_by,user_blocktime FROM fixture_users ORDER BY user_id'),card_rows('SELECT session_id,session_user_id,session_logged_in,session_admin FROM fixture_sessions ORDER BY session_id'),card_rows('SELECT user_id,key_id FROM fixture_sessions_keys ORDER BY user_id,key_id'));}
 function card_durable_matches($expected,$action){
  $actual=card_snapshot();
@@ -64,7 +70,9 @@ try{
  }}}
  foreach(array('admin','moderator')as$actor){foreach(array('ban','warn','unban','block')as$action){
   $setup=$action==='unban'?function(){lp_insert('fixture_banlist',array('ban_userid'=>2,'ban_ip'=>'7f0000ff','ban_ip_mask'=>'ffffffff','ban_email'=>'keep@example.invalid'));lp_insert('fixture_banlist',array('ban_userid'=>2));}:null;
-  card_reset($actor,$setup);ats_check(card_success(card_run($action)),'Record complete owner publication');$total=$lp_query_count;$expected=card_snapshot();
+  // Only the action's owner rolls back moderation. The optional mail reader
+  // starts after this commit and has its own failure tests and semantics.
+  card_reset($actor,$setup);ats_check(card_success(card_run($action)),'Record complete owner publication');$commit=array_search('COMMIT',$lp_owner_queries,true);ats_check($commit!==false,'Actual moderation commit boundary');$total=$commit+1;$expected=card_snapshot();
   for($at=1;$at<=$total;$at++){card_reset($actor,$setup);$before=card_snapshot();$lp_failure=$at;ats_check(!card_success(card_run($action))&&card_snapshot()===$before,'Every owned query failure rolls back full '.$actor.'/'.$action.'/'.$at);$cases++;}
   foreach(array('before','ack')as$failure){card_reset($actor,$setup);$before=card_snapshot();$lp_commit_failure=$failure;ats_check(!card_success(card_run($action)),'Failed/uncertain commit no success');ats_check($failure==='before'?card_snapshot()===$before:card_durable_matches($expected,$action),'Truthful commit uncertainty '.$actor.'/'.$action.'/'.$failure);$cases++;}
  }}
@@ -92,12 +100,12 @@ try{
  }
  card_reset();$before=card_snapshot();$seen=false;$lp_hook=function($sql,$connection)use(&$seen){if($seen||strpos($sql,'INSERT INTO fixture_banlist')!==0){return;}$seen=true;$GLOBALS['lp_hook']=null;lp_query('KILL CONNECTION '.mysqli_thread_id($connection->db_connect_id));};ats_check(!card_success(card_run('warn'))&&$seen&&card_snapshot()===$before,'Lost owning connection cannot publish warning or ban');$cases++;
  foreach(array('role'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=1','active'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=1','session'=>"DELETE FROM fixture_sessions WHERE session_id='fixture-actor'",'policy'=>"UPDATE fixture_config SET config_value='20' WHERE config_name='max_user_bancard'",'group'=>'DELETE FROM fixture_groups WHERE group_id=10','membership'=>'DELETE FROM fixture_user_group WHERE user_id=1','acl'=>'DELETE FROM fixture_auth_access WHERE forum_id=20','post'=>'UPDATE fixture_posts SET poster_id=3 WHERE post_id=30','forum'=>'UPDATE fixture_forums SET auth_ban=5 WHERE forum_id=20','target'=>'UPDATE fixture_users SET user_level=1 WHERE user_id=2','rules'=>"INSERT INTO fixture_banlist(ban_userid,ban_ip,ban_email)VALUES(0,'','independent@example.invalid')",'ddl'=>'ALTER TABLE fixture_banlist ENGINE=MyISAM')as$kind=>$sql){
-  card_reset('moderator');$seen=$blocked=false;$lp_hook=function($query)use($sql,&$seen,&$blocked){if($query!=='COMMIT'||$seen){return;}$seen=true;$GLOBALS['lp_hook']=null;lp_query('SET SESSION innodb_lock_wait_timeout=0');lp_query('SET SESSION lock_wait_timeout=0');try{$r=$GLOBALS['peer']->sql_query($sql);$e=$GLOBALS['peer']->sql_error();ats_check(!$r&&(int)$e['code']===1205,'Actual concurrent change is blocked through commit');$blocked=true;}finally{lp_query('SET SESSION innodb_lock_wait_timeout=1');lp_query('SET SESSION lock_wait_timeout=1');}};
+  card_reset('moderator');$seen=$blocked=false;$lp_hook=function($query)use($sql,&$seen,&$blocked){if($query!=='COMMIT'||$seen){return;}$seen=true;$GLOBALS['lp_hook']=null;list($r,$e)=card_peer_conflict($sql);ats_check(!$r&&(int)$e['code']===1205,'Actual concurrent change is blocked through commit');$blocked=true;};
   ats_check(card_success(card_run('warn'))&&$seen&&$blocked,'Serialized '.$kind);$cases++;$serialized++;
  }
  foreach(array('users','sessions','sessions_keys','banlist','config','groups','user_group','auth_access','forums','posts','topics')as$table){foreach(array('ENGINE=MyISAM','ROW_FORMAT=COMPACT','CONVERT TO CHARACTER SET latin1')as$legacy){card_reset();lp_query('SET SESSION innodb_strict_mode=OFF');try{lp_query('ALTER TABLE fixture_'.$table.' '.$legacy);}finally{lp_query('SET SESSION innodb_strict_mode=ON');}$before=card_snapshot();ats_check(!card_success(card_run('ban'))&&card_snapshot()===$before,'Legacy participant refused');lp_query('ALTER TABLE fixture_'.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC, CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$cases++;}}
  foreach(array('board-disable'=>"UPDATE fixture_config SET config_value='1' WHERE config_name='board_disable'",'topic-move'=>'UPDATE fixture_topics SET forum_id=21 WHERE topic_id=40','topic-shadow'=>'UPDATE fixture_topics SET topic_moved_id=99 WHERE topic_id=40')as$kind=>$sql){
-  card_reset('moderator');$seen=$blocked=false;$lp_hook=function($query)use($sql,&$seen,&$blocked){if($query!=='COMMIT'||$seen){return;}$seen=true;$GLOBALS['lp_hook']=null;lp_query('SET SESSION innodb_lock_wait_timeout=0');lp_query('SET SESSION lock_wait_timeout=0');try{$r=$GLOBALS['peer']->sql_query($sql);$e=$GLOBALS['peer']->sql_error();ats_check(!$r&&(int)$e['code']===1205,'Current whole-topic/board context locked through commit');$blocked=true;}finally{lp_query('SET SESSION innodb_lock_wait_timeout=1');lp_query('SET SESSION lock_wait_timeout=1');}};
+  card_reset('moderator');$seen=$blocked=false;$lp_hook=function($query)use($sql,&$seen,&$blocked){if($query!=='COMMIT'||$seen){return;}$seen=true;$GLOBALS['lp_hook']=null;list($r,$e)=card_peer_conflict($sql);ats_check(!$r&&(int)$e['code']===1205,'Current whole-topic/board context locked through commit');$blocked=true;};
   ats_check(card_success(card_run('ban'))&&$seen&&$blocked,'Serialized whole context '.$kind);$cases++;$serialized++;
  }
  lp_query('CREATE TABLE fixture_caller(marker INT PRIMARY KEY)ENGINE=InnoDB ROW_FORMAT=DYNAMIC');card_reset();$main->sql_query('START TRANSACTION');$lp_fixture_write=true;$main->sql_query('INSERT INTO fixture_caller VALUES(1)');$lp_fixture_write=false;ats_check(card_success(card_run('ban'))&&lp_rows('SELECT * FROM fixture_caller')===array(),'Cannot commit caller transaction');$main->sql_query('ROLLBACK');$cases++;
@@ -105,4 +113,10 @@ try{
  echo 'Native actual moderation cards: '.$cases.' boundary/failure cases and '.$serialized." serialized changes passed.\n";
  require_once __DIR__.'/../fixtures/card-report-seed-checks.php';
  card_report_seed_checks('card',array('admin','moderator'),array('users','sessions','sessions_keys','banlist','config','groups','user_group','auth_access','forums','posts','topics'),'card_reset_rows','card_reset','INSERT INTO fixture_topics (');
+ $original=lp_rows('SELECT @@SESSION.innodb_lock_wait_timeout AS row_wait,@@SESSION.lock_wait_timeout AS metadata_wait')[0];
+ try{
+  lp_query('SET SESSION innodb_lock_wait_timeout=7');lp_query('SET SESSION lock_wait_timeout=11');
+  foreach(array('SELECT 1 AS fixture_value','SYNTHETIC INVALID FIXTURE SQL')as$n=>$sql){list($r,$e)=card_peer_conflict($sql);$after=lp_rows('SELECT @@SESSION.innodb_lock_wait_timeout AS row_wait,@@SESSION.lock_wait_timeout AS metadata_wait')[0];ats_check(($n===0?(bool)$r:(!$r&&(int)$e['code']===1064))&&(int)$after['row_wait']===7&&(int)$after['metadata_wait']===11,'Success/failure restores both original peer timeouts');if($r){$peer->sql_freeresult($r);}}
+ }finally{lp_query('SET SESSION innodb_lock_wait_timeout='.(int)$original['row_wait']);lp_query('SET SESSION lock_wait_timeout='.(int)$original['metadata_wait']);}
+ echo "Card native peer timeouts: 2 checks PASS; immediate real conflicts retained and original row/metadata waits restored.\n";
 }finally{$main->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}
