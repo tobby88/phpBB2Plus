@@ -46,7 +46,11 @@ class KpDatabase extends sql_db {
   $proxy = new KpOwnerConnection($connection); $GLOBALS['kp_owner_connections'][] = $proxy; return $proxy;
  }
 }
-function kp_sql($sql) { $r = $GLOBALS['peer']->sql_query($sql); kp_check($r, 'Fixture SQL'); return $r; }
+function kp_sql($sql) {
+ $r=$GLOBALS['peer']->sql_query($sql);
+ if(!$r){$error=$GLOBALS['peer']->sql_error();$context=preg_match('/^(?:CREATE TABLE|ALTER TABLE|INSERT INTO) [A-Za-z0-9_]+/',$sql,$m)?$m[0]:'native query';throw new RuntimeException('Fixture SQL ('.(int)$error['code'].'): '.$error['message'].' ['.$context.']');}
+ return$r;
+}
 function kp_rows($sql) { $r = kp_sql($sql); $out = array(); while ($row = $GLOBALS['peer']->sql_fetchrow($r)) { $named = array(); foreach ($row as $key=>$value) { if (is_string($key)) { $named[$key] = $value; } } $out[] = $named; } $GLOBALS['peer']->sql_freeresult($r); return $out; }
 function kp_snapshot() { $out = array(); foreach ($GLOBALS['kp_tables'] as $table) { $out[$table] = kp_rows('SELECT * FROM ' . $table); } return $out; }
 function kp_controller_run($context,$mode,$sid=true,$method='POST',$article_id='1') {
