@@ -7,7 +7,7 @@ foreach (array('IN_PHPBB'=>true,'PAGE_INDEX'=>0,'POST_FORUM_URL'=>'f','POST_CAT_
 }
 $cn_root=dirname(dirname(__DIR__)).'/phpBB2/';
 $cn_functions=file_get_contents($cn_root.'includes/functions_calendar.php');
-foreach (array('calendar_normalize_forum_filter','calendar_month_date') as $name) {
+foreach (array('calendar_normalize_forum_filter','calendar_month_date','calendar_html_excerpt') as $name) {
     if (preg_match('/^function '.$name.'\(.*?^\}/ms',$cn_functions,$part)===1) { eval($part[0]); }
 }
 function session_pagestart($ip,$page) { return array('session_logged_in'=>true,'user_id'=>7); }

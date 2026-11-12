@@ -260,3 +260,40 @@ foreach(array('english','german')as$locale){foreach(array('1000000','-6','0')as$
 }}
 restore_error_handler();
 echo 'Calendar saved pages: ',$stale_cases,' actual-controller/pagination/template cases, ',($navigation_checks-$stale_checks_before)," assertions PASS; mixed boundaries, changed results, bounded fallback, read failures, EN/DE and retained context.\n";
+
+// Independent examples of rendered HTML, including media whose security/source
+// parameters must survive shortening as one item. No mbstring/DOM dependency.
+$excerpt_vectors=array(
+    array('Ä😀Ö tail',2,'Ä😀...'),
+    array('A&amp;B&#x1f600;C',4,'A&amp;B😀...'),
+    array('&amp;lt;ABCDE',4,'&amp;lt;...'),
+    array('<b>Ä<i>😀Ö</i> tail</b>',2,'<b>Ä<i>😀...</i></b>'),
+    array('<a title="x > y" href="?a=1&amp;b=2">ÄÖÜ</a>',2,'<a title="x > y" href="?a=1&amp;b=2">ÄÖ...</a>'),
+    array("<a title='x > y'>ÄÖÜ</a>",2,"<a title='x > y'>ÄÖ...</a>"),
+    array('<!-- x > y --><span>ÄÖÜ</span>',2,'<!-- x > y --><span>ÄÖ...</span>'),
+    array('<table><tr><td>ÄÖÜ</td></tr></table>',2,'<table><tr><td>ÄÖ...</td></tr></table>'),
+    array('<ul><li>A<li>BC</ul>',2,'<ul><li>A</li><li>B...</li></ul>'),
+    array('<ul><li>A<ul><li>B<li>CD</ul><li>E</ul>',3,'<ul><li>A<ul><li>B</li><li>C...</li></ul></li></ul>'),
+    array('A<br />B<img src="x.png" alt="keep all attributes" />C',4,'A<br />B<img src="x.png" alt="keep all attributes" />...'),
+    array('<object data="movie.swf"><param name="allowScriptAccess" value="never" /><embed src="movie.swf" allowScriptAccess="never" /></object>tail',1,'<object data="movie.swf"><param name="allowScriptAccess" value="never" /><embed src="movie.swf" allowScriptAccess="never" /></object>...'),
+    array('<video controls><source src="movie.mp4" />fallback</video>tail',1,'<video controls><source src="movie.mp4" />fallback</video>...'),
+    array('<audio controls><source src="sound.mp3" />fallback</audio>tail',1,'<audio controls><source src="sound.mp3" />fallback</audio>...'),
+    array('<iframe src="about:blank">fallback</iframe>tail',1,'<iframe src="about:blank">fallback</iframe>...'),
+    array('<object><object><param name="allowScriptAccess" value="never" /></object></object>tail',1,'<object><object><param name="allowScriptAccess" value="never" /></object></object>...'),
+    array('<b>complete &amp; unchanged 😀</b>',100,'<b>complete &amp; unchanged 😀</b>'),
+    array('<b>complete</b>',0,''),
+    array('<video>unclosed media kept intact',1,'<video>unclosed media kept intact'),
+    array('literal < incomplete',1,'literal < incomplete'),
+    array("A\xffB",2,"A\xef\xbf\xbd...")
+);
+foreach($excerpt_vectors as$vector){$actual=calendar_html_excerpt($vector[0],$vector[1]);if($actual!==$vector[2]||preg_match('//u',$actual)!==1){throw new RuntimeException('Rendered calendar HTML excerpt differs: '.json_encode($vector));}}
+// Every position across mixed UTF-8 and encoded characters, independently
+// indexed as a literal character array rather than the production algorithm.
+$characters=array('Ä','😀','&','<','Ö','字','>','"',"'",'ß');
+for($length=1;$length<=count($characters);$length++){
+    $input='<b>'.htmlspecialchars(implode('',$characters),ENT_QUOTES,'UTF-8').'</b>';
+    $actual=calendar_html_excerpt($input,$length);
+    $expected=implode('',array_slice($characters,0,$length)).($length<count($characters)?'...':'');
+    if(html_entity_decode(strip_tags($actual),ENT_QUOTES,'UTF-8')!==$expected||substr($actual,0,3)!=='<b>'||substr($actual,-4)!=='</b>'){throw new RuntimeException('Calendar UTF-8/entity prefix boundary differs');}
+}
+echo 'Calendar HTML excerpts: ',count($excerpt_vectors)+count($characters)," UTF-8/entity/markup/media cases PASS.\n";

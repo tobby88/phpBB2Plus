@@ -37,6 +37,7 @@ try{
  restore_error_handler();
  $r=cn_sql('SELECT COUNT(*) AS n FROM `'.$schema.'`.fixture_users');$row=$admin->sql_fetchrow($r);$admin->sql_freeresult($r);cn_check((int)$row['n']===7,'Read-only collector changed fixture rows');
  echo 'Native calendar birthdays: ',$cases,' actual collector cases, ',$checks," assertions PASS; MariaDB/InnoDB, production mysqli driver, EN/DE, ranges, privacy and paging.\n";
+ require dirname(__DIR__).'/fixtures/calendar-topic-collector.php';
 }finally{
  if($db){$db->sql_close();}
  if($created){if(!preg_match('/^phpbb_calendar_birthdays_[a-f0-9]{12}$/D',$schema)){throw new RuntimeException('Own fixture schema identity invalid');}cn_sql('DROP DATABASE `'.$schema.'`');}

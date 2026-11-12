@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Complete UTF-8 and formatted calendar previews
+
+- Limit topic titles and event previews by complete characters and decoded
+  entities. Parse complete BBCodes first, then close shortened HTML containers;
+  keep media and their source/security parameters together.
+- Keep literal post HTML escaped, honor each post's smiley preference and omit
+  internal BBCode identifiers when BBCode display is disabled.
+- Fetch forum names with either authority provider. Count limited result sets
+  without retrieving every post body and release results on rendering errors.
+- Refresh calendar month translations after a language change in the request.
+
 ### Saved calendar pages after result changes
 
 - Recover saved page links when their visible birthday/topic results shrink.
