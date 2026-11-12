@@ -188,7 +188,6 @@ jobs:
           PHPBB_ALBUM_AUTHORITY_PART=category-write php .github/scripts/check-album-lifecycle-authority-native.php
           php .github/scripts/check-album-cache-maintenance-native.php
           php .github/scripts/check-album-picture-upload-native.php
-          php .github/scripts/check-album-picture-delete-native.php
           PHPBB_ALBUM_DELETE_PART=recovery php .github/scripts/check-album-picture-delete-native.php
           PHPBB_ALBUM_DELETE_PART=bulk-unique php -d memory_limit=64M .github/scripts/check-album-picture-delete-native.php
           PHPBB_ALBUM_DELETE_PART=bulk-shared php -d memory_limit=64M .github/scripts/check-album-picture-delete-native.php
@@ -210,6 +209,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native Album picture moderation and deletion
+        if: matrix.part == 6
+        run: php .github/scripts/check-album-picture-delete-native.php
+        env:
+          PHPBB_ALBUM_PICTURE_DELETE_NATIVE: '1'
+          PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         if: matrix.part == 4
         run: php .github/scripts/check-ranks-native.php
@@ -254,7 +259,7 @@ jobs:
           PHPBB_CT_LOGIN_IP_NATIVE: '1'
           PHPBB_CT_LOGIN_IP_PASSWORD: fixture-only
       - name: Check native Unicode account identity boundaries
-        if: matrix.part == 4
+        if: matrix.part == 3
         run: |
           php .github/scripts/check-username-identity-native.php
           php .github/scripts/check-banner-owner-native.php
@@ -552,7 +557,7 @@ jobs:
           PHPBB_IP_MIGRATION_NATIVE: '1'
           PHPBB_IP_MIGRATION_PASSWORD: fixture-only
       - name: Check native atomic user-list bulk actions
-        if: matrix.part == 4
+        if: matrix.part == 2
         run: php .github/scripts/check-userlist-native.php
         env:
           PHPBB_USERLIST_NATIVE: '1'
