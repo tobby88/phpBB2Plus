@@ -16,6 +16,7 @@ on:
       - ".github/fixtures/**/*.php"
       - ".github/scripts/*.js"
       - ".github/workflows/php-lint.yml"
+      - ".github/workflows/innodb-migration.yml"
   pull_request:
     paths:
       - "phpBB2/**/*.php"
@@ -29,6 +30,7 @@ on:
       - ".github/fixtures/**/*.php"
       - ".github/scripts/*.js"
       - ".github/workflows/php-lint.yml"
+      - ".github/workflows/innodb-migration.yml"
 
 permissions:
   contents: read
