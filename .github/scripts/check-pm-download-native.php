@@ -80,6 +80,29 @@ function pd_revoke($kind){
 function pd_caller_view(){
     $out=array();foreach(array('fixture_users','fixture_sessions','fixture_attachments')as$table){$r=$GLOBALS['db']->sql_query('SELECT * FROM '.$table);kp_check($r,'Actual caller snapshot read');$out[$table]=$GLOBALS['db']->sql_fetchrowset($r);$GLOBALS['db']->sql_freeresult($r);}return$out;
 }
+function pd_text_defaults_checks(){
+    $file=dirname(dirname(__DIR__)).'/update/update_from_153a.php';$source=str_replace("\r\n","\n",file_get_contents($file));
+    foreach(array('update_quote_identifier','update_query_or_fail','update_scalar','update_table_exists','update_queue_text_empty_defaults')as$name){kp_check(preg_match('/^function '.preg_quote($name,'/').'\(.*?^\}/ms',$source,$m)===1,'Actual default migration function '.$name);eval($m[0]);}
+    $start=strpos($source,'// Portable empty defaults for the original Plus text fields.');$end=strpos($source,'update_queue_profile_field_columns(',$start);kp_check($start!==false&&$end>$start,'Actual full-updater default dispatch');$dispatch=substr($source,$start,$end-$start);
+    pd_prepare('english');$connection=$GLOBALS['peer']->db_connect_id;$dbname=$GLOBALS['fixture'];$table_prefix='fixture_';$checks=0;
+    kp_sql("INSERT INTO fixture_categories(cat_order) VALUES(1)");kp_sql("INSERT INTO fixture_shout(shout_username) VALUES('Synthetic')");
+    foreach(array('categories'=>'cat_desc','users'=>'user_absence_text','shout'=>'shout_text')as$table=>$column){$rows=kp_rows('SELECT '.$column.' value FROM fixture_'.$table);kp_check($rows,'Actual canonical default rows');foreach($rows as$row){kp_check($row['value']==='','Canonical omitted TEXT field defaults to empty');}$checks++;}
+    $operations=array();eval($dispatch);kp_check(!$operations,'Canonical defaults need no update');$checks++;
+    foreach(array('categories'=>'cat_desc','users'=>'user_absence_text','shout'=>'shout_text')as$table=>$column){kp_sql('ALTER TABLE fixture_'.$table.' ALTER COLUMN '.$column.' DROP DEFAULT');}
+    kp_sql("UPDATE fixture_users SET user_absence_text='Kept Grüße 😀' WHERE user_id=4");
+    kp_sql("ALTER TABLE fixture_users MODIFY user_absence_text TEXT COLLATE utf8mb4_bin NOT NULL COMMENT 'preserve metadata'");
+    $before=kp_snapshot();$metadata=kp_rows("SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COLLATION_NAME,COLUMN_COMMENT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ((TABLE_NAME='fixture_categories' AND COLUMN_NAME='cat_desc') OR (TABLE_NAME='fixture_users' AND COLUMN_NAME='user_absence_text') OR (TABLE_NAME='fixture_shout' AND COLUMN_NAME='shout_text')) ORDER BY TABLE_NAME");
+    $operations=array();eval($dispatch);kp_check(count($operations)===3,'Actual full updater repairs every missing Plus text default');$checks++;
+    foreach($operations as$sql){kp_sql($sql);}kp_check(kp_snapshot()===$before,'Default migration changes no existing values');$checks++;
+    $after=kp_rows("SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COLLATION_NAME,COLUMN_COMMENT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ((TABLE_NAME='fixture_categories' AND COLUMN_NAME='cat_desc') OR (TABLE_NAME='fixture_users' AND COLUMN_NAME='user_absence_text') OR (TABLE_NAME='fixture_shout' AND COLUMN_NAME='shout_text')) ORDER BY TABLE_NAME");kp_check($after===$metadata,'Default-only ALTER preserves types, nullability, collation and comments');$checks++;
+    $operations=array();eval($dispatch);kp_check(!$operations,'Actual default update is idempotent');$checks++;
+    kp_sql("INSERT INTO fixture_categories(cat_order) VALUES(2)");kp_sql("INSERT INTO fixture_shout(shout_username) VALUES('After update')");kp_sql("INSERT INTO fixture_users(user_id,username,user_password,user_email,user_active,user_level,user_attachsig) VALUES(90,'Synthetic','synthetic','synthetic@example.invalid',1,0,0)");
+    foreach(array('categories'=>array('cat_desc','cat_order=2'),'users'=>array('user_absence_text','user_id=90'),'shout'=>array('shout_text',"shout_username='After update'"))as$table=>$sample){$rows=kp_rows('SELECT '.$sample[0].' value FROM fixture_'.$table.' WHERE '.$sample[1]);kp_check(count($rows)===1&&$rows[0]['value']==='','Repaired default is actually used: '.$table);$checks++;}
+    kp_sql("ALTER TABLE fixture_categories ALTER COLUMN cat_desc SET DEFAULT ('custom')");kp_sql("ALTER TABLE fixture_users MODIFY user_absence_text TEXT NULL DEFAULT NULL");kp_sql("ALTER TABLE fixture_shout ALTER COLUMN shout_text SET DEFAULT ('custom')");
+    $operations=array();eval($dispatch);kp_check(!$operations,'Custom defaults and deliberate nullable columns preserved');$checks++;
+    update_queue_text_empty_defaults($operations,$connection,$dbname,'fixture_absent',array('missing'));update_queue_text_empty_defaults($operations,$connection,$dbname,'fixture_users',array('missing','username'));kp_check(!$operations,'Missing tables/columns and other column types untouched');$checks++;
+    kp_check($checks===13,'Complete text default migration checks');echo 'PM text defaults migration: '.$checks." canonical/legacy/idempotency/data/metadata/custom cases PASS.\n";
+}
 function pd_suite(){
     global$kp_source,$pn_open,$pn_claim_pending,$pn_after_claim,$pn_queries,$pd_body,$pd_after_extensions,$pd_factory,$pd_busy,$kp_hook,$kp_factory,$db,$userdata,$peer,$pd_root_fault;
     require_once$kp_source.'attach_mod/includes/functions_delete.php';require$kp_source.'includes/functions_pm_controller.php';
@@ -145,10 +168,11 @@ function pd_suite(){
             finally{$db->sql_query('ROLLBACK');}$cases++;
         }
     }
+    pd_text_defaults_checks();
     echo 'PM download native: '.$cases.' controller/session/copy/metadata/factory cases, '.$failures." SQL failures PASS; fresh independent authorization, current admin/settings, late revocations, caller snapshots and controlled stream/redirect sinks.\n";
 }
 $pd_file=__DIR__.'/check-pm-notifications-native.php';$pd_source=file_get_contents($pd_file);
 if(substr_count($pd_source,'pn_suite();return;')!==1||substr_count($pd_source,'pn_classes();$db = new PnDatabase(')!==1){throw new RuntimeException('Actual canonical PM fixture boundaries');}
 $pd_source=str_replace('pn_suite();return;','pd_suite();return;',$pd_source);$pd_source=str_replace('pn_classes();$db = new PnDatabase(','pn_classes();pd_classes();$db = new PdDatabase(',$pd_source);
-$pd_source=str_replace('ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE','ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE,ATTACH_CONFIG_TABLE,EXTENSIONS_TABLE,EXTENSION_GROUPS_TABLE',$pd_source);
+$pd_source=str_replace('ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE','ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE,ATTACH_CONFIG_TABLE,EXTENSIONS_TABLE,EXTENSION_GROUPS_TABLE,CATEGORIES_TABLE,SHOUTBOX_TABLE',$pd_source);
 $pd_eval='';foreach(token_get_all($pd_source)as$t){$pd_eval.=is_array($t)?($t[0]===T_DIR?var_export(__DIR__,true):$t[1]):$t;}eval(substr($pd_eval,5));

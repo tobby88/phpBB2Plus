@@ -401,6 +401,22 @@ function update_queue_log_widths(&$operations, $connection, $database, $table)
 	update_queue_text_widths($operations, $connection, $database, $table, array('username' => 255, 'user_ip' => 45));
 }
 
+// MySQL requires an expression for TEXT defaults. Only fill absent defaults on
+// required text columns; never replace custom defaults or nullable semantics.
+function update_queue_text_empty_defaults(&$operations, $connection, $database, $table, $columns)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	foreach ($columns as $column) {
+		$where = " FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='" . mysqli_real_escape_string($connection, $database)
+			. "' AND TABLE_NAME='" . mysqli_real_escape_string($connection, $table) . "' AND COLUMN_NAME='" . mysqli_real_escape_string($connection, $column) . "'";
+		$type = update_scalar($connection, 'SELECT DATA_TYPE' . $where);
+		if (!in_array($type, array('tinytext','text','mediumtext','longtext'), true)
+			|| update_scalar($connection, 'SELECT IS_NULLABLE' . $where) !== 'NO'
+			|| update_scalar($connection, 'SELECT COLUMN_DEFAULT' . $where) !== null) { continue; }
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ALTER COLUMN ' . update_quote_identifier($column) . " SET DEFAULT ('')";
+	}
+}
+
 function update_queue_text_widths(&$operations, $connection, $database, $table, $widths)
 {
 	if (!update_table_exists($connection, $database, $table)) { return; }
@@ -974,6 +990,11 @@ catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update op
 foreach (array('categories', 'forums', 'topics') as $recovery_table)
 {
 	update_queue_maintenance_recovery_columns($operations, $connection, $dbname, $table_prefix . $recovery_table);
+}
+// Portable empty defaults for the original Plus text fields.
+foreach (array('categories' => array('cat_desc'), 'users' => array('user_absence_text'), 'shout' => array('shout_text')) as $text_table => $text_columns)
+{
+	update_queue_text_empty_defaults($operations, $connection, $dbname, $table_prefix . $text_table, $text_columns);
 }
 update_queue_profile_field_columns($operations, $connection, $dbname, $table_prefix . 'profile_fields');
 update_queue_pm_read_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');

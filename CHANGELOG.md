@@ -17,6 +17,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Preserve existing public attachment behavior. No database migration is needed.
 - Use portable next-transaction read-only setup on MySQL and MariaDB; the same
   download cases also run against a dedicated MySQL 8.4 service.
+- Express the original category, absence and shout text defaults portably in
+  the installer. The full updater supplies missing required TEXT defaults while
+  preserving existing values, custom defaults, nullability and column metadata.
 
 ### Bind private-message actions to current database sessions
 
