@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve literal percent sequences in passwords and text
+
+- Distinguish a literal `%00` in already parsed form content from an actual
+  NUL byte. Permit the literal spelling in passwords, posts, poll options and
+  other free-text fields without modifying the submitted bytes.
+- Retain raw NUL rejection, normalized technical-parameter signatures, custom
+  rules and structural/cross-site protection. Check actual early-engine
+  responses and the real common/login MD5 and bcrypt input round trip.
+- Match configured literal rules against both the submitted spelling and its
+  normalized comparison, including explicit percent/entity sequences.
+
 ### Reduce repeated native test setup commits
 
 - Preserve the complete original KB fixture rows and identity counters while

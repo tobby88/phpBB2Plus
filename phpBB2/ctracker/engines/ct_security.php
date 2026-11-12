@@ -235,8 +235,16 @@ function ct_security_key_is_safe($key)
 
 function ct_security_value_is_attack($value, $free_text, $custom_rules)
 {
-	$value = ct_security_normalize($value);
-	if (strpos($value, "\0") !== false)
+	$original = is_scalar($value) ? (string) $value : '';
+	if (strpos($original, "\0") !== false)
+	{
+		return true;
+	}
+	$value = ct_security_normalize($original);
+	// PHP already decoded the form once. In free text/passwords, a literal
+	// "%00" is content, not an actual NUL. Keep the normalized comparison for
+	// technical signatures and configured rules without rewriting the input.
+	if (!$free_text && strpos($value, "\0") !== false)
 	{
 		return true;
 	}
@@ -269,10 +277,11 @@ function ct_security_value_is_attack($value, $free_text, $custom_rules)
 	}
 
 	$value_lower = strtolower($value);
+	$original_lower = strtolower($original);
 	foreach ((array) $custom_rules as $rule)
 	{
 		$rule = is_scalar($rule) ? strtolower((string) $rule) : '';
-		if ($rule !== '' && strpos($value_lower, $rule) !== false)
+		if ($rule !== '' && (strpos($value_lower, $rule) !== false || strpos($original_lower, $rule) !== false))
 		{
 			return true;
 		}

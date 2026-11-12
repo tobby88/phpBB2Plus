@@ -291,6 +291,9 @@ jobs:
       - name: Test CrackerTracker regex failures and text arrays
         run: php .github/scripts/check-ctracker-security-errors.php
 
+      - name: Test literal percent text and actual early request responses
+        run: php -d disable_functions=mail .github/scripts/check-ctracker-literal-input.php
+
       - name: Test CrackerTracker log redaction failures
         run: php .github/scripts/check-ctracker-log-redaction-errors.php
 
