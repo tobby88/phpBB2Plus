@@ -401,8 +401,8 @@ function update_queue_log_widths(&$operations, $connection, $database, $table)
 	update_queue_text_widths($operations, $connection, $database, $table, array('username' => 255, 'user_ip' => 45));
 }
 
-// MySQL requires an expression for TEXT defaults. Only fill absent defaults on
-// required text columns; never replace custom defaults or nullable semantics.
+// Use an explicit function expression: MySQL ALTER may treat a parenthesized
+// literal as a forbidden TEXT constant. Preserve custom defaults/nullability.
 function update_queue_text_empty_defaults(&$operations, $connection, $database, $table, $columns)
 {
 	if (!update_table_exists($connection, $database, $table)) { return; }
@@ -413,7 +413,7 @@ function update_queue_text_empty_defaults(&$operations, $connection, $database, 
 		if (!in_array($type, array('tinytext','text','mediumtext','longtext'), true)
 			|| update_scalar($connection, 'SELECT IS_NULLABLE' . $where) !== 'NO'
 			|| update_scalar($connection, 'SELECT COLUMN_DEFAULT' . $where) !== null) { continue; }
-		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ALTER COLUMN ' . update_quote_identifier($column) . " SET DEFAULT ('')";
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ALTER COLUMN ' . update_quote_identifier($column) . " SET DEFAULT (CONCAT(''))";
 	}
 }
 
