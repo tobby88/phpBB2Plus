@@ -148,90 +148,49 @@ function calendar_forum_select($selected_id='')
 	return $forum_list;
 }
 
+// Add elapsed seconds in UTC without overflowing a native integer timestamp.
+// Formatting and the visible-month clamp can then use the complete local date.
+function calendar_date_clock($timestamp, $duration = 0)
+{
+	$clock = new \DateTimeImmutable('@' . (int)$timestamp);
+	return $clock->modify(sprintf('%+d seconds',(int)$duration))->setTimezone(new \DateTimeZone(date_default_timezone_get()));
+}
+
+// Topic overviews are rendered HTML; Birthday MOD retains its older encoded
+// transport. Normalize that one producer, then escape the attribute exactly once.
+function calendar_event_message_attribute($event)
+{
+	$message = isset($event['event_message']) ? (string)$event['event_message'] : '';
+	if (isset($event['event_type'],$event['event_id']) && (int)$event['event_type'] === (int)POST_BIRTHDAY && preg_match('/^' . preg_quote(POST_USERS_URL,'/') . '[1-9][0-9]*$/D',(string)$event['event_id']) === 1)
+	{
+		$message = html_entity_decode($message,ENT_QUOTES,'UTF-8');
+	}
+	return htmlspecialchars($message,ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8',true);
+}
+
 // translate a date for display
 function date_dsp($format, $date)
 {
 	global $board_config, $lang;
-	$text = date($format, $date);
+	$text = $date instanceof \DateTimeInterface ? $date->format($format) : date($format, $date);
 	return $board_config['default_lang'] !== 'english' && isset($lang['datetime']) && is_array($lang['datetime'])
 		? strtr($text, $lang['datetime']) : $text;
 }
 
 function get_calendar_title_date($calendar_start, $calendar_duration)
 {
-	global $lang, $images, $phpbb_root_path, $phpEx, $board_config, $userdata;
-	$calendar_start = intval($calendar_start);
-	$calendar_duration = intval($calendar_duration);
-	if (empty($calendar_start)) return '';
-
-	// get the component of the date and duration
-	$year	= 0;
-	$month	= 0;
-	$day	= 0;
-	$hour	= 0;
-	$min	= 0;
-	$d_day	= 0;
-	$d_hour	= 0;
-	$d_min	= 0;
-	if (!empty($calendar_start))
-	{
-		$year	= intval( date('Y', $calendar_start) );
-		$month	= intval( date('m', $calendar_start) );
-		$day	= intval( date('d', $calendar_start) );
-		$hour	= intval( date('H', $calendar_start) );
-		$min	= intval( date('i', $calendar_start) );
-		if (calendar_post_is_all_day($calendar_start,$calendar_duration ? $calendar_duration+1 : 0)) { $hour = $min = 0; }
-		if ( !empty($calendar_duration) )
-		{
-			$d_dur = intval($calendar_duration);
-			$d_day = intval($d_dur / 86400);
-			$d_dur = $d_dur - 86400 * $d_day;
-			$d_hour = intval($d_dur / 3600);
-			$d_dur = $d_dur - 3600 * $d_hour;
-			$d_min = intval($d_dur / 60);
-		}
-	}
-
-	// quit if no date
-	if ( empty($year) || empty($month) || empty($day) ) return '';
-
-	// raz duration less than 1 day if no time for event start
-	if (empty($hour) && empty($min))
-	{
-		$d_hour = 0;
-		$d_min = 0;
-	}
-
-	// add the time to start date if present
-	$fmt_start = $lang['DATE_FORMAT'];
-	if (!empty($hour))
-	{
-		$fmt_start = $board_config['default_dateformat'];
-	}
-
-	// add the time to end date if duration
-	$fmt_end = $lang['DATE_FORMAT'];
-	if ( !empty($hour) || !empty($d_hour) )
-	{
-		$fmt_end = $board_config['default_dateformat'];
-	}
-
-	// apply it to dates
-	$date_start		= date_dsp($fmt_start, $calendar_start);
-	$date_end		= date_dsp($fmt_end, $calendar_start + $calendar_duration);
-
-	// add period to the title
-	$calendar_icon	= '<a href="' . append_sid( $phpbb_root_path . "./calendar.$phpEx?start=" . date( 'Ymd', $calendar_start)). '"><img src="' . $images['icon_calendar'] . '" hspace="3" border="0" align="top" alt="' . $lang['Calendar_event'] . '" /></a>';
-	if (empty($calendar_duration))
-	{
-		$res = sprintf($lang['Calendar_time'], $date_start);
-	}
-	else
-	{
-		$res = sprintf($lang['Calendar_from_to'], $date_start, $date_end);
-	}
-
-	return $res;
+	global $lang, $board_config;
+	$calendar_start = (int)$calendar_start; $calendar_duration = (int)$calendar_duration;
+	if ($calendar_start === 0) { return ''; }
+	$first = calendar_date_clock($calendar_start);
+	$last = calendar_date_clock($calendar_start,$calendar_duration);
+	// A nonzero minute is a time too. Keep whole-day captions date-only,
+	// including a local day whose first valid instant is after midnight.
+	$timed = $first->format('H:i') !== '00:00' && !calendar_post_is_all_day($calendar_start,$calendar_duration ? $calendar_duration+1 : 0);
+	$format = $timed ? $board_config['default_dateformat'] : $lang['DATE_FORMAT'];
+	$first_text = date_dsp($format,$first);
+	return $calendar_duration === 0 ? sprintf($lang['Calendar_time'],$first_text)
+		: sprintf($lang['Calendar_from_to'],$first_text,date_dsp($format,$last));
 }
 
 function get_calendar_title($calendar_start, $calendar_duration)
@@ -810,8 +769,11 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 		$event_time = $events[$i]['event_calendar_time'];
 
 		// adjust the event period to the start of day
-		$event_time_end = ((int) $event_time) + ((int) $events[$i]['event_calendar_duration']);
-		$event_end = mktime( 0,0,0, intval(date('m', $event_time_end)), intval(date('d', $event_time_end)), intval(date('Y', $event_time_end)) );
+		$period_end = calendar_date_clock($event_time,$events[$i]['event_calendar_duration']);
+		// Clamp before converting to a native timestamp. A long event's end
+		// must not wrap into an earlier year and disappear from this month.
+		$event_end = $period_end->format('Ymd') >= date('Ymd',$end_date) ? $end_date
+			: mktime(0,0,0,(int)$period_end->format('n'),(int)$period_end->format('j'),(int)$period_end->format('Y'));
 		$event_start = mktime( 0,0,0, intval(date('m', $event_time)), intval(date('d', $event_time)), intval(date('Y', $event_time)) );
 
 		if ($event_start < $start_date)
@@ -1005,7 +967,7 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 							'EVENT_TYPE'	=> stripslashes($events[$ind]['event_type_icon']),
 							'EVENT_TITLE'	=> $events[$ind]['event_short_title'],
 							'EVENT_CLASS'	=> $events[$ind]['event_txt_class'],
-							'EVENT_MESSAGE'	=> $events[$ind]['event_message'],
+							'EVENT_MESSAGE'	=> calendar_event_message_attribute($events[$ind]),
 							)
 						);
 					}

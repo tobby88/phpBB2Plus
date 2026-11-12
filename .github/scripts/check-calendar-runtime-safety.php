@@ -297,3 +297,4 @@ for($length=1;$length<=count($characters);$length++){
     if(html_entity_decode(strip_tags($actual),ENT_QUOTES,'UTF-8')!==$expected||substr($actual,0,3)!=='<b>'||substr($actual,-4)!=='</b>'){throw new RuntimeException('Calendar UTF-8/entity prefix boundary differs');}
 }
 echo 'Calendar HTML excerpts: ',count($excerpt_vectors)+count($characters)," UTF-8/entity/markup/media cases PASS.\n";
+require dirname(__DIR__).'/fixtures/calendar-periods.php';

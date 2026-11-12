@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Complete calendar periods and isolated overview attributes
+
+- Format complete event ends with elapsed UTC date-object arithmetic, including
+  periods extending beyond a native 32-bit timestamp. Clamp long periods to the
+  visible month before converting map cells to native timestamps.
+- Show minute-only start times such as 00:30 in period and point-event captions.
+  Keep whole-day captions and the existing server-local timezone policy.
+- Escape formatted overview HTML at its quoted attribute boundary. Preserve
+  topic formatting and Birthday MOD's older encoded markup without turning
+  preview tables into page contents or decoding member text twice.
+- Retain guest birthday privacy and stored event values. Remove unused title
+  component calculations and the unused calendar-icon string.
+
 ### Whole calendar days across timezone transitions
 
 - Store newly entered day-only durations between local day boundaries rather

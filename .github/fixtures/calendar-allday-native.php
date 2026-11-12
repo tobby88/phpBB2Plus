@@ -4,7 +4,7 @@ if(PHP_SAPI!=='cli'||!isset($schema)||preg_match('/^codex_full_editor_[a-f0-9]{1
 error_reporting(E_ALL);
 require_once $phpbb_root_path.'includes/template.php';
 function extract_function($source,$name){
-    $start=strpos($source,'function '.$name.'(');if($start===false){throw new \RuntimeException('Actual calendar dependency missing: '.$name);}$body='';$depth=0;$begun=false;
+    if(preg_match('/^function '.preg_quote($name,'/').'\(/m',$source,$declaration,PREG_OFFSET_CAPTURE)!==1){throw new \RuntimeException('Actual calendar dependency missing: '.$name);}$start=$declaration[0][1];$body='';$depth=0;$begun=false;
     foreach(token_get_all('<?php '.substr($source,$start))as$token){if(is_array($token)&&$token[0]===T_OPEN_TAG){continue;}if($token==='{'){$depth++;$begun=true;}if($token==='}'){$depth--;}$body.=is_array($token)?$token[1]:$token;if($begun&&$depth===0){break;}}return$body;
 }
 function fragment($source,$first,$last){$a=strpos($source,$first);$b=$a===false?false:strpos($source,$last,$a);if($a===false||$b===false){throw new \RuntimeException('Actual all-day posting branch missing');}return substr($source,$a,$b-$a);}
@@ -15,7 +15,7 @@ foreach(array('phpbb_profile_text','phpbb_stored_text','phpbb_text_excerpt','php
 // Template::load_config uses the global path helper, not the date adapter.
 if(!function_exists('phpbb_realpath')){eval('namespace {'.extract_function($ad_core,'phpbb_realpath').'}');}
 $ad_calendar=file_get_contents($phpbb_root_path.'includes/functions_calendar.php');
-foreach(array('calendar_normalize_forum_filter','calendar_html_excerpt','calendar_topic_event','get_event_topics','get_calendar_title_date','date_dsp')as$name){eval('namespace CalendarAllDayFixture;'.extract_function($ad_calendar,$name));}
+foreach(array('calendar_normalize_forum_filter','calendar_html_excerpt','calendar_topic_event','get_event_topics','calendar_date_clock','get_calendar_title_date','date_dsp')as$name){eval('namespace CalendarAllDayFixture;'.extract_function($ad_calendar,$name));}
 $ad_posting=file_get_contents($phpbb_root_path.'posting.php');
 $ad_parser=fragment($ad_posting,'$calendar_input = calendar_post_input($_POST);','//-- fin mod : calendar');
 $ad_resolve=fragment($ad_posting,'// Resolve calendar fields after loading the saved event',"//\n// Set toggles for various options");

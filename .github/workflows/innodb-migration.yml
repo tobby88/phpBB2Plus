@@ -70,7 +70,7 @@ jobs:
       - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysqli, pdo_mysql, pdo_sqlite, openssl, ftp, gd
+          extensions: mysqli, pdo_mysql, pdo_sqlite, openssl, ftp, gd, dom
           coverage: none
       - name: Verify disposable database filesystem and normal commit flushing
         env:

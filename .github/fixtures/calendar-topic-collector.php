@@ -45,7 +45,7 @@ function fingerprint(){global$db;$state=array();foreach(array('users','forums','
 
 foreach(array('TOPICS_TABLE'=>'fixture_topics','POSTS_TABLE'=>'fixture_posts','POSTS_TEXT_TABLE'=>'fixture_posts_text','FORUMS_TABLE'=>'fixture_forums','SMILIES_TABLE'=>'fixture_smilies','REMOVED_AUTHOR_NAMES_TABLE'=>'fixture_removed_author_names','POST_TOPIC_URL'=>'t','POST_FORUM_URL'=>'f','POST_CAT_URL'=>'c','POST_CALENDAR'=>10,'AUTH_ALL'=>0,'AUTH_LIST_ALL'=>0,'TOPIC_MOVED'=>2)as$key=>$value){if(!defined($key)){define($key,$value);}}
 $source=file_get_contents($app.'includes/functions_calendar.php');
-foreach(array('calendar_normalize_forum_filter','calendar_html_excerpt','calendar_topic_event','get_event_topics','get_calendar_title_date','date_dsp')as$function){eval('namespace CalendarTopicFixture;'.\calendar_fixture_function($source,$function));}
+foreach(array('calendar_normalize_forum_filter','calendar_html_excerpt','calendar_topic_event','get_event_topics','calendar_date_clock','get_calendar_title_date','date_dsp')as$function){eval('namespace CalendarTopicFixture;'.\calendar_fixture_function($source,$function));}
 $db->sql_close();$db=new Database('127.0.0.1:'.$port,'root',$password,$schema,false);check((bool)$db->db_connect_id,'Own topic fixture connection unavailable');
 $ddl=file_get_contents($app.'install/schemas/mysql_schema.sql');
 if(!$db->sql_query('DROP TABLE fixture_users')){throw new \RuntimeException('Own birthday fixture replacement failed');}

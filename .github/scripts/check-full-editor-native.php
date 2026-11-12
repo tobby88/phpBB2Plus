@@ -81,6 +81,7 @@ $body= <<<'PHP'
  fe_fixture('moderator');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(25) NULL');$before=fe_snapshot();ae_check(fe_submit(array('username'=>phpbb_post_author_key(str_repeat('ü',26))))==='error'&&$fe_exception===$lang['Post_author_upgrade']&&fe_snapshot()===$before,'Old byline capacity refuses the whole edit explicitly without clipping guest identity');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(1530) NULL');$cases++;
  require $phpbb_root_path.'../.github/fixtures/calendar-posting-native.php';
  require $phpbb_root_path.'../.github/fixtures/calendar-allday-native.php';
+ require $phpbb_root_path.'../.github/fixtures/calendar-periods-native.php';
  echo 'Native full editor: '.$cases.' failure/authority/storage cases, '.$serialized." serialized changes; content, options, index, counters and audit passed.\n";
 }finally{$ae_hook=null;$ae_fail='';$ae_ack=false;$ae_failwrite=0;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
 PHP;
