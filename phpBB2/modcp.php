@@ -814,13 +814,16 @@ switch( $mode )
 		$sql = "SELECT poster_ip, poster_id 
 			FROM " . POSTS_TABLE . " 
 			WHERE post_id = $post_id
-				AND forum_id = $forum_id";
+				AND forum_id = $forum_id
+				AND post_deleted = 0";
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not get poster IP information', '', __LINE__, __FILE__, $sql);
 		}
 		
-		if ( !($post_row = $db->sql_fetchrow($result)) )
+		$post_row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if ( !$post_row )
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_such_post']);
 		}

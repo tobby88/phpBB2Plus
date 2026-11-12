@@ -4,6 +4,14 @@ require __DIR__.'/ip-lookup-native-fixture.php';
 try{
 	ipn_open();ip_language('english');
 	foreach(array('english','german')as$locale){ip_language($locale);foreach(array(USER,MOD,ADMIN)as$level){
+		ipn_seed($level);$before=ipn_snapshot();$post=ipn_post(1);ip_check((int)$post['poster_id']===7&&$post['poster_ip']==='c0000209'&&ipn_snapshot()===$before,'Actual active-post IP entry remains available and read-only');$ip_cases++;
+		ipn_change("UPDATE fixture_posts SET post_deleted=1 WHERE post_id=1");
+		ipn_denied(function(){ipn_post(1);},$lang['No_such_post']);ipn_denied(function(){ipn_post(999);},$lang['No_such_post']);ipn_denied(function(){ipn_post(4);},$lang['No_such_post']);
+		ipn_change("INSERT INTO fixture_posts(post_id,poster_id,forum_id,poster_ip,post_deleted) VALUES(20,7,3,'c00002ee',1),(21,8,3,'c0000209',1)");
+		$users=$level===ADMIN?array(-1=>1,8=>3):array(-1=>1,8=>1);foreach(array('modcp.php','shoutbox_max.php')as$route){ip_check(ipn_query($route)===$users,'Deleted residual rows do not contribute to actual controller account correlations');$ip_cases++;}
+		$ips=$level===ADMIN?array('c0000258'=>1,'c0000263'=>1):array();ip_check(ipn_query('modcp.php','ips')===$ips,'Deleted residual rows do not contribute to actual other-IP totals');$ip_cases++;
+	}}
+	foreach(array('english','german')as$locale){ip_language($locale);foreach(array(USER,MOD,ADMIN)as$level){
 		ipn_seed($level);$before=ipn_snapshot();$users=$level===ADMIN?array(-1=>1,7=>1,8=>3):array(-1=>1,7=>1,8=>1);
 		foreach(array('shoutbox_max.php','modcp.php')as$route){ip_check(ipn_query($route)===$users,'Actual controller cross-forum totals retain only currently moderated forums');$ip_cases++;}
 		$ips=$level===ADMIN?array('c0000209'=>1,'c0000258'=>1,'c0000263'=>1):array('c0000209'=>1);ip_check(ipn_query('modcp.php','ips')===$ips,'Other-IP enumeration obeys same forum scope');$ip_cases++;

@@ -28,7 +28,7 @@ function phpbb_ip_lookup_forum_filter($database, $required_forum = null)
 		if ((int)$id > 0 && !empty($access['auth_mod']) && !empty($access['auth_view']) && !empty($access['auth_read'])) { $forums[] = (int)$id; }
 	}
 	if ($required_forum !== null && !in_array((int)$required_forum, $forums, true)) { message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); }
-	return $forums ? ' AND p.forum_id IN (' . implode(',', $forums) . ')' : ' AND 1 = 0';
+	return $forums ? ' AND p.post_deleted = 0 AND p.forum_id IN (' . implode(',', $forums) . ')' : ' AND 1 = 0';
 }
 
 /** Decode the stored account key once, then separate labels and URL values. */

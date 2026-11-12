@@ -40,5 +40,11 @@ function ipn_query($route,$kind='users')
 	eval($queries[$kind]);$r=ipn_sql($sql);$rows=$db->sql_fetchrowset($r);$db->sql_freeresult($r);$out=array();foreach($rows as$row){$key=$kind==='users'?(string)$row['user_id']:$row['poster_ip'];$out[$key]=(int)$row['postings'];}ksort($out);return$out;
 }
 function ipn_snapshot(){global $db,$ipn_tables;$all=array();foreach($ipn_tables as$name){$r=ipn_sql('SELECT * FROM fixture_'.$name);$rows=$db->sql_fetchrowset($r);$db->sql_freeresult($r);$encoded=array_map('json_encode',$rows);sort($encoded);$all[$name]=$encoded;}return$all;}
-function ipn_denied($callback){$before=ipn_snapshot();$denied=false;try{call_user_func($callback);}catch(IpLookupDenied$e){$denied=true;}ip_check($denied&&ipn_snapshot()===$before,'Current identity rejection leaves fixture unchanged');$GLOBALS['ip_cases']++;}
+function ipn_post($post_id,$forum_id=3)
+{
+	global $db,$lang;
+	$source=file_get_contents($GLOBALS['ip_app'].'modcp.php');$branch=substr($source,strpos($source,"case 'ip':"));
+	$code=ip_fragment($branch,'$sql = "SELECT poster_ip','$ip_this_post = decode_ip');eval($code);return $post_row;
+}
+function ipn_denied($callback,$expected=null){$before=ipn_snapshot();$denied=false;try{call_user_func($callback);}catch(IpLookupDenied$e){$denied=$expected===null||$e->getMessage()===$expected;}ip_check($denied&&ipn_snapshot()===$before,'Current identity rejection leaves fixture unchanged');$GLOBALS['ip_cases']++;}
 function ipn_close(){global $db,$ipn_control,$ipn_schema,$ipn_created;if($db){$db->sql_close();}if($ipn_created){ip_check(preg_match('/^codex_ip_lookup_[a-f0-9]{16}$/D',$ipn_schema)&&$ipn_control->sql_query('DROP DATABASE '.$ipn_schema),'Only exact owned schema removed');}if($ipn_control){$ipn_control->sql_close();}}

@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Exclude deleted posts from moderator IP information
+
+- Reject direct IP-information requests for deleted posts, just like missing
+  posts. Keep IP information for existing posts available to authorized staff.
+- Exclude deleted rows from the forum-post correlations used by the moderator
+  and shoutbox IP views, including old rows with residual author or IP fields.
+
 ### Preserve author policy and deleted markers in split previews
 
 - Use the existing author-visibility policy in the moderator's topic-split
