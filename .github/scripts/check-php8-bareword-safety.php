@@ -6,6 +6,27 @@
  * deliberately conservative and reports candidates rather than changing code.
  */
 
+// PHP 5/7 tokenize a qualified class name as several T_STRING and
+// T_NS_SEPARATOR tokens. Look through the entire name to its class operator;
+// a separator by itself must not exempt a qualified undefined constant.
+function bareword_qualified_class_context($tokens,$index)
+{
+	for($i=$index-1;$i>=0;$i--)
+	{
+		if(!is_array($tokens[$i])){return false;}
+		$id=$tokens[$i][0];
+		if(in_array($id,array(T_STRING,T_NS_SEPARATOR,T_WHITESPACE,T_COMMENT,T_DOC_COMMENT),true)){continue;}
+		return in_array($id,array(T_NEW,T_INSTANCEOF,T_EXTENDS,T_IMPLEMENTS),true);
+	}
+	return false;
+}
+foreach(array('return $v instanceof \\DateTimeInterface;'=>true,'return $v instanceof \\Vendor\\Thing;'=>true,'return new \\Vendor\\Thing;'=>true,'return \\Vendor\\unquoted;'=>false,'return unquoted;'=>false)as$example=>$expected)
+{
+	$fixture=token_get_all('<?php '.$example);$target=null;
+	foreach($fixture as$i=>$token){if(is_array($token)&&($token[0]===T_STRING||(defined('T_NAME_FULLY_QUALIFIED')&&$token[0]===constant('T_NAME_FULLY_QUALIFIED')))){$target=$i;}}
+	if($target===null||bareword_qualified_class_context($fixture,$target)!==$expected){throw new RuntimeException('Qualified class/constant scanner regression');}
+}
+
 $root = dirname(dirname(__DIR__)) . '/phpBB2';
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
 $ignored = array('true', 'false', 'null', 'self', 'parent', 'static');
@@ -78,7 +99,7 @@ foreach ($iterator as $file)
 		{
 			continue;
 		}
-		if (in_array($previous_id, array(T_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_CLASS, T_INTERFACE, T_EXTENDS, T_IMPLEMENTS, T_NEW, T_INSTANCEOF, T_NAMESPACE, T_USE, T_AS), true))
+		if (in_array($previous_id, array(T_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_CLASS, T_INTERFACE, T_EXTENDS, T_IMPLEMENTS, T_NEW, T_INSTANCEOF, T_NAMESPACE, T_USE, T_AS), true) || bareword_qualified_class_context($tokens,$i))
 		{
 			continue;
 		}
