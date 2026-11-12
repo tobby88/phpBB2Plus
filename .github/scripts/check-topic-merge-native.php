@@ -16,7 +16,7 @@ $port=getenv('PHPBB_MERGE_PORT')?:'3306';mg_check(preg_match('/^[0-9]{1,5}$/D',$
 $password=getenv('PHPBB_MERGE_PASSWORD')?:'';$host='127.0.0.1:'.$port;$schema='codex_merge_atomic_'.bin2hex(phpbb_random_bytes(8));
 $control=new sql_db($host,'root',$password,'',false);mg_check($control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Owned schema');
 $peer=new sql_db($host,'root',$password,$schema,false);
-$mg_hook=null;$mg_queries=array();$mg_write=$mg_fail=0;$mg_prefix=$mg_commit='';
+$mg_hook=null;$mg_queries=array();$mg_write=$mg_fail=0;$mg_prefix=$mg_commit='';$mg_columns=array();
 class MergeNativeConnection {
  var $inner;var $db_connect_id;
  function __construct($inner){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;}
@@ -32,10 +32,11 @@ class MergeNativeConnection {
 }
 class MergeNativeDatabase extends sql_db {function sql_dedicated_connection(){$c=new MergeNativeConnection(parent::sql_dedicated_connection());$GLOBALS['mg_writer']=$c;return $c;}}
 $db=new MergeNativeDatabase($host,'root',$password,$schema,false);
-function mg_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);mg_check($r,'Fixture SQL: '.json_encode($GLOBALS['peer']->sql_error()));return $r;}
+function mg_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);mg_check($r,'Fixture SQL: '.json_encode($GLOBALS['peer']->sql_error()));if(preg_match('/^(?:CREATE|ALTER|DROP|TRUNCATE) TABLE `?(fixture_[a-z0-9_]+)`?/i',$sql,$m)){unset($GLOBALS['mg_columns'][$m[1]]);}return $r;}
 function mg_rows($sql){$r=mg_sql($sql);$rows=$GLOBALS['peer']->sql_fetchrowset($r);$GLOBALS['peer']->sql_freeresult($r);foreach($rows as &$row){foreach(array_keys($row) as $key){if(is_int($key)){unset($row[$key]);}}}unset($row);return $rows;}
 function mg_insert($table,$values){
- foreach(mg_rows('SHOW COLUMNS FROM '.$table) as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
+ if(!isset($GLOBALS['mg_columns'][$table])){$GLOBALS['mg_columns'][$table]=mg_rows('SHOW COLUMNS FROM '.$table);}
+ foreach($GLOBALS['mg_columns'][$table] as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
  $encoded=array();foreach($values as $v){$encoded[]="'".$GLOBALS['peer']->sql_escape((string)$v)."'";}mg_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).') VALUES ('.implode(',',$encoded).')');
 }
 
@@ -48,6 +49,10 @@ function mg_snap(){
 }
 function mg_reset($actor='root'){
  global $mg_hook,$mg_queries,$mg_write,$mg_fail,$mg_prefix,$mg_commit,$userdata,$client_ip;
+ // START TRANSACTION would silently commit an existing transaction. Changing
+ // next-transaction characteristics instead refuses that case on both engines.
+ $state=mg_rows('SELECT @@SESSION.autocommit AS fixture_autocommit');mg_check(count($state)===1&&(int)$state[0]['fixture_autocommit']===1,'Fixture seed requires autocommit');
+ mg_check($GLOBALS['peer']->sql_query('SET TRANSACTION READ WRITE'),'Fixture seed must not commit an outer transaction');
  $mg_hook=null;$mg_queries=array();$mg_write=$mg_fail=0;$mg_prefix=$mg_commit='';$GLOBALS['mg_error']=null;
  mg_sql('START TRANSACTION');foreach($GLOBALS['mg_tables'] as $s){mg_sql('DELETE FROM fixture_'.$s);}mg_sql('COMMIT');mg_sql('ALTER TABLE fixture_topics AUTO_INCREMENT=301');mg_sql('ALTER TABLE fixture_logs AUTO_INCREMENT=1');
  mg_sql('START TRANSACTION');
@@ -73,8 +78,9 @@ function mg_reset($actor='root'){
 
 // Load the same module translations as the actual endpoint.
 require $phpbb_root_path.'language/lang_english/lang_extend_merge.php';
-function mg_fixture($actor='root',$polls='both'){
- mg_reset($actor);mg_insert('fixture_auth_access',array('group_id'=>10,'forum_id'=>4,'auth_mod'=>$actor==='root'?0:1));
+function mg_fixture($actor='root',$polls='both',$before_commit=null){
+ mg_reset($actor);mg_sql('START TRANSACTION');try{
+ mg_insert('fixture_auth_access',array('group_id'=>10,'forum_id'=>4,'auth_mod'=>$actor==='root'?0:1));
  mg_sql('UPDATE fixture_topics SET topic_views=CASE WHEN topic_id=100 THEN 7 ELSE 5 END,topic_type=CASE WHEN topic_id=100 THEN 1 ELSE 2 END');
  mg_insert('fixture_topic_view',array('topic_id'=>100,'user_id'=>9,'view_time'=>9,'view_count'=>7));
  foreach(array(2,3) as $count){mg_insert('fixture_topic_view',array('topic_id'=>200,'user_id'=>9,'view_time'=>1,'view_count'=>$count));}
@@ -87,6 +93,9 @@ function mg_fixture($actor='root',$polls='both'){
   mg_insert('fixture_vote_results',array('vote_id'=>2,'vote_option_id'=>1,'vote_option_text'=>'Target choice','vote_result'=>3));
   mg_insert('fixture_vote_voters',array('vote_id'=>2,'vote_user_id'=>8));
  }
+ if($before_commit!==null){mg_check(is_callable($before_commit),'Fixture seed callback');call_user_func($before_commit);}
+ mg_sql('COMMIT');
+ }catch(Exception$error){$GLOBALS['peer']->sql_query('ROLLBACK');throw$error;}catch(Error$error){$GLOBALS['peer']->sql_query('ROLLBACK');throw$error;}
 }
 function mg_token($shadow=false,$subject=''){return phpbb_prepare_topic_merge($GLOBALS['db'],100,200,$subject,$shadow)['token'];}
 function mg_run($shadow=false,$token=null,$subject=''){try{if($token===null){$token=mg_token($shadow,$subject);}return phpbb_merge_topics($GLOBALS['db'],100,200,$subject,$shadow,$token);}catch(PhpbbTopicMergeException $e){return 'error';}}
@@ -150,4 +159,5 @@ try{
  try{$phpbb_root_path=$mg_cache.'/';foreach(array('success','failure','ack') as $kind){mg_fixture();file_put_contents($mg_cache.'/cache/tree.cache','stale');if($kind==='failure'){$mg_fail=3;}if($kind==='ack'){$mg_commit='ack';}$out=mg_run();mg_check(($out===200)===($kind==='success')&&!file_exists($mg_cache.'/cache/tree.cache'),'Cache invalidated after confirmed/failed/uncertain merge');}}
  finally{$phpbb_root_path=$mg_source_root;if(is_file($mg_cache.'/cache/tree.cache')){unlink($mg_cache.'/cache/tree.cache');}rmdir($mg_cache.'/cache');rmdir($mg_cache);}
  echo 'Native topic merge: '.$cases.' failure/boundary cases, '.$serialized." serialized changes; four poll topologies, shadow choices and actual controllers passed.\n";
+ require __DIR__.'/../fixtures/native-merge-seeds.php';mg_seed_checks();
 }finally{$mg_hook=null;$mg_fail=0;$mg_prefix=$mg_commit='';$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
