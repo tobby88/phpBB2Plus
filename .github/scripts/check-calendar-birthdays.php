@@ -110,15 +110,16 @@ cb_check(strpos($functions,"'EVENT_MESSAGE'\t=> \$events[\$ind]['event_message']
 // Actual scheduler arithmetic, isolated from only its two data collectors.
 eval('namespace BirthdaySchedulerFixture; function get_birthday(&$e,&$n,$a,$b,$limit,$start,$max){$n=count($GLOBALS["cb_brows"]);foreach(array_slice($GLOBALS["cb_brows"],$start,$max)as$r){$e[]=$r;}} function get_event_topics(&$e,&$n,$a,$b,$limit,$start,$max,$fid){if($start<0||$max<0){throw new \\RuntimeException("Negative topic page");}$n=count($GLOBALS["cb_trows"]);foreach(array_slice($GLOBALS["cb_trows"],$start,$max)as$r){$e[]=$r;}}');
 $scheduler=file_get_contents($root.'calendar_scheduler.php');
-$branch=cb_fragment($scheduler,'$birthdays_count = 0;','$page_title =');
+$branch=cb_fragment($scheduler,'// Collect the selected page.','$page_title =');
 $start_date=1;$end_date=2;$fid='';
 for($birthdays=0;$birthdays<=7;$birthdays++){for($topics=0;$topics<=7;$topics++){for($size=1;$size<=5;$size++){
     $GLOBALS['cb_brows']=array();$GLOBALS['cb_trows']=array();
     for($i=0;$i<$birthdays;$i++){$GLOBALS['cb_brows'][]='B'.$i;}for($i=0;$i<$topics;$i++){$GLOBALS['cb_trows'][]='T'.$i;}
     $all=array_merge($GLOBALS['cb_brows'],$GLOBALS['cb_trows']);$board_config['topics_per_page']=$size;
-    for($start=0;$start<=count($all)+1;$start++){
-        $events=array();eval('namespace BirthdaySchedulerFixture;'.$branch);
-        cb_check($events===array_slice($all,$start,$size)&&$birthdays_count===$birthdays&&$topics_count===$topics,'Mixed birthday/topic pagination skipped, duplicated or overfilled an event');$cases++;
+    for($requested_start=0;$requested_start<=count($all)+1;$requested_start++){
+        $start=$requested_start;$events=array();eval('namespace BirthdaySchedulerFixture;'.$branch);
+        $expected_start=$requested_start<count($all)?$requested_start:0;
+        cb_check($events===array_slice($all,$expected_start,$size)&&$start===$expected_start&&$birthdays_count===$birthdays&&$topics_count===$topics,'Mixed pagination must preserve valid offsets and recover unavailable pages without skipping or duplicating events');$cases++;
     }
 }}}
 // The page count must include birthdays, including a birthday-only page.

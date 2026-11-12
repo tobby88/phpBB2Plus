@@ -208,3 +208,55 @@ foreach (array('english','german') as $locale) {
 }
 restore_error_handler();
 echo 'Calendar selections: ',$selection_cases,' actual rendered-form/controller cases, ',($navigation_checks-$selection_checks_before)," assertions PASS; mixed pagination, new/cached selections, exact DST hours, EN/DE and canonical action.\n";
+
+$stale_cases=0;$stale_checks_before=$navigation_checks;
+set_error_handler(function($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
+$stale_scenarios=array(
+    array(array('birthdays'=>0,'topics'=>1),array('birthdays'=>0,'topics'=>1),array('t0'),0,2,1),
+    array(array('birthdays'=>1,'topics'=>0),array('birthdays'=>1,'topics'=>0),array('b0'),0,2,1),
+    array(array('birthdays'=>2,'topics'=>2),array('birthdays'=>2,'topics'=>2),array('b0','b1','t0'),0,2,4),
+    array(array('birthdays'=>0,'topics'=>0),array('fail'=>'birthday'),array(),0,1,0),
+    array(array('birthdays'=>5,'topics'=>6),array('fail'=>'birthday'),array('t1','t2','t3'),6,1,11),
+    array(array('birthdays'=>10,'topics'=>0),array('fail'=>'birthday'),array('b6','b7','b8'),6,1,10),
+    array(array('birthdays'=>0,'topics'=>10,'empty_topic_rows'=>true),array('birthdays'=>0,'topics'=>1),array('t0'),0,2,1),
+    array(array('birthdays'=>0,'topics'=>1),array('birthdays'=>0,'topics'=>0),array(),0,2,0),
+    array(array('birthdays'=>0,'topics'=>1),array('birthdays'=>2,'topics'=>5),array('b0','b1','t0'),0,2,7)
+);
+foreach(array(
+    array('UTC','2027-01-31 12:00:00','english','','f6'),
+    array('UTC','2027-01-31 12:00:00','german','hour','c6'),
+    array('Europe/Berlin','2026-10-25 00:30:00','english','hour','f6'),
+    array('Europe/Berlin','2026-10-25 01:30:00','german','hour','Root'),
+    array('Australia/Lord_Howe','2026-04-04 15:15:00','german','','f6')
+)as$context){
+    $stamp=(new DateTimeImmutable($context[1],new DateTimeZone('UTC')))->getTimestamp();
+    $original=cn_run('calendar_scheduler',array('d'=>(string)$stamp,'mode'=>$context[3],'start'=>'6','fid'=>$context[4]),array(),$context[0],1,$context[2],array('birthdays'=>5,'topics'=>6));
+    $saved=cn_query($original['vars']['U_CALENDAR_SCHEDULER']);
+    cn_check(array_column($original['display_rows'],'topic_id')===array('t1','t2','t3') && $saved['start']==='6','Saved link comes from a real available third result page');
+    foreach($stale_scenarios as$scenario){
+        $result=cn_run('calendar_scheduler',$saved,array(),$context[0],1,$context[2],array('birthdays'=>5,'topics'=>6,'pages'=>array($scenario[0],$scenario[1],array('fail'=>'birthday'))));
+        cn_check(array_column($result['display_rows'],'topic_id')===$scenario[2],'Saved link returns the independently expected available rows');
+        $current=cn_query($result['vars']['U_CALENDAR_SCHEDULER']);
+        cn_check($current['start']===(string)$scenario[3] && $result['page_reads']===$scenario[4],'Unavailable page normalizes once; valid and known-empty pages do not add reads');
+        cn_check($result['date']===$stamp && $current['mode']===$saved['mode'] && $current['fid']===$saved['fid'],'Fallback preserves exact date, hour mode and typed forum/category/root context');
+        cn_check($result['vars']['PAGE_NUMBER']===sprintf($lang['Page_of'],(int)floor($scenario[3]/3)+1,max(1,(int)ceil($scenario[5]/3))),'Pagination metadata uses the recovered offset and newly observed counts');
+        if($scenario[5]<=3){cn_check($result['vars']['PAGINATION']==='','Actual pagination helper omits links for a single available page');}
+        else{cn_check(strpos($result['vars']['PAGINATION'],'<b>'.((int)floor($scenario[3]/3)+1).'</b>')!==false,'Actual pagination highlights the correct available page');}
+        preg_match_all('/href="([^"]*)"/',$result['vars']['PAGINATION'],$links);
+        foreach($links[1]as$link){$query=cn_query($link);cn_check($query['d']===$saved['d'] && $query['mode']===$saved['mode'] && $query['fid']===$saved['fid'] && (int)$query['start']>=0 && (int)$query['start']<$scenario[5],'Actual paging links retain context and target available offsets');}
+        foreach($result['windows']as$window){if($window[0]==='topic' && $window[3]){cn_check($window[6]===$saved['fid'],'Every collector attempt keeps the same normalized forum filter');}}
+        cn_check(strpos(cn_render($result),'calendar_scheduler.php')!==false,'Actual recovered page renders through Extreme Styles');$stale_cases++;
+    }
+    foreach(array(array(0,'birthday'),array(0,'topic'),array(1,'birthday'),array(1,'topic'))as$failure){
+        $pages=array(array('birthdays'=>0,'topics'=>1),array('birthdays'=>0,'topics'=>1));$pages[$failure[0]]['fail']=$failure[1];$failed=false;
+        try{cn_run('calendar_scheduler',$saved,array(),$context[0],1,$context[2],array('pages'=>$pages));}
+        catch(RuntimeException$error){$failed=$error->getMessage()==='Synthetic '.$failure[1].' read failed';}
+        cn_check($failed && $GLOBALS['cn_page_reads']===$failure[0]+1 && $template->parsed===array(),'First/retry read failures propagate before rendering instead of becoming an empty success');$stale_cases++;
+    }
+}
+foreach(array('english','german')as$locale){foreach(array('1000000','-6','0')as$offset){
+    $result=cn_run('calendar_scheduler',array('d'=>'1801396800','start'=>$offset,'fid'=>'f6'),array(),'UTC',1,$locale,array('birthdays'=>0,'topics'=>1));
+    $current=cn_query($result['vars']['U_CALENDAR_SCHEDULER']);cn_check($current['start']==='0' && array_column($result['display_rows'],'topic_id')===array('t0') && $result['page_reads']===($offset==='1000000'?2:1),'Bounded large/negative/zero offsets recover or retain the available first page');$stale_cases++;
+}}
+restore_error_handler();
+echo 'Calendar saved pages: ',$stale_cases,' actual-controller/pagination/template cases, ',($navigation_checks-$stale_checks_before)," assertions PASS; mixed boundaries, changed results, bounded fallback, read failures, EN/DE and retained context.\n";

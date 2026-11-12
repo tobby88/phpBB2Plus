@@ -163,19 +163,26 @@ for ($i=0; $i < count($events); $i++)
 //
 // get the day events
 //
-$events = array();
+// Collect the selected page. A saved link can outlive its visible results.
+// Retry at most once from the first page, which remains valid even if more
+// events disappear between reads. A known empty list needs no second pass.
+for ($page_attempt = 0; $page_attempt < 2; $page_attempt++)
+{
+	$events = array();
+	$birthdays_count = 0;
+	$remaining = $board_config['topics_per_page'];
+	get_birthday($events, $birthdays_count, $start_date, $end_date, true, $start, $remaining);
+	$displayed = count($events);
 
-// birthday
-$birthdays_count = 0;
-$remaining = $board_config['topics_per_page'];
-get_birthday($events, $birthdays_count, $start_date, $end_date, true, $start, $remaining);
-$displayed = count($events);
-
-// topics
-$topics_count = 0;
-$remaining = $board_config['topics_per_page'] - $displayed;
-$local_start = max(0, $start - $birthdays_count);
-get_event_topics($events, $topics_count, $start_date, $end_date, true, $local_start, $remaining, $fid);
+	$topics_count = 0;
+	$remaining = $board_config['topics_per_page'] - $displayed;
+	$local_start = max(0, $start - $birthdays_count);
+	get_event_topics($events, $topics_count, $start_date, $end_date, true, $local_start, $remaining, $fid);
+	$total_events = $birthdays_count + $topics_count;
+	if ($start === 0 || ($start < $total_events && $events)) { break; }
+	$start = 0;
+	if ($total_events === 0 && !$events) { break; }
+}
 //
 // set the page title and include the page header
 //

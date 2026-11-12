@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Saved calendar pages after result changes
+
+- Recover saved page links when their visible birthday/topic results shrink.
+  Return to the available first page while retaining date, hour mode and forum
+  filter. Valid page offsets continue to display their original mixed results.
+- Retry at most once, and avoid another read for a known empty result set.
+  Read failures still propagate; the fallback changes no stored events or ACLs.
+
 ### Calendar selection forms and existing result pages
 
 - Start a newly submitted month, year or forum selection on its first result

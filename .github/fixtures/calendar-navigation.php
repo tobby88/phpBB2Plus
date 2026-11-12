@@ -17,14 +17,24 @@ function make_jumpbox($url) {}
 function calendar_get_tree_option($selected='') { return '<option value="'.htmlspecialchars($selected,ENT_QUOTES,'UTF-8').'" selected="selected">Fixture forum</option>'; }
 function display_calendar($name,$type,$date,$filter) { $GLOBALS['cn_month_input']=array($date,$filter); }
 function get_birthday(&$events,&$number,$first,$last,$limit=false,$offset=0,$maximum=-1) {
-    $number=isset($GLOBALS['cn_fixture']['birthdays'])?$GLOBALS['cn_fixture']['birthdays']:0;
+    if($limit){$GLOBALS['cn_page_reads']++;}
+    $definition=cn_provider_definition($limit);
+    if(isset($definition['fail']) && $definition['fail']==='birthday'){throw new RuntimeException('Synthetic birthday read failed');}
+    $number=isset($definition['birthdays'])?$definition['birthdays']:0;
     $GLOBALS['cn_windows'][]=array('birthday',$first,$last,$limit,$offset,$maximum);
     cn_collect($events,'b',$number,$first,$limit,$offset,$maximum);
 }
 function get_event_topics(&$events,&$number,$first,$last,$limit=false,$offset=0,$maximum=-1,$filter='') {
-    $number=isset($GLOBALS['cn_fixture']['topics'])?$GLOBALS['cn_fixture']['topics']:0;
+    $definition=cn_provider_definition($limit);
+    if(isset($definition['fail']) && $definition['fail']==='topic'){throw new RuntimeException('Synthetic topic read failed');}
+    $number=isset($definition['topics'])?$definition['topics']:0;
     $GLOBALS['cn_windows'][]=array('topic',$first,$last,$limit,$offset,$maximum,$filter);
-    cn_collect($events,'t',$number,$first,$limit,$offset,$maximum);
+    if(empty($definition['empty_topic_rows'])){cn_collect($events,'t',$number,$first,$limit,$offset,$maximum);}
+}
+function cn_provider_definition($limit) {
+    $definition=$GLOBALS['cn_fixture'];
+    if($limit && isset($definition['pages'])){$pages=$definition['pages'];$definition=$pages[min(count($pages)-1,$GLOBALS['cn_page_reads']-1)];}
+    return $definition;
 }
 function cn_collect(&$events,$kind,$number,$first,$limit,$offset,$maximum) {
     $end=$limit?min($number,$offset+$maximum):$number;$offset=$limit?$offset:0;
@@ -39,13 +49,16 @@ function cn_collect(&$events,$kind,$number,$first,$limit,$offset,$maximum) {
 }
 function get_calendar_title_date($first,$duration) { return 'fixture period'; }
 function topic_list($name,$box,$rows,$title,$split,$navigation,$footer) { $GLOBALS['cn_display_rows']=$rows;$GLOBALS['template']->assign_vars(array($name=>$footer)); }
-function generate_pagination($url,$total,$perPage,$offset) { $GLOBALS['cn_paging']=$url;return ''; }
+$cn_core=file_get_contents($cn_root.'includes/functions.php');
+if(preg_match('/^function generate_pagination\(.*?^\}/ms',$cn_core,$part)!==1){throw new RuntimeException('Actual pagination helper required');}
+eval(str_replace('function generate_pagination(', 'function cn_actual_pagination(', $part[0]));
+function generate_pagination($url,$total,$perPage,$offset) { $GLOBALS['cn_paging']=$url;return cn_actual_pagination($url,$total,$perPage,$offset); }
 class CalendarNavigationTemplate {
-    public $vars=array();public $blocks=array();public $assignments=array();
+    public $vars=array();public $blocks=array();public $assignments=array();public $parsed=array();
     function set_filenames($files) {}
     function assign_vars($vars) { $this->vars=array_merge($this->vars,$vars); }
     function assign_block_vars($name,$vars) { $this->blocks[$name][]=$vars;$this->assignments[]=array($name,$vars); }
-    function pparse($name) {}
+    function pparse($name) { $this->parsed[]=$name; }
 }
 function cn_run($page,$get,$post,$server='UTC',$week=1,$locale='english',$fixture=array()) {
     global $cn_root,$board_config,$lang,$template,$userdata,$images,$phpEx,$user_ip;
@@ -56,7 +69,7 @@ function cn_run($page,$get,$post,$server='UTC',$week=1,$locale='english',$fixtur
     require $cn_root.'language/lang_'.$locale.'/lang_main.php';
     require $cn_root.'language/lang_'.$locale.'/lang_extend_topic_calendar.php';
     $images=array('icon_calendar'=>'fixture.gif');$template=new CalendarNavigationTemplate();$phpEx='php';$user_ip='7f000001';
-    $GLOBALS['cn_windows']=array();$GLOBALS['cn_paging']='';$GLOBALS['cn_month_input']=null;$GLOBALS['cn_fixture']=$fixture;$GLOBALS['cn_display_rows']=array();
+    $GLOBALS['cn_windows']=array();$GLOBALS['cn_paging']='';$GLOBALS['cn_month_input']=null;$GLOBALS['cn_fixture']=$fixture;$GLOBALS['cn_display_rows']=array();$GLOBALS['cn_page_reads']=0;
     $source=file_get_contents($cn_root.$page.'.php');
     $source=preg_replace('/^include\s*\([^\r\n]+\);\r?\n/m','',$source,-1,$removed);
     if ($removed!==($page==='calendar'?5:6)) { throw new RuntimeException('Exact controller bootstrap/output include inventory required'); }
@@ -64,7 +77,7 @@ function cn_run($page,$get,$post,$server='UTC',$week=1,$locale='english',$fixtur
     if ($removed!==($page==='calendar'?2:1)) { throw new RuntimeException('Exact controller entry constants required'); }
     eval('?>'.$source);
     return array('vars'=>$template->vars,'blocks'=>$template->blocks,'assignments'=>$template->assignments,'date'=>$page==='calendar'?$start_date:$date,
-        'windows'=>$GLOBALS['cn_windows'],'paging'=>$GLOBALS['cn_paging'],'month_input'=>$GLOBALS['cn_month_input'],'display_rows'=>$GLOBALS['cn_display_rows']);
+        'windows'=>$GLOBALS['cn_windows'],'paging'=>$GLOBALS['cn_paging'],'month_input'=>$GLOBALS['cn_month_input'],'display_rows'=>$GLOBALS['cn_display_rows'],'page_reads'=>$GLOBALS['cn_page_reads']);
 }
 function cn_url_date($url) {
     $parts=parse_url(html_entity_decode($url,ENT_QUOTES,'UTF-8'));$query=array();
