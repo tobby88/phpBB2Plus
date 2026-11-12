@@ -3,15 +3,15 @@ if(PHP_SAPI!=='cli'||getenv('PHPBB_TOPIC_NOTIFY_NATIVE')!=='1'){echo "Native top
 require __DIR__.'/news-tombstone-fixture.php';$tn_app=$nt_app;require$tn_app.'db/mysqli.php';require$tn_app.'includes/auth.php';require$tn_app.'attach_mod/includes/constants.php';require$tn_app.'attach_mod/includes/functions_mutation.php';require$tn_app.'includes/functions_post.php';require$tn_app.'includes/functions_topic_notifications.php';
 function attach_setup_basic_auth($type,&$fields,&$sql){}
 class TopicNativeOwner{
- var$inner,$db_connect_id,$closed=false;
- function __construct($inner){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;$GLOBALS['tn_open_owners']++;}
+ var$inner,$db_connect_id,$closed=false,$server_id;
+ function __construct($inner){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;$this->server_id=(string)mysqli_thread_id($inner->db_connect_id);$GLOBALS['tn_open_owners']++;}
  function __call($method,$args){return call_user_func_array(array($this->inner,$method),$args);}
  function sql_query($sql,$transaction=false){
   if(!preg_match('/^(SELECT\b|UPDATE fixture_topics_watch\b|DELETE FROM fixture_topics_watch\b|INSERT INTO fixture_topics_watch\b)/i',ltrim($sql))){throw new RuntimeException('Notification worker attempted unrelated writes');}
   if($GLOBALS['tn_failure']!==''&&strpos(preg_replace('/\s+/',' ',$sql),$GLOBALS['tn_failure'])!==false){return false;}
   return$this->inner->sql_query($sql,$transaction);
  }
- function sql_close(){if($this->closed){return true;}$this->closed=true;$result=$this->inner->sql_close();$this->db_connect_id=null;$GLOBALS['tn_open_owners']--;if(is_callable($GLOBALS['tn_release_hook'])){$hook=$GLOBALS['tn_release_hook'];$GLOBALS['tn_release_hook']=null;call_user_func($hook);}return$result;}
+ function sql_close(){if($this->closed){return true;}$this->closed=true;$result=$this->inner->sql_close();$this->db_connect_id=null;$GLOBALS['tn_open_owners']--;if($result){$GLOBALS['tn_closed_ids'][$this->server_id]=true;}if(is_callable($GLOBALS['tn_release_hook'])){$hook=$GLOBALS['tn_release_hook'];$GLOBALS['tn_release_hook']=null;call_user_func($hook);}return$result;}
 }
 class TopicNativeSource extends sql_db{
  function sql_query($sql='',$transaction=false){if(!preg_match('/^SELECT\b/i',ltrim($sql))){throw new RuntimeException('Notification caller connection must remain read-only');}return parent::sql_query($sql,$transaction);}
@@ -19,7 +19,16 @@ class TopicNativeSource extends sql_db{
 }
 function tn_sql($sql){$r=$GLOBALS['tn_peer']->sql_query($sql);if($r===false){$error=$GLOBALS['tn_peer']->sql_error();throw new RuntimeException('Own notification SQL: '.$error['message']);}return$r;}
 function tn_rows($sql){$r=tn_sql($sql);try{return$GLOBALS['tn_peer']->sql_fetchrowset($r);}finally{$GLOBALS['tn_peer']->sql_freeresult($r);}}
-function tn_lock_free(){$rows=tn_rows("SELECT IS_FREE_LOCK('".$GLOBALS['tn_lock']."') free");return count($rows)===1&&(string)$rows[0]['free']==='1';}
+function tn_lock_free(){
+ // A peer can observe a successful client close before the server processes
+ // that disconnect. Wait only for our recorded closed owner, never an active
+ // or unrelated writer; do not acquire/release another connection's lease.
+ $until=microtime(true)+1.0;
+ do{$rows=tn_rows("SELECT IS_USED_LOCK('".$GLOBALS['tn_lock']."') owner");if(count($rows)!==1){return false;}$owner=$rows[0]['owner'];if($owner===null){return true;}
+  if($GLOBALS['tn_open_owners']!==0||!isset($GLOBALS['tn_closed_ids'][(string)$owner])||microtime(true)>=$until){return false;}
+  $GLOBALS['tn_closed_observations']++;usleep(1000);
+ }while(true);
+}
 function tn_watches(){return tn_rows('SELECT * FROM fixture_topics_watch ORDER BY user_id,notify_claim');}
 function tn_content(){ $out=array();foreach(array('users','forums','topics','posts','banlist','words')as$table){$out[$table]=tn_rows('SELECT * FROM fixture_'.$table);}return serialize($out);}
 function tn_reset($locale){
@@ -35,10 +44,11 @@ function tn_reset($locale){
 function tn_send($id=11){global$phpbb_root_path,$db;$previous=$phpbb_root_path;$phpbb_root_path=dirname(__DIR__).'/fixtures/topic-notifications-native/';try{phpbb_send_topic_notifications($db,$id);}finally{$phpbb_root_path=$previous;}}
 function tn_recipient_watch(){return tn_rows('SELECT notify_status,notify_claim,notify_claimed_at FROM fixture_topics_watch WHERE user_id=9');}
 function tn_clean_watch(){$rows=tn_recipient_watch();return count($rows)===1&&(string)$rows[0]['notify_status']==='0'&&$rows[0]['notify_claim']===''&&(string)$rows[0]['notify_claimed_at']==='0';}
-$tn_tables=array('users','forums','topics','posts','topics_watch','banlist','user_group','auth_access','words');$tn_peer=$db=$tn_control=null;$created=false;$tn_open_owners=0;$tn_release_hook=null;$tn_failure='';$tn_deliveries=array();$cases=0;$schema='codex_topic_notify_'.bin2hex(phpbb_random_bytes(8));
+$tn_tables=array('users','forums','topics','posts','topics_watch','banlist','user_group','auth_access','words');$tn_peer=$db=$tn_control=null;$created=false;$tn_open_owners=0;$tn_closed_ids=array();$tn_closed_observations=0;$tn_release_hook=null;$tn_failure='';$tn_deliveries=array();$cases=0;$schema='codex_topic_notify_'.bin2hex(phpbb_random_bytes(8));
 try{
  $port=getenv('PHPBB_TOPIC_NOTIFY_PORT')?:'3306';$password=getenv('PHPBB_TOPIC_NOTIFY_PASSWORD')?:'';nt_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Own loopback port');$host='127.0.0.1:'.$port;$tn_control=new sql_db($host,'root',$password,'',false);nt_check((bool)$tn_control->db_connect_id,'Own server connection');nt_check(preg_match('/^codex_topic_notify_[a-f0-9]{16}$/D',$schema)&&$tn_control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Exclusive owned schema');$created=true;$tn_peer=new sql_db($host,'root',$password,$schema,false);$db=new TopicNativeSource($host,'root',$password,$schema,false);$tn_lock='attachment:'.md5($schema."\0".ATTACHMENTS_TABLE);
  $canonical=file_get_contents($tn_app.'install/schemas/mysql_schema.sql');foreach($tn_tables as$table){nt_check(preg_match('/CREATE TABLE phpbb_'.$table.'\s*\(.*?\) ENGINE=InnoDB[^;]*;/s',$canonical,$m)===1,'Canonical notification table');tn_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}
+ $held=tn_rows("SELECT GET_LOCK('".$tn_lock."',0) held");nt_check((string)$held[0]['held']==='1'&&!tn_lock_free(),'Active peer lease cannot be treated as a closed owner');$held=tn_rows("SELECT IS_USED_LOCK('".$tn_lock."') owner");nt_check((string)$held[0]['owner']===(string)mysqli_thread_id($tn_peer->db_connect_id),'Observation never releases another writer lease');tn_sql("DO RELEASE_LOCK('".$tn_lock."')");
  foreach(array('english','german')as$locale){
   tn_reset($locale);$content=tn_content();tn_send();nt_check(count($tn_deliveries)===1&&$tn_deliveries[0]['to']==='recipient@example.invalid','Actual dispatcher sends once to the eligible watcher, excluding author');nt_check(strpos($tn_deliveries[0]['body'],'Current & Grüße 😀 title')!==false&&strpos($tn_deliveries[0]['body'],'https://fixture.invalid/viewtopic.php?p=11#11')!==false,'Real template and transport preserve Unicode and current target URL');nt_check(strpos($tn_deliveries[0]['subject'],$locale==='german'?'Benachrichtigen bei Antworten':'Topic Reply Notification')!==false,'Actual mail subject follows recipient template language');tn_send();nt_check(count($tn_deliveries)===1&&tn_content()===$content,'Notified watcher does not get duplicates and content remains unchanged');$cases++;
   tn_reset($locale);tn_sql('UPDATE fixture_topics SET topic_status=1 WHERE topic_id=100');tn_send();nt_check(count($tn_deliveries)===1,'Ordinary locked topic still notifies its watcher');$cases++;
@@ -57,5 +67,5 @@ try{
   tn_reset($locale);$tn_transport=false;$log=tmpfile();$previous_log=ini_get('error_log');$meta=stream_get_meta_data($log);ini_set('error_log',$meta['uri']);try{tn_send();}finally{ini_set('error_log',$previous_log);fclose($log);}nt_check(count($tn_deliveries)===1&&tn_clean_watch(),'Transport rejection remains optional and releases its claim');$cases++;
   foreach(array('prepare','ready')as$phase){tn_reset($locale);$tasks=$phase==='ready'?phpbb_topic_notifications_prepare($db,11):array();$before=tn_watches();$tn_failure='SELECT t.topic_id';$failed=false;try{if($phase==='ready'){phpbb_topic_notification_ready($db,$tasks[0]);}else{phpbb_topic_notifications_prepare($db,11);}}catch(PhpbbTopicPreferenceException$error){$failed=true;}finally{$tn_failure='';}nt_check($failed&&tn_watches()===$before&&$tn_open_owners===0&&tn_lock_free(),'Context SQL failure is controlled and cannot change claims or leak locks');$cases++;}
  }
- nt_check($tn_open_owners===0&&tn_lock_free(),'All real native owners released');echo 'Topic notifications native: ',$cases,' cases, ',$nt_checks," assertions PASS; canonical InnoDB, deleted preparation/readiness/dispatcher, real mailer and EN/DE template sinks, current ACLs/addresses, claims/retries/acknowledgements, failures and no live mail.\n";
+ nt_check($tn_open_owners===0&&tn_lock_free(),'All real native owners released');echo 'Topic notifications native: ',$cases,' cases, ',$nt_checks," assertions PASS; canonical InnoDB, deleted preparation/readiness/dispatcher, real mailer and EN/DE template sinks, current ACLs/addresses, claims/retries/acknowledgements, failures and no live mail.\n";echo 'Notification closed-owner observations: ',$tn_closed_observations,"; active/unrelated owners never adopted or released.\n";
 }finally{if($db){$db->sql_close();}if($tn_peer){$tn_peer->sql_close();}if($created){nt_check(preg_match('/^codex_topic_notify_[a-f0-9]{16}$/D',$schema)&&$tn_control->sql_query('DROP DATABASE '.$schema),'Drop exact owned notification schema');}if($tn_control){$tn_control->sql_close();}restore_error_handler();}
