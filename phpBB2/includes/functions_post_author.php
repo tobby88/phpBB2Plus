@@ -31,6 +31,13 @@ function phpbb_post_author_stored($value)
 	$raw = html_entity_decode($value, ENT_QUOTES, 'UTF-8');
 	return phpbb_post_author_key($raw) === $value ? $value : null;
 }
+// A viewer whose author policy hides a retained former name cannot rename
+// that byline through the editor. Preserve it on the owning write connection.
+function phpbb_post_author_edit_locked($post)
+{
+	return phpbb_author_privacy_guest() && isset($post['poster_id'],$post['post_author_removed'])
+		&& (int)$post['poster_id'] <= 0 && (string)$post['post_author_removed'] === '1';
+}
 function phpbb_post_author_storage_ready($database, $value)
 {
 	if (phpbb_post_author_stored($value) === null) { return false; }

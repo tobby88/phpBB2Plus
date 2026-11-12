@@ -318,8 +318,8 @@ switch ( $mode )
 //	, t.topic_calendar_time, t.topic_calendar_duration
 //-- modify
 
-		$select_sql = ', t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.post_icon';
-		$select_sql .= (!$submit) ? ', t.topic_title, t.topic_desc, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, p.post_username, p.post_author_removed, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
+		$select_sql = ', t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.post_icon, p.post_username, p.post_author_removed';
+		$select_sql .= (!$submit) ? ', t.topic_title, t.topic_desc, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
 		$from_sql = ( !$submit ) ? ", " . POSTS_TEXT_TABLE . " pt, " . USERS_TABLE . " u" : '';
 		$where_sql = ( !$submit ) ? "AND pt.post_id = p.post_id AND u.user_id = p.poster_id" : '';
 
@@ -340,6 +340,7 @@ if ( ($result = $db->sql_query($sql)) && ($post_info = $db->sql_fetchrow($result
 	$db->sql_freeresult($result);
 
 	$forum_id = $post_info['forum_id'];
+	$author_edit_locked = $mode === 'editpost' && phpbb_post_author_edit_locked($post_info);
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- delete
 //	$forum_name = $post_info['forum_name'];
@@ -838,7 +839,7 @@ else if ( $submit || $confirm )
 					$db->sql_freeresult($result);
 				}
 			}
-			$username = $request_scalar($_POST, 'username');
+			$username = $author_edit_locked ? '' : $request_scalar($_POST, 'username');
 			$subject = trim($request_scalar($_POST, 'subject'));
 			$topic_desc = trim($request_scalar($_POST, 'topic_desc'));
 			$message = $request_scalar($_POST, 'message');
@@ -946,7 +947,7 @@ if ($lock_subject)
 
 if( $refresh || isset($_POST['del_poll_option']) || $error_msg != '' )
 {
-	$username = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'username'))));
+	$username = $author_edit_locked ? phpbb_post_author_name($post_info) : htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'username'))));
 	$subject = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'subject'))));
 	$message = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'message'))));
 	$topic_desc = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'topic_desc'))));
@@ -1224,7 +1225,7 @@ $poll_length = '';
 		}
 		else
 		{
-			$username = ( $post_info['user_id'] == ANONYMOUS && !empty($post_info['post_username']) ) ? $post_info['post_username'] : '';
+			$username = $author_edit_locked ? phpbb_post_author_name($post_info) : (( $post_info['user_id'] == ANONYMOUS && !empty($post_info['post_username']) ) ? $post_info['post_username'] : '');
 		}
 	}
 }
@@ -1295,7 +1296,7 @@ else
 	$smilies_status = $lang['Smilies_are_OFF'];
 }
 
-if( !$userdata['session_logged_in'] || ( $mode == 'editpost' && $post_info['poster_id'] == ANONYMOUS ) )
+if( !$author_edit_locked && (!$userdata['session_logged_in'] || ( $mode == 'editpost' && $post_info['poster_id'] == ANONYMOUS )) )
 {
 	$template->assign_block_vars('switch_username_select', array());
 }

@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Retain concealed former-author bylines in the full editor
+
+- Apply the existing viewer policy to the full editor's author control, including
+  its initial value, preview and failed-save form. Concealed former names do not
+  appear in an editable guest-name field.
+- Preserve the current stored byline from the locked post when that policy
+  applies, including with missing or forged author input. Keep normal guest
+  renaming and member editing behavior unchanged.
+
 ### Complete calendar periods and isolated overview attributes
 
 - Format complete event ends with elapsed UTC date-object arithmetic, including

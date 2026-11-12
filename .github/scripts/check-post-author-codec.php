@@ -12,3 +12,4 @@ foreach(array('<b>literal</b>','raw & name',"raw'quote",str_repeat('x',1531),"ba
 foreach(array(str_repeat('ä',26),str_repeat('😀',26),str_repeat('&',26))as$wide){pac_check(phpbb_username_input($wide)===null&&phpbb_username_key($wide)==='','Account-name limits and escaping policy remain unchanged');$cases++;}
 pac_check(phpbb_post_author_search_allowed('ü*',1)&&!phpbb_post_author_search_allowed('ü*',2)&&phpbb_post_author_search_allowed('0',3)&&phpbb_post_author_search_allowed(str_repeat('ü',255),2)&&!phpbb_post_author_search_allowed(str_repeat('ü',256),2),'Guest search keeps Unicode wildcard minima and complete bounded literal names');$cases++;
 echo 'Post author codec: '.$cases." actual guest encoding/template/storage/limits/account-separation/search checks passed; no network.\n";
+require dirname(__DIR__).'/fixtures/former-author-editor.php';

@@ -99,7 +99,7 @@ function phpbb_submit_full_edit($database, $forum_id, $topic_id, $post_id, $inpu
 		if (trim($text) === '') { $db->fail('Empty_message'); }
 		$uid = (string)$input['bbcode_uid'];
 		if ((int)$input['bbcode_on'] === (int)$post['enable_bbcode'] && $uid !== '' && str_replace(':' . $uid, ':' . (string)$post['bbcode_uid'], $text) === (string)$post['post_text']) { $text = (string)$post['post_text']; $uid = (string)$post['bbcode_uid']; }
-		$post_username = phpbb_post_author_stored(isset($input['username']) ? $input['username'] : null);
+		$post_username = phpbb_post_author_edit_locked($post) ? (string)$post['post_username'] : phpbb_post_author_stored(isset($input['username']) ? $input['username'] : null);
 		if ($post_username === null) { $db->fail('Username_invalid'); }
 		if (!phpbb_post_author_storage_ready($db, $post_username)) { $db->fail('Post_author_upgrade'); }
 		$post_values = array('post_username'=>$post_username, 'enable_bbcode'=>(int)$input['bbcode_on'], 'enable_html'=>(int)$input['html_on'], 'enable_smilies'=>(int)$input['smilies_on'], 'enable_sig'=>(int)$input['attach_sig'], 'post_icon'=>(int)$input['post_icon']);
