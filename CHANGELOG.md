@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve author policy and deleted markers in split previews
+
+- Use the existing author-visibility policy in the moderator's topic-split
+  preview. Keep real guest bylines and member names instead of showing every
+  anonymous account as the users-table label.
+- Render deleted posts as compact placeholders without stale text, author
+  details or selection controls. Keep ordinary post selections and the split
+  writer unchanged.
+
 ### Retain concealed former-author bylines in the full editor
 
 - Apply the existing viewer policy to the full editor's author control, including

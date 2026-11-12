@@ -10,3 +10,4 @@ foreach(array('Deleted post','Gelöschter Beitrag')as$label){$template=(new Refl
 }
 restore_error_handler();
 echo 'Post tombstone template: ',$tt_checks," actual compact-row/anchor/stale-data/action/neighbor checks PASS.\n";
+require dirname(__DIR__).'/fixtures/moderation-split-preview.php';

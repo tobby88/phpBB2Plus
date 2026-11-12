@@ -38,6 +38,7 @@ include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_moderation.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_post_tombstone.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_log.'.$phpEx);
 
 //
@@ -717,8 +718,15 @@ switch( $mode )
 				for($i = 0; $i < $total_posts; $i++)
 				{
 					$post_id = $postrow[$i]['post_id'];
+					$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
+					$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
+					if (phpbb_post_is_deleted($postrow[$i]))
+					{
+						$template->assign_block_vars('postrow',array('IS_DELETED'=>true,'POST_ID'=>(int)$post_id,'ROW_CLASS'=>$row_class,'DELETED_MESSAGE'=>htmlspecialchars($lang['Post_deleted_placeholder'],ENT_QUOTES,'UTF-8')));
+						continue;
+					}
 					$poster_id = $postrow[$i]['poster_id'];
-					$poster = $postrow[$i]['username'];
+					$poster = $poster_id == ANONYMOUS ? phpbb_post_author_name($postrow[$i]) : phpbb_stored_text($postrow[$i]['username']);
 
 					//-- mod : today at  yesterday at ------------------------------------------------------------------------ 
 //-- add 
@@ -762,9 +770,6 @@ switch( $mode )
 
 					$message = str_replace("\n", '<br />', $message);
 					
-					$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-					$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
 					$checkbox = ( (int) $post_id !== $split_first_post_id ) ? '<input type="checkbox" name="post_id_list[]" value="' . $post_id . '" />' : '&nbsp;';
 					
 					$template->assign_block_vars('postrow', array(

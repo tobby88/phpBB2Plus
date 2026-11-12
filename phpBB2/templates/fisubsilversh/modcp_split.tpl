@@ -35,6 +35,9 @@
 <th>&nbsp;{L_SELECT}&nbsp;</th>
 </tr>
 <!-- BEGIN postrow -->
+<!-- IF !empty(postrow.IS_DELETED) -->
+<tr><td class="{postrow.ROW_CLASS}" colspan="3"><span class="genmed"><em>{postrow.DELETED_MESSAGE}</em></span></td></tr>
+<!-- ELSE -->
 <tr>
 <td valign="top" class="{postrow.ROW_CLASS}"><span class="name">{postrow.POSTER_NAME}</span>
 <img src="images/spacer.gif" alt="" width="150" height="1" /></td>
@@ -56,6 +59,7 @@
 <tr>
 <td colspan="3" height="1" class="spacerow"><img src="images/spacer.gif" width="1" height="1" alt="" /></td>
 </tr>
+<!-- ENDIF -->
 <!-- END postrow -->
 <tr>
 <td class="cat" colspan="3" align="center">
