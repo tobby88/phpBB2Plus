@@ -2,6 +2,7 @@
 // Actual approval service, canonical native schema and dedicated driver.
 // No real config, browser session, mail, uploads or third-party targets.
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_KB_COUNTER_NATIVE') !== '1') { echo "KB publication requires an explicitly enabled disposable database.\n"; return; }
+require_once __DIR__.'/kb-seed-fixture.php';
 define('IN_PHPBB', true); $kp_source = dirname(dirname(__DIR__)) . '/phpBB2/';
 $phpbb_root_path = $kp_source; $phpEx = 'php'; $table_prefix = 'fixture_';
 require $kp_source . 'includes/php_compat.php'; require $kp_source . 'includes/constants.php'; require $kp_source . 'attach_mod/includes/constants.php';
@@ -48,6 +49,7 @@ class KpDatabase extends sql_db {
  }
 }
 function kp_sql($sql) {
+ if(!empty($GLOBALS['kp_seed_active'])&&!preg_match('/^(?:SELECT|INSERT INTO|UPDATE|DELETE FROM) /D',$sql)){throw new RuntimeException('Fixture rows cannot escape their owning seed transaction');}
  $r=$GLOBALS['peer']->sql_query($sql);
  if(!$r){$error=$GLOBALS['peer']->sql_error();$context=preg_match('/^(?:CREATE TABLE|ALTER TABLE|INSERT INTO) [A-Za-z0-9_]+/',$sql,$m)?$m[0]:'native query';throw new RuntimeException('Fixture SQL ('.(int)$error['code'].'): '.$error['message'].' ['.$context.']');}
  return$r;
@@ -91,6 +93,12 @@ function kp_controller_suite() {
  echo 'Knowledge Base actual ACP/frontend action bodies: '.$cases." transition/token/input/search/deletion cases passed (controlled bootstrap; comments on/off, no attachment deletion).\n";
 }
 function kp_reset($actor = 'root', $comments = false) {
+ $saved=array();foreach(array('userdata','_POST','_SERVER','kp_hook','kp_factory')as$key){$saved[$key]=array_key_exists($key,$GLOBALS)?array(true,$GLOBALS[$key]):array(false,null);}
+ try{kp_seed_batch(function()use($actor,$comments){kp_seed_rows($actor,$comments);});}
+ catch(Exception$error){foreach($saved as$key=>$value){if($value[0]){$GLOBALS[$key]=$value[1];}else{unset($GLOBALS[$key]);}}throw$error;}
+ catch(Error$error){foreach($saved as$key=>$value){if($value[0]){$GLOBALS[$key]=$value[1];}else{unset($GLOBALS[$key]);}}throw$error;}
+}
+function kp_seed_rows($actor = 'root', $comments = false) {
  global $kp_hook, $kp_factory, $userdata;
  $kp_hook = null; $kp_factory = 'normal'; foreach ($GLOBALS['kp_tables'] as $table) { kp_sql('DELETE FROM ' . $table); }
  kp_sql("INSERT INTO fixture_users(user_id,username,user_password,user_email,user_active,user_level,user_attachsig) VALUES(1,'Root','synthetic','root@example.invalid',1,1,0),(2,'Junior','synthetic','junior@example.invalid',1,0,0),(3,'KB moderator','synthetic','moderator@example.invalid',1,0,0),(4,'Ordinary','synthetic','ordinary@example.invalid',1,0,0)");

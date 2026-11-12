@@ -819,6 +819,7 @@ jobs:
       - if: matrix.part == 5
         run: |
           php .github/scripts/check-kb-counters-native.php
+          php .github/scripts/check-kb-fixture-seeds-native.php
           php .github/scripts/check-kb-counter-migration.php
           php .github/scripts/check-kb-article-actions-native.php
           php .github/scripts/check-kb-publication-native.php
@@ -1520,3 +1521,8 @@ jobs:
         env:
           PHPBB_RATE_NATIVE: '1'
           PHPBB_RATE_TEST_PASSWORD: fixture-only
+      - name: Check original KB fixture seeds and owned setup on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-kb-fixture-seeds-native.php
+        env:
+          PHPBB_KB_COUNTER_NATIVE: '1'
+          PHPBB_KB_COUNTER_PASSWORD: fixture-only

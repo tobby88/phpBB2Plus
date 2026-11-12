@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Reduce repeated native test setup commits
+
+- Preserve the complete original KB fixture rows and identity counters while
+  publishing each setup through one owned transaction. Keep all existing cases.
+- Refuse pending caller transactions, nontransactional or missing participants
+  and callback transaction escapes; roll back late setup failures and restore
+  PHP request state. Check the original eight fixture variants byte-for-byte,
+  real SQL failures and lost begin/commit acknowledgements on MariaDB/MySQL.
+
 ### Make CrackerTracker quotas independent and atomic
 
 - Count each attempt and decide its quota while owning the same row lock, so
