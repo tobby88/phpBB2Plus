@@ -723,7 +723,7 @@ INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('display_inter
 INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('display_logo_num', '10');
 INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('display_links_logo', '1');
 INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('email_notify', '1');
-INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('pm_notify ', '0'); 
+INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('pm_notify', '0');
 INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('lock_submit_site', '0');
 INSERT INTO phpbb_link_config (config_name, config_value) VALUES ('allow_no_logo', '0');
 INSERT INTO phpbb_banner VALUES (1, 'images/banner/phpbb2_banner_486.gif', 0, 0, 'phpBB2.de - Your No.1 Source', 'http://www.phpbb2.de', 2, 0, 11, 50, 1, 0, 0, 0, 0, 0, -1, 2, 'phpBB2.de Banner 468 * 60', 0, 468, 60, 0, 600);

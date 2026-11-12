@@ -94,7 +94,9 @@ function phpbb_link_configuration($scope)
 {
 	$config=array('lock_submit_site'=>0,'allow_no_logo'=>1,'email_notify'=>0,'pm_notify'=>0);$seen=array();
 	foreach($scope->rows('SELECT config_name,config_value FROM '.LINK_CONFIG_TABLE." WHERE config_name IN ('lock_submit_site','allow_no_logo','email_notify','pm_notify') LOCK IN SHARE MODE")as$row){
-		$key=$row['config_name'];if(!array_key_exists($key,$config)||isset($seen[$key])||!in_array((string)$row['config_value'],array('0','1'),true)){phpbb_link_fail();}
+		// Historical installers shipped "pm_notify ". MySQL's padded,
+		// case-insensitive comparison finds it; use its canonical PHP key too.
+		$key=strtolower(rtrim((string)$row['config_name'],' '));if(!array_key_exists($key,$config)||isset($seen[$key])||!in_array((string)$row['config_value'],array('0','1'),true)){phpbb_link_fail();}
 		$config[$key]=(int)$row['config_value'];$seen[$key]=true;
 	}
 	return $config;

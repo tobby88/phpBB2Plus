@@ -18,6 +18,9 @@ changes consolidated after that baseline without implying active maintenance.
   and counters on edits. A failed write never publishes a partial change.
 - Keep ACP search terms within whole-character limits and show localized errors
   for invalid input or unconfirmed saves. No migration is required.
+- Correct the historical installer key `pm_notify ` and accept its padded or
+  case-variant spelling in existing installations. Ambiguous duplicate keys
+  remain rejected; existing database rows do not need to be rewritten.
 
 ### Store Link submissions and optional notices coherently
 

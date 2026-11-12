@@ -122,6 +122,14 @@ function lr_suite(){
  $kp_hook=function($phase,$sql)use($mutex,&$serialized){if($phase==='before'&&strpos($sql,'SELECT MAX(link_joined)')===0){kp_check(kp_rows("SELECT GET_LOCK('".$mutex."',0) acquired")[0]['acquired']==='0','Another writer cannot enter the check/insert window');$serialized=true;}};
  try{kp_check(lr_success(lr_controller())&&$serialized,'Actual cooldown write is serialized');$cases++;}finally{$kp_hook=null;}
  kp_check(kp_rows("SELECT GET_LOCK('".$mutex."',0) acquired")[0]['acquired']==='1'&&kp_rows("SELECT RELEASE_LOCK('".$mutex."') released")[0]['released']==='1','Confirmed store releases the real shared writer mutex');
+ foreach(array('installer','legacy-space','legacy-case','duplicate-alias')as$kind){
+  lr_reset();if($kind==='installer'){$basic=file_get_contents($kp_source.'install/schemas/mysql_basic.sql');kp_check(preg_match_all('/INSERT INTO phpbb_link_config \([^;]+;/',$basic,$m)>0,'Actual installer Link settings');kp_sql('DELETE FROM fixture_link_config');kp_sql('START TRANSACTION');try{foreach($m[0]as$sql){kp_sql(str_replace('phpbb_link_config','fixture_link_config',$sql));}kp_sql('COMMIT');}catch(Exception$error){kp_sql('ROLLBACK');throw$error;}$_POST['link_logo_src']='https://example.invalid/logo.gif';}
+  elseif($kind==='duplicate-alias'){kp_sql("INSERT INTO fixture_link_config(config_name,config_value) VALUES('pm_notify ','1')");}
+  else{kp_sql("UPDATE fixture_link_config SET config_name='".($kind==='legacy-space'?'pm_notify ':'PM_NOTIFY')."' WHERE config_name='pm_notify'");}
+  // Keep optional mail/PM out of this store-only installer compatibility case.
+  $before=kp_snapshot();try{$out=phpbb_submit_link($db,$_POST,$GLOBALS['userdata']);$saved=true;}catch(PhpbbLinkException$error){$saved=false;}
+  kp_check($saved===($kind!=='duplicate-alias')&&($saved||kp_snapshot()===$before),'Actual seeded/legacy key normalization without ambiguous values: '.$kind);$cases++;
+ }
  define('PHPBB_LEGACY_REQUEST_ESCAPED',true);lr_reset();$_POST['link_title']="Path \\literal 'Grüße 😀'";foreach($_POST as$key=>$value){$_POST[$key]=addslashes($value);}kp_check(lr_success(lr_controller())&&kp_rows('SELECT link_title FROM fixture_links')[0]['link_title']==="Path \\literal 'Grüße 😀'",'Actual controller removes common.php escaping exactly once');$cases++;
  echo 'Link registration native: '.$cases.' cases, '.$failures." SQL failures PASS; actual controller, current session/role, Unicode, owned transactions, canonical schema, optional EN/DE mail and atomic quota-preserving PM.\n";
 }
