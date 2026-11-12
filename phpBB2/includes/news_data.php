@@ -323,7 +323,7 @@ class NewsDataAccess
     $sql = 'SELECT
         t.topic_id, t.topic_title, t.topic_time, t.topic_views, t.topic_replies, t.topic_icon, t.topic_type, t.topic_attachment, 
         n.*,
-        p.post_time, p.post_edit_time, p.post_attachment, 
+        p.post_time, p.post_edit_time, p.post_attachment, p.poster_id, p.post_username, p.post_author_removed, p.post_deleted,
         pt.*,
         u.user_id, u.username, u.user_email, u.user_website, u.user_level, u.user_posts, u.user_rank
       FROM
@@ -337,7 +337,7 @@ class NewsDataAccess
         t.topic_first_post_id = p.post_id AND
         t.forum_id = f.forum_id AND
         t.topic_first_post_id = pt.post_id AND
-        t.topic_poster = u.user_id AND
+        p.poster_id = u.user_id AND
         t.news_id = n.news_id AND
         t.topic_id = ' . $article_id . ' ' . $auth_sql . '
       LIMIT 1';
@@ -388,7 +388,7 @@ class NewsDataAccess
 
     // Begin SQL Construction.
     $sql = 'SELECT t.topic_icon, t.topic_type, t.topic_attachment,
-        p.post_id, p.poster_id, p.post_username, p.post_author_removed, p.post_time, p.post_edit_time, p.post_attachment,
+        p.post_id, p.poster_id, p.post_username, p.post_author_removed, p.post_deleted, p.post_time, p.post_edit_time, p.post_attachment,
         pt.*,
         u.user_id, u.username, u.user_email, u.user_website, u.user_level, u.user_posts, u.user_rank
       FROM
@@ -440,7 +440,7 @@ class NewsDataAccess
     $topic_id = intval( $topic_id );
 
     if( $topic_id < 0 )
-    { return array( ); }
+    { return 0; }
 
     $auth_sql = get_user_news_auth_access('topic');
 
@@ -461,7 +461,7 @@ class NewsDataAccess
 
     if( !($result = $this->db->sql_query($sql)) )
     {
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not count forum news comments', '', __LINE__, __FILE__, $sql);
     }
 
     if( $row = $this->db->sql_fetchrow($result) )
@@ -499,7 +499,7 @@ class NewsDataAccess
     $sql = 'SELECT
         t.topic_id, t.topic_title, t.topic_time, t.topic_views, t.topic_replies, t.topic_icon, t.topic_type, t.topic_attachment,
         n.*,
-        p.post_time, p.post_edit_time, p.post_attachment,
+        p.post_time, p.post_edit_time, p.post_attachment, p.poster_id, p.post_username, p.post_author_removed, p.post_deleted,
         pt.*,
         u.user_id, u.username, u.user_email, u.user_website, u.user_level, u.user_posts, u.user_rank
       FROM
@@ -513,7 +513,7 @@ class NewsDataAccess
         t.topic_first_post_id = p.post_id AND
         t.forum_id = f.forum_id AND
         t.topic_first_post_id = pt.post_id AND
-        t.topic_poster = u.user_id AND
+        p.poster_id = u.user_id AND
         t.news_id = n.news_id AND
         t.news_id > 0 AND
         t.topic_time >= ' . $interval_begin . ' AND
@@ -717,7 +717,7 @@ class NewsDataAccess
     $sql = 'SELECT
         t.topic_id, t.topic_title, t.topic_time, t.topic_views, t.topic_replies, t.topic_icon, t.topic_type, t.topic_attachment,
         n.*,
-        p.post_time, p.post_edit_time, p.post_attachment,
+        p.post_time, p.post_edit_time, p.post_attachment, p.poster_id, p.post_username, p.post_author_removed, p.post_deleted,
         pt.*,
         u.user_id, u.username, u.user_email, u.user_website, u.user_level, u.user_posts, u.user_rank
       FROM
@@ -731,7 +731,7 @@ class NewsDataAccess
         t.topic_first_post_id = p.post_id AND
         t.forum_id = f.forum_id AND
         t.topic_first_post_id = pt.post_id AND
-        t.topic_poster = u.user_id AND
+        p.poster_id = u.user_id AND
         t.news_id = n.news_id AND
         t.news_id > 0 ' . $auth_sql;
 
@@ -815,7 +815,7 @@ class NewsDataAccess
         t.topic_first_post_id = p.post_id AND
         t.forum_id = f.forum_id AND
         t.topic_first_post_id = pt.post_id AND
-        t.topic_poster = u.user_id AND
+        p.poster_id = u.user_id AND
         t.news_id = n.news_id AND
         t.news_id > 0 ' . $auth_sql;
 

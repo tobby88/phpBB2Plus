@@ -20,6 +20,7 @@ require_once ($phpbb_root_path.'includes/news_common.' . $phpEx);
 require_once ($phpbb_root_path.'includes/news_data.' . $phpEx);
 require_once ($phpbb_root_path.'includes/bbcode.' . $phpEx);
 require_once ($phpbb_root_path.'includes/functions_color_groups.' . $phpEx);
+require_once ($phpbb_root_path.'includes/functions_post_tombstone.' . $phpEx);
 
 /**
  * Class which displays news content.
@@ -137,6 +138,21 @@ class NewsModule
         $trimmed = false;
 		$topic_id = (int) $article['topic_id'];
 
+        // Deleted positions remain visible, but never parse their former text,
+        // attachments or author metadata (including inconsistent legacy rows).
+        if (phpbb_post_is_deleted($article))
+        {
+          $this->setBlockVariables('articles', array(
+            'IS_DELETED' => true,
+            'ID' => $topic_id,
+            'L_TITLE' => $this->syndication ? $this->xmlText($article['topic_title']) : $this->htmlText($article['topic_title']),
+            'FORUM_NAME' => $this->syndication ? $this->xmlText($article['news_category']) : $this->htmlText($article['news_category']),
+            'U_COMMENTS' => $this->root_path . 'viewtopic.' . $this->phpEx . '?t=' . $topic_id,
+            'BODY' => htmlspecialchars($lang['Post_deleted_placeholder'], ENT_QUOTES, 'UTF-8')
+          ));
+          continue;
+        }
+
         // Trim the post body if needed.
         if( $show_abstract && $this->config['news_item_trim'] > 0 )
         {
@@ -180,9 +196,9 @@ class NewsModule
                     'CAT_IMG' => $this->imageUrl($article['news_image']),
                     'POST_DATE' => create_date( $dateformat, $article['post_time'], $timezone),
                     'RFC_POST_DATE' => create_date( 'r', $article['post_time'], $timezone),
-                    'L_POSTER' => color_group_colorize_name($article['user_id']),
+                    'L_POSTER' => (int)$article['user_id'] === ANONYMOUS ? phpbb_post_author_name($article) : color_group_colorize_name($article['user_id']),
                     'L_COMMENTS' => 'Comments (' . (int) $article['topic_replies'] . ')',
-                    'U_COMMENTS' => $this->root_path . 'viewtopic.' . $this->phpEx . '?topic=' . $topic_id,
+                    'U_COMMENTS' => $this->root_path . 'viewtopic.' . $this->phpEx . '?t=' . $topic_id,
                     'U_COMMENT' => $recent_title,
 					'U_VIEWS' => $this->root_path . 'topic_view_users.' . $this->phpEx . '?t=' . $topic_id,
 					'U_POST_COMMENT' => append_sid('posting.' . $this->phpEx . '?mode=reply&amp;t=' . $topic_id),
@@ -264,6 +280,14 @@ if( $article_id <= 0 )
     {
       foreach( $comments as $comment )
       {
+        if (phpbb_post_is_deleted($comment))
+        {
+          $this->setBlockVariables('comments', array(
+            'IS_DELETED' => true,
+            'BODY' => htmlspecialchars($lang['Post_deleted_placeholder'], ENT_QUOTES, 'UTF-8')
+          ));
+          continue;
+        }
         $comment['post_text'] = $this->parseMessage( $comment['post_text'], $comment['bbcode_uid'] );
 
 	$dateformat = ($userdata['user_id'] == ANONYMOUS) ? $board_config['default_dateformat'] : $userdata['user_dateformat'];
@@ -635,7 +659,7 @@ if( $article_id <= 0 )
   {
     if( !isset( $text ) || !isset( $bbcode_uid ) || strlen( $text ) <= 0 )
     {
-      return;
+      return '';
     }
 
     //

@@ -308,6 +308,12 @@ return true;
 <table border="0" cellpadding="0" cellspacing="0" class="tbl"><tr><td class="tbll"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblbot"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblr"><img src="images/spacer.gif" alt="" width="8" height="4" /></td></tr></table>
 <!-- END no_articles -->
 <!-- BEGIN articles --> 
+<!-- IF !empty(articles.IS_DELETED) -->
+     <table class="forumline" width="100%" cellspacing="1" cellpadding="3" border="0">
+     <tr><td class="cat topictitle"><a href="{INDEX_FILE}?topic_id={articles.ID}">{articles.L_TITLE}</a></td></tr>
+     <tr><td class="row1 postbody">{articles.BODY}</td></tr>
+     </table><br />
+<!-- ELSE -->
      <table class="forumline" width="100%" cellspacing="1" cellpadding="3" border="0">
      <tr>
      <td class="cat">
@@ -351,8 +357,12 @@ return true;
      </table>
      <table border="0" cellpadding="0" cellspacing="0" class="tbl"><tr><td class="tbll"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblbot"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblr"><img src="images/spacer.gif" alt="" width="8" height="4" /></td></tr></table>
      <br />
+<!-- ENDIF -->
 <!-- END articles -->   
 <!-- BEGIN comments --> 
+<!-- IF !empty(comments.IS_DELETED) -->
+  <div class="row1 postbody" style="padding: 10px; margin: 10px 0; clear: both;">{comments.BODY}</div>
+<!-- ELSE -->
   <hr /> 
   <div style="border: #ddd solid 1px; padding: 10px; margin: 10px 0 10px 20px; clear: both;"> 
     <div class="topictitle">{comments.L_TITLE}</div> 
@@ -362,6 +372,7 @@ return true;
     {comments.BODY} 
     </div> 
   </div> 
+<!-- ENDIF -->
 <!-- END comments --> 
 <!-- BEGIN pagination --> 
   <div class="nav" style="text-align: right; padding: 10px; margin: 10px 0 10px 20px; clear: both;"> 

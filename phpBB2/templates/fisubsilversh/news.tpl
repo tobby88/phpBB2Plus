@@ -32,6 +32,12 @@
     </ul>
 <!-- END arch -->
 <!-- BEGIN articles -->
+<!-- IF !empty(articles.IS_DELETED) -->
+  <div class="row1" style="padding: 10px; margin-bottom: 10px; clear: both;">
+    <div class="topictitle"><a href="{INDEX_FILE}?topic_id={articles.ID}">{articles.L_TITLE}</a></div>
+    <div class="postbody">{articles.BODY}</div>
+  </div>
+<!-- ELSE -->
   <div style="border: #ddd solid 1px; padding: 10px; margin-bottom: 10px; clear: both;">
     <div style="float: right; padding: 5px; margin: 5px;">
     <a href="{INDEX_FILE}?cat_id={articles.CAT_ID}"><img src="{articles.CAT_IMG}" alt="{articles.CATEGORY}" style="border: 0" /></a>
@@ -44,8 +50,12 @@
     </div>
     <div style="clear:both; height: 0; margin:0; padding: 0;">&nbsp;</div>
   </div>
+<!-- ENDIF -->
 <!-- END articles -->
 <!-- BEGIN comments -->
+<!-- IF !empty(comments.IS_DELETED) -->
+  <div class="row1 postbody" style="padding: 10px; margin: 10px 0; clear: both;">{comments.BODY}</div>
+<!-- ELSE -->
   <hr />
   <div style="border: #ddd solid 1px; padding: 10px; margin: 10px 0 10px 20px; clear: both;">
     <div class="topictitle">{comments.L_TITLE}</div>
@@ -55,6 +65,7 @@
     {comments.BODY}
     </div>
   </div>
+<!-- ENDIF -->
 <!-- END comments -->
 <!-- BEGIN pagination -->
   <hr />

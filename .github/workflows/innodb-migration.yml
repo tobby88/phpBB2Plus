@@ -105,6 +105,12 @@ jobs:
         env:
           PHPBB_FIXTURE_LOCKS_NATIVE: '1'
           PHPBB_FIXTURE_LOCKS_PASSWORD: fixture-only
+      - name: Check deleted News readers and current forum ACLs
+        if: matrix.part == 2
+        run: php .github/scripts/check-news-tombstones-native.php
+        env:
+          PHPBB_NEWS_READERS_NATIVE: '1'
+          PHPBB_NEWS_READERS_PASSWORD: fixture-only
       - name: Keep failed login counters bounded without skipping the limiter
         if: matrix.part == 2
         run: php .github/scripts/check-login-counter-native.php

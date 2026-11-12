@@ -23,7 +23,9 @@
   <!-- BEGIN articles -->
   <item>
     <title>{articles.L_TITLE}</title>
+    <!-- IF empty(articles.IS_DELETED) -->
     <pubDate>{articles.RFC_POST_DATE}</pubDate>
+    <!-- ENDIF -->
     <link>{INDEX_FILE}?topic_id={articles.ID}</link>
     <category>{articles.FORUM_NAME}</category>
     <description>

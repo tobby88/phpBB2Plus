@@ -17,6 +17,7 @@ $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_post_tombstone.'.$phpEx);
 
 //
 // Start initial var setup
@@ -202,6 +203,11 @@ while ( $row = $db->sql_fetchrow($result) )
 $db->sql_freeresult($result);
 
 for($i = 0; $i < $total_posts; $i++) {
+   if (phpbb_post_is_deleted($postrow[$i]))
+   {
+      $soubor .= "\r\n" . $lang['Post_deleted_placeholder'] . "\r\n";
+      continue;
+   }
    $poster_id = $postrow[$i]['user_id'];
 
    $poster = ( $poster_id == ANONYMOUS ) ? $lang['Guest'] : $postrow[$i]['username'];

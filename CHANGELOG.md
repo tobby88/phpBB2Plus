@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Respect deleted posts in news, portal, RSS and text exports
+
+- Retain deleted positions as compact translated placeholders without parsing
+  stale body text, author metadata or attachments in alternate readers.
+- Include the existing deletion and author flags in News queries, use the
+  actual first-post author instead of stale topic metadata, and preserve forum
+  permissions, pagination and counts. Keep genuine guest and former-member
+  bylines consistent with the forum's existing visibility policy.
+- Correct News comment links and handle empty historical bodies and failed
+  comment-count queries without PHP warnings or invalid count values.
+
 ### Preserve UTF-8 and stored-text boundaries in site labels
 
 - Shorten the public site description at 75 visible UTF-8 characters instead
