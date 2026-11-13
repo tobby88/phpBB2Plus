@@ -138,6 +138,8 @@ if (extension_loaded('gd'))
 	}
 
 	// Exercise the actual no-extension branch even on the ordinary GD CI host.
+	require __DIR__ . '/thumbnail-alpha-fixture.php';
+
 	$child_lines = array(); $child_status = 1;
 	$crypto = DIRECTORY_SEPARATOR === '\\' && PHP_VERSION_ID < 70000 ? ' -d extension=' . escapeshellarg(ini_get('extension_dir') . '/php_openssl.dll') : '';
 	exec(escapeshellarg(PHP_BINARY) . ' -n -d date.timezone=UTC -d disable_functions=mail ' . $crypto . ' ' . escapeshellarg(__FILE__) . ' 2>&1', $child_lines, $child_status);

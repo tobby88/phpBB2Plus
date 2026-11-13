@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Transparent attachment thumbnails
+
+- Preserve PNG alpha instead of compositing transparent and semitransparent
+  pixels against the default black GD2 canvas. Keep existing palette-mode
+  alpha behavior and opaque image colors.
+- Preserve GIF transparency in both resize modes. For resampled truecolor
+  output, retain a bounded alpha mask while quantizing to 255 colors, then
+  assign a separate transparent index. Visible pixels with the same RGB value
+  remain opaque.
+- Verify actual PNG/GIF/JPEG output in both modes and orientations, including
+  near-opaque/near-transparent alpha and duplicate RGB palette entries. Keep
+  source bytes, atomic publication, cleanup and existing converter/FTP paths.
+  No database migration is needed.
+
 ### Nonzero thumbnail dimensions
 
 - Keep both scaled dimensions at least one pixel, including very wide or tall

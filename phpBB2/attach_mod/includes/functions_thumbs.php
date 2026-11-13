@@ -217,15 +217,55 @@ function phpbb_attachment_thumbnail_encode($source, $new_file, $mimetype)
 				return false;
 			}
 
-			if ($type['version'] == 1 || !$attach_config['use_gd2'])
+			$resample = $type['version'] != 1 && $attach_config['use_gd2'];
+			$new_image = $resample ? @imagecreatetruecolor($new_width, $new_height) : @imagecreate($new_width, $new_height);
+			$prepared = (bool) $new_image;
+			if ($prepared && $type['format'] === IMG_PNG)
 			{
-				$new_image = @imagecreate($new_width, $new_height);
-				$copied = $new_image ? @imagecopyresized($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height) : false;
+				// Copy alpha rather than compositing against the black canvas.
+				$prepared = @imagealphablending($new_image, false) && @imagesavealpha($new_image, true);
 			}
-			else
+			elseif ($prepared && $type['format'] === IMG_GIF && ($transparent = @imagecolortransparent($image)) >= 0)
 			{
-				$new_image = @imagecreatetruecolor($new_width, $new_height);
-				$copied = $new_image ? @imagecopyresampled($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height) : false;
+				$color = @imagecolorsforindex($image, $transparent);
+				$clear = @imagecolorallocatealpha($new_image, $color['red'], $color['green'], $color['blue'], 127);
+				$prepared = $clear !== false && @imagefill($new_image, 0, 0, $clear) && @imagecolortransparent($new_image, $clear) >= 0 && @imagealphablending($new_image, false);
+			}
+			$copied = $prepared ? ($resample
+				? @imagecopyresampled($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height)
+				: @imagecopyresized($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height)) : false;
+			if ($copied && $resample && $type['format'] === IMG_GIF && $transparent >= 0)
+			{
+				// GIF needs a distinct palette index, not just alpha/RGB. Keep
+				// the alpha mask while quantizing; an opaque same-RGB pixel must
+				// never acquire the transparent index. The output is <=400x400.
+				$mask = '';
+				for ($y = 0; $y < $new_height; $y++)
+				{
+					for ($x = 0; $x < $new_width; $x++)
+					{
+						$pixel = @imagecolorat($new_image, $x, $y);
+						if ($pixel === false) { $copied = false; break 2; }
+						$mask .= (($pixel >> 24) & 127) >= 64 ? '1' : '0';
+					}
+				}
+				if ($copied)
+				{
+					$copied = @imagetruecolortopalette($new_image, true, 255);
+					$clear = $copied ? @imagecolorallocatealpha($new_image, 0, 0, 0, 127) : false;
+					$copied = $clear !== false && @imagecolortransparent($new_image, $clear) >= 0;
+					if ($copied)
+					{
+						$offset = 0;
+						for ($y = 0; $y < $new_height; $y++)
+						{
+							for ($x = 0; $x < $new_width; $x++, $offset++)
+							{
+								if ($mask[$offset] === '1' && !@imagesetpixel($new_image, $x, $y, $clear)) { $copied = false; break 2; }
+							}
+						}
+					}
+				}
 			}
 			if (!$copied)
 			{
