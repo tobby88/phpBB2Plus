@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Keep personal attachment sorting and pagination consistent
+
+- Preserve ascending/descending filename sorting and select the active mode
+  correctly. Normalize older bookmarked mode names to the same dropdown and
+  pagination values, and keep unknown input outside the SQL column whitelist.
+- Use the unique attachment ID to order ties consistently across pages in all
+  six sort modes. Exercise actual controller requests, controls and queries on
+  MariaDB/MySQL, retaining owner/recipient scope and stored attachment data.
+  No database migration is required.
+
 ### Save absence returns against the current account and session
 
 - Replace the popup's cached-user update with an independent atomic writer.

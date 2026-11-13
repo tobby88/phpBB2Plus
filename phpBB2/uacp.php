@@ -57,56 +57,26 @@ include($phpbb_root_path . 'language/lang_' . $language . '/lang_admin_attach.' 
 
 $start = max(0, min(1000000, get_var('start', 0)));
 $sort_order = get_var('order', 'ASC');
-$sort_order = ($sort_order == 'ASC') ? 'ASC' : 'DESC';
+$sort_order = ($sort_order === 'DESC') ? 'DESC' : 'ASC';
 $mode = get_var('mode', '');
 
-$mode_types_text = array($lang['Sort_Filename'], $lang['Sort_Comment'], $lang['Sort_Extension'], $lang['Sort_Size'], $lang['Sort_Downloads'], $lang['Sort_Posttime'], /*$lang['Sort_Posts']*/);
-$mode_types = array('real_filename', 'comment', 'extension', 'filesize', 'downloads', 'post_time'/*, 'posts'*/);
-
-if (!$mode)
+$mode_types_text = array($lang['Sort_Filename'], $lang['Sort_Comment'], $lang['Sort_Extension'], $lang['Sort_Size'], $lang['Sort_Downloads'], $lang['Sort_Posttime']);
+$mode_types = array('real_filename', 'comment', 'extension', 'filesize', 'downloads', 'post_time');
+$sort_columns = array('real_filename' => 'real_filename', 'comment' => 'comment', 'extension' => 'extension', 'filesize' => 'filesize', 'downloads' => 'download_count', 'post_time' => 'filetime');
+// Retain old bookmarked modes while using one value in controls and pagination.
+$sort_aliases = array('filename' => 'real_filename', 'a.real_filename' => 'real_filename', 'download_count' => 'downloads', 'filetime' => 'post_time');
+if (isset($sort_aliases[$mode]))
+{
+	$mode = $sort_aliases[$mode];
+}
+if (!isset($sort_columns[$mode]))
 {
 	$mode = 'real_filename';
-	$sort_order = 'ASC';
 }
 
-// Pagination?
 $do_pagination = true;
-
-// Set Order
-$order_by = '';
-
-switch ($mode)
-{
-	case 'filename':
-		$order_by = 'ORDER BY a.real_filename ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-	break;
-
-	case 'comment':
-		$order_by = 'ORDER BY a.comment ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-	break;
-	
-	case 'extension':
-		$order_by = 'ORDER BY a.extension ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-	break;
-
-	case 'filesize':
-		$order_by = 'ORDER BY a.filesize ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-	break;
-	
-	case 'downloads':
-		$order_by = 'ORDER BY a.download_count ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-	break;
-	
-	case 'post_time':
-		$order_by = 'ORDER BY a.filetime ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-	break;
-	
-	default:
-		$mode = 'a.real_filename';
-		$sort_order = 'ASC';
-		$order_by = 'ORDER BY a.real_filename ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-	break;
-}
+// A unique tie-breaker prevents equal names/counts/dates changing page order.
+$order_by = 'ORDER BY a.' . $sort_columns[$mode] . ' ' . $sort_order . ', a.attach_id ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
 
 // Set select fields
 $select_sort_mode = $select_sort_order = '';

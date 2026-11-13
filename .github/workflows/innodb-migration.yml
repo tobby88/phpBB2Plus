@@ -99,6 +99,12 @@ jobs:
           PHPBB_PA_MAIL_PASSWORD: fixture-only
           PHPBB_BOARD_MAIL_NATIVE: '1'
           PHPBB_BOARD_MAIL_PASSWORD: fixture-only
+      - name: Check personal attachment sorting and stable pagination
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-uacp-sorting-native.php
+        env:
+          PHPBB_UACP_NATIVE: '1'
+          PHPBB_UACP_PASSWORD: fixture-only
       - name: Check real native fixture conflict behavior
         if: matrix.part == 2
         run: php .github/scripts/check-native-fixture-locks.php
@@ -1548,3 +1554,9 @@ jobs:
         env:
           PHPBB_ABSENCE_NATIVE: '1'
           PHPBB_ABSENCE_PASSWORD: fixture-only
+      - name: Check personal attachment sorting and pagination on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-uacp-sorting-native.php
+        env:
+          PHPBB_UACP_NATIVE: '1'
+          PHPBB_UACP_PASSWORD: fixture-only
+          PHPBB_UACP_MYSQL: '8.4'
