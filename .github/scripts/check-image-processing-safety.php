@@ -19,10 +19,20 @@ image_processing_assert(!phpbb_image_dimensions_safe(1, 20001), 'extreme single 
 image_processing_assert(!phpbb_image_dimensions_safe(0, 100), 'zero dimensions must be rejected');
 
 require dirname(dirname(__DIR__)) . '/phpBB2/attach_mod/includes/functions_filetypes.php';
+$image_fixture_directory = false;
+for ($attempt=0; $attempt<100; $attempt++) {
+	$candidate = sys_get_temp_dir() . '/phpbb-image-safety-' . getmypid() . '-' . $attempt;
+	if (@mkdir($candidate, 0700)) { $image_fixture_directory=$candidate; break; }
+}
+image_processing_assert(is_string($image_fixture_directory), 'the image fixture owns a fresh private directory');
+register_shutdown_function(function() use ($image_fixture_directory) {
+	foreach (glob($image_fixture_directory . '/*') as $file) { if (is_file($file)) { @unlink($file); } }
+	@rmdir($image_fixture_directory);
+});
 image_processing_assert(swf_bits('short', 64, 5) === false, 'truncated SWF bit fields must be rejected without out-of-range reads');
 $oversized_swf = 'CWS' . chr(6) . pack('V', SWF_DIMENSION_MAX_BYTES + 1) . 'invalid';
 image_processing_assert(swf_decompress($oversized_swf) === false, 'oversized compressed SWF metadata must be rejected before decompression');
-$invalid_swf = tempnam(sys_get_temp_dir(), 'phpbb-swf-');
+$invalid_swf = tempnam($image_fixture_directory, 'phpbb-swf-');
 file_put_contents($invalid_swf, 'not a flash file');
 image_processing_assert(swf_getdimension($invalid_swf) === array(0, 0), 'invalid SWF files must produce a safe empty dimension result');
 image_processing_assert(image_getdimension($invalid_swf) === array(0, 0), 'invalid attachment images must produce a safe empty dimension result');
@@ -44,8 +54,8 @@ $attach_config = array(
 	'img_imagick' => '',
 	'use_gd2' => 1,
 );
-$corrupt_gif = tempnam(sys_get_temp_dir(), 'phpbb-gif-');
-$corrupt_thumbnail = tempnam(sys_get_temp_dir(), 'phpbb-thumb-');
+$corrupt_gif = tempnam($image_fixture_directory, 'phpbb-gif-');
+$corrupt_thumbnail = tempnam($image_fixture_directory, 'phpbb-thumb-');
 @unlink($corrupt_thumbnail);
 file_put_contents($corrupt_gif, "GIF89a" . pack('vv', 10, 10) . "\x00\x00\x00");
 image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'image/gif') === false, 'a corrupt attachment image must fail without a GD type error');
@@ -54,8 +64,8 @@ image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'imag
 
 if (extension_loaded('gd'))
 {
-	$source_file = tempnam(sys_get_temp_dir(), 'phpbb-real-image-');
-	$target_file = tempnam(sys_get_temp_dir(), 'phpbb-real-thumb-');
+	$source_file = tempnam($image_fixture_directory, 'phpbb-real-image-');
+	$target_file = tempnam($image_fixture_directory, 'phpbb-real-thumb-');
 	$image = imagecreatetruecolor(480, 320);
 	image_processing_assert(imagepng($image, $source_file), 'write own synthetic source');
 	phpbb_gd_release($image);
@@ -128,8 +138,9 @@ image_processing_assert(strpos($advanced_captcha, "@imagettfbbox(12, 0, \$font_p
 image_processing_assert(strpos($advanced_captcha, 'if (!is_array($char_pos) || count($char_pos) < 8)') !== false, 'CAPTCHA rendering must fall back when a selected TTF cannot render a character');
 
 $legacy_captcha = file_get_contents($root . '/phpBB2/antirobot_pic.php');
-image_processing_assert(strpos($legacy_captcha, "!is_scalar(\$_GET['id'])") !== false, 'legacy CAPTCHA identifiers must be scalar');
-image_processing_assert(strpos($legacy_captcha, "preg_match('/^[a-z]{5}\$/D'") !== false, 'legacy CAPTCHA keys must match the generated format');
+image_processing_assert(strpos($legacy_captcha, "!is_string(\$_GET['id'])") !== false, 'legacy CAPTCHA identifiers must be strings');
+$robot_storage=file_get_contents($root . '/phpBB2/includes/functions_antirobot.php');
+image_processing_assert(strpos($legacy_captcha, 'phpbb_antirobot_code($db,$userdata,') !== false && strpos($robot_storage,"preg_match('/^[a-z]{5}\$/D'") !== false, 'legacy CAPTCHA keys must come from the current session-bound formatted challenge');
 image_processing_assert(strpos($legacy_captcha, 'readfile($image_file);') !== false, 'legacy CAPTCHA images must use the resolved confined path');
 
 $captcha_admin = file_get_contents($root . '/phpBB2/admin/admin_captcha_config.php');

@@ -32,7 +32,7 @@ if (isset($argv[1]) && strpos($argv[1], '--fixture=') === 0) {
         $image = ob_get_clean();
         echo json_encode(array('image'=>base64_encode($image), 'queries'=>$db->queries)), "\n";
     });
-    require $root.'includes/usercp_confirm.php';
+    require $root.(isset($fixture['renderer'])&&$fixture['renderer']==='advanced'?'includes/usercp_confirm_adv.php':'includes/usercp_confirm.php');
     exit(3); // The real endpoint must terminate its own response.
 }
 function ci_render($fixture) {
@@ -89,3 +89,5 @@ foreach(array(null, array('invalid'), '', str_repeat('a',32)) as $id) {
         'Missing or another session\'s challenge emits no image'); $cases++;
 }
 echo 'Confirmation image: '.$cases." complete endpoint cases, warning-free PNG checksums and rasters passed.\n";
+$robot_images=0;foreach(array('standard','advanced')as$renderer){$result=ci_render(array('id'=>'r'.str_repeat('a',31),'code'=>'ABC234','found'=>true,'renderer'=>$renderer));ci_assert($result['image']===''&&$result['queries']===0,'Robot IDs never reach either standard image lookup');$robot_images++;}
+echo 'Robot image namespace: '.$robot_images." actual endpoints PASS; no lookup or response in standard/advanced renderers.\n";

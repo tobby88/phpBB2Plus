@@ -26,20 +26,8 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 	exit;
 }
-function gen_reg_key()
-{
-	$key = "";
-	$max_length_reg_key = 5;
-	$chars = "abcdefghijklmnopqrstuvwxyz";
-	$random_bytes = phpbb_random_bytes($max_length_reg_key);
 
-	for($i = 0; $i < $max_length_reg_key; $i++)
-	{
-		$key .= $chars[ord($random_bytes[$i]) % 26];
-	}
-
-	return($key);
-}
+require_once $phpbb_root_path . 'includes/functions_antirobot.' . $phpEx;
 
 function usercp_post_scalar($name, $default = '')
 {
@@ -434,23 +422,14 @@ if ( isset($_POST['submit']) )
 			//
 			// Anti Robotic Registration
 			//
-			$sql = "SELECT * FROM " . ANTI_ROBOT_TABLE . " WHERE session_id = '" . $userdata['session_id'] . "' LIMIT 1";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain registration information', '', __LINE__, __FILE__, $sql);
-			}
-	
-			$anti_robot_row = $db->sql_fetchrow($result);
-	 
-			if (!$anti_robot_row || !isset($anti_robot_row['reg_key']) || $anti_robot_row['reg_key'] === '' || !hash_equals((string)$anti_robot_row['reg_key'], strtolower(usercp_post_scalar('reg_key'))))
-			{
-				$error = TRUE;
-				$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Wrong_reg_key'];
-			}
-			else
-			{
-				// Consume only inside the successful account transaction below.
-			}
+            try { $robot_valid = phpbb_antirobot_check($db, $userdata, usercp_post_scalar('robot_id'), usercp_post_scalar('reg_key')); }
+            catch (PhpbbOwnedStorageFailure $failure) { $robot_valid=false; }
+            if (!$robot_valid)
+            {
+                $error = TRUE;
+                $error_msg .= ($error_msg ? '<br />' : '') . $lang['Wrong_reg_key'];
+            }
+
 			// --------------------------
 			//
 		} else
@@ -464,7 +443,7 @@ if ( isset($_POST['submit']) )
 			else
 			{
 				$confirm_id = htmlspecialchars(usercp_post_scalar('confirm_id'));
-				if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id))
+				if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id) || (strlen($confirm_id) === 32 && strtolower($confirm_id[0]) === 'r'))
 				{
 					$confirm_id = '';
 				}
@@ -480,7 +459,7 @@ if ( isset($_POST['submit']) )
 	
 				if ($row = $db->sql_fetchrow($result))
 				{
-					if (!hash_equals((string)$row['code'], $confirm_code))
+					if (!preg_match('/^[A-Za-z0-9]{6}$/D', (string)$row['code']) || !hash_equals((string)$row['code'], $confirm_code))
 					{
 						$error = TRUE;
 						$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
@@ -1488,6 +1467,7 @@ else
 	$ini_val = ( phpversion() >= '4.0.0' ) ? 'ini_get' : 'get_cfg_var';
 	$form_enctype = ( @$ini_val('file_uploads') == '0' || strtolower(@$ini_val('file_uploads') == 'off') || phpversion() == '4.0.4pl1' || !$board_config['allow_avatar_upload'] || ( phpversion() < '4.0.3' && @$ini_val('open_basedir') != '' ) ) ? '' : 'enctype="multipart/form-data"';
 	
+	$robot_id = '';
 	if ($plus_config['enable_antirobot'] == 1)
 	{
 	
@@ -1496,19 +1476,13 @@ else
 	//
 	if ($mode == 'register')
 	{
-		$sql = "DELETE FROM " . ANTI_ROBOT_TABLE . " WHERE timestamp < '" . (time() - 3600) . "' OR session_id = '" . $userdata['session_id'] . "'";
-		if( !$result = $db->sql_query($sql) )
-		{
-				message_die(GENERAL_ERROR, 'Could not delete validation key', '', __LINE__, __FILE__, $sql);
-		}
+        try { $robot_id = phpbb_antirobot_challenge($db, $userdata); }
+        catch (PhpbbOwnedStorageFailure $failure) {
+            $key=$failure->getMessage();
+            message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['ctracker_code_dbconn']);
+        }
+        $s_hidden_fields .= '<input type="hidden" name="robot_id" value="' . htmlspecialchars($robot_id, ENT_QUOTES, 'UTF-8') . '" />';
 
-		$reg_key = gen_reg_key();
-
-		$sql = "INSERT INTO ". ANTI_ROBOT_TABLE . " VALUES ('" . $userdata['session_id'] . "', '" . $reg_key . "', '" . time() . "')";
-		if( !$result = $db->sql_query($sql) )
-		{
-				message_die(GENERAL_ERROR, 'Could not check registration information', '', __LINE__, __FILE__, $sql);
-		}
 	}
 	//-----------------------
 	//
@@ -1696,11 +1670,11 @@ else
 		// Anti Robotic Registration MOD
 		'L_VALIDATION' => $lang['Validation'],
 		'L_VALIDATION_EXPLAIN' => $lang['Validation_explain'],
-		'S_ANTI_ROBOT1' => append_sid('antirobot_pic.'.$phpEx.'?id=1'),
-		'S_ANTI_ROBOT2' => append_sid('antirobot_pic.'.$phpEx.'?id=2'),
-		'S_ANTI_ROBOT3' => append_sid('antirobot_pic.'.$phpEx.'?id=3'),
-		'S_ANTI_ROBOT4' => append_sid('antirobot_pic.'.$phpEx.'?id=4'),
-		'S_ANTI_ROBOT5' => append_sid('antirobot_pic.'.$phpEx.'?id=5'),
+		'S_ANTI_ROBOT1' => append_sid('antirobot_pic.'.$phpEx.'?id=1&amp;robot_id=' . $robot_id),
+		'S_ANTI_ROBOT2' => append_sid('antirobot_pic.'.$phpEx.'?id=2&amp;robot_id=' . $robot_id),
+		'S_ANTI_ROBOT3' => append_sid('antirobot_pic.'.$phpEx.'?id=3&amp;robot_id=' . $robot_id),
+		'S_ANTI_ROBOT4' => append_sid('antirobot_pic.'.$phpEx.'?id=4&amp;robot_id=' . $robot_id),
+		'S_ANTI_ROBOT5' => append_sid('antirobot_pic.'.$phpEx.'?id=5&amp;robot_id=' . $robot_id),
 		'S_ALLOW_AVATAR_UPLOAD' => $board_config['allow_avatar_upload'],
 		'S_ALLOW_AVATAR_LOCAL' => $board_config['allow_avatar_local'],
 		'S_ALLOW_AVATAR_REMOTE' => $board_config['allow_avatar_remote'],

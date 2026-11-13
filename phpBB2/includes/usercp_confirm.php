@@ -39,6 +39,8 @@ if (!isset($HTTP_GET_VARS['id']) || !is_scalar($HTTP_GET_VARS['id']) || $HTTP_GE
 }
 
 $confirm_id = htmlspecialchars((string) $HTTP_GET_VARS['id']);
+// Robot glyph challenges have a separate renderer and answer format.
+if (strlen($confirm_id) === 32 && strtolower($confirm_id[0]) === 'r') { exit; }
 
 // Define available charset
 $chars = array('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',  'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',  'U', 'V', 'W', 'X', 'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9');

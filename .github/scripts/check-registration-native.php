@@ -73,10 +73,10 @@ function rgn_reset($activation=0,$challenge='confirm'){
  foreach($ctracker_config->settings as $k=>$v){rgn_sql(rgn_insert_sql('fixture_ctracker_config',array('ct_config_name'=>$k,'ct_config_value'=>$v)));}
  rgn_sql(rgn_insert_sql('fixture_profile_fields',array('field_id'=>1,'field_name'=>'Fixture profile','is_required'=>1,'users_can_view'=>1)));
  rgn_sql(rgn_insert_sql('fixture_confirm',array('session_id'=>'fixture-sid','confirm_id'=>str_repeat('a',32),'code'=>'AbC123')));
- rgn_sql(rgn_insert_sql('fixture_anti_robotic_reg',array('session_id'=>'fixture-sid','reg_key'=>'abcde','timestamp'=>time())));
+ $robot_id='r'.sprintf('%07x',(int)floor(time()/16)).str_repeat('b',24);rgn_sql(rgn_insert_sql('fixture_confirm',array('session_id'=>'fixture-sid','confirm_id'=>$robot_id,'code'=>'abcde')));
  rgn_sql('COMMIT');$r=rgn_sql('SELECT * FROM fixture_profile_fields WHERE users_can_view=1 ORDER BY field_id ASC');$profile_data=$GLOBALS['peer']->sql_fetchrowset($r);$GLOBALS['peer']->sql_freeresult($r);
  $userdata=array('session_id'=>'fixture-sid','user_id'=>-1,'session_logged_in'=>false,'username'=>'Anonymous','user_email'=>'');
- $_SERVER['REQUEST_METHOD']='POST';$_SERVER['REMOTE_ADDR']='127.0.0.1';$_POST=array('submit'=>1,'sid'=>'fixture-sid','agreed'=>1,'reg_key'=>'abcde','confirm_id'=>str_repeat('a',32),'confirm_code'=>'AbC123','fixture_profile'=>'Grüße 😀');
+ $_SERVER['REQUEST_METHOD']='POST';$_SERVER['REMOTE_ADDR']='127.0.0.1';$_POST=array('submit'=>1,'sid'=>'fixture-sid','agreed'=>1,'reg_key'=>'abcde','robot_id'=>$robot_id,'confirm_id'=>str_repeat('a',32),'confirm_code'=>'AbC123','fixture_profile'=>'Grüße 😀');
 }
 function rgn_run($name='New fixture',$address='new@example.invalid'){
  global $db,$userdata,$board_config,$plus_config,$ctracker_config,$profile_data,$phpbb_root_path,$phpEx,$lang,$table_prefix,$user_ip;
@@ -147,10 +147,18 @@ try{
   try{if($case==='ddl'){$owner->sql_query('ALTER TABLE fixture_users ENGINE=MyISAM');}elseif($case==='raw-commit'){$owner->sql_query('COMMIT');}elseif($case==='raw-rollback'){$owner->sql_query('ROLLBACK');}else{$owner->release();$owner->finish();}}
   catch(PhpbbRegistrationException $e){$denied=true;}finally{$owner->release();}ats_check($denied&&rgn_snap()===$before,'No transaction escape '.$case);$cases++;
  }
- foreach($rgn_tables as $s){rgn_reset();rgn_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=rgn_snap();ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before&&!$rgn_mails,'Reject nontransactional participant '.$s);rgn_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
+ foreach($rgn_tables as $s){rgn_reset();rgn_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=rgn_snap();if($s==='anti_robotic_reg'){ats_check(rgn_success(rgn_run()),'Unused legacy robot table no longer controls current registration');}else{ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before&&!$rgn_mails,'Reject nontransactional participant '.$s);}rgn_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  rgn_reset();rgn_sql('ALTER TABLE fixture_config ROW_FORMAT=COMPACT');$before=rgn_snap();ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before,'Reject compact participant');rgn_sql('ALTER TABLE fixture_config ROW_FORMAT=DYNAMIC');
  rgn_reset();rgn_sql('ALTER TABLE fixture_confirm MODIFY code CHAR(6) CHARACTER SET latin1 NOT NULL');$before=rgn_snap();ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before,'Reject legacy character column');rgn_sql('ALTER TABLE fixture_confirm MODIFY code CHAR(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL');
  ats_load_function(dirname(rtrim($ats_source,'/')).'/update/innodb_migration.php','plus_storage_identifier');ats_load_function(dirname(rtrim($ats_source,'/')).'/update/innodb_migration.php','plus_storage_tables');
  $covered=plus_storage_tables($schema,'fixture_');foreach($rgn_tables as $s){ats_check(in_array('fixture_'.$s,$covered,true),'Existing migration covers participant '.$s);}
  echo 'Native registration: '.$cases.' boundary/failure cases, '.$serialized." serialized changes; activation/COPPA/challenges/rollback/durable IDs/mail passed.\n";
+ $robot_cases=0;foreach(array('robot-as-standard','robot-as-standard-six','standard-as-robot','other-form')as$kind){
+  rgn_reset(0,$kind==='standard-as-robot'||$kind==='other-form'?'robot':'confirm');$robot='r'.sprintf('%07x',(int)floor(time()/16)).str_repeat('b',24);
+  if($kind==='robot-as-standard'||$kind==='robot-as-standard-six'){$_POST['confirm_id']=$robot;$_POST['confirm_code']=$kind==='robot-as-standard'?'abcde':'ABC123';if($kind==='robot-as-standard-six'){rgn_sql("UPDATE fixture_confirm SET code='ABC123' WHERE confirm_id='$robot'");}}
+  elseif($kind==='standard-as-robot'){$_POST['robot_id']=str_repeat('a',32);$_POST['reg_key']='abcde';}
+  else{$other='r'.sprintf('%07x',(int)floor(time()/16)).str_repeat('c',24);rgn_sql(rgn_insert_sql('fixture_confirm',array('session_id'=>'fixture-sid','confirm_id'=>$other,'code'=>'vwxyz')));$_POST['robot_id']=$other;$_POST['reg_key']='abcde';}
+  $before=rgn_snap();ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before&&!$rgn_mails&&!$rgn_avatar->confirmed,'Actual registration rejects wrong CAPTCHA namespace/form without consuming any code');$robot_cases++;
+ }
+ echo 'Native robot registration namespace: '.$robot_cases." cases PASS; actual account owner rejects standard/robot/form substitution without consuming codes or publishing accounts.\n";
 }finally{$rgn_hook=$rgn_after=null;$rgn_fail=0;$rgn_commit='';$rgn_main->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}

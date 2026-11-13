@@ -54,7 +54,7 @@ class PhpbbConfirmationStore extends PhpbbOwnedStore
         $this->query('DELETE c FROM '.CONFIRM_TABLE.' c LEFT JOIN '.SESSIONS_TABLE.
             ' s ON s.session_id=c.session_id WHERE s.session_id IS NULL OR s.session_time<'.(int)$cutoff);
         $predicate = " WHERE session_id='$sid' AND HEX(session_id)=HEX('$sid')";
-        $codes = $this->rows('SELECT confirm_id,code FROM '.CONFIRM_TABLE.$predicate.' ORDER BY confirm_id LIMIT 4 FOR UPDATE');
+        $codes = $this->rows('SELECT confirm_id,code FROM '.CONFIRM_TABLE.$predicate." AND confirm_id NOT LIKE 'r%' ORDER BY confirm_id LIMIT 4 FOR UPDATE");
         foreach ($codes as $row) {
             if (preg_match('/\A[a-f0-9]{32}\z/i', $row['confirm_id']) !== 1 || preg_match('/\A[A-Z0-9]{6}\z/', $row['code']) !== 1) {
                 $this->storage_fail('Owned_storage_upgrade');

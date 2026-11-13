@@ -6,6 +6,28 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Independent robot CAPTCHA forms
+
+- Give each robot registration form an immutable challenge ID in the existing
+  confirmation table. Five image URLs and the hidden form token use the same
+  acknowledged ID; parallel renders no longer race on one session primary key
+  or replace answers behind an already displayed form.
+- Keep at most four active robot challenges per session without evicting open
+  forms. IDs contain a creation bucket and 96 random bits; answers use five
+  unbiased lowercase letters. Expire them after an hour with at most fifteen
+  seconds of bucket grace, and consume only the exact challenge within the
+  successful account transaction.
+- Bind image reads to the current guest, enabled registration/robot settings
+  and live session; serve confined real GIF files read-only with no-store
+  headers. Reject malformed/foreign/expired IDs without creating new keys.
+- Separate robot IDs from standard registration/posting/CrackerTracker CAPTCHA
+  consumers and both standard image endpoints. Keep existing classic codes,
+  registration rollback, activation and COPPA behavior.
+- Remove duplicated random generators and the old raw delete/insert paths.
+  The legacy robot table is retained but no longer required by registration.
+  Already displayed robot forms must be reloaded after this update. Existing
+  schema/updater coverage suffices; no table or data migration is required.
+
 ### Atomic forced password changes
 
 - Revalidate the current session, credential, active/block/ban state, request

@@ -19,20 +19,6 @@
  *
  ***************************************************************************/
 
-function gen_reg_key()
-{
-	$key = "";
-	$max_length_reg_key = 5;
-	$chars = "abcdefghijklmnopqrstuvwxyz";
-	$random_bytes = phpbb_random_bytes($max_length_reg_key);
-
-	for($i = 0; $i < $max_length_reg_key; $i++)
-	{
-		$key .= $chars[ord($random_bytes[$i]) % 26];
-	}
-
-	return($key);
-}
 
 define('IN_PHPBB', true);
 $phpbb_root_path = './';
@@ -48,68 +34,32 @@ init_userprefs($userdata);
 // End session management
 //
 
-if( !isset($_GET['id']) || !is_scalar($_GET['id']) )
+require_once $phpbb_root_path . 'includes/functions_antirobot.' . $phpEx;
+header('Cache-Control: no-store, private, max-age=0');
+header('X-Content-Type-Options: nosniff');
+if (!isset($_GET['id'],$_GET['robot_id']) || !is_string($_GET['id']) || !preg_match('/^[1-5]$/D',$_GET['id']) || !is_string($_GET['robot_id']))
 {
-	die('Lack of information');
+    http_response_code(404); exit;
 }
+$id=(int)$_GET['id'];
+try { $code=phpbb_antirobot_code($db,$userdata,$_GET['robot_id']); }
+catch (Exception $failure) { $code=false; } catch (Error $failure) { $code=false; }
+if ($code===false) { http_response_code(404); exit; }
+$char=$code[$id-1];
 
-$id = intval($_GET['id']);
-
-if ( ($id < 1) or ($id > 5) )
-{
-	die('Bad request');
-}
-
-// Get the properly char in key
-$sql = "SELECT * FROM " . ANTI_ROBOT_TABLE . "
-		WHERE session_id = '" . $userdata['session_id'] . "'";
-
-if( !$result = $db->sql_query($sql) )
-{
-	die('Cannot obtain information from the database');
-}
-
-if( $db->sql_numrows($result) == 0 )
-{
-	$reg_key = gen_reg_key();
-
-	$sql = "INSERT INTO ". ANTI_ROBOT_TABLE . "
-			VALUES ('" . $userdata['session_id'] . "', '" . $reg_key . "', '" . time() . "')";
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not check registration information', '', __LINE__, __FILE__, $sql);
-	}
-
-	$sql = "SELECT * FROM " . ANTI_ROBOT_TABLE . "
-			WHERE session_id = '" . $userdata['session_id'] . "'";
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		die('Cannot obtain information from the database');
-	}
-}
-
-$reg_row = $db->sql_fetchrow($result);
-
-if (!$reg_row || !isset($reg_row['reg_key']) || !preg_match('/^[a-z]{5}$/D', (string) $reg_row['reg_key']))
-{
-	die('Invalid registration key');
-}
-
-$char = $reg_row['reg_key'][$id - 1];
 $image_directory = @realpath($phpbb_root_path . 'images/anti_robotic_reg');
 $image_file = ($image_directory !== false) ? @realpath($image_directory . DIRECTORY_SEPARATOR . 'anti_robotic_reg_' . $char . '.gif') : false;
 $image_directory_prefix = ($image_directory !== false) ? rtrim(str_replace('\\', '/', $image_directory), '/') . '/' : '';
 $image_file_normalized = ($image_file !== false) ? str_replace('\\', '/', $image_file) : '';
 if ($image_file === false || !@is_file($image_file) || strpos($image_file_normalized, $image_directory_prefix) !== 0)
 {
-	die('Registration image is unavailable');
+	http_response_code(404); exit;
 }
 
 // No Cache
 header ("Expires: Sat, 10 Dec 1983 07:00:00 GMT");
 header ("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
-header ("Cache-Control: no-cache, must-revalidate");  // HTTP/1.1
+header ("Cache-Control: no-store, private, max-age=0");  // HTTP/1.1
 header ("Pragma: no-cache");                          // HTTP/1.0
 
 // Send Image

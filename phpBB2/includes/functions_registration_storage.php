@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__DIR__) . '/attach_mod/includes/functions_mutation.php';
 require_once dirname(__FILE__) . '/functions_ban.php';
+require_once dirname(__FILE__) . '/functions_antirobot.php';
 
 class PhpbbRegistrationException extends RuntimeException {}
 function phpbb_registration_error($key = 'Registration_save_failed')
@@ -43,7 +44,7 @@ class PhpbbRegistrationScope
 			$this->control('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
 			$this->control('START TRANSACTION'); $this->transactional = true; $db = $this;
 			foreach (array(USERS_TABLE, SESSIONS_TABLE, CONFIG_TABLE, PLUS_TABLE, CTRACKER_CONFIG, GROUPS_TABLE, USER_GROUP_TABLE,
-				PROFILE_FIELDS_TABLE, PROFILE_FIELD_ACTIONS_TABLE, DISALLOW_TABLE, WORDS_TABLE, BANLIST_TABLE, CONFIRM_TABLE, ANTI_ROBOT_TABLE, CTRACKER_RATE_LIMITS) as $table)
+				PROFILE_FIELDS_TABLE, PROFILE_FIELD_ACTIONS_TABLE, DISALLOW_TABLE, WORDS_TABLE, BANLIST_TABLE, CONFIRM_TABLE, CTRACKER_RATE_LIMITS) as $table)
 			{
 				$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
 				$name = $this->sql_escape($table);
@@ -120,23 +121,22 @@ class PhpbbRegistrationScope
 	}
 	private function consume_challenge($token)
 	{
-		global $plus_config, $board_config;
+		global $plus_config, $board_config, $userdata;
 		if (!empty($plus_config['enable_antirobot']))
 		{
-			$rows = $this->rows('SELECT reg_key FROM ' . ANTI_ROBOT_TABLE . " WHERE session_id='$token' AND HEX(session_id)=HEX('$token') FOR UPDATE");
 			$key = isset($_POST['reg_key']) && is_string($_POST['reg_key']) ? strtolower($_POST['reg_key']) : '';
-			if (count($rows) !== 1 || $key === '' || !hash_equals((string)$rows[0]['reg_key'], $key)) { phpbb_registration_error('Wrong_reg_key'); }
-			$this->sql_query('DELETE FROM ' . ANTI_ROBOT_TABLE . " WHERE session_id='$token' AND HEX(session_id)=HEX('$token')");
+			$id = isset($_POST['robot_id']) && is_string($_POST['robot_id']) ? $_POST['robot_id'] : '';
+			if (!phpbb_antirobot_consume($this,$userdata['session_id'],$id,$key)) { phpbb_registration_error('Wrong_reg_key'); }
 		}
 		elseif (!empty($board_config['enable_confirm']))
 		{
 			$id = isset($_POST['confirm_id']) && is_string($_POST['confirm_id']) ? $_POST['confirm_id'] : '';
 			$code = isset($_POST['confirm_code']) && is_string($_POST['confirm_code']) ? trim(htmlspecialchars($_POST['confirm_code'])) : '';
-			if (!preg_match('/^[A-Za-z0-9]{1,32}$/D', $id) || $code === '') { phpbb_registration_error('Confirm_code_wrong'); }
+			if (!preg_match('/^[A-Za-z0-9]{1,32}$/D', $id) || $code === '' || (strlen($id)===32 && strtolower($id[0])==='r')) { phpbb_registration_error('Confirm_code_wrong'); }
 			$id = $this->sql_escape($id);
 			$predicate = " WHERE session_id='$token' AND HEX(session_id)=HEX('$token') AND confirm_id='$id' AND HEX(confirm_id)=HEX('$id')";
 			$rows = $this->rows('SELECT code FROM ' . CONFIRM_TABLE . $predicate . ' FOR UPDATE');
-			if (count($rows) !== 1 || !hash_equals((string)$rows[0]['code'], $code)) { phpbb_registration_error('Confirm_code_wrong'); }
+			if (count($rows) !== 1 || !preg_match('/^[A-Za-z0-9]{6}$/D',(string)$rows[0]['code']) || !hash_equals((string)$rows[0]['code'], $code)) { phpbb_registration_error('Confirm_code_wrong'); }
 			$this->sql_query('DELETE FROM ' . CONFIRM_TABLE . $predicate);
 		}
 	}

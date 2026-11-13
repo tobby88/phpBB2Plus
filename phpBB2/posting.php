@@ -797,7 +797,7 @@ else if ( $submit || $confirm )
 				else
 				{
 					$confirm_id = htmlspecialchars($posted_confirm_id);
-					if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id))
+					if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id) || (strlen($confirm_id) === 32 && strtolower($confirm_id[0]) === 'r'))
 					{
 						$confirm_id = '';
 					}
