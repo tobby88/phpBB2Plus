@@ -8,6 +8,8 @@ define('AUTH_ALL', 0);
 define('AUTH_LIST_ALL', 0);
 define('GENERAL_MESSAGE', 0);
 define('GENERAL_ERROR', 1);
+define('TOPIC_UNLOCKED', 0);
+define('TOPIC_LOCKED', 1);
 foreach (array('FORUMS', 'TOPICS', 'USERS', 'POSTS', 'POSTS_TEXT') as $table)
 {
 	define($table . '_TABLE', strtolower($table));
@@ -49,7 +51,7 @@ function search_runtime_assert($condition, $message)
 $db = new SearchRuntimeDatabase();
 $db->sql_query('CREATE TABLE forums (forum_id INTEGER PRIMARY KEY, forum_name TEXT)');
 $db->sql_query('CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT, user_sig TEXT, user_sig_bbcode_uid TEXT)');
-$db->sql_query('CREATE TABLE topics (topic_id INTEGER PRIMARY KEY, forum_id INTEGER, topic_poster INTEGER, topic_first_post_id INTEGER, topic_last_post_id INTEGER, topic_title TEXT)');
+$db->sql_query('CREATE TABLE topics (topic_id INTEGER PRIMARY KEY, forum_id INTEGER, topic_poster INTEGER, topic_first_post_id INTEGER, topic_last_post_id INTEGER, topic_title TEXT, topic_moved_id INTEGER DEFAULT 0, topic_status INTEGER DEFAULT 0)');
 $db->sql_query('CREATE TABLE posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, forum_id INTEGER, poster_id INTEGER, post_username TEXT, post_time INTEGER, post_author_removed INTEGER DEFAULT 0, post_deleted INTEGER DEFAULT 0)');
 $db->sql_query('CREATE TABLE posts_text (post_id INTEGER PRIMARY KEY, post_text TEXT, bbcode_uid TEXT, post_subject TEXT)');
 $db->sql_query("INSERT INTO users VALUES (1, 'Author', '', '')");
@@ -57,7 +59,7 @@ $db->sql_query("INSERT INTO forums VALUES (1, 'Public'), (2, 'Private'), (3, 'Hi
 // First four are public; the rest are unreadable or hidden. No post text for 7.
 foreach (array(1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 2, 6 => 3, 7 => 1) as $id => $forum)
 {
-	$db->sql_query("INSERT INTO topics VALUES ($id, $forum, 1, $id, $id, 'Topic $id')");
+	$db->sql_query("INSERT INTO topics (topic_id,forum_id,topic_poster,topic_first_post_id,topic_last_post_id,topic_title) VALUES ($id, $forum, 1, $id, $id, 'Topic $id')");
 	$db->sql_query("INSERT INTO posts (post_id,topic_id,forum_id,poster_id,post_username,post_time) VALUES ($id, $id, $forum, 1, '', $id)");
 	if ($id !== 7)
 	{
@@ -154,7 +156,7 @@ $prior_reporting=error_reporting(E_ALL);
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{
 	$db->sql_query('UPDATE topics SET forum_id=1 WHERE topic_id=4');
-	$db->sql_query('ALTER TABLE topics ADD topic_replies INTEGER DEFAULT 0');$db->sql_query('ALTER TABLE topics ADD topic_moved_id INTEGER DEFAULT 0');
+	$db->sql_query('ALTER TABLE topics ADD topic_replies INTEGER DEFAULT 0');
 	$db->sql_query('UPDATE topics SET topic_replies=1 WHERE topic_id=2');$db->sql_query('UPDATE topics SET topic_moved_id=99 WHERE topic_id IN (3,7)');
 	$db->sql_query('CREATE TABLE bookmarks(user_id INTEGER,topic_id INTEGER)');$db->sql_query('INSERT INTO bookmarks VALUES(1,1),(1,4),(1,5),(1,6),(1,999),(2,2)');
 	$lang['No_searchable_forums']='no forums';
