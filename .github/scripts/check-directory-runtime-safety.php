@@ -30,7 +30,7 @@ directory_runtime_assert(strpos($staff, '$special_users') === false, 'staff conf
 directory_runtime_assert(strpos($staff, ': $user_sig;') !== false, 'staff signatures must survive an empty censor list');
 directory_runtime_assert(strpos($staff, '($total_posts > 0)') !== false, 'staff post percentages must guard empty boards');
 directory_runtime_assert(strpos($staff, "include(\$phpbb_root_path .'includes/page_tail.'.\$phpEx);\n\texit;") !== false, 'staff popup must stop after its own page tail');
-directory_runtime_assert(strpos($viewonline, "empty(\$is_auth_ary[\$session_page]['auth_view'])") !== false, 'online locations must tolerate stale or inaccessible forums');
-directory_runtime_assert(strpos($viewonline, "intval(\$row['session_topic'])") !== false, 'online topic IDs must be integer-bound before queries');
+directory_runtime_assert(strpos($viewonline, 'phpbb_online_listing($db, $userdata)') !== false && substr_count($viewonline, 'phpbb_online_topic_location($online_context, $session_page, $session_topic)') === 2, 'online locations must use the current native-tested snapshot for normal topics and topic-view activity');
+directory_runtime_assert(strpos($viewonline, "\$session_topic = (int)\$row['session_topic'];") !== false, 'online topic IDs must remain integer-bound before lookup');
 
 echo "Directory runtime safety tests passed.\n";
