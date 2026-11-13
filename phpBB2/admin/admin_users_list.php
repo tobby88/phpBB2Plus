@@ -46,6 +46,8 @@ if (!isset($allowed_sorts[$sort]))
 $order_value = (isset($_POST['order']) && is_scalar($_POST['order'])) ? $_POST['order'] :
 	((isset($_GET['order']) && is_scalar($_GET['order'])) ? $_GET['order'] : 'DESC');
 $order = strtoupper((string) $order_value) === 'ASC' ? 'ASC' : 'DESC';
+$order_by = $allowed_sorts[$sort] . " $order";
+if ($sort !== 'user_id') { $order_by .= ", u.user_id $order"; }
 
 $alpha = (isset($_POST['alpha']) && is_scalar($_POST['alpha'])) ? trim((string) $_POST['alpha']) :
 	((isset($_GET['alpha']) && is_scalar($_GET['alpha'])) ? trim((string) $_GET['alpha']) : '');
@@ -85,6 +87,9 @@ if (!($result = $db->sql_query($sql)))
 $row = $db->sql_fetchrow($result);
 $total_users = intval($row['total']);
 $db->sql_freeresult($result);
+// A saved link can outlive members or a smaller filtered result set. Keep the
+// displayed page number, LIMIT and navigation on the same existing full page.
+$start = (int) (floor(min($start, max(0, $total_users - 1)) / $show) * $show);
 
 $banned = array();
 $sql = "SELECT ban_userid FROM " . BANLIST_TABLE . " WHERE ban_userid <> 0";
@@ -138,7 +143,7 @@ foreach (array_merge(range('A', 'Z'), array('0')) as $letter)
 
 $sql = "SELECT u.user_id, u.username, u.user_email, u.user_regdate, u.user_lastvisit, u.user_posts, u.user_active
 	FROM " . USERS_TABLE . " u WHERE u.user_id > 0$alpha_sql
-	ORDER BY " . $allowed_sorts[$sort] . " $order LIMIT $start, $show";
+	ORDER BY $order_by LIMIT $start, $show";
 if (!($result = $db->sql_query($sql)))
 {
 	message_die(GENERAL_ERROR, 'Could not query user information', '', __LINE__, __FILE__, $sql);

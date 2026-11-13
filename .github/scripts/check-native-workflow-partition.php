@@ -10,7 +10,10 @@ function native_workflow_partition($source)
 		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
 		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
 		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 26
+		|| preg_match_all('/^        run:/m',$extra) !== 27
+		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-userlist-pages-native\\.php$/m',$extra) !== 1
+		|| strpos($extra,"PHPBB_USERLIST_PAGES_NATIVE: '1'") === false
+		|| strpos($extra,"PHPBB_USERLIST_PAGES_MYSQL: '8.4'") === false
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-pm-download-native\.php$/m',$extra) !== 1
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-post-download-native\.php$/m',$extra) !== 1
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-registration-native\.php$/m',$extra) !== 1

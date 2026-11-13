@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### ACP user-list navigation
+
+- Bring stale or partial user-list offsets back to a complete existing page,
+  including filtered and empty results. Keep page numbers, links and listed
+  members consistent after the result count changes.
+- Give equal sort values a deterministic user-ID tie-breaker. Exercise the
+  actual read controller and shared pagination with canonical native tables,
+  German/English labels and unchanged member/group/ban data on all supported
+  PHP versions and MySQL 8.4. Existing bulk-write authority checks are retained.
+
 ### Native style-import fixture setup
 
 - Commit each disposable style-import starting data set in one owned setup

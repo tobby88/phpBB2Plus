@@ -589,10 +589,14 @@ jobs:
           PHPBB_IP_MIGRATION_PASSWORD: fixture-only
       - name: Check native atomic user-list bulk actions
         if: matrix.part == 2
-        run: php .github/scripts/check-userlist-native.php
+        run: |
+          php .github/scripts/check-userlist-native.php
+          php .github/scripts/check-userlist-pages-native.php
         env:
           PHPBB_USERLIST_NATIVE: '1'
           PHPBB_USERLIST_PASSWORD: fixture-only
+          PHPBB_USERLIST_PAGES_NATIVE: '1'
+          PHPBB_USERLIST_PAGES_PASSWORD: fixture-only
       - name: Check native atomic moderation card publication
         if: matrix.part == 3
         run: php -d disable_functions=mail .github/scripts/check-card-native.php
@@ -1578,6 +1582,12 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check actual user-list pages on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-userlist-pages-native.php
+        env:
+          PHPBB_USERLIST_PAGES_NATIVE: '1'
+          PHPBB_USERLIST_PAGES_PASSWORD: fixture-only
+          PHPBB_USERLIST_PAGES_MYSQL: '8.4'
       - name: Check actual MySQL attachment authorization and reader lifecycle
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
         env:
