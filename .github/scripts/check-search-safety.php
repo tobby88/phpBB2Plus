@@ -43,7 +43,8 @@ search_safety_assert(strpos($ajax, 'phpbb_search_excerpt($message, $bbcode_uid, 
 search_safety_assert(strpos($search, '$postrow[$i]') === false, 'full-text rendering must read flags from the actual result set');
 
 search_safety_assert(strpos($search, "in_array(\$mode, array('', 'results', 'searchuser', 'removebm'), true)") !== false, 'search modes must use an allowlist');
-search_safety_assert(strpos($search, 'phpbb_request_id_array($_POST, \'topic_id_list\')') !== false, 'bookmark deletion must accept only positive scalar IDs');
+$bookmark = file_get_contents($root . '/phpBB2/includes/functions_bookmark.php');
+search_safety_assert(strpos($search, 'remove_bookmarks($topics)') !== false && strpos($bookmark, 'phpbb_bookmark_remove_many($db, $topic_ids)') !== false, 'bookmark selection must reach the atomically validated batch worker; native controller tests cover malformed IDs and rollback');
 search_safety_assert(strpos($search, "hash_equals((string) \$userdata['session_id'], \$submitted_sid)") !== false, 'bookmark deletion must verify the session token');
 search_safety_assert(substr_count($search, 'phpbb_username_search_sql($db,') === 2 && substr_count($search, 'phpbb_post_author_search_sql($db,') === 2, 'both registered predicates retain account scope and both guest predicates use complete guest identity patterns');
 $guest_helper = file_get_contents($root . '/phpBB2/includes/functions_post_author.php');
