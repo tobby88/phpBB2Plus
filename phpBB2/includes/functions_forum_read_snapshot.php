@@ -41,30 +41,35 @@ class PhpbbForumReadSnapshot
 			$this->control('SET SESSION lock_wait_timeout=3');
 			$this->control('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
 			$this->control('START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY'); $this->transaction = true;
-			if (!is_array($tables) || !$tables || count($tables) > 32) { $this->fail(); }
-			$tables = array_values($tables);
-			$pins = $names = array();
-			foreach ($tables as $i => $table)
-			{
-				if (!is_string($table) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $table)) { $this->fail(); }
-				$pins[] = $table . ' forum_read_pin_' . $i; $names[] = "'" . $table . "'";
-			}
-			// Open all participants before checking their metadata. These shared
-			// metadata locks last for the snapshot, including empty tables.
-			$this->rows('SELECT 1 FROM ' . implode(',', $pins) . ' LIMIT 0');
-			$scope = 'TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (' . implode(',', $names) . ')';
-			$metadata = $this->rows('SELECT TABLE_NAME,ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE ' . $scope . " AND TABLE_TYPE='BASE TABLE'");
-			if (count($metadata) !== count($tables)) { $this->fail(); }
-			foreach ($metadata as $row)
-			{
-				if (!in_array($row['TABLE_NAME'], $tables, true) || $row['ENGINE'] !== 'InnoDB'
-					|| strtolower($row['ROW_FORMAT']) !== 'dynamic' || $row['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { $this->fail(); }
-			}
-			if ($this->rows('SELECT TABLE_NAME FROM information_schema.COLUMNS WHERE ' . $scope
-				. " AND CHARACTER_SET_NAME IS NOT NULL AND (CHARACTER_SET_NAME<>'utf8mb4' OR COLLATION_NAME<>'utf8mb4_unicode_ci') LIMIT 1")) { $this->fail(); }
+			$this->pin_tables($tables);
 		}
 		catch (Exception $error) { $this->release(); throw $error; }
 		catch (Error $error) { $this->release(); throw $error; }
+	}
+	// Optional projections can pin additional participants inside this same snapshot.
+	protected function pin_tables($tables)
+	{
+		if (!is_array($tables) || !$tables || count($tables) > 32) { $this->fail(); }
+		$tables = array_values($tables);
+		$pins = $names = array();
+		foreach ($tables as $i => $table)
+		{
+			if (!is_string($table) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $table)) { $this->fail(); }
+			$pins[] = $table . ' forum_read_pin_' . $i; $names[] = "'" . $table . "'";
+		}
+		// Open all participants before checking their metadata. These shared
+		// metadata locks last for the snapshot, including empty tables.
+		$this->rows('SELECT 1 FROM ' . implode(',', $pins) . ' LIMIT 0');
+		$scope = 'TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (' . implode(',', $names) . ')';
+		$metadata = $this->rows('SELECT TABLE_NAME,ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE ' . $scope . " AND TABLE_TYPE='BASE TABLE'");
+		if (count($metadata) !== count($tables)) { $this->fail(); }
+		foreach ($metadata as $row)
+		{
+			if (!in_array($row['TABLE_NAME'], $tables, true) || $row['ENGINE'] !== 'InnoDB'
+				|| strtolower($row['ROW_FORMAT']) !== 'dynamic' || $row['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { $this->fail(); }
+		}
+		if ($this->rows('SELECT TABLE_NAME FROM information_schema.COLUMNS WHERE ' . $scope
+			. " AND CHARACTER_SET_NAME IS NOT NULL AND (CHARACTER_SET_NAME<>'utf8mb4' OR COLLATION_NAME<>'utf8mb4_unicode_ci') LIMIT 1")) { $this->fail(); }
 	}
 	private function control($sql)
 	{

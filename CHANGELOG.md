@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current banner visibility in the online list
+
+- Apply the banner's current audience, active state, display schedule and
+  readable forum scope before showing its description or redirect link.
+  Missing or unavailable banners retain a generic activity label and a
+  usable link to the forum index; stored descriptions render once as UTF-8.
+- Read optional banner data in the same independent read-only snapshot as
+  the current viewer and online sessions. Pin and validate its canonical
+  table only when a visible banner activity actually needs it.
+- Preserve banner data and click counters. No new configuration or schema
+  migration is required; native controller cases cover EN/DE, role changes,
+  missing/deactivated banners, schedules, metadata failures and snapshots.
+
 ### Consistent online counters and atomic visitor records
 
 - Reuse the current validated session cohort for site-header totals and names.

@@ -189,23 +189,12 @@ foreach ($online_context['rows'] as $row)
 				case PAGE_REDIRECT: 
 					require_once($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_banner.' . $phpEx);
 				
-					if ($session_topic > 0)
+					$location_url = "index.$phpEx";
+					$location = $lang['Left_via_banner'];
+					if (isset($online_context['banners'][$session_topic]))
 					{
-						$sql = "SELECT banner_description FROM " . BANNERS_TABLE . " WHERE banner_id=" . $session_topic;
-						if ( $result2 = $db->sql_query($sql) )
-						{
-							$banner_data = $db->sql_fetchrow($result2);
-						}
-						else
-						{	
-							message_die(GENERAL_ERROR, 'Could not obtain redirect online information', '', __LINE__, __FILE__, $sql);
-						}
-						$location_url = append_sid("redirect.$phpEx?banner_id=" . $session_topic);
-						$location = $lang['Left_via_banner'] .' --> '. phpbb_profile_text(isset($banner_data['banner_description']) ? $banner_data['banner_description'] : '');
-					} else
-					{
-						$location_url = "";
-						$location = $lang['Left_via_banner'];
+						$location_url = "redirect.$phpEx?banner_id=" . $session_topic;
+						$location .= ' --> ' . phpbb_stored_text($online_context['banners'][$session_topic]);
 					}
 					break;
 				// End add - Complete banner MOD	

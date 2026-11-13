@@ -9,6 +9,41 @@ class PhpbbOnlineReader extends PhpbbForumReadSnapshot
 		parent::__construct($database, array(CONFIG_TABLE, SESSIONS_TABLE, USERS_TABLE, BANLIST_TABLE,
 			FORUMS_TABLE, TOPICS_TABLE, POSTS_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE));
 	}
+	function banners($rows, $viewer, $read_forums, $now)
+	{
+		global $board_config;
+		$ids = array();
+		foreach ($rows as $row)
+		{
+			if ((int)$row['session_page'] === (int)PAGE_REDIRECT && (int)$row['session_topic'] > 0
+				&& (!(int)$row['session_logged_in'] || !empty($row['user_allow_viewonline']) || (string)$viewer['user_level'] === (string)ADMIN))
+			{ $ids[(int)$row['session_topic']] = (int)$row['session_topic']; }
+		}
+		if (!$ids) { return array(); }
+		$this->pin_tables(array(BANNERS_TABLE));
+		$level = (int)$viewer['user_id'] === ANONYMOUS ? ANONYMOUS
+			: ((int)$viewer['user_level'] === ADMIN ? MOD : ((int)$viewer['user_level'] === MOD ? ADMIN : USER));
+		$timezone = $board_config['board_timezone'];
+		$hour = (int)create_date('Hi', $now, $timezone);
+		$week = (int)create_date('w', $now, $timezone);
+		$date = (int)create_date('Ymd', $now, $timezone);
+		// Match the banner's display audience and schedule. A session activity is
+		// not permission to show an administrator-only or private-forum label.
+		$allowed = 'banner_active=1 AND (banner_forum=0'
+			. ($read_forums ? ' OR banner_forum IN (' . implode(',', $read_forums) . ')' : '') . ')'
+			. ' AND ((banner_level_type=0 AND banner_level=' . $level . ')'
+			. ' OR (banner_level_type=1 AND ' . $level . '<=banner_level)'
+			. ' OR (banner_level_type=2 AND ' . $level . '>=banner_level)'
+			. ' OR (banner_level_type=3 AND ' . $level . '<>banner_level))'
+			. ' AND (banner_timetype=0 OR (' . $hour . ' BETWEEN time_begin AND time_end AND (banner_timetype=2'
+			. ' OR (banner_timetype=4 AND ' . $week . ' BETWEEN date_begin AND date_end)'
+			. ' OR (banner_timetype=6 AND ' . $date . ' BETWEEN date_begin AND date_end))))';
+		$out = array();
+		foreach ($this->rows('SELECT banner_id,banner_description FROM ' . BANNERS_TABLE
+			. ' WHERE banner_id IN (' . implode(',', $ids) . ') AND ' . $allowed) as $banner)
+		{ $out[(int)$banner['banner_id']] = $banner['banner_description']; }
+		return $out;
+	}
 }
 
 // Internal SQL predicate comes only from validated topic/forum IDs and ACLs.
@@ -102,7 +137,8 @@ function phpbb_online_listing($database, $actor)
 				. ' AND active_session.session_topic=t.topic_id AND (active_session.session_page>0 OR active_session.session_page=' . (int)PAGE_TOPIC_VIEW . '))';
 			foreach ($reader->rows($sql) as $topic) { $topics[(int)$topic['topic_id']] = $topic; }
 		}
-		return array('rows'=>$rows, 'forums'=>$forums,
+		$banners = $reader->banners($rows, $viewer, $read, $now);
+		return array('rows'=>$rows, 'forums'=>$forums, 'banners'=>$banners,
 			'topics'=>$topics, 'admin'=>(string)$viewer['user_level'] === (string)ADMIN);
 	}
 	finally { if ($reader) { $reader->release(); } }
