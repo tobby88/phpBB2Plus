@@ -67,8 +67,11 @@ else
 	// Keep the configured command unchanged, but make real delivery impossible
 	// in the child that exercises actual controller/mailer code.
 	$crypto = DIRECTORY_SEPARATOR === '\\' && PHP_VERSION_ID < 70000 ? ' -d extension=' . escapeshellarg(ini_get('extension_dir') . '/php_openssl.dll') : '';
+	// Keep the configured Linux modules (notably ctype/OpenSSL). The bundled
+	// Windows test runtimes use their explicit standalone extension setup.
+	$isolated = DIRECTORY_SEPARATOR === '\\' ? ' -n' : '';
 	$lines = array(); $status = 1;
-	exec(escapeshellarg(PHP_BINARY) . ' -n -d date.timezone=UTC -d disable_functions=mail ' . $crypto . ' ' . escapeshellarg(__FILE__) . ' 2>&1', $lines, $status);
+	exec(escapeshellarg(PHP_BINARY) . $isolated . ' -d date.timezone=UTC -d disable_functions=mail ' . $crypto . ' ' . escapeshellarg(__FILE__) . ' 2>&1', $lines, $status);
 	if ($status !== 0 || count($lines) !== 2 || $lines[0] !== 'Mail workflow safety checks passed.' || strpos($lines[1], 'Contact workflow: 76 actual controller/mailer/file cases, 2 EN/DE XS forms PASS;') !== 0)
 	{
 		fwrite(STDERR, implode("\n", $lines) . "\n"); exit(1);
