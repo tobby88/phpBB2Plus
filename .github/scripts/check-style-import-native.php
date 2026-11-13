@@ -28,7 +28,7 @@ $body=<<<'PHP'
   $items=array($tpl,'Fixture','First Größe 😀',isset($second['style_name'])?$second['style_name']:'Second');$lengths='';foreach($items as $item){$lengths.=chr(strlen($item));}$size=strlen(STYLE_HEADER_START)+9+strlen($lengths)+strlen(implode('',$items))+strlen(STYLE_HEADER_END);$zip=gzcompress($tar);
   file_put_contents($GLOBALS['sd_root'].'/cache/input.style',STYLE_HEADER_START.pack('NN',$size,$size+strlen($zip)).chr(count($items)).$lengths.implode('',$items).STYLE_HEADER_END.$zip);clearstatcache();
  }
- function sim_reset($actor='root'){sd_reset($actor);sd_sql('DELETE FROM fixture_config');sd_sql("INSERT INTO fixture_config VALUES ('default_style','1'),('unrelated','keep')");sim_archive();file_put_contents($GLOBALS['sd_root'].'/cache/config_data.cache','old');foreach(array('fisubsilversh','legacy') as $tpl){file_put_contents($GLOBALS['sd_root'].'/templates/'.$tpl.'/theme_info.cfg','original fixture');}}
+ function sim_reset_rows($actor='root'){sd_reset($actor);sd_sql('DELETE FROM fixture_config');sd_sql("INSERT INTO fixture_config VALUES ('default_style','1'),('unrelated','keep')");sim_archive();file_put_contents($GLOBALS['sd_root'].'/cache/config_data.cache','old');foreach(array('fisubsilversh','legacy') as $tpl){file_put_contents($GLOBALS['sd_root'].'/templates/'.$tpl.'/theme_info.cfg','original fixture');}}
  function sim_run($request=array()){
   global $db,$phpbb_root_path,$phpEx,$lang,$template,$userdata,$HTTP_POST_VARS,$HTTP_GET_VARS,$board_config,$xs_header_error;
   $HTTP_POST_VARS=array_merge(array('sid'=>'fixture-admin','total'=>'2','import_install_0'=>'1','import_install_1'=>'1','import_default'=>'-1'),$request);$HTTP_GET_VARS=array();$board_config=array('default_style'=>1);
@@ -47,6 +47,10 @@ $body=<<<'PHP'
   foreach(scandir($path) as $name){if($name!=='.'&&$name!=='..'){sim_cleanup($path.DIRECTORY_SEPARATOR.$name,$root);}}rmdir($path);
  }
  function sim_boundary($sql){return preg_match('/^(INSERT INTO fixture_themes |UPDATE fixture_(themes|config) )/',$sql)||strpos($sql,'FOR UPDATE')!==false||strpos($sql,' LOCK IN SHARE MODE')!==false||$sql==='COMMIT';}
+ require dirname($sd_source).'/.github/fixtures/style-import-seed.php';
+ require dirname($sd_source).'/.github/fixtures/style-import-seed-checks.php';
+ function sim_reset($actor='root') { return sim_seed(function()use($actor) { return sim_reset_rows($actor); }); }
+ sim_seed_checks();
  $cases=0;$serialized=0;
  foreach(getenv('PHPBB_STYLE_IMPORT_EXTRA_ONLY')==='1'?array():array('root','delegated') as $actor){
   sim_reset($actor);sd_check(sim_run(array('import_default'=>'1'))==='saved','Actual import and default');$rows=phpbb_acl_rows($peer,"SELECT themes_id,fontface1,theme_public FROM fixture_themes WHERE style_name='First Größe 😀'");sd_check(count(sd_snapshot()[0])===4&&$rows[0]['fontface1']==='Test\\Family'&&$rows[0]['theme_public']==='1','Unicode, literal slash and public supported theme');sd_check($board_config['default_style']>2,'Request-local default published after commit');sd_check(!is_file($sd_root.'/cache/themes.cache')&&!is_file($sd_root.'/cache/config_data.cache'),'Both caches invalidated');sd_unlocked();$boundaries=array_values(array_filter($sd_queries,'sim_boundary'));$cases++;

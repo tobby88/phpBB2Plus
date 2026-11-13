@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Native style-import fixture setup
+
+- Commit each disposable style-import starting data set in one owned setup
+  transaction instead of confirming every seed statement separately. Preserve
+  all original import, revocation, rollback and recovery cases and their exact
+  starting rows; leave application transactions and timeouts unchanged.
+- Check all six original fixture tables, real SQL and callback failures, failed
+  or lost commit acknowledgements, and refusal to commit an outer transaction.
+  The shared setup also covers the import-recovery and clone-controller suites.
+
 ### Current account blocks in shared identity and posting
 
 - Include current CrackerTracker block time in the shared account identity used
