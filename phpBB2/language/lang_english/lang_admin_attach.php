@@ -245,4 +245,12 @@ $lang['Attachment_metadata_saved'] = 'The attachment changes were saved successf
 $lang['Attachment_metadata_return'] = 'Click %sHere%s to return to attachment administration.';
 $lang['Attachment_search_invalid'] = 'Please check the attachment search fields and shorten overly long search text. Sizes, counts, days and forum IDs must be whole nonnegative numbers within the supported range.';
 
+$lang['Attachment_admin_delete_invalid'] = 'Select existing attachments without duplicate or invalid IDs, then reload the confirmation. Nothing was removed.';
+$lang['Attachment_admin_delete_busy'] = 'A selected attachment is still reserved by an upload or message being saved. Try again after it finishes. Nothing was removed.';
+$lang['Attachment_admin_delete_failed'] = 'The selected attachments could not be removed. Their links were not changed.';
+$lang['Attachment_admin_delete_upgrade'] = 'The attachment storage needs updating. Run update_from_153a.php before removing attachments.';
+$lang['Attachment_admin_delete_unconfirmed'] = 'Attachment removal could not be confirmed. Check the current list before submitting again.';
+$lang['Attachment_admin_delete_saved'] = 'The selected attachments were removed successfully.';
+$lang['Attachment_admin_delete_cleanup'] = 'The selected attachment links were removed, but file cleanup could not be fully confirmed. Reserved descriptions remain recoverable under Shadow attachments.';
+
 ?>

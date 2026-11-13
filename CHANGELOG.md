@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current ACP attachment removal and recoverable cleanup
+
+- Validate the complete unique attachment selection and current ACP or delegated
+  module rights for both the confirmation and actual removal. Recheck exact
+  active administrator sessions and accounts under the shared attachment lock;
+  a formerly authorized browser form cannot bypass revoked rights.
+- Remove post and private-message links together in one owned InnoDB transaction
+  and verify the affected post, topic and message flags before acknowledging it.
+  Leave caller transactions, unselected descriptions and active uploads intact.
+- Clean up files only after confirmed detachment. Preserve shared filenames,
+  carry known thumbnail cleanup across selected aliases, and retain detached
+  descriptions when cleanup fails. Report uncertain commit acknowledgements and
+  incomplete physical cleanup separately. Existing tables need no migration.
+
 ### Consistent ACP attachment pages
 
 - Count existing descriptions in both the global and uploader views. Shared

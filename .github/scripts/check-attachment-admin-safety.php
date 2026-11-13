@@ -37,7 +37,7 @@ foreach (array('$add_forum || $delete_forum', "array('extensions', 'groups', 'fo
 	}
 }
 
-foreach (array('$normalized_delete_ids', 'phpbb_stored_text($attachments[$i][\'comment\'])') as $marker)
+foreach (array('phpbb_attach_admin_delete_ids', 'phpbb_attach_admin_remove($db, $_POST, true)', 'phpbb_attach_admin_remove($db, $_POST, false)', 'phpbb_stored_text($attachments[$i][\'comment\'])') as $marker)
 {
 	if (strpos($control, $marker) === false)
 	{

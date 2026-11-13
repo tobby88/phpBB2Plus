@@ -23,6 +23,7 @@ $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 require_once($phpbb_root_path . 'attach_mod/includes/functions_metadata_storage.' . $phpEx);
+require_once($phpbb_root_path . 'attach_mod/includes/functions_admin_delete_storage.' . $phpEx);
 
 @include_once($phpbb_root_path . 'attach_mod/includes/constants.'.$phpEx);
 
@@ -162,35 +163,42 @@ $select_sort_order .= '</select>';
 
 $submit_change = (isset($HTTP_POST_VARS['submit_change'])) ? TRUE : FALSE;
 $delete = (isset($HTTP_POST_VARS['delete'])) ? TRUE : FALSE;
-$delete_id_list = get_var('delete_id_list', array(0));
-$normalized_delete_ids = array();
-foreach ($delete_id_list as $delete_id)
-{
-	$delete_id = intval($delete_id);
-	if ($delete_id > 0)
-	{
-		$normalized_delete_ids[$delete_id] = $delete_id;
-	}
-}
-$delete_id_list = array_values($normalized_delete_ids);
+$delete_id_list = array();
 
 $confirm = !empty($HTTP_POST_VARS['confirm']);
 if ($submit_change || $delete || $confirm)
 {
 	phpbb_admin_require_post_session();
 }
+if ($delete || $confirm)
+{
+	try
+	{
+		if ((int) $submit_change + (int) $delete + (int) $confirm !== 1) { throw new PhpbbOwnedStorageFailure('Attachment_admin_delete_invalid'); }
+		$delete_id_list = phpbb_attach_admin_delete_ids(isset($_POST['delete_id_list']) ? $_POST['delete_id_list'] : null);
+	}
+	catch (PhpbbOwnedStorageFailure $error) { message_die(GENERAL_MESSAGE, $lang['Attachment_admin_delete_invalid']); }
+}
 
 if ($confirm && sizeof($delete_id_list) > 0)
 {
-	$attachments = array();
-
-	delete_attachment(0, $delete_id_list);
-	// ACP removal intentionally covers both contexts; the shared deletion
-	// helper must never treat post_id = 0 as permission to remove PM links.
-	delete_attachment(0, $delete_id_list, PAGE_PRIVMSGS);
+	try { $delete_result = phpbb_attach_admin_remove($db, $_POST, true); }
+	catch (PhpbbOwnedStorageFailure $error)
+	{
+		$key = $error->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Attachment_admin_delete_failed']);
+	}
+	$return_url = append_sid('admin_attach_cp.' . $phpEx . '?view=attachments&mode=' . rawurlencode($mode) . '&order=' . $sort_order . '&uid=' . (int) $uid . '&start=' . (int) $start . (!empty($search_based) ? attach_admin_search_query($search_filters, false) : ''), true);
+	message_die(GENERAL_MESSAGE, $lang[$delete_result['cleanup_complete'] ? 'Attachment_admin_delete_saved' : 'Attachment_admin_delete_cleanup'] . '<br /><br />' . sprintf($lang['Attachment_metadata_return'], '<a href="' . phpbb_profile_text($return_url) . '">', '</a>'));
 }
 else if ($delete && sizeof($delete_id_list) > 0)
 {
+	try { phpbb_attach_admin_remove($db, $_POST, false); }
+	catch (PhpbbOwnedStorageFailure $error)
+	{
+		$key = $error->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Attachment_admin_delete_failed']);
+	}
 	// Not confirmed, show confirmation message
 	$hidden_fields = '<input type="hidden" name="view" value="' . $view . '" />';
 	$hidden_fields .= '<input type="hidden" name="mode" value="' . $mode . '" />';

@@ -244,4 +244,12 @@ $lang['Attachment_metadata_saved'] = 'Die Anhangsänderungen wurden erfolgreich 
 $lang['Attachment_metadata_return'] = 'Klicke %shier%s, um zur Anhangsverwaltung zurückzukehren.';
 $lang['Attachment_search_invalid'] = 'Bitte prüfe die Suchfelder für Anhänge und kürze zu lange Suchtexte. Größen, Zähler, Tage und Forenkennungen müssen ganze, nicht negative Zahlen im unterstützten Bereich sein.';
 
+$lang['Attachment_admin_delete_invalid'] = 'Bitte wähle vorhandene Anhänge ohne doppelte oder ungültige IDs aus und lade die Bestätigung neu. Es wurde nichts entfernt.';
+$lang['Attachment_admin_delete_busy'] = 'Ein ausgewählter Anhang ist noch für einen Upload oder eine gerade gespeicherte Nachricht reserviert. Bitte warte den Abschluss ab. Es wurde nichts entfernt.';
+$lang['Attachment_admin_delete_failed'] = 'Die ausgewählten Anhänge konnten nicht entfernt werden. Ihre Verknüpfungen wurden nicht geändert.';
+$lang['Attachment_admin_delete_upgrade'] = 'Der Anhangsspeicher muss aktualisiert werden. Bitte führe vor dem Entfernen update_from_153a.php aus.';
+$lang['Attachment_admin_delete_unconfirmed'] = 'Das Entfernen der Anhänge konnte nicht bestätigt werden. Bitte prüfe die aktuelle Liste, bevor du das Formular erneut absendest.';
+$lang['Attachment_admin_delete_saved'] = 'Die ausgewählten Anhänge wurden erfolgreich entfernt.';
+$lang['Attachment_admin_delete_cleanup'] = 'Die ausgewählten Anhangsverknüpfungen wurden entfernt, aber die Dateibereinigung konnte nicht vollständig bestätigt werden. Reservierte Beschreibungen bleiben unter Schatten-Anhänge zur Nachbearbeitung erhalten.';
+
 ?>
