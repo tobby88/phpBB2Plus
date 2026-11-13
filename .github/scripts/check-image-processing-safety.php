@@ -59,6 +59,8 @@ $corrupt_thumbnail = tempnam($image_fixture_directory, 'phpbb-thumb-');
 @unlink($corrupt_thumbnail);
 file_put_contents($corrupt_gif, "GIF89a" . pack('vv', 10, 10) . "\x00\x00\x00");
 image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'image/gif') === false, 'a corrupt attachment image must fail without a GD type error');
+file_put_contents($corrupt_thumbnail, 'previous complete thumbnail');
+image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'image/gif') === false && file_get_contents($corrupt_thumbnail) === 'previous complete thumbnail', 'a failed actual decoder preserves a previous target');
 @unlink($corrupt_gif);
 @unlink($corrupt_thumbnail);
 
@@ -83,6 +85,7 @@ if (!extension_loaded('gd'))
 	finally { unlink($source_file); if (is_file($target_file)) { unlink($target_file); } }
 
 	echo "Attachment thumbnail no-encoder: 3 real file cases PASS; absent, invalid and valid targets cannot acknowledge a write, existing bytes preserved.\n";
+	require __DIR__ . '/thumbnail-publication-fixture.php';
 }
 
 if (extension_loaded('gd'))
@@ -106,10 +109,13 @@ if (extension_loaded('gd'))
 
 	// Exercise the actual no-extension branch even on the ordinary GD CI host.
 	$child_lines = array(); $child_status = 1;
-	exec(escapeshellarg(PHP_BINARY) . ' -n -d date.timezone=UTC -d disable_functions=mail ' . escapeshellarg(__FILE__) . ' 2>&1', $child_lines, $child_status);
+	$crypto = DIRECTORY_SEPARATOR === '\\' && PHP_VERSION_ID < 70000 ? ' -d extension=' . escapeshellarg(ini_get('extension_dir') . '/php_openssl.dll') : '';
+	exec(escapeshellarg(PHP_BINARY) . ' -n -d date.timezone=UTC -d disable_functions=mail ' . $crypto . ' ' . escapeshellarg(__FILE__) . ' 2>&1', $child_lines, $child_status);
 	$child_output = implode("\n", $child_lines);
 	image_processing_assert($child_status === 0 && substr_count($child_output, 'Attachment thumbnail no-encoder: 3 real file cases PASS;') === 1, 'actual no-extension PHP child preserves existing targets: ' . $child_output);
+	image_processing_assert(substr_count($child_output, 'Attachment thumbnail publication: 9 file/converter cases, 3 bounded FTP cases PASS.') === 1, 'actual converter processes and bounded FTP outcomes: ' . $child_output);
 	echo "Attachment thumbnail no-encoder subprocess PASS.\n";
+	echo "Attachment thumbnail publication subprocess: 9 file/converter cases, 3 bounded FTP cases PASS.\n";
 }
 
 $root = dirname(dirname(__DIR__));

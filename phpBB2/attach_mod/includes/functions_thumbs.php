@@ -108,7 +108,51 @@ function get_supported_image_types($type)
 /**
 * Create thumbnail
 */
-function create_thumbnail($source, $new_file, $mimetype) 
+function create_thumbnail($source, $new_file, $mimetype)
+{
+	global $attach_config;
+	$temporary = null;
+	try
+	{
+		if (!is_string($source) || !is_string($new_file) || $new_file === '' || strpos($source, "\0") !== false || strpos($new_file, "\0") !== false || strpos($new_file, '://') !== false) { return false; }
+		$source = amod_realpath($source);
+		if (!is_string($source) || !is_file($source)) { return false; }
+		$info = @getimagesize($source);
+		if (!$info || !phpbb_image_dimensions_safe($info[0], $info[1])) { return false; }
+		$extension = image_type_to_extension($info[2], false);
+		if (!is_string($extension) || !preg_match('/^[a-z0-9]{1,8}$/iD', $extension)) { return false; }
+		$ftp = (int) $attach_config['allow_ftp_upload'] !== 0;
+		$directory = @realpath(dirname($ftp ? $source : $new_file));
+		if ($directory === false || !is_dir($directory)) { return false; }
+		$target = $directory . '/' . basename($new_file);
+		if (!$ftp && (is_link($target) || (file_exists($target) && !is_file($target)) || @realpath($target) === $source)) { return false; }
+		// Keep the format suffix for ImageMagick, but reserve an unpredictable
+		// same-directory file exclusively. Never delete/truncate the old target.
+		for ($attempt = 0; $attempt < 8; $attempt++)
+		{
+			$candidate = $directory . '/.phpbb-thumb-' . bin2hex(phpbb_random_bytes(12)) . '.' . $extension;
+			$handle = @fopen($candidate, 'x+b');
+			if ($handle !== false) { fclose($handle); $temporary = $candidate; break; }
+		}
+		if ($temporary === null || !@chmod($temporary, 0600)) { return false; }
+		if (!phpbb_attachment_thumbnail_encode($source, $temporary, $mimetype) || is_link($temporary) || !is_file($temporary)) { return false; }
+		$shape = @getimagesize($temporary);
+		list($width, $height) = get_img_size_format($info[0], $info[1]);
+		$types = in_array($info[2], array(9, 10, 11, 12), true) ? array($info[2], 2) : array($info[2]);
+		if (!$shape || !in_array($shape[2], $types, true) || !phpbb_image_dimensions_safe($shape[0], $shape[1]) || abs($shape[0] - $width) > 1 || abs($shape[1] - $height) > 1) { return false; }
+		if ($ftp) { return (bool) ftp_file($temporary, $new_file, $mimetype, true); }
+		if (is_link($target) || (file_exists($target) && !is_file($target)) || !@chmod($temporary, 0664)) { return false; }
+		if (!@rename($temporary, $target)) { return false; }
+		$temporary = null;
+		return true;
+	}
+	catch (Exception $exception) { return false; }
+	catch (Error $exception) { return false; }
+	finally { if ($temporary !== null && is_file($temporary) && !is_link($temporary)) { @unlink($temporary); } }
+}
+
+// Internal encoder: its destination is always a freshly owned scratch file.
+function phpbb_attachment_thumbnail_encode($source, $new_file, $mimetype)
 {
 	global $attach_config, $imagick;
 
@@ -136,35 +180,6 @@ function create_thumbnail($source, $new_file, $mimetype)
 	}
 
 	list($new_width, $new_height) = get_img_size_format($width, $height);
-
-	$tmp_path = $old_file = '';
-
-	if (intval($attach_config['allow_ftp_upload']))
-	{
-		$old_file = $new_file;
-
-		$tmp_path = explode('/', $source);
-		$tmp_path[count($tmp_path)-1] = '';
-		$tmp_path = implode('/', $tmp_path);
-
-		if ($tmp_path == '')
-		{
-			$tmp_path = '/tmp';
-		}
-
-		$value = trim($tmp_path);
-
-		if ($value[strlen($value)-1] == '/')
-		{
-			$value[strlen($value)-1] = ' ';
-		}
-
-		// 
-		$new_file = tempnam(trim($value), 't00000');
-
-		// We remove it now because it gets created again later
-		@unlink($new_file);
-	}
 
 	$used_imagick = false;
 	$thumbnail_written = false;
@@ -267,21 +282,6 @@ function create_thumbnail($source, $new_file, $mimetype)
 		return false;
 	}
 
-	if (intval($attach_config['allow_ftp_upload']))
-	{
-		$result = ftp_file($new_file, $old_file, $mimetype, true); // True for disable error-mode
-		@unlink($new_file);
-
-		if (!$result)
-		{
-			return false;
-		}
-	}
-	else
-	{
-		@chmod($new_file, 0664);
-	}
-	
 	return true;
 }
 

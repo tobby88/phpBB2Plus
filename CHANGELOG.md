@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Preserve thumbnails after failed conversion
+
+- Give GD and the external converter an exclusively reserved temporary file,
+  retaining the format suffix. Check output format and bounded dimensions
+  before replacing the local destination with a same-directory rename.
+- Leave the previous image untouched on partial/empty/missing output, encoder
+  failure or unsuccessful publication. Reject symlink/directory destinations
+  and source/output identity; clean only the owned temporary file.
+- Pass only a validated local image to the existing FTP transport, and remove
+  the local stage after success or failure. Remote FTP replacement semantics
+  remain those of the existing transport.
+- Exercise real converter subprocess failures/successes, file preservation,
+  destination guards and bounded FTP sinks alongside actual GD resizes under
+  PHP 5.6, 7.4 and 8.5. No schema or updater change is needed.
+
 ### Honest attachment thumbnail completion
 
 - Report thumbnail creation as successful only after an encoder acknowledges
