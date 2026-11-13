@@ -501,6 +501,7 @@ if ($view == 'attachments')
 	);
 
 	$total_rows = 0;
+	$attachment_from = ' FROM ' . ATTACHMENTS_DESC_TABLE . ' a';
 	
 	// Are we called from Username ?
 	if ($user_based)
@@ -529,54 +530,29 @@ if ($view == 'attachments')
 			'L_STATISTICS_FOR_USER'	=> sprintf($lang['Statistics_for_user'], $username))
 		);
 
-		$sql = "SELECT attach_id 
-			FROM " . ATTACHMENTS_TABLE . "
-			WHERE user_id_1 = " . intval($uid) . "
-			GROUP BY attach_id";
-		
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
-		}
-		
-		$attach_ids = $db->sql_fetchrowset($result);
-		$num_attach_ids = $db->sql_numrows($result);
-		$db->sql_freeresult($result);
-
-		if ($num_attach_ids == 0)
-		{
-			message_die(GENERAL_MESSAGE, 'For some reason no Attachments are assigned to the User "' . $username . '".');
-		}
-		
-		$total_rows = $num_attach_ids;
-
-		$attach_id = array();
-
-		for ($j = 0; $j < $num_attach_ids; $j++)
-		{
-			$attach_id[] = intval($attach_ids[$j]['attach_id']);
-		}
-			
-		$sql = "SELECT a.*
-			FROM " . ATTACHMENTS_DESC_TABLE . " a
-			WHERE a.attach_id IN (" . implode(', ', $attach_id) . ") " .
-			$order_by;
-		
+		// Count and page descriptions in the same scope. Shared links must not
+		// duplicate a file; links with no description must not invent a page.
+		$attachment_from .= ' WHERE EXISTS (SELECT 1 FROM ' . ATTACHMENTS_TABLE . ' t WHERE t.attach_id=a.attach_id AND t.user_id_1=' . intval($uid) . ')';
 	}
 	else if ($search_based)
 	{
 		// we are called from search
 		$attachments = search_attachments($order_by, $total_rows, $search_filters, $start);
 	}
-	else
-	{
-		$sql = "SELECT a.*
-			FROM " . ATTACHMENTS_DESC_TABLE . " a " .
-			$order_by;
-	}
-
 	if (!$search_based)
 	{
+		$sql = 'SELECT COUNT(*) AS total' . $attachment_from;
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Could not count attachment descriptions', '', __LINE__, __FILE__, $sql);
+		}
+		$count = $db->sql_fetchrow($result);
+		$total_rows = (int) $count['total'];
+		$db->sql_freeresult($result);
+		if (!$total_rows) { $start = 0; }
+		else if ($start >= $total_rows) { $start = (int) (floor(($total_rows - 1) / $page_size) * $page_size); }
+		$order_by = 'ORDER BY a.' . $sort_columns[$mode] . ' ' . $sort_order . ', a.attach_id ' . $sort_order . ' LIMIT ' . $start . ', ' . $page_size;
+		$sql = 'SELECT a.*' . $attachment_from . ' ' . $order_by;
 		if (!($result = $db->sql_query($sql)))
 		{
 			message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
@@ -687,19 +663,6 @@ if ($view == 'attachments')
 		}
 	}
 
-	if (!$search_based && !$user_based)
-	{
-		$sql = 'SELECT COUNT(*) AS total FROM ' . ATTACHMENTS_DESC_TABLE;
-
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Could not query Attachment Description Table', '', __LINE__, __FILE__, $sql);
-		}
-
-		$count = $db->sql_fetchrow($result);
-		$total_rows = (int) $count['total'];
-		$db->sql_freeresult($result);
-	}
 }
 
 // Generate Pagination

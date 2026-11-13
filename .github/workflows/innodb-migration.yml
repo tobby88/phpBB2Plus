@@ -210,6 +210,7 @@ jobs:
       - name: Check Album file journal schema and real updater preservation
         if: matrix.part == 5
         run: |
+          source .github/scripts/native-command-timing.sh
           php .github/scripts/check-album-file-journal-native.php
           php .github/scripts/check-album-file-coordinator-native.php
           php .github/scripts/check-album-upload-receipt-native.php
@@ -824,6 +825,7 @@ jobs:
           PHPBB_GUEST_PROFILE_PASSWORD: fixture-only
       - if: matrix.part == 5
         run: |
+          source .github/scripts/native-command-timing.sh
           php .github/scripts/check-kb-counters-native.php
           php .github/scripts/check-kb-fixture-seeds-native.php
           php .github/scripts/check-kb-counter-migration.php
@@ -1040,6 +1042,12 @@ jobs:
         env:
           PHPBB_ATTACH_METADATA_NATIVE: '1'
           PHPBB_ATTACH_METADATA_PASSWORD: fixture-only
+      - name: Check attachment administration page scopes and stale offsets
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-attachment-admin-rows-native.php --pages
+        env:
+          PHPBB_ATTACH_ADMIN_ROWS_NATIVE: '1'
+          PHPBB_ATTACH_ADMIN_ROWS_PASSWORD: fixture-only
       - name: Check attachment search filters and persistent result state
         if: matrix.part == 6
         run: php -d disable_functions=mail .github/scripts/check-attachment-search-native.php
@@ -1638,6 +1646,12 @@ jobs:
           PHPBB_ATTACH_METADATA_NATIVE: '1'
           PHPBB_ATTACH_METADATA_PASSWORD: fixture-only
           PHPBB_ATTACH_METADATA_MYSQL: '8.4'
+      - name: Check attachment administration pages on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-attachment-admin-rows-native.php --pages
+        env:
+          PHPBB_ATTACH_ADMIN_ROWS_NATIVE: '1'
+          PHPBB_ATTACH_ADMIN_ROWS_PASSWORD: fixture-only
+          PHPBB_ATTACH_ADMIN_ROWS_MYSQL: '8.4'
       - name: Check attachment search and result forms on MySQL
         run: php -d disable_functions=mail .github/scripts/check-attachment-search-native.php
         env:

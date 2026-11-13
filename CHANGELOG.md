@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Consistent ACP attachment pages
+
+- Count existing descriptions in both the global and uploader views. Shared
+  links count once; dangling links cannot create phantom attachment pages.
+- Clamp stale offsets to the final existing page before selecting rows. Empty
+  inventories and owners with no remaining files return a coherent empty view.
+  Preserve all six sorts, uploader scope, row numbers and navigation state.
+- Record individual command durations within the Album and Knowledge Base CI
+  groups so later performance changes can target measured bottlenecks.
+
 ### Restore ACP attachment search and preserve its result state
 
 - Replace the legacy variable-variable request parsing that ignored criteria on
