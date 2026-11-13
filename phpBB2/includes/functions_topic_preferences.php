@@ -66,3 +66,39 @@ function phpbb_topic_preference($database, $topic_id, $kind, $state = null)
 	catch (Error $error) { phpbb_topic_preference_error($store && $store->commit_attempted ? 'Topic_preference_unconfirmed' : 'Topic_preference_failed'); }
 	finally { if ($store) { $store->release(); } }
 }
+
+function phpbb_bookmark_removal_ids($values)
+{
+	if (!is_array($values) || count($values) > 1000) { phpbb_topic_preference_error('Session_invalid'); }
+	$ids = array();
+	foreach ($values as $value)
+	{
+		$id = phpbb_topic_preference_id($value);
+		if (!$id) { phpbb_topic_preference_error('Session_invalid'); }
+		$ids[$id] = $id;
+	}
+	sort($ids, SORT_NUMERIC);
+	return $ids;
+}
+
+// Internal API: the bookmark form verifies POST and its session token first.
+function phpbb_bookmark_remove_many($database, $values)
+{
+	global $userdata;
+	$ids = phpbb_bookmark_removal_ids($values);
+	if (!$ids) { return true; }
+	$store = null;
+	try
+	{
+		$store = new PhpbbTopicPreferenceStore($database, $userdata, $ids[0], 'bookmark', false);
+		return $store->remove_bookmarks($ids);
+	}
+	catch (PhpbbTopicPreferenceException $error)
+	{
+		if ($store && $store->commit_attempted) { phpbb_topic_preference_error('Topic_preference_unconfirmed'); }
+		throw $error;
+	}
+	catch (Exception $error) { phpbb_topic_preference_error($store && $store->commit_attempted ? 'Topic_preference_unconfirmed' : 'Topic_preference_failed'); }
+	catch (Error $error) { phpbb_topic_preference_error($store && $store->commit_attempted ? 'Topic_preference_unconfirmed' : 'Topic_preference_failed'); }
+	finally { if ($store) { $store->release(); } }
+}

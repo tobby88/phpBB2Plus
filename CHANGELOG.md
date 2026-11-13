@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Bookmark selection removal
+
+- Fix removing several bookmarks at once from the search page. Validate the
+  entire bounded selection and remove only the current user's selected entries
+  in one owned transaction; retain unselected bookmarks and other users' data.
+- Keep duplicate and orphan bookmarks removable, reject malformed selections
+  without partial changes, and recheck the current session/account before commit.
+- Exercise the actual form on disposable native databases, including stale
+  caller snapshots, write failures, lost commit acknowledgements and a real
+  competing connection.
+
 ### Parallel MySQL compatibility checks
 
 - Split the existing MySQL 8.4 / PHP 8.5 checks into two isolated jobs, balanced

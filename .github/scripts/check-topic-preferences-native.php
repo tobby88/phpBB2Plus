@@ -75,5 +75,68 @@ function tp_controllers(){
  }
  echo 'Native topic preference controllers: '.$cases." cases PASS; actual confirmation/AJAX, GET and signed POST, repeated desired states, current accounts and released responses in EN/DE.\n";
 }
-function tp_suite(){global$db,$host,$password,$schema,$tp_mode;$db->sql_close();tp_classes();$db=new TpSource($host,'root',$password,$schema,false);if(getenv('PHPBB_TOPIC_PREF_MYSQL')==='8.4'){$rows=tp_rows('SELECT VERSION() version');nt_check(preg_match('/^8\.4\./',$rows[0]['version'])&&stripos($rows[0]['version'],'MariaDB')===false,'Actual MySQL8.4 required');}if($tp_mode==='controllers'){tp_controllers();}else{tp_core($tp_mode);}nt_check(tp_released(),'All preference owners closed');}
+function tp_batch_controller($code)
+{
+ global $db,$userdata,$lang,$phpEx;
+ $mode='removebm';
+ try { eval('namespace TpUiSink;'.$code); return ''; }
+ catch (NewsReaderFailure $error) { return $error->getMessage(); }
+ catch (TpRedirect $error) { return $error->getMessage(); }
+}
+function tp_batch_request($ids)
+{
+ $_SERVER['REQUEST_METHOD']='POST';
+ $_POST=array('delete'=>'1','sid'=>$GLOBALS['userdata']['session_id'],'topic_id_list'=>$ids);
+}
+function tp_batch_expected($before,$ids)
+{
+ $kept=array();foreach($before['bookmarks']as$row){if((int)$row['user_id']!==7||!in_array((int)$row['topic_id'],$ids,true)){$kept[]=$row;}}
+ $before['bookmarks']=$kept;return $before;
+}
+function tp_bookmark_batch()
+{
+ global $tn_app,$db,$userdata,$lang,$tp_hook,$tp_factory,$tp_candidates;
+ require_once $tn_app.'includes/functions_bookmark.php';
+ $source=file_get_contents($tn_app.'search.php');$a=strpos($source,"if ( \$mode == 'removebm' )");$b=strpos($source,"if ( \$mode == 'searchuser' )",$a);
+ nt_check($a!==false&&$b>$a,'Actual complete search bookmark removal path');$controller=substr($source,$a,$b-$a);$cases=$faults=0;
+ foreach(array('english','german')as$locale){
+  foreach(array(array('100'),array('100','101'),array('101','0100','100'),array('101','999999'),array())as$selection){
+   tp_prepare(null,0,$locale);tn_sql('INSERT INTO fixture_bookmarks(topic_id,user_id) VALUES(102,7),(100,7),(101,9)');tp_batch_request($selection);$before=tp_snapshot();$ids=array_map('intval',$selection);
+   nt_check(tp_batch_controller($controller)===''&&tp_snapshot()===tp_batch_expected($before,$ids)&&tp_released(),'Whole selected own set removed; duplicates, orphans, foreign/unselected rows and other tables preserved');
+   nt_check(tp_batch_controller($controller)===''&&tp_snapshot()===tp_batch_expected($before,$ids)&&tp_released(),'Actual batch request is idempotent');$cases++;
+  }
+  tp_prepare(null,0,$locale);tp_batch_request(array('100'));unset($_POST['topic_id_list']);$before=tp_snapshot();nt_check(tp_batch_controller($controller)===''&&tp_snapshot()===$before&&tp_released(),'No selection remains a harmless no-op');$cases++;
+  foreach(array('100,101',null,array('100',array('101')),array('100','bad'),array('100','0'),array('100','16777216'),array_fill(0,1001,'100'))as$selection){
+   tp_prepare(null,0,$locale);tp_batch_request($selection);$before=tp_snapshot();$tp_factory='throw';
+   try{nt_check(tp_batch_controller($controller)===$lang['Session_invalid']&&tp_snapshot()===$before&&!$tp_candidates&&tp_released(),'Every invalid member/oversized selection rejected before opening storage');}finally{$tp_factory='normal';}$cases++;
+  }
+  foreach(array('get','no-sid','bad-sid','guest')as$bad){
+   tp_prepare(null,0,$locale);tp_batch_request(array('100','101'));if($bad==='get'){$_SERVER['REQUEST_METHOD']='GET';}elseif($bad==='no-sid'){unset($_POST['sid']);}elseif($bad==='bad-sid'){$_POST['sid']=str_repeat('b',32);}else{$userdata['session_logged_in']=false;}$before=tp_snapshot();$result=tp_batch_controller($controller);
+   nt_check($bad==='guest'?strpos($result,'login.php?redirect=search.php?search_id=bookmarks')===0:$result===$lang['Not_Authorised'],'Actual form retains POST/exact SID and guest login boundary');nt_check(tp_snapshot()===$before&&tp_released(),'Invalid request cannot remove bookmarks');$cases++;
+  }
+ }
+ // Current state must be read independently of the caller's old snapshot.
+ foreach(array('missing','foreign','logout','case','expired','block','inactive','deleted','ban')as$change){
+  tp_prepare(null);tp_batch_request(array('100','101'));mysqli_query($db->db_connect_id,'START TRANSACTION');$r=$db->sql_query('SELECT * FROM fixture_sessions');$db->sql_freeresult($r);nt_check(mysqli_query($db->db_connect_id,"INSERT INTO fixture_config(config_name,config_value) VALUES('batch-pending','private')"),'Own pending caller marker');
+  try{tp_change($change);$before=tp_snapshot();$result=tp_batch_controller($controller);nt_check($result===$lang[in_array($change,array('missing','foreign','logout','case','expired'),true)?'Session_invalid':'Not_Authorised']&&tp_snapshot()===$before&&tp_released(),'Batch observes current session/account despite caller snapshot: '.$change);$r=$db->sql_query("SELECT config_value FROM fixture_config WHERE config_name='batch-pending'");$row=$db->sql_fetchrow($r);$db->sql_freeresult($r);nt_check($row['config_value']==='private'&&!tp_rows("SELECT * FROM fixture_config WHERE config_name='batch-pending'")&&$db->db_connect_id,'Caller work remains private and open');}finally{mysqli_query($db->db_connect_id,'ROLLBACK');}$cases++;
+ }
+ tp_prepare(null);$values=$ids=array();for($id=1000;$id<2000;$id++){$values[]='('.$id.',7)';$ids[]=(string)$id;}tn_sql('INSERT INTO fixture_bookmarks(topic_id,user_id) VALUES'.implode(',',$values));tp_batch_request($ids);$before=tp_snapshot();nt_check(tp_batch_controller($controller)===''&&tp_snapshot()===tp_batch_expected($before,array_map('intval',$ids))&&tp_released(),'Full bounded selection succeeds in one owned transaction');$cases++;
+ // Each actual service SQL boundary fails before/after execution, including
+ // the distinction between rollback and an unacknowledged completed COMMIT.
+ tp_prepare(null);tp_batch_request(array('100','101'));$trace=array();$tp_hook=function($phase,$sql)use(&$trace){if($phase==='before'){$trace[]=$sql;}};
+ nt_check(tp_batch_controller($controller)==='','Successful actual batch trace');$tp_hook=null;$positions=array();$started=false;
+ foreach($trace as$i=>$sql){if(strpos($sql,'SELECT config_value FROM fixture_config')===0){$started=true;}if($started&&strpos($sql,'SELECT CONNECTION_ID()')!==0){$positions[$i+1]=$sql;}}
+ foreach($positions as$position=>$sql){foreach(array('before','after')as$phase){
+  tp_prepare(null);tp_batch_request(array('100','101'));$before=tp_snapshot();$seen=0;$reached=false;$tp_hook=function($event,$statement)use($position,$phase,&$seen,&$reached){if($event==='before'){$seen++;}if($event===$phase&&$seen===$position){$reached=true;return false;}};
+  try{$result=tp_batch_controller($controller);$commit=$sql==='COMMIT';nt_check($reached&&$result===$lang[$commit?'Topic_preference_unconfirmed':'Topic_preference_failed']&&tp_released(),'Actual batch reports each failed SQL/commit boundary');nt_check(tp_snapshot()===($commit&&$phase==='after'?tp_batch_expected($before,array(100,101)):$before),'Entire batch rolls back or completes once; no partial removal: '.$position.'/'.$phase);}finally{$tp_hook=null;}$faults++;
+ }}
+ foreach(array('session','block','ban')as$change){
+  tp_prepare(null);tp_batch_request(array('100','101'));$before=tp_snapshot();$fired=false;$tp_hook=function($phase,$sql,$candidate)use($change,&$fired){if($phase==='after'&&strpos($sql,'DELETE FROM fixture_bookmarks ')===0){$GLOBALS['tp_hook']=null;$fired=true;$direct=$candidate->inner->inner;if($change==='session'){$direct->sql_query('UPDATE fixture_sessions SET session_time=0 WHERE session_user_id=7');}elseif($change==='block'){$direct->sql_query('UPDATE fixture_users SET user_blocktime='.(time()+3600).' WHERE user_id=7');}else{$direct->sql_query("INSERT INTO fixture_banlist(ban_userid,ban_ip,ban_email) VALUES(7,'','')");}}};
+  try{nt_check(tp_batch_controller($controller)===$lang[$change==='session'?'Session_invalid':'Not_Authorised']&&$fired&&tp_snapshot()===$before&&tp_released(),'Final actor check rolls back whole batch after trigger-style revocation');}finally{$tp_hook=null;}$cases++;
+ }
+ tp_prepare(null);tp_batch_request(array('100','101'));$blocked=false;$tp_hook=function($phase,$sql){if($phase==='after'&&strpos($sql,'DELETE FROM fixture_bookmarks ')===0){$GLOBALS['tp_hook']=null;tn_sql('START TRANSACTION');try{$r=$GLOBALS['tn_peer']->sql_query('SELECT * FROM fixture_bookmarks WHERE user_id=7 AND topic_id=101 FOR UPDATE NOWAIT');if($r){$GLOBALS['tn_peer']->sql_freeresult($r);}else{$e=$GLOBALS['tn_peer']->sql_error();$GLOBALS['tp_batch_blocked']=in_array((int)$e['code'],array(1205,3572),true);}}finally{tn_sql('ROLLBACK');}}};$GLOBALS['tp_batch_blocked']=false;
+ try{nt_check(tp_batch_controller($controller)===''&&$GLOBALS['tp_batch_blocked']&&tp_released(),'A real peer cannot alter the second selected bookmark before the whole batch commits');}finally{$tp_hook=null;unset($GLOBALS['tp_batch_blocked']);}$cases++;
+ echo 'Native bookmark batch: '.$cases.' cases, '.$faults." SQL faults PASS; actual search form, strict bounded selection, duplicates/orphans, current accounts, caller isolation and atomic removal in EN/DE.\n";
+}
+function tp_suite(){global$db,$host,$password,$schema,$tp_mode;$db->sql_close();tp_classes();$db=new TpSource($host,'root',$password,$schema,false);if(getenv('PHPBB_TOPIC_PREF_MYSQL')==='8.4'){$rows=tp_rows('SELECT VERSION() version');nt_check(preg_match('/^8\.4\./',$rows[0]['version'])&&stripos($rows[0]['version'],'MariaDB')===false,'Actual MySQL8.4 required');}if($tp_mode==='controllers'){tp_controllers();tp_bookmark_batch();}else{tp_core($tp_mode);}nt_check(tp_released(),'All preference owners closed');}
 $source=file_get_contents(__DIR__.'/check-topic-notifications-native.php');$anchor=" foreach(array('english','german')as\$locale){\n";if(substr_count($source,$anchor)!==1){throw new RuntimeException('Exact canonical native setup boundary');}$source=str_replace($anchor,' tp_suite();return;'."\n".$anchor,$source);$code='';foreach(token_get_all($source)as$t){if(is_array($t)&&$t[0]===T_OPEN_TAG){continue;}$code.=is_array($t)?($t[0]===T_DIR?var_export(__DIR__,true):$t[1]):$t;}eval($code);

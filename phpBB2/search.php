@@ -155,13 +155,12 @@ if ( $mode == 'removebm' )
 		{
 			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 		}
-		$topics = phpbb_request_id_array($_POST, 'topic_id_list');
-		$topic_list = implode(', ', $topics);
+		$topics = array_key_exists('topic_id_list', $_POST) ? $_POST['topic_id_list'] : array();
 		if ( $userdata['session_logged_in'] )
 		{
-			if ($topic_list !== '')
+			if ($topics !== array())
 			{
-				remove_bookmark($topic_list);
+				remove_bookmarks($topics);
 			}
 		}
 		else

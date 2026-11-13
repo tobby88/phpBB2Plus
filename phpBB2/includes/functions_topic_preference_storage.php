@@ -102,4 +102,19 @@ class PhpbbTopicPreferenceStore extends PhpbbOwnedStore
 		$this->commit_attempted = true; $this->commit();
 		return (bool)$after;
 	}
+	function remove_bookmarks($topic_ids)
+	{
+		$topic_ids = phpbb_bookmark_removal_ids($topic_ids);
+		if ($this->kind !== 'bookmark' || $this->state !== false || !$topic_ids) { $this->storage_fail(); }
+		$this->current_actor();
+		$where = 'user_id=' . $this->actor['id'] . ' AND topic_id IN (' . implode(',', $topic_ids) . ')';
+		$this->rows('SELECT topic_id FROM ' . BOOKMARK_TABLE . ' WHERE ' . $where . ' ORDER BY topic_id FOR UPDATE');
+		// One transaction for the whole selection, including duplicate/orphan
+		// bookmarks. A failure must never leave a partially removed selection.
+		$this->query('DELETE FROM ' . BOOKMARK_TABLE . ' WHERE ' . $where);
+		if ($this->rows('SELECT topic_id FROM ' . BOOKMARK_TABLE . ' WHERE ' . $where)) { $this->storage_fail(); }
+		$this->current_actor();
+		$this->commit_attempted = true; $this->commit();
+		return true;
+	}
 }

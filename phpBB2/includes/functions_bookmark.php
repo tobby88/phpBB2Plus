@@ -30,3 +30,9 @@ function phpbb_bookmark_preference($topic_id, $state)
 function is_bookmark_set($topic_id) { return phpbb_bookmark_preference($topic_id, null); }
 function set_bookmark($topic_id) { return phpbb_bookmark_preference($topic_id, true); }
 function remove_bookmark($topic_id) { return phpbb_bookmark_preference($topic_id, false); }
+function remove_bookmarks($topic_ids)
+{
+	global $db;
+	try { return phpbb_bookmark_remove_many($db, $topic_ids); }
+	catch (PhpbbTopicPreferenceException $exception) { message_die(GENERAL_MESSAGE, $exception->getMessage()); }
+}
