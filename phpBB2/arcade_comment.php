@@ -28,7 +28,7 @@ include_once($phpbb_root_path . 'includes/bbcode.' .$phpEx);
 
 function arcade_comment_require_token($userdata, $post_vars, $lang)
 {
-	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($post_vars['sid']) || !is_scalar($post_vars['sid']) || !hash_equals((string) $userdata['session_id'], (string) $post_vars['sid']))
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($post_vars['sid']) || !is_string($post_vars['sid']) || !hash_equals((string) $userdata['session_id'], (string) $post_vars['sid']))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
@@ -58,98 +58,25 @@ if (!$userdata['session_logged_in'])
 {
 	redirect(append_sid("login.$phpEx?redirect=arcade_comment.$phpEx?game_id=$game_id"));
 }
-//
-// Initialize Arcade Config and Check that the comments feature is enabled
-//
-if( $arcade->arcade_config('games_comments') == 0)
-{
-	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-}
-//
-//  Check System ONLINE.
-//
-if($arcade->arcade_config['games_offline'] && $userdata['user_level'] != ADMIN && $userdata['user_level'] != MOD)
-{
-	message_die(GENERAL_MESSAGE, $lang['games_are_offline'], $lang['Information']);
-}
-//
-// Get the Required information
-//
-$mode = $arcade->pass_var('mode', '');
-if(($game_id = $arcade->pass_var('game_id', 0)) < 1)
-{
-	if( ($comment_id = $arcade->pass_var('comment_id', 0)) < 1)
-  {
-		message_die(GENERAL_ERROR, $lang['no_activity']);
-	}
-}
-//
-//  Show single comment
-//
-if( isset($comment_id) )
-{
-	$sql = "SELECT c.comment_id, c.comment_game_name, c.comment_user_id, g.game_id, g.mod_id
-			FROM ". iNA_GAMES_COMMENT ." c
-			LEFT JOIN " . iNA_GAMES . " g ON c.comment_game_name = g.game_name
-			WHERE c.comment_id = " . (int) $comment_id;
-	if( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_comment_data'], '', __LINE__, __FILE__, $sql);
-	}
-	$selected_comment = $db->sql_fetchrow($result);
-	if( empty($selected_comment) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_comment_found']);
-	}
-	$game_id = (int) $selected_comment['game_id'];
-}
-//
-//  Collect as much information about this comment as we can
-//
-$sql = "SELECT t.*, g.*, COUNT(c.comment_id) as comments_count
- 	FROM ". iNA_GAMES ." AS g
- 		LEFT JOIN ". iNA_CAT ." AS t ON t.cat_id = g.cat_id
-		LEFT JOIN ". iNA_GAMES_COMMENT ." AS c ON g.game_name = c.comment_game_name
-	WHERE g.game_id = " . (int) $game_id . "
-	GROUP BY g.game_id
-  LIMIT 0,1";
-if( !($result = $db->sql_query($sql)) )
-{
-  message_die(GENERAL_ERROR, $lang['no_comment_data'], '', __LINE__, __FILE__, $sql);
-}
-$thisgame = $db->sql_fetchrow($result);
-
-//
-//  Check we have some information to carry on with
-//
-if( empty($thisgame) )
-{
-  message_die(GENERAL_ERROR, $lang['does_not_exist']);
-}
-$cat_id = (int) $thisgame['cat_id'];
-$total_comments = (int) $thisgame['comments_count'];
-$comments_per_page = max(1, (int) $board_config['posts_per_page']);
-$game_name = $thisgame['game_name'];
-$game_name_sql = $db->sql_escape($game_name);
-$first_commenter = array('user_id' => 0, 'username' => '');
-if ($total_comments > 0)
-{
-	$sql = "SELECT c.comment_user_id AS user_id, u.username
-		FROM " . iNA_GAMES_COMMENT . " AS c
-		LEFT JOIN " . USERS_TABLE . " AS u ON u.user_id = c.comment_user_id
-		WHERE c.comment_game_name = '$game_name_sql'
-		ORDER BY c.comment_id ASC
-		LIMIT 0,1";
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, $lang['no_comment_data'], '', __LINE__, __FILE__, $sql);
-	}
-	$first_commenter_row = $db->sql_fetchrow($result);
-	if ($first_commenter_row)
-	{
-		$first_commenter = $first_commenter_row;
-	}
-}
+require_once($phpbb_root_path . 'includes/functions_arcade_comment_storage.' . $phpEx);
+$mode = phpbb_request_scalar($HTTP_POST_VARS, 'mode', phpbb_request_scalar($HTTP_GET_VARS, 'mode', ''));
+$game_value = isset($HTTP_POST_VARS['game_id']) ? $HTTP_POST_VARS['game_id'] : (isset($HTTP_GET_VARS['game_id']) ? $HTTP_GET_VARS['game_id'] : 0);
+$comment_value = isset($HTTP_POST_VARS['comment_id']) ? $HTTP_POST_VARS['comment_id'] : (isset($HTTP_GET_VARS['comment_id']) ? $HTTP_GET_VARS['comment_id'] : 0);
+if (($game_value !== 0 && $game_value !== '0' && !phpbb_arcade_rating_id($game_value)) || ($comment_value !== 0 && $comment_value !== '0' && !phpbb_arcade_comment_id($comment_value))) { message_die(GENERAL_ERROR, $lang['no_activity']); }
+$game_id = (int)$game_value;
+if ($comment_value) { $comment_id = (int)$comment_value; }
+try { $comment_context = phpbb_arcade_comment_view($db, $userdata, $game_id, isset($comment_id) ? $comment_id : 0); }
+catch (Exception $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error)); }
+catch (Error $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error)); }
+$userdata = array_merge($userdata, $comment_context['user']);
+$thisgame = $comment_context['game']; $game_id = (int)$thisgame['game_id'];
+$selected_comment = $comment_context['comment'];
+if ($selected_comment) { $selected_comment['mod_id'] = $thisgame['mod_id']; }
+$cat_id = (int)$thisgame['cat_id']; $total_comments = (int)$thisgame['comments_count'];
+$comments_per_page = max(1, (int)$board_config['posts_per_page']);
+$game_name = $thisgame['game_name']; $game_name_sql = $db->sql_escape($game_name);
+$first_commenter = $comment_context['first'];
+$arcade->arcade_config['games_comment_size'] = $comment_context['comment_limit'];
 //
 //  See if we are posting a comment
 //
@@ -234,14 +161,10 @@ if( !isset($HTTP_POST_VARS['comment']) )
 //
 //  Delete the Comment from the database
 //
-	$sql = "DELETE
-			FROM ". iNA_GAMES_COMMENT ."
-			WHERE comment_id = " . (int) $comment_id;
-
-  	if( !$result = $db->sql_query($sql) )
-    {
-		  message_die(GENERAL_ERROR, $lang['no_comment_update'], '', __LINE__, __FILE__, $sql);
-	  }
+    try { $deleted = phpbb_arcade_comment_change($db, $userdata, 'delete', $game_id, $comment_id); }
+    catch (Exception $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error)); }
+    catch (Error $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error)); }
+    $cat_id = $deleted['cat_id'];
 
 	// --------------------------------
 	// Complete... now send a message to user
@@ -252,37 +175,16 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		$template->assign_vars(array(
 			'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("activity.$phpEx?mode=cat&amp;cat_id=$cat_id") . '">')
   		);
-  		$message .= "<br /><br />" . sprintf($lang['admin_return_cats'], "<a href=\"" . append_sid("activity.$phpEx?mode=cat&amp;cat_id=$cat_id") . "\">", "</a>");
+		$message .= "<br /><br />" . sprintf($lang['arcade_rate_return_cat'], "<a href=\"" . append_sid("activity.$phpEx?mode=cat&amp;cat_id=$cat_id") . "\">", "</a>");
     	$message .= "<br /><br />" . sprintf($lang['return_to_arcade'], "<a href=\"" . append_sid("activity.$phpEx") . "\">", "</a>");
       message_die(GENERAL_MESSAGE, $message);
     }
   }
 	else if ($mode == 'edit')
 	{
-    $sql = "SELECT c.*, g.*, COUNT(c.comment_id) as comments_count
-	   	FROM ". iNA_GAMES_COMMENT ." AS c
-  		LEFT JOIN ". iNA_GAMES ." AS g ON c.comment_game_name = g.game_name
-			LEFT JOIN ". USERS_TABLE ." AS u ON c.comment_user_id = u.user_id
-		    WHERE comment_id = " . (int) $comment_id . "
-       	GROUP BY g.game_id";
-
-    if( !($result = $db->sql_query($sql)) )
-    {
-    	message_die(GENERAL_ERROR, $lang['no_comment_data'], '', __LINE__, __FILE__, $sql);
-    }
-    $thiscomment = $db->sql_fetchrow($result);
-
-    if( empty($thiscomment) )
-    {
-		message_die(GENERAL_ERROR, $lang['no_comment_found']);
-    }
-
-    $game_id = (int) $thiscomment['game_id'];
-    $cat_id = (int) $thiscomment['cat_id'];
-    $user_id = (int) $thiscomment['comment_user_id'];
-
-    $total_comments = $thiscomment['comments_count'];
-    $comments_per_page = $board_config['posts_per_page'];
+    $thiscomment = array_merge($thisgame, $selected_comment);
+    $game_id = (int)$thisgame['game_id']; $cat_id = (int)$thisgame['cat_id'];
+    $user_id = (int)$thiscomment['comment_user_id'];
 
     if( !arcade_comment_can_manage($userdata, $user_id, $thiscomment['mod_id']) )
     {
@@ -323,7 +225,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		'L_MESSAGE' => $lang['Message'],
 		'L_USERNAME' => $lang['Username'],
 		'L_COMMENT_NO_TEXT' => $lang['no_comment_text'],
-		'L_COMMENT_TOO_LONG' => sprintf($lang['to_much_comment_text'], $arcade->arcade_config['games_comment_size']),
+		'L_COMMENT_TOO_LONG' => sprintf($lang['to_much_comment_text'], $comment_context['comment_limit']),
 		'L_MAX_LENGTH' => isset($lang['Max_length']) ? $lang['Max_length'] : 'Maximale Länge',
 		'L_SUBMIT' => $lang['Submit'],
 
@@ -486,51 +388,15 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		'body' => 'arcade_comment_body.tpl')
 	);
 
-	$poster = ((int) $first_commenter['user_id'] > 0) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $first_commenter['user_id']) .'">'. phpbb_stored_text($first_commenter['username']) .'</a>' : '';
+	$poster = ((int) $first_commenter['user_id'] > 0 && $first_commenter['username'] !== null) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $first_commenter['user_id']) .'">'. phpbb_stored_text($first_commenter['username']) .'</a>' : '';
 
 	//---------------------------------
 	// Comment Posting Form
 	//---------------------------------
 	if( $mode == 'add_comment' )
 	{
-	  $last_played = time()-3600;
-    $sql = "SELECT * from " . iNA_SCORES . " s
-      LEFT JOIN " . iNA_GAMES . " g ON g.game_name = s.game_name
-      LEFT JOIN " . iNA_CAT . " c ON g.cat_id = c.cat_id
-      WHERE s.player_id = " . (int) $userdata['user_id'] . "
-      AND g.game_id = " . (int) $game_id . "
-      AND s.date > " . $last_played . "
-      ORDER by date DESC LIMIT 0,1";
-  	if( !$result = $db->sql_query($sql) )
-	  {
-		  message_die(GENERAL_ERROR, $lang['no_score_data'], '', __LINE__, __FILE__, $sql);
-	  }
-    $row_count = $db->sql_numrows($result);
-    $game_info = $db->sql_fetchrow($result);
-    if(($row_count > 0) && $game_info)
-    {
-		  $template->assign_block_vars('switch_comment_post', array());
-		}
-    else
-    {
-      $sql = "SELECT * from " . iNA_AT_SCORES . " s
-        LEFT JOIN " . iNA_GAMES . " g ON g.game_name = s.game_name
-        LEFT JOIN " . iNA_CAT . " c ON g.cat_id = c.cat_id
-        WHERE s.player_id = " . (int) $userdata['user_id'] . "
-        AND g.game_id = " . (int) $game_id . "
-        AND s.date > " . $last_played . "
-        ORDER by date DESC LIMIT 0,1";
-    	if( !$result = $db->sql_query($sql) )
-  	  {
-  		  message_die(GENERAL_ERROR, $lang['no_score_data'], '', __LINE__, __FILE__, $sql);
-  	  }
-      $row_count = $db->sql_numrows($result);
-      $game_info = $db->sql_fetchrow($result);
-      if(($row_count > 0) && $game_info)
-      {
-  		  $template->assign_block_vars('switch_comment_post', array());
-  		}
-    }
+    if ($comment_context['can_post']) { $template->assign_block_vars('switch_comment_post', array()); }
+
   }
 	if( !$userdata['session_logged_in'])
 	{
@@ -538,6 +404,8 @@ if( !isset($HTTP_POST_VARS['comment']) )
 	}
 
 	$template->assign_vars(array(
+		'GAME_TITLE' => phpbb_profile_text($thisgame['game_desc']),
+		'S_GAME_ACTION' => append_sid("arcade_comment.$phpEx?game_id=$game_id"),
 		'DATE_ADDED' => create_date($board_config['default_dateformat'], $thisgame['date_added'], $board_config['board_timezone']),
 		'PLAYED' => $thisgame['played'] . $lang['times'],
 		'GAME_COMMENTS' => $total_comments,
@@ -559,7 +427,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		'L_MESSAGE' => $lang['Message'],
 		'L_USERNAME' => $lang['Username'],
 		'L_COMMENT_NO_TEXT' => $lang['no_comment_text'],
-		'L_COMMENT_TOO_LONG' => sprintf($lang['to_much_comment_text'], $arcade->arcade_config['games_comment_size']),
+		'L_COMMENT_TOO_LONG' => sprintf($lang['to_much_comment_text'], $comment_context['comment_limit']),
 		'L_MAX_LENGTH' => isset($lang['Max_length']) ? $lang['Max_length'] : 'Maximale Länge',
 		'L_ORDER' => $lang['Order'],
 		'L_SORT' => $lang['Sort'],
@@ -586,7 +454,8 @@ else
 //  Comment Submited. Check that they have played the game etc.
 //
   arcade_comment_require_token($userdata, $HTTP_POST_VARS, $lang);
-  $action = isset($HTTP_POST_VARS['action']) && !is_array($HTTP_POST_VARS['action']) ? trim((string) $HTTP_POST_VARS['action']) : 'add';
+  if (isset($HTTP_POST_VARS['action']) && !is_string($HTTP_POST_VARS['action'])) { message_die(GENERAL_ERROR, $lang['Not_Authorised']); }
+  $action = isset($HTTP_POST_VARS['action']) ? trim($HTTP_POST_VARS['action']) : 'add';
   if ($action !== 'add' && $action !== 'edit')
   {
     message_die(GENERAL_ERROR, $lang['Not_Authorised']);
@@ -596,38 +465,6 @@ else
     message_die(GENERAL_ERROR, $lang['Not_Authorised']);
   }
 
-  $last_played = time()-3600;
-  $sql = "SELECT * from " . iNA_SCORES . " s
-    LEFT JOIN " . iNA_GAMES . " g ON g.game_name = s.game_name
-    WHERE s.player_id = " . (int) $userdata['user_id'] . "
-    AND g.game_id = " . (int) $game_id . "
-    AND s.date > " . $last_played . "
-    ORDER by date DESC LIMIT 0,1";
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_score_data'], '', __LINE__, __FILE__, $sql);
-	}
-  $row_count = $db->sql_numrows($result);
-  $game_info = $db->sql_fetchrow($result);
-  if((($row_count < 1) || !$game_info) && ($action != "edit"))
-  {
-    $sql = "SELECT * from " . iNA_AT_SCORES . " s
-      LEFT JOIN " . iNA_GAMES . " g ON g.game_name = s.game_name
-      WHERE s.player_id = " . (int) $userdata['user_id'] . "
-      AND g.game_id = " . (int) $game_id . "
-      AND s.date > " . $last_played . "
-      ORDER by date DESC LIMIT 0,1";
-  	if( !$result = $db->sql_query($sql) )
-  	{
-  		message_die(GENERAL_ERROR, $lang['no_score_data'], '', __LINE__, __FILE__, $sql);
-  	}
-    $row_count = $db->sql_numrows($result);
-    $game_info = $db->sql_fetchrow($result);
-    if((($row_count < 1) || !$game_info) && ($action != "edit"))
-    {
-    	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-  	}
-	}
 //
 // Pass the message through the Word Censor.
 //
@@ -659,76 +496,16 @@ else
   {
 		$comment_text = $comment_passed;
   }
-	$comment_text_sql = $db->sql_escape($comment_text);
-//
-// Clean the username up a little.
-//
-	$comment_username = (!$userdata['session_logged_in']) ? '' : (string) $userdata['username'];
-	$comment_username_sql = $db->sql_escape($comment_username);
-
-	if( empty($comment_text) )
-	{
-		message_die(GENERAL_ERROR, 'No comment text');
-	}
-
-
-	// --------------------------------
-	// Check username for guest posting
-	// --------------------------------
-
-	if (!$userdata['session_logged_in'])
-	{
-		if ($comment_username != '')
-		{
-			$result = validate_username($comment_username);
-			if ( $result['error'] )
-			{
-				message_die(GENERAL_MESSAGE, $result['error_msg']);
-			}
-		}
-	}
-
-
-	// --------------------------------
-	// Prepare variables
-	// --------------------------------
-
-	$comment_time = time();
-
-//
-// Insert/Update the DB
-//
-  $notify_comment_user = false;
-  if($action == 'edit')
-  {
-	$comment_id = (int) $selected_comment['comment_id'];
-	$user_id = (int) $userdata['user_id'];
-   	$sql = "UPDATE ". iNA_GAMES_COMMENT ."
-			SET comment_text = '$comment_text_sql', comment_edit_time = '$comment_time', comment_edit_count = comment_edit_count + 1, comment_edit_user_id = $user_id
-			WHERE comment_id = $comment_id";
-  }
-  else
-  {
-	$comment_user_id = (int) $userdata['user_id'];
-	$comment_user_ip = $db->sql_escape($userdata['session_ip']);
-	$sql = "INSERT INTO ". iNA_GAMES_COMMENT ." (comment_game_name, comment_user_id, comment_username, comment_user_ip, comment_time, comment_text)
-			VALUES ('$game_name_sql', $comment_user_id, '$comment_username_sql', '$comment_user_ip', $comment_time, '$comment_text_sql')";
-	$notify_comment_user = $arcade->arcade_config['games_pm_comment'] && $total_comments > 0 && (int) $first_commenter['user_id'] > 0 && (int) $first_commenter['user_id'] !== $comment_user_id;
-	}
-  if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_comment_update'], '', __LINE__, __FILE__, $sql);
-	}
-	if ($action !== 'edit')
-	{
-		$comment_id = (int) $db->sql_nextid();
-		if ($notify_comment_user)
-		{
-			$message = sprintf($lang['games_comment_added_info'], $game_name);
-			ina_send_user_pm((int) $first_commenter['user_id'], $lang['games_comment_info'], $message, (int) $userdata['user_id']);
-		}
-	}
-
+    try { $changed = phpbb_arcade_comment_change($db, $userdata, $action, $game_id, $action === 'edit' ? $comment_id : 0, $comment_raw, $comment_text); }
+    catch (Exception $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error, $maximum_comment_length)); }
+    catch (Error $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error, $maximum_comment_length)); }
+    $comment_id = $changed['comment_id'];
+    // Optional delivery runs only after the comment transaction and locks end.
+    if ($changed['notify_user'])
+    {
+        try { ina_send_user_pm($changed['notify_user'], $lang['games_comment_info'], sprintf($lang['games_comment_added_info'], $changed['game_name']), (int)$userdata['user_id'], 'NO', true); }
+        catch (Exception $ignored) {} catch (Error $ignored) {}
+    }
 
 	$template->assign_vars(array(
 		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("arcade_comment.$phpEx?refresh=TRUE&amp;comment_id=$comment_id") . '#comment-'.$comment_id.'">')

@@ -60,37 +60,13 @@
 </form>
 
 <!-- BEGIN switch_comment_post -->
-<script type="text/javascript">
-<!--
-function checkForm() {
-	formErrors = false;
-
-	if (document.commentform.comment.value.length < 5)
-	{
-		formErrors = "{L_COMMENT_NO_TEXT}";
-	}
-	else if (document.commentform.comment.value.length > {S_MAX_LENGTH})
-	{
-		formErrors = "{L_COMMENT_TOO_LONG}";
-	}
-
-	if (formErrors) {
-		alert(formErrors);
-		return false;
-	} else {
-		return true;
-	}
-}
-// -->
-</script>
-
-<form name="commentform" action="{S_ARCADE_ACTION}" method="post" onsubmit="return checkForm();">
+<form name="commentform" action="{S_ARCADE_ACTION}" method="post">
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
   <tr>
 	<th class="thTop" height="25" colspan="2">{L_POST_YOUR_COMMENT}</th>
   </tr>
   <tr>
-	<td class="row2" valign="top" align="center"><textarea name="comment" class="post" cols="70" rows="7">{S_MESSAGE}</textarea></td>
+	<td class="row2" valign="top" align="center"><textarea name="comment" class="post" required="required" maxlength="{S_MAX_LENGTH}" cols="70" rows="7">{S_MESSAGE}</textarea></td>
   </tr>
   <tr>
 	<td class="cat" align="center" colspan="2" height="28"><input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" /></td>

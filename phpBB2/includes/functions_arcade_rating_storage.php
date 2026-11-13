@@ -18,8 +18,9 @@ function phpbb_arcade_rating_tables()
 
 // Read and write use the same current policy. A reader keeps one independent
 // read-only snapshot; a writer locks the rows on its own mutation connection.
-function phpbb_arcade_rating_context($store, $actor, $game_id, $locked)
+function phpbb_arcade_rating_context($store, $actor, $game_id, $locked, $feature = 'games_rate')
 {
+	if (!in_array($feature, array('games_rate','games_comments'), true)) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
 	$share = $locked ? ' LOCK IN SHARE MODE' : '';
 	$update = $locked ? ' FOR UPDATE' : '';
 	$now = time(); $id = (int)$actor['user_id']; $sid = $store->sql_escape($actor['session_id']);
@@ -31,7 +32,7 @@ function phpbb_arcade_rating_context($store, $actor, $game_id, $locked)
 		|| (float)$session[0]['session_time'] > 2147483647 || (float)$session[0]['session_time'] > $now + 60
 		|| (float)$session[0]['session_time'] < $now - (int)$ttl[0]['config_value']
 		|| !preg_match('/^[a-fA-F0-9]{8}$/D', (string)$session[0]['session_ip'])) { phpbb_arcade_rating_fail('Session_invalid'); }
-	$users = $store->rows('SELECT user_id,user_level,user_active,user_blocktime,user_rank,user_posts,arcade_banned FROM ' . USERS_TABLE . ' WHERE user_id=' . $id . $update);
+	$users = $store->rows('SELECT user_id,username,user_level,user_active,user_blocktime,user_rank,user_posts,arcade_banned,games_block_pm FROM ' . USERS_TABLE . ' WHERE user_id=' . $id . $update);
 	if (count($users) !== 1 || (string)$users[0]['user_active'] !== '1'
 		|| !in_array((string)$users[0]['user_level'], array((string)USER,(string)MOD,(string)ADMIN), true)
 		|| !preg_match('/^-?[0-9]+$/D', (string)$users[0]['user_blocktime']) || (float)$users[0]['user_blocktime'] >= $now
@@ -39,7 +40,7 @@ function phpbb_arcade_rating_context($store, $actor, $game_id, $locked)
 	$user = $users[0]; $role = (int)$user['user_level']; $root = $role === ADMIN;
 	$settings = array();
 	foreach ($store->rows('SELECT config_name,config_value FROM ' . iNA . ' ORDER BY config_name' . $share) as $row) { $settings[$row['config_name']] = (string)$row['config_value']; }
-	foreach (array('games_rate','games_offline','games_mod_ban_users') as $key)
+	foreach (array($feature,'games_offline','games_mod_ban_users') as $key)
 	{
 		if (!isset($settings[$key]) || !in_array((string)$settings[$key], array('0','1'), true)) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
 	}
@@ -55,8 +56,9 @@ function phpbb_arcade_rating_context($store, $actor, $game_id, $locked)
 		if (!preg_match('/^(?:0|[1-9][0-9]{0,9})$/D', (string)$settings[$key])
 			|| (float)$settings[$key] > 2147483647) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
 	}
-	if (!isset($settings['games_default_rate']) || !phpbb_arcade_rating_id($settings['games_default_rate'], 255)) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
-	if ($settings['games_rate'] !== '1' || (!$root && $role !== MOD && $settings['games_offline'] === '1')
+	if ($feature === 'games_rate' && (!isset($settings['games_default_rate']) || !phpbb_arcade_rating_id($settings['games_default_rate'], 255))) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
+	if ($feature === 'games_comments' && (!isset($settings['games_comment_size'],$settings['games_pm_comment']) || !phpbb_arcade_rating_id($settings['games_comment_size'], 65535) || !in_array($settings['games_pm_comment'], array('0','1'), true))) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
+	if ($settings[$feature] !== '1' || (!$root && $role !== MOD && $settings['games_offline'] === '1')
 		|| (!$root && $settings['games_mod_ban_users'] === '1' && !empty($user['arcade_banned']))
 		|| (int)$user['user_posts'] < (int)$settings['games_posts_required'] || (int)$user['user_rank'] < (int)$settings['games_rank_required']) { phpbb_arcade_rating_fail('Not_Authorised'); }
 	$games = $store->rows('SELECT * FROM ' . iNA_GAMES . ' WHERE game_id=' . (int)$game_id . $update);
@@ -80,14 +82,16 @@ function phpbb_arcade_rating_context($store, $actor, $game_id, $locked)
 	{
 		if (isset($visited[$category]) || count($visited) >= 32) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
 		$visited[$category] = true;
-		$categories = $store->rows('SELECT cat_id,cat_name,cat_type,cat_parent,group_required FROM ' . iNA_CAT . ' WHERE cat_id=' . $category . $update);
+		$categories = $store->rows('SELECT cat_id,cat_name,cat_type,cat_parent,group_required,mod_id FROM ' . iNA_CAT . ' WHERE cat_id=' . $category . $update);
 		if (count($categories) !== 1 || $categories[0]['cat_type'] === 'l') { phpbb_arcade_rating_fail('does_not_exist'); }
-		$cat = $categories[0]; if ($category_name === null) { $category_name = $cat['cat_name']; }
+		$cat = $categories[0]; if ($category_name === null) { $category_name = $cat['cat_name']; $game['mod_id'] = (int)$cat['mod_id']; }
 		if (!$root && !isset($groups[(int)$cat['group_required']])) { phpbb_arcade_rating_fail('Not_Authorised'); }
 		$category = (int)$cat['cat_parent'];
 	} while ($category > 0);
 	$game['cat_name'] = $category_name;
-	return array('user'=>$user, 'game'=>$game, 'scale'=>(int)$settings['games_default_rate'], 'ip'=>$session[0]['session_ip']);
+	return array('user'=>$user, 'game'=>$game, 'scale'=>$feature === 'games_rate' ? (int)$settings['games_default_rate'] : 0, 'ip'=>$session[0]['session_ip'],
+		'comment_limit'=>$feature === 'games_comments' ? (int)$settings['games_comment_size'] : 0,
+		'comment_notify'=>$feature === 'games_comments' && $settings['games_pm_comment'] === '1');
 }
 
 class PhpbbArcadeRatingReader extends PhpbbForumReadSnapshot

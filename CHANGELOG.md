@@ -6,6 +6,26 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current and atomic Arcade comments
+
+- Fix individual comment lookup using the category's actual moderator column
+  and remove ambiguous grouped overview/edit queries. Current game/category
+  access and comment settings are read independently of stale caller state.
+- Add, edit and delete comments in an owned transaction with current session,
+  account, owner/moderator/admin rights, recent-score eligibility for new
+  comments, bounded UTF-8 content, exact readback and edit audit updates.
+  Preserve custom columns, all-time score eligibility and existing comments.
+- Send the optional first-commenter PM only after a confirmed commit and
+  released locks. Report uncertain commits separately and never replay them
+  automatically. Keep save success even when optional delivery fails.
+- Correct the deletion return translation and overview heading/form target;
+  replace the obsolete JavaScript form check with native required/maxlength
+  controls backed by the server's current byte limit. Provide EN/DE errors.
+- Exercise actual controllers/templates on canonical MariaDB/MySQL storage:
+  revoked roles/sessions, strict SQL modes, real row contention, custom columns,
+  transaction faults, payload rewrites and isolated caller work. No schema or
+  data migration is required.
+
 ### Current and atomic Arcade ratings
 
 - Replace the rating overview's ambiguous grouped game/user query with an
