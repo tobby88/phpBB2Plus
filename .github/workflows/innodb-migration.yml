@@ -1016,6 +1016,12 @@ jobs:
         env:
           PHPBB_OWNED_NATIVE: '1'
           PHPBB_OWNED_PASSWORD: fixture-only
+      - name: Check personal attachment deletion and deferred file cleanup
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-uacp-delete-native.php
+        env:
+          PHPBB_UACP_DELETE_NATIVE: '1'
+          PHPBB_UACP_DELETE_PASSWORD: fixture-only
       - name: Check atomic profile preferences and current account authority
         if: matrix.part == 6
         run: php -d disable_functions=mail .github/scripts/check-profile-options-native.php
@@ -1572,3 +1578,9 @@ jobs:
           PHPBB_PROFILE_OPTIONS_NATIVE: '1'
           PHPBB_PROFILE_OPTIONS_PASSWORD: fixture-only
           PHPBB_PROFILE_OPTIONS_MYSQL: '8.4'
+      - name: Check personal attachment deletion and file recovery on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-uacp-delete-native.php
+        env:
+          PHPBB_UACP_DELETE_NATIVE: '1'
+          PHPBB_UACP_DELETE_PASSWORD: fixture-only
+          PHPBB_UACP_DELETE_MYSQL: '8.4'

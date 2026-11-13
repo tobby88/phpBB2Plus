@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Remove personal attachments with current authority and deferred cleanup
+
+- Validate the complete bounded selection, current login/account, current
+  administrator target and actual post/forum or private-message copy ownership.
+  Keep confirmation read-only and refuse stale, foreign or missing selections
+  without partial changes. Guests cannot enter the personal attachment manager.
+- Atomically remove only eligible links and synchronize/read back post, topic
+  and private-message attachment flags. Preserve other users' shared references,
+  other message copies, reused physical files and pending publication claims.
+- Unlink unused files only after acknowledged commit. Keep exact descriptions
+  as durable reservations when cleanup fails, using the existing Shadow
+  attachments recovery facility. Report an unconfirmed commit or pending
+  cleanup separately in English/German. No new database schema is required.
+
 ### Save additional profile preferences atomically with current authority
 
 - Save each submitted group of preferences in one independent transaction.

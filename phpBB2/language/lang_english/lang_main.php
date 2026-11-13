@@ -676,6 +676,12 @@ $lang['Popup_on_privmsg'] = 'Pop up window on new Private Message';
 $lang['Popup_on_privmsg_explain'] = 'Some templates may open a new window to inform you when new private messages arrive.';
 $lang['Hide_user'] = 'Hide your online status';
 
+$lang['Uacp_attachment_selection'] = 'The complete attachment selection is no longer available or contains an invalid value. Please reload the list and select your attachments again.';
+$lang['Uacp_attachment_failed'] = 'The attachments could not be removed. Please reload the list and try again.';
+$lang['Uacp_attachment_unconfirmed'] = 'The removal could not be confirmed. Check the current attachment list before trying again.';
+$lang['Uacp_attachment_upgrade'] = 'Attachment management requires the complete database update. Please ask an administrator to run update/update_from_153a.php.';
+$lang['Uacp_attachment_deleted'] = 'The selected attachment links have been removed. Attachments still used elsewhere have been preserved.';
+$lang['Uacp_attachment_cleanup_pending'] = 'The selected attachment links have been removed. Some unused files still need cleanup through Shadow attachments in the administration panel.';
 $lang['Profile_options_save_failed'] = 'The preferences could not be saved. Please reload the page and try again.';
 $lang['Profile_options_save_unconfirmed'] = 'Saving could not be confirmed. Reload the preferences and check their values before retrying.';
 $lang['Profile_options_storage_upgrade'] = 'The preferences require the complete database update. Please ask an administrator to run update/update_from_153a.php.';

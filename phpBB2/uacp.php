@@ -14,6 +14,7 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_uacp_attachments.' . $phpEx);
 
 // session id check
 $sid = get_var('sid', '');
@@ -23,7 +24,7 @@ $userdata = session_pagestart($user_ip, PAGE_PROFILE);
 init_userprefs($userdata);
 
 // session id check
-if ($sid == '' || $sid != $userdata['session_id'])
+if (empty($userdata['session_logged_in']) || !is_string($sid) || $sid === '' || !isset($userdata['session_id']) || !is_string($userdata['session_id']) || !hash_equals($userdata['session_id'], $sid))
 {
 	message_die(GENERAL_ERROR, 'Invalid_session');
 }
@@ -31,12 +32,13 @@ if ($sid == '' || $sid != $userdata['session_id'])
 // Obtain initial var settings
 $user_id = get_var(POST_USERS_URL, 0);
 
-if (!$user_id)
+if ($user_id < 1 || $user_id > 8388607)
 {
 	message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
 }
 
 $profiledata = get_userdata($user_id);
+if (!is_array($profiledata) || !isset($profiledata['user_id'])) { message_die(GENERAL_MESSAGE, $lang['No_such_user']); }
 
 if ($profiledata['user_id'] != $userdata['user_id'] && $userdata['user_level'] != ADMIN)
 {
@@ -104,44 +106,33 @@ else
 }
 $select_sort_order .= '</select>';
 
-$delete = (isset($HTTP_POST_VARS['delete'])) ? true : false;
-$delete_id_list = (isset($HTTP_POST_VARS['delete_id_list'])) ? array_map('intval', $HTTP_POST_VARS['delete_id_list']) : array();
-
-$confirm = (isset($HTTP_POST_VARS['confirm']) && $HTTP_POST_VARS['confirm']) ? true : false;
-
-if ($confirm && sizeof($delete_id_list) > 0)
+$delete = isset($HTTP_POST_VARS['delete']);
+$confirm = !empty($HTTP_POST_VARS['confirm']);
+try
 {
-	$attachments = array();
-
-	for ($i = 0; $i < sizeof($delete_id_list); $i++)
+	if (isset($HTTP_POST_VARS['confirm']) && !is_string($HTTP_POST_VARS['confirm']) && !is_int($HTTP_POST_VARS['confirm'])) { throw new PhpbbOwnedStorageFailure('Uacp_attachment_selection'); }
+	$delete_id_list = phpbb_uacp_attachment_ids(isset($HTTP_POST_VARS['delete_id_list']) ? $HTTP_POST_VARS['delete_id_list'] : array());
+	if ($delete || $confirm)
 	{
-		$sql = 'SELECT post_id, privmsgs_id 
-			FROM ' . ATTACHMENTS_TABLE . ' 
-			WHERE attach_id = ' . intval($delete_id_list[$i]) . '
-				AND (user_id_1 = ' . intval($profiledata['user_id']) . '
-					OR user_id_2 = ' . intval($profiledata['user_id']) . ')';
-		$result = $db->sql_query($sql);
-
-		if ($result)
+		$change = phpbb_uacp_attachments_remove($db, $userdata, $sid, $profiledata['user_id'], $delete_id_list, $confirm);
+		if ($confirm)
 		{
-			$row = $db->sql_fetchrow($result);
-			$db->sql_freeresult($result);
-	
-			if ($row['post_id'] != 0)
-			{
-				delete_attachment(0, intval($delete_id_list[$i]));
-			}
-			else
-			{
-				delete_attachment(0, intval($delete_id_list[$i]), PAGE_PRIVMSGS, intval($profiledata['user_id']));
-			}
+			$link = append_sid('uacp.' . $phpEx . '?' . POST_USERS_URL . '=' . (int)$profiledata['user_id'] . '&sid=' . urlencode($userdata['session_id']));
+			$message = $lang[$change['cleanup_complete'] ? 'Uacp_attachment_deleted' : 'Uacp_attachment_cleanup_pending'];
+			message_die(GENERAL_MESSAGE, $message . '<br /><br /><a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '">' . $lang['User_acp_title'] . '</a>');
 		}
 	}
 }
-else if ($delete && sizeof($delete_id_list) > 0)
+catch (PhpbbOwnedStorageFailure $exception)
+{
+	$key = $exception->getMessage();
+	message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Uacp_attachment_failed']);
+}
+if ($delete && sizeof($delete_id_list) > 0)
+
 {
 	// Not confirmed, show confirmation message
-	$hidden_fields = '<input type="hidden" name="view" value="' . $view . '" />';
+	$hidden_fields = '';
 	$hidden_fields .= '<input type="hidden" name="mode" value="' . $mode . '" />';
 	$hidden_fields .= '<input type="hidden" name="order" value="' . $sort_order . '" />';
 	$hidden_fields .= '<input type="hidden" name="' . POST_USERS_URL . '" value="' . intval($profiledata['user_id']) . '" />';

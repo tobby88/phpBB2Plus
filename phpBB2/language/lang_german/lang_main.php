@@ -667,6 +667,12 @@ $lang['Popup_on_privmsg'] = 'PopUp-Fenster bei neuen Privaten Nachrichten';
 $lang['Popup_on_privmsg_explain'] = 'Einige Templates öffnen neue Fenster, um dich über neue private Nachrichten zu benachrichtigen.';
 $lang['Hide_user'] = 'Online-Status verstecken';
 
+$lang['Uacp_attachment_selection'] = 'Die vollständige Anhangsauswahl ist nicht mehr verfügbar oder enthält einen ungültigen Wert. Bitte lade die Liste neu und wähle deine Anhänge erneut aus.';
+$lang['Uacp_attachment_failed'] = 'Die Anhänge konnten nicht entfernt werden. Bitte lade die Liste neu und versuche es erneut.';
+$lang['Uacp_attachment_unconfirmed'] = 'Das Entfernen konnte nicht bestätigt werden. Prüfe die aktuelle Anhangsliste vor einem erneuten Versuch.';
+$lang['Uacp_attachment_upgrade'] = 'Die Anhangsverwaltung benötigt das vollständige Datenbankupdate. Bitte einen Administrator, update/update_from_153a.php auszuführen.';
+$lang['Uacp_attachment_deleted'] = 'Die ausgewählten Anhangsverknüpfungen wurden entfernt. Anderweitig verwendete Anhänge bleiben erhalten.';
+$lang['Uacp_attachment_cleanup_pending'] = 'Die ausgewählten Anhangsverknüpfungen wurden entfernt. Einige ungenutzte Dateien müssen noch über die Schatten-Anhänge im Adminbereich bereinigt werden.';
 $lang['Profile_options_save_failed'] = 'Die Einstellungen konnten nicht gespeichert werden. Bitte lade die Seite neu und versuche es erneut.';
 $lang['Profile_options_save_unconfirmed'] = 'Das Speichern konnte nicht bestätigt werden. Lade die Einstellungen neu und prüfe ihre Werte vor einem erneuten Versuch.';
 $lang['Profile_options_storage_upgrade'] = 'Die Einstellungen benötigen das vollständige Datenbankupdate. Bitte einen Administrator, update/update_from_153a.php auszuführen.';
