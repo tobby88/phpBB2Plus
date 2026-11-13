@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Parallel MySQL compatibility checks
+
+- Split the existing MySQL 8.4 / PHP 8.5 checks into two isolated jobs, balanced
+  using measured step durations. Retain every original test, command, environment
+  and database setup; verify them against a reviewed inventory.
+- Reject omitted, duplicated, reassigned or conditionally disabled suites and
+  changed native/version guards.
+
 ### Atomic topic subscriptions and bookmarks
 
 - Apply watch/bookmark changes and notification acknowledgements in an owned

@@ -1,5 +1,38 @@
 <?php
 // Keep every native suite assigned to exactly one of the isolated CI parts.
+function native_workflow_block_hash($source)
+{
+	return hash('sha256', rtrim(str_replace("\r\n", "\n", $source), "\n") . "\n");
+}
+function native_mysql_workflow_partition($source)
+{
+	$inventory = json_decode(file_get_contents(dirname(__DIR__).'/fixtures/mysql-workflow-inventory.json'), true);
+	if (!is_array($inventory) || $inventory['version'] !== 1 || count($inventory['setup']) !== 2 || count($inventory['steps']) !== 32) { throw new RuntimeException('Complete reviewed MySQL inventory required'); }
+	$start = strpos($source, "    steps:\n");
+	if ($start === false || native_workflow_block_hash(substr($source, 0, $start + strlen("    steps:\n"))) !== $inventory['header_sha256']) { throw new RuntimeException('Reviewed two-part MySQL matrix, service and setup required'); }
+	$expected = array(); foreach ($inventory['steps'] as $step) { $expected[$step['name']] = $step; }
+	$parts = array(1=>0, 2=>0); $seen = array(); $setup = 0;
+	foreach (preg_split('/(?=^      - )/m', substr($source, $start + strlen("    steps:\n"))) as $step)
+	{
+		if (trim($step) === '') { continue; }
+		if (strpos($step, '      - uses:') === 0)
+		{
+			if ($setup >= 2 || native_workflow_block_hash($step) !== $inventory['setup'][$setup]['sha256']) { throw new RuntimeException('Every MySQL part needs the unchanged checkout/PHP setup'); }
+			$setup++; continue;
+		}
+		if (!preg_match('/^      - name: ([^\r\n]+)/', $step, $name) || !isset($expected[$name[1]]) || isset($seen[$name[1]])
+			|| preg_match_all('/^        if: matrix\.part == ([12])$/m', $step, $condition) !== 1) { throw new RuntimeException('Every original MySQL step must have exactly one assigned part'); }
+		$part = (int)$condition[1][0]; $original = $expected[$name[1]];
+		$body = preg_replace('/^        if: matrix\.part == [12]\n/m', '', $step);
+		if ($original['part'] !== $part || native_workflow_block_hash($body) !== $original['sha256']) { throw new RuntimeException('Original MySQL commands, environments and failure behavior must remain byte-exact'); }
+		preg_match_all('/^\s*(?:run:\s*)?php\b[^\r\n]+/m', $body, $matches); $commands = array();
+		foreach ($matches[0] as $command) { $commands[] = preg_replace('/^run:\s*/', '', trim($command)); }
+		if ($commands !== $original['commands']) { throw new RuntimeException('Complete original MySQL command inventory required'); }
+		$seen[$name[1]] = true; $parts[$part]++;
+	}
+	if ($setup !== 2 || count($seen) !== 32 || count($expected) !== 32 || min($parts) < 1) { throw new RuntimeException('Both MySQL parts must retain all32 original suites'); }
+	return $parts;
+}
 function native_workflow_partition($source)
 {
 	if (strpos($source,"        php: ['5.6', '7.4', '8.5']") === false || strpos($source,'        part: [1, 2, 3, 4, 5, 6]') === false || strpos($source,'name: migration (${{ matrix.php }}, part ${{ matrix.part }})') === false) { throw new RuntimeException('Native CI must cover all three PHP versions and six parts'); }
@@ -12,92 +45,8 @@ function native_workflow_partition($source)
 		|| strpos($matrix_source,"PHPBB_PM_VIEW_NATIVE: '1'") === false) { throw new RuntimeException('Actual PM body and mailbox reads must run in the native PHP matrix'); }
 	if (preg_match_all('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-topic-preferences-native\\.php (?:watch|bookmark|controllers)$/m',$matrix_source) !== 3
 		|| strpos($matrix_source,"PHPBB_TOPIC_PREF_NATIVE: '1'") === false) { throw new RuntimeException('All current topic preference modes must run in the native PHP matrix'); }
-	if (preg_match_all('/^  [A-Za-z0-9_-]+:/m',$extra) !== 1 || strpos($extra,"  pm-download-mysql:\n") !== 0
-		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
-		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
-		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 32
-		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-topic-preferences-native\\.php (?:watch|bookmark|controllers)$/m',$extra) !== 3
-		|| strpos($extra,"PHPBB_TOPIC_PREF_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_TOPIC_PREF_MYSQL: '8.4'") === false
-		|| strpos($extra,"PHPBB_TOPIC_NOTIFY_MYSQL: '8.4'") === false
-		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-pm-view-native\\.php (?:body|mailbox)$/m',$extra) !== 2
-		|| strpos($extra,"PHPBB_PM_VIEW_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_PM_VIEW_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-pm-form-read-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_PM_FORM_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_PM_FORM_MYSQL: '8.4'") === false
-		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-pm-entry-native\\.php (?:compose|download)$/m',$extra) !== 2
-		|| strpos($extra,"PHPBB_PM_ENTRY_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_PM_ENTRY_MYSQL: '8.4'") === false
-		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-self-service-block-native\\.php (?:profile|signature|pm)$/m',$extra) !== 3
-		|| strpos($extra,"PHPBB_SELF_BLOCK_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_SELF_BLOCK_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-userlist-pages-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_USERLIST_PAGES_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_USERLIST_PAGES_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-pm-download-native\.php$/m',$extra) !== 1
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-post-download-native\.php$/m',$extra) !== 1
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-registration-native\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_LINK_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-admin-native\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_LINK_ADMIN_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-settings-native\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_LINK_SETTINGS_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-click-native\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_LINK_CLICK_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-list-native\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_LINK_LIST_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-rotation-native\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_LINK_ROTATION_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-ctracker-rate-storage\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_RATE_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-kb-fixture-seeds-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_KB_COUNTER_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-owned-connection-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_OWNED_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-absence-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ABSENCE_NATIVE: '1'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-uacp-sorting-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_UACP_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_UACP_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-profile-options-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_PROFILE_OPTIONS_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_PROFILE_OPTIONS_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-uacp-delete-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_UACP_DELETE_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_UACP_DELETE_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-uacp-list-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_UACP_LIST_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_UACP_LIST_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-admin-list-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ATTACH_ADMIN_LIST_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ATTACH_ADMIN_LIST_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-admin-rows-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ATTACH_ADMIN_ROWS_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ATTACH_ADMIN_ROWS_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-admin-rows-native\\.php --pages$/m',$extra) !== 1
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-admin-metadata-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ATTACH_METADATA_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ATTACH_METADATA_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-admin-delete-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ATTACH_ADMIN_DELETE_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ATTACH_ADMIN_DELETE_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-delete-selection\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ATTACH_DELETE_SELECTION_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ATTACH_DELETE_SELECTION_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-shadow\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ATTACH_SHADOW_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ATTACH_SHADOW_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-poll-vote-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_VOTE_MYSQL: '8.4'") === false
-		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-current-account-block-native\\.php (?:ajax|post|full)$/m',$extra) !== 3
-		|| strpos($extra,"PHPBB_ACCOUNT_BLOCK_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ACCOUNT_BLOCK_MYSQL: '8.4'") === false
-		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-search-native\\.php$/m',$extra) !== 1
-		|| strpos($extra,"PHPBB_ATTACH_SEARCH_NATIVE: '1'") === false
-		|| strpos($extra,"PHPBB_ATTACH_SEARCH_MYSQL: '8.4'") === false)
-	{ throw new RuntimeException('Only the unconditional reviewed MySQL suites may run outside the matrix'); }
+	native_mysql_workflow_partition($extra);
+
 	$start = strpos($matrix_source,'    steps:'); if ($start === false) { throw new RuntimeException('Native CI steps missing'); }
 	$parts = array(1=>0,2=>0,3=>0,4=>0,5=>0,6=>0); $setup = 0; $database_checks = 0;
 	foreach (preg_split('/(?=^      - )/m',substr($matrix_source,$start)) as $step)
@@ -120,6 +69,24 @@ $variants = array(preg_replace('/^(?:      - |        )if: matrix\.part == [1-6]
 $variants[]=str_replace('image: mysql:8.4','image: mariadb:10.11',$source);
 $variants[]=str_replace("PHPBB_PM_DOWNLOAD_MYSQL: '8.4'","PHPBB_PM_DOWNLOAD_MYSQL: 'skip'",$source);
 $variants[]=preg_replace('/^  pm-download-mysql:[\s\S]*$/m','',$source);
+$variants[]=str_replace('part: [1, 2]', 'part: [1]', $source);
+$variants[]=str_replace('max-parallel: 2', 'max-parallel: 1', $source);
+$variants[]=str_replace('fail-fast: false'."\n".'      max-parallel: 2', 'fail-fast: true'."\n".'      max-parallel: 2', $source);
+$mysql_start = strpos($source,"  pm-download-mysql:\n"); $mysql_source = substr($source,$mysql_start); $prefix = substr($source,0,$mysql_start);
+$variants[]=$prefix.preg_replace('/^        if: matrix\.part == [12]\n/m', '', $mysql_source, 1);
+$variants[]=$prefix.preg_replace('/if: matrix\.part == [12]/', 'if: matrix.part == 3', $mysql_source, 1);
+$variants[]=$prefix.preg_replace('/if: matrix\.part == 1/', 'if: matrix.part == 2', $mysql_source, 1);
+$variants[]=$prefix.preg_replace('/if: matrix\.part == [12]/', 'if: matrix.part == 1 && false', $mysql_source, 1);
+$variants[]=$prefix.str_replace('disable_functions=mail', 'disable_functions=', $mysql_source);
+$variants[]=$prefix.str_replace("PHPBB_TOPIC_PREF_NATIVE: '1'", "PHPBB_TOPIC_PREF_NATIVE: '0'", $mysql_source);
+$variants[]=$prefix.preg_replace('/^        run: /m', "        continue-on-error: true\n        run: ", $mysql_source, 1);
+$mysql_steps = strpos($mysql_source,"    steps:\n"); $step_blocks=preg_split('/(?=^      - )/m',substr($mysql_source,$mysql_steps+strlen("    steps:\n")));$test_index=null;foreach($step_blocks as$index=>$step){if(strpos($step,'      - name:')===0){$test_index=$index;break;}}
+if($test_index===null){throw new RuntimeException('Original MySQL test required for mutation checks');}
+$missing=$step_blocks;unset($missing[$test_index]);$variants[]=$prefix.substr($mysql_source,0,$mysql_steps+strlen("    steps:\n")).implode('',$missing);
+$duplicate=$step_blocks;$duplicate[]=$step_blocks[$test_index];$variants[]=$prefix.substr($mysql_source,0,$mysql_steps+strlen("    steps:\n")).implode('',$duplicate);
 $variants[]=$source."\n  hidden-native:\n    steps:\n      - run: php .github/scripts/check-unassigned-native.php\n";
 foreach ($variants as $variant) { $denied = false; try { native_workflow_partition($variant); } catch (RuntimeException $error) { $denied = true; } if (!$denied) { throw new RuntimeException('Malformed/incomplete native CI partition accepted'); } }
 echo 'Native CI partitions: ',array_sum($parts),' suites across 3 PHP versions x 6 isolated parts; missing/invalid assignments refused.',"\n";
+
+$mysql_parts=native_mysql_workflow_partition(substr($source,strpos($source,"  pm-download-mysql:\n")));
+echo 'MySQL CI partitions: ',array_sum($mysql_parts),' original suites across 2 isolated parts; unchanged command/env/setup inventory verified.',"\n";

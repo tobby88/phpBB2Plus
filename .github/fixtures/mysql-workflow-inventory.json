@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "source_revision": "31df40df0e88ad2230a258cb44bc8aafa5904aee",
+  "header_sha256": "73196d8b24401a71e66c2d09ca4851dd8bd836ec5778387600ced09a81809240",
+  "setup": [
+    {
+      "sha256": "66adfcd285c7e807f598b7ef30f94b49b96db6f217d6e8c78a86449c3d67917d"
+    },
+    {
+      "sha256": "65ead88584d89e91f0b7d466adf7aa41b9592b61e7c643a39afdcbc850a4ca38"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Check actual user-list pages on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-userlist-pages-native.php"
+      ],
+      "part": 2,
+      "sha256": "0f40f5ba03f620af08d444bfb105a1fc20f8a7305536d1e47c44c239dfa7027d"
+    },
+    {
+      "name": "Check current self-service account blocks on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-self-service-block-native.php profile",
+        "php -d disable_functions=mail .github/scripts/check-self-service-block-native.php signature",
+        "php -d disable_functions=mail .github/scripts/check-self-service-block-native.php pm"
+      ],
+      "part": 2,
+      "sha256": "6729cd756121e00b08df10be196c7c70eeba75876977fca017b4aa8a53e859cc"
+    },
+    {
+      "name": "Check fresh PM editor and download entry on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-pm-entry-native.php compose",
+        "php -d disable_functions=mail .github/scripts/check-pm-entry-native.php download"
+      ],
+      "part": 1,
+      "sha256": "036ec180df4fa8b2d09adf2c213ad9cfb471715b65763a0e4be199840efa6de2"
+    },
+    {
+      "name": "Check current PM form reads on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-pm-form-read-native.php"
+      ],
+      "part": 1,
+      "sha256": "a979038c7bc1d2023703df170924e70f433cd5bbd51fed89cf4c91bc855f2e19"
+    },
+    {
+      "name": "Check current PM bodies and mailboxes on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-pm-view-native.php body",
+        "php -d disable_functions=mail .github/scripts/check-pm-view-native.php mailbox"
+      ],
+      "part": 2,
+      "sha256": "252dd357a3f478a0721da1bc16ec98c65401f324f99fb99bdedbb1418cf339ce"
+    },
+    {
+      "name": "Check current topic preferences and mail lifecycle on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php watch",
+        "php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php bookmark",
+        "php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php controllers",
+        "php -d disable_functions=mail .github/scripts/check-topic-notifications-native.php"
+      ],
+      "part": 1,
+      "sha256": "cc206a7529cf2ee842e44224baa556ca26b179f7c69c70a153a45482c3d5c8b2"
+    },
+    {
+      "name": "Check actual MySQL attachment authorization and reader lifecycle",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-pm-download-native.php"
+      ],
+      "part": 2,
+      "sha256": "0f445547d076c7cb976889d4c81983d0ad3056fec35dae95542e2b9eddd8e522"
+    },
+    {
+      "name": "Check current public attachment parents, ACLs and delivery",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-post-download-native.php"
+      ],
+      "part": 2,
+      "sha256": "a3ca3190f0db749f1bf8ecbe5489101a726e3a21a3a186080933c4959f56ff7d"
+    },
+    {
+      "name": "Check Link submission and optional notifications on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-link-registration-native.php"
+      ],
+      "part": 1,
+      "sha256": "2404fb2757f7f29251ae3b05b4a0688a1f98ec12d7d405ded3eb2906efb29064"
+    },
+    {
+      "name": "Check Link ACP mutations on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-link-admin-native.php"
+      ],
+      "part": 1,
+      "sha256": "2337c9826915f700df7d09a17e2e96c08c0bb6c6260529b722f6db30e5f4b170"
+    },
+    {
+      "name": "Check atomic Link settings and categories on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-link-settings-native.php"
+      ],
+      "part": 2,
+      "sha256": "871c4483d9d63255f84fb3cb4c7a79657b66ff82c1903c982d3e02cee7a0efcd"
+    },
+    {
+      "name": "Check public Link redirects and click counters on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-link-click-native.php"
+      ],
+      "part": 2,
+      "sha256": "46dabbc5113e12371e4a4a97f7f5525eda4e3a2ca44bab87d75b965cfafe2bc9"
+    },
+    {
+      "name": "Check public Link search and pagination on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-link-list-native.php"
+      ],
+      "part": 1,
+      "sha256": "544d15171b0e69d21adb0623425028414699f2a2460fa3bf06443735ff0b1afa"
+    },
+    {
+      "name": "Check optional Link rotation and index settings on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-link-rotation-native.php"
+      ],
+      "part": 1,
+      "sha256": "2ad553fe8202d1517167435158315210f3c532c70bbb49d5d1e277e0cb0e5304"
+    },
+    {
+      "name": "Check isolated CrackerTracker quotas and cooldowns on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-ctracker-rate-storage.php"
+      ],
+      "part": 2,
+      "sha256": "6aec91d036e14f635dee98fcc7c19e6682ea4e06f7285ac465807eaae1728f0e"
+    },
+    {
+      "name": "Check original KB fixture seeds and owned setup on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-kb-fixture-seeds-native.php"
+      ],
+      "part": 2,
+      "sha256": "fe2ea6a0098ad1f2e968dbbdb340ee7ecad7b4b3314e4fcb3021206a3a90f6fb"
+    },
+    {
+      "name": "Check shared writer ownership and actual CAPTCHA consumer on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-owned-connection-native.php"
+      ],
+      "part": 2,
+      "sha256": "f02a28606b07b1810551b9b89e6dc97803ef4fa55e7307325e3bfe803e031a26"
+    },
+    {
+      "name": "Check actual absence popup and current authority on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-absence-native.php"
+      ],
+      "part": 2,
+      "sha256": "41c69f2cbc5d520f0cedd8cb6f101fd78ec9a25aa9005114fd2ad4d0181a9885"
+    },
+    {
+      "name": "Check personal attachment sorting and pagination on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-uacp-sorting-native.php"
+      ],
+      "part": 1,
+      "sha256": "b47d7a292cff1d1612e6593449064bfdca8381eb87e72ef820f9a753d502f305"
+    },
+    {
+      "name": "Check atomic profile preferences and current authority on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-profile-options-native.php"
+      ],
+      "part": 1,
+      "sha256": "c7a765cc3e41e6d8098142be9cd53056dbaa84c08716a06aab3339cb0f9244a4"
+    },
+    {
+      "name": "Check personal attachment deletion and file recovery on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-uacp-delete-native.php"
+      ],
+      "part": 2,
+      "sha256": "765dbedcce8df265bb8abc6d5d81a65df5ef13449da0158caf46bc656f9e6b0e"
+    },
+    {
+      "name": "Check personal attachment visibility and list snapshots on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-uacp-list-native.php"
+      ],
+      "part": 2,
+      "sha256": "e7ec68dddae6f16fd687d5ef89c8cef83bb47266e860619d0abbd4896132d470"
+    },
+    {
+      "name": "Check attachment administration totals and sorts on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-admin-list-native.php"
+      ],
+      "part": 1,
+      "sha256": "8fb3bd8dcedb6cd74aa5ce92b21ce81364f4b6acadbc4140baddf4a597f089e1"
+    },
+    {
+      "name": "Check complete attachment administration rows on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-admin-rows-native.php"
+      ],
+      "part": 2,
+      "sha256": "d6b53a7ae1833c5e7f1219e6c7f4d322c109422c665d79c88b623b9deb25f6bb"
+    },
+    {
+      "name": "Check atomic attachment metadata saves on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-admin-metadata-native.php"
+      ],
+      "part": 1,
+      "sha256": "193de38f001c26092c09a70c71a07a32d94f53ba86cb2b9e36e208d74e93ac61"
+    },
+    {
+      "name": "Check legacy attachment selections on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-delete-selection.php"
+      ],
+      "part": 1,
+      "sha256": "47208116e5c2574b8555673848ab3608c87f1ba217950cc1f6b9b13d9d1e7b6f"
+    },
+    {
+      "name": "Check current account blocks across editors and posting on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-current-account-block-native.php ajax",
+        "php -d disable_functions=mail .github/scripts/check-current-account-block-native.php post",
+        "php -d disable_functions=mail .github/scripts/check-current-account-block-native.php full"
+      ],
+      "part": 1,
+      "sha256": "641755a74859a0801642a1ac2db2242478fa034834166d8ecd8327870cdcc1c4"
+    },
+    {
+      "name": "Check current account blocks and atomic voting on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-poll-vote-native.php"
+      ],
+      "part": 2,
+      "sha256": "6435c5c75c9d8aa8c504a481a033979995b920436463a5b2268b53e4dc7ad91e"
+    },
+    {
+      "name": "Check atomic Shadow cleanup on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-shadow.php"
+      ],
+      "part": 2,
+      "sha256": "b4469f9e802f2fba59ec2b0c5d2caf49dea96d97f0d53029143747700f428cf6"
+    },
+    {
+      "name": "Check current ACP attachment removal on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-admin-delete-native.php"
+      ],
+      "part": 1,
+      "sha256": "6f6099b1af1a72d653a3487d658150ade2adfe52561a41332b93c88bb50605f2"
+    },
+    {
+      "name": "Check attachment administration pages on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-admin-rows-native.php --pages"
+      ],
+      "part": 2,
+      "sha256": "9bb74239bd2c4c2674b52f8066d769184c4cf55b212f51a2820d0d68cd5c01da"
+    },
+    {
+      "name": "Check attachment search and result forms on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-attachment-search-native.php"
+      ],
+      "part": 1,
+      "sha256": "cbe6d4b92bba334f250066e8db73b01e3cf461dfe8a0a98e4e9284b756a56512"
+    }
+  ]
+}

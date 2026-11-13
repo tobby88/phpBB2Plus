@@ -1626,9 +1626,14 @@ jobs:
           PHPBB_LINK_ROTATION_NATIVE: '1'
           PHPBB_LINK_ROTATION_PASSWORD: fixture-only
   pm-download-mysql:
-    name: Attachment downloads (MySQL 8.4, PHP 8.5)
+    name: MySQL 8.4 (part ${{ matrix.part }}, PHP 8.5)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        part: [1, 2]
     services:
       database:
         image: mysql:8.4
@@ -1649,12 +1654,14 @@ jobs:
           extensions: mysqli, openssl
           coverage: none
       - name: Check actual user-list pages on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-userlist-pages-native.php
         env:
           PHPBB_USERLIST_PAGES_NATIVE: '1'
           PHPBB_USERLIST_PAGES_PASSWORD: fixture-only
           PHPBB_USERLIST_PAGES_MYSQL: '8.4'
       - name: Check current self-service account blocks on MySQL
+        if: matrix.part == 2
         run: |
           php -d disable_functions=mail .github/scripts/check-self-service-block-native.php profile
           php -d disable_functions=mail .github/scripts/check-self-service-block-native.php signature
@@ -1664,6 +1671,7 @@ jobs:
           PHPBB_SELF_BLOCK_PASSWORD: fixture-only
           PHPBB_SELF_BLOCK_MYSQL: '8.4'
       - name: Check fresh PM editor and download entry on MySQL
+        if: matrix.part == 1
         run: |
           php -d disable_functions=mail .github/scripts/check-pm-entry-native.php compose
           php -d disable_functions=mail .github/scripts/check-pm-entry-native.php download
@@ -1672,12 +1680,14 @@ jobs:
           PHPBB_PM_ENTRY_PASSWORD: fixture-only
           PHPBB_PM_ENTRY_MYSQL: '8.4'
       - name: Check current PM form reads on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-pm-form-read-native.php
         env:
           PHPBB_PM_FORM_NATIVE: '1'
           PHPBB_PM_FORM_PASSWORD: fixture-only
           PHPBB_PM_FORM_MYSQL: '8.4'
       - name: Check current PM bodies and mailboxes on MySQL
+        if: matrix.part == 2
         run: |
           php -d disable_functions=mail .github/scripts/check-pm-view-native.php body
           php -d disable_functions=mail .github/scripts/check-pm-view-native.php mailbox
@@ -1686,6 +1696,7 @@ jobs:
           PHPBB_PM_VIEW_PASSWORD: fixture-only
           PHPBB_PM_VIEW_MYSQL: '8.4'
       - name: Check current topic preferences and mail lifecycle on MySQL
+        if: matrix.part == 1
         run: |
           php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php watch
           php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php bookmark
@@ -1699,116 +1710,137 @@ jobs:
           PHPBB_TOPIC_NOTIFY_PASSWORD: fixture-only
           PHPBB_TOPIC_NOTIFY_MYSQL: '8.4'
       - name: Check actual MySQL attachment authorization and reader lifecycle
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
         env:
           PHPBB_PM_NOTIFY_NATIVE: '1'
           PHPBB_PM_NOTIFY_PASSWORD: fixture-only
           PHPBB_PM_DOWNLOAD_MYSQL: '8.4'
       - name: Check current public attachment parents, ACLs and delivery
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-post-download-native.php
         env:
           PHPBB_PM_NOTIFY_NATIVE: '1'
           PHPBB_PM_NOTIFY_PASSWORD: fixture-only
           PHPBB_PM_DOWNLOAD_MYSQL: '8.4'
       - name: Check Link submission and optional notifications on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-link-registration-native.php
         env:
           PHPBB_LINK_NATIVE: '1'
           PHPBB_LINK_PASSWORD: fixture-only
       - name: Check Link ACP mutations on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-link-admin-native.php
         env:
           PHPBB_LINK_ADMIN_NATIVE: '1'
           PHPBB_LINK_ADMIN_PASSWORD: fixture-only
       - name: Check atomic Link settings and categories on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-link-settings-native.php
         env:
           PHPBB_LINK_SETTINGS_NATIVE: '1'
           PHPBB_LINK_SETTINGS_PASSWORD: fixture-only
       - name: Check public Link redirects and click counters on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-link-click-native.php
         env:
           PHPBB_LINK_CLICK_NATIVE: '1'
           PHPBB_LINK_CLICK_PASSWORD: fixture-only
       - name: Check public Link search and pagination on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-link-list-native.php
         env:
           PHPBB_LINK_LIST_NATIVE: '1'
           PHPBB_LINK_LIST_PASSWORD: fixture-only
       - name: Check optional Link rotation and index settings on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-link-rotation-native.php
         env:
           PHPBB_LINK_ROTATION_NATIVE: '1'
           PHPBB_LINK_ROTATION_PASSWORD: fixture-only
       - name: Check isolated CrackerTracker quotas and cooldowns on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-ctracker-rate-storage.php
         env:
           PHPBB_RATE_NATIVE: '1'
           PHPBB_RATE_TEST_PASSWORD: fixture-only
       - name: Check original KB fixture seeds and owned setup on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-kb-fixture-seeds-native.php
         env:
           PHPBB_KB_COUNTER_NATIVE: '1'
           PHPBB_KB_COUNTER_PASSWORD: fixture-only
       - name: Check shared writer ownership and actual CAPTCHA consumer on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-owned-connection-native.php
         env:
           PHPBB_OWNED_NATIVE: '1'
           PHPBB_OWNED_PASSWORD: fixture-only
       - name: Check actual absence popup and current authority on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-absence-native.php
         env:
           PHPBB_ABSENCE_NATIVE: '1'
           PHPBB_ABSENCE_PASSWORD: fixture-only
       - name: Check personal attachment sorting and pagination on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-uacp-sorting-native.php
         env:
           PHPBB_UACP_NATIVE: '1'
           PHPBB_UACP_PASSWORD: fixture-only
           PHPBB_UACP_MYSQL: '8.4'
       - name: Check atomic profile preferences and current authority on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-profile-options-native.php
         env:
           PHPBB_PROFILE_OPTIONS_NATIVE: '1'
           PHPBB_PROFILE_OPTIONS_PASSWORD: fixture-only
           PHPBB_PROFILE_OPTIONS_MYSQL: '8.4'
       - name: Check personal attachment deletion and file recovery on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-uacp-delete-native.php
         env:
           PHPBB_UACP_DELETE_NATIVE: '1'
           PHPBB_UACP_DELETE_PASSWORD: fixture-only
           PHPBB_UACP_DELETE_MYSQL: '8.4'
       - name: Check personal attachment visibility and list snapshots on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-uacp-list-native.php
         env:
           PHPBB_UACP_LIST_NATIVE: '1'
           PHPBB_UACP_LIST_PASSWORD: fixture-only
           PHPBB_UACP_LIST_MYSQL: '8.4'
       - name: Check attachment administration totals and sorts on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-attachment-admin-list-native.php
         env:
           PHPBB_ATTACH_ADMIN_LIST_NATIVE: '1'
           PHPBB_ATTACH_ADMIN_LIST_PASSWORD: fixture-only
           PHPBB_ATTACH_ADMIN_LIST_MYSQL: '8.4'
       - name: Check complete attachment administration rows on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-attachment-admin-rows-native.php
         env:
           PHPBB_ATTACH_ADMIN_ROWS_NATIVE: '1'
           PHPBB_ATTACH_ADMIN_ROWS_PASSWORD: fixture-only
           PHPBB_ATTACH_ADMIN_ROWS_MYSQL: '8.4'
       - name: Check atomic attachment metadata saves on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-attachment-admin-metadata-native.php
         env:
           PHPBB_ATTACH_METADATA_NATIVE: '1'
           PHPBB_ATTACH_METADATA_PASSWORD: fixture-only
           PHPBB_ATTACH_METADATA_MYSQL: '8.4'
       - name: Check legacy attachment selections on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-attachment-delete-selection.php
         env:
           PHPBB_ATTACH_DELETE_SELECTION_NATIVE: '1'
           PHPBB_ATTACH_DELETE_SELECTION_PASSWORD: fixture-only
           PHPBB_ATTACH_DELETE_SELECTION_MYSQL: '8.4'
       - name: Check current account blocks across editors and posting on MySQL
+        if: matrix.part == 1
         run: |
           php -d disable_functions=mail .github/scripts/check-current-account-block-native.php ajax
           php -d disable_functions=mail .github/scripts/check-current-account-block-native.php post
@@ -1818,30 +1850,35 @@ jobs:
           PHPBB_ACCOUNT_BLOCK_PASSWORD: fixture-only
           PHPBB_ACCOUNT_BLOCK_MYSQL: '8.4'
       - name: Check current account blocks and atomic voting on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-poll-vote-native.php
         env:
           PHPBB_VOTE_NATIVE: '1'
           PHPBB_VOTE_PASSWORD: fixture-only
           PHPBB_VOTE_MYSQL: '8.4'
       - name: Check atomic Shadow cleanup on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-attachment-shadow.php
         env:
           PHPBB_ATTACH_SHADOW_NATIVE: '1'
           PHPBB_ATTACH_SHADOW_PASSWORD: fixture-only
           PHPBB_ATTACH_SHADOW_MYSQL: '8.4'
       - name: Check current ACP attachment removal on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-attachment-admin-delete-native.php
         env:
           PHPBB_ATTACH_ADMIN_DELETE_NATIVE: '1'
           PHPBB_ATTACH_ADMIN_DELETE_PASSWORD: fixture-only
           PHPBB_ATTACH_ADMIN_DELETE_MYSQL: '8.4'
       - name: Check attachment administration pages on MySQL
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-attachment-admin-rows-native.php --pages
         env:
           PHPBB_ATTACH_ADMIN_ROWS_NATIVE: '1'
           PHPBB_ATTACH_ADMIN_ROWS_PASSWORD: fixture-only
           PHPBB_ATTACH_ADMIN_ROWS_MYSQL: '8.4'
       - name: Check attachment search and result forms on MySQL
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-attachment-search-native.php
         env:
           PHPBB_ATTACH_SEARCH_NATIVE: '1'
