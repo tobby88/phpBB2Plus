@@ -14,6 +14,15 @@ function phpbb_uacp_attachment_ids($values)
     sort($ids, SORT_NUMERIC); return array_values($ids);
 }
 
+function phpbb_uacp_pm_box($row,$target)
+{
+    $type=(int)$row['privmsgs_type'];$target=(int)$target;
+    if(in_array($type,array(PRIVMSGS_READ_MAIL,PRIVMSGS_NEW_MAIL,PRIVMSGS_UNREAD_MAIL),true) && (int)$row['privmsgs_to_userid']===$target){return 'Inbox';}
+    if($type===PRIVMSGS_SENT_MAIL && (int)$row['privmsgs_from_userid']===$target){return 'Sentbox';}
+    if($type===PRIVMSGS_SAVED_IN_MAIL && (int)$row['privmsgs_to_userid']===$target || $type===PRIVMSGS_SAVED_OUT_MAIL && (int)$row['privmsgs_from_userid']===$target){return 'Savebox';}
+    return false;
+}
+
 class PhpbbUacpAttachmentStore extends PhpbbOwnedStore
 {
     var $commit_attempted = false;
@@ -77,9 +86,7 @@ class PhpbbUacpAttachmentStore extends PhpbbOwnedStore
     {
         $rows=$this->rows('SELECT * FROM '.PRIVMSGS_TABLE.' WHERE privmsgs_id='.(int)$message.' FOR UPDATE');
         if(count($rows)!==1 || $rows[0]['privmsgs_write_payload']!==null){return false;}
-        $row=$rows[0];$type=(int)$row['privmsgs_type'];$target=$this->actor['target'];
-        return (in_array($type,array(PRIVMSGS_READ_MAIL,PRIVMSGS_NEW_MAIL,PRIVMSGS_UNREAD_MAIL,PRIVMSGS_SAVED_IN_MAIL),true) && (int)$row['privmsgs_to_userid']===$target)
-            || (in_array($type,array(PRIVMSGS_SENT_MAIL,PRIVMSGS_SAVED_OUT_MAIL),true) && (int)$row['privmsgs_from_userid']===$target);
+        return phpbb_uacp_pm_box($rows[0],$this->actor['target'])!==false;
     }
     private function links($id) { return $this->rows('SELECT attach_id,post_id,privmsgs_id,user_id_1,user_id_2 FROM '.ATTACHMENTS_TABLE.' WHERE attach_id='.(int)$id.' ORDER BY post_id,privmsgs_id,user_id_1,user_id_2 FOR UPDATE'); }
     private function link_key($row) { return implode(':',array((int)$row['attach_id'],(int)$row['post_id'],(int)$row['privmsgs_id'],(int)$row['user_id_1'],(int)$row['user_id_2'])); }

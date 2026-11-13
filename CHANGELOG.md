@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Scope personal attachment lists before counting and pagination
+
+- Build the visible count, sorted page and parent labels from one independent
+  read-only InnoDB snapshot with the exact current session and account role.
+  Apply current core/private forum permissions, target post ownership and PM
+  copy visibility before counting. Shared IDs cannot reveal another user's
+  private topic titles; remaining foreign PM copies cannot create empty pages.
+- Retain all six sort modes, deterministic ties and legitimate own/admin
+  views. Clamp stale page offsets to the last real page and share the current
+  inbox/sent/saved-copy labels with attachment deletion.
+- Escape stored metadata and labels, truncate topic titles by UTF-8 characters
+  and place cookie-less session query parameters before post anchors. Keep
+  callers' transactions intact and avoid per-row parent queries. Existing
+  canonical tables suffice; no new migration is required.
+
 ### Remove personal attachments with current authority and deferred cleanup
 
 - Validate the complete bounded selection, current login/account, current

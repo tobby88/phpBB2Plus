@@ -1,5 +1,5 @@
 <?php
-// Execute the actual attachment manager's request, sort controls and two SELECTs.
+// Execute the actual controls, read-only listing and pagination on native SQL.
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_UACP_NATIVE') !== '1') { echo "Attachment sorting requires explicit disposable storage.\n"; return; }
 define('IN_PHPBB', true);
 $table_prefix = 'phpbb_';
@@ -9,7 +9,11 @@ require $phpbb_root_path . 'includes/php_compat.php';
 require $phpbb_root_path . 'includes/constants.php';
 require $phpbb_root_path . 'attach_mod/includes/constants.php';
 require $phpbb_root_path . 'attach_mod/includes/functions_attach.php';
+require $phpbb_root_path . 'attach_mod/includes/functions_includes.php';
+require $phpbb_root_path . 'includes/auth.php';
 require $phpbb_root_path . 'db/mysqli.php';
+require $phpbb_root_path . 'includes/functions_uacp_listing.php';
+require __DIR__ . '/uacp-list-native-fixture.php';
 function us_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 function message_die($level, $message) { $e = $GLOBALS['db']->sql_error(); throw new RuntimeException($message . ': ' . $e['message']); }
 function us_sql($sql) { $r = $GLOBALS['db']->sql_query($sql); us_check($r !== false, 'Own fixture query'); return $r; }
@@ -21,6 +25,7 @@ function us_request($request, $expected_mode, $expected_ids)
     global $HTTP_POST_VARS, $HTTP_GET_VARS, $board_config, $lang, $db, $us_sort, $us_select, $us_pagination, $us_page, $phpbb_root_path, $phpEx;
     $HTTP_POST_VARS = array(); $HTTP_GET_VARS = $request;
     $board_config = array('topics_per_page' => 2); $profiledata = array('user_id' => 2);
+    $userdata = array('user_id'=>2,'session_id'=>str_repeat('a',32),'session_logged_in'=>true);
     eval($us_sort);
     eval($us_select);
     $actual = array(); foreach ($attachments as $row) { $actual[] = (int) $row['attach_id']; }
@@ -46,11 +51,14 @@ set_error_handler(function ($severity, $message) { if (error_reporting() & $seve
 try {
     $db = new sql_db($host, 'root', $password, $schema, false);
     if (getenv('PHPBB_UACP_MYSQL') === '8.4') { $v = us_rows('SELECT VERSION() version'); us_check(strpos($v[0]['version'], '8.4.') === 0 && stripos($v[0]['version'], 'MariaDB') === false, 'Actual MySQL 8.4 required'); }
-    $ddl = file_get_contents($phpbb_root_path . 'install/schemas/mysql_schema.sql');
-    foreach (array('attachments_desc', 'attachments') as $table) {
-        us_check(preg_match('/^CREATE TABLE phpbb_' . $table . '\s*\([\s\S]*?;/m', $ddl, $m) === 1, 'Actual installer attachment schema');
-        us_sql($m[0]);
-    }
+    uacp_list_fixture_install($db,$phpbb_root_path,'phpbb_');
+    uacp_list_fixture_insert($db,'phpbb_users',array('user_id'=>2,'username'=>'Synthetic owner','user_active'=>1,'user_level'=>USER,'user_blocktime'=>0));
+    uacp_list_fixture_insert($db,'phpbb_users',array('user_id'=>3,'username'=>'Synthetic other','user_active'=>1,'user_level'=>USER,'user_blocktime'=>0));
+    uacp_list_fixture_insert($db,'phpbb_config',array('config_name'=>'session_length','config_value'=>'3600'));
+    uacp_list_fixture_insert($db,'phpbb_sessions',array('session_id'=>str_repeat('a',32),'session_user_id'=>2,'session_logged_in'=>1,'session_time'=>time()));
+    uacp_list_fixture_insert($db,'phpbb_forums',array('forum_id'=>1,'auth_view'=>AUTH_ALL,'auth_read'=>AUTH_REG));
+    foreach(array(101,102,103,105,106,107)as$id){uacp_list_fixture_insert($db,'phpbb_topics',array('topic_id'=>$id,'forum_id'=>1,'topic_title'=>'Synthetic topic '.$id));uacp_list_fixture_insert($db,'phpbb_posts',array('post_id'=>$id,'forum_id'=>1,'topic_id'=>$id,'poster_id'=>$id===107?3:2,'post_deleted'=>0));}
+    uacp_list_fixture_insert($db,'phpbb_privmsgs',array('privmsgs_id'=>204,'privmsgs_type'=>PRIVMSGS_READ_MAIL,'privmsgs_from_userid'=>3,'privmsgs_to_userid'=>2,'privmsgs_write_payload'=>null));
     us_sql("INSERT INTO phpbb_attachments_desc(attach_id,physical_filename,real_filename,comment,extension,filesize,download_count,filetime) VALUES
         (1,'own1','delta','Bravo','jpg',30,5,300),
         (2,'own2','alpha','Delta','png',10,7,200),
@@ -64,8 +72,8 @@ try {
     $source = str_replace("\r\n", "\n", file_get_contents($phpbb_root_path . 'uacp.php'));
     $a = strpos($source, '$start = max('); $b = strpos($source, '$delete = ', $a);
     us_check($a !== false && $b > $a, 'Actual request, ORDER BY and dropdown boundaries'); $us_sort = substr($source, $a, $b - $a);
-    $a = strpos($source, '$sql = "SELECT attach_id'); $b = strpos($source, 'if (sizeof($attachments) > 0)', $a);
-    us_check($a !== false && $b > $a, 'Actual owned attachment SELECT boundaries'); $us_select = substr($source, $a, $b - $a);
+    $a = strpos($source, '// Read count, page and parent labels'); $b = strpos($source, "\n$" . "hidden_fields = '';\n", $a);
+    us_check($a !== false && $b > $a, 'Actual snapshot/listing call and effective page boundaries'); $us_select = substr($source, $a, $b - $a);
     $a = strpos($source, '// Generate Pagination'); $b = strpos($source, "$" . "template->pparse('body');", $a);
     us_check($a !== false && $b > $a, 'Actual pagination controls'); $us_pagination = substr($source, $a, $b - $a);
     $cases = 0;
@@ -75,8 +83,9 @@ try {
         $lang = array(); require $phpbb_root_path . 'language/lang_' . $locale . '/lang_main.php'; require $phpbb_root_path . 'language/lang_' . $locale . '/lang_admin_attach.php';
         foreach ($orders as $mode => $ids) { foreach (array('ASC', 'DESC') as $direction) {
             $expected = $direction === 'ASC' ? $ids : array_reverse($ids); $joined = array();
-            foreach (array(0,2,4,6) as $start) { us_request(array('mode'=>$mode,'order'=>$direction,'start'=>$start), $mode, array_slice($expected,$start,2)); $joined = array_merge($joined,array_slice($expected,$start,2)); $cases++; }
+            foreach (array(0,2,4) as $start) { us_request(array('mode'=>$mode,'order'=>$direction,'start'=>$start), $mode, array_slice($expected,$start,2)); $joined = array_merge($joined,array_slice($expected,$start,2)); $cases++; }
             us_check($joined === $expected && count(array_unique($joined)) === 5, 'Complete stable pagination with no skipped or repeated ties');
+            $out=us_request(array('mode'=>$mode,'order'=>$direction,'start'=>6),$mode,array_slice($expected,4,2));us_check($out[2]===4,'Stale next-page offset clamps to last real page');$cases++;
         } }
         foreach (array('filename'=>'real_filename','a.real_filename'=>'real_filename','download_count'=>'downloads','filetime'=>'post_time') as $alias=>$mode) {
             us_request(array('mode'=>$alias,'order'=>'DESC'), $mode, array_slice(array_reverse($orders[$mode]),0,2)); $cases++;
@@ -86,7 +95,7 @@ try {
         }
         foreach (array('desc', 'DESC; SELECT 1', array('DESC')) as $bad) { us_request(array('mode'=>'filesize','order'=>$bad), 'filesize', array(2,3)); $cases++; }
         foreach (array(-1, -999999, array(4)) as $bad) { us_request(array('mode'=>'comment','start'=>$bad), 'comment', array(3,5)); $cases++; }
-        foreach (array(1000001,2147483647) as $bad) { $out=us_request(array('mode'=>'comment','start'=>$bad), 'comment', array()); us_check($out[2]===1000000,'Offset capped'); $cases++; }
+        foreach (array(1000001,2147483647) as $bad) { $out=us_request(array('mode'=>'comment','start'=>$bad), 'comment', array(2)); us_check($out[2]===4,'Bounded stale offset clamps to the actual last page'); $cases++; }
     }
     us_check(us_rows('SELECT * FROM phpbb_attachments_desc ORDER BY attach_id') === $before && us_rows('SELECT * FROM phpbb_attachments ORDER BY attach_id,post_id') === $links, 'All native sort requests are read-only');
     echo 'Attachment manager sorting: ', $cases, " actual-controller/native pages PASS; EN/DE six columns, stable ties, both directions, dropdowns, legacy aliases, malformed inputs, owner/recipient boundaries and unchanged data.\n";

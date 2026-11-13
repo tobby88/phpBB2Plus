@@ -676,6 +676,7 @@ $lang['Popup_on_privmsg'] = 'Pop up window on new Private Message';
 $lang['Popup_on_privmsg_explain'] = 'Some templates may open a new window to inform you when new private messages arrive.';
 $lang['Hide_user'] = 'Hide your online status';
 
+$lang['Uacp_attachment_list_failed'] = 'The attachment list could not be loaded. Please reload the page and try again.';
 $lang['Uacp_attachment_selection'] = 'The complete attachment selection is no longer available or contains an invalid value. Please reload the list and select your attachments again.';
 $lang['Uacp_attachment_failed'] = 'The attachments could not be removed. Please reload the list and try again.';
 $lang['Uacp_attachment_unconfirmed'] = 'The removal could not be confirmed. Check the current attachment list before trying again.';

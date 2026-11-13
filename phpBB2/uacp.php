@@ -15,6 +15,7 @@ $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_uacp_attachments.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_uacp_listing.' . $phpEx);
 
 // session id check
 $sid = get_var('sid', '');
@@ -64,21 +65,18 @@ $mode = get_var('mode', '');
 
 $mode_types_text = array($lang['Sort_Filename'], $lang['Sort_Comment'], $lang['Sort_Extension'], $lang['Sort_Size'], $lang['Sort_Downloads'], $lang['Sort_Posttime']);
 $mode_types = array('real_filename', 'comment', 'extension', 'filesize', 'downloads', 'post_time');
-$sort_columns = array('real_filename' => 'real_filename', 'comment' => 'comment', 'extension' => 'extension', 'filesize' => 'filesize', 'downloads' => 'download_count', 'post_time' => 'filetime');
 // Retain old bookmarked modes while using one value in controls and pagination.
 $sort_aliases = array('filename' => 'real_filename', 'a.real_filename' => 'real_filename', 'download_count' => 'downloads', 'filetime' => 'post_time');
 if (isset($sort_aliases[$mode]))
 {
 	$mode = $sort_aliases[$mode];
 }
-if (!isset($sort_columns[$mode]))
+if (!in_array($mode, $mode_types, true))
 {
 	$mode = 'real_filename';
 }
 
 $do_pagination = true;
-// A unique tie-breaker prevents equal names/counts/dates changing page order.
-$order_by = 'ORDER BY a.' . $sort_columns[$mode] . ' ' . $sort_order . ', a.attach_id ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
 
 // Set select fields
 $select_sort_mode = $select_sort_order = '';
@@ -166,15 +164,29 @@ if ($delete && sizeof($delete_id_list) > 0)
 	exit;
 }
 
+// Read count, page and parent labels from one independent read-only snapshot.
+try
+{
+	$attachment_page = phpbb_uacp_attachment_listing($db, $userdata, $profiledata['user_id'], $mode, $sort_order, $start, isset($board_config['topics_per_page']) ? $board_config['topics_per_page'] : 25);
+}
+catch (PhpbbOwnedStorageFailure $exception)
+{
+	$key = $exception->getMessage();
+	message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Uacp_attachment_list_failed']);
+}
+$profiledata = $attachment_page['user'];
+$attachments = $attachment_page['rows'];
+$total_rows = $attachment_page['total'];
+$start = $attachment_page['start'];
+$uacp_page_size = $attachment_page['size'];
+
 $hidden_fields = '';
 	
 $template->set_filenames(array(
 	'body' => 'uacp_body.tpl')
 );
 
-$total_rows = 0;
 
-$username = $profiledata['username'];
 
 $s_hidden = '<input type="hidden" name="' . POST_USERS_URL . '" value="' . intval($profiledata['user_id']) . '">';
 $s_hidden .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
@@ -197,55 +209,13 @@ $template->assign_vars(array(
 	'L_MARK_ALL'			=> $lang['Mark_all'],
 	'L_UNMARK_ALL'			=> $lang['Unmark_all'],
 
-	'USERNAME'		=> $profiledata['username'],
+	'USERNAME'		=> phpbb_stored_text($profiledata['username']),
 
 	'S_USER_HIDDEN'		=> $s_hidden,
 	'S_MODE_ACTION'		=> append_sid($phpbb_root_path . 'uacp.' . $phpEx),
 	'S_MODE_SELECT'		=> $select_sort_mode,
 	'S_ORDER_SELECT'	=> $select_sort_order)
 );
-
-$sql = "SELECT attach_id 
-	FROM " . ATTACHMENTS_TABLE . "
-	WHERE user_id_1 = " . intval($profiledata['user_id']) . " OR user_id_2 = " . intval($profiledata['user_id']) . "
-	GROUP BY attach_id";
-		
-if (!($result = $db->sql_query($sql)))
-{
-	message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
-}
-		
-$attach_ids = $db->sql_fetchrowset($result);
-$num_attach_ids = $db->sql_numrows($result);
-$db->sql_freeresult($result);
-
-$total_rows = $num_attach_ids;
-
-$attachments = array();
-
-if ($num_attach_ids > 0)
-{
-	$attach_id = array();
-
-	for ($j = 0; $j < $num_attach_ids; $j++)
-	{
-		$attach_id[] = (int) $attach_ids[$j]['attach_id'];
-	}
-			
-	$sql = "SELECT a.*
-		FROM " . ATTACHMENTS_DESC_TABLE . " a
-		WHERE a.attach_id IN (" . implode(', ', $attach_id) . ") " .
-		$order_by;
-		
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, "Couldn't query attachments", '', __LINE__, __FILE__, $sql);
-	}
-
-	$attachments = $db->sql_fetchrowset($result);
-	$num_attach = $db->sql_numrows($result);
-	$db->sql_freeresult($result);
-}
 
 if (sizeof($attachments) > 0)
 {
@@ -254,105 +224,17 @@ if (sizeof($attachments) > 0)
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
-		// Is the Attachment assigned to more than one post?
-		// If it's not assigned to any post, it's an private message thingy. ;)
 		$post_titles = array();
-
-		$sql = 'SELECT *
-			FROM ' . ATTACHMENTS_TABLE . '
-			WHERE attach_id = ' . (int) $attachments[$i]['attach_id'];
-
-		if (!($result = $db->sql_query($sql)))
+		foreach ($attachments[$i]['parents'] as $parent)
 		{
-			message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
-		}
-
-		$ids = $db->sql_fetchrowset($result);
-		$num_ids = $db->sql_numrows($result);
-		$db->sql_freeresult($result);
-
-		for ($j = 0; $j < $num_ids; $j++)
-		{
-			if ($ids[$j]['post_id'] != 0)
+			if ($parent['type'] === 'post')
 			{
-				$sql = "SELECT t.topic_title
-					FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p
-					WHERE p.post_id = " . (int) $ids[$j]['post_id'] . " AND p.topic_id = t.topic_id
-					GROUP BY t.topic_id, t.topic_title";
-
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Couldn\'t query topic', '', __LINE__, __FILE__, $sql);
-				}
-
-				$row = $db->sql_fetchrow($result);
-				$db->sql_freeresult($result);
-
-				$post_title = $row['topic_title'];
-
-				if (strlen($post_title) > 32)
-				{
-					$post_title = substr($post_title, 0, 30) . '...';
-				}
-
-				$view_topic = append_sid($phpbb_root_path . 'viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $ids[$j]['post_id'] . '#' . $ids[$j]['post_id']);
-
-				$post_titles[] = '<a href="' . $view_topic . '" class="gen" target="_blank" rel="noopener noreferrer">' . $post_title . '</a>';
+				$view_topic = append_sid($phpbb_root_path . 'viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $parent['post_id'], true) . '#' . $parent['post_id'];
+				$post_titles[] = '<a href="' . phpbb_profile_text($view_topic) . '" class="gen" target="_blank" rel="noopener noreferrer">' . phpbb_uacp_topic_label($parent['title']) . '</a>';
 			}
 			else
 			{
-				$desc = '';
-
-				$sql = "SELECT privmsgs_type, privmsgs_to_userid, privmsgs_from_userid
-					FROM " . PRIVMSGS_TABLE . "
-					WHERE privmsgs_id = " . (int) $ids[$j]['privmsgs_id'];
-
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Couldn\'t get Privmsgs Type', '', __LINE__, __FILE__, $sql);
-				}
-
-				if ($db->sql_numrows($result) != 0)
-				{
-					$row = $db->sql_fetchrow($result);
-					$privmsgs_type = $row['privmsgs_type'];
-								
-
-					if ($privmsgs_type == PRIVMSGS_READ_MAIL || $privmsgs_type == PRIVMSGS_NEW_MAIL || $privmsgs_type == PRIVMSGS_UNREAD_MAIL)
-					{
-						if ($row['privmsgs_to_userid'] == $profiledata['user_id'])
-						{
-							$desc = $lang['Private_Message'] . ' (' . $lang['Inbox'] . ')';
-						}
-					}
-					else if ($privmsgs_type == PRIVMSGS_SENT_MAIL)
-					{
-						if ($row['privmsgs_from_userid'] == $profiledata['user_id'])
-						{
-							$desc = $lang['Private_Message'] . ' (' . $lang['Sentbox'] . ')';
-						}
-					}
-					else if ($privmsgs_type == PRIVMSGS_SAVED_OUT_MAIL)
-					{
-						if ($row['privmsgs_from_userid'] == $profiledata['user_id'])
-						{
-							$desc = $lang['Private_Message'] . ' (' . $lang['Savebox'] . ')';
-						}
-					}
-					else if ($privmsgs_type == PRIVMSGS_SAVED_IN_MAIL)
-					{
-						if ($row['privmsgs_to_userid'] == $profiledata['user_id'])
-						{
-							$desc = $lang['Private_Message'] . ' (' . $lang['Savebox'] . ')';
-						}
-					}
-
-					if ($desc != '')
-					{
-						$post_titles[] = $desc;
-					}
-				}
-				$db->sql_freeresult($result);
+				$post_titles[] = phpbb_profile_text($lang['Private_Message'] . ' (' . $lang[$parent['box']] . ')');
 			}
 		}
 
@@ -375,16 +257,16 @@ if (sizeof($attachments) > 0)
 			$hidden_field = '<input type="hidden" name="attach_id_list[]" value="' . (int) $attachments[$i]['attach_id'] . '">';
 			$hidden_field .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
 
-			$comment = str_replace("\n", '<br />', $attachments[$i]['comment']);
+			$comment = str_replace(array("\r\n", "\r", "\n"), '<br />', phpbb_stored_text($attachments[$i]['comment']));
 
 			$template->assign_block_vars('attachrow', array(
 				'ROW_NUMBER'		=> $i + ($start + 1 ),
 				'ROW_COLOR'			=> '#' . $row_color,
 				'ROW_CLASS'			=> $row_class,
 
-				'FILENAME'			=> $attachments[$i]['real_filename'],
+				'FILENAME'			=> phpbb_stored_text($attachments[$i]['real_filename']),
 				'COMMENT'			=> $comment,
-				'EXTENSION'			=> $attachments[$i]['extension'],
+				'EXTENSION'			=> phpbb_stored_text($attachments[$i]['extension']),
 				'SIZE'				=> round(($attachments[$i]['filesize'] / MEGABYTE), 2),
 				'DOWNLOAD_COUNT'	=> $attachments[$i]['download_count'],
 				'POST_TIME'			=> create_date($board_config['default_dateformat'], $attachments[$i]['filetime'], $board_config['board_timezone']),
@@ -393,20 +275,19 @@ if (sizeof($attachments) > 0)
 				'S_DELETE_BOX'		=> $delete_box,
 				'S_HIDDEN'			=> $hidden_field,
 				'U_VIEW_ATTACHMENT'	=> append_sid($phpbb_root_path . 'download.' . $phpEx . '?id=' . $attachments[$i]['attach_id']))
-	//			'U_VIEW_POST' => ($attachments[$i]['post_id'] != 0) ? append_sid("../viewtopic." . $phpEx . "?" . POST_POST_URL . "=" . $attachments[$i]['post_id'] . "#" . $attachments[$i]['post_id']) : '')
 			);
 		}
 	}
 }
 
 // Generate Pagination
-if ($do_pagination && $total_rows > $board_config['topics_per_page'])
+if ($do_pagination && $total_rows > $uacp_page_size)
 {
-	$pagination = generate_pagination($phpbb_root_path . 'uacp.' . $phpEx . '?mode=' . $mode . '&amp;order=' . $sort_order . '&amp;' . POST_USERS_URL . '=' . $profiledata['user_id'] . '&amp;sid=' . $userdata['session_id'], $total_rows, $board_config['topics_per_page'], $start).'&nbsp;';
+	$pagination = generate_pagination($phpbb_root_path . 'uacp.' . $phpEx . '?mode=' . $mode . '&amp;order=' . $sort_order . '&amp;' . POST_USERS_URL . '=' . $profiledata['user_id'] . '&amp;sid=' . $userdata['session_id'], $total_rows, $uacp_page_size, $start).'&nbsp;';
 
 	$template->assign_vars(array(
 		'PAGINATION'	=> $pagination,
-		'PAGE_NUMBER'	=> sprintf($lang['Page_of'], (floor($start / $board_config['topics_per_page']) + 1), ceil($total_rows / $board_config['topics_per_page'])), 
+		'PAGE_NUMBER'	=> sprintf($lang['Page_of'], (floor($start / $uacp_page_size) + 1), ceil($total_rows / $uacp_page_size)),
 
 		'L_GOTO_PAGE'	=> $lang['Goto_page'])
 	);

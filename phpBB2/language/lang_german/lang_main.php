@@ -667,6 +667,7 @@ $lang['Popup_on_privmsg'] = 'PopUp-Fenster bei neuen Privaten Nachrichten';
 $lang['Popup_on_privmsg_explain'] = 'Einige Templates öffnen neue Fenster, um dich über neue private Nachrichten zu benachrichtigen.';
 $lang['Hide_user'] = 'Online-Status verstecken';
 
+$lang['Uacp_attachment_list_failed'] = 'Die Anhangsliste konnte nicht geladen werden. Bitte lade die Seite neu und versuche es erneut.';
 $lang['Uacp_attachment_selection'] = 'Die vollständige Anhangsauswahl ist nicht mehr verfügbar oder enthält einen ungültigen Wert. Bitte lade die Liste neu und wähle deine Anhänge erneut aus.';
 $lang['Uacp_attachment_failed'] = 'Die Anhänge konnten nicht entfernt werden. Bitte lade die Liste neu und versuche es erneut.';
 $lang['Uacp_attachment_unconfirmed'] = 'Das Entfernen konnte nicht bestätigt werden. Prüfe die aktuelle Anhangsliste vor einem erneuten Versuch.';
