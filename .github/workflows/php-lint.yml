@@ -775,8 +775,8 @@ jobs:
       - name: Test MySQLi failures and result lifecycle contract
         run: php .github/scripts/check-mysqli-driver-contract.php
 
-      - name: Test topic preferences and notification delivery lifecycle
-        run: php .github/scripts/check-topic-notifications.php
+      - name: Test topic preference route wiring (native lifecycle in database CI)
+        run: php .github/scripts/check-topic-preference-routes.php
 
       - name: Test topic notification additive migration
         run: php .github/scripts/check-topic-notification-migration.php

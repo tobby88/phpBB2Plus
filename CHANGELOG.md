@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic topic subscriptions and bookmarks
+
+- Apply watch/bookmark changes and notification acknowledgements in an owned
+  canonical transaction. Check and hold the current exact session, expiry,
+  active/unblocked account, account ban and current topic/forum/group access;
+  recheck before commit and keep unrelated caller work private.
+- Keep removing an own preference possible after its topic became private,
+  moved or disappeared. Retain repeated desired states and legacy duplicates;
+  clearing a watch also clears its notification claim atomically.
+- Publish success only after confirmed commit. Distinguish an uncertain commit
+  from ordinary failures and provide English/German database-update guidance.
+- Move the old combined simulator's preference/controller/mail behavior cases
+  to native MySQL/MariaDB, including real signed confirmation, AJAX, mailer
+  sinks, claim races, SQL failures and immediate peer-lock conflicts.
+
 ### Current private-message bodies and mailbox views
 
 - Read message bodies, edit/reply/quote sources, preview/recipient data, flood

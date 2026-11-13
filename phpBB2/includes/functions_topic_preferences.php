@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_topic_preference_storage.php';
 
 class PhpbbTopicPreferenceException extends RuntimeException {}
 function phpbb_topic_preference_error($key)
@@ -50,46 +51,18 @@ function phpbb_topic_preference($database, $topic_id, $kind, $state = null)
 	{
 		phpbb_topic_preference_error('Session_invalid');
 	}
-	$lock = new attach_mutation_lock($database);
-	if (!$lock->acquired) { phpbb_topic_preference_error('Attachment_storage_busy'); }
+	$store = null;
 	try
 	{
-		$db = new PhpbbTopicPreferenceDatabase($lock->connection);
-		$table = $kind === 'watch' ? TOPICS_WATCH_TABLE : BOOKMARK_TABLE;
-		$where = "topic_id = $topic_id AND user_id = $user_id";
-		// Removing one's own preference must also work after a move to a private
-		// forum or deletion. It reveals neither the title nor topic existence.
-		if ($state === false)
-		{
-			$db->sql_query('DELETE FROM ' . $table . ' WHERE ' . $where);
-			return false;
-		}
-		$users = phpbb_topic_preference_rows($db, 'SELECT user_id, user_level, user_active FROM ' . USERS_TABLE . " WHERE user_id = $user_id");
-		$topics = phpbb_topic_preference_rows($db, 'SELECT t.forum_id FROM ' . TOPICS_TABLE . ' t JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = t.forum_id'
-			. " WHERE t.topic_id = $topic_id AND t.topic_moved_id = 0 AND t.topic_status IN (" . TOPIC_UNLOCKED . ',' . TOPIC_LOCKED . ')');
-		if (!$users || empty($users[0]['user_active']) || !$topics || !phpbb_topic_preference_can_read($db, (int) $topics[0]['forum_id'], $users[0]))
-		{
-			phpbb_topic_preference_error('Topic_post_not_exist');
-		}
-		$forum_id = (int) $topics[0]['forum_id'];
-		if ($state === true)
-		{
-			$columns = 'topic_id, user_id' . ($kind === 'watch' ? ', notify_status' : '');
-			$values = "t.topic_id, u.user_id" . ($kind === 'watch' ? ', 0' : '');
-			// Anti-join instead of INSERT target in a subquery (MySQL restriction).
-			$db->sql_query('INSERT INTO ' . $table . ' (' . $columns . ') SELECT ' . $values
-				. ' FROM ' . TOPICS_TABLE . ' t JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = t.forum_id JOIN ' . USERS_TABLE . " u ON u.user_id = $user_id AND u.user_active = 1"
-				. ' LEFT JOIN ' . $table . " w ON w.topic_id = t.topic_id AND w.user_id = u.user_id WHERE t.topic_id = $topic_id AND t.forum_id = $forum_id"
-				. ' AND t.topic_moved_id = 0 AND t.topic_status IN (' . TOPIC_UNLOCKED . ',' . TOPIC_LOCKED . ') AND w.user_id IS NULL');
-		}
-		$rows = phpbb_topic_preference_rows($db, 'SELECT topic_id FROM ' . $table . ' WHERE ' . $where);
-		if ($state === true && !$rows) { phpbb_topic_preference_error('Topic_post_not_exist'); }
-		if ($kind === 'watch' && $rows)
-		{
-			// Clear the claim too: a late mail completion must not undo this read.
-			$db->sql_query('UPDATE ' . $table . " SET notify_status = 0, notify_claim = '', notify_claimed_at = 0 WHERE " . $where);
-		}
-		return (bool) $rows;
+		$store = new PhpbbTopicPreferenceStore($database, $userdata, $topic_id, $kind, $state);
+		return $store->apply_preference();
 	}
-	finally { $lock->release(); }
+	catch (PhpbbTopicPreferenceException $error)
+	{
+		if ($store && $store->commit_attempted) { phpbb_topic_preference_error('Topic_preference_unconfirmed'); }
+		throw $error;
+	}
+	catch (Exception $error) { phpbb_topic_preference_error($store && $store->commit_attempted ? 'Topic_preference_unconfirmed' : 'Topic_preference_failed'); }
+	catch (Error $error) { phpbb_topic_preference_error($store && $store->commit_attempted ? 'Topic_preference_unconfirmed' : 'Topic_preference_failed'); }
+	finally { if ($store) { $store->release(); } }
 }

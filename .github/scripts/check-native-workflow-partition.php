@@ -10,11 +10,17 @@ function native_workflow_partition($source)
 		|| strpos($matrix_source,"PHPBB_PM_FORM_NATIVE: '1'") === false) { throw new RuntimeException('Actual PM form reads must run in the native PHP matrix'); }
 	if (preg_match_all('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-pm-view-native\\.php (?:body|mailbox)$/m',$matrix_source) !== 2
 		|| strpos($matrix_source,"PHPBB_PM_VIEW_NATIVE: '1'") === false) { throw new RuntimeException('Actual PM body and mailbox reads must run in the native PHP matrix'); }
+	if (preg_match_all('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-topic-preferences-native\\.php (?:watch|bookmark|controllers)$/m',$matrix_source) !== 3
+		|| strpos($matrix_source,"PHPBB_TOPIC_PREF_NATIVE: '1'") === false) { throw new RuntimeException('All current topic preference modes must run in the native PHP matrix'); }
 	if (preg_match_all('/^  [A-Za-z0-9_-]+:/m',$extra) !== 1 || strpos($extra,"  pm-download-mysql:\n") !== 0
 		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
 		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
 		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 31
+		|| preg_match_all('/^        run:/m',$extra) !== 32
+		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-topic-preferences-native\\.php (?:watch|bookmark|controllers)$/m',$extra) !== 3
+		|| strpos($extra,"PHPBB_TOPIC_PREF_NATIVE: '1'") === false
+		|| strpos($extra,"PHPBB_TOPIC_PREF_MYSQL: '8.4'") === false
+		|| strpos($extra,"PHPBB_TOPIC_NOTIFY_MYSQL: '8.4'") === false
 		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-pm-view-native\\.php (?:body|mailbox)$/m',$extra) !== 2
 		|| strpos($extra,"PHPBB_PM_VIEW_NATIVE: '1'") === false
 		|| strpos($extra,"PHPBB_PM_VIEW_MYSQL: '8.4'") === false

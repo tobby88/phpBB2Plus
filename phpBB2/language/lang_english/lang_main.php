@@ -346,6 +346,8 @@ $lang['Stop_watching_topic'] = 'Stop watching this topic';
 $lang['Start_watching_topic'] = 'Watch this topic for replies';
 $lang['Topic_unwatch_confirm'] = 'Stop email notifications for this topic for your currently logged-in account?';
 $lang['Topic_preference_failed'] = 'The topic preference could not be saved. Please try again.';
+$lang['Topic_preference_storage_upgrade'] = 'Please run the database update before changing topic subscriptions or bookmarks.';
+$lang['Topic_preference_unconfirmed'] = 'The change could not be confirmed. Please reload the topic or bookmarks and check the saved setting before retrying.';
 $lang['No_longer_watching'] = 'You are no longer watching this topic';
 $lang['You_are_watching'] = 'You are now watching this topic';
 

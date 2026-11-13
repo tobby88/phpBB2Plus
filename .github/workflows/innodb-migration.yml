@@ -693,6 +693,24 @@ jobs:
         env:
           PHPBB_PM_VIEW_NATIVE: '1'
           PHPBB_PM_VIEW_PASSWORD: fixture-only
+      - name: Check atomic current topic subscriptions
+        if: matrix.part == 4
+        run: php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php watch
+        env:
+          PHPBB_TOPIC_PREF_NATIVE: '1'
+          PHPBB_TOPIC_PREF_PASSWORD: fixture-only
+      - name: Check atomic current topic bookmarks
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php bookmark
+        env:
+          PHPBB_TOPIC_PREF_NATIVE: '1'
+          PHPBB_TOPIC_PREF_PASSWORD: fixture-only
+      - name: Check actual topic preference confirmation and AJAX
+        if: matrix.part == 5
+        run: php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php controllers
+        env:
+          PHPBB_TOPIC_PREF_NATIVE: '1'
+          PHPBB_TOPIC_PREF_PASSWORD: fixture-only
       - name: Check actual current PM mailbox counts and pages
         if: matrix.part == 4
         run: php -d disable_functions=mail .github/scripts/check-pm-view-native.php mailbox
@@ -1667,6 +1685,19 @@ jobs:
           PHPBB_PM_VIEW_NATIVE: '1'
           PHPBB_PM_VIEW_PASSWORD: fixture-only
           PHPBB_PM_VIEW_MYSQL: '8.4'
+      - name: Check current topic preferences and mail lifecycle on MySQL
+        run: |
+          php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php watch
+          php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php bookmark
+          php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php controllers
+          php -d disable_functions=mail .github/scripts/check-topic-notifications-native.php
+        env:
+          PHPBB_TOPIC_PREF_NATIVE: '1'
+          PHPBB_TOPIC_PREF_PASSWORD: fixture-only
+          PHPBB_TOPIC_PREF_MYSQL: '8.4'
+          PHPBB_TOPIC_NOTIFY_NATIVE: '1'
+          PHPBB_TOPIC_NOTIFY_PASSWORD: fixture-only
+          PHPBB_TOPIC_NOTIFY_MYSQL: '8.4'
       - name: Check actual MySQL attachment authorization and reader lifecycle
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
         env:

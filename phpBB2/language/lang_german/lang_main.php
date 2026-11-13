@@ -337,6 +337,8 @@ $lang['Stop_watching_topic'] = 'Bei Antworten zu diesem Thema nicht mehr benachr
 $lang['Start_watching_topic'] = 'Bei Antworten zu diesem Thema benachrichtigen';
 $lang['Topic_unwatch_confirm'] = 'E-Mail-Benachrichtigungen zu diesem Thema für dein derzeit angemeldetes Benutzerkonto abbestellen?';
 $lang['Topic_preference_failed'] = 'Die Einstellung zum Thema konnte nicht gespeichert werden. Bitte versuche es erneut.';
+$lang['Topic_preference_storage_upgrade'] = 'Bitte führe vor dem Ändern von Themen-Abos oder Lesezeichen das Datenbankupdate aus.';
+$lang['Topic_preference_unconfirmed'] = 'Die Änderung konnte nicht bestätigt werden. Bitte lade das Thema oder die Lesezeichen neu und prüfe die gespeicherte Einstellung, bevor du es erneut versuchst.';
 $lang['No_longer_watching'] = 'Das Thema wird nicht mehr von Dir beobachtet.';
 $lang['You_are_watching'] = 'Du beobachtest nun das Thema.';
 
