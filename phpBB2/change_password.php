@@ -12,6 +12,7 @@ init_userprefs($userdata);
 //
 // End session management
 //
+require_once($phpbb_root_path . 'includes/functions_forced_password_storage.' . $phpEx);
 $error = false;
 $error_msg = '';
 $updated = false;
@@ -28,7 +29,7 @@ $submit = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) ? 1
 $password_var_list = array('new_password', 'password_confirm', 'cur_password');
 foreach ($password_var_list as $var)
 {
-	if (isset($_POST[$var]) && is_scalar($_POST[$var]))
+	if (isset($_POST[$var]) && is_string($_POST[$var]))
 	{
 		$$var = (string) $_POST[$var];
 	}
@@ -36,7 +37,7 @@ foreach ($password_var_list as $var)
 
 if ($submit)
 {
-	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	if (!isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 	}
@@ -60,7 +61,7 @@ if ($submit)
 		$error=true;
 		$error_msg .= $lang['Password_mismatch'];
 	} 
-	include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
+	require_once($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 	$error_text = validate_complex_password($userdata['username'], $new_password);
 	if ( $error_text['error'] )
 	{
@@ -79,36 +80,16 @@ if ($submit)
 	{	//update new password + time
 		$new_password_hash = phpbb_password_hash($new_password);
 		if ($new_password_hash === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
-		$new_password_hash_sql = $db->sql_escape($new_password_hash);
-		$user_id = (int) $userdata['user_id'];
-		$password_change_time = time();
-		$sql = "UPDATE " . USERS_TABLE . " SET user_password='" . $new_password_hash_sql . "', user_passwd_change=" . $password_change_time . ", ct_last_pw_change=" . $password_change_time . "
-		WHERE user_active = 1 AND user_id=". $user_id;
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update users password', '', __LINE__, __FILE__, $sql);
-		}
-		if ( $updated = $db->sql_affectedrows() )
-		{
-			$sql = "DELETE FROM " . SESSIONS_KEYS_TABLE . " WHERE user_id = " . $user_id;
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not invalidate persistent login keys', '', __LINE__, __FILE__, $sql);
-			}
-			$session_id_sql = $db->sql_escape($userdata['session_id']);
-			$sql = "DELETE FROM " . SESSIONS_TABLE . "
-				WHERE session_user_id = " . $user_id . "
-				AND session_id <> '" . $session_id_sql . "'";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not invalidate other sessions', '', __LINE__, __FILE__, $sql);
-			}
-			$template->assign_var("CLOSE_POPUP", "onLoad='setTimeout(window.close, 5000)'");
-		} else
-		{
-			$error=true;
-			$error_msg .= $lang['Current_password_mismatch'];
-		}
+        try
+        {
+            $current = phpbb_forced_password_change($db, $userdata, $user_ip, $cur_password, $new_password, $new_password_hash);
+            $userdata = array_merge($userdata, $current);
+            $updated = true;
+            $template->assign_var("CLOSE_POPUP", "onLoad='setTimeout(window.close, 5000)'");
+        }
+        catch (Exception $failure) { $error=true; $error_msg=phpbb_forced_password_message($failure); }
+        catch (Error $failure) { $error=true; $error_msg=phpbb_forced_password_message($failure); }
+
 	}
 }
 
@@ -145,7 +126,7 @@ if ($updated)
 	$message = sprintf( $lang['Passwd_soon_expired'],$board_config['max_password_age']-intval( (time()-$userdata['user_passwd_change'])/86400));
 	}
 	$template->assign_vars(array( 
-		'USERNAME' => $userdata['username'],
+		'USERNAME' => phpbb_stored_text($userdata['username']),
 		'L_CUR_PASSWORD' => $lang['Current_password'],
 		'L_NEW_PASSWORD' => $lang['New_password'],
 		'L_PASSWORD_LIMIT' => $lang['Password_long'],

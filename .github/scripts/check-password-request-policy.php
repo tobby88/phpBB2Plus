@@ -35,7 +35,7 @@ try
 {
     $calls = array();
     foreach (array('install/install.php', 'includes/functions_login_storage.php', 'change_password.php',
-        'admin/admin_users.php', 'admin/admin_user_register.php',
+        'admin/admin_users.php', 'admin/admin_user_register.php', 'includes/functions_forced_password_storage.php',
         'includes/usercp_register.php', 'includes/usercp_activate.php') as $path)
     {
         $source = file_get_contents($root . $path);

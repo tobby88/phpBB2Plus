@@ -495,15 +495,23 @@ class ct_userfunctions
 	 */
 	function password_functions()
 	{
+		$error = $this->password_validation($this->post_value('new_password', 4096));
+		if ($error !== '') { message_die(GENERAL_MESSAGE, $error); }
+	}
+
+	// Return the same policy error for owned account mutations without ending
+	// their transaction through message_die or reading a different POST value.
+	function password_validation($new_password)
+	{
 		global $ctracker_config, $lang;
+		if (!is_string($new_password)) { return isset($lang['Password_invalid']) ? $lang['Password_invalid'] : 'Invalid password'; }
 
 		// Password length check
-		$new_password = $this->post_value('new_password', 4096);
 		$minimum_length = max(1, min(20, intval($ctracker_config->settings['pw_complex_min'])));
 		$pw_length = strlen($new_password);
 		if ( $pw_length < $minimum_length && $new_password !== '' )
 		{
-			message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_info_password_minlng'], $minimum_length, $pw_length));
+			return sprintf($lang['ctracker_info_password_minlng'], $minimum_length, $pw_length);
 		}
 
 		// Password complexity
@@ -531,9 +539,10 @@ class ct_userfunctions
 
 			if ( preg_match($p_patterns, $p_pass) !== 1 )
 			{
-				message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_info_password_cmplx'], $active_pw_prot));
+				return sprintf($lang['ctracker_info_password_cmplx'], $active_pw_prot);
 			}
 		}
+		return '';
 	}
 
 

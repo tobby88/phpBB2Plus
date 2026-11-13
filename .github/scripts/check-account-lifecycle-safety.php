@@ -3,6 +3,7 @@
 $root = dirname(dirname(__DIR__));
 $sessions = (string) file_get_contents($root . '/phpBB2/includes/sessions.php');
 $password = (string) file_get_contents($root . '/phpBB2/change_password.php');
+$forced_password_storage = (string) file_get_contents($root . '/phpBB2/includes/functions_forced_password_storage.php');
 $profile = (string) file_get_contents($root . '/phpBB2/profile.php');
 $register = (string) file_get_contents($root . '/phpBB2/includes/usercp_register.php');
 $activate = (string) file_get_contents($root . '/phpBB2/includes/usercp_activate.php');
@@ -88,7 +89,7 @@ foreach (array(
 	}
 }
 
-if (strpos($password, 'ct_last_pw_change=') === false)
+if (strpos($password, 'phpbb_forced_password_change($db, $userdata,') === false || strpos($forced_password_storage, 'ct_last_pw_change=') === false)
 {
 	$errors[] = 'Forced password changes do not update the CrackerTracker password-age timestamp.';
 }

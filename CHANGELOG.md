@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic forced password changes
+
+- Revalidate the current session, credential, active/block/ban state, request
+  IP prefix and password settings when the password popup saves. A newer
+  concurrent password cannot be overwritten using a cached old credential.
+- Commit password, both age timestamps, retirement of pending reset tokens,
+  persistent-key removal and other-session invalidation together. Preserve
+  the current session and unrelated account fields; reject changed readback,
+  report unconfirmed commits separately and never replay them automatically.
+- Reuse CrackerTracker's existing byte-length/Unicode complexity rules through
+  a nonterminating validator, also applied by the popup. Keep registration
+  and profile behavior, legacy password authentication and exact request bytes.
+- Exercise actual EN/DE popup views and canonical MariaDB/MySQL storage with
+  current-account changes, SQL/trigger failures, real row contention, stale
+  caller transactions and supported PHP versions. No schema migration is needed.
+
 ### Coherent Arcade comment pages
 
 - Keep comment count, selected-comment position, author/editor labels, scores
