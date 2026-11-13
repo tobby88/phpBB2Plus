@@ -60,7 +60,7 @@ function ca_reset($operation,$actor){
  ca_sql("INSERT INTO fixture_config VALUES ('site_desc','current'),('version','.0.23'),('board_disable','1')");
  ca_sql("INSERT INTO fixture_backup VALUES ('site_desc','saved'),('version','.0.21'),('board_disable','0'),('ct_last_backup','123')");
  ca_sql("INSERT INTO fixture_filechk VALUES ('old.php','old')");ca_sql("INSERT INTO fixture_filescanner VALUES (1,'old.php',10)");
- ca_sql('INSERT INTO fixture_users VALUES (1,'.($actor==='root'?1:0).',1)');
+ ca_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,'.($actor==='root'?1:0).',1)');
  ca_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
  $route=$operation==='auto'?'admin_board.php':('admin_cracker_tracker.php?modu='.($operation==='hash'?'1':($operation==='scan'?'3':'10')));
  $routes=jr_admin_authorization_routes();$hash=array_search($route,$routes,true);ca_check($hash!==false,'Actual registered ACP route');
@@ -107,7 +107,7 @@ try{
   ca_sql(str_replace('phpbb_'.$table,$table==='config'?CONFIG_TABLE:($table==='ctracker_config'?CTRACKER_CONFIG:'fixture_'.substr($table,9)),$m[0]));
  }
  ca_sql('CREATE TABLE fixture_backup LIKE fixture_config');
- ca_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,user_level INT,user_active INT) ENGINE=InnoDB');
+ ca_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0) ENGINE=InnoDB');
  ca_sql('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT) ENGINE=InnoDB');
  ca_sql('CREATE TABLE fixture_jr (user_id INT PRIMARY KEY,user_jr_admin TEXT) ENGINE=InnoDB');
  // Revocation probes run synchronously inside their lock holder. Waiting

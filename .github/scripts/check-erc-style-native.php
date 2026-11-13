@@ -65,7 +65,7 @@ try
         global $style_state,$HTTP_POST_VARS,$phpbb_root_path,$board_config,$style_insert;
         ercs_check($style_state->owner===null,'Previous owner released');$style_state->hook=null;$style_state->fail='';$style_state->lostAck=false;$style_state->queries=array();
         ercs_sql('DELETE FROM fixture_users');ercs_sql('DELETE FROM fixture_config');ercs_sql('DELETE FROM fixture_themes');
-        ercs_sql("INSERT INTO fixture_users VALUES(2,'Admin','".md5('Fixture!9')."',1,1,9),(3,'Other','',1,0,9)");ercs_sql("INSERT INTO fixture_config VALUES('default_style','9'),('unrelated','keep')");if($method==='select_theme'){ercs_sql($style_insert);}
+        ercs_sql("INSERT INTO fixture_users (user_id,username,user_password,user_active,user_level,user_style) VALUES(2,'Admin','".md5('Fixture!9')."',1,1,9),(3,'Other','',1,0,9)");ercs_sql("INSERT INTO fixture_config VALUES('default_style','9'),('unrelated','keep')");if($method==='select_theme'){ercs_sql($style_insert);}
         $HTTP_POST_VARS=array('auth_method'=>'board','board_user'=>'Admin','board_password'=>'Fixture!9','method'=>$method,'new_style'=>'1');$board_config=array('default_style'=>'9');
         foreach(array('config_data.cache','themes.cache','unrelated.cache') as $file){file_put_contents($phpbb_root_path.'cache/'.$file,'stale');}
     }
@@ -79,7 +79,7 @@ try
     foreach(array('InnoDB','MyISAM') as $engine)
     {
         foreach(array('users','config','themes') as $table){ercs_sql('DROP TABLE IF EXISTS fixture_'.$table);}
-        ercs_sql('CREATE TABLE fixture_users(user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_level INT,user_style INT) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        ercs_sql('CREATE TABLE fixture_users(user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_blocktime INT NOT NULL DEFAULT 0,user_level INT,user_style INT) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         ercs_sql('CREATE TABLE fixture_config(config_name VARCHAR(191),config_value TEXT) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');ercs_sql(str_replace(array('phpbb_themes','ENGINE=InnoDB'),array('fixture_themes','ENGINE='.$engine),$schema_match[0]));
         ercs_reset();$out=ercs_run();$saved=ercs_rows();ercs_check($out[0]==='saved'&&$saved['users'][0]['user_style']==='1'&&$saved['users'][1]['user_style']==='9'&&$saved['config'][0]['config_value']==='1','Select updates only resolved actor and board default');$cases++;
         foreach(array('select_theme','recreate_theme') as $method)

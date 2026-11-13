@@ -10,6 +10,7 @@ function fixture_current_moderator($pdo, $set_request = true)
 	foreach(array('Auth_Anonymous_Users','Auth_Registered_Users','Auth_Users_granted_access','Auth_Moderators','Auth_Administrators','Not_Moderator','Session_invalid') as $key) { $lang[$key]=$key; }
 	$pdo->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
 	$pdo->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
+	$pdo->exec('ALTER TABLE fixture_users ADD user_blocktime INTEGER NOT NULL DEFAULT 0');
 	$pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
 	$columns=array('forum_id INTEGER','group_id INTEGER','auth_mod INTEGER DEFAULT 0');
 	foreach(array('auth_view','auth_read','auth_news','auth_post','auth_reply','auth_edit','auth_delete','auth_cal','auth_sticky','auth_announce','auth_global_announce','auth_vote','auth_pollcreate','auth_ban','auth_greencard','auth_bluecard','auth_attachments','auth_download') as $field)

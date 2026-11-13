@@ -88,7 +88,7 @@ function bc_reset($actor){
  bc_sql("UPDATE fixture_config SET config_value='443' WHERE config_name='server_port'");
  bc_sql("UPDATE fixture_config SET config_value='/' WHERE config_name='script_path'");
  bc_sql("INSERT INTO fixture_config VALUES ('version','.0.23'),('dbmtnc_rebuild_pos','1'),('ct_last_backup','123')");
- bc_sql('INSERT INTO fixture_users VALUES (1,'.($actor==='root'?1:0).',1)');
+ bc_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,'.($actor==='root'?1:0).',1)');
  bc_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
  if($actor==='delegated'){$hash=array_search('admin_board.php',jr_admin_authorization_routes(),true);bc_check($hash!==false,'Registered board module');bc_sql("INSERT INTO fixture_jr VALUES (1,'".$hash."')");}
  $userdata=array('user_id'=>1,'user_level'=>$actor==='root'?1:0,'session_id'=>'fixture-admin','session_logged_in'=>1,'session_admin'=>1);
@@ -118,7 +118,7 @@ try{
  $schema=file_get_contents($bc_source.'install/schemas/mysql_schema.sql');bc_check(preg_match('/CREATE TABLE `?phpbb_config`?\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical configuration schema');
  bc_sql(str_replace('phpbb_config',CONFIG_TABLE,$m[0]));bc_sql('CREATE TABLE fixture_backup LIKE fixture_config');
  bc_check(preg_match('/CREATE TABLE phpbb_themes\s*\([\s\S]*?;/',$schema,$theme_definition)===1,'Canonical theme schema');bc_sql(str_replace('phpbb_themes',THEMES_TABLE,$theme_definition[0]));
- foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table=>$columns){bc_sql('CREATE TABLE '.$table.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
+ foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table=>$columns){bc_sql('CREATE TABLE '.$table.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  bc_sql('SET SESSION innodb_lock_wait_timeout=1');
  $cases=0;$serialized=0;
  foreach(array('root','delegated') as $actor){

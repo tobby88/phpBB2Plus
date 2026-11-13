@@ -54,8 +54,8 @@ function group_fixture($actor = 8)
 	global $mutation_server,$userdata,$phpEx,$phpbb_root_path,$db;
 	$mutation_server = new MutationServer(); $p = $mutation_server->pdo;
 	$db=new GroupLogicForum();
-	$p->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER,username VARCHAR(255),user_email VARCHAR(255),user_lang VARCHAR(20))');
-	$p->exec("INSERT INTO fixture_users VALUES (1,1,1,'Root','root@example.invalid','english'),(8,2,1,'Leader','leader@example.invalid','german'),(9,0,1,'Member','member@example.invalid','english'),(10,0,1,'Pending','pending@example.invalid','german'),(11,0,1,'Stranger','stranger@example.invalid','english'),(12,0,1,'O''Brien','obrien@example.invalid','english')");
+	$p->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0,username VARCHAR(255),user_email VARCHAR(255),user_lang VARCHAR(20))');
+	$p->exec("INSERT INTO fixture_users (user_id,user_level,user_active,username,user_email,user_lang) VALUES (1,1,1,'Root','root@example.invalid','english'),(8,2,1,'Leader','leader@example.invalid','german'),(9,0,1,'Member','member@example.invalid','english'),(10,0,1,'Pending','pending@example.invalid','german'),(11,0,1,'Stranger','stranger@example.invalid','english'),(12,0,1,'O''Brien','obrien@example.invalid','english')");
 	$p->exec('CREATE TABLE fixture_groups (group_id INTEGER PRIMARY KEY,group_type INTEGER,group_single_user INTEGER,group_moderator INTEGER,group_name VARCHAR(255))');
 	$p->exec("INSERT INTO fixture_groups VALUES (3,0,0,8,'Grüße &amp; Test'),(4,0,1,9,'Personal'),(5,1,0,1,'Closed'),(6,2,0,1,'Hidden'),(7,0,0,1,'Other')");
 	$p->exec('CREATE TABLE fixture_memberships (user_id INTEGER,group_id INTEGER,user_pending INTEGER)');

@@ -71,8 +71,8 @@ try {
     pht_sql('CREATE DATABASE ' . $schema . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); $created = true; pht_sql('USE ' . $schema);
     $ddl = file_get_contents($source . 'install/schemas/mysql_schema.sql');
     foreach (array('album', 'album_cat', 'album_config') as $suffix) { pht_check(preg_match('/CREATE TABLE phpbb_' . $suffix . '\s*\([\s\S]*?;/', $ddl, $m) === 1, 'Actual canonical picture/category/config schema'); pht_sql(str_replace('phpbb_' . $suffix, 'fixture_' . $suffix, $m[0])); }
-    pht_sql('CREATE TABLE fixture_users(user_id MEDIUMINT PRIMARY KEY,username VARCHAR(255),user_level TINYINT,user_active TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
-    pht_sql("INSERT INTO fixture_users VALUES(7,'Synthetic',1,1)"); album_native_session_schema($control, $source); $sid = str_repeat('a', 32); album_native_session_seed($control, 7, $sid);
+    pht_sql('CREATE TABLE fixture_users(user_id MEDIUMINT PRIMARY KEY,username VARCHAR(255),user_level TINYINT,user_active TINYINT,user_blocktime INT NOT NULL DEFAULT 0) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+    pht_sql("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES(7,'Synthetic',1,1)"); album_native_session_schema($control, $source); $sid = str_repeat('a', 32); album_native_session_seed($control, 7, $sid);
     pht_sql("INSERT INTO fixture_album_cat(cat_id,cat_title,cat_order,cat_parent,cat_user_id) VALUES(10,'Synthetic',0,0,0)");
     $settings = array('rate' => 1, 'comment' => 1, 'personal_gallery' => ALBUM_USER, 'personal_gallery_view' => ALBUM_GUEST, 'personal_gallery_private' => '10', 'personal_allow_gallery_mod' => 1, 'personal_allow_sub_categories' => 1, 'personal_sub_category_limit' => 20, 'desc_length' => 32);
     foreach ($settings as $key => $value) { pht_sql("INSERT INTO fixture_album_config VALUES('" . $key . "','" . $value . "')"); }

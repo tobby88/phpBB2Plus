@@ -16,10 +16,10 @@ class PollMaintenanceServer {
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_POLL_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   if($GLOBALS['native']){$this->pdo->exec('SET SESSION innodb_lock_wait_timeout=1');}
-  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','topics'=>'topic_id INTEGER PRIMARY KEY,topic_vote INTEGER','polls'=>'vote_id INTEGER PRIMARY KEY,topic_id INTEGER,vote_text VARCHAR(255),vote_start INTEGER,vote_length INTEGER','options'=>'vote_id INTEGER,vote_option_id INTEGER,vote_option_text VARCHAR(255),vote_result INTEGER','voters'=>'vote_id INTEGER,vote_user_id INTEGER,vote_user_ip VARCHAR(45)','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
+  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0','topics'=>'topic_id INTEGER PRIMARY KEY,topic_vote INTEGER','polls'=>'vote_id INTEGER PRIMARY KEY,topic_id INTEGER,vote_text VARCHAR(255),vote_start INTEGER,vote_length INTEGER','options'=>'vote_id INTEGER,vote_option_id INTEGER,vote_option_text VARCHAR(255),vote_result INTEGER','voters'=>'vote_id INTEGER,vote_user_id INTEGER,vote_user_ip VARCHAR(45)','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
   $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine.' ROW_FORMAT=DYNAMIC DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci':''));}
-  $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1),(8,'Member',0,1)");
+  $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES (1,'Root',1,1),(20,'Junior',0,1),(8,'Member',0,1)");
   $this->pdo->exec('INSERT INTO fixture_topics VALUES (10,0),(20,1),(30,1),(40,0)');
   $this->pdo->exec("INSERT INTO fixture_polls VALUES (1,10,'valid',1,0),(2,99,'orphan',1,0),(3,30,'<script>Grüße</script>',1,0),(4,40,'duplicate one',1,0),(5,40,'duplicate two',1,0)");
   $this->pdo->exec("INSERT INTO fixture_options VALUES (1,1,'one',3),(1,2,'two',4),(2,1,'orphan',9),(4,1,'first',20),(5,1,'second',30),(99,1,'absent parent',40)");
@@ -106,7 +106,7 @@ try{
     if(strpos($sql,$prefix)!==0){return;}$s=$GLOBALS['poll_mtnc_server'];$s->hook=null;
     if($race==='topic'){$s->pdo->exec('INSERT INTO fixture_topics VALUES (99,1)');}
     elseif($race==='parent'){$s->pdo->exec("INSERT INTO fixture_polls VALUES (99,20,'restored parent',1,0)");}
-    elseif($race==='user'){$s->pdo->exec("INSERT INTO fixture_users VALUES (77,'restored',0,1)");}
+    elseif($race==='user'){$s->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES (77,'restored',0,1)");}
     elseif($race==='new-poll'){$s->pdo->exec("INSERT INTO fixture_polls VALUES (77,20,'new poll',1,0)");$s->pdo->exec("INSERT INTO fixture_options VALUES (77,1,'new answer',0)");}
     else{$s->pdo->exec('DELETE FROM fixture_polls WHERE vote_id=1');}
    };

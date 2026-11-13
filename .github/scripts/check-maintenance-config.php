@@ -20,10 +20,10 @@ class ConfigServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $lostAck='';public $queries=array();
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',$GLOBALS['config_native_password']):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  $defs=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
+  $defs=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
    'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER','config'=>'config_name VARCHAR(191) PRIMARY KEY,config_value TEXT','topics'=>'topic_time INTEGER');
   foreach($defs as $name=>$def){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$def.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
-  $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1)");
+  $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES (1,'Root',1,1),(20,'Junior',0,1)");
   $this->pdo->exec("INSERT INTO fixture_config VALUES ('board_disable','0'),('version','.0.23'),('custom','keep')");$this->pdo->exec('INSERT INTO fixture_topics VALUES (100),(200)');
  }
 }

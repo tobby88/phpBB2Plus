@@ -1183,6 +1183,24 @@ jobs:
         env:
           PHPBB_FULL_EDITOR_NATIVE: '1'
           PHPBB_FULL_EDITOR_PASSWORD: fixture-only
+      - name: Check current account blocks in AJAX editing
+        if: matrix.part == 1
+        run: php -d disable_functions=mail .github/scripts/check-current-account-block-native.php ajax
+        env:
+          PHPBB_ACCOUNT_BLOCK_NATIVE: '1'
+          PHPBB_ACCOUNT_BLOCK_PASSWORD: fixture-only
+      - name: Check current account blocks in topic and reply publication
+        if: matrix.part == 3
+        run: php -d disable_functions=mail .github/scripts/check-current-account-block-native.php post
+        env:
+          PHPBB_ACCOUNT_BLOCK_NATIVE: '1'
+          PHPBB_ACCOUNT_BLOCK_PASSWORD: fixture-only
+      - name: Check current account blocks in full editing
+        if: matrix.part == 4
+        run: php -d disable_functions=mail .github/scripts/check-current-account-block-native.php full
+        env:
+          PHPBB_ACCOUNT_BLOCK_NATIVE: '1'
+          PHPBB_ACCOUNT_BLOCK_PASSWORD: fixture-only
       - if: matrix.part == 3
         run: php .github/scripts/check-post-delete-native.php
         env:
@@ -1670,6 +1688,15 @@ jobs:
           PHPBB_ATTACH_DELETE_SELECTION_NATIVE: '1'
           PHPBB_ATTACH_DELETE_SELECTION_PASSWORD: fixture-only
           PHPBB_ATTACH_DELETE_SELECTION_MYSQL: '8.4'
+      - name: Check current account blocks across editors and posting on MySQL
+        run: |
+          php -d disable_functions=mail .github/scripts/check-current-account-block-native.php ajax
+          php -d disable_functions=mail .github/scripts/check-current-account-block-native.php post
+          php -d disable_functions=mail .github/scripts/check-current-account-block-native.php full
+        env:
+          PHPBB_ACCOUNT_BLOCK_NATIVE: '1'
+          PHPBB_ACCOUNT_BLOCK_PASSWORD: fixture-only
+          PHPBB_ACCOUNT_BLOCK_MYSQL: '8.4'
       - name: Check current account blocks and atomic voting on MySQL
         run: php -d disable_functions=mail .github/scripts/check-poll-vote-native.php
         env:

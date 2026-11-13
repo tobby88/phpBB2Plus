@@ -79,7 +79,7 @@ try
     foreach (array('InnoDB', 'MyISAM') as $engine)
     {
         ercg_sql('DROP TABLE IF EXISTS fixture_users');
-        ercg_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_level INT,user_login_tries INT DEFAULT 7,user_last_login_try INT DEFAULT 123) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        ercg_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_blocktime INT NOT NULL DEFAULT 0,user_level INT,user_login_tries INT DEFAULT 7,user_last_login_try INT DEFAULT 123) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         ercg_reset(); $before = ercg_rows(); $out = ercg_run(); $after = ercg_rows();
         ercg_check($out[0] === 'granted' && $out[1] === '' && (int)$after[3]['user_level'] === 1 && (int)$after[3]['user_active'] === 1, 'Explicit recovery promotes and activates target');
         foreach (array(-1,2,4) as $id) { ercg_check($after[$id] === $before[$id], 'Other users unchanged'); }

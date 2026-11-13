@@ -53,8 +53,10 @@ class PhpbbPostSubmitDatabase
 		if ($guest === !empty($userdata['session_logged_in'])) { $this->fail('Session_invalid'); }
 		$sid = $this->sql_escape($userdata['session_id']);
 		if (!$this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '$sid' AND HEX(session_id) = HEX('$sid') AND session_user_id = " . $id . ' AND session_logged_in = ' . ($guest ? 0 : 1))) { $this->fail('Session_invalid'); }
-		$rows = $this->rows('SELECT user_id, user_level, user_active FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id);
-		if (count($rows) !== 1 || (!$guest && empty($rows[0]['user_active']))) { $this->fail('Session_invalid'); }
+		$rows = $this->rows('SELECT user_id, user_level, user_active, user_blocktime FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id);
+		if (count($rows) !== 1 || (!$guest && (empty($rows[0]['user_active'])
+			|| !preg_match('/^-?[0-9]+$/D', (string)$rows[0]['user_blocktime'])
+			|| (float)$rows[0]['user_blocktime'] >= time()))) { $this->fail('Session_invalid'); }
 		$user = $rows[0]; $user['session_logged_in'] = !$guest;
 		if ($guest) { $user['user_level'] = 0; }
 		return $user;

@@ -72,7 +72,7 @@ function sd_reset($actor = 'root', $labels = true) {
  foreach (array(THEMES_TABLE, THEMES_NAME_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE) as $table) { sd_sql('DELETE FROM ' . $table); }
  sd_sql("INSERT INTO fixture_themes (themes_id,template_name,style_name,tr_color1,theme_public) VALUES (1,'fisubsilversh','Before','aaaaaa',1),(2,'fisubsilversh','Other','bbbbbb',1)");
  if ($labels) { sd_sql("INSERT INTO fixture_names (themes_id,tr_color1_name) VALUES (1,'Before label')"); }
- sd_sql('INSERT INTO fixture_users VALUES (1,' . ($actor === 'root' ? 1 : 0) . ',1)');
+ sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,' . ($actor === 'root' ? 1 : 0) . ',1)');
  sd_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
  if ($actor === 'delegated') { $hash = array_search('xs_frameset.php', jr_admin_authorization_routes(), true); sd_check($hash !== false, 'Real XS grant'); sd_sql("INSERT INTO fixture_jr VALUES (1,'" . $hash . "')"); }
  $userdata = array('user_id' => 1, 'session_id' => 'fixture-admin', 'session_admin' => 1, 'session_logged_in' => 1, 'user_level' => $actor === 'root' ? 1 : 0);
@@ -98,7 +98,7 @@ try {
  foreach (array('phpbb_themes' => THEMES_TABLE, 'phpbb_themes_name' => THEMES_NAME_TABLE) as $source => $target) {
   sd_check(preg_match('/CREATE TABLE ' . $source . '\s*\([\s\S]*?;/', $schema, $m) === 1, 'Canonical theme schema'); sd_sql(str_replace($source, $target, $m[0]));
  }
- foreach (array(USERS_TABLE => 'user_id INT PRIMARY KEY,user_level INT,user_active INT', SESSIONS_TABLE => 'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT', JR_ADMIN_TABLE => 'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table => $columns) {
+ foreach (array(USERS_TABLE => 'user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0', SESSIONS_TABLE => 'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT', JR_ADMIN_TABLE => 'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table => $columns) {
   sd_sql('CREATE TABLE ' . $table . ' (' . $columns . ') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');
  }
  // Only the fixture's competing connection: MariaDB returns the same native

@@ -87,7 +87,7 @@ function ape_post($owner, $author)
 $reporting = error_reporting(E_ALL); set_error_handler(function ($s, $m) { if (error_reporting() & $s) { throw new RuntimeException($m); } });
 try {
     ape_sql('CREATE DATABASE ' . $schema . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); $created = true; ape_sql('USE ' . $schema);
-    ape_sql('CREATE TABLE fixture_users(user_id MEDIUMINT PRIMARY KEY,username VARCHAR(255),user_level TINYINT,user_active TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'); ape_sql("INSERT INTO fixture_users VALUES(7,'Actor',0,1),(8,'Other owner',0,1)");
+    ape_sql('CREATE TABLE fixture_users(user_id MEDIUMINT PRIMARY KEY,username VARCHAR(255),user_level TINYINT,user_active TINYINT,user_blocktime INT NOT NULL DEFAULT 0) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'); ape_sql("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES(7,'Actor',0,1),(8,'Other owner',0,1)");
     ape_sql('CREATE TABLE fixture_members(user_id MEDIUMINT,group_id MEDIUMINT,user_pending TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
     $ddl = file_get_contents($source . 'install/schemas/mysql_schema.sql');
     foreach (array('album', 'album_cat', 'album_config') as $suffix) { ape_check(preg_match('/CREATE TABLE phpbb_' . $suffix . '\s*\([\s\S]*?;/', $ddl, $m) === 1, 'Canonical Album schema'); ape_sql(str_replace('phpbb_' . $suffix, 'fixture_' . $suffix, $m[0])); }
@@ -153,7 +153,7 @@ try {
         ape_seed(); if ($case === 'cached-logout') { $userdata['session_logged_in'] = false; } if ($case === 'bad-sid') { $userdata['session_id'] = array($sid); } if ($case === 'case-changed-sid') { $userdata['session_id'] = strtoupper($sid); }
         if ($case === 'invalid-lifetime') { $board_config['session_length'] = '0'; } if ($case === 'missing-actor') { ape_sql('DELETE FROM fixture_users WHERE user_id=7'); }
         $before = ape_snapshot(); ape_check(!ape_save() && ape_snapshot() === $before, 'Exact current login/account prerequisite: ' . $case); $cases++;
-        $board_config['session_length'] = 3600; if ($case === 'missing-actor') { ape_sql("INSERT INTO fixture_users VALUES(7,'Actor',0,1)"); }
+        $board_config['session_length'] = 3600; if ($case === 'missing-actor') { ape_sql("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES(7,'Actor',0,1)"); }
     }
     ape_seed(); $db->reset_observer(); ape_check(ape_save(), 'Native statement baseline'); $statements = count($db->queries); ape_check($statements > 20 && $statements < 100, 'Bounded owned query inventory'); $cases++;
     for ($failure = 1; $failure <= $statements; $failure++) {

@@ -15,7 +15,7 @@ class AlbumAuthoritySource extends sql_db{
  function sql_dedicated_connection(){return new AlbumNativeObservedConnection(parent::sql_dedicated_connection(),$this);}
  function observed_query($database,$sql,$transaction=false){
   $this->queries[]=$sql;
-  if($this->failure==='actor'&&strpos($sql,'SELECT user_id, user_level, user_active FROM ')===0){return false;}
+  if($this->failure==='actor'&&strpos($sql,'SELECT user_id, user_level, user_active, user_blocktime FROM ')===0){return false;}
   $sessionRead=strpos($sql,'SELECT session_user_id, session_logged_in FROM ')===0;
   if($this->failure==='session'&&$sessionRead){return false;}
   if(strpos($sql,'INSERT INTO fixture_album_cat')===0&&is_callable($this->hook)){$hook=$this->hook;$this->hook=null;call_user_func($hook);}
@@ -49,7 +49,7 @@ try{
  aa_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;aa_sql('USE '.$schema);
  $ddl=file_get_contents($source.'install/schemas/mysql_schema.sql');aa_check(preg_match('/CREATE TABLE phpbb_album_cat\s*\([\s\S]*?;/',$ddl,$m)===1,'Canonical category table');aa_sql(str_replace('phpbb_album_cat','fixture_album_cat',$m[0]));
  aa_check(preg_match('/CREATE TABLE phpbb_users\s*\([\s\S]*?;/',$ddl,$m)===1,'Canonical account table');$columns=array();
- foreach(array('user_id','username','user_level','user_active')as$column){aa_check(preg_match('/^\s+'.$column.'\s+([^\r\n]+),\s*$/m',$m[0],$c)===1,'Canonical nullable account field');$columns[]=$column.' '.$c[1];}
+ foreach(array('user_id','username','user_level','user_active','user_blocktime')as$column){aa_check(preg_match('/^\s+'.$column.'\s+([^\r\n]+),\s*$/m',$m[0],$c)===1,'Canonical nullable account field');$columns[]=$column.' '.$c[1];}
  aa_sql('CREATE TABLE fixture_users('.implode(',',$columns).',PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  aa_sql('CREATE TABLE fixture_members(user_id MEDIUMINT,group_id MEDIUMINT,user_pending TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  album_native_session_schema($control,$source);

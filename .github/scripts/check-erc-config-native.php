@@ -67,7 +67,7 @@ try
         global $db, $HTTP_POST_VARS, $dbuser, $dbpasswd, $phpbb_root_path, $board_config, $option;
         $db->hook = null; $db->fail = ''; $db->lostAck = false; $db->queries = array(); $option = $action;
         ercc_sql('DELETE FROM fixture_users'); ercc_sql('DELETE FROM fixture_config');
-        ercc_sql("INSERT INTO fixture_users VALUES (2,'Admin','" . md5('fixture-password') . "',1,1)");
+        ercc_sql("INSERT INTO fixture_users (user_id,username,user_password,user_active,user_level) VALUES (2,'Admin','" . md5('fixture-password') . "',1,1)");
         $board_config = array('cookie_secure'=>'0','server_name'=>'old.example.invalid','server_port'=>'80','script_path'=>'/old/',
             'cookie_domain'=>'','cookie_name'=>'old_cookie','cookie_path'=>'/old/','gzip_compress'=>'1','unrelated'=>'keep');
         foreach ($board_config as $key=>$value) { ercc_sql("INSERT INTO fixture_config VALUES ('$key','$value')"); }
@@ -88,7 +88,7 @@ try
     foreach (array('InnoDB','MyISAM') as $engine)
     {
         ercc_sql('DROP TABLE IF EXISTS fixture_users'); ercc_sql('DROP TABLE IF EXISTS fixture_config');
-        ercc_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_level INT) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        ercc_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_blocktime INT NOT NULL DEFAULT 0,user_level INT) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         ercc_sql('CREATE TABLE fixture_config (config_name VARCHAR(191) PRIMARY KEY,config_value VARCHAR(255)) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         foreach (array('rpd','rcd','dgc') as $action)
         {

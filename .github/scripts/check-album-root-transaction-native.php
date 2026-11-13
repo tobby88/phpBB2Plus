@@ -75,7 +75,7 @@ $reporting=error_reporting(E_ALL);set_error_handler(function($s,$m){if(error_rep
 try{
  at_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;at_sql('CREATE DATABASE '.$otherSchema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$otherCreated=true;at_sql('USE '.$schema);
  $ddl=file_get_contents($source.'install/schemas/mysql_schema.sql');at_check(preg_match('/CREATE TABLE phpbb_album_cat\s*\([\s\S]*?;/',$ddl,$match)===1,'Canonical category schema');at_sql(str_replace('phpbb_album_cat','fixture_album_cat',$match[0]));
- at_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ at_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,user_blocktime INT NOT NULL DEFAULT 0,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  at_sql('CREATE TABLE fixture_members(user_id MEDIUMINT,group_id MEDIUMINT,user_pending TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  album_native_session_schema($control,$source);album_native_session_seed($control,7,str_repeat('a',32));
  at_sql('CREATE TABLE fixture_probe(id INT PRIMARY KEY,v INT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');at_sql('INSERT INTO fixture_probe VALUES(1,1)');

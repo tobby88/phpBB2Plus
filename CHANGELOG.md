@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current account blocks in shared identity and posting
+
+- Include current CrackerTracker block time in the shared account identity used
+  by AJAX editing, moderation and administrative/module writers, and in the
+  separate topic/reply writer inherited by the full editor. Preserve expired
+  blocks and normal anonymous posting; deny current blocks before publication.
+- Exercise actual AJAX, reply/topic and full-editor writes with canonical native
+  tables, account changes before/during/final commit, SQL failures and every
+  registered role. Align older fixture account columns with the existing schema;
+  keep their original action and rollback cases.
+
 ### Current account blocks during voting
 
 - Recheck CrackerTracker account block time on the owned voting connection,

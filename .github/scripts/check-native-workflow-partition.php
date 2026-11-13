@@ -10,7 +10,7 @@ function native_workflow_partition($source)
 		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
 		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
 		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 25
+		|| preg_match_all('/^        run:/m',$extra) !== 26
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-pm-download-native\.php$/m',$extra) !== 1
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-post-download-native\.php$/m',$extra) !== 1
 		|| preg_match('/^        run: php -d disable_functions=mail \.github\/scripts\/check-link-registration-native\.php$/m',$extra) !== 1
@@ -66,6 +66,9 @@ function native_workflow_partition($source)
 		|| strpos($extra,"PHPBB_ATTACH_SHADOW_MYSQL: '8.4'") === false
 		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-poll-vote-native\\.php$/m',$extra) !== 1
 		|| strpos($extra,"PHPBB_VOTE_MYSQL: '8.4'") === false
+		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-current-account-block-native\\.php (?:ajax|post|full)$/m',$extra) !== 3
+		|| strpos($extra,"PHPBB_ACCOUNT_BLOCK_NATIVE: '1'") === false
+		|| strpos($extra,"PHPBB_ACCOUNT_BLOCK_MYSQL: '8.4'") === false
 		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-attachment-search-native\\.php$/m',$extra) !== 1
 		|| strpos($extra,"PHPBB_ATTACH_SEARCH_NATIVE: '1'") === false
 		|| strpos($extra,"PHPBB_ATTACH_SEARCH_MYSQL: '8.4'") === false)

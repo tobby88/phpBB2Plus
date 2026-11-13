@@ -68,7 +68,7 @@ try
         global $db, $HTTP_POST_VARS, $dbuser, $dbpasswd, $phpbb_root_path, $board_config, $default_config;
         $db->hook = null; $db->fail = ''; $db->lostAck = false; $db->queries = array();
         ercrv_sql('DELETE FROM fixture_users'); ercrv_sql('DELETE FROM fixture_config'); ercrv_sql('DELETE FROM fixture_topics');
-        ercrv_sql("INSERT INTO fixture_users VALUES (2,'Admin','" . md5('fixture-password') . "',1,1)");
+        ercrv_sql("INSERT INTO fixture_users (user_id,username,user_password,user_active,user_level) VALUES (2,'Admin','" . md5('fixture-password') . "',1,1)");
         ercrv_sql("INSERT INTO fixture_config VALUES ('version','.0.23'),('custom','keep'),('board_disable','0')"); ercrv_sql('INSERT INTO fixture_topics VALUES (100),(200)');
         $board_config=array('version'=>'.0.23','board_disable'=>'0');
         $default_config=array('board_disable'=>'0','cookie_secure'=>'0','server_name'=>'old.invalid','server_port'=>'80','script_path'=>'/old/','site_desc'=>"Grüße <b>O'Connor</b>",'board_startdate'=>'0','version'=>'.0.0');
@@ -87,7 +87,7 @@ try
     foreach(array('InnoDB','MyISAM') as $engine)
     {
         foreach(array('users','config','topics') as $table){ercrv_sql('DROP TABLE IF EXISTS fixture_'.$table);}
-        ercrv_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_level INT) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        ercrv_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_blocktime INT NOT NULL DEFAULT 0,user_level INT) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         ercrv_sql('CREATE TABLE fixture_config (config_name VARCHAR(191) PRIMARY KEY,config_value TEXT) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         ercrv_sql('CREATE TABLE fixture_topics (topic_time INT) ENGINE='.$engine);
         ercrv_reset();$before=ercrv_rows();$out=ercrv_run();$saved=ercrv_rows();

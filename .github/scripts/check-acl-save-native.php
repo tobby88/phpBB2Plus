@@ -40,7 +40,7 @@ function asn_reset($actor,$scenario){
  $asn_hook=null;$asn_write=$asn_fail=0;$asn_commit='';$asn_queries=array();
  $GLOBALS['asn_after_commit']=null;$GLOBALS['asn_acknowledged']=false;$GLOBALS['asn_after_queries']=array();
  foreach($GLOBALS['asn_tables'] as $s){asn_sql('DELETE FROM fixture_'.$s);}
- asn_sql("INSERT INTO fixture_users VALUES (1,1,1,'root'),(2,0,1,'target'),(3,2,1,'member'),(4,0,1,'pending'),(5,0,1,'junior')");
+ asn_sql("INSERT INTO fixture_users (user_id,user_level,user_active,username) VALUES (1,1,1,'root'),(2,0,1,'target'),(3,2,1,'member'),(4,0,1,'pending'),(5,0,1,'junior')");
  asn_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',".($actor==='root'?1:5).",1,1),('target-session',2,1,0),('member-session',3,1,0),('pending-session',4,1,0),('unrelated-session',99,1,0)");
  asn_sql("INSERT INTO fixture_groups (group_id,group_type,group_name,group_description,group_moderator,group_single_user) VALUES (10,0,'shared','',2,0),(11,0,'other','',3,0),(12,0,'personal','',2,1),(13,0,'founder','',1,1)");
  asn_sql('INSERT INTO fixture_user_group (group_id,user_id,user_pending) VALUES (10,2,0),(10,3,0),(10,4,1),(11,3,0),(12,2,0),(13,1,0)');
@@ -79,7 +79,7 @@ try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');
  foreach(array('groups','user_group','auth_access','forums') as $s){ats_check(preg_match('/CREATE TABLE phpbb_'.$s.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical schema');asn_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$m[0]));}
- foreach(array('users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255)',
+ foreach(array('users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0,username VARCHAR(255)',
   'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT',
   'jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $s=>$columns){asn_sql('CREATE TABLE fixture_'.$s.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  require_once __DIR__.'/native-fixture-locks.php';native_fixture_peer_nowait($peer);$cases=$serialized=0;

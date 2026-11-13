@@ -46,7 +46,7 @@ try{
  ac_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;ac_sql('USE '.$schema);$db=new AlbumCreationDatabase($host,'root',$password,$schema,false);
  $schema_source=file_get_contents($source.'install/schemas/mysql_schema.sql');
  foreach(array('album_cat','album')as$table){ac_check(preg_match('/CREATE TABLE phpbb_'.$table.'\s*\([\s\S]*?;/',$schema_source,$m)===1,'Canonical Album table');ac_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}
- ac_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ ac_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,user_blocktime INT NOT NULL DEFAULT 0,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  ac_sql('CREATE TABLE fixture_members(user_id MEDIUMINT NOT NULL,group_id MEDIUMINT NOT NULL,user_pending TINYINT NOT NULL) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  album_native_session_schema($control,$source);album_native_session_seed($control,100,str_repeat('c',32));
  ac_sql("INSERT INTO fixture_users(user_id,username) VALUES(100,'0'),(200,'Other owner')");ac_sql('INSERT INTO fixture_members VALUES(100,10,0)');

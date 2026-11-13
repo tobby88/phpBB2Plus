@@ -13,8 +13,8 @@ function ct_fixture_authority_query($sql)
 {
  if (strpos($sql,' LOCK IN SHARE MODE') !== false && preg_match('/^SELECT (session_id|user_id) FROM fixture_acl_/', $sql))
  { return new CtFixtureAuthorityResult(array(array('user_id'=>1,'session_id'=>'fixture-admin'))); }
- if (strpos($sql,'SELECT user_id, user_level, user_active FROM fixture_acl_users') === 0)
- { return new CtFixtureAuthorityResult(array(array('user_id'=>1,'user_level'=>1,'user_active'=>1))); }
+ if (strpos($sql,'SELECT user_id, user_level, user_active, user_blocktime FROM fixture_acl_users') === 0)
+ { return new CtFixtureAuthorityResult(array(array('user_id'=>1,'user_level'=>1,'user_active'=>1,'user_blocktime'=>0))); }
  if (strpos($sql,'SELECT 1 AS allowed WHERE ') === 0)
  { return new CtFixtureAuthorityResult(array(array('allowed'=>1))); }
  return false;

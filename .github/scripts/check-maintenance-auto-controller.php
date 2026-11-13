@@ -18,7 +18,7 @@ class AutoServer {
  public $pdo;public $owner=null;public $hook=null;public $after=null;public $failure='';public $lostAck='';public $alters=0;public $reads=0;public $gates=0;public $queries=array();public $columns=array();public $closedModes=array();
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  $defs=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)','sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER','config'=>'board_disable INTEGER');
+  $defs=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)','sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER','config'=>'board_disable INTEGER');
   foreach($defs as $name=>$def){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$def.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $i=0;foreach($GLOBALS['targets'] as $name=>$column){
    $table='fixture_'.strtolower($name);$healthy=$i++>=2;
@@ -74,7 +74,7 @@ class AutoConnection {
 }
 function auto_fixture($engine,$actor=1){
  global $server,$userdata,$phpbb_root_path,$phpEx,$root;
- $server=new AutoServer($engine);$server->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1)");$server->pdo->exec('INSERT INTO fixture_config VALUES (0)');
+ $server=new AutoServer($engine);$server->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES (1,'Root',1,1),(20,'Junior',0,1)");$server->pdo->exec('INSERT INTO fixture_config VALUES (0)');
  $server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',".$actor.",1,1)");
  $userdata=array('user_id'=>$actor,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');$phpbb_root_path=$root;$phpEx='php';
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-sid');

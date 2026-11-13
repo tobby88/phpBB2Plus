@@ -103,7 +103,7 @@ function ats_reset($actor,$mode){
  foreach($GLOBALS['ats_defaults'] as $key=>$value){ats_sql("INSERT INTO ".ATTACH_CONFIG_TABLE." VALUES ('".$key."','".$value."')");}
  ats_sql("INSERT INTO ".EXTENSION_GROUPS_TABLE." (group_id,group_name,cat_id,max_filesize) VALUES (1,'<group &>',1,262144),(2,'same',0,262144),(3,'custom',0,4096)");
  ats_sql("INSERT INTO ".QUOTA_LIMITS_TABLE." (quota_limit_id,quota_desc,quota_limit) VALUES (1,'<quota &>',1024)");
- ats_sql('INSERT INTO fixture_users VALUES (1,'.($actor==='root'?1:0).',1)');ats_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
+ ats_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,'.($actor==='root'?1:0).',1)');ats_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
  if($actor!=='root'){$route='admin_attachments.php?mode='.($actor==='wrong'?'sync':$mode);$hash=array_search($route,jr_admin_authorization_routes(),true);ats_check($hash!==false,'Registered exact module');ats_sql("INSERT INTO fixture_jr VALUES (1,'".$hash."')");}
  $userdata=array('user_id'=>1,'user_level'=>$actor==='root'?1:0,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-admin');$attach_config=get_config();$_SERVER['REQUEST_METHOD']='POST';
 }
@@ -124,7 +124,7 @@ try{
  foreach($files as $file=>$body){file_put_contents($ats_root.'/'.$file,$body);}chdir($ats_root.'/admin');
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');$ddl=array();
  foreach(array('attachments_config','extension_groups','quota_limits') as $suffix){ats_check(preg_match('/CREATE TABLE phpbb_'.$suffix.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical '.$suffix.' DDL');$ddl[$suffix]=str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]);ats_sql($ddl[$suffix]);}
- foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table=>$columns){ats_sql('CREATE TABLE '.$table.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}ats_sql('SET SESSION innodb_lock_wait_timeout=1');
+ foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table=>$columns){ats_sql('CREATE TABLE '.$table.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}ats_sql('SET SESSION innodb_lock_wait_timeout=1');
  $cases=0;$serialized=0;
  foreach(array('cats','manage') as $mode){foreach(array('root','delegated') as $actor){
   $payload=$mode==='manage'?array('max_filesize'=>'1.5','size'=>'kb','ftp_pass'=>addslashes($ats_secret),'ftp_user'=>addslashes($ats_user)):array('img_display_inlined'=>'0','img_max_width'=>'640');

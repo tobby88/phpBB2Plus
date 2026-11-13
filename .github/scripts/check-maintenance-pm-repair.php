@@ -20,10 +20,10 @@ class PmRepairServer {
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_PM_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   pm_journal_fixture_tables($this->pdo,$engine);
-  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_new_privmsg INTEGER,user_unread_privmsg INTEGER','pm'=>'privmsgs_id INTEGER PRIMARY KEY,privmsgs_to_userid INTEGER,privmsgs_from_userid INTEGER,privmsgs_type INTEGER,privmsgs_date INTEGER DEFAULT 0,privmsgs_attachment INTEGER DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)','text'=>'privmsgs_text_id INTEGER PRIMARY KEY,privmsgs_text VARCHAR(255)','links'=>'attach_id INTEGER,privmsgs_id INTEGER,post_id INTEGER','descriptions'=>'attach_id INTEGER PRIMARY KEY,physical_filename VARCHAR(255),thumbnail INTEGER');
+  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0,user_new_privmsg INTEGER,user_unread_privmsg INTEGER','pm'=>'privmsgs_id INTEGER PRIMARY KEY,privmsgs_to_userid INTEGER,privmsgs_from_userid INTEGER,privmsgs_type INTEGER,privmsgs_date INTEGER DEFAULT 0,privmsgs_attachment INTEGER DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)','text'=>'privmsgs_text_id INTEGER PRIMARY KEY,privmsgs_text VARCHAR(255)','links'=>'attach_id INTEGER,privmsgs_id INTEGER,post_id INTEGER','descriptions'=>'attach_id INTEGER PRIMARY KEY,physical_filename VARCHAR(255),thumbnail INTEGER');
   $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
-  $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
+  $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active,user_new_privmsg,user_unread_privmsg) VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
   $this->pdo->exec("INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES (10,8,1,1),(11,8,1,1),(12,8,1,1),(14,8,999,0),(15,999,8,2),(16,8,-1,1),(17,-1,8,0),(18,8,1,3)");
   $this->pdo->exec('UPDATE fixture_pm SET privmsgs_date='.time().' WHERE privmsgs_id=11');
   $this->pdo->exec("INSERT INTO fixture_text VALUES (12,'Grüße'),(13,'orphan'),(14,'Received'),(15,'Sent copy'),(16,'Invalid'),(17,'Invalid'),(18,'Saved')");
@@ -115,7 +115,7 @@ try{
     else{
      if($case==='lost-owner'||$case==='query'){$expected=$lang['Maintenance_pm_repair_failed'];}
      $pm_repair_server->hook=function($sql,$connection) use($prefix,$case){
-      $match=$case==='revoked-read'?strpos($sql,'SELECT user_id, user_level, user_active FROM fixture_users')===0:strpos($sql,$prefix)===0;
+      $match=$case==='revoked-read'?strpos($sql,'SELECT user_id, user_level, user_active, user_blocktime FROM fixture_users')===0:strpos($sql,$prefix)===0;
       if(!$match){return;}$s=$GLOBALS['pm_repair_server'];$s->hook=null;
       if($case==='lost-owner'){$connection->sql_close();}elseif($case==='query'){$s->failure=$prefix;}else{$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}
      };
@@ -136,7 +136,7 @@ try{
    $pm_repair_server->hook=function($sql) use($prefix,$restore){if(strpos($sql,$prefix)!==0){return;}$s=$GLOBALS['pm_repair_server'];$s->hook=null;
     if($restore==='text'){$s->pdo->exec("INSERT INTO fixture_text VALUES (10,'Restored')");}
     elseif($restore==='parent'){$s->pdo->exec('INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES (13,8,1,0)');}
-    elseif($restore==='sender'||$restore==='recipient'){$s->pdo->exec("INSERT INTO fixture_users VALUES (999,'Restored',0,1,0,0)");}
+    elseif($restore==='sender'||$restore==='recipient'){$s->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active,user_new_privmsg,user_unread_privmsg) VALUES (999,'Restored',0,1,0,0)");}
     else{$s->pdo->exec('UPDATE fixture_pm SET privmsgs_from_userid=1 WHERE privmsgs_id=16');$s->pdo->exec('UPDATE fixture_pm SET privmsgs_to_userid=8 WHERE privmsgs_id=17');}
    };
    pm_repair_check(pm_repair_run('',null,$mode,$selections[$mode])===0,'Current repaired source preserved: '.$restore);

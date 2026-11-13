@@ -62,10 +62,10 @@ function append_sid($url){return$url;}
 $view_cases=0;
 set_error_handler(function($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try {
- recovery_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,user_level INT,user_active INT) ENGINE=InnoDB');
+ recovery_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0) ENGINE=InnoDB');
  recovery_sql('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT) ENGINE=InnoDB');
  recovery_sql('CREATE TABLE fixture_jr_admin (user_id INT PRIMARY KEY,user_jr_admin TEXT) ENGINE=InnoDB');
- recovery_sql('INSERT INTO fixture_users VALUES (1,1,1)');
+ recovery_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,1,1)');
  recovery_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
  $userdata=array('user_id'=>1,'session_id'=>'fixture-admin','session_logged_in'=>1,'session_admin'=>1);
  $_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture-admin');

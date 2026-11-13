@@ -98,7 +98,7 @@ $reporting = error_reporting(E_ALL); set_error_handler(function ($s, $m) { if (e
 try
 {
     ace_sql('CREATE DATABASE ' . $schema . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); $created = true; ace_sql('USE ' . $schema);
-    ace_sql('CREATE TABLE fixture_users(user_id MEDIUMINT PRIMARY KEY,username VARCHAR(255),user_level TINYINT,user_active TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'); ace_sql("INSERT INTO fixture_users VALUES(7,'Actor',1,1),(8,'Other owner',0,1)");
+    ace_sql('CREATE TABLE fixture_users(user_id MEDIUMINT PRIMARY KEY,username VARCHAR(255),user_level TINYINT,user_active TINYINT,user_blocktime INT NOT NULL DEFAULT 0) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'); ace_sql("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES(7,'Actor',1,1),(8,'Other owner',0,1)");
     ace_sql('CREATE TABLE fixture_members(user_id MEDIUMINT,group_id MEDIUMINT,user_pending TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
     $ddl = file_get_contents($source . 'install/schemas/mysql_schema.sql'); ace_check(preg_match('/CREATE TABLE phpbb_album_cat\s*\([\s\S]*?;/', $ddl, $m) === 1, 'Canonical category schema'); ace_sql(str_replace('phpbb_album_cat', 'fixture_album_cat', $m[0])); album_native_session_schema($control, $source);
     $db = new AlbumCategoryEditObservedSource($host, 'root', $password, $schema, false); $original = $db; $sid = str_repeat('a', 32);

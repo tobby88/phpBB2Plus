@@ -143,7 +143,7 @@ $body = <<<'PHP'
   $GLOBALS['sd_hook']=null;$reached=true;sd_sql('KILL CONNECTION '.mysqli_thread_id($connection->db_connect_id));
  };
  sd_check(!ca_success('words','edit',ca_run('words',ca_request('words','edit'))) && $reached && ca_snapshot()===$before,'Failed dedicated identity read returns localized refusal, not a PHP type error'); sd_unlocked(); $cases++;
- ca_reset('words'); sd_sql('INSERT INTO fixture_users VALUES (2,0,1)'); sd_check($db->sql_query('START TRANSACTION'),'Caller transaction');
+ ca_reset('words'); sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (2,0,1)'); sd_check($db->sql_query('START TRANSACTION'),'Caller transaction');
  sd_check($db->sql_query('UPDATE fixture_users SET user_active=0 WHERE user_id=2'),'Caller pending write');
  $original=phpbb_acl_rows($db,'SELECT CONNECTION_ID() AS id,@@SESSION.sql_mode AS mode,@@SESSION.in_transaction AS tx');
  sd_check(ca_success('words','edit',ca_run('words',ca_request('words','edit'))),'Separate owner may commit');

@@ -66,7 +66,7 @@ try
         global $db,$HTTP_POST_VARS,$phpbb_root_path,$board_config;
         $db->hook=null;$db->fail='';$db->lostAck=false;$db->queries=array();
         ercl_sql('DELETE FROM fixture_users');ercl_sql('DELETE FROM fixture_config');
-        ercl_sql("INSERT INTO fixture_users VALUES (2,'Admin','".md5('Fixture!9')."',1,1,'english'),(3,'Other','',1,0,'english')");
+        ercl_sql("INSERT INTO fixture_users (user_id,username,user_password,user_active,user_level,user_lang) VALUES (2,'Admin','".md5('Fixture!9')."',1,1,'english'),(3,'Other','',1,0,'english')");
         ercl_sql("INSERT INTO fixture_config VALUES ('default_lang','english'),('unrelated','keep')");
         $HTTP_POST_VARS=array('auth_method'=>'board','board_user'=>'Admin','board_password'=>'Fixture!9','new_lang'=>'german');$board_config=array('default_lang'=>'english');
         file_put_contents($phpbb_root_path.'cache/config_data.cache','stale');file_put_contents($phpbb_root_path.'cache/unrelated.cache','keep');
@@ -82,7 +82,7 @@ try
     foreach(array('InnoDB','MyISAM') as $engine)
     {
         ercl_sql('DROP TABLE IF EXISTS fixture_users');ercl_sql('DROP TABLE IF EXISTS fixture_config');
-        ercl_sql('CREATE TABLE fixture_users(user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_level INT,user_lang VARCHAR(255)) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        ercl_sql('CREATE TABLE fixture_users(user_id INT PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INT,user_blocktime INT NOT NULL DEFAULT 0,user_level INT,user_lang VARCHAR(255)) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         // No unique key: recovery must also fail closed on damaged legacy tables.
         ercl_sql('CREATE TABLE fixture_config(config_name VARCHAR(191),config_value TEXT) ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         ercl_reset();$out=ercl_run();$after=ercl_rows();

@@ -66,7 +66,7 @@ function qreset($actor='root',$route='quota'){
  foreach($GLOBALS['ats_defaults'] as $k=>$v){if($k==='default_upload_quota'){$v='2';}qsql("INSERT INTO ".ATTACH_CONFIG_TABLE." VALUES ('".$k."','".$v."')");}
  qsql("INSERT INTO ".QUOTA_LIMITS_TABLE." VALUES (1,'first',1536),(2,'remove',2048),(3,'unsubmitted',4096)");
  qsql('INSERT INTO '.QUOTA_TABLE.' VALUES (2,0,1,2),(0,10,2,2),(2,0,2,1)');
- qsql("INSERT INTO fixture_users VALUES (1,".($actor==='root'?1:0).",1,'actor'),(2,0,1,'target'),(3,1,1,'admin')");
+ qsql("INSERT INTO fixture_users (user_id,user_level,user_active,username) VALUES (1,".($actor==='root'?1:0).",1,'actor'),(2,0,1,'target'),(3,1,1,'admin')");
  qsql("INSERT INTO fixture_groups (group_id,group_single_user,group_name) VALUES (10,0,'group')");qsql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
  if($actor!=='root'){$path=$route==='quota'?'admin_attachments.php?mode=quota':($route==='wrong'?'admin_attachments.php?mode=manage':'admin_'.$route.'s.php');$hash=array_search($path,jr_admin_authorization_routes(),true);ats_check($hash!==false,'Exact registered route');qsql("INSERT INTO fixture_jr VALUES (1,'".$hash."')");}
  $userdata=array('user_id'=>1,'user_level'=>$actor==='root'?1:0,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-admin');$attach_config=get_config();$_SERVER['REQUEST_METHOD']='POST';
@@ -93,7 +93,7 @@ try{
  foreach($files as $f=>$body){file_put_contents($root.'/'.$f,$body);}chdir($root.'/admin');
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');$ddl=array();
  foreach(array('attachments_config','quota_limits','attach_quota','extension_groups') as $suffix){ats_check(preg_match('/CREATE TABLE phpbb_'.$suffix.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical DDL');$ddl[$suffix]=str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]);qsql($ddl[$suffix]);}
- foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255)','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT','fixture_groups'=>'group_id INT PRIMARY KEY,group_single_user INT,group_name VARCHAR(40)') as $t=>$cols){qsql('CREATE TABLE '.$t.' ('.$cols.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
+ foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0,username VARCHAR(255)','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT','fixture_groups'=>'group_id INT PRIMARY KEY,group_single_user INT,group_name VARCHAR(40)') as $t=>$cols){qsql('CREATE TABLE '.$t.' ('.$cols.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  qsql('SET SESSION innodb_lock_wait_timeout=1');
  $cases=$serialized=0;
  foreach(array('root','delegated') as $actor){
