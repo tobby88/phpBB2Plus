@@ -29,6 +29,7 @@ eval('namespace PmWriteResponseFixture; class emailer {
 function phpbb_pm_complete_response($nonce) { \PmWriteResponseFixture\phpbb_pm_complete_response($nonce); }
 class PmWriteDisplayForum extends PmRepairForum
 {
+	function sql_dedicated_connection() { return new PmWriteControllerConnection($GLOBALS['pm_repair_server']); }
 	function sql_query($sql)
 	{
 		pm_repair_check(strpos($sql,'SELECT ')===0,'Unprotected controller connection is read-only');
@@ -38,6 +39,32 @@ class PmWriteDisplayForum extends PmRepairForum
 	function sql_fetchrowset($r) { return $r->rows; }
 	function sql_affectedrows() { return 0; }
 	function sql_freeresult($r) {}
+}
+// Keep the original named-lock writer model. The actual form-identity helper
+// now also requests an independent read-only connection; that path does not
+// acquire or release the writer's lease. Real mysqli snapshots/factory safety
+// are covered by check-pm-entry-native.php on the canonical native schema.
+class PmWriteControllerConnection extends PmRepairConnection
+{
+	var $read_only = false;
+	function sql_query($sql)
+	{
+		if ($this->closed || !$this->db_connect_id) { return false; }
+		if ($sql === 'SELECT @@SESSION.autocommit AS pm_autocommit') {
+			return new PmRepairRows($GLOBALS['native'] ? $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) : array(array('pm_autocommit'=>1)));
+		}
+		if ($sql === 'SET TRANSACTION READ ONLY') {
+			if ($GLOBALS['native'] && $this->pdo->exec($sql) === false) { return false; }
+			$this->read_only = true; return true;
+		}
+		if (!$this->read_only) { return parent::sql_query($sql); }
+		pm_repair_check(strpos($sql, 'SELECT ') === 0, 'Form reader must never mutate fixture data');
+		$s = $this->server; $s->queries[] = $sql;
+		if (is_callable($s->hook)) { call_user_func($s->hook, $sql, $this); }
+		if ($this->closed || ($s->failure !== '' && strpos($sql, $s->failure) === 0)) { return false; }
+		try { return new PmRepairRows($this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC)); }
+		catch (PDOException $error) { return false; }
+	}
 }
 class PmWriteTemplate
 {
