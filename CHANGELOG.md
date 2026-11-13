@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Literal contact mail content and confirmed cooldown files
+
+- Insert contact form fields once into a fixed mail layout, preserving literal
+  braces and header-looking body lines. Keep the separately submitted subject
+  and remove only the layout's mail metadata.
+- Refuse malformed honeypot arrays. A valid submission can send only after
+  its file-backed cooldown timestamp is fully written, flushed and read back
+  under the same lock; IO failures and partial writes refuse delivery.
+- Exercise the actual controllers, real mailer and EN/DE Extreme Styles forms
+  with owned cache files, bounded IO faults and a final local transport sink.
+  Existing field limits, destination fallback, cooldown and visible delivery
+  failure behavior remain covered. No schema migration is needed.
+
 ### Transparent attachment thumbnails
 
 - Preserve PNG alpha instead of compositing transparent and semitransparent

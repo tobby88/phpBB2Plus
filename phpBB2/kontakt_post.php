@@ -42,15 +42,16 @@ function kontakt_claim_rate_limit($cache_dir, $client_key, $interval)
 		return false;
 	}
 
-	$previous = trim((string) stream_get_contents($rate_handle));
-	$allowed = !ctype_digit($previous) || intval($previous) <= $now - max(1, intval($interval));
+	$stored = @stream_get_contents($rate_handle);
+	$previous = is_string($stored) ? trim($stored) : '';
+	$allowed = is_string($stored) && (!ctype_digit($previous) || intval($previous) <= $now - max(1, intval($interval)));
 	if ($allowed)
 	{
-		@rewind($rate_handle);
-		@ftruncate($rate_handle, 0);
-		$allowed = @fwrite($rate_handle, (string) $now) !== false;
-		@fflush($rate_handle);
-		@chmod($rate_file, 0660);
+		$stamp = (string) $now;
+		$allowed = @rewind($rate_handle) && @ftruncate($rate_handle, 0)
+			&& @fwrite($rate_handle, $stamp) === strlen($stamp) && @fflush($rate_handle)
+			&& @rewind($rate_handle) && @stream_get_contents($rate_handle) === $stamp;
+		if ($allowed) { @chmod($rate_file, 0660); }
 	}
 	@flock($rate_handle, LOCK_UN);
 	@fclose($rate_handle);
@@ -83,6 +84,7 @@ $valid = isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQU
 	&& $sid !== ''
 	&& hash_equals((string) $userdata['session_id'], $sid)
 	&& $honeypot === ''
+	&& (!isset($_POST['website']) || is_string($_POST['website']))
 	&& $name !== '' && strlen($name) <= 100
 	&& filter_var($mail, FILTER_VALIDATE_EMAIL)
 	&& $subject !== '' && strlen($subject) <= 150
@@ -104,7 +106,10 @@ if ($valid)
 	$emailer->email_address($email_to);
 	$emailer->replyto($mail);
 	$emailer->set_subject($subject);
-	$emailer->msg = "Charset: UTF-8\n\nName: " . $name . "\nEmail: " . $mail . "\nIP: " . decode_ip($user_ip) . "\n\n" . $body;
+	// Insert user content once. It is literal text, not a template or headers.
+	$emailer->msg = "Subject: {CONTACT_SUBJECT}\nCharset: UTF-8\n\nName: {CONTACT_NAME}\nEmail: {CONTACT_EMAIL}\nIP: {CONTACT_IP}\n\n{CONTACT_BODY}";
+	$emailer->assign_vars(array('CONTACT_SUBJECT' => $subject, 'CONTACT_NAME' => $name,
+		'CONTACT_EMAIL' => $mail, 'CONTACT_IP' => decode_ip($user_ip), 'CONTACT_BODY' => $body));
 	$emailer->send();
 	$emailer->reset();
 	$true = $lang['kontakt9'];
