@@ -6,6 +6,27 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic contact cooldowns in CrackerTracker storage
+
+- Replace per-request file cleanup/writes with an atomic sliding cooldown in
+  the existing canonical CrackerTracker rate table. Concurrent submissions for
+  one sender serialize on one row; denials do not renew or reset the cooldown.
+- Read existing contact cache timestamps without changing files and seed the
+  maximum stored timestamp, preserving active cooldowns on first use. New
+  claims have no writable-cache dependency.
+- Require canonical full primary keys and numeric columns, exact readback and
+  acknowledged commit. Retain independent connections and caller work; a lost
+  acknowledgement refuses delivery without automatically replaying the claim.
+- Store a retention boundary alongside the last-use timestamp so shared bounded
+  cleanup preserves active long cooldowns and the previous thirty-day sender
+  history when an administrator increases the interval. The current minimum
+  60 seconds and supported flood-interval range are preserved.
+- The installer and post-1.53a updater already create/migrate this table; no new
+  SQL schema step is required. Native tests exercise their actual definitions,
+  legacy files, real concurrent workers, shared GC and SQL failures. Controller
+  decision-sink tests retain literal mail/form/error coverage; obsolete file
+  write-fault cases are superseded by native SQL/commit failure checks.
+
 ### Literal contact mail content and confirmed cooldown files
 
 - Insert contact form fields once into a fixed mail layout, preserving literal

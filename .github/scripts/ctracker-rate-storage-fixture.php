@@ -64,6 +64,7 @@ try{
  rate_check(!native_connections_released('rate_rows',array((int)rate_rows('SELECT CONNECTION_ID() id')[0]['id']))&&rate_rows('SELECT 1 present')[0]['present']==='1','Release observer must reject a genuinely retained connection without closing it');$cases++;
  rate_reset();rate_sql('DROP TABLE '.CTRACKER_RATE_LIMITS);rate_check(rate_call('increment',array('missing','ip',600,1))===false&&rate_call('mark_success',array('missing','ip'))===false&&rate_call('cooldown_remaining',array('missing','ip',30))===false,'Missing table remains controlled fail-open');$cases++;
  echo 'CrackerTracker rate storage native: '.$cases.' cases, '.$failures." SQL failures PASS; actual mysqli/canonical schema, exact own quota decision, ordering/saturation/cooldowns, isolated committed attempts, legacy-write refusal, bounded optional cleanup and preserved caller transactions.\n";
+ require __DIR__.'/contact-rate-native-fixture.php';
 }finally{
  $rate_hook=null;foreach($rate_owners as$owner){if($owner&&$owner->connection->db_connect_id){$owner->connection->sql_close();}}if($rate_root){$rate_root->sql_close();}if($rate_peer){$rate_peer->sql_close();}rate_check($control->sql_query('DROP DATABASE '.$fixture),'Remove only owned schema');$control->sql_close();restore_error_handler();
 }

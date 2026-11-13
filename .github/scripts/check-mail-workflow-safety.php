@@ -72,7 +72,7 @@ else
 	$isolated = DIRECTORY_SEPARATOR === '\\' ? ' -n' : '';
 	$lines = array(); $status = 1;
 	exec(escapeshellarg(PHP_BINARY) . $isolated . ' -d date.timezone=UTC -d disable_functions=mail ' . $crypto . ' ' . escapeshellarg(__FILE__) . ' 2>&1', $lines, $status);
-	if ($status !== 0 || count($lines) !== 2 || $lines[0] !== 'Mail workflow safety checks passed.' || strpos($lines[1], 'Contact workflow: 78 actual controller/mailer/file cases, 2 EN/DE XS forms PASS;') !== 0)
+	if ($status !== 0 || count($lines) !== 2 || $lines[0] !== 'Mail workflow safety checks passed.' || strpos($lines[1], 'Contact workflow: 78 actual controller/mailer/decision cases, 2 EN/DE XS forms PASS;') !== 0)
 	{
 		fwrite(STDERR, implode("\n", $lines) . "\n"); exit(1);
 	}

@@ -8,54 +8,11 @@ include($phpbb_root_path . 'common.' . $phpEx);
 
 $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
+require_once $phpbb_root_path . 'ctracker/classes/class_contact_rate_storage.php';
 
 function kontakt_claim_rate_limit($cache_dir, $client_key, $interval)
 {
-	$cache_dir = rtrim((string) $cache_dir, '/\\') . '/';
-	if (!is_dir($cache_dir))
-	{
-		return false;
-	}
-
-	$now = time();
-	if ($handle = @opendir($cache_dir))
-	{
-		while (($entry = readdir($handle)) !== false)
-		{
-			if (preg_match('/^contact-[a-f0-9]{64}\.rate$/', $entry)
-				&& is_file($cache_dir . $entry) && @filemtime($cache_dir . $entry) < $now - 2592000)
-			{
-				@unlink($cache_dir . $entry);
-			}
-		}
-		closedir($handle);
-	}
-
-	$rate_file = $cache_dir . 'contact-' . hash('sha256', (string) $client_key) . '.rate';
-	$rate_handle = @fopen($rate_file, 'c+');
-	if (!$rate_handle || !@flock($rate_handle, LOCK_EX))
-	{
-		if ($rate_handle)
-		{
-			@fclose($rate_handle);
-		}
-		return false;
-	}
-
-	$stored = @stream_get_contents($rate_handle);
-	$previous = is_string($stored) ? trim($stored) : '';
-	$allowed = is_string($stored) && (!ctype_digit($previous) || intval($previous) <= $now - max(1, intval($interval)));
-	if ($allowed)
-	{
-		$stamp = (string) $now;
-		$allowed = @rewind($rate_handle) && @ftruncate($rate_handle, 0)
-			&& @fwrite($rate_handle, $stamp) === strlen($stamp) && @fflush($rate_handle)
-			&& @rewind($rate_handle) && @stream_get_contents($rate_handle) === $stamp;
-		if ($allowed) { @chmod($rate_file, 0660); }
-	}
-	@flock($rate_handle, LOCK_UN);
-	@fclose($rate_handle);
-	return $allowed;
+	return ctracker_rate_limit_contact($cache_dir, $client_key, $interval);
 }
 
 $page_title = $lang['Kontakt'];
