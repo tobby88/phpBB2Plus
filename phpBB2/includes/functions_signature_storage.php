@@ -60,7 +60,9 @@ function phpbb_signature_save($database, $text, $sid)
 		$token = $writer->escape($sid);
 		$session = $writer->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='$token' AND HEX(session_id)=HEX('$token') AND session_user_id=$id AND session_logged_in=1 LOCK IN SHARE MODE");
 		$users = $writer->rows('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=' . $id . ' FOR UPDATE');
-		if (count($session) !== 1 || count($users) !== 1 || (int)$users[0]['user_active'] !== 1) { phpbb_signature_error('Public_profile_changed'); }
+		if (count($session) !== 1 || count($users) !== 1 || (int)$users[0]['user_active'] !== 1
+			|| !preg_match('/^-?[0-9]+$/D', (string)$users[0]['user_blocktime'])
+			|| (float)$users[0]['user_blocktime'] >= time()) { phpbb_signature_error('Public_profile_changed'); }
 		$user = $users[0];
 		foreach (array('user_password','user_allowhtml','user_allowbbcode','user_allowsmile','user_sig','user_sig_bbcode_uid') as $key)
 		{

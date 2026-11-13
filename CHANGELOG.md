@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current account blocks in profile, signature and private messages
+
+- Check current CrackerTracker account block time while holding the profile or
+  signature account row. A block imposed after session bootstrap prevents the
+  edit; an already locked, authorized edit finishes before a competing block.
+- Include the current block in private-message reader/writer and mailbox SQL capabilities,
+  including saves, deletions, attachments, notification claims and recovery.
+  Preserve expired blocks, current sessions and resumable message journals.
+- Exercise canonical native tables with all registered roles, changed blocks at
+  actual SQL boundaries, caller snapshots and unchanged denied data/cookies on
+  PHP 5.6/7.4/8.5 and MySQL 8.4. No additional schema migration is needed.
+
 ### ACP user-list navigation
 
 - Bring stale or partial user-list offsets back to a complete existing page,

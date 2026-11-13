@@ -22,8 +22,8 @@ class PhpbbPmReadDatabase extends PhpbbAclDatabase
 		global $userdata;
 		if ($this->actor <= 0 || empty($userdata['session_logged_in']) || !isset($userdata['user_id'])
 			|| (int)$userdata['user_id'] !== $this->actor) { phpbb_acl_error('Not_Authorised'); }
-		$guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active FROM ' . USERS_TABLE
-			. ' WHERE user_id = ' . $this->actor . ') pm_reader WHERE user_active <> 0)';
+		$guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active,user_blocktime FROM ' . USERS_TABLE
+			. ' WHERE user_id = ' . $this->actor . ') pm_reader WHERE user_active <> 0 AND user_blocktime < ' . time() . ')';
 		$guard .= ' AND ' . phpbb_pm_current_session_guard($this, $this->actor, $this->session_id);
 		$rows = parent::sql_query('SELECT 1 AS allowed WHERE ' . $guard);
 		$allowed = $this->connection->sql_fetchrow($rows); $this->connection->sql_freeresult($rows);

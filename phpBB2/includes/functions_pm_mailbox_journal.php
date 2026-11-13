@@ -43,8 +43,8 @@ class PhpbbMailboxDatabase extends PhpbbAclDatabase
 		global $userdata;
 		if ($this->actor <= 0 || empty($userdata['session_logged_in']) || !isset($userdata['user_id'])
 			|| (int)$userdata['user_id'] !== $this->actor) { phpbb_acl_error('Not_Authorised'); }
-		$guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active,user_allow_pm FROM ' . USERS_TABLE
-			. ' WHERE user_id = ' . $this->actor . ') mailbox_actor WHERE user_active <> 0'
+		$guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active,user_blocktime,user_allow_pm FROM ' . USERS_TABLE
+			. ' WHERE user_id = ' . $this->actor . ') mailbox_actor WHERE user_active <> 0 AND user_blocktime < ' . time()
 			. ($this->policy === 'send' ? ' AND user_allow_pm <> 0' : '') . ')';
 		$guard .= ' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $this->owner . ') mailbox_owner)';
 		$guard .= ' AND ' . phpbb_pm_current_session_guard($this, $this->actor, $this->session_id);

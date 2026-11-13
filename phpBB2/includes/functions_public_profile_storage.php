@@ -58,7 +58,9 @@ class PhpbbPublicProfileScope
 			$token = $this->sql_escape($sid);
 			$session = $this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='$token' AND HEX(session_id)=HEX('$token') AND session_user_id=" . $this->id . ' AND session_logged_in=1 LOCK IN SHARE MODE');
 			$user = $this->rows('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->id . ' FOR UPDATE');
-			if (count($session) !== 1 || count($user) !== 1 || (int)$user[0]['user_active'] !== 1) { phpbb_public_profile_error('Public_profile_changed'); }
+			if (count($session) !== 1 || count($user) !== 1 || (int)$user[0]['user_active'] !== 1
+				|| !preg_match('/^-?[0-9]+$/D', (string)$user[0]['user_blocktime'])
+				|| (float)$user[0]['user_blocktime'] >= time()) { phpbb_public_profile_error('Public_profile_changed'); }
 			$this->account = $user[0];
 			// Password validation and avatar preparation used the request snapshot.
 			// A reset, rename, role change or avatar replacement invalidates it.

@@ -651,6 +651,24 @@ jobs:
         env:
           PHPBB_PM_NOTIFY_NATIVE: '1'
           PHPBB_PM_NOTIFY_PASSWORD: fixture-only
+      - name: Check current account blocks in full profile edits
+        if: matrix.part == 1
+        run: php -d disable_functions=mail .github/scripts/check-self-service-block-native.php profile
+        env:
+          PHPBB_SELF_BLOCK_NATIVE: '1'
+          PHPBB_SELF_BLOCK_PASSWORD: fixture-only
+      - name: Check current account blocks in signature edits
+        if: matrix.part == 4
+        run: php -d disable_functions=mail .github/scripts/check-self-service-block-native.php signature
+        env:
+          PHPBB_SELF_BLOCK_NATIVE: '1'
+          PHPBB_SELF_BLOCK_PASSWORD: fixture-only
+      - name: Check current account blocks throughout private messages
+        if: matrix.part == 5
+        run: php -d disable_functions=mail .github/scripts/check-self-service-block-native.php pm
+        env:
+          PHPBB_SELF_BLOCK_NATIVE: '1'
+          PHPBB_SELF_BLOCK_PASSWORD: fixture-only
       - name: Check native private-message attachment download authorization
         if: matrix.part == 6
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
@@ -1588,6 +1606,15 @@ jobs:
           PHPBB_USERLIST_PAGES_NATIVE: '1'
           PHPBB_USERLIST_PAGES_PASSWORD: fixture-only
           PHPBB_USERLIST_PAGES_MYSQL: '8.4'
+      - name: Check current self-service account blocks on MySQL
+        run: |
+          php -d disable_functions=mail .github/scripts/check-self-service-block-native.php profile
+          php -d disable_functions=mail .github/scripts/check-self-service-block-native.php signature
+          php -d disable_functions=mail .github/scripts/check-self-service-block-native.php pm
+        env:
+          PHPBB_SELF_BLOCK_NATIVE: '1'
+          PHPBB_SELF_BLOCK_PASSWORD: fixture-only
+          PHPBB_SELF_BLOCK_MYSQL: '8.4'
       - name: Check actual MySQL attachment authorization and reader lifecycle
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
         env:
