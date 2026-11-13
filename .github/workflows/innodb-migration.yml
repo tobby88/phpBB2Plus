@@ -1670,6 +1670,12 @@ jobs:
           PHPBB_ATTACH_DELETE_SELECTION_NATIVE: '1'
           PHPBB_ATTACH_DELETE_SELECTION_PASSWORD: fixture-only
           PHPBB_ATTACH_DELETE_SELECTION_MYSQL: '8.4'
+      - name: Check current account blocks and atomic voting on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-poll-vote-native.php
+        env:
+          PHPBB_VOTE_NATIVE: '1'
+          PHPBB_VOTE_PASSWORD: fixture-only
+          PHPBB_VOTE_MYSQL: '8.4'
       - name: Check atomic Shadow cleanup on MySQL
         run: php -d disable_functions=mail .github/scripts/check-attachment-shadow.php
         env:

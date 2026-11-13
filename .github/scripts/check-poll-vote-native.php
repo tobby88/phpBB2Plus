@@ -6,6 +6,7 @@ require $phpbb_root_path.'includes/constants.php';require $phpbb_root_path.'atta
 require $phpbb_root_path.'includes/php_compat.php';require $phpbb_root_path.'db/mysqli.php';
 require $phpbb_root_path.'attach_mod/includes/functions_includes.php';require $phpbb_root_path.'attach_mod/includes/functions_mutation.php';
 require $phpbb_root_path.'attach_mod/includes/functions_delete.php';require $phpbb_root_path.'includes/auth.php';require $phpbb_root_path.'includes/functions_poll_storage.php';
+require __DIR__.'/native-fixture-locks.php';
 function pv_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 class PollNativeHtmlResponse extends RuntimeException {}
 function message_die($level,$message){throw new PollNativeHtmlResponse($message);}
@@ -55,11 +56,12 @@ function pv_fixture($actor='member'){
 }
 function pv_vote($option=1){try{return phpbb_cast_poll_vote($GLOBALS['db'],100,$option);}catch(PhpbbPollStorageException $e){return 'error';}}
 function pv_boundary($sql){return preg_match('/^(INSERT|UPDATE)\b/',$sql)||$sql==='COMMIT'||strpos($sql,' LOCK IN SHARE MODE')!==false;}
-function pv_revoke($kind){$map=array('session'=>"DELETE FROM fixture_sessions WHERE session_id='vote-sid'",'case'=>"UPDATE fixture_sessions SET session_id='VOTE-SID'",'foreign'=>'UPDATE fixture_sessions SET session_user_id=9','logout'=>'UPDATE fixture_sessions SET session_logged_in=0','guestlogin'=>'UPDATE fixture_sessions SET session_logged_in=1','inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=8','role'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=8','grant'=>'UPDATE fixture_auth_access SET auth_mod=0','membership'=>'DELETE FROM fixture_user_group','pending'=>'UPDATE fixture_user_group SET user_pending=1','vote'=>'UPDATE fixture_forums SET auth_vote=5','read'=>'UPDATE fixture_forums SET auth_read=5');return $map[$kind];}
+function pv_revoke($kind){$map=array('session'=>"DELETE FROM fixture_sessions WHERE session_id='vote-sid'",'case'=>"UPDATE fixture_sessions SET session_id='VOTE-SID'",'foreign'=>'UPDATE fixture_sessions SET session_user_id=9','logout'=>'UPDATE fixture_sessions SET session_logged_in=0','guestlogin'=>'UPDATE fixture_sessions SET session_logged_in=1','inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=8','role'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=8','blocked'=>'UPDATE fixture_users SET user_blocktime='.(time()+3600).' WHERE user_id=8','grant'=>'UPDATE fixture_auth_access SET auth_mod=0','membership'=>'DELETE FROM fixture_user_group','pending'=>'UPDATE fixture_user_group SET user_pending=1','vote'=>'UPDATE fixture_forums SET auth_vote=5','read'=>'UPDATE fixture_forums SET auth_read=5');return $map[$kind];}
 try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $canonical=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');require dirname(dirname(__DIR__)).'/update/innodb_migration.php';$migrated=plus_storage_tables($canonical,'fixture_');
  foreach($pv_tables as $suffix){$name='phpbb_'.$suffix;pv_check(in_array('fixture_'.$suffix,$migrated,true),'Updater covers '.$suffix);pv_check(preg_match('/CREATE TABLE '.$name.'\s*\([\s\S]*?;/',$canonical,$match)===1,'Canonical table '.$suffix);pv_sql(str_replace($name,'fixture_'.$suffix,$match[0]));preg_match_all('/ALTER TABLE '.$name.'\s+[\s\S]*?;/',$canonical,$extra);foreach($extra[0] as $ddl){pv_sql(str_replace($name,'fixture_'.$suffix,$ddl));}$pv_columns['fixture_'.$suffix]=pv_rows('SHOW COLUMNS FROM fixture_'.$suffix);}
+ if(getenv('PHPBB_VOTE_MYSQL')==='8.4'){$version=pv_rows('SELECT VERSION() version');pv_check(strpos($version[0]['version'],'8.4.')===0&&stripos($version[0]['version'],'MariaDB')===false,'Actual MySQL 8.4 voting fixture');}
  pv_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
  foreach(array('guest','member','moderator','root') as $actor){
   pv_fixture($actor);$before=pv_snapshot();pv_check(pv_vote()==='Vote_cast','Successful vote '.$actor.' '.json_encode($pv_error));$after=pv_snapshot();$boundaries=array_values(array_filter($pv_queries,'pv_boundary'));
@@ -68,9 +70,9 @@ try{
   pv_check(pv_vote(2)==='Already_voted'&&pv_snapshot()===$after,'Retry/other choice cannot count twice');
   foreach(array('START TRANSACTION','SELECT ENGINE,','SELECT vd.','SELECT a.forum_id','INSERT INTO fixture_vote_voters','UPDATE fixture_vote_results','COMMIT') as $failure){pv_fixture($actor);$before=pv_snapshot();$pv_fail=$failure;pv_check(pv_vote()==='error'&&pv_snapshot()===$before,'Whole vote rollback '.$failure);$cases++;}
   pv_fixture($actor);$pv_ack=true;pv_check(pv_vote()==='error'&&pv_snapshot()===$after,'Lost acknowledgement leaves a whole vote');$pv_ack=false;pv_check(pv_vote(2)==='Already_voted'&&pv_snapshot()===$after,'Lost acknowledgement retry safe');
-  foreach(array('session',$actor==='root'?'role':($actor==='moderator'?'grant':'read')) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
+  foreach(array_merge(array('session',$actor==='root'?'role':($actor==='moderator'?'grant':'read')),$actor==='guest'?array():array('blocked')) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    pv_fixture($actor);$before=pv_snapshot();$seen=0;$reached=$blocked=false;$revoked=null;
-   $pv_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!pv_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['pv_hook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(pv_revoke($kind))){$e=$GLOBALS['peer']->sql_error();pv_check((int)$e['code']===1205,'Independent lock timeout only');$blocked=true;}else{$revoked=pv_snapshot();}};
+   $pv_hook=function($sql)use($kind,$nth,&$seen,&$reached,&$blocked,&$revoked){if(!pv_boundary($sql)||++$seen!==$nth){return;}$GLOBALS['pv_hook']=null;$reached=true;list($r,$e)=native_fixture_conflict_query($GLOBALS['peer'],pv_revoke($kind));if(!$r){pv_check((int)$e['code']===1205,'Independent lock timeout only');$blocked=true;}else{$revoked=pv_snapshot();}};
    $out=pv_vote();pv_check($reached,'Every publication/authority boundary reached');
    if($blocked){pv_check($out==='Vote_cast'&&pv_snapshot()===$after,'Authority change serializes after complete vote');pv_sql(pv_revoke($kind));$serialized++;}
    else{pv_check($out==='error'&&pv_snapshot()===$revoked,'Effective revocation leaves only peer change');}$cases++;
@@ -80,6 +82,7 @@ try{
   echo $actor." native atomic vote and current authority checks passed\n";
  }
  foreach(array('inactive','vote','read') as $kind){pv_fixture();pv_sql(pv_revoke($kind));$before=pv_snapshot();pv_check(pv_vote()==='error'&&pv_snapshot()===$before,'Current member authority '.$kind);$cases++;}
+ foreach(array('member','moderator','root')as$actor){foreach(array('blocked'=>time()+3600,'expired'=>time()-60,'clear'=>0,'legacy-past'=>-1)as$kind=>$until){pv_fixture($actor);pv_sql('UPDATE fixture_users SET user_blocktime='.$until.' WHERE user_id=8');$before=pv_snapshot();$out=pv_vote();pv_check($kind==='blocked'?($out==='error'&&pv_snapshot()===$before):$out==='Vote_cast','Current block applies to every registered actor; past blocks permit voting '.$actor.'/'.$kind);$cases++;}}
  foreach(array('grant','membership','pending') as $kind){pv_fixture('moderator');pv_sql(pv_revoke($kind));$before=pv_snapshot();pv_check(pv_vote()==='error'&&pv_snapshot()===$before,'Current moderator lock exception '.$kind);$cases++;}
  foreach(array('UPDATE fixture_forums SET forum_status=1','UPDATE fixture_topics SET topic_status=1','UPDATE fixture_topics SET topic_moved_id=55','DELETE FROM fixture_topics','DELETE FROM fixture_forums','DELETE FROM fixture_vote_desc','DELETE FROM fixture_vote_results WHERE vote_option_id=1','UPDATE fixture_vote_desc SET vote_start=1,vote_length=1','UPDATE fixture_vote_results SET vote_result=2147483647 WHERE vote_option_id=1') as $change){pv_fixture();pv_sql($change);$before=pv_snapshot();pv_check(pv_vote()==='error'&&pv_snapshot()===$before,'Stale/expired/overflow target');$cases++;}
  pv_fixture();$reached=false;$pv_hook=function($sql)use(&$reached){if(strpos($sql,'UPDATE fixture_vote_results')!==0){return;}$GLOBALS['pv_hook']=null;$other=new attach_mutation_lock($GLOBALS['db'],false);$reached=!$other->acquired;$other->release();};pv_check(pv_vote()==='Vote_cast'&&$reached,'Competing writer excluded');
@@ -91,7 +94,7 @@ try{
  foreach(array(0,2147483647) as $count){pv_fixture();pv_insert('fixture_vote_results',array('vote_id'=>1,'vote_option_id'=>1,'vote_option_text'=>'Duplicate','vote_result'=>$count));$before=pv_snapshot();pv_check(pv_vote()==='error'&&pv_snapshot()===$before,'Duplicate option refused before publication');$cases++;}
  pv_fixture();pv_insert('fixture_vote_desc',array('vote_id'=>2,'topic_id'=>100,'vote_text'=>'Duplicate owner'));$before=pv_snapshot();pv_check(pv_vote()==='error'&&pv_snapshot()===$before,'Duplicate topic poll refused');$cases++;
  foreach(array('DELETE FROM fixture_vote_results WHERE vote_option_id=1','DELETE FROM fixture_vote_desc','UPDATE fixture_topics SET forum_id=4') as $change){
-  pv_fixture();$before=pv_snapshot();$reached=false;$pv_hook=function($sql)use($change,&$reached){if(strpos($sql,'UPDATE fixture_vote_results')!==0){return;}$GLOBALS['pv_hook']=null;$reached=true;pv_check(!$GLOBALS['peer']->sql_query($change),'Current poll target is locked');$e=$GLOBALS['peer']->sql_error();pv_check((int)$e['code']===1205,'Target writer must serialize');};
+  pv_fixture();$before=pv_snapshot();$reached=false;$pv_hook=function($sql)use($change,&$reached){if(strpos($sql,'UPDATE fixture_vote_results')!==0){return;}$GLOBALS['pv_hook']=null;$reached=true;list($r,$e)=native_fixture_conflict_query($GLOBALS['peer'],$change);pv_check(!$r,'Current poll target is locked');pv_check((int)$e['code']===1205,'Target writer must serialize');};
   pv_check(pv_vote()==='Vote_cast'&&$reached,'Complete vote before independent target edit');$cases++;
  }
  pv_fixture();pv_sql('UPDATE fixture_vote_desc SET vote_start='.(time()+10).',vote_length=1');$before=pv_snapshot();$reached=false;
@@ -109,5 +112,7 @@ try{
   if($kind==='failure'||$kind==='denied'){pv_check(pv_snapshot()===$before,'Controller leaves no partial vote');}
   $pv_ack=false;$pv_fail='';if($kind==='ack'||$kind==='success'){pv_check(pv_vote(2)==='Already_voted','Controller replay safe');}
  }}}}
+ pv_check(pv_rows('SELECT @@SESSION.innodb_lock_wait_timeout timeout')[0]['timeout']==='1','Ordinary fixture timeout survives every real conflict probe');
  echo 'Native poll voting: '.$cases.' failure/authority/storage cases, '.$serialized." serialized changes; guest/member/moderator/root and actual controllers passed.\n";
+ echo "Native poll block policy: 12 current/past block cases; exact original peer timeout restored after real contention.\n";
 }finally{$pv_hook=null;$pv_fail='';$pv_ack=false;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}

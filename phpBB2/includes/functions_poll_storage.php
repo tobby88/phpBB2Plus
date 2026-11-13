@@ -67,8 +67,10 @@ class PhpbbPollVoteDatabase extends PhpbbPollStorageDatabase
 		if (!$this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '$sid' AND HEX(session_id) = HEX('$sid')"
 			. ' AND session_user_id = ' . $id . ' AND session_logged_in = ' . (int)$logged)) { phpbb_poll_error('Poll_vote_denied'); }
 		if (!$logged) { return array('user_id'=>ANONYMOUS, 'user_level'=>USER, 'session_logged_in'=>false); }
-		$rows = $this->rows('SELECT user_id, user_level, user_active FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id);
-		if (count($rows) !== 1 || empty($rows[0]['user_active'])) { phpbb_poll_error('Poll_vote_denied'); }
+		$rows = $this->rows('SELECT user_id, user_level, user_active, user_blocktime FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id);
+		if (count($rows) !== 1 || empty($rows[0]['user_active'])
+			|| !preg_match('/^-?[0-9]+$/D', (string) $rows[0]['user_blocktime'])
+			|| (float) $rows[0]['user_blocktime'] >= time()) { phpbb_poll_error('Poll_vote_denied'); }
 		$rows[0]['session_logged_in'] = true; return $rows[0];
 	}
 	function authorize()

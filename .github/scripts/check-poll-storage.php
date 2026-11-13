@@ -27,6 +27,7 @@ function poll_fixture()
 {
 	global $mutation_server, $user_ip, $userdata;
 	ajax_storage_fixture(); $mutation_server->pdo=new PollFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
+	$p->exec('ALTER TABLE fixture_users ADD user_blocktime INTEGER NOT NULL DEFAULT 0');
 	$user_ip=encode_ip('127.0.0.1');
 	$p->exec('ALTER TABLE fixture_voters ADD vote_user_ip CHAR(8)');
 	$p->exec("INSERT INTO fixture_votes VALUES (1,100,'Fixture poll',1,0)");

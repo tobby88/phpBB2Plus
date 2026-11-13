@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current account blocks during voting
+
+- Recheck CrackerTracker account block time on the owned voting connection,
+  including final authority checks. A block set after page/session bootstrap
+  prevents the vote; expired blocks still permit ordinary voting.
+- Cover member, moderator and administrator blocks and real concurrent changes.
+  Keep native conflict probes immediate where MariaDB supports it, restoring
+  the fixture's ordinary timeout after every probe.
+
 ### Upload recovery test cleanup
 
 - Drain completed failure-test recovery with the supported three-item budget.
