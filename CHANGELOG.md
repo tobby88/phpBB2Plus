@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Render ACP attachment rows without broken text or session links
+
+- Decode one stored entity layer before escaping attachment names, comments,
+  extensions and uploader labels. The actual comment input now preserves its
+  value when passed back through the existing save normalizer.
+- Truncate topic labels by UTF-8 characters, keep titles of up to 32 characters
+  intact, escape their text and put cookie-less session parameters before the
+  post anchor. Omit links to missing parent topics instead of emitting empty links.
+- Replace the undefined global-list count condition and full ID fetch with a
+  scalar count. Report missing uploader accounts with the existing localized
+  message and use safe fallbacks for invalid row style attributes. No data rewrite
+  or schema migration is needed.
+
 ### Count distinct uploader files and retain ACP attachment sorting
 
 - Preserve the filename direction and selected option in attachment administration,

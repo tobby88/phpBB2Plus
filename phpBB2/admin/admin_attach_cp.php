@@ -570,7 +570,8 @@ if ($view == 'attachments')
 		$row = $db->sql_fetchrow($result);
 		$db->sql_freeresult($result);
 
-		$username = $row['username'];
+		if (!$row) { message_die(GENERAL_MESSAGE, $lang['No_such_user']); }
+		$username = phpbb_stored_text($row['username']);
 
 		$s_hidden = '<input type="hidden" name="u_id" value="' . intval($uid) . '" />';
 	
@@ -656,6 +657,8 @@ if ($view == 'attachments')
 
 			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
+			$row_color = preg_match('/^[A-Fa-f0-9]{6}$/D', (string) $row_color) ? $row_color : 'FFFFFF';
+			$row_class = preg_match('/^[A-Za-z0-9_-]+$/D', (string) $row_class) ? $row_class : 'row1';
 
 			// Is the Attachment assigned to more than one post ?
 			// If it's not assigned to any post, it's an private message thingy. ;)
@@ -691,16 +694,17 @@ if ($view == 'attachments')
 					$row = $db->sql_fetchrow($result);
 					$db->sql_freeresult($result);
 			
-					$post_title = $row ? (string) $row['topic_title'] : '';
+					if (!$row) { continue; }
+					$post_title = html_entity_decode((string) $row['topic_title'], ENT_QUOTES, 'UTF-8');
 
-					if (strlen($post_title) > 32)
+					if (preg_match('//u', $post_title) === 1 && preg_match('/^.{0,32}$/usD', $post_title) !== 1)
 					{
-						$post_title = substr($post_title, 0, 30) . '...';
+						$post_title = phpbb_text_excerpt($post_title, 30);
 					}
 
-					$view_topic = append_sid($phpbb_root_path . 'viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $ids[$j]['post_id'] . '#' . $ids[$j]['post_id']);
+					$view_topic = append_sid($phpbb_root_path . 'viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $ids[$j]['post_id'], true) . '#' . $ids[$j]['post_id'];
 
-					$post_titles[] = '<a href="' . phpbb_admin_html($view_topic) . '" class="gen" target="_blank" rel="noopener noreferrer">' . phpbb_admin_html($post_title) . '</a>';
+					$post_titles[] = '<a href="' . phpbb_profile_text($view_topic) . '" class="gen" target="_blank" rel="noopener noreferrer">' . phpbb_profile_text($post_title) . '</a>';
 				}
 				else
 				{
@@ -717,9 +721,9 @@ if ($view == 'attachments')
 				'ROW_COLOR'		=> '#' . $row_color,
 				'ROW_CLASS'		=> $row_class,
 
-				'FILENAME'		=> phpbb_admin_html($attachments[$i]['real_filename']),
-				'COMMENT'		=> phpbb_admin_html($attachments[$i]['comment']),
-				'EXTENSION'		=> phpbb_admin_html($attachments[$i]['extension']),
+				'FILENAME'		=> phpbb_stored_text($attachments[$i]['real_filename']),
+				'COMMENT'		=> phpbb_stored_text($attachments[$i]['comment']),
+				'EXTENSION'		=> phpbb_stored_text($attachments[$i]['extension']),
 				'SIZE'			=> round(($attachments[$i]['filesize'] / MEGABYTE), 2),
 				'DOWNLOAD_COUNT'=> $attachments[$i]['download_count'],
 				'POST_TIME'		=> create_date($board_config['default_dateformat'], $attachments[$i]['filetime'], $board_config['board_timezone']),
@@ -736,18 +740,16 @@ if ($view == 'attachments')
 
 	if (!$search_based && !$user_based)
 	{
-		if ($total_attachments == 0)
+		$sql = 'SELECT COUNT(*) AS total FROM ' . ATTACHMENTS_DESC_TABLE;
+
+		if (!($result = $db->sql_query($sql)))
 		{
-			$sql = "SELECT attach_id FROM " . ATTACHMENTS_DESC_TABLE;
-
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not query Attachment Description Table', '', __LINE__, __FILE__, $sql);
-			}
-
-			$total_rows = $db->sql_numrows($result);
-			$db->sql_freeresult($result);
+			message_die(GENERAL_ERROR, 'Could not query Attachment Description Table', '', __LINE__, __FILE__, $sql);
 		}
+
+		$count = $db->sql_fetchrow($result);
+		$total_rows = (int) $count['total'];
+		$db->sql_freeresult($result);
 	}
 }
 
