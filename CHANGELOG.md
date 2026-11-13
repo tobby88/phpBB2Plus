@@ -6,6 +6,28 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current and atomic Arcade ratings
+
+- Replace the rating overview's ambiguous grouped game/user query with an
+  independent current read and a deterministic aggregate compatible with
+  ONLY_FULL_GROUP_BY. Preserve historical ratings, including old duplicate,
+  case-variant and nullable-author count semantics.
+- Validate the current member session, active/block/ban state, enabled rating
+  settings and game/category/group access for views and submissions. Store
+  each new rating on an owned transaction with current session IP, serialized
+  duplicate checks, verified payload and a final authority check.
+- Distinguish an unconfirmed commit from success, avoid automatic replay,
+  and disable already-rated controls after the next fresh read. Add the
+  missing heading and translated save/unavailable messages in EN/DE.
+- Keep the existing rating storage range of 1–255 consistent in the ACP,
+  rating form and writer. Reject zero/oversized scales; display current
+  settings faithfully instead of replacing them with 20. Existing ratings
+  and configuration values are not automatically rewritten.
+- Use canonical native MariaDB/MySQL tests for actual controllers, SQL faults,
+  caller transaction isolation, row locks and uncertain acknowledgements.
+  A focused local ratings mode avoids repeating unrelated controller cases.
+  No new table, column, index or migration is required.
+
 ### Banner schedules across midnight and the end of the week
 
 - Share the schedule predicate between header banner selection and online

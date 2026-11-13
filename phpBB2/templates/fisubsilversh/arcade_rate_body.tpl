@@ -43,7 +43,7 @@ function checkRateForm() {
 	</table></td>
 	<td class="row1" valign="top">
 	<span class="gen"><br />{L_CURRENT_RATING}:&nbsp;<strong>{ACTIVITY_RATING}</strong><br />
-	<br />{L_PLEASE_RATE_IT}:&nbsp;<select name="rate">
+	<br />{L_PLEASE_RATE_IT}:&nbsp;<select name="rate"{S_RATE_DISABLED}>
 	<option value="-1">{S_RATE_MSG}</option>
 	<!-- BEGIN rate_row -->
 	<option value="{rate_row.POINT}">{rate_row.POINT}</option>
@@ -52,7 +52,7 @@ function checkRateForm() {
 	</td>
   </tr>
   <tr>
-	<td class="cat" align="center" height="28" colspan="2"><input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" /></td>
+	<td class="cat" align="center" height="28" colspan="2"><input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption"{S_RATE_DISABLED} /></td>
   </tr>
 </table>
 </form>

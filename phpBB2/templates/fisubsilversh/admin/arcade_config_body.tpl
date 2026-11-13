@@ -137,7 +137,7 @@
   </tr>
  <tr>
    <td class="row1">{L_RATE}<span class="gensmall">{L_RATE_INFO}</span></td>
-   <td class="row1" align="right"><input class="post" type="text" size="2" name="games_default_rate" value="{S_RATE}" /></td>
+   <td class="row1" align="right"><input class="post" type="number" min="1" max="255" step="1" required="required" style="width:6em" name="games_default_rate" value="{S_RATE}" /></td>
   </tr>
  <tr>
    <td class="row2">{L_IMAGE_SIZE}<span class="gensmall">{L_IMAGE_SIZE_INFO}</span></td>

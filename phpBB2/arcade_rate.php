@@ -32,87 +32,28 @@ include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 //
 // End session management
 //
-$game_id = (int) $arcade->pass_var('game_id', 0);
-//
-// Check User Logged in
-//
-if (!$userdata['session_logged_in'])
+require_once($phpbb_root_path . 'includes/functions_arcade_rating_storage.' . $phpEx);
+$game_id_value = isset($HTTP_POST_VARS['game_id']) ? $HTTP_POST_VARS['game_id'] : (isset($HTTP_GET_VARS['game_id']) ? $HTTP_GET_VARS['game_id'] : 0);
+$game_id = phpbb_arcade_rating_id($game_id_value) ? (int)$game_id_value : 0;
+if (empty($userdata['session_logged_in']))
 {
 	redirect(append_sid("login.$phpEx?redirect=arcade_rate.$phpEx?game_id=$game_id"));
 }
-//
-// Initialize Arcade Config and Check feature enabled
-//
-if( $arcade->arcade_config('games_rate') == 0 )
-{
-	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-}
-//
-//  Check System ONLINE.
-//
-if($arcade->arcade_config['games_offline'] && $userdata['user_level'] != ADMIN && $userdata['user_level'] != MOD)
-{
-	message_die(GENERAL_MESSAGE, $lang['games_are_offline'], $lang['Information']);
-}
-//
-// Check for the request game_id
-//
-if($game_id < 1)
-{
-	message_die(GENERAL_ERROR, $lang['no_activity']);
-}
-//
-// Get the Activity info
-//
-$sql = "SELECT c.*, g.*, u.user_id, u.username, r.rate_game_name, count(r.rate_user_id) AS total, AVG(r.rate_point) AS rating
-		FROM ". iNA_GAMES ." AS g
-			LEFT JOIN ". iNA_CAT ." AS c ON c.cat_id = g.cat_id
-			LEFT JOIN ". iNA_GAMES_RATE ." AS r ON g.game_name = r.rate_game_name
-			LEFT JOIN ". USERS_TABLE ." AS u ON r.rate_user_id = u.user_id
-		WHERE g.game_id = " . (int) $game_id . "
-		GROUP BY g.game_id";
-if( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-}
-$thisgame = $db->sql_fetchrow($result);
-if( empty($thisgame) )
-{
-	message_die(GENERAL_ERROR, $lang['does_not_exist']);
-}
-$rated_total = isset($thisgame['total']) ? $thisgame['total'] : 0;
-$cat_id     = (int) $thisgame['cat_id'];
-$game_name  = $thisgame['game_name'];
-$game_name_sql = $db->sql_escape($game_name);
-//
-//  Additional Check: if this user already rated
-//
-$sql = "SELECT *
-		FROM ". iNA_GAMES_RATE ."
-		WHERE rate_game_name = '$game_name_sql'
-			AND rate_user_id = ". (int) $userdata['user_id'] ."
-		LIMIT 0,1";
-if( !$result = $db->sql_query($sql) )
-{
-	message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-}
-if ($db->sql_numrows($result) > 0)
-{
-	$already_rated = TRUE;
-}
-else
-{
-	$already_rated = FALSE;
-}
+if (!$game_id) { message_die(GENERAL_ERROR, $lang['no_activity']); }
 
 if( !isset($HTTP_POST_VARS['rate']) )
 {
+	try { $rating_context = phpbb_arcade_rating_view($db, $userdata, $game_id); }
+	catch (Exception $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_rating_message($error)); }
+	catch (Error $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_rating_message($error)); }
+	$thisgame = $rating_context['game']; $rated_total = $thisgame['total'];
+	$cat_id = (int)$thisgame['cat_id']; $already_rated = $rating_context['already_rated'];
 //
 // Rate Scale
 //
 	if (!$already_rated)
 	{
-		for ($i = 0; $i < $arcade->arcade_config['games_default_rate']; $i++)
+		for ($i = 0; $i < $rating_context['scale']; $i++)
 		{
 			$template->assign_block_vars('rate_row', array(
 				'POINT' => ($i + 1)
@@ -146,6 +87,8 @@ if( !isset($HTTP_POST_VARS['rate']) )
     'L_ARCADE_CAT' => $lang['games_catagories'],
     'L_RATE_TITLE' => append_sid("activity.$phpEx?mode=game&amp;id=$game_id&amp;win=self"),
 		'L_RATED' => $lang['arcade_rated'],
+		'L_RATING' => $lang['rating'],
+		'S_RATE_DISABLED' => $already_rated ? ' disabled="disabled"' : '',
 		'L_TITLE' => $lang['arcade_title'],
 		'L_POSTED' => $lang['Posted'],
 		'L_PLAYED' => $lang['arcade_played'],
@@ -171,7 +114,7 @@ else
 //
 // Get the submited rating
 //
-	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($HTTP_POST_VARS['sid']) || !is_string($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
@@ -180,42 +123,10 @@ else
 	{
 		message_die(GENERAL_ERROR, $lang['bad_submitted_value']);
 	}
-	$rate_point = intval($HTTP_POST_VARS['rate']);
-
-	if( ($rate_point <= 0) or ($rate_point > $arcade->arcade_config['games_default_rate']) )
-	{
-		message_die(GENERAL_ERROR, $lang['bad_submitted_value']);
-	}
-
-	$rate_user_id = $userdata['user_id'];
-	$rate_user_ip = $db->sql_escape($userdata['session_ip']);
-//
-// Check if this user already rated
-//
-	if ($already_rated)
-	{
-		message_die(GENERAL_ERROR, $lang['already_rated']);
-	}
-//
-// Insert into the DB
-//
-	$sql = "INSERT INTO ". iNA_GAMES_RATE ." (rate_game_name, rate_user_id, rate_user_ip, rate_point)
-			SELECT '$game_name_sql', ". (int) $rate_user_id .", '$rate_user_ip', $rate_point
-			FROM DUAL
-			WHERE NOT EXISTS (
-				SELECT 1 FROM ". iNA_GAMES_RATE ."
-				WHERE rate_game_name = '$game_name_sql'
-					AND rate_user_id = ". (int) $rate_user_id ."
-			)";
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_rate_update'], '', __LINE__, __FILE__, $sql);
-	}
-	if (!$db->sql_affectedrows())
-	{
-		message_die(GENERAL_ERROR, $lang['already_rated']);
-	}
+	try { $rating_result = phpbb_arcade_rate_game($db, $userdata, $game_id, $HTTP_POST_VARS['rate']); }
+	catch (Exception $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_rating_message($error)); }
+	catch (Error $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_rating_message($error)); }
+	$cat_id = $rating_result['cat_id'];
 //
 // Complete... send a message to user
 //

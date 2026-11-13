@@ -284,7 +284,7 @@ $lang['admin_default_sort_type_info'] = '-:- The default sort order (top to bott
 $lang['admin_new_for_txt'] = '<b>Show Flashing NEW</b><br />';
 $lang['admin_new_for_txt_info'] = '-:- Show the flashing *NEW* (0=OFF) IN DAYS.';
 $lang['admin_rate_txt'] = '<b>Range for Rating System</b>';
-$lang['admin_rate_txt_info'] = '<br />-:- Min = 2, Max = 20';
+$lang['admin_rate_txt_info'] = '<br />Whole number from 1 to 255. Existing ratings keep their recorded values.';
 $lang['admin_cache_menu'] = 'phpBB Arcade - Cache Settings -';
 $lang['admin_cache_header'] = 'This control panel will help you maintain the cache system used by the Arcade Mod for your online activities.<br />If you are currently having a problem with our MOD, then please contact us at <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a> so we may help fix the problem.';
 $lang['admin_use_cache'] = '<b>Use the phpBB Arcade CACHE system</b><br>';

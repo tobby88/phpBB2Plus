@@ -495,7 +495,7 @@ if ( !$mode || $mode == 'switches' || $mode == 'messages' )
 		'S_GROUP' => $select_group,
 		'S_DEFAULT_SORT' => $select_sort,
 		'S_DEFAULT_SORT_TYPE' => $select_sort_type,
-    'S_RATE' => (($arcade->arcade_config['games_default_rate'] < 2) || ($arcade->arcade_config['games_default_rate'] > 20)) ? 20 : $arcade->arcade_config['games_default_rate'],
+    'S_RATE' => phpbb_admin_html(isset($arcade->arcade_config['games_default_rate']) ? $arcade->arcade_config['games_default_rate'] : '5'),
 		'S_NEW_FOR' => $new_for,
 
 		'S_POSTS_REQUIRED' => intval($arcade->arcade_config['games_posts_required']),

@@ -26,7 +26,7 @@ function phpbb_arcade_config_input($request)
         if(phpbb_arcade_text_limit($value,255)!==$value){throw new PhpbbOwnedStorageFailure('arcade_config_invalid');}
         $type=$fields[$key];
         if($type==='bool'){if(!in_array($value,array('0','1'),true)){throw new PhpbbOwnedStorageFailure('arcade_config_invalid');}}
-        elseif($type==='int'){if(!preg_match('/^-?[0-9]{1,12}$/D',trim($value))){throw new PhpbbOwnedStorageFailure('arcade_config_invalid');}$value=(string)min(1000000000,max(0,(float)trim($value)));}
+        elseif($type==='int'){if(!preg_match('/^-?[0-9]{1,12}$/D',trim($value))){throw new PhpbbOwnedStorageFailure('arcade_config_invalid');}$value=(string)min(1000000000,max(0,(float)trim($value)));if($key==='games_default_rate'&&((int)$value<1||(int)$value>255)){throw new PhpbbOwnedStorageFailure('arcade_config_invalid');}}
         elseif($type==='path'||$type==='asset'){
             $value=str_replace('\\','/',trim($value));
             if(($value!==''&&phpbb_arcade_local_asset($value)!==$value)||($type==='path'&&$value==='')||preg_match('/[\x00-\x1f\x7f?#]/',$value)){throw new PhpbbOwnedStorageFailure('arcade_config_invalid');}

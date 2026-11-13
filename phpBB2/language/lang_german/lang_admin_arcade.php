@@ -287,7 +287,7 @@ $lang['admin_default_sort_type_info'] = 'Die Standard Sortierfolge (absteigend /
 $lang['admin_new_for_txt'] = '<b>Zeige ein blinkendes NEW</b><br />';
 $lang['admin_new_for_txt_info'] = 'Gibt an, wie lange in Tagen das blinkende *NEW* (0=AUS), Spiele als neu anzeigt.';
 $lang['admin_rate_txt'] = '<b>Bereich für das Bewertungssystem</b>';
-$lang['admin_rate_txt_info'] = '<br />Min. = 2, Max. = 20';
+$lang['admin_rate_txt_info'] = '<br />Ganze Zahl von 1 bis 255. Bestehende Bewertungen behalten ihre Werte.';
 $lang['admin_cache_menu'] = 'phpBB Arcade - Cache Einstellungen -';
 $lang['admin_cache_header'] = 'Mit diesem Control Panel kannst Du die Einstellungen für das Cache System des Arcade MODs festlegen. Solltest Du Probleme mit diesem Panel haben, dann kontaktiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a>, damit wir Dir helfen können, diese zu lösen.';
 $lang['admin_use_cache'] = '<b>Das Arcade CACHE System verwenden</b><br>';

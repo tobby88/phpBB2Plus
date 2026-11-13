@@ -27,7 +27,7 @@ $schema = file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
 $arcade_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/arcade_body.tpl');
 $modcp_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/arcade_mod_body.tpl');
 
-arcade_secondary_assert(strpos($rate, "!is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'ratings must reject nested tokens');
+arcade_secondary_assert(strpos($rate, "!is_string(\$HTTP_POST_VARS['sid'])") !== false && strpos($rate, 'phpbb_arcade_rate_game($db, $userdata, $game_id,') !== false, 'ratings must reject nested/non-string tokens and use the owned current-actor writer');
 arcade_secondary_assert(substr_count($comment, "include(\$phpbb_root_path . 'includes/page_tail.'.\$phpEx);\n\texit;") >= 2, 'comment confirmation and edit pages must stop after their page tail');
 arcade_secondary_assert(strpos($comment, 'min(1000000, intval(phpbb_request_scalar') !== false, 'comment offsets must be scalar and bounded');
 arcade_secondary_assert(strpos($tournament, 'phpbb_arcade_tournament_join($db, $join_tour)') !== false &&

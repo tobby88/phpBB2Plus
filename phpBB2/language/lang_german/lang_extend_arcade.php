@@ -531,6 +531,9 @@ $lang['arcade_tournament_limit'] = 'Die Höchstzahl noch nicht abgeschlossener T
 $lang['arcade_tournament_capacity'] = 'Die Teilnehmergrenze darf nicht kleiner als die Zahl der bereits angemeldeten Teilnehmer sein.';
 $lang['arcade_tournament_settings_invalid'] = 'Die Turnier-Einstellungen müssen im Adminbereich der Spielhalle korrigiert werden.';
 $lang['arcade_tournament_game_limit'] = 'Die ausgewählten Spiele überschreiten die aktuelle Spielgrenze dieses Turniers. Bitte wähle weniger Spiele aus.';
+$lang['arcade_rating_unavailable'] = 'Spielbewertungen sind momentan nicht verfügbar. Bitte informiere die Administration.';
+$lang['arcade_rating_failed'] = 'Deine Bewertung konnte nicht gespeichert werden. Bitte versuche es erneut.';
+$lang['arcade_rating_unconfirmed'] = 'Ob deine Bewertung gespeichert wurde, konnte nicht bestätigt werden. Lade die Bewertungsseite neu, bevor du erneut abstimmst.';
 // TFFT - The End...!
 //
 
