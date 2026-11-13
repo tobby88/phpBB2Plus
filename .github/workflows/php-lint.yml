@@ -715,9 +715,6 @@ jobs:
           php .github/scripts/check-link-rotation-view.php
           node .github/scripts/check-link-rotation-client.js
 
-      - name: Test attachment deletion selections and post/PM ownership
-        run: php .github/scripts/check-attachment-delete-selection.php
-
       - name: Test attachment publication and deletion coordination
         run: php .github/scripts/check-attachment-mutation.php
 

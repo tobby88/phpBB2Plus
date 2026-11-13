@@ -19,6 +19,9 @@ changes consolidated after that baseline without implying active maintenance.
   carry known thumbnail cleanup across selected aliases, and retain detached
   descriptions when cleanup fails. Report uncertain commit acknowledgements and
   incomplete physical cleanup separately. Existing tables need no migration.
+- Exercise the retained legacy selection/file-failure cases with the real
+  MySQLi driver and the five canonical installer tables on MariaDB/MySQL,
+  replacing the former reduced in-memory adapter.
 
 ### Consistent ACP attachment pages
 

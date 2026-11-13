@@ -1,6 +1,7 @@
 <?php
+if(PHP_SAPI!=='cli'||getenv('PHPBB_ATTACH_DELETE_SELECTION_NATIVE')!=='1'){echo "Attachment selection checks require explicit disposable native storage.\n";return;}
 if (!defined('PRIVMSGS_PENDING_SENT_MAIL')) { define('PRIVMSGS_PENDING_SENT_MAIL', 6); }
-// Real deletion and synchronization SQL, isolated in-memory database and files.
+// Real deletion/synchronization SQL, canonical installer tables and owned files.
 define('IN_PHPBB', true);
 define('GENERAL_ERROR', 202);
 define('PAGE_PRIVMSGS', -10);
@@ -51,38 +52,15 @@ delete_selection_check($start !== false && $end > $start, 'Locate actual topic s
 eval(substr($source, $start, $end - $start));
 $lang = array('Error_deleted_attachments' => 'Fixture deletion failed', 'Attachment_delete_incomplete' => 'Fixture file cleanup incomplete');
 
-class AttachmentSelectionDatabase
+require_once $forum_root.'includes/php_compat.php';require_once $forum_root.'db/mysqli.php';require_once __DIR__.'/uacp-list-native-fixture.php';
+class AttachmentSelectionDatabase extends sql_db
 {
-	var $pdo; var $queries = array(); var $fail_delete = false;
-	function __construct()
-	{
-		$this->pdo = new PDO('sqlite::memory:');
-		$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$this->pdo->exec('CREATE TABLE fixture_links (attach_id INTEGER, post_id INTEGER, privmsgs_id INTEGER)');
-		$this->pdo->exec('CREATE TABLE fixture_descriptions (attach_id INTEGER PRIMARY KEY, physical_filename TEXT, thumbnail INTEGER)');
-		$this->pdo->exec('CREATE TABLE fixture_posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, post_attachment INTEGER)');
-		$this->pdo->exec('CREATE TABLE fixture_topics (topic_id INTEGER PRIMARY KEY, topic_attachment INTEGER)');
-		$this->pdo->exec('CREATE TABLE fixture_messages (privmsgs_id INTEGER PRIMARY KEY, privmsgs_type INTEGER, privmsgs_to_userid INTEGER, privmsgs_from_userid INTEGER, privmsgs_attachment INTEGER)');
-		$this->pdo->exec('INSERT INTO fixture_posts VALUES (10, 100, 1), (11, 100, 1)');
-		$this->pdo->exec('INSERT INTO fixture_topics VALUES (100, 1)');
-		$this->pdo->exec('INSERT INTO fixture_messages VALUES (20, 0, 7, 8, 1), (21, 2, 7, 8, 1)');
-	}
-	function sql_query($sql)
-	{
-		$this->queries[] = $sql;
-		if ($this->fail_delete && preg_match('/^DELETE FROM fixture_links/', $sql)) { return false; }
-		$statement = $this->pdo->query($sql);
-		if (!preg_match('/^SELECT/', $sql)) { return true; }
-		$result = new stdClass(); $result->rows = $statement->fetchAll(PDO::FETCH_ASSOC); $result->position = 0;
-		return $result;
-	}
-	function sql_numrows($result) { return count($result->rows); }
-	function sql_escape($value) { return str_replace("'", "''", $value); }
-	function sql_fetchrow($result) { return isset($result->rows[$result->position]) ? $result->rows[$result->position++] : false; }
-	function sql_fetchrowset($result) { return $result->rows; }
-	function sql_freeresult($result) {}
-	function scalar($sql) { return (int) $this->pdo->query($sql)->fetchColumn(); }
+ var $queries=array();var $fail_delete=false;
+ function __construct(){global$native_host,$native_password,$native_schema;parent::__construct($native_host,'root',$native_password,$native_schema,false);delete_selection_check($this->db_connect_id,'Owned native fixture connection');delete_selection_check(parent::sql_query('START TRANSACTION'),'Owned native seed boundary');foreach(array('fixture_links','fixture_descriptions','fixture_posts','fixture_topics','fixture_messages')as$table){delete_selection_check(parent::sql_query('DELETE FROM '.$table),'Reset only owned canonical rows');}foreach(array(10,11)as$id){uacp_list_fixture_insert($this,'fixture_posts',array('post_id'=>$id,'topic_id'=>100,'post_attachment'=>1));}uacp_list_fixture_insert($this,'fixture_topics',array('topic_id'=>100,'topic_attachment'=>1));foreach(array(20=>0,21=>2)as$id=>$type){uacp_list_fixture_insert($this,'fixture_messages',array('privmsgs_id'=>$id,'privmsgs_type'=>$type,'privmsgs_to_userid'=>7,'privmsgs_from_userid'=>8,'privmsgs_attachment'=>1));}}
+ function sql_query($sql='',$transaction=false){$this->queries[]=$sql;if($this->fail_delete&&preg_match('/^DELETE FROM fixture_links/',$sql)){return false;}return parent::sql_query($sql,$transaction);}
+ function scalar($sql){$r=parent::sql_query($sql);delete_selection_check($r,'Actual native scalar query');try{$row=parent::sql_fetchrow($r);return(int)reset($row);}finally{parent::sql_freeresult($r);}}
 }
+$native_port=getenv('PHPBB_ATTACH_DELETE_SELECTION_PORT')?:'3306';delete_selection_check(preg_match('/^[0-9]{1,5}$/D',$native_port)&&(int)$native_port>0&&(int)$native_port<=65535,'Owned loopback port');$native_host='127.0.0.1:'.$native_port;$native_password=getenv('PHPBB_ATTACH_DELETE_SELECTION_PASSWORD')?:'';$native_schema='codex_legacy_attach_delete_'.bin2hex(phpbb_random_bytes(8));$native_control=new sql_db($native_host,'root',$native_password,'',false);$native_created=false;$db=null;
 $fixture_dir = sys_get_temp_dir() . '/phpbb-delete-selection-' . uniqid('', true);
 $upload_dir = $fixture_dir;
 $fixture_files = array(); $unlinked = array(); $delete_failures = array(); $listing_failure = false;
@@ -120,12 +98,12 @@ function attach_storage_file_entries($mode = false, $quiet = false)
 function selection_fixture($links, $descriptions)
 {
 	global $db, $fixture_dir, $fixture_files, $unlinked, $delete_failures, $listing_failure;
-	$db = new AttachmentSelectionDatabase(); $unlinked = array(); $delete_failures = array(); $listing_failure = false;
-	foreach ($links as $link) { $db->pdo->exec('INSERT INTO fixture_links VALUES (' . implode(',', $link) . ')'); }
+	if($db){$db->sql_close();}$db = new AttachmentSelectionDatabase(); $unlinked = array(); $delete_failures = array(); $listing_failure = false;
+	foreach ($links as $link) { uacp_list_fixture_insert($db,'fixture_links',array('attach_id'=>$link[0],'post_id'=>$link[1],'privmsgs_id'=>$link[2])); }
 	foreach ($descriptions as $id => $thumbnail)
 	{
 		$name = 'attachment-' . $id . '.dat';
-		$db->pdo->exec("INSERT INTO fixture_descriptions VALUES ($id, '$name', $thumbnail)");
+		uacp_list_fixture_insert($db,'fixture_descriptions',array('attach_id'=>$id,'physical_filename'=>$name,'real_filename'=>$name,'filesize'=>123,'thumbnail'=>$thumbnail));
 		foreach ($thumbnail ? array($name, 't_' . $name) : array($name) as $file)
 		{
 			$path = $fixture_dir . '/' . $file;
@@ -133,9 +111,13 @@ function selection_fixture($links, $descriptions)
 			delete_selection_check(file_put_contents($path, 'owned fixture') !== false, 'Create owned test file');
 		}
 	}
+	delete_selection_check($db->sql_query('COMMIT'),'Owned native seed complete');$db->queries=array();
 }
 try
 {
+	delete_selection_check($native_control->db_connect_id&&$native_control->sql_query('CREATE DATABASE '.$native_schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Create only owned native schema');$native_created=true;
+	$native_ddl=file_get_contents($forum_root.'install/schemas/mysql_schema.sql');foreach(array('attachments'=>'fixture_links','attachments_desc'=>'fixture_descriptions','posts'=>'fixture_posts','topics'=>'fixture_topics','privmsgs'=>'fixture_messages')as$name=>$target){delete_selection_check(preg_match('/^CREATE TABLE phpbb_'.$name.'\s*\([\s\S]*?;/m',$native_ddl,$m)===1,'Actual installer definition');delete_selection_check($native_control->sql_query('USE '.$native_schema)&&$native_control->sql_query(str_replace('phpbb_'.$name,$target,$m[0])),'Install canonical native fixture table');}
+	if(getenv('PHPBB_ATTACH_DELETE_SELECTION_MYSQL')==='8.4'){$r=$native_control->sql_query('SELECT VERSION() version');$v=$native_control->sql_fetchrow($r);$native_control->sql_freeresult($r);delete_selection_check(strpos($v['version'],'8.4.')===0&&stripos($v['version'],'MariaDB')===false,'Actual MySQL8.4');}
 	delete_selection_check(mkdir($fixture_dir, 0700), 'Create isolated attachment directory');
 	delete_selection_check(attach_delete_id_array(' 001, 2,1 ') === array(1, 2), 'Normalize legacy comma strings and duplicates');
 	delete_selection_check(attach_delete_id_array(array('003', 2, '3')) === array(3, 2), 'Normalize arrays');
@@ -180,7 +162,7 @@ try
 	foreach (array(PRIVMSGS_NEW_MAIL, PRIVMSGS_UNREAD_MAIL, PRIVMSGS_SAVED_IN_MAIL, PRIVMSGS_SAVED_OUT_MAIL) as $type)
 	{
 		selection_fixture(array(array(4, 0, 20)), array(4 => 0));
-		$db->pdo->exec('UPDATE fixture_messages SET privmsgs_type = ' . $type . ' WHERE privmsgs_id = 20');
+		delete_selection_check($db->sql_query('UPDATE fixture_messages SET privmsgs_type = ' . $type . ' WHERE privmsgs_id = 20'),'Owned PM type');
 		$owner = $type === PRIVMSGS_SAVED_OUT_MAIL ? 8 : 7;
 		delete_attachment(0, 4, PAGE_PRIVMSGS, $owner === 7 ? 8 : 7);
 		delete_selection_check(!$unlinked, 'Other party cannot delete saved/new/unread copy');
@@ -199,14 +181,11 @@ try
 	try { delete_attachment(10); } catch (AttachmentSelectionFailure $error) { $failed = $error->getMessage() === $lang['Error_deleted_attachments']; }
 	delete_selection_check($failed && !$unlinked && $db->scalar('SELECT COUNT(*) FROM fixture_links') === 1, 'SQL failure reports localized error without undefined language or file deletion');
 	$admin = file_get_contents($forum_root . 'admin/admin_attach_cp.php');
-	delete_selection_check(strpos($admin, 'delete_attachment(0, $delete_id_list, PAGE_PRIVMSGS);') !== false, 'ACP explicitly handles PM context');
-	$start = strpos($admin, 'if ($confirm && sizeof($delete_id_list) > 0)');
-	$end = strpos($admin, 'else if ($delete', $start);
-	delete_selection_check($start !== false && $end > $start, 'Locate actual ACP confirmed deletion branch');
-	selection_fixture(array(array(8, 10, 0), array(8, 0, 20), array(9, 0, 21)), array(8 => 0, 9 => 0));
-	$confirm = true; $delete_id_list = array(8, 9);
-	eval(substr($admin, $start, $end - $start));
-	delete_selection_check($db->scalar('SELECT COUNT(*) FROM fixture_links') === 0 && $unlinked === array('attachment-8.dat', 'attachment-9.dat'), 'Actual ACP branch removes selected post and PM files once each');
+	// The ACP now uses its own atomic native store. Its full controller, both
+	// post/PM contexts, real files and revoked rights are exercised on MariaDB
+	// and MySQL by check-attachment-admin-delete-native.php. Keep this legacy
+	// helper suite from substituting its reduced schema for that writer.
+	delete_selection_check(strpos($admin, 'phpbb_attach_admin_remove($db, $_POST, true)') !== false && strpos($admin, 'delete_attachment(') === false, 'ACP delegates both contexts to the current atomic native writer');
 	foreach (array(null, false, '', array(), array(7, 8), '0', '7oops') as $owner)
 	{
 		selection_fixture(array(array(8, 0, 20)), array(8 => 0)); $failed = false;
@@ -243,10 +222,11 @@ try
 	{
 		delete_selection_check(!attach_delete_file($name), 'Reserved or invalid names never count as successful cleanup');
 	}
-	echo "Attachment deletion selections, ownership, file failures, recovery metadata and actual SQL/files passed.\n";
+	echo "Attachment deletion selections native: canonical five-table ownership, file failures, recovery metadata and actual SQL/files passed.\n";
 }
 finally
 {
+	if($db){$db->sql_query('ROLLBACK');$db->sql_close();}if($native_created){delete_selection_check($native_control->sql_query('DROP DATABASE '.$native_schema),'Drop only owned native schema');}$native_control->sql_close();
 	foreach ($fixture_files as $path) { if (is_file($path)) { unlink($path); } }
 	if (is_dir($fixture_dir)) { rmdir($fixture_dir); }
 	restore_error_handler();
