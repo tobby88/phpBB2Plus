@@ -43,7 +43,7 @@ function cp_run($locale,$changes=array(),$keep=false,$fault='',$transport=true,$
 $cp_cases=0;$cp_forms=0;
 try{
 	foreach(array('english','german')as$locale){
-		foreach(array('Grüße 😀 C:\\Archiv\\Datei {literal}',"Before\nSubject: archived message\nAfter","Charset: windows-1251\nKeep this line",'{CONTACT_BODY} {CONTACT_SUBJECT} {unknown} {}',"Subject: x\r\nCharset: UTF-16\r\n\r\nQuoted",str_repeat('a',10000))as$body){
+		foreach(array('Grüße 😀 C:\\Archiv\\Datei {literal}',"Before\nSubject: archived message\nAfter","Charset: windows-1251\nKeep this line",'{CONTACT_BODY} {CONTACT_SUBJECT} {unknown} {}',"Subject: x\r\nCharset: UTF-16\r\n\r\nQuoted","Subject: Grüße {CONTACT_BODY} \\ Subject: literal\nCharset: UTF-8\n\nKeep the exact repeated metadata",str_repeat('a',10000))as$body){
 			$r=cp_run($locale,array('textfeld'=>$body,'betreff'=>'Grüße {CONTACT_BODY} \\ Subject: literal','name'=>'Name {unknown}'));
 			cp_check(count($r['mail'])===1&&$r['mail'][0]['subject']===$r['raw']['betreff'],'Preserve submitted subject and literal braces');
 			$expected="Name: ".$r['raw']['name']."\nEmail: reply@example.invalid\nIP: 127.0.0.1\n\n".trim($body);

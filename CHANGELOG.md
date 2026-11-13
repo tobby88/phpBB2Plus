@@ -11,6 +11,8 @@ changes consolidated after that baseline without implying active maintenance.
 - Insert contact form fields once into a fixed mail layout, preserving literal
   braces and header-looking body lines. Keep the separately submitted subject
   and remove only the layout's mail metadata.
+- Remove the mailer's template metadata block only once, preserving an exact
+  quoted copy of that block within the user message too.
 - Refuse malformed honeypot arrays. A valid submission can send only after
   its file-backed cooldown timestamp is fully written, flushed and read back
   under the same lock; IO failures and partial writes refuse delivery.

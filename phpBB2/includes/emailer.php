@@ -275,7 +275,9 @@ class emailer
 
 		if ($drop_header != '')
 		{
-			$this->msg = trim(preg_replace('#' . $drop_header . '#s', '', $this->msg));
+			// Remove the template metadata once; a quoted copy in the body is
+			// user content and must not disappear with the same replacement.
+			$this->msg = trim(preg_replace('#' . $drop_header . '#s', '', $this->msg, 1));
 		}
 
 		$to = $this->addresses['to'];
