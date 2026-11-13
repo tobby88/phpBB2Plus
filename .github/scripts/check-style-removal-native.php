@@ -24,7 +24,7 @@ $body=<<<'PHP'
   sd_sql("INSERT INTO fixture_themes (themes_id,template_name,style_name,theme_public) VALUES (1,'fisubsilversh','Default',1),(2,'fisubsilversh','Shared',1),(3,'legacy','Unused template',0)");
   sd_sql("INSERT INTO fixture_names (themes_id,tr_color1_name) VALUES (1,'Keep'),(2,'Other'),(3,'Größe 😀')");
   sd_sql("INSERT INTO fixture_config VALUES ('default_style','1'),('override_user_style','0'),('xs_style_fisubsilversh','preserve'),('xs_style_legacy','old settings'),('unrelated','keep')");
-  sd_sql('INSERT INTO fixture_users VALUES (1,'.($actor==='root'?1:0).',1,3),(2,0,1,3),(3,0,1,2),(-1,0,0,1)');
+  sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active,user_style) VALUES (1,'.($actor==='root'?1:0).',1,3),(2,0,1,3),(3,0,1,2),(-1,0,0,1)');
   sd_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
   if($actor==='delegated'){$hash=array_search('xs_frameset.php',jr_admin_authorization_routes(),true);sd_sql("INSERT INTO fixture_jr VALUES (1,'".$hash."')");}
   $userdata=array('user_id'=>1,'session_id'=>'fixture-admin','session_admin'=>1,'session_logged_in'=>1,'user_level'=>$actor==='root'?1:0);$board_config=array('default_style'=>1);$_SERVER['REQUEST_METHOD']='POST';

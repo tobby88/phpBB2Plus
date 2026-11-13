@@ -21,8 +21,8 @@ class DeletionDatabase
 	function __construct()
 	{
 		$this->pdo=new PDO('sqlite::memory:'); $this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-		$this->pdo->exec('CREATE TABLE fixture_users(user_id INTEGER PRIMARY KEY,user_active INTEGER,user_level INTEGER,user_posts INTEGER,username TEXT,user_email TEXT,user_lang TEXT)');
-		$this->pdo->exec("INSERT INTO fixture_users VALUES(7,0,0,0,'Old name','fixture@example.invalid','english'),(8,1,0,1,'Other','','english'),(9,1,1,1,'Admin','','english')");
+		$this->pdo->exec('CREATE TABLE fixture_users(user_id INTEGER PRIMARY KEY,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0,user_level INTEGER,user_posts INTEGER,username TEXT,user_email TEXT,user_lang TEXT)');
+		$this->pdo->exec("INSERT INTO fixture_users (user_id,user_active,user_level,user_posts,username,user_email,user_lang) VALUES(7,0,0,0,'Old name','fixture@example.invalid','english'),(8,1,0,1,'Other','','english'),(9,1,1,1,'Admin','','english')");
 		$this->pdo->exec('CREATE TABLE fixture_groups(group_id INTEGER PRIMARY KEY,group_single_user INTEGER,group_moderator INTEGER)');
 		$this->pdo->exec('INSERT INTO fixture_groups VALUES(70,1,7),(80,1,8),(90,1,9),(100,1,0),(200,0,7),(201,0,200)');
 		$this->pdo->exec('CREATE TABLE fixture_members(user_id INTEGER,group_id INTEGER)');
@@ -71,7 +71,7 @@ try
 	$db=new DeletionDatabase(); expect_deletion_failure(function()use($db){phpbb_cleanup_removed_user_references($db,7);});
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_keys')===4,'Existing account references cannot be cleaned');
 	$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $restored=false;
-	$db->hook=function($sql,$db)use(&$restored){if(!$restored && strpos($sql,'DELETE FROM fixture_keys')===0){$restored=true;$db->pdo->exec("INSERT INTO fixture_users VALUES(7,1,0,0,'Restored','','english')");}};
+	$db->hook=function($sql,$db)use(&$restored){if(!$restored && strpos($sql,'DELETE FROM fixture_keys')===0){$restored=true;$db->pdo->exec("INSERT INTO fixture_users (user_id,user_active,user_level,user_posts,username,user_email,user_lang) VALUES(7,1,0,0,'Restored','','english')");}};
 	expect_deletion_failure(function()use($db){phpbb_cleanup_removed_user_references($db,7);});
 	foreach(deletion_reference_tables() as $table=>$column){deletion_check((int)$db->scalar('SELECT COUNT(*) FROM '.$table)===4,'Fresh write predicates protect restored account: '.$table);}
 	$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $db->failure='DELETE FROM fixture_bookmarks';
@@ -82,7 +82,7 @@ try
 	$db=new DeletionDatabase(); expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1,'Existing account content cannot be anonymized');
 	$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $restored=false;
-	$db->hook=function($sql,$db)use(&$restored){if(!$restored && strpos($sql,'UPDATE fixture_posts')===0){$restored=true;$db->pdo->exec("INSERT INTO fixture_users VALUES(7,1,0,0,'Restored','','english')");}};
+	$db->hook=function($sql,$db)use(&$restored){if(!$restored && strpos($sql,'UPDATE fixture_posts')===0){$restored=true;$db->pdo->exec("INSERT INTO fixture_users (user_id,user_active,user_level,user_posts,username,user_email,user_lang) VALUES(7,1,0,0,'Restored','','english')");}};
 	expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=7')===1 && (int)$db->scalar('SELECT group_moderator FROM fixture_groups WHERE group_id=200')===7,'Restored account protected in every content write');
 	$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $db->failure='UPDATE fixture_shouts';
@@ -103,7 +103,7 @@ try
 	{
 		$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
 		$db->pdo->exec("INSERT INTO fixture_bans VALUES(7,'7f0000ff','keep@example.invalid','ffffffff')");
-		$db->hook=function($sql,$db)use($boundary){if(strpos($sql,$boundary)===0){$db->hook=null;$db->pdo->exec("INSERT INTO fixture_users VALUES(7,1,0,0,'Restored','','english')");}};
+		$db->hook=function($sql,$db)use($boundary){if(strpos($sql,$boundary)===0){$db->hook=null;$db->pdo->exec("INSERT INTO fixture_users (user_id,user_active,user_level,user_posts,username,user_email,user_lang) VALUES(7,1,0,0,'Restored','','english')");}};
 		expect_deletion_failure(function()use($db){phpbb_cleanup_removed_user_references($db,7);});
 		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=7')===($boundary==='DELETE FROM fixture_bans'?2:1),'Every ban write protects a restored account');
 	}

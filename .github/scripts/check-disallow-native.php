@@ -4,7 +4,6 @@ putenv('PHPBB_STYLE_DATA_NATIVE=1');putenv('PHPBB_STYLE_DATA_PORT='.(getenv('PHP
 $source=file_get_contents(__DIR__.'/check-style-data-native.php');$cut=strpos($source," if (getenv('PHPBB_STYLE_DATA_PROBE')");
 if($cut===false){throw new RuntimeException('Shared native fixture boundary missing');}
 $head=str_replace('__DIR__',var_export(__DIR__,true),substr($source,5,$cut-5));$head=str_replace('codex_style_data_','codex_disallow_',$head);
-$head=str_replace('INSERT INTO fixture_users VALUES','INSERT INTO fixture_users (user_id,user_level,user_active) VALUES',$head);
 $body= <<<'PHP'
  define('DISALLOW_TABLE','fixture_disallow');define('WORDS_TABLE','fixture_words');define('GROUPS_TABLE','fixture_groups');
  define('PHPBB_LEGACY_REQUEST_ESCAPED',getenv('PHPBB_DISALLOW_RAW')!=='1');

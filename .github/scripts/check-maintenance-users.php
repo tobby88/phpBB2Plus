@@ -7,10 +7,9 @@ $shared = substr($shared, 5, $end - 5);
 $shared = str_replace('function throw_error($message) { throw new ResetControllerFailure($message); }',
  'function throw_error($message) { reset_check($GLOBALS["resetServer"]->owner === null, "Release before terminal renderer"); throw new ResetControllerFailure($message); }', $shared, $replaced);
 if ($replaced !== 1) { throw new RuntimeException('Error renderer assertion unavailable'); }
-$shared = str_replace("'users'=>'user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER'", "'users'=>user_fixture_definition()", $shared, $replaced);
+$shared = str_replace("'users'=>'user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0'", "'users'=>user_fixture_definition()", $shared, $replaced);
 if ($replaced !== 1) { throw new RuntimeException('Full fixture user schema boundary missing'); }
-$shared = str_replace('INSERT INTO fixture_users VALUES (1,1,1),(20,0,1)', 'INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,1,1),(20,0,1)', $shared, $replaced);
-if ($replaced !== 1) { throw new RuntimeException('Fixture user insertion boundary missing'); }
+if (substr_count($shared,'INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,1,1),(20,0,1)') !== 1) { throw new RuntimeException('Explicit fixture user insertion boundary missing'); }
 $shared = str_replace("'keys'=>'key_id VARCHAR(32),user_id INTEGER'", "'keys'=>'key_id VARCHAR(32),user_id INTEGER,last_login INTEGER DEFAULT 1'", $shared, $replaced);
 if ($replaced !== 1) { throw new RuntimeException('Fixture key schema boundary missing'); }
 $shared = str_replace("INSERT INTO fixture_keys VALUES ('remember',8)", "INSERT INTO fixture_keys (key_id,user_id) VALUES ('remember',8)", $shared, $replaced);
@@ -45,7 +44,7 @@ $start = strpos($controller, "case 'check_user':"); $end = strpos($controller, "
 reset_check($start !== false && $end > $start, 'Actual full user controller found');
 $userCode = 'switch("check_user"){' . substr($controller, $start, $end-$start) . '}';
 function user_fixture_definition() {
- $definition='user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER';
+ $definition='user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0';
  foreach(array('username','user_lang','user_style','user_rank','user_regdate','user_password','user_email','user_icq','user_website','user_occ','user_from','user_interests','user_sig','user_viewemail','user_aim','user_yim','user_msnm','user_posts','user_attachsig','user_allowsmile','user_allowhtml','user_allowbbcode','user_allow_pm','user_notify_pm','user_allow_viewonline','user_avatar','user_timezone','user_dateformat','user_actkey','user_newpasswd','user_notify') as $column) {
   $definition.=','.$column.' '.(in_array($column,array('user_style','user_rank'),true)?'INTEGER DEFAULT 0':'VARCHAR(255)');
  } return $definition.",guest_custom VARCHAR(255) DEFAULT 'Member default',guest_retired VARCHAR(255) DEFAULT 'Retired default',guest_other VARCHAR(255) DEFAULT 'Plugin default'";

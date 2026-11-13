@@ -45,7 +45,7 @@ try{foreach($resetNative?array('MyISAM','InnoDB'):array('SQLite') as $engine){fo
  foreach($writes as $target){foreach(array('restored','changed') as $race){
   author_fixture($engine);$isPost=$target===$writes[0];
   $resetServer->hook=function($sql)use($target,$race,$isPost){if(strpos($sql,$target)!==0){return;}$s=$GLOBALS['resetServer'];$s->hook=null;
-   if($race==='restored'){$s->pdo->exec('INSERT INTO fixture_users VALUES ('.($isPost?999:998).',0,1)');}
+   if($race==='restored'){$s->pdo->exec('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES ('.($isPost?999:998).',0,1)');}
    else{$s->pdo->exec($isPost?'UPDATE fixture_posts SET poster_id=20 WHERE post_id=1':'UPDATE fixture_topics SET topic_poster=20 WHERE topic_id=10');}
   };
   $out=author_run();reset_check($out['skipped']===1,'Changed source skipped');
@@ -79,7 +79,7 @@ try{foreach($resetNative?array('MyISAM','InnoDB'):array('SQLite') as $engine){fo
   author_run($expected);reset_check((int)author_value('posts',1,'poster_id')===999,'Denied request leaves identity unchanged');
  }
  author_fixture($engine,20);$resetServer->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".$grant."')");author_run();
- author_fixture($engine);$resetServer->pdo->exec("INSERT INTO fixture_users VALUES (999,0,0),(222,0,0),(998,0,0),(333,0,0),(888,0,0)");
+ author_fixture($engine);$resetServer->pdo->exec("INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (999,0,0),(222,0,0),(998,0,0),(333,0,0),(888,0,0)");
  reset_check(author_run()===array('posts'=>0,'topics'=>0,'skipped'=>0),'Inactive but existing authors are not deleted');
  if($locale==='english'){
   author_fixture($engine);for($id=7;$id<=107;$id++){$resetServer->pdo->exec("INSERT INTO fixture_posts (post_id,topic_id,poster_id,post_username,poster_ip) VALUES (".$id.",50,999,'Keep','')");}

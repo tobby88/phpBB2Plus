@@ -54,7 +54,7 @@ try {
         global $db,$HTTP_POST_VARS,$dbuser,$dbpasswd;
         $db->hook=null;$db->failure='';$db->lostAck=false;$db->queries=array();
         foreach(array('users','members','auth','groups','forums') as $table){ercr_sql('DELETE FROM fixture_'.$table);}
-        ercr_sql("INSERT INTO fixture_users VALUES (-1,'Anonymous','',0,0),(2,'Admin','".md5('fixture-password')."',1,1),(3,'Other admin','',1,1),(4,'Moderator admin','',1,1),(5,'Pending admin','',1,1),(6,'Member','',1,0),(7,'Special','',1,3)");
+        ercr_sql("INSERT INTO fixture_users (user_id,username,user_password,user_active,user_level) VALUES (-1,'Anonymous','',0,0),(2,'Admin','".md5('fixture-password')."',1,1),(3,'Other admin','',1,1),(4,'Moderator admin','',1,1),(5,'Pending admin','',1,1),(6,'Member','',1,0),(7,'Special','',1,3)");
         ercr_sql('INSERT INTO fixture_groups VALUES (10)');ercr_sql('INSERT INTO fixture_forums VALUES (20)');
         ercr_sql('INSERT INTO fixture_auth VALUES (10,20,1)');ercr_sql('INSERT INTO fixture_members VALUES (4,10,0),(5,10,1)');
         $HTTP_POST_VARS=array('auth_method'=>$method,'board_user'=>$alias,'board_password'=>'fixture-password','db_user'=>$dbuser,'db_password'=>$dbpasswd);
@@ -66,7 +66,7 @@ try {
     }
     $cases=0;
     foreach(array('InnoDB','MyISAM') as $engine){
-        foreach(array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INTEGER,user_level INTEGER',
+        foreach(array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0,user_level INTEGER',
             'members'=>'user_id INTEGER,group_id INTEGER,user_pending INTEGER','auth'=>'group_id INTEGER,forum_id INTEGER,auth_mod INTEGER',
             'groups'=>'group_id INTEGER PRIMARY KEY','forums'=>'forum_id INTEGER PRIMARY KEY') as $table=>$columns){
             ercr_sql('DROP TABLE IF EXISTS fixture_'.$table);ercr_sql('CREATE TABLE fixture_'.$table.' ('.$columns.') ENGINE='.$engine.' DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');

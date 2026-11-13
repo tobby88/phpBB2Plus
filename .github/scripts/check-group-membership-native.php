@@ -92,7 +92,7 @@ try{
  if(!defined('GENERAL_MESSAGE')){define('GENERAL_MESSAGE',200);}
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');
  foreach(array('groups','user_group','auth_access','forums','quota_limits','attach_quota') as $s){ats_check(preg_match('/CREATE TABLE phpbb_'.$s.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical schema');gmn_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$m[0]));}
- foreach(array('users'=>"user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255),user_email VARCHAR(255) DEFAULT 'fixture@example.invalid',user_lang VARCHAR(20) DEFAULT 'german'",
+ foreach(array('users'=>"user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0,username VARCHAR(255),user_email VARCHAR(255) DEFAULT 'fixture@example.invalid',user_lang VARCHAR(20) DEFAULT 'german'",
   'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT',
   'jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT','pa_auth'=>'group_id INT,cat_id INT') as $s=>$columns){gmn_sql('CREATE TABLE fixture_'.$s.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  // Ordinary setup retains its real wait; only actual conflict probes use zero.

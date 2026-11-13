@@ -8,7 +8,6 @@ $cut = strpos($source, " if (getenv('PHPBB_STYLE_DATA_PROBE')");
 if ($cut === false) { throw new RuntimeException('Shared native fixture boundary missing'); }
 $head = str_replace('__DIR__', var_export(__DIR__, true), substr($source, 5, $cut - 5));
 $head = str_replace('codex_style_data_', 'codex_ct_users_', $head);
-$head = str_replace('INSERT INTO fixture_users VALUES', 'INSERT INTO fixture_users (user_id,user_level,user_active) VALUES', $head);
 $body = <<<'PHP'
  define('MOD',2); define('ANONYMOUS',-1); define('CTRACKER_ACP',true);
  define('PHPBB_LEGACY_REQUEST_ESCAPED',getenv('PHPBB_CT_USERS_RAW')!=='1');
@@ -29,7 +28,7 @@ $body = <<<'PHP'
  }
  function ctu_reset($actor='root',$flag=0){
   sd_reset($actor==='root'?'root':'none');
-  sd_sql("INSERT INTO fixture_users (user_id,user_level,user_active,username,ct_enable_ip_warn) VALUES(2,0,1,'A&amp;B',".(int)$flag.")");
+  sd_sql("INSERT INTO fixture_users (user_id,user_level,user_active,username,ct_miserable_user) VALUES(2,0,1,'A&amp;B',".(int)$flag.")");
   if($actor!=='root'){
    $route=$actor==='wrong'?'admin_cracker_tracker.php?modu=9':'admin_cracker_tracker.php?modu=8';
    $hash=array_search($route,jr_admin_authorization_routes(),true);sd_check($hash!==false,'Actual exact tracker module grant');

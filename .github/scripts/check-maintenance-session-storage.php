@@ -15,11 +15,11 @@ class TableServer {
  public $pdo;public $owner=null;public $hook=null;public $after=null;public $failure='';public $lostAck='';public $commands=0;public $gates=0;public $queries=array();public $engine;public $mode='NO_ENGINE_SUBSTITUTION';public $supported=true;public $closedModes=array();
  function __construct($engine){$this->engine=$engine;
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  $defs=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
+  $defs=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
    'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER,custom_flag VARCHAR(30) DEFAULT \'preserve\'','config'=>'board_disable INTEGER',
    'first'=>'id BIGINT PRIMARY KEY,body VARCHAR(255)','second'=>'id BIGINT PRIMARY KEY,body VARCHAR(255)');
   foreach($defs as $name=>$def){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$def.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
-  $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1)");$this->pdo->exec('INSERT INTO fixture_config VALUES (0)');
+  $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES (1,'Root',1,1),(20,'Junior',0,1)");$this->pdo->exec('INSERT INTO fixture_config VALUES (0)');
   foreach(array('first','second') as $name){$this->pdo->exec("INSERT INTO fixture_".$name." VALUES (0,'Grüße'),(4294967298,'wide')");}
  }
 }

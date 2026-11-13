@@ -6,7 +6,6 @@ putenv('PHPBB_STYLE_DATA_PASSWORD='.(getenv('PHPBB_RANKS_PASSWORD')?:''));
 $fixture_source=file_get_contents($scripts.'/check-style-data-native.php'); $cut=strpos($fixture_source," if (getenv('PHPBB_STYLE_DATA_PROBE')");
 if($cut===false){throw new RuntimeException('Fixture boundary missing');}
 $head=str_replace('__DIR__',var_export($scripts,true),substr($fixture_source,5,$cut-5)); $head=str_replace('codex_style_data_','codex_ranks_',$head);
-$head=str_replace('INSERT INTO fixture_users VALUES','INSERT INTO fixture_users (user_id,user_level,user_active) VALUES',$head);
 $body= <<<'PHP'
  define('RANKS_TABLE','fixture_ranks'); require $sd_source.'language/lang_english/lang_admin.php';
  $functions=file_get_contents($sd_source.'includes/functions.php');$a=strpos($functions,'function phpbb_profile_image_name(');$b=strpos($functions,'function phpbb_profile_asset_path(',$a);sd_check($a!==false&&$b!==false,'Actual rank image validator');eval(substr($functions,$a,$b-$a));
@@ -20,7 +19,7 @@ $body= <<<'PHP'
  sd_sql(str_replace('phpbb_ranks',RANKS_TABLE,$definition[0]));
  function rank_audit_snapshot(){return array(phpbb_acl_rows($GLOBALS['peer'],'SELECT * FROM fixture_ranks ORDER BY rank_id'),phpbb_acl_rows($GLOBALS['peer'],'SELECT * FROM fixture_users ORDER BY user_id'));}
  function rank_audit_run($request){global $db,$userdata,$phpEx,$lang,$phpbb_root_path,$template;$_GET=array();$_POST=array_merge(array('sid'=>'fixture-admin'),$request);try{eval(substr($GLOBALS['rank_controller'],5));throw new RuntimeException('Rank controller did not terminate');}catch(StyleDataExit $e){return strpos($e->getMessage(),$lang['Rank_added'])===0||strpos($e->getMessage(),$lang['Rank_updated'])===0||strpos($e->getMessage(),$lang['Rank_removed'])===0;}}
- function rank_audit_reset($actor='root'){sd_reset($actor);sd_sql('DELETE FROM fixture_ranks');sd_sql("INSERT INTO fixture_ranks VALUES (1,'Original',-1,1,'')");sd_sql('INSERT INTO fixture_users VALUES (2,0,1,1)');if($actor==='delegated'){$grant=array_search('admin_ranks.php',jr_admin_authorization_routes(),true);sd_check($grant!==false,'Actual ranks module');sd_sql("UPDATE fixture_jr SET user_jr_admin='".$grant."'");}}
+ function rank_audit_reset($actor='root'){sd_reset($actor);sd_sql('DELETE FROM fixture_ranks');sd_sql("INSERT INTO fixture_ranks VALUES (1,'Original',-1,1,'')");sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active,user_rank) VALUES (2,0,1,1)');if($actor==='delegated'){$grant=array_search('admin_ranks.php',jr_admin_authorization_routes(),true);sd_check($grant!==false,'Actual ranks module');sd_sql("UPDATE fixture_jr SET user_jr_admin='".$grant."'");}}
  $requests=array('edit'=>array('mode'=>'save','id'=>'1','title'=>"Größe ' \\ 😀",'special_rank'=>'0','min_posts'=>'10'),
   'delete'=>array('mode'=>'delete','id'=>'1','confirm'=>'1'), 'add'=>array('mode'=>'save','title'=>str_repeat('Ä',50),'special_rank'=>'1'));
  $cases=0;

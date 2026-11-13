@@ -18,11 +18,11 @@ class RecountServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $lostAck=false;public $queries=array();
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_posts INTEGER','posts'=>'post_id INTEGER PRIMARY KEY,poster_id INTEGER,forum_id INTEGER','forums'=>'forum_id INTEGER PRIMARY KEY,count_posts INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
+  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0,user_posts INTEGER','posts'=>'post_id INTEGER PRIMARY KEY,poster_id INTEGER,forum_id INTEGER','forums'=>'forum_id INTEGER PRIMARY KEY,count_posts INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   foreach(array('sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER','config'=>'config_name VARCHAR(50) PRIMARY KEY,config_value VARCHAR(255)') as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',1,1,1); INSERT INTO fixture_config VALUES ('board_disable','0')");
-  $this->pdo->exec("INSERT INTO fixture_users VALUES (-1,'Guest',0,1,77),(0,'Reserved',0,1,66),(1,'Root',1,1,0),(8,'Grüße <img src=x>',0,1,99),(9,'Disabled forum only',0,1,7),(10,'No posts',0,0,5),(11,'Correct',0,1,1),(20,'Junior',0,1,0)");
+  $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active,user_posts) VALUES (-1,'Guest',0,1,77),(0,'Reserved',0,1,66),(1,'Root',1,1,0),(8,'Grüße <img src=x>',0,1,99),(9,'Disabled forum only',0,1,7),(10,'No posts',0,0,5),(11,'Correct',0,1,1),(20,'Junior',0,1,0)");
   $this->pdo->exec('INSERT INTO fixture_forums VALUES (3,1),(4,0),(5,1)');
   $this->pdo->exec('INSERT INTO fixture_posts VALUES (10,8,3),(11,8,4),(12,8,5),(13,8,999),(14,9,4),(15,11,3),(16,-1,3),(17,0,3)');
 

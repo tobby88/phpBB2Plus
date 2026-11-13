@@ -44,7 +44,7 @@ function gan_reset($actor='root'){
  $GLOBALS['gan_after_commit']=null;$GLOBALS['gan_acknowledged']=false;$GLOBALS['gan_after_queries']=array();
  foreach($GLOBALS['gan_tables'] as $s){gan_sql('DELETE FROM fixture_'.$s);}
  gan_sql('ALTER TABLE fixture_groups AUTO_INCREMENT=1');
- gan_sql("INSERT INTO fixture_users VALUES (1,".($actor==='root'?1:0).",1,'actor'),(2,2,1,'old'),(3,0,1,'new'),(4,2,1,'member'),(5,1,1,'unrelated')");
+ gan_sql("INSERT INTO fixture_users (user_id,user_level,user_active,username) VALUES (1,".($actor==='root'?1:0).",1,'actor'),(2,2,1,'old'),(3,0,1,'new'),(4,2,1,'member'),(5,1,1,'unrelated')");
  gan_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1),('old-session',2,1,0),('new-session',3,1,0),('member-session',4,1,0),('unrelated-session',5,1,1)");
  gan_sql("INSERT INTO fixture_groups (group_id,group_type,group_name,group_description,group_moderator,group_single_user) VALUES (10,0,'before','before',2,0),(11,0,'other','other',5,0),(12,0,'personal','personal',4,1)");
  gan_sql('INSERT INTO fixture_user_group (group_id,user_id,user_pending) VALUES (10,2,0),(10,3,1),(10,4,0),(11,5,0),(12,4,0)');
@@ -75,7 +75,7 @@ try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');
  foreach(array('groups','user_group','auth_access','forums','quota_limits','attach_quota') as $s){ats_check(preg_match('/CREATE TABLE phpbb_'.$s.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical schema');gan_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$m[0]));}
- foreach(array('users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255)',
+ foreach(array('users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0,username VARCHAR(255)',
   'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT',
   'jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT','pa_auth'=>'group_id INT,cat_id INT') as $s=>$columns){gan_sql('CREATE TABLE fixture_'.$s.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  require_once __DIR__.'/native-fixture-locks.php';native_fixture_peer_nowait($peer);$cases=$serialized=0;

@@ -28,7 +28,7 @@ $sa_body = <<<'PHP'
   foreach (array(THEMES_TABLE, THEMES_NAME_TABLE, CONFIG_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE) as $table) { sd_sql('DELETE FROM ' . $table); }
   sd_sql("INSERT INTO fixture_themes (themes_id,template_name,style_name,theme_public) VALUES (1,'fisubsilversh','First',1),(2,'fisubsilversh','Second',0),(3,'fisubsilversh','Third',1)");
   sd_sql("INSERT INTO fixture_config VALUES ('default_style','1'),('override_user_style','0'),('version','preserve')");
-  sd_sql('INSERT INTO fixture_users VALUES (1,' . ($actor === 'root' ? 1 : 0) . ',1,1),(2,0,1,2),(3,0,1,1),(4,0,1,NULL),(-1,0,0,1)');
+  sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active,user_style) VALUES (1,' . ($actor === 'root' ? 1 : 0) . ',1,1),(2,0,1,2),(3,0,1,1),(4,0,1,NULL),(-1,0,0,1)');
   sd_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
   if ($actor === 'delegated') { $hash = array_search('xs_frameset.php', jr_admin_authorization_routes(), true); sd_check($hash !== false, 'Registered XS grant'); sd_sql("INSERT INTO fixture_jr VALUES (1,'" . $hash . "')"); }
   $userdata = array('user_id' => 1, 'session_id' => 'fixture-admin', 'session_admin' => 1, 'session_logged_in' => 1, 'user_level' => $actor === 'root' ? 1 : 0);
@@ -99,10 +99,10 @@ $sa_body = <<<'PHP'
   // Chunked user changes remain atomic, and identities created later are not
   // accidentally included in the selected batch.
   foreach (array(false, true) as $fail_second) {
-   sa_reset(); for ($i=5;$i<=410;$i++) { sd_sql('INSERT INTO fixture_users VALUES (' . $i . ',0,1,1)'); }
+   sa_reset(); for ($i=5;$i<=410;$i++) { sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active,user_style) VALUES (' . $i . ',0,1,1)'); }
    $before = sa_snapshot(); $seen=0;
    $sd_hook=function($sql)use($fail_second,&$seen){if(strpos($sql,'UPDATE fixture_users ')!==0){return;}$seen++;
-    if($seen===1){sd_sql('INSERT INTO fixture_users VALUES (900,0,1,1)');}
+    if($seen===1){sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active,user_style) VALUES (900,0,1,1)');}
     if($seen===2&&$fail_second){$GLOBALS['sd_failure']='UPDATE fixture_users ';}
    };
    $out=sa_run('moveusers:3'); $after=sa_snapshot(); $later=array_pop($after[3]);

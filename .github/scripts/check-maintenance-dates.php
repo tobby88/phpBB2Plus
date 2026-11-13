@@ -12,7 +12,7 @@ function date_fixture($engine,$actor=1) {
  $p->exec('ALTER TABLE fixture_users ADD user_emailtime INTEGER DEFAULT 0');
  $p->exec('ALTER TABLE fixture_users ADD user_last_login_try INTEGER DEFAULT 0');
  $p->exec('UPDATE fixture_users SET user_emailtime='.$future.',user_last_login_try='.$future);
- $p->exec('INSERT INTO fixture_users VALUES (-1,0,1,'.$future.','.$future.'),(0,0,1,'.$future.','.$future.'),(8,0,1,42,43)');
+ $p->exec('INSERT INTO fixture_users (user_id,user_level,user_active,user_emailtime,user_last_login_try) VALUES (-1,0,1,'.$future.','.$future.'),(0,0,1,'.$future.','.$future.'),(8,0,1,42,43)');
  $p->exec('ALTER TABLE fixture_search ADD search_time INTEGER DEFAULT 0');
  $p->exec('UPDATE fixture_search SET search_time='.$future.' WHERE search_id=1');
  $p->exec('UPDATE fixture_search SET search_time=45 WHERE search_id=2');

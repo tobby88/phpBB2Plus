@@ -58,7 +58,7 @@ try {
         global $db, $HTTP_POST_VARS, $dbuser, $dbpasswd, $tables;
         $db->hook = null; $db->failure = ''; $db->lostAck = false; $db->queries = array();
         ercc_sql('DELETE FROM fixture_users');
-        ercc_sql("INSERT INTO fixture_users VALUES (2,'Admin','" . md5('fixture-password') . "',1,1),(-1,'Anonymous','',0,0)");
+        ercc_sql("INSERT INTO fixture_users (user_id,username,user_password,user_active,user_level) VALUES (2,'Admin','" . md5('fixture-password') . "',1,1),(-1,'Anonymous','',0,0)");
         foreach ($tables as $table) { ercc_sql('DELETE FROM ' . $table); ercc_sql('INSERT INTO ' . $table . ' VALUES (1),(2)'); }
         $HTTP_POST_VARS = array('auth_method'=>$method, 'board_user'=>'Admin', 'board_password'=>'fixture-password', 'db_user'=>$dbuser, 'db_password'=>$dbpasswd);
         $GLOBALS['ercc_success'] = false;
@@ -82,7 +82,7 @@ try {
     foreach (array('InnoDB', 'MyISAM') as $engine) {
         foreach (array_merge(array(USERS_TABLE), $tables) as $table) {
             ercc_sql('DROP TABLE IF EXISTS ' . $table);
-            $columns = $table === USERS_TABLE ? 'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INTEGER,user_level INTEGER' : 'id INTEGER PRIMARY KEY';
+            $columns = $table === USERS_TABLE ? 'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_password VARCHAR(255),user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0,user_level INTEGER' : 'id INTEGER PRIMARY KEY';
             ercc_sql('CREATE TABLE ' . $table . ' (' . $columns . ') ENGINE=' . $engine . ' DEFAULT CHARSET=utf8mb4');
         }
         foreach ($tables as $table) {

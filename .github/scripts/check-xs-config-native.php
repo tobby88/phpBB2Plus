@@ -36,7 +36,7 @@ $xc_body = <<<'PHP'
   $sd_hook=null;$sd_failure='';$sd_queries=array();$sd_after_commit=null;
   foreach(array(CONFIG_TABLE,USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE) as $table){sd_sql('DELETE FROM '.$table);}
   foreach(xc_defaults() as $key=>$value){sd_sql("INSERT INTO fixture_config VALUES ('".$key."','".$value."')");}
-  sd_sql('INSERT INTO fixture_users VALUES (1,'.($actor==='root'?1:0).',1)');sd_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
+  sd_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,'.($actor==='root'?1:0).',1)');sd_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
   if($actor==='delegated'){$hash=array_search('xs_frameset.php',jr_admin_authorization_routes(),true);sd_check($hash!==false,'Actual XS grant');sd_sql("INSERT INTO fixture_jr VALUES (1,'".$hash."')");}
   $userdata=array('user_id'=>1,'session_id'=>'fixture-admin','session_logged_in'=>1,'session_admin'=>1,'user_level'=>$actor==='root'?1:0);
   $board_config=xc_snapshot();if($GLOBALS['xc_mode']==='ftp'){$board_config['xs_ftp_local']=false;}$_SERVER['REQUEST_METHOD']='POST';file_put_contents($GLOBALS['sd_root'].'/cache/config_data.cache','old cache');

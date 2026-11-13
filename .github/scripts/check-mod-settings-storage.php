@@ -59,7 +59,7 @@ function ms_reset($actor){
  global $ms_hook,$ms_failure,$ms_queries,$userdata,$board_config;
  $ms_hook=null;$ms_failure='';$ms_queries=array();foreach(array(CONFIG_TABLE,USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE) as $table){ms_sql('DELETE FROM '.$table);}
  foreach($GLOBALS['ms_defaults'] as $key=>$value){ms_sql("INSERT INTO fixture_config VALUES ('".$key."','".$value."')");}ms_sql("INSERT INTO fixture_config VALUES ('version','original')");
- ms_sql('INSERT INTO fixture_users VALUES (1,'.($actor==='root'?1:0).',1)');ms_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
+ ms_sql('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,'.($actor==='root'?1:0).',1)');ms_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
  if($actor!=='root'){$route=$actor==='delegated'?'admin_board_extend.php':'admin_board.php';$hash=array_search($route,jr_admin_authorization_routes(),true);ms_check($hash!==false,'Registered exact route');ms_sql("INSERT INTO fixture_jr VALUES (1,'".$hash."')");}
  $userdata=array('user_id'=>1,'user_level'=>$actor==='root'?1:0,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-admin')+$GLOBALS['ms_users'];
  $board_config=$GLOBALS['ms_defaults'];file_put_contents($GLOBALS['ms_root'].'/cache/config_data.cache','old-cache');$_SERVER['REQUEST_METHOD']='POST';$_GET=array();
@@ -80,7 +80,7 @@ try{
  foreach(glob($ms_source.'includes/mods_settings/mod_*.php') as $file){$files['includes/mods_settings/'.basename($file)]='<?php include '.var_export($file,true).';';}
  foreach($files as $file=>$body){file_put_contents($ms_root.'/'.$file,$body);}chdir($ms_root.'/admin');
  $schema=file_get_contents($ms_source.'install/schemas/mysql_schema.sql');ms_check(preg_match('/CREATE TABLE phpbb_config\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical configDDL');ms_sql(str_replace('phpbb_config',CONFIG_TABLE,$m[0]));
- foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table=>$columns){ms_sql('CREATE TABLE '.$table.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}ms_sql('SET SESSION innodb_lock_wait_timeout=1');
+ foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,user_blocktime INT NOT NULL DEFAULT 0','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table=>$columns){ms_sql('CREATE TABLE '.$table.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}ms_sql('SET SESSION innodb_lock_wait_timeout=1');
  $cases=0;$serialized=0;
  foreach(array('root','delegated') as $actor){
   ms_reset($actor);ms_check(strpos(ms_run(array('use_ajax_preview'=>'0','use_ajax_edit'=>'0','use_ajax_edit_over'=>'1')),'saved')===0,'Actual controller save: '.$actor);$after=ms_snapshot();

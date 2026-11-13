@@ -66,7 +66,7 @@ try{foreach($resetNative?array('MyISAM','InnoDB'):array('SQLite') as $engine){fo
    elseif($race==='prune-forum'||$race==='acl-forum'){$p->exec("INSERT INTO fixture_forums (forum_id,cat_id,forum_name,main_type) VALUES (999,10,'Restored','c')");}
    elseif($race==='prune-policy'){$p->exec('INSERT INTO fixture_forum_prune VALUES (9,11,30,7)');}
    elseif($race==='prune-conflict'){$p->exec('UPDATE fixture_forum_prune SET prune_days=90 WHERE prune_id=3');}
-   elseif($race==='watch-user'){$p->exec('INSERT INTO fixture_users VALUES (999,0,1)');}
+   elseif($race==='watch-user'){$p->exec('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (999,0,1)');}
    else{$p->exec('INSERT INTO fixture_groups VALUES (999)');}
   };
   $out=cleanup_run($phase);reset_check($out['skipped']>0,'Changed candidate skipped '.$race);

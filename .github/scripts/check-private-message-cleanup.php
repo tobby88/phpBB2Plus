@@ -34,7 +34,7 @@ function pm_cleanup_fixture()
 	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
 	$mutation_server->pdo->exec('CREATE TABLE fixture_message_text (privmsgs_text_id INTEGER PRIMARY KEY, privmsgs_text TEXT)');
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES (20,'original'),(21,'sent copy')");
-	$mutation_server->pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY, user_new_privmsg INTEGER, user_unread_privmsg INTEGER,user_active INTEGER DEFAULT 1,user_level INTEGER DEFAULT 0,user_allow_pm INTEGER DEFAULT 1)');
+	$mutation_server->pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY, user_new_privmsg INTEGER, user_unread_privmsg INTEGER,user_active INTEGER DEFAULT 1,user_blocktime INT NOT NULL DEFAULT 0,user_level INTEGER DEFAULT 0,user_allow_pm INTEGER DEFAULT 1)');
 	$mutation_server->pdo->exec('INSERT INTO fixture_users (user_id,user_new_privmsg,user_unread_privmsg) VALUES(7,9,9),(8,0,0),(99,0,0)');
 	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
 	$mutation_server->pdo->exec('CREATE TABLE fixture_jr_admin (user_id INTEGER,user_jr_admin TEXT)');

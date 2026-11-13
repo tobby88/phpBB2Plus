@@ -15,14 +15,14 @@ class CleanupServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $lostAck='';public $queries=array();
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','words'=>'word_id INTEGER PRIMARY KEY,word_common INTEGER,word_text VARCHAR(255)','matches'=>'word_id INTEGER,post_id INTEGER,title_match INTEGER','posts'=>'post_id INTEGER PRIMARY KEY','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
+  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0','words'=>'word_id INTEGER PRIMARY KEY,word_common INTEGER,word_text VARCHAR(255)','matches'=>'word_id INTEGER,post_id INTEGER,title_match INTEGER','posts'=>'post_id INTEGER PRIMARY KEY','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec('DROP TABLE IF EXISTS fixture_sessions');
   $this->pdo->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER, session_admin INTEGER)'.($GLOBALS['native']?' ENGINE='.$engine:''));
   $this->pdo->exec('DROP TABLE IF EXISTS fixture_config');
   $this->pdo->exec('CREATE TABLE fixture_config (board_disable INTEGER)'.($GLOBALS['native']?' ENGINE='.$engine:''));
   $this->pdo->exec('INSERT INTO fixture_config VALUES (0)');
-  $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1)");
+  $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active) VALUES (1,'Root',1,1),(20,'Junior',0,1)");
   $this->pdo->exec("INSERT INTO fixture_words VALUES (1,0,'Grüße'),(2,1,'common'),(3,0,'unused'),(4,0,'orphan-post'),(5,1,'unused-common')");
   $this->pdo->exec('INSERT INTO fixture_posts VALUES (10)');
   $this->pdo->exec('INSERT INTO fixture_matches VALUES (1,10,0),(1,10,1),(2,10,0),(4,99,0),(999,10,0)');

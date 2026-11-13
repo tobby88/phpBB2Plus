@@ -18,7 +18,7 @@ class ResetServer {
   $sqliteClass=class_exists('Pdo\\Sqlite')?'Pdo\\Sqlite':'PDO';
   $this->pdo = $GLOBALS['resetNative'] ? new PDO($GLOBALS['resetDsn'],'root',getenv('PHPBB_SESSION_RESET_TEST_PASSWORD')?:'') : new $sqliteClass('sqlite::memory:');
   $this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER',
+  $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0',
    'junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
    'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_start INTEGER,session_time INTEGER,session_ip VARCHAR(8),session_page INTEGER,session_topic INTEGER,session_logged_in INTEGER,session_admin INTEGER',
    'search'=>'search_id INTEGER PRIMARY KEY,session_id VARCHAR(32),search_array TEXT',
@@ -27,7 +27,7 @@ class ResetServer {
    $this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);
    $this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['resetNative']?' ENGINE='.$engine:''));
   }
-  $this->pdo->exec('INSERT INTO fixture_users VALUES (1,1,1),(20,0,1)');
+  $this->pdo->exec('INSERT INTO fixture_users (user_id,user_level,user_active) VALUES (1,1,1),(20,0,1)');
   $this->pdo->exec("INSERT INTO fixture_sessions VALUES ('".str_repeat('a',32)."',".$actor.",100,120,'01020304',9,83,1,1),('".str_repeat('b',32)."',".$actor.",100,120,'01020304',9,83,1,1),('".str_repeat('c',32)."',-1,101,121,'05060708',0,0,0,0),('".str_repeat('d',32)."',8,102,122,'090a0b0c',2,0,1,0)");
   $this->pdo->exec("INSERT INTO fixture_search VALUES (1,'".str_repeat('a',32)."','own search'),(2,'".str_repeat('d',32)."','other search')");
   $this->pdo->exec("INSERT INTO fixture_keys VALUES ('remember',8)");
