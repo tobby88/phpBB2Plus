@@ -259,113 +259,55 @@ $l_online_users = '';
 if (defined('SHOW_ONLINE'))
 {
 	include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
-	// Start replacement - Topic in Who is online MOD
-$user_forum_sql = ( !empty($topic_id) ) ? "AND s.session_topic = " . intval($topic_id) :(( !empty($forum_id) ) ? "AND s.session_page = ".intval($forum_id) : '');
-// End replacement - Topic in Who is online MOD
-	$sql = "SELECT u.username, u.user_id, u.user_allow_viewonline, u.user_level, s.session_logged_in, s.session_ip
-		FROM ".USERS_TABLE." u, ".SESSIONS_TABLE." s
-		WHERE u.user_id = s.session_user_id
-			AND s.session_time >= ".( time() - 300 ) . "
-			$user_forum_sql
-		ORDER BY u.username ASC, s.session_ip ASC";
-	if( !($result = $db->sql_query($sql)) )
+	require_once($phpbb_root_path . 'includes/functions_online_header.' . $phpEx);
+	$header_online = phpbb_online_header_context($db, $userdata, isset($topic_id) ? $topic_id : 0, isset($forum_id) ? $forum_id : 0);
+	$online_ready = is_array($header_online);
+	if ($online_ready)
 	{
-		message_die(GENERAL_ERROR, 'Could not obtain user/online information', '', __LINE__, __FILE__, $sql);
-	}
-
-	$userlist_ary = array();
-	$userlist_visible = array();
-
-	$prev_user_id = 0;
-	$prev_user_ip = $prev_session_ip = '';
-
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		// User is logged in and therefor not a guest
-		if ( $row['session_logged_in'] )
+		$logged_visible_online = $header_online['counts']['visible'];
+		$logged_hidden_online = $header_online['counts']['hidden'];
+		$guests_online = $header_online['counts']['guests'];
+		foreach ($header_online['rows'] as $row)
 		{
-			// Skip multiple sessions for one user
-			if ( $row['user_id'] != $prev_user_id )
+			if ((int)$row['session_logged_in'] && (!empty($row['user_allow_viewonline']) || $header_online['admin']))
 			{
-				$user_online_link = color_group_colorize_name($row['user_id']);
-				if ( $row['user_allow_viewonline'] )
-				{
-					$logged_visible_online++;
-				}
-				else
-				{
-					$logged_hidden_online++;
-				}
-
-				if ( $row['user_allow_viewonline'] || $userdata['user_level'] == ADMIN )
-				{
-					$online_userlist .= ( $online_userlist != '' ) ? ', ' . $user_online_link : $user_online_link;
-				}
-			}
-
-			$prev_user_id = $row['user_id'];
-		}
-		else
-		{
-			// Skip multiple sessions for one user
-			if ( $row['session_ip'] != $prev_session_ip )
-			{
-				$guests_online++;
+				$user_online_link = color_group_colorize_name($row['user_id'], false, $row['username']);
+				$online_userlist .= ($online_userlist !== '' ? ', ' : '') . $user_online_link;
 			}
 		}
-
-		$prev_session_ip = $row['session_ip'];
 	}
-	$db->sql_freeresult($result);
-
 	if ( empty($online_userlist) )
 	{
 		$online_userlist = $lang['None'];
 	}
-	// Start replacement - Topic in Who is online MOD
-	if ($plus_config['index_layout'] == 'index_body_plus.tpl')
+	if ($plus_config['index_layout'] !== 'index_body_plus.tpl')
 	{
-		$online_userlist = $online_userlist;
+		$online_userlist = $lang['Registered_users'] . ' ' . $online_userlist;
 	}
-	else
-	{	
-	$online_userlist = $lang['Registered_users'].' ' . $online_userlist;
-	}
-	// End replacement - Topic in Who is online MOD
-
 	$total_online_users = $logged_visible_online + $logged_hidden_online + $guests_online;
 
-	if ( $total_online_users > $board_config['record_online_users'])
+	if ($online_ready && $header_online['record'] !== false)
 	{
-		$board_config['record_online_users'] = $total_online_users;
-		$board_config['record_online_date'] = time();
-
-		$sql = "UPDATE " . CONFIG_TABLE . "
-			SET config_value = '$total_online_users'
-			WHERE config_name = 'record_online_users'";
-		if ( !$db->sql_query($sql) )
+		$record = $header_online['record'];
+		if ($header_online['global_counts']['total'] > $record['count'])
 		{
-			message_die(GENERAL_ERROR, 'Could not update online user record (nr of users)', '', __LINE__, __FILE__, $sql);
+			$record_result = phpbb_online_record_update($db, $header_online['global_counts']['total'], $header_online['observed_at']);
+			if ($record_result['confirmed']) { $record = $record_result['record']; }
+			// An uncertain COMMIT must also expire the derived cache so the
+			// next request loads the actual persisted pair before any retry.
+			if ($record_result['invalidate']) { @unlink($phpbb_root_path . 'cache/config_data.cache'); }
 		}
-
-		$sql = "UPDATE " . CONFIG_TABLE . "
-			SET config_value = '" . $board_config['record_online_date'] . "'
-			WHERE config_name = 'record_online_date'";
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update online user record (date)', '', __LINE__, __FILE__, $sql);
-		}
-		@unlink($phpbb_root_path . 'cache/config_data.cache');
+		$board_config['record_online_users'] = $record['count'];
+		$board_config['record_online_date'] = $record['date'];
 	}
-
 	// Start replacement - Topic in Who is online MOD
 	if ( $total_online_users == 0 )
 		{
-			$l_t_user_s = ( ( isset($topic_id) ) ? $lang['Browsing_topic'] : ( ( isset($forum_id) ) ? $lang['Browsing_forum'] : $lang['Online_users_zero_total'] ) );
+			$l_t_user_s = ( $online_ready && $header_online['scope'] === 'topic' ? $lang['Browsing_topic'] : ( $online_ready && $header_online['scope'] === 'forum' ? $lang['Browsing_forum'] : $lang['Online_users_zero_total'] ) );
 		}
 	else
 		{
-			$l_t_user_s = ( ( isset($topic_id) ) ? $lang['Browsing_topic'] : ( ( isset($forum_id) ) ? $lang['Browsing_forum'] : $lang['Online_users_total'] ) );
+			$l_t_user_s = ( $online_ready && $header_online['scope'] === 'topic' ? $lang['Browsing_topic'] : ( $online_ready && $header_online['scope'] === 'forum' ? $lang['Browsing_forum'] : $lang['Online_users_total'] ) );
 		}
 	// End replacement - Topic in Who is online MOD
 
@@ -413,6 +355,7 @@ $user_forum_sql = ( !empty($topic_id) ) ? "AND s.session_topic = " . intval($top
 	$l_online_users .= sprintf($l_r_user_s, $logged_visible_online);
 	$l_online_users .= sprintf($l_h_user_s, $logged_hidden_online);
 	$l_online_users .= sprintf($l_g_user_s, $guests_online);
+	if (!$online_ready) { $l_online_users = $lang['Online_list_unavailable']; }
 }
 
 //

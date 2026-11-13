@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Consistent online counters and atomic visitor records
+
+- Reuse the current validated session cohort for site-header totals and names.
+  Exclude blocked, inactive, banned and future sessions; group logged-out and
+  anonymous guests by IP before removing their identifying rendering fields.
+- Preserve per-topic/forum counts across simultaneous browser sessions, bind
+  them to current readable live parents, and prevent banner/album ID collisions.
+  Explicit zero IDs retain the global label; unavailable reads expose no names
+  and do not fabricate a zero-user result or attempt a record update.
+- Compare peaks with the persisted value under row locks and update count/date
+  together. Never lower a concurrent peak or overwrite an equal peak's date.
+  Use the global cohort on scoped pages, keep unrelated caller work private,
+  and invalidate derived config caches after uncertain commit acknowledgement.
+- Ordinary non-record requests need only the read-only snapshot; no mutation
+  mutex or write transaction is acquired. Existing config keys are retained.
+
 ### Current online locations and session counts
 
 - Bind online topic titles and viewer-list links to their current readable
