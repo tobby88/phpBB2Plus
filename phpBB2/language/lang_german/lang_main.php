@@ -667,6 +667,11 @@ $lang['Popup_on_privmsg'] = 'PopUp-Fenster bei neuen Privaten Nachrichten';
 $lang['Popup_on_privmsg_explain'] = 'Einige Templates öffnen neue Fenster, um dich über neue private Nachrichten zu benachrichtigen.';
 $lang['Hide_user'] = 'Online-Status verstecken';
 
+$lang['Profile_options_save_failed'] = 'Die Einstellungen konnten nicht gespeichert werden. Bitte lade die Seite neu und versuche es erneut.';
+$lang['Profile_options_save_unconfirmed'] = 'Das Speichern konnte nicht bestätigt werden. Lade die Einstellungen neu und prüfe ihre Werte vor einem erneuten Versuch.';
+$lang['Profile_options_storage_upgrade'] = 'Die Einstellungen benötigen das vollständige Datenbankupdate. Bitte einen Administrator, update/update_from_153a.php auszuführen.';
+$lang['Profile_options_invalid'] = 'Eine Einstellung enthält einen ungültigen Wert. Bitte prüfe die ausgewählten Optionen und Zahlenbereiche.';
+$lang['Profile_options_overridden'] = 'Eine dieser Einstellungen wird inzwischen vom Administrator vorgegeben. Bitte lade die Seite neu.';
 $lang['Profile_updated'] = 'Dein Profil wurde aktualisiert';
 $lang['Profile_updated_inactive'] = 'Dein Profil wurde aktualisiert. Du hast jedoch wesentliche Details geändert, weswegen dein Account jetzt inaktiv ist. Du wurdest per Mail darüber informiert, wie du deinen Account reaktivieren kannst. Falls eine Aktivierung durch den Administrator erforderlich ist, warte bitte, bis die Reaktivierung stattgefunden hat.';
 

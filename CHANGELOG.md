@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Save additional profile preferences atomically with current authority
+
+- Save each submitted group of preferences in one independent transaction.
+  Require the exact current login, active/unblocked account, current rights
+  for editing another user and current administrator override flags. Check
+  authority again before completion and report success only after commit.
+- Retain all bundled module options, ordinary own-profile and administrator
+  editing, text/custom validation and unsubmitted fields. Validate list choices,
+  Unicode text widths and signed/unsigned numeric storage ranges; refuse missing
+  targets and roll back the complete change on failed SQL or readback.
+- Localize invalid input, overridden options, storage update guidance and an
+  unconfirmed commit in English/German. The existing full updater already
+  installs the required tables and override flags; no new schema is needed.
+
 ### Keep personal attachment sorting and pagination consistent
 
 - Preserve ascending/descending filename sorting and select the active mode

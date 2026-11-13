@@ -23,6 +23,7 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_profile_options_storage.' . $phpEx);
 //
 // Start session management
 //
@@ -283,89 +284,21 @@ if ($submit)
 		message_die(GENERAL_ERROR, 'Invalid_session');
 	}
 
-	// init for error
-	$error = false;
-	$error_msg = '';
-
-	// format and verify data
-	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
+	try
 	{
-		$user_field = $field['user'];
-		if ( !empty($user_field) && preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D', $user_field) &&
-			isset($_POST[$user_field]) && is_auth($field['auth'], $user_level) )
-		{
-			if (is_array($_POST[$user_field]))
-			{
-				message_die(GENERAL_MESSAGE, $lang['Fields_empty']);
-			}
-			switch ($field['type'])
-			{
-				case 'LIST_RADIO':
-				case 'LIST_DROP':
-					$$user_field = $_POST[$user_field];
-					if (!in_array($$user_field, $mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'][$field_name]['values']))
-					{
-						$error = true;
-						$msg = mods_settings_get_lang( $mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'][$field_name]['lang_key'] );
-						$error_msg = (empty($error_msg) ? '' : '<br />') . $lang['Error'] . ':&nbsp;' . $msg;
-					}
-					break;
-				case 'TINYINT':
-				case 'SMALLINT':
-				case 'MEDIUMINT':
-				case 'INT':
-					$$user_field = intval($_POST[$user_field]);
-					break;
-				case 'VARCHAR':
-				case 'TEXT':
-				case 'DATEFMT':
-					$$user_field = trim((string) $_POST[$user_field]);
-					break;
-				case 'HTMLVARCHAR':
-				case 'HTMLTEXT':
-					$$user_field = trim((string) $_POST[$user_field]);
-					break;
-				default:
-					$$user_field = '';
-					if ( !empty($field['chk_func']) && function_exists($field['chk_func']) )
-					{
-						$$user_field = $field['chk_func']($user_field, $_POST[$user_field]);
-					}
-					else
-					{
-						message_die(GENERAL_ERROR, 'Unknown type of config data : ' . $mod_name, '', __LINE__, __FILE__, '');
-					}
-					break;
-			}
-			if ($error)
-			{
-				$ret_link = append_sid("./profile_options.$phpEx?sub=$menu_name&mod=$mod_id&msub=$sub_id&" . POST_USERS_URL . "=$view_user_id");
-				$template->assign_vars(array(
-					'META' => '<meta http-equiv="refresh" content="3;url=' . $ret_link . '">')
-				);
-				$message = $error_msg . '<br /><br />' . sprintf($lang['Click_return_preferences'], '<a href="' . $ret_link . '">', '</a>') . '<br /><br />';
-				message_die(GENERAL_MESSAGE, $message);
-			}
-		}
+		$saved_options = phpbb_profile_options_save($db, $userdata, $sid, $view_user_id,
+			$mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'], $_POST);
 	}
-
-	// save result
-	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
+	catch (PhpbbOwnedStorageFailure $exception)
 	{
-		$user_field = $field['user'];
-		if ( isset($$user_field) && !empty($user_field) && preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D', $user_field) &&
-			isset($view_userdata[$user_field]) && !$board_config[ $field_name . '_over'] && is_auth($field['auth'], $user_level) )
-		{
-			// update
-			$user_value = $db->sql_escape($$user_field);
-			$sql = "UPDATE " . USERS_TABLE . " 
-					SET `$user_field`='$user_value'
-					WHERE user_id = " . (int) $view_userdata['user_id'];
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Failed to update user configuration for ' . $field['user'], '', __LINE__, __FILE__, $sql);
-			}
-		}
+		$key = $exception->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Profile_options_save_failed']);
+	}
+	// Publish request-local values only after the independent writer commits.
+	foreach ($saved_options as $column => $value)
+	{
+		$view_userdata[$column] = $value;
+		if ($view_user_id == $userdata['user_id']) { $userdata[$column] = $value; }
 	}
 
 	// send an update message

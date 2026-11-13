@@ -676,6 +676,11 @@ $lang['Popup_on_privmsg'] = 'Pop up window on new Private Message';
 $lang['Popup_on_privmsg_explain'] = 'Some templates may open a new window to inform you when new private messages arrive.';
 $lang['Hide_user'] = 'Hide your online status';
 
+$lang['Profile_options_save_failed'] = 'The preferences could not be saved. Please reload the page and try again.';
+$lang['Profile_options_save_unconfirmed'] = 'Saving could not be confirmed. Reload the preferences and check their values before retrying.';
+$lang['Profile_options_storage_upgrade'] = 'The preferences require the complete database update. Please ask an administrator to run update/update_from_153a.php.';
+$lang['Profile_options_invalid'] = 'A preference contains an invalid value. Please check the selected options and numeric ranges.';
+$lang['Profile_options_overridden'] = 'An administrator now controls one of these preferences. Please reload the page.';
 $lang['Profile_updated'] = 'Your profile has been updated';
 $lang['Profile_updated_inactive'] = 'Your profile has been updated. However, you have changed vital details, thus your account is now inactive. Check your e-mail to find out how to reactivate your account, or if admin activation is required, wait for the administrator to reactivate it.';
 

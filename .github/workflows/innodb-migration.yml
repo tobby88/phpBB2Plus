@@ -1016,6 +1016,12 @@ jobs:
         env:
           PHPBB_OWNED_NATIVE: '1'
           PHPBB_OWNED_PASSWORD: fixture-only
+      - name: Check atomic profile preferences and current account authority
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-profile-options-native.php
+        env:
+          PHPBB_PROFILE_OPTIONS_NATIVE: '1'
+          PHPBB_PROFILE_OPTIONS_PASSWORD: fixture-only
       - name: Check current account authority and atomic absence return
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-absence-native.php
@@ -1560,3 +1566,9 @@ jobs:
           PHPBB_UACP_NATIVE: '1'
           PHPBB_UACP_PASSWORD: fixture-only
           PHPBB_UACP_MYSQL: '8.4'
+      - name: Check atomic profile preferences and current authority on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-profile-options-native.php
+        env:
+          PHPBB_PROFILE_OPTIONS_NATIVE: '1'
+          PHPBB_PROFILE_OPTIONS_PASSWORD: fixture-only
+          PHPBB_PROFILE_OPTIONS_MYSQL: '8.4'
