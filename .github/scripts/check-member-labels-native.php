@@ -64,6 +64,10 @@ try {
     $before_queries=$db->queries;
     al_check(color_group_colorize_name(ANONYMOUS)===$lang['Guest']&&$db->queries===$before_queries,'Anonymous label retains its existing translation and performs no SQL');
     al_check(mln_snapshot()===$before,'Missing accounts and failed reads leave all tables unchanged');
+    $known_names=array('Current &amp; Grüße 😀','&lt;img src=x onerror=alert(1)&gt;','',"Back\\slash &amp; literal");
+    foreach($known_names as$known){$shown=color_group_colorize_name(140,true,$known);$expected='<span style="font-weight:bold;color:#123456">'.phpbb_stored_text($known).'</span>';al_check($shown===$expected,'Current authorized name bypasses cached identity while retaining safe cached color');}
+    al_check(mln_snapshot()===$before,'Known-name rendering leaves canonical account data unchanged');
+    echo "Native current ColorGroups names: 4 cases PASS; actual formatter, trusted current rows, cached colors, empty names and safe Unicode/entities.\n";
     echo 'Member labels native: ',$ml_cases,' cases, ',$al_checks,' assertions, ',$ml_templates," actual templates PASS; canonical InnoDB names, actual account/Arcade/ColorGroups queries and file cache, read-only display and privacy.\n";
 } finally {
     if($db){$db->sql_close();} if($created){al_check(preg_match('/^codex_member_labels_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Drop exact owned schema');} if($control){$control->sql_close();}

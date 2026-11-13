@@ -445,7 +445,7 @@ function cg_get_data($user_id, $all = false)
 	return $cacheUsers;
 }
 
-function color_group_colorize_name($user_id, $no_profile = false)
+function color_group_colorize_name($user_id, $no_profile = false, $current_username = null)
 {
 	global $db, $lang, $phpEx;
 	global $phpbb_root_path;
@@ -470,10 +470,13 @@ function color_group_colorize_name($user_id, $no_profile = false)
 	$color = check_font_color_nivisec($cacheUsers[$user_id]['color']) ? htmlspecialchars($cacheUsers[$user_id]['color'], ENT_QUOTES, 'UTF-8') : '';
 	$style_color = ($color !== '') ? 'style="font-weight:bold;color:' . $color . '"' : '';
 
-	$username = is_string($cacheUsers[$user_id]['name']) ? $cacheUsers[$user_id]['name'] : '';
-	$stored_username = ($username !== '');
+	// A caller with a current authorized row can retain its exact name while
+	// reusing cached colors. Never write that snapshot value into the cache.
+	$known_username = is_string($current_username);
+	$username = $known_username ? $current_username : (is_string($cacheUsers[$user_id]['name']) ? $cacheUsers[$user_id]['name'] : '');
+	$stored_username = $known_username || ($username !== '');
 
-	if ($username == '')
+	if ($username == '' && !$known_username)
 	{
 		$sql = "SELECT username FROM " . USERS_TABLE . "
 			WHERE user_id = $user_id";

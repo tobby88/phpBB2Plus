@@ -1763,4 +1763,9 @@ $lang['Mail_copy_failed'] = 'Your message was sent, but the copy to your own add
 $lang['Profile_text_storage_upgrade'] = 'The custom-profile storage needs updating. Please ask the administrator to run update_from_153a.php before saving these fields.';
 $lang['Calendar_input_error'] = 'Please check the calendar date, time and nonnegative duration. The event was not saved.';
 $lang['Calendar_date_range'] = 'The calendar date/time is outside the supported range. The event was not saved.';
+$lang['Online_list_unavailable'] = 'The online list is currently unavailable. Please try again.';
+$lang['Online_album_index'] = 'Viewing the photo album';
+$lang['Online_album_personal'] = 'Viewing a personal photo album';
+$lang['Online_album_picture'] = 'Viewing pictures or comments in the photo album';
+$lang['Online_album_search'] = 'Searching the photo album';
 ?>

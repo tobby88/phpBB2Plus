@@ -6,6 +6,24 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current online locations and session counts
+
+- Bind online topic titles and viewer-list links to their current readable
+  forum and live topic/post relationships. Stale sessions cannot retain titles
+  after a move into a private forum or complete post removal.
+- Read sessions, current viewer privileges, forum permissions and locations in
+  one independent read-only snapshot. Reuse the tested snapshot reader for
+  bookmarks; keep unrelated caller transactions private and unmodified.
+- Use the most recent session per account and the most recent activity per
+  guest IP, including logged-out rows with old account IDs. Keep hidden account
+  identities available only to a currently authorized administrator; omit session
+  tokens and IPs from the rendering context.
+- Localize album activities in English/German, avoid album targets lacking a
+  required ID, and render stored entities in forum/topic labels only once.
+- Bind displayed member names to the current authorized row while retaining
+  cached ColorGroups styling, so an older caller or color cache cannot replace
+  a recently changed name.
+
 ### Bookmark navigation and search pages
 
 - Require both current view and read permission for bookmark titles in the

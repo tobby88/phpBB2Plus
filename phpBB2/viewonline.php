@@ -57,109 +57,59 @@ $template->assign_vars(array(
 );
 
 //
-// Forum info
-//
-$forum_data = array();
-$sql = "SELECT forum_name, forum_id
-	FROM " . FORUMS_TABLE;
-if ( $result = $db->sql_query($sql) )
-{
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- delete
-//		$forum_data[$row['forum_id']] = $row['forum_name'];
-//-- add
-		$forum_data[$row['forum_id']] = get_object_lang(POST_FORUM_URL . $row['forum_id'], 'name');
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-	}
-}
-else
-{
-	message_die(GENERAL_ERROR, 'Could not obtain user/online forums information', '', __LINE__, __FILE__, $sql);
-}
-
-//
-// Get auth data
-//
-$is_auth_ary = array();
-$is_auth_ary = auth(AUTH_VIEW, AUTH_LIST_ALL, $userdata);
-
-//
-// Get user list
-//
-$sql = "SELECT u.user_id, u.username, u.user_allow_viewonline, u.user_level, s.session_logged_in, s.session_time, s.session_page, s.session_topic, s.session_ip
-	FROM ".USERS_TABLE." u, ".SESSIONS_TABLE." s
-	WHERE u.user_id = s.session_user_id
-		AND s.session_time >= ".( time() - 300 ) . "
-	ORDER BY u.username ASC, s.session_ip ASC";
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not obtain regd user/online information', '', __LINE__, __FILE__, $sql);
-}
-
+// Read sessions, current viewer rights and topic locations together. Do not
+// reuse a caller's old transaction or the cached hierarchy permissions.
+require_once($phpbb_root_path . 'includes/functions_online.' . $phpEx);
+try { $online_context = phpbb_online_listing($db, $userdata); }
+catch (Exception $error) { message_die(GENERAL_ERROR, $lang['Online_list_unavailable']); }
+catch (Error $error) { message_die(GENERAL_ERROR, $lang['Online_list_unavailable']); }
 $guest_users = 0;
 $registered_users = 0;
 $hidden_users = 0;
 
 $reg_counter = 0;
 $guest_counter = 0;
-$prev_user = 0;
-$prev_ip = '';
 
-while ( $row = $db->sql_fetchrow($result) )
+foreach ($online_context['rows'] as $row)
 {
-	$view_online = false;
-	$session_page = intval($row['session_page']);
-	$session_topic = intval($row['session_topic']);
-
-	if ( $row['session_logged_in'] ) 
+	$view_online = true;
+	$session_page = (int)$row['session_page'];
+	$session_topic = (int)$row['session_topic'];
+	if ($row['session_logged_in'])
 	{
-		$user_id = $row['user_id'];
-
-		if ( $user_id != $prev_user )
+		$user_id = (int)$row['user_id'];
+		if (!$row['user_allow_viewonline'])
 		{
-			include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
-			$username = color_group_colorize_name($user_id, true);
-
-			if ( !$row['user_allow_viewonline'] )
-			{
-				$view_online = ( $userdata['user_level'] == ADMIN ) ? true : false;
-				$hidden_users++;
-
-				$username = '<i>' . $username . '</i>';
-			}
-			else
-			{
-				$view_online = true;
-				$registered_users++;
-			}
-
-			$which_counter = 'reg_counter';
-			$which_row = 'reg_user_row';
-			$prev_user = $user_id;
+			$view_online = $online_context['admin'];
+			$hidden_users++;
 		}
+		else { $registered_users++; }
+		if ($view_online)
+		{
+			include_once($phpbb_root_path . 'includes/functions_color_groups.' . $phpEx);
+			$username = color_group_colorize_name($user_id, true, $row['username']);
+			if (!$row['user_allow_viewonline']) { $username = '<i>' . $username . '</i>'; }
+		}
+		$which_counter = 'reg_counter';
+		$which_row = 'reg_user_row';
 	}
 	else
 	{
-		if ( $row['session_ip'] != $prev_ip )
-		{
-			$user_id = ANONYMOUS;
-			$username = $lang['Guest'];
-			$view_online = true;
-			$guest_users++;
-	
-			$which_counter = 'guest_counter';
-			$which_row = 'guest_user_row';
-		}
+		$user_id = ANONYMOUS;
+		$username = $lang['Guest'];
+		$guest_users++;
+		$which_counter = 'guest_counter';
+		$which_row = 'guest_user_row';
 	}
-
-	$prev_ip = $row['session_ip'];
 
 	if ( $view_online )
 	{
-		if ($session_page < 1 || empty($is_auth_ary[$session_page]['auth_view']))
+		if ($session_page > 0)
+		{
+			$visible_location = phpbb_online_topic_location($online_context, $session_page, $session_topic);
+			$location = $visible_location['label']; $location_url = $visible_location['url'];
+		}
+		else
 		{
 			switch($session_page)
 			{
@@ -216,19 +166,19 @@ while ( $row = $db->sql_fetchrow($result) )
 					$location_url = "staff.$phpEx";
 					break;	
 				case PAGE_ALBUM:
-					$location = "Album Index";
+					$location = $lang['Online_album_index'];
 					$location_url = "album.$phpEx";
 					break;
 				case PAGE_ALBUM_PERSONAL:
-					$location = "Viewing Personal Album of a user";
-					$location_url = "album_personal_index.$phpEx";
+					$location = $lang['Online_album_personal'];
+					$location_url = "album.$phpEx";
 					break;
 				case PAGE_ALBUM_PICTURE:
-					$location = "Viewing Pictures or Posting/Reading comments in the Album";
-					$location_url = "album_showpage.$phpEx";
+					$location = $lang['Online_album_picture'];
+					$location_url = "album.$phpEx";
 					break;
 				case PAGE_ALBUM_SEARCH:
-					$location = "Searching the Album";
+					$location = $lang['Online_album_search'];
 					$location_url = "album_search.$phpEx";
 					break;
 				case PAGE_DOWNLOAD:
@@ -261,42 +211,14 @@ while ( $row = $db->sql_fetchrow($result) )
 				// End add - Complete banner MOD	
 				// Start add - Who viewed a topic MOD
 				case PAGE_TOPIC_VIEW: 
-				$location = $lang['Topic_view_count']; 
-				$location_url = ($session_topic > 0) ? "topic_view_users.$phpEx?" . POST_TOPIC_URL . '=' . $session_topic : '#';
+				$visible_location = phpbb_online_topic_location($online_context, $session_page, $session_topic);
+				$location = $visible_location['label']; $location_url = $visible_location['url'];
 				break;
 				// End add - Who viewed a topic MOD
 				default:
 					$location = $lang['Forum_index'];
 					$location_url = "index.$phpEx";
 			}
-		}
-		else
-		{
-			// Start replacement - Topic in Who is online MOD
-			if ($session_topic > 0)
-			{
-				//
-				// Topic info
-				//
-				$sql = "SELECT topic_title FROM " . TOPICS_TABLE . " WHERE topic_id=" . $session_topic;
-				if ( $result2 = $db->sql_query($sql) )
-				{
-					$topic_title = $db->sql_fetchrow($result2);
-				}
-				else
-				{	
-					message_die(GENERAL_ERROR, 'Could not obtain user/online forums information', '', __LINE__, __FILE__, $sql);
-				}
-				$location_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $session_topic);
-				$forum_label = isset($forum_data[$session_page]) ? phpbb_profile_text($forum_data[$session_page]) : $lang['Forum_index'];
-				$location = $forum_label .' -> '. phpbb_profile_text(isset($topic_title['topic_title']) ? $topic_title['topic_title'] : '');
-			} else 
-			{
-				$location_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $session_page);
-				$location = isset($forum_data[$session_page]) ? phpbb_profile_text($forum_data[$session_page]) : $lang['Forum_index'];
-			}
-			// End replacement - Topic in Who is online MOD
-
 		}
 
 		$row_color = ( $$which_counter % 2 ) ? $theme['td_color1'] : $theme['td_color2'];

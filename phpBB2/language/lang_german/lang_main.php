@@ -1759,4 +1759,9 @@ $lang['Mail_copy_failed'] = 'Deine Nachricht wurde gesendet, aber die Kopie an D
 $lang['Profile_text_storage_upgrade'] = 'Der Speicher für zusätzliche Profilfelder muss aktualisiert werden. Bitte den Administrator bitten, vor dem Speichern dieser Felder update_from_153a.php auszuführen.';
 $lang['Calendar_input_error'] = 'Bitte Kalenderdatum, Uhrzeit und nichtnegative Dauer prüfen. Der Termin wurde nicht gespeichert.';
 $lang['Calendar_date_range'] = 'Das Kalenderdatum liegt außerhalb des unterstützten Zeitraums. Der Termin wurde nicht gespeichert.';
+$lang['Online_list_unavailable'] = 'Die Online-Liste ist derzeit nicht verfügbar. Bitte versuche es erneut.';
+$lang['Online_album_index'] = 'Fotoalbum ansehen';
+$lang['Online_album_personal'] = 'Persönliches Fotoalbum ansehen';
+$lang['Online_album_picture'] = 'Bilder oder Kommentare im Fotoalbum ansehen';
+$lang['Online_album_search'] = 'Fotoalbum durchsuchen';
 ?>
