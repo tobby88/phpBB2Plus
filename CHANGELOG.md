@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Bookmark navigation and search pages
+
+- Require both current view and read permission for bookmark titles in the
+  page header; omit orphaned, moved and entirely deleted topic records.
+- Render each bookmarked topic once, with the same stable ordering and valid
+  topic/post relationships in the header and bookmark search. Duplicate legacy
+  bookmarks no longer consume header slots or create a false "more" link.
+- Read optional navigation through an independent canonical read-only snapshot,
+  with current session/account/group checks. Preserve caller transactions and
+  leave the forum page available when optional navigation cannot be read.
+
 ### Bookmark selection removal
 
 - Fix removing several bookmarks at once from the search page. Validate the

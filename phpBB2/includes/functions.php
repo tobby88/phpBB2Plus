@@ -1082,56 +1082,12 @@ function init_userprefs($userdata)
 	//
 	// Add bookmarks to Navigation bar
 	//
-	if ($userdata['session_logged_in'] && $board_config['max_link_bookmarks'] > 0)
+	unset($nav_links['bookmark']);
+	if (!empty($userdata['session_logged_in']))
 	{
-		$auth_sql = '';
-		$is_auth_ary = auth(AUTH_READ, AUTH_LIST_ALL, $userdata);
-
-		$ignore_forum_sql = '';
-		foreach ($is_auth_ary as $key => $value)
-		{
-			if ( !$value['auth_read'] )
-			{
-				$ignore_forum_sql .= ( ( $ignore_forum_sql != '' ) ? ', ' : '' ) . $key;
-			}
-		}
-
-		if ( $ignore_forum_sql != '' )
-		{
-			$auth_sql .= ( $auth_sql != '' ) ? " AND f.forum_id NOT IN ($ignore_forum_sql) " : "f.forum_id NOT IN ($ignore_forum_sql) ";
-		}
-		if ( $auth_sql != '' )
-		{
-			$sql = "SELECT t.topic_id, t.topic_title, f.forum_id
-				FROM " . TOPICS_TABLE . "  t, " . BOOKMARK_TABLE . " b, " . FORUMS_TABLE . " f, " . POSTS_TABLE . " p
-				WHERE t.topic_id = b.topic_id
-					AND t.forum_id = f.forum_id
-					AND t.topic_last_post_id = p.post_id
-					AND b.user_id = " . $userdata['user_id'] . "
-					AND $auth_sql
-				ORDER BY p.post_time DESC
-				LIMIT " . (intval($board_config['max_link_bookmarks']) + 1);
-		}
-		else
-		{
-			$sql = "SELECT t.topic_id, t.topic_title
-				FROM " . TOPICS_TABLE . " t, " . BOOKMARK_TABLE . " b, " . POSTS_TABLE . " p
-				WHERE t.topic_id = b.topic_id
-					AND t.topic_last_post_id = p.post_id
-					AND b.user_id = " . $userdata['user_id'] . "
-				ORDER BY p.post_time DESC
-				LIMIT " . (intval($board_config['max_link_bookmarks']) + 1);
-		}
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain post ids', '', __LINE__, __FILE__, $sql);
-		}
-		$post_rows = array();
-		while ( $row = $db->sql_fetchrow($result) )
-		{
-			$post_rows[] = $row;
-		}
-		$db->sql_freeresult($result);
+		require_once dirname(__FILE__) . '/functions_bookmark_navigation.php';
+		$bookmark_limit = phpbb_bookmark_navigation_limit(isset($board_config['max_link_bookmarks']) ? $board_config['max_link_bookmarks'] : 0);
+		$post_rows = phpbb_bookmark_navigation_rows($db, $userdata, $bookmark_limit);
 
 		if ( $total_posts = count($post_rows) )
 		{
@@ -1142,7 +1098,7 @@ function init_userprefs($userdata)
 			$replacement_word = array();
 			obtain_word_list($orig_word, $replacement_word);
 
-			for($i = 0; $i < min($total_posts, $board_config['max_link_bookmarks']); $i++)
+			for($i = 0; $i < min($total_posts, $bookmark_limit); $i++)
 			{
 				$topic_title = ( count($orig_word) ) ? preg_replace($orig_word, $replacement_word, $post_rows[$i]['topic_title']) : $post_rows[$i]['topic_title'];
 				//
@@ -1154,9 +1110,10 @@ function init_userprefs($userdata)
 					'title' => $topic_title
 				);
 			}
-			if ($total_posts > $board_config['max_link_bookmarks'])
+			if ($total_posts > $bookmark_limit)
 			{
-				$start = intval($board_config['max_link_bookmarks'] / $board_config['topics_per_page']) * $board_config['topics_per_page'];
+				$per_page = max(1, intval($board_config['topics_per_page']));
+				$start = intval($bookmark_limit / $per_page) * $per_page;
 				$nav_links['bookmark'][$i] = array (
 					'url' => append_sid("search.$phpEx?search_id=bookmarks&start=$start"),
 					'title' => $lang['More_bookmarks']

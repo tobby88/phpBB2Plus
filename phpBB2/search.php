@@ -1010,6 +1010,11 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		}
 
 		$per_page = max(1, intval(( $show_results == 'posts' ) ? $board_config['posts_per_page'] : $board_config['topics_per_page']));
+		if ($show_results === 'bookmarks')
+		{
+			$result_from_sql .= ' AND t.topic_moved_id=0 AND t.topic_status IN (' . (int) TOPIC_UNLOCKED . ',' . (int) TOPIC_LOCKED . ')'
+				. ' AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id AND p2.topic_id=t.topic_id AND p2.forum_id=t.forum_id';
+		}
 		$result_from_sql .= " AND f.forum_id IN ($readable_forum_sql)";
 		// Count the same joined, authorized rows that will be rendered. Deleted
 		// posts and inaccessible forums must not leave stale counts or pages.
@@ -1047,7 +1052,9 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 				$sql .= ( $show_results == 'posts' ) ? 'p.post_time' : 'p2.post_time';
 				break;
 		}
-		$sql .= " $sort_dir LIMIT $start, " . $per_page;
+		$sql .= " $sort_dir";
+		if ($show_results === 'bookmarks') { $sql .= ",t.topic_id $sort_dir"; }
+		$sql .= " LIMIT $start, " . $per_page;
 
 		if ( !$result = $db->sql_query($sql) )
 		{
