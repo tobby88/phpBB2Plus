@@ -16,7 +16,7 @@ function bs_selection($header, $changes, $stamp, $timezone, $expected, $locale)
     // query construction, including its call into the shared schedule helper.
     eval('namespace BannerScheduleClock;' . $header);
     $result = $db->sql_query($sql);
-    nt_check($result !== false, 'Actual banner header selection query');
+    if ($result === false) { $error = $db->sql_error(); throw new RuntimeException('Actual banner header selection query: ' . $error['code'] . ' ' . $error['message']); }
     try { $banners = $db->sql_fetchrowset($result); }
     finally { $db->sql_freeresult($result); }
     $reader = new PhpbbOnlineReader($db);

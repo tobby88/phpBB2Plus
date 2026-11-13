@@ -134,8 +134,9 @@ function bo_text_form($row, $locale, $schedule = false, $counters = false) {
 }
 function bo_selected_at($hour_now, $date_now, $week_now) {
     global $ats_source,$db;
+    require_once $ats_source.'includes/functions_banner_schedule.php';
     $header = file_get_contents($ats_source.'includes/page_header.php');
-    $start = strpos($header, '$sql = "SELECT DISTINCT banner_id, banner_name, banner_spot');
+    $start = strpos($header, '$sql = "SELECT banner_id, banner_name, banner_spot');
     $end = strpos($header, ';', $start);
     ats_check($start !== false && $end > $start, 'Actual frontend banner selection query');
     $sql_level=0; eval(substr($header,$start,$end-$start+1));

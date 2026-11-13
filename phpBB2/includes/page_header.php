@@ -589,7 +589,7 @@ if ($plus_config['enable_banners'])
 	$date_now=(int)create_date('Ymd',$time_now,$board_config['board_timezone']);
 	$week_now=(int)create_date('w',$time_now,$board_config['board_timezone']);
 	$sql_level= ($userdata['user_id']==ANONYMOUS) ? ANONYMOUS : (($userdata['user_level']==ADMIN) ? MOD : (($userdata['user_level']==MOD) ? ADMIN : $userdata['user_level'])); 
-	$sql = "SELECT DISTINCT banner_id, banner_name, banner_spot, banner_description, banner_forum, banner_type, banner_width, banner_height, banner_filter FROM ".BANNERS_TABLE ."
+	$sql = "SELECT banner_id, banner_name, banner_spot, banner_description, banner_forum, banner_type, banner_width, banner_height, banner_filter FROM ".BANNERS_TABLE ."
 			WHERE banner_active
 			AND IF(banner_level_type,IF(banner_level_type=1,".intval($sql_level)."<=banner_level,IF(banner_level_type=2,".intval($sql_level).">=banner_level,".intval($sql_level)."<>banner_level)),banner_level=".intval($sql_level).")
 			AND " . phpbb_banner_schedule_sql($hour_now, $week_now, $date_now) . "

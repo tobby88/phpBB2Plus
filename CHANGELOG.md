@@ -17,6 +17,8 @@ changes consolidated after that baseline without implying active maintenance.
   weekday values do not activate scheduled banners.
 - Clarify the controls in English and German. Existing records work without
   a schema or data migration; native cases exercise both actual consumers.
+- Remove redundant DISTINCT from the single-table banner selection so its
+  weighted random ordering also works with strict MySQL settings.
 
 ### Current banner visibility in the online list
 
