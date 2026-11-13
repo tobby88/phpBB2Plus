@@ -33,7 +33,7 @@ function aur_recovery_batch($limit=1,$lost=false)
 }
 function aur_recovery_finish()
 {
-	for($i=0;$i<4;$i++){$GLOBALS['source']->reset_case();$result=aur_recovery_batch();if($result['complete']){return$result;}}throw new RuntimeException('Three-item abandoned upload failed to finish bounded recovery');
+	for($i=0;$i<4;$i++){$GLOBALS['source']->reset_case();$result=aur_recovery_batch(3);if($result['complete']){return$result;}}throw new RuntimeException('Three-item abandoned upload failed to finish bounded recovery');
 }
 function aur_recovery_barrier($boundary)
 {

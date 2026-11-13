@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Upload recovery test cleanup
+
+- Drain completed failure-test recovery with the supported three-item budget.
+  Keep every original SQL failure, single-item budget and forced process-death
+  case; avoid repeating complete owner/schema checks just to clear the fixture.
+  Application code, updater and database behavior are unchanged.
+
 ### Atomic shadow cleanup with current module rights
 
 - Recheck the exact delegated Shadow attachments module, account and active ACP
