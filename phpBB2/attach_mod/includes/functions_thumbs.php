@@ -167,6 +167,7 @@ function create_thumbnail($source, $new_file, $mimetype)
 	}
 
 	$used_imagick = false;
+	$thumbnail_written = false;
 
 	if (function_exists('exec') && is_imagick())
 	{
@@ -180,6 +181,7 @@ function create_thumbnail($source, $new_file, $mimetype)
 		if ($status === 0 && @file_exists($new_file))
 		{
 			$used_imagick = true;
+			$thumbnail_written = true;
 		}
 	} 
 
@@ -254,10 +256,13 @@ function create_thumbnail($source, $new_file, $mimetype)
 				@unlink($new_file);
 				return false;
 			}
+			$thumbnail_written = true;
 		}
 	}
 
-	if (!@file_exists($new_file))
+	// An existing target alone cannot acknowledge this attempt. In particular,
+	// no available encoder must not promote stale/invalid files as thumbnails.
+	if (!$thumbnail_written || !@file_exists($new_file))
 	{
 		return false;
 	}

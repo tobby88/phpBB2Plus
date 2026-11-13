@@ -62,6 +62,29 @@ image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'imag
 @unlink($corrupt_gif);
 @unlink($corrupt_thumbnail);
 
+if (!extension_loaded('gd'))
+{
+	$source_file = tempnam($image_fixture_directory, 'phpbb-no-gd-source-');
+	$target_file = tempnam($image_fixture_directory, 'phpbb-no-gd-target-');
+	$valid_gif = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', true);
+	file_put_contents($source_file, $valid_gif);
+	image_processing_assert(getimagesize($source_file) !== false, 'synthetic GIF has actual image metadata');
+	try
+	{
+		foreach (array('not a thumbnail', $valid_gif) as $original)
+		{
+			file_put_contents($target_file, $original);
+			image_processing_assert(create_thumbnail($source_file, $target_file, 'image/gif') === false, 'without an encoder, existing targets never acknowledge a new thumbnail');
+			image_processing_assert(file_get_contents($target_file) === $original, 'without an encoder, preserve every byte of the existing target');
+		}
+		unlink($target_file);
+		image_processing_assert(create_thumbnail($source_file, $target_file, 'image/gif') === false && !file_exists($target_file), 'without an encoder, absent targets remain absent');
+	}
+	finally { unlink($source_file); if (is_file($target_file)) { unlink($target_file); } }
+
+	echo "Attachment thumbnail no-encoder: 3 real file cases PASS; absent, invalid and valid targets cannot acknowledge a write, existing bytes preserved.\n";
+}
+
 if (extension_loaded('gd'))
 {
 	$source_file = tempnam($image_fixture_directory, 'phpbb-real-image-');
@@ -80,6 +103,13 @@ if (extension_loaded('gd'))
 		}
 	}
 	finally { unlink($source_file); unlink($target_file); }
+
+	// Exercise the actual no-extension branch even on the ordinary GD CI host.
+	$child_lines = array(); $child_status = 1;
+	exec(escapeshellarg(PHP_BINARY) . ' -n -d date.timezone=UTC -d disable_functions=mail ' . escapeshellarg(__FILE__) . ' 2>&1', $child_lines, $child_status);
+	$child_output = implode("\n", $child_lines);
+	image_processing_assert($child_status === 0 && substr_count($child_output, 'Attachment thumbnail no-encoder: 3 real file cases PASS;') === 1, 'actual no-extension PHP child preserves existing targets: ' . $child_output);
+	echo "Attachment thumbnail no-encoder subprocess PASS.\n";
 }
 
 $root = dirname(dirname(__DIR__));

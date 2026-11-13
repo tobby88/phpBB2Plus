@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Honest attachment thumbnail completion
+
+- Report thumbnail creation as successful only after an encoder acknowledges
+  writing the output. With no supported GD encoder or configured ImageMagick,
+  a pre-existing target can no longer produce a false success or receive a
+  success-only permission change; its existing bytes remain untouched.
+- Check absent, invalid and valid existing targets through an actual PHP
+  process without extensions, alongside the ordinary GD resize checks.
+  No database or updater change is required.
+
 ### Independent robot CAPTCHA forms
 
 - Give each robot registration form an immutable challenge ID in the existing
