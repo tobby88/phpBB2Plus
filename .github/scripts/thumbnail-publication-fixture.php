@@ -9,13 +9,17 @@ $thumb_worker = $thumbnail_fixture_dir . '/converter.php';
 $thumb_launcher = $thumbnail_fixture_dir . (DIRECTORY_SEPARATOR === '\\' ? '/converter.cmd' : '/converter.sh');
 $thumb_small = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', true);
 $thumb_large = substr_replace($thumb_small, pack('vv', 400, 400), 6, 4);
+$thumb_thin = substr_replace($thumb_small, pack('vv', 400, 1), 6, 4);
+$thumb_tall = substr_replace($thumb_small, pack('vv', 1, 400), 6, 4);
 file_put_contents($thumb_source, $thumb_small);
 file_put_contents($thumbnail_fixture_dir . '/unrelated.gif', 'preserve unrelated file');
 $worker = '<?php $path=end($argv);$root=' . var_export($thumbnail_fixture_dir, true) . ';'
 	. 'if(realpath(dirname($path))!==realpath($root)||strpos(basename($path),".phpbb-thumb-")!==0){exit(2);}'
 	. '$mode=file_get_contents($root."/converter-mode");'
+	. '$sample=array_search("-sample",$argv,true);$expected=$mode==="thin"?"400x1":($mode==="tall"?"1x400":"400x400");if($sample===false||!isset($argv[$sample+1])||$argv[$sample+1]!==$expected){exit(2);}'
 	. 'if($mode==="partial"){file_put_contents($path,"partial output");exit(1);}'
 	. 'if($mode==="empty"){exit(0);}if($mode==="missing"){unlink($path);exit(0);}'
+	. 'if($mode==="thin"||$mode==="tall"){file_put_contents($path,base64_decode($mode==="thin"?' . var_export(base64_encode($thumb_thin), true) . ':' . var_export(base64_encode($thumb_tall), true) . '));exit(0);}'
 	. 'file_put_contents($path,base64_decode($mode==="small"?' . var_export(base64_encode($thumb_small), true) . ':' . var_export(base64_encode($thumb_large), true) . '));exit(0);';
 file_put_contents($thumb_worker, $worker);
 if (DIRECTORY_SEPARATOR === '\\') {
@@ -40,6 +44,13 @@ image_processing_assert(!create_thumbnail($thumb_source, $thumb_source, 'image/g
 unlink($thumb_target);mkdir($thumb_target);
 image_processing_assert(!create_thumbnail($thumb_source, $thumb_target, 'image/gif') && is_dir($thumb_target), 'never replace a directory');rmdir($thumb_target);$thumbnail_file_cases++;
 image_processing_assert(!create_thumbnail($thumb_source, $thumbnail_fixture_dir . '/absent/output.gif', 'image/gif'), 'no implicit destination directory or system temporary fallback');$thumbnail_file_cases++;
+
+foreach (array(array('thin',10000,10,$thumb_thin),array('tall',10,10000,$thumb_tall)) as $case) {
+	file_put_contents($thumb_source, substr_replace($thumb_small, pack('vv', $case[1], $case[2]), 6, 4));file_put_contents($thumb_mode,$case[0]);
+	image_processing_assert(create_thumbnail($thumb_source,$thumb_target,'image/gif') && file_get_contents($thumb_target) === $case[3], 'actual converter publishes bounded nonzero thin output');
+}
+echo "Attachment thumbnail geometry converter: 2 cases PASS.\n";
+file_put_contents($thumb_source,$thumb_small);file_put_contents($thumb_mode,'valid');
 
 function ftp_file($source, $destination, $mimetype, $quiet = false)
 {

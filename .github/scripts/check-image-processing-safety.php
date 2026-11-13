@@ -48,6 +48,20 @@ if (!function_exists('amod_realpath'))
 	}
 }
 require dirname(dirname(__DIR__)) . '/phpBB2/attach_mod/includes/functions_thumbs.php';
+$thumbnail_geometry = array(
+	array(10000,1,400,1), array(1,10000,1,400),
+	array(10000,10,400,1), array(10,10000,1,400),
+	array(10000,12,400,1), array(12,10000,1,400),
+	array(10000,13,400,1), array(13,10000,1,400),
+	array(10000,37,400,1), array(37,10000,1,400),
+	array(10000,38,400,2), array(38,10000,2,400),
+	array(480,320,400,267), array(320,480,267,400),
+	array(1,1,400,400), array(13,7,400,215), array(7,13,215,400), array(400,400,400,400),
+	array(0,10,0,0), array(10,0,0,0), array(-1,10,0,0), array(10,-1,0,0),
+);
+foreach ($thumbnail_geometry as $geometry) {
+	image_processing_assert(get_img_size_format($geometry[0], $geometry[1]) === array($geometry[2], $geometry[3]), 'canonical positive integer geometry and ordinary scaling');
+}
 $attach_config = array(
 	'img_min_thumb_filesize' => 0,
 	'allow_ftp_upload' => 0,
@@ -106,6 +120,22 @@ if (extension_loaded('gd'))
 		}
 	}
 	finally { unlink($source_file); unlink($target_file); }
+	$geometry_resizes = 0;
+	foreach ($thumbnail_geometry as $geometry) {
+		if ($geometry[0] < 1 || $geometry[1] < 1) { continue; }
+		$source_file = tempnam($image_fixture_directory, 'phpbb-geometry-source-');
+		$target_file = tempnam($image_fixture_directory, 'phpbb-geometry-target-');
+		try {
+			$image = imagecreatetruecolor($geometry[0], $geometry[1]);
+			image_processing_assert($image && imagepng($image, $source_file), 'actual supported geometry source');phpbb_gd_release($image);
+			foreach (array(0,1) as $gd2) {
+				$attach_config['use_gd2'] = $gd2;
+				image_processing_assert(create_thumbnail($source_file, $target_file, 'image/png'), 'actual thin/ordinary GD thumbnail publication');
+				$shape = getimagesize($target_file);
+				image_processing_assert($shape[0] === $geometry[2] && $shape[1] === $geometry[3] && $shape[2] === IMAGETYPE_PNG, 'actual expected nonzero pixel dimensions');$geometry_resizes++;
+			}
+		} finally { unlink($source_file);unlink($target_file); }
+	}
 
 	// Exercise the actual no-extension branch even on the ordinary GD CI host.
 	$child_lines = array(); $child_status = 1;
@@ -114,8 +144,10 @@ if (extension_loaded('gd'))
 	$child_output = implode("\n", $child_lines);
 	image_processing_assert($child_status === 0 && substr_count($child_output, 'Attachment thumbnail no-encoder: 3 real file cases PASS;') === 1, 'actual no-extension PHP child preserves existing targets: ' . $child_output);
 	image_processing_assert(substr_count($child_output, 'Attachment thumbnail publication: 9 file/converter cases, 3 bounded FTP cases PASS.') === 1, 'actual converter processes and bounded FTP outcomes: ' . $child_output);
+	image_processing_assert(substr_count($child_output, 'Attachment thumbnail geometry converter: 2 cases PASS.') === 1, 'actual thin converter requests: ' . $child_output);
 	echo "Attachment thumbnail no-encoder subprocess PASS.\n";
 	echo "Attachment thumbnail publication subprocess: 9 file/converter cases, 3 bounded FTP cases PASS.\n";
+	echo 'Attachment thumbnail thin geometry: ' . count($thumbnail_geometry) . ' dimension cases, ' . $geometry_resizes . " GD resizes, 2 converter cases PASS.\n";
 }
 
 $root = dirname(dirname(__DIR__));

@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Nonzero thumbnail dimensions
+
+- Keep both scaled dimensions at least one pixel, including very wide or tall
+  supported images. Preserve the existing 400-pixel long edge and ordinary
+  rounding/upscaling behavior; return an empty size for invalid dimensions.
+- Verify exact geometry, actual GD output with both resize modes and real
+  configured-converter subprocesses for landscape and portrait extremes.
+  No schema or updater change is needed.
+
 ### Preserve thumbnails after failed conversion
 
 - Give GD and the external converter an exclusively reserved temporary file,

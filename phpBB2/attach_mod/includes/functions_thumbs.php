@@ -27,23 +27,13 @@ $imagick = '';
 */
 function get_img_size_format($width, $height)
 {
-	// Maximum Width the Image can take
-	$max_width = 400;
-
-	if ($width > $height)
-	{
-		return array(
-			round($width * ($max_width / $width)),
-			round($height * ($max_width / $width))
-		);
-	} 
-	else 
-	{
-		return array(
-			round($width * ($max_width / $height)),
-			round($height * ($max_width / $height))
-		);
-	}
+	$width = (int) $width;
+	$height = (int) $height;
+	if ($width < 1 || $height < 1) { return array(0, 0); }
+	$scale = 400 / max($width, $height);
+	// Preserve the existing 400-pixel long edge, including small-image scaling.
+	// The short edge must stay drawable even below half a scaled pixel.
+	return array(max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale)));
 }
 
 /**
