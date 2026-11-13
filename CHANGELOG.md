@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Banner schedules across midnight and the end of the week
+
+- Share the schedule predicate between header banner selection and online
+  descriptions. Daily ranges such as 22:00–02:00 and weekday ranges such as
+  Friday–Monday now include both sides of their boundary.
+- Preserve inclusive endpoints, literal date intervals, unscheduled banners
+  and the board timezone. Weekday/date rules apply to the current civil day;
+  equal time endpoints still select one minute. Invalid stored clock or
+  weekday values do not activate scheduled banners.
+- Clarify the controls in English and German. Existing records work without
+  a schema or data migration; native cases exercise both actual consumers.
+
 ### Current banner visibility in the online list
 
 - Apply the banner's current audience, active state, display schedule and

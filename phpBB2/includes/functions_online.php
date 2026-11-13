@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_forum_read_snapshot.php';
+require_once dirname(__FILE__) . '/functions_banner_schedule.php';
 
 class PhpbbOnlineReader extends PhpbbForumReadSnapshot
 {
@@ -35,9 +36,7 @@ class PhpbbOnlineReader extends PhpbbForumReadSnapshot
 			. ' OR (banner_level_type=1 AND ' . $level . '<=banner_level)'
 			. ' OR (banner_level_type=2 AND ' . $level . '>=banner_level)'
 			. ' OR (banner_level_type=3 AND ' . $level . '<>banner_level))'
-			. ' AND (banner_timetype=0 OR (' . $hour . ' BETWEEN time_begin AND time_end AND (banner_timetype=2'
-			. ' OR (banner_timetype=4 AND ' . $week . ' BETWEEN date_begin AND date_end)'
-			. ' OR (banner_timetype=6 AND ' . $date . ' BETWEEN date_begin AND date_end))))';
+			. ' AND ' . phpbb_banner_schedule_sql($hour, $week, $date);
 		$out = array();
 		foreach ($this->rows('SELECT banner_id,banner_description FROM ' . BANNERS_TABLE
 			. ' WHERE banner_id IN (' . implode(',', $ids) . ') AND ' . $allowed) as $banner)

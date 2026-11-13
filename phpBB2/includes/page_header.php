@@ -580,22 +580,20 @@ if ( CT_DEBUG_MODE === true && $userdata['user_level'] == ADMIN )
 // Start add - Complete banner MOD
 if ($plus_config['enable_banners'])
 {
+	require_once($phpbb_root_path . 'includes/functions_banner_schedule.' . $phpEx);
 	$last_spot = '';
 	$banner_show_list = '';
 	$banner_forum_id = isset($forum_id) ? (int) $forum_id : 0;
 	$time_now=time();
-	$hour_now=create_date('Hi',$time_now,$board_config['board_timezone']);
-	$date_now=create_date('Ymd',$time_now,$board_config['board_timezone']);
-	$week_now=create_date('w',$time_now,$board_config['board_timezone']);
+	$hour_now=(int)create_date('Hi',$time_now,$board_config['board_timezone']);
+	$date_now=(int)create_date('Ymd',$time_now,$board_config['board_timezone']);
+	$week_now=(int)create_date('w',$time_now,$board_config['board_timezone']);
 	$sql_level= ($userdata['user_id']==ANONYMOUS) ? ANONYMOUS : (($userdata['user_level']==ADMIN) ? MOD : (($userdata['user_level']==MOD) ? ADMIN : $userdata['user_level'])); 
 	$sql = "SELECT DISTINCT banner_id, banner_name, banner_spot, banner_description, banner_forum, banner_type, banner_width, banner_height, banner_filter FROM ".BANNERS_TABLE ."
 			WHERE banner_active
 			AND IF(banner_level_type,IF(banner_level_type=1,".intval($sql_level)."<=banner_level,IF(banner_level_type=2,".intval($sql_level).">=banner_level,".intval($sql_level)."<>banner_level)),banner_level=".intval($sql_level).")
-			AND (banner_timetype=0 
-			OR (( $hour_now BETWEEN time_begin AND time_end) AND ((banner_timetype=2
-			OR (( $week_now BETWEEN date_begin AND date_end) AND banner_timetype=4)
-			OR (( $date_now BETWEEN date_begin AND date_end) AND banner_timetype=6)
-			)))) ORDER BY banner_spot,banner_weigth*SUBSTRING(RAND(),6,2) DESC";
+			AND " . phpbb_banner_schedule_sql($hour_now, $week_now, $date_now) . "
+			ORDER BY banner_spot,banner_weigth*SUBSTRING(RAND(),6,2) DESC";
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, "Couldn't get banners data", "", __LINE__, __FILE__, $sql);
