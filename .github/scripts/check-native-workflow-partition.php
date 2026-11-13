@@ -6,11 +6,16 @@ function native_workflow_partition($source)
 	$matrix = strpos($source,"  migration:\n");
 	if ($matrix === false || !preg_match('/^  [A-Za-z0-9_-]+:/m',$source,$next,PREG_OFFSET_CAPTURE,$matrix+strlen("  migration:\n"))) { throw new RuntimeException('Matrix and reviewed MySQL job required'); }
 	$end = $next[0][1]; $extra = substr($source,$end); $matrix_source = substr($source,$matrix,$end-$matrix);
+	if (preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-pm-form-read-native\\.php$/m',$matrix_source) !== 1
+		|| strpos($matrix_source,"PHPBB_PM_FORM_NATIVE: '1'") === false) { throw new RuntimeException('Actual PM form reads must run in the native PHP matrix'); }
 	if (preg_match_all('/^  [A-Za-z0-9_-]+:/m',$extra) !== 1 || strpos($extra,"  pm-download-mysql:\n") !== 0
 		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
 		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
 		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 29
+		|| preg_match_all('/^        run:/m',$extra) !== 30
+		|| preg_match('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-pm-form-read-native\\.php$/m',$extra) !== 1
+		|| strpos($extra,"PHPBB_PM_FORM_NATIVE: '1'") === false
+		|| strpos($extra,"PHPBB_PM_FORM_MYSQL: '8.4'") === false
 		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-pm-entry-native\\.php (?:compose|download)$/m',$extra) !== 2
 		|| strpos($extra,"PHPBB_PM_ENTRY_NATIVE: '1'") === false
 		|| strpos($extra,"PHPBB_PM_ENTRY_MYSQL: '8.4'") === false

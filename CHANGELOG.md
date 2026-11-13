@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current private-message form data
+
+- Read the edit revision together with its current session, account and outbox
+  authorization. A page connection with an older snapshot cannot return an
+  obsolete edit token after another successful edit.
+- Load interrupted writes through an independent read-only connection and
+  current account/session checks. Completed writes and disabled sending no
+  longer offer a retry; empty or invalid entries produce no empty notice.
+- Retain own-only, ordered, bounded retry forms and ordinary inbox access.
+  Cover real edits and interrupted-write completion, caller transactions,
+  connection failures and English/German users on supported PHP and MySQL.
+
 ### Current PM editor and attachment entry authorization
 
 - Read compose-entry authorization on an independent autocommit connection,

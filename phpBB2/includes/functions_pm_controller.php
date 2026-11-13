@@ -11,33 +11,53 @@ function phpbb_pm_revision($value)
 
 function phpbb_pm_form_revision($message_id)
 {
-	global $db, $userdata;
-	$id = phpbb_pm_compose_attachment_source($db, 'edit', $message_id);
-	$reader = new PhpbbPmReadDatabase($db);
-	$rows = phpbb_acl_rows($reader, 'SELECT privmsgs_write_token FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $id
-		. ' AND (' . phpbb_pm_mailbox_condition($userdata['user_id'], 'outbox') . ') AND privmsgs_write_payload IS NULL');
-	if (!$rows) { phpbb_acl_error('No_such_post'); }
-	return phpbb_pm_revision((string)$rows[0]['privmsgs_write_token']);
+	global $db;
+	phpbb_pm_compose_attachment_request('edit', $message_id);
+	$reader = null;
+	try {
+		$reader = new PhpbbPmAttachmentReader($db);
+		// Authorization and revision belong to the same current SELECT. A
+		// second query through the page connection could return its old token.
+		$context = phpbb_pm_compose_attachment_context($reader, 'edit', $message_id, true);
+		return phpbb_pm_revision((string)$context['revision']);
+	} catch (PhpbbAclException $error) { throw $error; }
+	catch (Exception $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	catch (Error $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	finally { if ($reader !== null) { $reader->release(); } }
 }
 
 function phpbb_pm_pending_writes_html()
 {
 	global $db, $lang, $userdata, $phpEx;
-	$reader = new PhpbbPmReadDatabase($db);
-	$rows = phpbb_acl_rows($reader, 'SELECT privmsgs_id,privmsgs_write_token FROM ' . PRIVMSGS_TABLE
-		. ' WHERE privmsgs_from_userid = ' . $reader->actor . ' AND privmsgs_write_payload IS NOT NULL ORDER BY privmsgs_id LIMIT 100');
-	if (!$rows) { return ''; }
-	$html = '<table class="forumline" width="100%"><tr><th>' . phpbb_profile_text($lang['PM_resume_title']) . '</th></tr><tr><td class="row1">'
-		. '<p class="genmed">' . phpbb_profile_text($lang['PM_resume_explain']) . '</p>';
+	$actor = isset($userdata['user_id']) ? attach_delete_id_array(array($userdata['user_id'])) : false;
+	if (!$actor || empty($userdata['session_logged_in']) || !isset($userdata['session_id']) || !is_string($userdata['session_id'])
+		|| $userdata['session_id'] === '' || strlen($userdata['session_id']) > 32) { phpbb_acl_error('Not_Authorised'); }
+	$sid = $userdata['session_id']; $reader = null;
+	try {
+		$reader = new PhpbbPmAttachmentReader($db);
+		// The outer account row distinguishes no pending writes from revoked
+		// access. Disabling PM sending hides retries without blocking the inbox.
+		$rows = $reader->rows('SELECT p.privmsgs_id,p.privmsgs_write_token FROM ' . USERS_TABLE . ' u LEFT JOIN ' . PRIVMSGS_TABLE
+			. ' p ON p.privmsgs_from_userid=u.user_id AND p.privmsgs_write_payload IS NOT NULL AND u.user_allow_pm<>0'
+			. ' WHERE u.user_id=' . $actor[0] . ' AND u.user_active<>0 AND u.user_blocktime<' . time()
+			. ' AND ' . phpbb_pm_current_session_guard($reader->connection, $actor[0], $sid) . ' ORDER BY p.privmsgs_id LIMIT 100');
+		if (!$rows) { phpbb_acl_error('Not_Authorised'); }
+	} catch (PhpbbAclException $error) { throw $error; }
+	catch (Exception $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	catch (Error $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	finally { if ($reader !== null) { $reader->release(); } }
+	$html = '';
 	foreach ($rows as $row)
 	{
 		if (!is_string($row['privmsgs_write_token']) || !preg_match('/^[a-f0-9]{32}$/D', $row['privmsgs_write_token'])) { continue; }
 		$html .= '<form method="post" action="' . phpbb_profile_text(append_sid('privmsg.' . $phpEx . '?folder=outbox')) . '"><p class="genmed">#' . (int)$row['privmsgs_id']
-			. ' <input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />'
+			. ' <input type="hidden" name="sid" value="' . phpbb_profile_text($sid) . '" />'
 			. '<input type="hidden" name="pm_write_nonce" value="' . $row['privmsgs_write_token'] . '" />'
 			. '<button class="mainoption" type="submit" name="pm_retry" value="1">' . phpbb_profile_text($lang['PM_resume']) . '</button></p></form>';
 	}
-	return $html . '</td></tr></table><br />';
+	if ($html === '') { return ''; }
+	return '<table class="forumline" width="100%"><tr><th>' . phpbb_profile_text($lang['PM_resume_title']) . '</th></tr><tr><td class="row1">'
+		. '<p class="genmed">' . phpbb_profile_text($lang['PM_resume_explain']) . '</p>' . $html . '</td></tr></table><br />';
 }
 
 function phpbb_pm_write_error($error)

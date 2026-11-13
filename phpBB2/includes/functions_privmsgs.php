@@ -104,13 +104,13 @@ function phpbb_pm_compose_attachment_request($mode, $message_id)
 // Only a fresh autocommit reader or the attachment parser's existing owned
 // capability may perform this lookup. Never authorize through a caller's RR
 // snapshot or acquire the parser's named mutex for a second time.
-function phpbb_pm_compose_attachment_lookup($database, $mode, $message_id)
+function phpbb_pm_compose_attachment_context($database, $mode, $message_id, $with_revision = false)
 {
 	list($actor, $source, $sid) = phpbb_pm_compose_attachment_request($mode, $message_id);
 	$reader = $database instanceof PhpbbPmAttachmentReader;
 	if (!$reader && !($database instanceof PhpbbPmComposeDatabase)) { phpbb_acl_error('Not_Authorised'); }
 	$connection = $reader ? $database->connection : $database;
-	$sql = 'SELECT u.user_id' . ($source ? ',p.privmsgs_write_payload' : '') . ' FROM ' . USERS_TABLE . ' u';
+	$sql = 'SELECT u.user_id' . ($source ? ',p.privmsgs_write_payload' . ($with_revision ? ',p.privmsgs_write_token' : '') : '') . ' FROM ' . USERS_TABLE . ' u';
 	if ($source) { $sql .= ' JOIN ' . PRIVMSGS_TABLE . ' p ON p.privmsgs_id=' . $source; }
 	$sql .= ' WHERE u.user_id=' . $actor . ' AND u.user_active<>0 AND u.user_allow_pm<>0 AND u.user_blocktime<' . time()
 		. ' AND ' . phpbb_pm_current_session_guard($connection, $actor, $sid);
@@ -118,7 +118,13 @@ function phpbb_pm_compose_attachment_lookup($database, $mode, $message_id)
 	$rows = $reader ? $database->rows($sql) : phpbb_acl_rows($database, $sql);
 	if (!$rows) { phpbb_acl_error('Not_Authorised'); }
 	if ($source && $rows[0]['privmsgs_write_payload'] !== null) { phpbb_acl_error('PM_write_pending'); }
-	return $source;
+	return array('source' => $source, 'revision' => $source && $with_revision ? $rows[0]['privmsgs_write_token'] : '');
+}
+
+function phpbb_pm_compose_attachment_lookup($database, $mode, $message_id)
+{
+	$context = phpbb_pm_compose_attachment_context($database, $mode, $message_id);
+	return $context['source'];
 }
 
 function phpbb_pm_compose_attachment_source($database, $mode, $message_id)
