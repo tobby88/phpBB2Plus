@@ -16,6 +16,8 @@ changes consolidated after that baseline without implying active maintenance.
   settings and game/category/group access for views and submissions. Store
   each new rating on an owned transaction with current session IP, serialized
   duplicate checks, verified payload and a final authority check.
+- Retain the established no-requirement defaults when older installations
+  omit optional global post/rank/group settings, without inserting new rows.
 - Distinguish an unconfirmed commit from success, avoid automatic replay,
   and disable already-rated controls after the next fresh read. Add the
   missing heading and translated save/unavailable messages in EN/DE.

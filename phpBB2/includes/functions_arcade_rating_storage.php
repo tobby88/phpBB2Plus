@@ -45,7 +45,14 @@ function phpbb_arcade_rating_context($store, $actor, $game_id, $locked)
 	}
 	foreach (array('games_posts_required','games_rank_required','games_group_required') as $key)
 	{
-		if (!isset($settings[$key]) || !preg_match('/^(?:0|[1-9][0-9]{0,9})$/D', (string)$settings[$key])
+		// Older Arcade installations omit optional minimum/group requirements;
+		// the existing access policy interprets absence as no requirement.
+		if (!isset($settings[$key]))
+		{
+			foreach ($settings as $saved_key=>$value) { if (strcasecmp($saved_key,$key) === 0) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); } }
+			$settings[$key] = '0';
+		}
+		if (!preg_match('/^(?:0|[1-9][0-9]{0,9})$/D', (string)$settings[$key])
 			|| (float)$settings[$key] > 2147483647) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }
 	}
 	if (!isset($settings['games_default_rate']) || !phpbb_arcade_rating_id($settings['games_default_rate'], 255)) { phpbb_arcade_rating_fail('arcade_rating_unavailable'); }

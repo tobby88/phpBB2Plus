@@ -137,6 +137,7 @@ function rtg_change($kind)
         'bad-scale'=>"UPDATE fixture_ina_data SET config_value='256' WHERE config_name='games_default_rate'",
         'missing-setting'=>"DELETE FROM fixture_ina_data WHERE config_name='games_rate'",
         'case-setting'=>"UPDATE fixture_ina_data SET config_name='GAMES_RATE' WHERE config_name='games_rate'",
+        'case-optional'=>"UPDATE fixture_ina_data SET config_name='GAMES_GROUP_REQUIRED',config_value='100' WHERE config_name='games_group_required'",
         'bad-ttl'=>"UPDATE fixture_config SET config_value='0' WHERE config_name='session_length'",
         'invalid-ip'=>"UPDATE fixture_sessions SET session_ip='' WHERE session_user_id=7"
     );
@@ -174,7 +175,7 @@ function tp_arcade_ratings()
         $body=rtg_controller(array('sid'=>$userdata['session_id'],'rate'=>'3'),array('game_id'=>'1'),'POST');
         nt_check(strpos($body['message'],$GLOBALS['lang']['Stored'])!==false&&count(tp_rows('SELECT * FROM fixture_ina_rate'))===3&&count($arcade->calls)===1&&tp_released(),'Actual signed controller confirms one committed rating and optional cache invalidation');$cases++;
         $body=rtg_controller();nt_check(substr_count($body['html'],'disabled="disabled"')===2&&strpos($body['html'],$GLOBALS['lang']['already_rated'])!==false,'Already-rated controls are disabled after a fresh current read');$cases++;$views++;
-        foreach(array('logout','expired','future','case','foreign','inactive','blocked','banned','deleted','disabled','offline','arcade-ban','posts','rank','global-group','group','pending-group','missing-group','cat-group','parent-group','missing-parent','cycle','missing-category','unavailable','level','game-rank','missing-game','name-collision','bad-scale','missing-setting','case-setting','bad-ttl','invalid-ip')as$kind){
+        foreach(array('logout','expired','future','case','foreign','inactive','blocked','banned','deleted','disabled','offline','arcade-ban','posts','rank','global-group','group','pending-group','missing-group','cat-group','parent-group','missing-parent','cycle','missing-category','unavailable','level','game-rank','missing-game','name-collision','bad-scale','missing-setting','case-setting','case-optional','bad-ttl','invalid-ip')as$kind){
             rtg_prepare($locale);rtg_change($kind);$before=tp_snapshot();$read=rtg_call();$write=rtg_call(true);
             nt_check(!$read['ok']&&!$write['ok']&&tp_snapshot()===$before&&tp_released()&&!$arcade->calls,'Current read/write policy rejects changed state without mutation: '.$kind);
             if(in_array($kind,array('logout','blocked','missing-game','bad-scale'),true)){
@@ -182,7 +183,7 @@ function tp_arcade_ratings()
                 $body=rtg_controller(array('sid'=>$userdata['session_id'],'rate'=>'3'),array('game_id'=>'1'),'POST');nt_check($body['message']!==''&&strpos($body['message'],$GLOBALS['lang']['Stored'])===false&&tp_snapshot()===$before&&tp_released(),'Actual failed POST never claims a saved rating');
             }$cases++;
         }
-        foreach(array('moderator-offline','admin-offline','approved-group','admin-hidden','promotion','ban-disabled','current-ip','legacy-collation')as$kind){
+        foreach(array('moderator-offline','admin-offline','approved-group','admin-hidden','promotion','ban-disabled','current-ip','legacy-collation','missing-posts','missing-rank','missing-global-group')as$kind){
             rtg_prepare($locale);
             if($kind==='moderator-offline'||$kind==='admin-offline'){tn_sql('UPDATE fixture_users SET user_level='.($kind==='admin-offline'?ADMIN:MOD).' WHERE user_id=7');rtg_change('offline');}
             elseif($kind==='approved-group'){rtg_change('global-group');rtg_change('group');rtg_change('cat-group');tn_sql('INSERT INTO fixture_user_group(group_id,user_id,user_pending) VALUES(100,7,0)');}
@@ -190,6 +191,7 @@ function tp_arcade_ratings()
             elseif($kind==='promotion'){tn_sql('UPDATE fixture_users SET user_level='.(int)ADMIN.' WHERE user_id=7');rtg_change('level');$userdata['user_level']=USER;}
             elseif($kind==='ban-disabled'){rtg_change('arcade-ban');tn_sql("UPDATE fixture_ina_data SET config_value='0' WHERE config_name='games_mod_ban_users'");}
             elseif($kind==='current-ip'){$userdata['session_ip']='ffffffff';}
+            elseif(strpos($kind,'missing-')===0){$keys=array('missing-posts'=>'games_posts_required','missing-rank'=>'games_rank_required','missing-global-group'=>'games_group_required');tn_sql("DELETE FROM fixture_ina_data WHERE config_name='".$keys[$kind]."'");}
             else{tn_sql("UPDATE fixture_ina_rate SET rate_game_name='SYNTHETIC-RATING'");}
             $before=tp_snapshot();$read=rtg_call();nt_check($read['ok']&&(int)$read['value']['game']['total']===2&&tp_snapshot()===$before&&tp_released(),'Legitimate current policy and retained historical ratings: '.$kind);
             $write=rtg_call(true);$saved=tp_rows('SELECT rate_user_ip,rate_point FROM fixture_ina_rate WHERE rate_user_id=7');nt_check($write['ok']&&count($saved)===1&&$saved[0]['rate_user_ip']==='7f000001'&&(int)$saved[0]['rate_point']===3&&tp_released(),'Current legitimate writer and stored session IP: '.$kind);$cases++;
@@ -214,9 +216,13 @@ function tp_arcade_ratings()
         $before=tp_snapshot();$calls=$db->factory_calls;nt_check(!rtg_call(false,'3',1,$actor)['ok']&&!rtg_call(true,'3',1,$actor)['ok']&&$db->factory_calls===$calls&&tp_snapshot()===$before&&tp_released(),'Malformed current actor fails before both factories: '.$kind);$cases++;
     }
     foreach(array('config','sessions','users','banlist','ina_data','ina_games','ina_cat','ina_rate','groups','user_group')as$table){
-        rtg_prepare();tn_sql('ALTER TABLE fixture_'.$table.' ENGINE=MyISAM');
+        rtg_prepare();
+        // MySQL MyISAM cannot represent the canonical 255-character UTF-8
+        // unique key. Keep every column/value and use a legacy prefix solely
+        // while proving rejection of this nontransactional participant.
+        tn_sql('ALTER TABLE fixture_'.$table.($table==='ina_data'?' DROP INDEX config_name, ADD UNIQUE KEY config_name(config_name(191)),':'').' ENGINE=MyISAM');
         try{$before=tp_snapshot();nt_check(!rtg_call()['ok']&&!rtg_call(true)['ok']&&tp_snapshot()===$before&&tp_released(),'Both participants reject each nontransactional canonical table: '.$table);}
-        finally{tn_sql('ALTER TABLE fixture_'.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}$cases++;
+        finally{tn_sql('ALTER TABLE fixture_'.$table.($table==='ina_data'?' DROP INDEX config_name, ADD UNIQUE KEY config_name(config_name),':'').' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}$cases++;
     }
     foreach(array('column-collation','compact','view','missing')as$kind){
         rtg_prepare();if($kind==='column-collation'){tn_sql('ALTER TABLE fixture_ina_rate MODIFY rate_game_name varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL');}
