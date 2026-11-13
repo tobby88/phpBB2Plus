@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Count distinct uploader files and retain ACP attachment sorting
+
+- Preserve the filename direction and selected option in attachment administration,
+  recognize historical sort aliases and use deterministic ID ties for all six
+  attachment and three uploader sort modes.
+- Count each existing file once per uploader, regardless of how many post/PM
+  references share it. Compute counts and byte totals with the same joins, exclude
+  missing users/descriptions from both the rows and pagination, and sort aggregate
+  sizes in SQL without narrowing wide sums to a PHP integer.
+- Replace per-uploader queries and in-memory size sorting with two page queries.
+  Bound configured page sizes, clamp stale uploader offsets, number POST-only pages
+  correctly and escape stored uploader names. This read-only correction needs no
+  schema migration.
+
 ### Scope personal attachment lists before counting and pagination
 
 - Build the visible count, sorted page and parent labels from one independent

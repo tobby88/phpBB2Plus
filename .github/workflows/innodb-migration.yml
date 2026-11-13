@@ -1022,6 +1022,12 @@ jobs:
         env:
           PHPBB_UACP_LIST_NATIVE: '1'
           PHPBB_UACP_LIST_PASSWORD: fixture-only
+      - name: Check attachment administration sorts and uploader totals
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-attachment-admin-list-native.php
+        env:
+          PHPBB_ATTACH_ADMIN_LIST_NATIVE: '1'
+          PHPBB_ATTACH_ADMIN_LIST_PASSWORD: fixture-only
       - name: Check personal attachment deletion and deferred file cleanup
         if: matrix.part == 6
         run: php -d disable_functions=mail .github/scripts/check-uacp-delete-native.php
@@ -1596,3 +1602,9 @@ jobs:
           PHPBB_UACP_LIST_NATIVE: '1'
           PHPBB_UACP_LIST_PASSWORD: fixture-only
           PHPBB_UACP_LIST_MYSQL: '8.4'
+      - name: Check attachment administration totals and sorts on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-attachment-admin-list-native.php
+        env:
+          PHPBB_ATTACH_ADMIN_LIST_NATIVE: '1'
+          PHPBB_ATTACH_ADMIN_LIST_PASSWORD: fixture-only
+          PHPBB_ATTACH_ADMIN_LIST_MYSQL: '8.4'

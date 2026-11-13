@@ -53,6 +53,8 @@ if (!isset($lang['Test_settings_successful']))
 
 // Init Variables
 $start = max(0, min(1000000, get_var('start', 0)));
+$page_size = isset($board_config['topics_per_page']) ? $board_config['topics_per_page'] : 25;
+$page_size = (is_int($page_size) || is_string($page_size)) && preg_match('/^[1-9][0-9]{0,3}$/D', (string) $page_size) && (int) $page_size <= 1000 ? (int) $page_size : 25;
 $sort_order = get_var('order', 'ASC');
 $sort_order = ($sort_order == 'ASC') ? 'ASC' : 'DESC';
 $mode = get_var('mode', '');
@@ -107,61 +109,17 @@ $order_by = '';
 
 if ($view == 'username')
 {
-	switch ($mode)
-	{
-		case 'username':
-			$order_by = 'ORDER BY u.username ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-
-		case 'attachments':
-			$order_by = 'ORDER BY total_attachments ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-		
-		case 'filesize':
-			$order_by = 'ORDER BY total_size ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-		
-		default:
-			$mode = 'attachments';
-			$sort_order = 'DESC';
-			$order_by = 'ORDER BY total_attachments ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-	}
+	$sort_columns = array('username' => 'u.username', 'attachments' => 'total_attachments', 'filesize' => 'total_size');
+	if (!isset($sort_columns[$mode])) { $mode = 'attachments'; $sort_order = 'DESC'; }
+	$order_by = 'ORDER BY ' . $sort_columns[$mode] . ' ' . $sort_order . ', u.user_id ' . $sort_order . ' LIMIT ' . $start . ', ' . $page_size;
 }
 else if ($view == 'attachments')
 {
-	switch ($mode)
-	{
-		case 'filename':
-			$order_by = 'ORDER BY a.real_filename ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-
-		case 'comment':
-			$order_by = 'ORDER BY a.comment ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-		
-		case 'extension':
-			$order_by = 'ORDER BY a.extension ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-		
-		case 'filesize':
-			$order_by = 'ORDER BY a.filesize ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-		
-		case 'downloads':
-			$order_by = 'ORDER BY a.download_count ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-		
-		case 'post_time':
-			$order_by = 'ORDER BY a.filetime ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-		
-		default:
-			$mode = 'a.real_filename';
-			$sort_order = 'ASC';
-			$order_by = 'ORDER BY a.real_filename ' . $sort_order . ' LIMIT ' . $start . ', ' . $board_config['topics_per_page'];
-		break;
-	}
+	$sort_columns = array('real_filename' => 'real_filename', 'comment' => 'comment', 'extension' => 'extension', 'filesize' => 'filesize', 'downloads' => 'download_count', 'post_time' => 'filetime');
+	$sort_aliases = array('filename' => 'real_filename', 'a.real_filename' => 'real_filename', 'download_count' => 'downloads', 'filetime' => 'post_time');
+	if (isset($sort_aliases[$mode])) { $mode = $sort_aliases[$mode]; }
+	if (!isset($sort_columns[$mode])) { $mode = 'real_filename'; }
+	$order_by = 'ORDER BY a.' . $sort_columns[$mode] . ' ' . $sort_order . ', a.attach_id ' . $sort_order . ' LIMIT ' . $start . ', ' . $page_size;
 }
 
 // Set select fields
@@ -521,111 +479,45 @@ if ($view == 'username')
 	);
 
 
-	// Get all Users with their respective total attachments amount
-	$sql = "SELECT u.username, a.user_id_1 as user_id, count(*) as total_attachments
-		FROM " . ATTACHMENTS_TABLE . " a, " . USERS_TABLE . " u
-		WHERE a.user_id_1 = u.user_id
-		GROUP BY a.user_id_1, u.username"; 
-
-	if ($mode != 'filesize')
-	{
-		$sql .= ' ' . $order_by;
-	}
-	
+	// Count the same registered uploader/file pairs used by the page query.
+	// Multiple post/PM references to one file must not inflate its count or size.
+	$owner_files = '(SELECT DISTINCT user_id_1, attach_id FROM ' . ATTACHMENTS_TABLE . ') a';
+	$owner_from = $owner_files . ' JOIN ' . USERS_TABLE . ' u ON u.user_id = a.user_id_1 JOIN ' . ATTACHMENTS_DESC_TABLE . ' d ON d.attach_id = a.attach_id';
+	$sql = 'SELECT COUNT(DISTINCT u.user_id) AS total FROM ' . $owner_from;
 	if (!($result = $db->sql_query($sql)))
 	{
-		message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, 'Error getting total attachment users', '', __LINE__, __FILE__, $sql);
 	}
-
+	$count = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	$total_rows = (int) $count['total'];
+	if (!$total_rows) { $start = 0; }
+	else if ($start >= $total_rows) { $start = (int) (floor(($total_rows - 1) / $page_size) * $page_size); }
+	// Rebuild LIMIT after clamping a stale page offset.
+	$order_by = 'ORDER BY ' . $sort_columns[$mode] . ' ' . $sort_order . ', u.user_id ' . $sort_order . ' LIMIT ' . $start . ', ' . $page_size;
+	$sql = 'SELECT u.user_id, u.username, COUNT(*) AS total_attachments, SUM(d.filesize) AS total_size FROM ' . $owner_from . ' GROUP BY u.user_id, u.username ' . $order_by;
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Couldn\'t query attachment users', '', __LINE__, __FILE__, $sql);
+	}
 	$members = $db->sql_fetchrowset($result);
-	$num_members = $db->sql_numrows($result);
 	$db->sql_freeresult($result);
-
-	if ($num_members > 0)
+	for ($i = 0; $i < count($members); $i++)
 	{
-		for ($i = 0; $i < $num_members; $i++)
-		{
-			// Get all attach_id's the specific user posted
-			$sql = "SELECT attach_id 
-				FROM " . ATTACHMENTS_TABLE . "
-				WHERE user_id_1 = " . intval($members[$i]['user_id']) . " 
-				GROUP BY attach_id";
-		
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
-			}
-		
-			$attach_ids = $db->sql_fetchrowset($result);
-			$num_attach_ids = $db->sql_numrows($result);
-			$db->sql_freeresult($result);
-
-			$attach_id = array();
-
-			for ($j = 0; $j < $num_attach_ids; $j++)
-			{
-				$attach_id[] = intval($attach_ids[$j]['attach_id']);
-			}
-			
-			if (sizeof($attach_id))
-			{
-				// Now get the total filesize
-				$sql = "SELECT sum(filesize) as total_size
-					FROM " . ATTACHMENTS_DESC_TABLE . "
-					WHERE attach_id IN (" . implode(', ', $attach_id) . ")";
-
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
-				}
-
-				$row = $db->sql_fetchrow($result);
-				$db->sql_freeresult($result);
-
-				$members[$i]['total_size'] = (int) $row['total_size'];
-			}
-		}
-		
-		if ($mode == 'filesize')
-		{
-			$members = sort_multi_array($members, 'total_size', $sort_order, FALSE);
-			$members = limit_array($members, $start, $board_config['topics_per_page']);
-		}
-		
-		for ($i = 0; $i < count($members); $i++)
-		{
-			$username = $members[$i]['username'];
-			$total_attachments = $members[$i]['total_attachments'];
-			$total_size = $members[$i]['total_size'];
-
-			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-			$row_color = preg_match('/^[A-Fa-f0-9]{6}$/D', (string) $row_color) ? $row_color : 'FFFFFF';
-			$row_class = preg_match('/^[A-Za-z0-9_-]+$/D', (string) $row_class) ? $row_class : 'row1';
-
-			$template->assign_block_vars('memberrow', array(
-				'ROW_NUMBER'		=> $i + ( $HTTP_GET_VARS['start'] + 1 ),
-				'ROW_COLOR'			=> '#' . $row_color,
-				'ROW_CLASS'			=> $row_class,
-				'USERNAME'			=> $username,
-				'TOTAL_ATTACHMENTS'	=> $total_attachments,
-				'TOTAL_SIZE'		=> round(($total_size / MEGABYTE), 2),
-				'U_VIEW_MEMBER'		=> append_sid('admin_attach_cp.' . $phpEx . '?view=attachments&amp;uid=' . $members[$i]['user_id']))
-			);
-		}
+		$row_color = !($i % 2) ? $theme['td_color1'] : $theme['td_color2'];
+		$row_class = !($i % 2) ? $theme['td_class1'] : $theme['td_class2'];
+		$row_color = preg_match('/^[A-Fa-f0-9]{6}$/D', (string) $row_color) ? $row_color : 'FFFFFF';
+		$row_class = preg_match('/^[A-Za-z0-9_-]+$/D', (string) $row_class) ? $row_class : 'row1';
+		$template->assign_block_vars('memberrow', array(
+			'ROW_NUMBER' => $i + $start + 1,
+			'ROW_COLOR' => '#' . $row_color,
+			'ROW_CLASS' => $row_class,
+			'USERNAME' => phpbb_stored_text($members[$i]['username']),
+			'TOTAL_ATTACHMENTS' => $members[$i]['total_attachments'],
+			'TOTAL_SIZE' => round($members[$i]['total_size'] / MEGABYTE, 2),
+			'U_VIEW_MEMBER' => append_sid('admin_attach_cp.' . $phpEx . '?view=attachments&amp;uid=' . (int) $members[$i]['user_id']))
+		);
 	}
-
-	$sql = "SELECT user_id_1
-		FROM " . ATTACHMENTS_TABLE . "
-		GROUP BY user_id_1";
-
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Error getting total users', '', __LINE__, __FILE__, $sql);
-	}
-
-	$total_rows = $db->sql_numrows($result);
-	$db->sql_freeresult($result);
 }
 
 // Attachments
@@ -860,13 +752,13 @@ if ($view == 'attachments')
 }
 
 // Generate Pagination
-if ($do_pagination && $total_rows > $board_config['topics_per_page'])
+if ($do_pagination && $total_rows > $page_size)
 {
-	$pagination = generate_pagination('admin_attach_cp.' . $phpEx . '?view=' . $view . '&amp;mode=' . $mode . '&amp;order=' . $sort_order . '&amp;uid=' . $uid, $total_rows, $board_config['topics_per_page'], $start).'&nbsp;';
+	$pagination = generate_pagination('admin_attach_cp.' . $phpEx . '?view=' . $view . '&amp;mode=' . $mode . '&amp;order=' . $sort_order . '&amp;uid=' . $uid, $total_rows, $page_size, $start).'&nbsp;';
 
 	$template->assign_vars(array(
 		'PAGINATION'	=> $pagination,
-		'PAGE_NUMBER'	=> sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $total_rows / $board_config['topics_per_page'] )), 
+		'PAGE_NUMBER'	=> sprintf($lang['Page_of'], ( floor( $start / $page_size ) + 1 ), ceil( $total_rows / $page_size )),
 
 		'L_GOTO_PAGE'	=> $lang['Goto_page'])
 	);
