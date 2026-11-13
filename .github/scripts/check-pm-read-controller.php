@@ -19,6 +19,7 @@ function append_sid($url, $unused = false) { return $url; }
 function redirect($url) { throw new PmReadControllerRedirect($url); }
 class PmReadDisplayForum extends PmRepairForum
 {
+	function sql_dedicated_connection() { return new PmReadControllerConnection($GLOBALS['pm_repair_server']); }
     function sql_query($sql)
     {
         pm_repair_check(strpos($sql, 'SELECT ') === 0, 'Controller writes only through owning worker');
@@ -26,6 +27,30 @@ class PmReadDisplayForum extends PmRepairForum
         return new PmRepairRows($pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
     }
     function sql_fetchrow($result) { return array_shift($result->rows); }
+}
+// Retain the original named-lock writer protocol; independent SELECTs have
+// their own read-only path. Canonical native view tests cover actual factories.
+class PmReadControllerConnection extends PmRepairConnection
+{
+	var $read_only = false;
+	function sql_query($sql)
+	{
+		if ($this->closed || !$this->db_connect_id) { return false; }
+		if ($sql === 'SELECT @@SESSION.autocommit AS pm_autocommit') {
+			return new PmRepairRows($GLOBALS['native'] ? $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) : array(array('pm_autocommit'=>1)));
+		}
+		if ($sql === 'SET TRANSACTION READ ONLY') {
+			if ($GLOBALS['native'] && $this->pdo->exec($sql) === false) { return false; }
+			$this->read_only = true; return true;
+		}
+		if (!$this->read_only) { return parent::sql_query($sql); }
+		pm_repair_check(strpos($sql, 'SELECT ') === 0, 'Display reader must never mutate fixture data');
+		$s = $this->server; $s->queries[] = $sql;
+		if (is_callable($s->hook)) { call_user_func($s->hook, $sql, $this); }
+		if ($this->closed || ($s->failure !== '' && strpos($sql, $s->failure) === 0)) { return false; }
+		try { return new PmRepairRows($this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC)); }
+		catch (PDOException $error) { return false; }
+	}
 }
 function pm_read_controller_fixture($engine)
 {
@@ -65,11 +90,11 @@ function pm_compose_source($kind)
     global $controller, $userdata, $db;
     $marker = $kind === 'edit' ? 'SELECT pm.*, pmt.privmsgs_bbcode_uid' : 'SELECT pm.privmsgs_subject, pm.privmsgs_date, pmt.privmsgs_bbcode_uid';
     $start = strpos($controller, '$sql = "' . $marker);
-    $end = strpos($controller, "\n\t\t\tif ( !(\$result", $start);
+    $end = strpos($controller, "\n\t\t\tif ( !(\$privmsg", $start);
     pm_repair_check($start !== false && $end > $start, 'Actual compose source query found');
     $privmsg_id = 12;
     eval(substr($controller, $start, $end - $start));
-    return $db->sql_fetchrow($db->sql_query($sql));
+    return $pm_rows ? $pm_rows[0] : false;
 }
 set_error_handler(function($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try

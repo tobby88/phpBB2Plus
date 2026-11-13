@@ -140,6 +140,42 @@ function phpbb_pm_compose_attachment_source($database, $mode, $message_id)
 	finally { if ($reader !== null) { $reader->release(); } }
 }
 
+// Internal controller SELECTs retain their mailbox/parent scope. The account,
+// exact session and projected data are read in one fresh read-only statement.
+// A left-joined marker distinguishes an empty mailbox from revoked authority.
+function phpbb_pm_display_rows($database, $sql, $compose = false, $ordered_mailbox = false)
+{
+	global $userdata;
+	$actor = isset($userdata['user_id']) ? attach_delete_id_array(array($userdata['user_id'])) : false;
+	if (!$actor || empty($userdata['session_logged_in']) || !isset($userdata['session_id']) || !is_string($userdata['session_id'])
+		|| $userdata['session_id'] === '' || strlen($userdata['session_id']) > 32) { phpbb_acl_error('Not_Authorised'); }
+	if (!is_string($sql) || strpos($sql, 'SELECT ') !== 0) { phpbb_acl_error('PM_cleanup_failed'); }
+	$sid = $userdata['session_id']; $reader = null;
+	try {
+		$reader = new PhpbbPmAttachmentReader($database);
+		$rows = $reader->rows('SELECT pm_view.* FROM ' . USERS_TABLE . ' pm_viewer LEFT JOIN'
+			. ' (SELECT 1 AS pm_view_present,pm_source.* FROM (' . $sql . ') pm_source) pm_view ON 1=1'
+			. ' WHERE pm_viewer.user_id=' . $actor[0] . ' AND pm_viewer.user_active<>0 AND pm_viewer.user_blocktime<' . time()
+			. ($compose ? ' AND pm_viewer.user_allow_pm<>0' : '')
+			. ' AND ' . phpbb_pm_current_session_guard($reader->connection, $actor[0], $sid)
+			. ($ordered_mailbox ? ' ORDER BY pm_view.privmsgs_date DESC,pm_view.privmsgs_id DESC' : ''));
+		if (!$rows) { phpbb_acl_error('Not_Authorised'); }
+		if ($rows[0]['pm_view_present'] === null) { return array(); }
+		foreach ($rows as &$row) { unset($row['pm_view_present']); } unset($row);
+		return $rows;
+	} catch (PhpbbAclException $error) { throw $error; }
+	catch (Exception $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	catch (Error $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	finally { if ($reader !== null) { $reader->release(); } }
+}
+
+function phpbb_pm_display($sql, $compose = false, $ordered_mailbox = false)
+{
+	global $db;
+	try { return phpbb_pm_display_rows($db, $sql, $compose, $ordered_mailbox); }
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+}
+
 function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
 {
 	global $db, $lang;

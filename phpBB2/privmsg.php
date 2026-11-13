@@ -330,15 +330,12 @@ else if ( $mode == 'read' )
 			$pm_sql_user 
 			AND u.user_id = pm.privmsgs_from_userid 
 			AND u2.user_id = pm.privmsgs_to_userid";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not query private message post information', '', __LINE__, __FILE__, $sql);
-	}
+	$pm_rows = phpbb_pm_display($sql);
 
 	//
 	// Did the query return any data?
 	//
-	if ( !($privmsg = $db->sql_fetchrow($result)) )
+	if ( !($privmsg = ($pm_rows ? array_shift($pm_rows) : false)) )
 	{
 		redirect(append_sid("privmsg.$phpEx?folder=$folder", true));
 	}
@@ -788,9 +785,10 @@ else if ( $submit || $refresh || $mode != '' )
 		$sql = "SELECT MAX(privmsgs_date) AS last_post_time
 			FROM " . PRIVMSGS_TABLE . "
 			WHERE privmsgs_from_userid = " . $userdata['user_id'];
-		if ( $result = $db->sql_query($sql) )
+		$pm_rows = phpbb_pm_display($sql, true);
+		if ( $pm_rows )
 		{
-			$db_row = $db->sql_fetchrow($result);
+			$db_row = $pm_rows[0];
 
 			$last_post_time = $db_row['last_post_time'];
 			$current_time = time();
@@ -811,19 +809,15 @@ else if ( $submit || $refresh || $mode != '' )
 			FROM ' . PRIVMSGS_TABLE . '
 			WHERE privmsgs_id = ' . (int) $privmsg_id . '
 				AND privmsgs_from_userid = ' . (int) $userdata['user_id'] . '
+				AND privmsgs_write_payload IS NULL
 				AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ', ' . PRIVMSGS_UNREAD_MAIL . ')';
 
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, "Could not obtain message details", "", __LINE__, __FILE__, $sql);
-		}
+		$pm_rows = phpbb_pm_display($sql, true);
 
-		if (!($row = $db->sql_fetchrow($result)))
+		if (!($row = ($pm_rows ? $pm_rows[0] : false)))
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_such_post']);
 		}
-		$db->sql_freeresult($result);
-
 		unset($row);
 	}
 
@@ -958,13 +952,13 @@ else if ( $submit || $refresh || $mode != '' )
 			$sql = "SELECT u.user_id, u.user_sig 
 				FROM " . PRIVMSGS_TABLE . " pm, " . USERS_TABLE . " u 
 				WHERE pm.privmsgs_id = $privmsg_id 
-					AND u.user_id = pm.privmsgs_from_userid";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Could not obtain post and post text", "", __LINE__, __FILE__, $sql);
-			}
+					AND u.user_id = pm.privmsgs_from_userid
+					AND pm.privmsgs_from_userid = " . (int)$userdata['user_id'] . "
+					AND pm.privmsgs_write_payload IS NULL
+					AND pm.privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . "," . PRIVMSGS_UNREAD_MAIL . ")";
+			$pm_rows = phpbb_pm_display($sql, true);
 
-			if ( $postrow = $db->sql_fetchrow($result) )
+			if ( $postrow = ($pm_rows ? $pm_rows[0] : false) )
 			{
 				if ( $userdata['user_id'] != $postrow['user_id'] )
 				{
@@ -990,13 +984,9 @@ else if ( $submit || $refresh || $mode != '' )
 				FROM " . USERS_TABLE . "
 				WHERE user_id = $user_id
 					AND user_id <> " . ANONYMOUS;
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				$error = TRUE;
-				$error_msg = $lang['No_such_user'];
-			}
+			$pm_rows = phpbb_pm_display($sql, true);
 
-			if ( $row = $db->sql_fetchrow($result) )
+			if ( $row = ($pm_rows ? $pm_rows[0] : false) )
 			{
 				$to_username = $row['username'];
 				if ( $row['user_absence'] == TRUE )
@@ -1031,16 +1021,15 @@ else if ( $submit || $refresh || $mode != '' )
 					AND ( pm.privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
 						OR pm.privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " ) 
 					AND u.user_id = pm.privmsgs_to_userid";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain private message for editing', '', __LINE__, __FILE__, $sql);
-			}
+			$pm_rows = phpbb_pm_display($sql, true);
 
-			if ( !($privmsg = $db->sql_fetchrow($result)) )
+			if ( !($privmsg = ($pm_rows ? array_shift($pm_rows) : false)) )
 			{
 				redirect(append_sid("privmsg.$phpEx?folder=$folder", true));
 			}
 
+			// Bind the edit token to the same current body shown in this form.
+			$pm_write_revision = phpbb_pm_revision((string)$privmsg['privmsgs_write_token']);
 			$privmsg_subject = $privmsg['privmsgs_subject'];
 			$privmsg_message = $privmsg['privmsgs_text'];
 			$privmsg_bbcode_uid = $privmsg['privmsgs_bbcode_uid'];
@@ -1071,12 +1060,9 @@ else if ( $submit || $refresh || $mode != '' )
 					AND pmt.privmsgs_text_id = pm.privmsgs_id
 					AND pm.privmsgs_to_userid = " . $userdata['user_id'] . "
 					AND u.user_id = pm.privmsgs_from_userid";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain private message for editing', '', __LINE__, __FILE__, $sql);
-			}
+			$pm_rows = phpbb_pm_display($sql, true);
 
-			if ( !($privmsg = $db->sql_fetchrow($result)) )
+			if ( !($privmsg = ($pm_rows ? array_shift($pm_rows) : false)) )
 			{
 				redirect(append_sid("privmsg.$phpEx?folder=$folder", true));
 			}
@@ -1611,26 +1597,17 @@ else
 	$msg_days = 0;
 }
 
-$sql .= $limit_msg_time . " ORDER BY pm.privmsgs_date DESC LIMIT $start, " . $board_config['topics_per_page'];
+$sql .= $limit_msg_time . " ORDER BY pm.privmsgs_date DESC,pm.privmsgs_id DESC LIMIT $start, " . $board_config['topics_per_page'];
 $sql_all_tot = $sql_tot;
 $sql_tot .= $limit_msg_time_total;
 
 //
 // Get messages
 //
-if ( !($result = $db->sql_query($sql_tot)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query private message information', '', __LINE__, __FILE__, $sql_tot);
-}
-
-$pm_total = ( $row = $db->sql_fetchrow($result) ) ? $row['total'] : 0;
-
-if ( !($result = $db->sql_query($sql_all_tot)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query private message information', '', __LINE__, __FILE__, $sql_tot);
-}
-
-$pm_all_total = ( $row = $db->sql_fetchrow($result) ) ? $row['total'] : 0;
+$pm_counts = phpbb_pm_display($sql_tot);
+$pm_total = $pm_counts ? $pm_counts[0]['total'] : 0;
+$pm_counts = phpbb_pm_display($sql_all_tot);
+$pm_all_total = $pm_counts ? $pm_counts[0]['total'] : 0;
 
 //
 // Build select box
@@ -1748,12 +1725,8 @@ $template->assign_vars(array(
 //
 // Okay, let's build the correct folder
 //
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query private messages', '', __LINE__, __FILE__, $sql);
-}
-
-if ( $row = $db->sql_fetchrow($result) )
+$pm_rows = phpbb_pm_display($sql, false, true);
+if ( $row = ($pm_rows ? array_shift($pm_rows) : false) )
 {
 	$i = 0;
 	do
@@ -1810,7 +1783,7 @@ if ( $row = $db->sql_fetchrow($result) )
 			'U_FROM_USER_PROFILE' => $u_from_user_profile)
 		);
 	}
-	while( $row = $db->sql_fetchrow($result) );
+	while( $row = ($pm_rows ? array_shift($pm_rows) : false) );
 
 	$template->assign_vars(array(
 		'PAGINATION' => generate_pagination("privmsg.$phpEx?folder=$folder", $pm_total, $board_config['topics_per_page'], $start),

@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current private-message bodies and mailbox views
+
+- Read message bodies, edit/reply/quote sources, preview/recipient data, flood
+  timestamps and mailbox counts/pages through independent read-only connections.
+  Check the current exact session and active, unblocked account in the same
+  statement; compose sources also require current sending permission.
+- Bind the initial edit form's revision to the body actually displayed, so an
+  older page transaction cannot overwrite a newer edit with stale content.
+- Retain all four mailbox scopes, unpublished-message exclusion and inbox
+  access when sending is disabled. Use stable date/ID ordering for tied pages;
+  distinguish empty results from denied access without touching caller work.
+- Cover actual controller queries, real edits/read transitions, stale snapshots,
+  read-only factory failures and existing recovery cases on native databases.
+
 ### Current private-message form data
 
 - Read the edit revision together with its current session, account and outbox

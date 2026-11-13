@@ -687,6 +687,18 @@ jobs:
         env:
           PHPBB_PM_FORM_NATIVE: '1'
           PHPBB_PM_FORM_PASSWORD: fixture-only
+      - name: Check actual current PM bodies and compose sources
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-pm-view-native.php body
+        env:
+          PHPBB_PM_VIEW_NATIVE: '1'
+          PHPBB_PM_VIEW_PASSWORD: fixture-only
+      - name: Check actual current PM mailbox counts and pages
+        if: matrix.part == 4
+        run: php -d disable_functions=mail .github/scripts/check-pm-view-native.php mailbox
+        env:
+          PHPBB_PM_VIEW_NATIVE: '1'
+          PHPBB_PM_VIEW_PASSWORD: fixture-only
       - name: Check current account blocks at PM download entry
         if: matrix.part == 6
         run: php -d disable_functions=mail .github/scripts/check-pm-entry-native.php download
@@ -1647,6 +1659,14 @@ jobs:
           PHPBB_PM_FORM_NATIVE: '1'
           PHPBB_PM_FORM_PASSWORD: fixture-only
           PHPBB_PM_FORM_MYSQL: '8.4'
+      - name: Check current PM bodies and mailboxes on MySQL
+        run: |
+          php -d disable_functions=mail .github/scripts/check-pm-view-native.php body
+          php -d disable_functions=mail .github/scripts/check-pm-view-native.php mailbox
+        env:
+          PHPBB_PM_VIEW_NATIVE: '1'
+          PHPBB_PM_VIEW_PASSWORD: fixture-only
+          PHPBB_PM_VIEW_MYSQL: '8.4'
       - name: Check actual MySQL attachment authorization and reader lifecycle
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
         env:
