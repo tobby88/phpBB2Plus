@@ -45,7 +45,41 @@ class PhpbbArcadeCommentReader extends PhpbbForumReadSnapshot
 {
 	function __construct($database) { parent::__construct($database, phpbb_arcade_comment_tables()); }
 }
-function phpbb_arcade_comment_view($database, $actor, $game_id, $comment_id = 0)
+function phpbb_arcade_comment_page_options($options)
+{
+	if (!is_array($options)) { $options=array(); }
+	$sort=isset($options['sort']) && $options['sort']==='DESC' ? 'DESC' : 'ASC';
+	$size=isset($options['size']) ? $options['size'] : 20;
+	$size=(is_int($size)||is_string($size)) && preg_match('/^[0-9]{1,10}$/D',(string)$size) ? max(1,min(1000,(float)$size)) : 1;
+	$start=isset($options['start']) ? $options['start'] : 0;
+	$start=(is_int($start)||is_string($start)) && preg_match('/^[0-9]{1,10}$/D',(string)$start) ? min(1000000,(float)$start) : 0;
+	return array('sort'=>$sort,'size'=>(int)$size,'start'=>(int)$start);
+}
+function phpbb_arcade_comment_page($reader, $context, $options)
+{
+	$options=phpbb_arcade_comment_page_options($options);$size=$options['size'];$sort=$options['sort'];
+	$total=$context['game']['comments_count'];$name=$reader->sql_escape($context['game']['game_name']);
+	$position=$options['start'];
+	if ($context['comment'])
+	{
+		$before=$reader->rows('SELECT COUNT(*) position FROM '.iNA_GAMES_COMMENT." WHERE comment_game_name='$name' AND comment_id "
+			.($sort==='ASC'?'<':'>').' '.(int)$context['comment']['comment_id']);
+		if(count($before)!==1){phpbb_arcade_rating_fail('arcade_comment_unavailable');}$position=(int)$before[0]['position'];
+	}
+	$last=$total>0?(int)(floor(($total-1)/$size)*$size):0;
+	$start=min($last,(int)(floor($position/$size)*$size));
+	// Select one deterministic normal leaderboard result, preserving the
+	// game's score direction and earliest-date tie rule. Both scalar columns
+	// use the same complete ordering, so score and duration stay paired even
+	// when historical duplicates have no physical primary key.
+	$score_order=!empty($context['game']['reverse_list'])?'ASC':'DESC';
+	$score_scope=' FROM '.iNA_SCORES." s WHERE s.game_name=c.comment_game_name AND s.player_id=u.user_id ORDER BY s.score $score_order,s.date ASC,s.time_taken ASC LIMIT 1";
+	$rows=$reader->rows('SELECT c.*,u.user_id,u.username,e.username edit_username,(SELECT s.score'.$score_scope.') score,(SELECT s.time_taken'.$score_scope.') time_taken'
+		.' FROM '.iNA_GAMES_COMMENT.' c LEFT JOIN '.USERS_TABLE.' u ON u.user_id=c.comment_user_id LEFT JOIN '.USERS_TABLE.' e ON e.user_id=c.comment_edit_user_id'
+		." WHERE c.comment_game_name='$name' ORDER BY c.comment_id $sort LIMIT $start,$size");
+	return array('rows'=>$rows,'start'=>$start,'size'=>$size,'sort'=>$sort);
+}
+function phpbb_arcade_comment_view($database, $actor, $game_id, $comment_id = 0, $options = array())
 {
 	if (!PhpbbForumReadSnapshot::valid_actor($actor)) { phpbb_arcade_rating_fail('Session_invalid'); }
 	if (($game_id && !phpbb_arcade_rating_id($game_id)) || ($comment_id && !phpbb_arcade_comment_id($comment_id)) || (!$game_id && !$comment_id)) { phpbb_arcade_rating_fail('no_activity'); }
@@ -60,6 +94,7 @@ function phpbb_arcade_comment_view($database, $actor, $game_id, $comment_id = 0)
 			. " u ON u.user_id=c.comment_user_id WHERE c.comment_game_name='$name' ORDER BY c.comment_id LIMIT 1");
 		$context['first'] = $first ? $first[0] : array('user_id'=>0,'username'=>'');
 		$context['can_post'] = phpbb_arcade_comment_recent_score($reader, $context, false);
+		$context['page'] = phpbb_arcade_comment_page($reader, $context, $options);
 		return $context;
 	}
 	catch (PhpbbArcadeRatingFailure $error) { throw $error; }

@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Coherent Arcade comment pages
+
+- Keep comment count, selected-comment position, author/editor labels, scores
+  and page rows in the same independent read-only snapshot. Remove the
+  score-history join that displayed one comment multiple times.
+- Select a paired score/duration using the normal leaderboard's score
+  direction and earliest-date tie rule, with a deterministic duration tie.
+  Preserve historical rows and the established normal-score-only display.
+- Calculate selected anchors according to ASC/DESC order, round offsets to
+  page boundaries and clamp stale offsets to the last available page. Bound
+  page sizes, normalize malformed options and handle empty sort values.
+- Remove the per-comment editor query and unused raw listing/offset code.
+  Canonical native tests cover complete pages and actual EN/DE templates,
+  duplicate scores, current names, peer changes, isolated caller work and
+  read failures under PHP 5.6/7.4/8.5 and MySQL. No migration is required.
+
 ### Current and atomic Arcade comments
 
 - Fix individual comment lookup using the category's actual moderator column

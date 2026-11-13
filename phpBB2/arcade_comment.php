@@ -65,7 +65,10 @@ $comment_value = isset($HTTP_POST_VARS['comment_id']) ? $HTTP_POST_VARS['comment
 if (($game_value !== 0 && $game_value !== '0' && !phpbb_arcade_rating_id($game_value)) || ($comment_value !== 0 && $comment_value !== '0' && !phpbb_arcade_comment_id($comment_value))) { message_die(GENERAL_ERROR, $lang['no_activity']); }
 $game_id = (int)$game_value;
 if ($comment_value) { $comment_id = (int)$comment_value; }
-try { $comment_context = phpbb_arcade_comment_view($db, $userdata, $game_id, isset($comment_id) ? $comment_id : 0); }
+$page_options = array('sort'=>phpbb_request_scalar($HTTP_GET_VARS, 'sort_order', phpbb_request_scalar($HTTP_POST_VARS, 'sort_order', 'ASC')),
+    'start'=>phpbb_request_scalar($HTTP_GET_VARS, 'start', phpbb_request_scalar($HTTP_POST_VARS, 'start', '0')),
+    'size'=>isset($board_config['posts_per_page']) ? $board_config['posts_per_page'] : 20);
+try { $comment_context = phpbb_arcade_comment_view($db, $userdata, $game_id, isset($comment_id) ? $comment_id : 0, $page_options); }
 catch (Exception $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error)); }
 catch (Error $error) { message_die(GENERAL_MESSAGE, phpbb_arcade_comment_message($error)); }
 $userdata = array_merge($userdata, $comment_context['user']);
@@ -73,8 +76,8 @@ $thisgame = $comment_context['game']; $game_id = (int)$thisgame['game_id'];
 $selected_comment = $comment_context['comment'];
 if ($selected_comment) { $selected_comment['mod_id'] = $thisgame['mod_id']; }
 $cat_id = (int)$thisgame['cat_id']; $total_comments = (int)$thisgame['comments_count'];
-$comments_per_page = max(1, (int)$board_config['posts_per_page']);
-$game_name = $thisgame['game_name']; $game_name_sql = $db->sql_escape($game_name);
+$comments_per_page = $comment_context['page']['size'];
+$start = $comment_context['page']['start']; $sort_order = $comment_context['page']['sort'];
 $first_commenter = $comment_context['first'];
 $arcade->arcade_config['games_comment_size'] = $comment_context['comment_limit'];
 //
@@ -85,21 +88,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 //
 //  Get the Comment Information
 //
-	if( !isset($comment_id) )
-	{
-		if (phpbb_request_scalar($HTTP_GET_VARS, 'start') !== '')
-		{
-			$start = max(0, min(1000000, intval(phpbb_request_scalar($HTTP_GET_VARS, 'start'))));
-		}
-		else if (phpbb_request_scalar($HTTP_POST_VARS, 'start') !== '')
-		{
-			$start = max(0, min(1000000, intval(phpbb_request_scalar($HTTP_POST_VARS, 'start'))));		}
-		else
-		{
-			$start = 0;
-		}
-	}
-	else if ($mode == 'delete')
+	if (isset($comment_id) && $mode == 'delete')
 	{
 //
 //  Check to see if the comment needs Deleting
@@ -180,7 +169,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
       message_die(GENERAL_MESSAGE, $message);
     }
   }
-	else if ($mode == 'edit')
+	else if (isset($comment_id) && $mode == 'edit')
 	{
     $thiscomment = array_merge($thisgame, $selected_comment);
     $game_id = (int)$thisgame['game_id']; $cat_id = (int)$thisgame['cat_id'];
@@ -243,67 +232,9 @@ if( !isset($HTTP_POST_VARS['comment']) )
 	include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 	exit;
   }
-	else
-  {
-		// We must do a query to co-ordinate this comment
-		$sql = "SELECT COUNT(comment_id) AS count
-				FROM ". iNA_GAMES_COMMENT ."
-				WHERE comment_game_name = '". $game_name_sql ."'
-					AND comment_id < " . (int) $comment_id;
-
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['no_comment_data'], '', __LINE__, __FILE__, $sql);
-		}
-
-		$row = $db->sql_fetchrow($result);
-
-		if( !empty($row) )
-		{
-			$start = floor( $row['count'] / $comments_per_page ) * $comments_per_page;
-		}
-		else
-		{
-			$start = 0;
-		}
-	}
-
-	$requested_sort_order = phpbb_request_scalar($HTTP_GET_VARS, 'sort_order', phpbb_request_scalar($HTTP_POST_VARS, 'sort_order', 'ASC'));
-	if ($requested_sort_order !== '')
-	{
-		switch ($requested_sort_order)
-		{
-			case 'ASC':
-				$sort_order = 'ASC';
-				break;
-			default:
-				$sort_order = 'DESC';
-		}
-	}
-
 	if ($total_comments > 0)
 	{
-//		$limit_sql = ($start == 0) ? $comments_per_page : $start .','. $comments_per_page;
-
-		$sql = "SELECT c.*, u.user_id, u.username, s.score, s.time_taken
-				FROM ". iNA_GAMES_COMMENT ." AS c
-					LEFT JOIN ". USERS_TABLE ." AS u ON c.comment_user_id = u.user_id
-					LEFT JOIN ". iNA_SCORES ." AS s ON c.comment_game_name = s.game_name AND s.player_id = u.user_id
-				WHERE c.comment_game_name = '".$game_name_sql."'
-				ORDER BY c.comment_id $sort_order
-				LIMIT " . (int) $start . ", " . (int) $comments_per_page; // $limit_sql";
-
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['no_comment_data'], '', __LINE__, __FILE__, $sql);
-		}
-
-		$commentrow = array();
-
-		while( $row = $db->sql_fetchrow($result) )
-		{
-			$commentrow[] = $row;
-		}
+		$commentrow = $comment_context['page']['rows'];
 
 		for ($i = 0; $i < count($commentrow); $i++)
 		{
@@ -311,22 +242,10 @@ if( !isset($HTTP_POST_VARS['comment']) )
 
 			if ($commentrow[$i]['comment_edit_count'] > 0)
 			{
-				$sql = "SELECT c.comment_id, c.comment_edit_user_id, u.user_id, u.username
-						FROM ". iNA_GAMES_COMMENT ." AS c
-						LEFT JOIN ". USERS_TABLE ." AS u ON c.comment_edit_user_id = u.user_id
-						WHERE c.comment_id = ". (int) $commentrow[$i]['comment_id'] ."
-						LIMIT 0,1";
-
-				if( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, $lang['no_comment_edit_data'], '', __LINE__, __FILE__, $sql);
-				}
-
-				$lastedit_row = $db->sql_fetchrow($result);
 
 				$edit_info = ($commentrow[$i]['comment_edit_count'] == 1) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
 
-				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, phpbb_author_name($lastedit_row['comment_edit_user_id'],$lastedit_row['username']!==null?$lastedit_row['username']:$lang['Guest']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
+				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, phpbb_author_name($commentrow[$i]['comment_edit_user_id'],$commentrow[$i]['edit_username']!==null?$commentrow[$i]['edit_username']:$lang['Guest']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
 			}
 			else
 			{

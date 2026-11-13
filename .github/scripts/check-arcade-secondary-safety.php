@@ -29,7 +29,7 @@ $modcp_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/arc
 
 arcade_secondary_assert(strpos($rate, "!is_string(\$HTTP_POST_VARS['sid'])") !== false && strpos($rate, 'phpbb_arcade_rate_game($db, $userdata, $game_id,') !== false, 'ratings must reject nested/non-string tokens and use the owned current-actor writer');
 arcade_secondary_assert(substr_count($comment, "include(\$phpbb_root_path . 'includes/page_tail.'.\$phpEx);\n\texit;") >= 2 && strpos($comment, "phpbb_arcade_comment_change(\$db, \$userdata,") !== false, 'comment confirmation/edit pages must terminate and writes must use current owned authority');
-arcade_secondary_assert(strpos($comment, 'min(1000000, intval(phpbb_request_scalar') !== false, 'comment offsets must be scalar and bounded');
+arcade_secondary_assert(strpos($comment, "'start'=>phpbb_request_scalar(") !== false && strpos($comment, "\$comment_context['page']['start']") !== false, 'comment offsets must use the scalar request and coherent bounded page reader');
 arcade_secondary_assert(strpos($tournament, 'phpbb_arcade_tournament_join($db, $join_tour)') !== false &&
     strpos($tournament_join, 'count($ids)>100') !== false, 'tournament joins must use the bounded owned writer');
 arcade_secondary_assert(strpos($tournament, "is_scalar(\$HTTP_POST_VARS['tour_name'])") !== false, 'tournament text fields must be scalar');
