@@ -33,13 +33,30 @@ class PmAttachmentRouteProbe extends attach_pm
 }
 class PmAttachmentReadForum extends MutationForum
 {
-	function sql_query($sql)
-	{
-		mutation_check(preg_match('/^SELECT (user_id FROM fixture_users|privmsgs_write_payload FROM fixture_messages) WHERE /D',$sql)===1,'Only composer preflight SELECTs use forum connection');
-		return $GLOBALS['mutation_server']->pdo->query($sql);
-	}
+	function sql_dedicated_connection() { return new PmAttachmentEntryConnection('fixture','fixture','','fixture',false); }
+	function sql_query($sql) { throw new RuntimeException('Compose preflight must not use the caller connection'); }
 	function sql_fetchrowset($result){return $result->fetchAll(PDO::FETCH_ASSOC);}
 	function sql_freeresult($result){$result->closeCursor();}
+}
+// This legacy route model retains its original named-lock writer behavior.
+// Standalone compose preflight now uses a separate read-only capability, just
+// as the existing download model does. Native factories/snapshots/parser writes
+// are exercised independently by check-pm-entry-native.php.
+class PmAttachmentEntryConnection extends sql_db
+{
+	var $read_only = false;
+	function sql_query($sql)
+	{
+		if ($this->closed || !$this->db_connect_id) { return false; }
+		if ($sql === 'SELECT @@SESSION.autocommit AS pm_autocommit') { return $this->result(array(array('pm_autocommit'=>1))); }
+		if ($sql === 'SET TRANSACTION READ ONLY') { $this->read_only = true; return true; }
+		if (!$this->read_only) { return parent::sql_query($sql); }
+		mutation_check(strpos($sql, 'SELECT ') === 0, 'Compose reader must not mutate route fixture data');
+		$s = $this->state;
+		if (is_callable($s->hook)) { call_user_func($s->hook, $sql, $this); }
+		if ($this->closed || !$this->db_connect_id || ($s->failure !== '' && strpos($sql, $s->failure) === 0)) { return false; }
+		return $this->result($s->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
+	}
 }
 $db=new PmAttachmentReadForum();
 mutation_check(mkdir($upload_dir,0700),'Owned action fixture directory');
