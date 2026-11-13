@@ -121,7 +121,12 @@ function lr_suite(){
  lr_reset();$mutex='attachment:'.md5($db->dbname."\0".ATTACHMENTS_TABLE);$serialized=false;
  $kp_hook=function($phase,$sql)use($mutex,&$serialized){if($phase==='before'&&strpos($sql,'SELECT MAX(link_joined)')===0){kp_check(kp_rows("SELECT GET_LOCK('".$mutex."',0) acquired")[0]['acquired']==='0','Another writer cannot enter the check/insert window');$serialized=true;}};
  try{kp_check(lr_success(lr_controller())&&$serialized,'Actual cooldown write is serialized');$cases++;}finally{$kp_hook=null;}
- kp_check(kp_rows("SELECT GET_LOCK('".$mutex."',0) acquired")[0]['acquired']==='1'&&kp_rows("SELECT RELEASE_LOCK('".$mutex."') released")[0]['released']==='1','Confirmed store releases the real shared writer mutex');
+ // mysqli_close sends COM_QUIT without waiting for the server to finish
+ // disconnect cleanup. Require a real acknowledged handoff, bounded below
+ // the production writer's three-second acquisition limit; no blind sleep.
+ $handoff=kp_rows("SELECT GET_LOCK('".$mutex."',1) acquired")[0]['acquired'];
+ kp_check($handoff==='1','Confirmed store releases the real shared writer mutex; handoff='.var_export($handoff,true));
+ kp_check(kp_rows("SELECT RELEASE_LOCK('".$mutex."') released")[0]['released']==='1','Peer releases the acknowledged shared mutex');
  foreach(array('installer','legacy-space','legacy-case','duplicate-alias')as$kind){
   lr_reset();if($kind==='installer'){$basic=file_get_contents($kp_source.'install/schemas/mysql_basic.sql');kp_check(preg_match_all('/INSERT INTO phpbb_link_config \([^;]+;/',$basic,$m)>0,'Actual installer Link settings');kp_sql('DELETE FROM fixture_link_config');kp_sql('START TRANSACTION');try{foreach($m[0]as$sql){kp_sql(str_replace('phpbb_link_config','fixture_link_config',$sql));}kp_sql('COMMIT');}catch(Exception$error){kp_sql('ROLLBACK');throw$error;}$_POST['link_logo_src']='https://example.invalid/logo.gif';}
   elseif($kind==='duplicate-alias'){kp_sql("INSERT INTO fixture_link_config(config_name,config_value) VALUES('pm_notify ','1')");}

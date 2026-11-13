@@ -14,6 +14,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Verify exact geometry, actual GD output with both resize modes and real
   configured-converter subprocesses for landscape and portrait extremes.
   No schema or updater change is needed.
+- Keep the Link writer's real mutual-exclusion checks and require an
+  acknowledged, bounded server lock handoff after closing its connection,
+  instead of assuming disconnect cleanup has finished instantly.
 
 ### Preserve thumbnails after failed conversion
 
