@@ -22,6 +22,7 @@ if (!empty($setmodules))
 $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
+require_once($phpbb_root_path . 'attach_mod/includes/functions_metadata_storage.' . $phpEx);
 
 @include_once($phpbb_root_path . 'attach_mod/includes/constants.'.$phpEx);
 
@@ -238,46 +239,14 @@ $template->assign_vars(array(
 
 if ($submit_change && $view == 'attachments')
 {
-	$attach_change_list = get_var('attach_id_list', array(0));
-	$attach_comment_list = get_var('attach_comment_list', array(''));
-	$attach_download_count_list = get_var('attach_count_list', array(0));
-
-	// Generate correct Change List
-	$attachments = array();
-
-	for ($i = 0; $i < count($attach_change_list); $i++)
+	try { phpbb_attach_admin_metadata_save($db, $_POST); }
+	catch (PhpbbOwnedStorageFailure $error)
 	{
-		$attachments['_' . $attach_change_list[$i]]['comment'] = $attach_comment_list[$i];
-		$attachments['_' . $attach_change_list[$i]]['download_count'] = $attach_download_count_list[$i];
+		$key = $error->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Attachment_metadata_failed']);
 	}
-
-	$sql = 'SELECT *
-		FROM ' . ATTACHMENTS_DESC_TABLE . '
-		ORDER BY attach_id';
-
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Couldn\'t get Attachment informations', '', __LINE__, __FILE__, $sql);
-	}
-
-	while ($attachrow = $db->sql_fetchrow($result))
-	{
-		if (isset($attachments['_' . $attachrow['attach_id']]))
-		{
-			if ($attachrow['comment'] != $attachments['_' . $attachrow['attach_id']]['comment'] || $attachrow['download_count'] != $attachments['_' . $attachrow['attach_id']]['download_count'])
-			{
-				$sql = "UPDATE " . ATTACHMENTS_DESC_TABLE . " 
-					SET comment = '" . attach_mod_sql_escape($attachments['_' . $attachrow['attach_id']]['comment']) . "', download_count = " . (int) $attachments['_' . $attachrow['attach_id']]['download_count'] . "
-					WHERE attach_id = " . (int) $attachrow['attach_id'];
-				
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Couldn\'t update Attachments Informations', '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
-	}
-	$db->sql_freeresult($result);
+	$return_url = append_sid('admin_attach_cp.' . $phpEx . '?view=attachments&mode=' . rawurlencode($mode) . '&order=' . $sort_order . '&uid=' . (int) $uid . '&start=' . (int) $start, true);
+	message_die(GENERAL_MESSAGE, $lang['Attachment_metadata_saved'] . '<br /><br />' . sprintf($lang['Attachment_metadata_return'], '<a href="' . phpbb_profile_text($return_url) . '">', '</a>'));
 }
 
 // Statistics
@@ -715,6 +684,8 @@ if ($view == 'attachments')
 			$post_titles = implode('<br />', $post_titles);
 
 			$hidden_field = '<input type="hidden" name="attach_id_list[]" value="' . intval($attachments[$i]['attach_id']) . '" />';
+			$hidden_field .= '<input type="hidden" name="attach_original_comment_list[]" value="' . phpbb_attach_admin_comment_digest($attachments[$i]['comment']) . '" />';
+			$hidden_field .= '<input type="hidden" name="attach_original_count_list[]" value="' . phpbb_profile_text($attachments[$i]['download_count']) . '" />';
 
 			$template->assign_block_vars('attachrow', array(
 				'ROW_NUMBER'	=> $i + $start + 1,

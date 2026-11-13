@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Save attachment metadata as one current authorized operation
+
+- Validate every parallel field, bounded unique ID, Unicode comment and unsigned
+  download count before saving. Use an independent canonical InnoDB transaction,
+  the shared attachment coordinator, exact current ACP/JR module permissions and
+  current active, unblocked accounts and nonexpired administrator sessions.
+- Preserve concurrent changes to fields left untouched in the form. Reject the
+  entire selection when a deliberately edited field conflicts, a selected file
+  disappears, or any update/readback fails. Keep NULL comments and unrelated
+  description fields intact; do not touch physical files.
+- Submit per-row comment digests and original counters with the existing form.
+  Older open forms must be reloaded. Acknowledge success only after confirmed
+  commit and report an uncertain acknowledgement separately without retrying.
+  Existing canonical tables suffice; no schema migration is needed.
+
 ### Render ACP attachment rows without broken text or session links
 
 - Decode one stored entity layer before escaping attachment names, comments,

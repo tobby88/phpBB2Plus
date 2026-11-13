@@ -235,4 +235,12 @@ $lang['Extension'] = 'Dateiendung';
 $lang['Auth_attach'] = 'Dateien Posten';
 $lang['Auth_download'] = 'Dateien herunterladen';
 
+$lang['Attachment_metadata_invalid'] = 'Die Anhangsauswahl ist unvollständig oder enthält einen ungültigen oder zu langen Wert. Bitte lade die Seite neu und prüfe die ausgewählten Felder. Es wurde nichts gespeichert.';
+$lang['Attachment_metadata_conflict'] = 'Ein Anhang wurde entfernt oder ein von dir bearbeitetes Feld hat sich seit dem Öffnen des Formulars geändert. Bitte lade die Seite neu und prüfe die aktuellen Werte. Es wurde nichts gespeichert.';
+$lang['Attachment_metadata_failed'] = 'Die Anhangsänderungen konnten nicht gespeichert werden. Es wurde nichts gespeichert.';
+$lang['Attachment_metadata_unconfirmed'] = 'Das Speichern der Anhangsänderungen konnte nicht bestätigt werden. Bitte prüfe die aktuellen Werte, bevor du das Formular erneut absendest.';
+$lang['Attachment_metadata_upgrade'] = 'Der Anhangsspeicher muss aktualisiert werden. Bitte führe vor dem Speichern update_from_153a.php aus.';
+$lang['Attachment_metadata_saved'] = 'Die Anhangsänderungen wurden erfolgreich gespeichert.';
+$lang['Attachment_metadata_return'] = 'Klicke %shier%s, um zur Anhangsverwaltung zurückzukehren.';
+
 ?>

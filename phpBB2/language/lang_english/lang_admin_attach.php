@@ -236,4 +236,12 @@ $lang['Extension'] = 'Extension';
 $lang['Auth_attach'] = 'Post Files';
 $lang['Auth_download'] = 'Download Files';
 
+$lang['Attachment_metadata_invalid'] = 'The attachment selection is incomplete or contains an invalid or overly long value. Reload the page and check the selected fields. Nothing was saved.';
+$lang['Attachment_metadata_conflict'] = 'An attachment was removed or a field you edited has changed since the form was opened. Reload the page and check the current values. Nothing was saved.';
+$lang['Attachment_metadata_failed'] = 'The attachment changes could not be saved. Nothing was saved.';
+$lang['Attachment_metadata_unconfirmed'] = 'Saving the attachment changes could not be confirmed. Check the current values before submitting again.';
+$lang['Attachment_metadata_upgrade'] = 'The attachment storage needs updating. Run update_from_153a.php before saving these fields.';
+$lang['Attachment_metadata_saved'] = 'The attachment changes were saved successfully.';
+$lang['Attachment_metadata_return'] = 'Click %sHere%s to return to attachment administration.';
+
 ?>
