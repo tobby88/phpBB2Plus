@@ -62,7 +62,15 @@ $mode = get_var('mode', '');
 $view = get_var('view', '');
 $uid = (isset($HTTP_POST_VARS['u_id'])) ? get_var('u_id', 0) : get_var('uid', 0);
 
-$view = (isset($HTTP_POST_VARS['search']) && $HTTP_POST_VARS['search']) ? 'attachments' : $view;
+$search_submit = isset($HTTP_POST_VARS['search']) ? $HTTP_POST_VARS['search'] : '';
+$search_marker = isset($HTTP_POST_VARS['searching']) ? $HTTP_POST_VARS['searching'] : (isset($HTTP_GET_VARS['searching']) ? $HTTP_GET_VARS['searching'] : '');
+if (!is_string($search_submit) || !is_string($search_marker) || !in_array($search_marker, array('', '0', '1'), true)) { attach_admin_search_invalid(); }
+$search_submitted = $search_submit !== '' && $search_submit !== '0';
+if ($search_submitted) { $view = 'attachments'; }
+$search_based = $view === 'attachments' && ($search_submitted || $search_marker === '1');
+$search_filters = ($search_based || $view === 'search') ? attach_admin_search_input($search_submitted) : array();
+$search_hidden = $search_based ? attach_admin_search_hidden($search_filters) : '';
+if ($search_based) { $uid = 0; }
 
 // process modes based on view
 if ($view == 'username')
@@ -76,7 +84,7 @@ if ($view == 'username')
 		$sort_order = 'DESC';
 	}
 }
-else if ($view == 'attachments')
+else if ($view == 'attachments' || $view == 'search')
 {
 	$mode_types_text = array($lang['Sort_Filename'], $lang['Sort_Comment'], $lang['Sort_Extension'], $lang['Sort_Size'], $lang['Sort_Downloads'], $lang['Sort_Posttime'], /*$lang['Sort_Posts']*/);
 	$mode_types = array('real_filename', 'comment', 'extension', 'filesize', 'downloads', 'post_time'/*, 'posts'*/);
@@ -86,13 +94,6 @@ else if ($view == 'attachments')
 		$mode = 'real_filename';
 		$sort_order = 'ASC';
 	}
-}
-else if ($view == 'search')
-{
-	$mode_types_text = array($lang['Sort_Filename'], $lang['Sort_Comment'], $lang['Sort_Extension'], $lang['Sort_Size'], $lang['Sort_Downloads'], $lang['Sort_Posttime'], /*$lang['Sort_Posts']*/);
-	$mode_types = array('real_filename', 'comment', 'extension', 'filesize', 'downloads', 'post_time'/*, 'posts'*/);
-
-	$sort_order = 'DESC';
 }
 else
 {
@@ -114,7 +115,7 @@ if ($view == 'username')
 	if (!isset($sort_columns[$mode])) { $mode = 'attachments'; $sort_order = 'DESC'; }
 	$order_by = 'ORDER BY ' . $sort_columns[$mode] . ' ' . $sort_order . ', u.user_id ' . $sort_order . ' LIMIT ' . $start . ', ' . $page_size;
 }
-else if ($view == 'attachments')
+else if ($view == 'attachments' || $view == 'search')
 {
 	$sort_columns = array('real_filename' => 'real_filename', 'comment' => 'comment', 'extension' => 'extension', 'filesize' => 'filesize', 'downloads' => 'download_count', 'post_time' => 'filetime');
 	$sort_aliases = array('filename' => 'real_filename', 'a.real_filename' => 'real_filename', 'download_count' => 'downloads', 'filetime' => 'post_time');
@@ -197,6 +198,7 @@ else if ($delete && sizeof($delete_id_list) > 0)
 	$hidden_fields .= '<input type="hidden" name="u_id" value="' . $uid . '" />';
 	$hidden_fields .= '<input type="hidden" name="start" value="' . $start . '" />';
 	$hidden_fields .= phpbb_admin_session_field();
+	$hidden_fields .= $search_hidden;
 
 	for ($i = 0; $i < sizeof($delete_id_list); $i++)
 	{
@@ -234,7 +236,7 @@ $template->assign_vars(array(
 
 	'S_VIEW_SELECT'	=> $select_view,
 	'S_MODE_ACTION'	=> append_sid('admin_attach_cp.' . $phpEx),
-	'S_HIDDEN_FIELDS' => phpbb_admin_session_field())
+	'S_HIDDEN_FIELDS' => phpbb_admin_session_field() . $search_hidden)
 );
 
 if ($submit_change && $view == 'attachments')
@@ -245,7 +247,7 @@ if ($submit_change && $view == 'attachments')
 		$key = $error->getMessage();
 		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Attachment_metadata_failed']);
 	}
-	$return_url = append_sid('admin_attach_cp.' . $phpEx . '?view=attachments&mode=' . rawurlencode($mode) . '&order=' . $sort_order . '&uid=' . (int) $uid . '&start=' . (int) $start, true);
+	$return_url = append_sid('admin_attach_cp.' . $phpEx . '?view=attachments&mode=' . rawurlencode($mode) . '&order=' . $sort_order . '&uid=' . (int) $uid . '&start=' . (int) $start . (!empty($search_based) ? attach_admin_search_query($search_filters, false) : ''), true);
 	message_die(GENERAL_MESSAGE, $lang['Attachment_metadata_saved'] . '<br /><br />' . sprintf($lang['Attachment_metadata_return'], '<a href="' . phpbb_profile_text($return_url) . '">', '</a>'));
 }
 
@@ -361,45 +363,24 @@ if ($view == 'stats')
 // Search
 if ($view == 'search')
 {
-	// Get Forums and Categories
-	$sql = "SELECT c.cat_title, c.cat_id, f.forum_name, f.forum_id  
-		FROM " . CATEGORIES_TABLE . " c, " . FORUMS_TABLE . " f
-		WHERE f.cat_id = c.cat_id 
-		ORDER BY c.cat_id, f.forum_order";
-
+	// Forum and category IDs have separate namespaces. A child forum's cat_id
+	// can name a parent forum, so a categories join silently omits valid forums.
+	$sql = 'SELECT forum_id, forum_name FROM ' . FORUMS_TABLE . ' ORDER BY forum_order, forum_id';
 	if (!($result = $db->sql_query($sql)))
 	{
-		message_die(GENERAL_ERROR, 'Could not obtain forum_name/forum_id', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, 'Could not obtain attachment search forums', '', __LINE__, __FILE__, $sql);
 	}
-
-	$s_forums = '';
+	$s_forums = '<option value="0"' . ($search_filters['search_forum'] === '' || $search_filters['search_forum'] === '0' ? ' selected="selected"' : '') . '>' . phpbb_profile_text($lang['All_available']) . '</option>';
 	while ($row = $db->sql_fetchrow($result))
 	{
-		$s_forums .= '<option value="' . $row['forum_id'] . '">' . $row['forum_name'] . '</option>';
-
-		if( empty($list_cat[$row['cat_id']]) )
-		{
-			$list_cat[$row['cat_id']] = $row['cat_title'];
-		}
+		$s_forums .= '<option value="' . (int) $row['forum_id'] . '"' . ((string) $row['forum_id'] === $search_filters['search_forum'] ? ' selected="selected"' : '') . '>' . phpbb_stored_text($row['forum_name']) . '</option>';
 	}
-
-	if ($s_forums != '')
+	$db->sql_freeresult($result);
+	foreach (array('search_keyword_fname','search_keyword_comment','search_author','search_size_smaller','search_size_greater','search_count_smaller','search_count_greater','search_days_greater') as $field)
 	{
-		$s_forums = '<option value="0">' . $lang['All_available'] . '</option>' . $s_forums;
-
-		// Category to search
-		$s_categories = '<option value="0">' . $lang['All_available'] . '</option>';
-
-		foreach ($list_cat as $cat_id => $cat_title)
-		{
-			$s_categories .= '<option value="' . $cat_id . '">' . $cat_title . '</option>';
-		}
+		$template->assign_vars(array(strtoupper($field) . '_VALUE' => phpbb_profile_text($search_filters[$field])));
 	}
-	else
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_searchable_forums']);
-	}
-	
+
 	$template->set_filenames(array(
 		'body' => 'admin/attach_cp_search.tpl')
 	);
@@ -416,14 +397,12 @@ if ($view == 'search')
 		'L_COUNT_SMALLER_THAN'		=> $lang['Count_smaller_than'],		
 		'L_COUNT_GREATER_THAN'		=> $lang['Count_greater_than'],
 		'L_MORE_DAYS_OLD'			=> $lang['More_days_old'],
-		'L_CATEGORY'				=> $lang['Category'], 
 		'L_ORDER'					=> $lang['Order'],
 		'L_SORT_BY'					=> $lang['Select_sort_method'],
 		'L_FORUM'					=> $lang['Forum'],
 		'L_SEARCH'					=> $lang['Search'],
 
 		'S_FORUM_OPTIONS'			=> $s_forums, 
-		'S_CATEGORY_OPTIONS'		=> $s_categories,
 		'S_SORT_OPTIONS'			=> $select_sort_mode,
 		'S_SORT_ORDER'				=> $select_sort_order)
 	);
@@ -493,7 +472,6 @@ if ($view == 'username')
 if ($view == 'attachments')
 {
 	$user_based = ($uid) ? TRUE : FALSE;
-	$search_based = (isset($HTTP_POST_VARS['search']) && $HTTP_POST_VARS['search']) ? TRUE : FALSE;
 	
 	$hidden_fields = '';
 	
@@ -588,7 +566,7 @@ if ($view == 'attachments')
 	else if ($search_based)
 	{
 		// we are called from search
-		$attachments = search_attachments($order_by, $total_rows);
+		$attachments = search_attachments($order_by, $total_rows, $search_filters, $start);
 	}
 	else
 	{
@@ -727,7 +705,7 @@ if ($view == 'attachments')
 // Generate Pagination
 if ($do_pagination && $total_rows > $page_size)
 {
-	$pagination = generate_pagination('admin_attach_cp.' . $phpEx . '?view=' . $view . '&amp;mode=' . $mode . '&amp;order=' . $sort_order . '&amp;uid=' . $uid, $total_rows, $page_size, $start).'&nbsp;';
+	$pagination = generate_pagination('admin_attach_cp.' . $phpEx . '?view=' . $view . '&amp;mode=' . $mode . '&amp;order=' . $sort_order . '&amp;uid=' . $uid . (!empty($search_based) ? attach_admin_search_query($search_filters) : ''), $total_rows, $page_size, $start).'&nbsp;';
 
 	$template->assign_vars(array(
 		'PAGINATION'	=> $pagination,

@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Restore ACP attachment search and preserve its result state
+
+- Replace the legacy variable-variable request parsing that ignored criteria on
+  PHP 7+ and emitted notices/warnings. Validate bounded raw text and numeric criteria;
+  match stored text with the historical quote representations and treat `*` as
+  the advertised wildcard while matching SQL wildcard characters literally.
+- Count and page distinct file descriptions with the same parent predicate.
+  Combine both numeric bounds, keep author/forum constraints on the same parent,
+  freeze age cutoffs across navigation and clamp stale filtered page offsets.
+- Preserve criteria, selected sort and session links through GET pagination,
+  POST sorting, confirmation and metadata-save return links. Keep the existing
+  two-argument search helper's supported order/limit interface.
+- Keep escaped values in the actual search form and include child forums whose
+  parent IDs do not identify categories. Remove the unused category query and
+  bound encoded navigation state. No schema changes or data rewrite is needed.
+
 ### Save attachment metadata as one current authorized operation
 
 - Validate every parallel field, bounded unique ID, Unicode comment and unsigned

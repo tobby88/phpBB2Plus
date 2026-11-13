@@ -18,35 +18,35 @@
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_FILENAME}:</span><br /><span class="gensmall">{L_WILDCARD_EXPLAIN}</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 200px" class="post" name="search_keyword_fname" size="20" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 200px" class="post" name="search_keyword_fname" value="{SEARCH_KEYWORD_FNAME_VALUE}" size="20" /></span></td>
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_COMMENT}:</span><br /><span class="gensmall">{L_WILDCARD_EXPLAIN}</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 200px" class="post" name="search_keyword_comment" size="20" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 200px" class="post" name="search_keyword_comment" value="{SEARCH_KEYWORD_COMMENT_VALUE}" size="20" /></span></td>
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_SEARCH_AUTHOR}:</span><br /><span class="gensmall">{L_WILDCARD_EXPLAIN}</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 200px" class="post" name="search_author" size="20" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 200px" class="post" name="search_author" value="{SEARCH_AUTHOR_VALUE}" size="20" /></span></td>
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_SIZE_SMALLER_THAN}:</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_size_smaller" size="10" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_size_smaller" value="{SEARCH_SIZE_SMALLER_VALUE}" size="10" /></span></td>
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_SIZE_GREATER_THAN}:</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_size_greater" size="10" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_size_greater" value="{SEARCH_SIZE_GREATER_VALUE}" size="10" /></span></td>
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_COUNT_SMALLER_THAN}:</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_count_smaller" size="10" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_count_smaller" value="{SEARCH_COUNT_SMALLER_VALUE}" size="10" /></span></td>
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_COUNT_GREATER_THAN}:</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_count_greater" size="10" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_count_greater" value="{SEARCH_COUNT_GREATER_VALUE}" size="10" /></span></td>
 	</tr>
 	<tr> 
 		<td class="row1" colspan="2"><span class="gen">{L_MORE_DAYS_OLD}:</span></td>
-		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_days_greater" size="10" /></span></td>
+		<td class="row2" colspan="2" valign="middle"><span class="genmed"><input type="text" style="width: 100px" class="post" name="search_days_greater" value="{SEARCH_DAYS_GREATER_VALUE}" size="10" /></span></td>
 	</tr>
  	<tr> 
 		<th class="thHead" colspan="4" height="25">{L_SEARCH_OPTIONS}</th>

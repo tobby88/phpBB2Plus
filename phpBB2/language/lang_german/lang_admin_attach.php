@@ -242,5 +242,6 @@ $lang['Attachment_metadata_unconfirmed'] = 'Das Speichern der Anhangsänderungen
 $lang['Attachment_metadata_upgrade'] = 'Der Anhangsspeicher muss aktualisiert werden. Bitte führe vor dem Speichern update_from_153a.php aus.';
 $lang['Attachment_metadata_saved'] = 'Die Anhangsänderungen wurden erfolgreich gespeichert.';
 $lang['Attachment_metadata_return'] = 'Klicke %shier%s, um zur Anhangsverwaltung zurückzukehren.';
+$lang['Attachment_search_invalid'] = 'Bitte prüfe die Suchfelder für Anhänge und kürze zu lange Suchtexte. Größen, Zähler, Tage und Forenkennungen müssen ganze, nicht negative Zahlen im unterstützten Bereich sein.';
 
 ?>

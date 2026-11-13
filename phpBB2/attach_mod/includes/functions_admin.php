@@ -278,148 +278,121 @@ function get_formatted_dirsize()
 /*
 * Build SQL-Statement for the search feature
 */
-function search_attachments($order_by, &$total_rows)
+function attach_admin_search_fields()
 {
-	global $db, $_POST, $_GET, $lang, $HTTP_POST_VARS, $HTTP_GET_VARS;
-	
-	$where_sql = array();
-
-	// Get submitted Vars
-	$search_vars = array('search_keyword_fname', 'search_keyword_comment', 'search_author', 'search_size_smaller', 'search_size_greater', 'search_count_smaller', 'search_count_greater', 'search_days_greater', 'search_forum', 'search_cat');
-	
-	for ($i = 0; $i < sizeof($search_vars); $i++)
+	return array('search_keyword_fname','search_keyword_comment','search_author','search_size_smaller','search_size_greater','search_count_smaller','search_count_greater','search_days_greater','search_forum','search_time');
+}
+function attach_admin_search_invalid()
+{
+	global $lang; message_die(GENERAL_MESSAGE, $lang['Attachment_search_invalid']);
+}
+function attach_admin_search_values($values)
+{
+	if (!is_array($values)) { attach_admin_search_invalid(); }
+	$out = array();
+	foreach (attach_admin_search_fields() as $field)
 	{
-		$$search_vars[$i] = get_var($search_vars[$i], '');
-	}
-
-	// Author name search 
-	if ($search_author != '')
-	{
-		// get_var() has already HTML-encoded/de-slashed its result. Read this
-		// identity at the request boundary instead of normalizing it twice.
-		$search_author = phpbb_request_raw_value(phpbb_request_scalar($HTTP_POST_VARS, 'search_author', phpbb_request_scalar($HTTP_GET_VARS, 'search_author')));
-		if (phpbb_username_input($search_author) === null) { message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']); }
-		$search_author_sql = phpbb_username_search_sql($db, 'username', $search_author);
-
-		// We need the post_id's, because we want to query the Attachment Table
-		$sql = 'SELECT user_id
-			FROM ' . USERS_TABLE . "
-			WHERE $search_author_sql AND user_id > 0";
-
-		if (!($result = $db->sql_query($sql)))
+		$value = isset($values[$field]) ? $values[$field] : '';
+		if (!is_string($value) || strlen($value) > 2048 || preg_match('//u', $value) !== 1 || preg_match('/[\x00-\x1f\x7f]/', $value)) { attach_admin_search_invalid(); }
+		$value = trim($value);
+		if (in_array($field, array('search_keyword_fname','search_keyword_comment','search_author'), true))
 		{
-			message_die(GENERAL_ERROR, 'Couldn\'t obtain list of matching users (searching for: ' . $search_author . ')', '', __LINE__, __FILE__, $sql);
+			if (preg_match_all('/./us', $value, $characters) > ($field === 'search_author' ? 25 : 512)) { attach_admin_search_invalid(); }
 		}
-
-		$matching_userids = '';
-		if ($row = $db->sql_fetchrow($result))
+		else if ($value !== '')
 		{
-			do
-			{
-				$matching_userids .= (($matching_userids != '') ? ', ' : '') . intval($row['user_id']);
-			}
-			while ($row = $db->sql_fetchrow($result));
-			
-			$db->sql_freeresult($result);
+			$max = strpos($field, 'size_') !== false ? 2147483647 : ($field === 'search_days_greater' ? 1000000 : ($field === 'search_time' ? 9999999999.0 : 16777215));
+			if (preg_match('/^[0-9]{1,10}$/D', $value) !== 1 || (float) $value > $max) { attach_admin_search_invalid(); }
+			$value = ltrim($value, '0'); if ($value === '') { $value = '0'; }
 		}
-		else
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']);
-		}
-
-		$where_sql[] = ' (t.user_id_1 IN (' . $matching_userids . ')) ';
+		$out[$field] = $value;
 	}
-
-	// Search Keyword
-	if ($search_keyword_fname != '')
+	if ($out['search_days_greater'] === '') { $out['search_time'] = ''; }
+	else if ($out['search_time'] === '') { $out['search_time'] = (string) time(); }
+	$wire_length = 0;
+	foreach ($out as $field => $value) { if ($value !== '') { $wire_length += strlen($field) + strlen(rawurlencode($value)) + 2; } }
+	if ($wire_length > 6000) { attach_admin_search_invalid(); }
+	return $out;
+}
+function attach_admin_search_input($fresh = false)
+{
+	global $HTTP_POST_VARS, $HTTP_GET_VARS;
+	$values = array();
+	foreach (attach_admin_search_fields() as $field)
 	{
-		$match_word = str_replace('*', '%', $search_keyword_fname);
-		$where_sql[] = " (a.real_filename LIKE '" . attach_mod_sql_escape($match_word) . "') ";
+		$value = isset($HTTP_POST_VARS[$field]) ? $HTTP_POST_VARS[$field] : (isset($HTTP_GET_VARS[$field]) ? $HTTP_GET_VARS[$field] : '');
+		$values[$field] = phpbb_request_raw_value($value);
 	}
-
-	if ($search_keyword_comment != '')
+	if ($fresh) { $values['search_time'] = ''; }
+	return attach_admin_search_values($values);
+}
+function attach_admin_search_hidden($values)
+{
+	$values = attach_admin_search_values($values);
+	$html = '<input type="hidden" name="searching" value="1" />';
+	foreach ($values as $field => $value)
 	{
-		$match_word = str_replace('*', '%', $search_keyword_comment);
-		$where_sql[] = " (a.comment LIKE '" . attach_mod_sql_escape($match_word) . "') ";
+		if ($value !== '') { $html .= '<input type="hidden" name="' . $field . '" value="' . phpbb_profile_text($value) . '" />'; }
 	}
-
-	// Search Download Count
-	if ($search_count_smaller != '' || $search_count_greater != '')
+	return $html;
+}
+function attach_admin_search_query($values, $html = true)
+{
+	$values = attach_admin_search_values($values);
+	$separator = $html ? '&amp;' : '&'; $query = $separator . 'searching=1';
+	foreach ($values as $field => $value) { if ($value !== '') { $query .= $separator . $field . '=' . rawurlencode($value); } }
+	return $query;
+}
+function attach_admin_search_pattern($database, $column, $value)
+{
+	if (!in_array($column, array('a.real_filename','a.comment'), true)) { attach_admin_search_invalid(); }
+	$parts = array();
+	foreach (array(ENT_QUOTES, ENT_COMPAT) as $flags)
 	{
-		if ($search_count_smaller != '')
-		{
-			$where_sql[] = ' (a.download_count < ' . (int) $search_count_smaller . ') ';
-		}
-		else if ($search_count_greater != '')
-		{
-			$where_sql[] = ' (a.download_count > ' . (int) $search_count_greater . ') ';
-		}
+		$pattern = htmlspecialchars($value, $flags, 'UTF-8');
+		$pattern = str_replace(array('!', '%', '_'), array('!!', '!%', '!_'), $pattern);
+		$pattern = str_replace('*', '%', $pattern);
+		$parts[$pattern] = $column . " LIKE '" . $database->sql_escape($pattern) . "' ESCAPE '!'";
 	}
-
-	// Search Filesize
-	if ($search_size_smaller != '' || $search_size_greater != '')
+	return '(' . implode(' OR ', array_values($parts)) . ')';
+}
+function search_attachments($order_by, &$total_rows, $values = null, &$effective_start = null)
+{
+	global $db, $lang;
+	// Keep the old two-argument helper available, but accept only its known
+	// column/direction/LIMIT grammar. Rebuild a stable order after counting.
+	if (!is_string($order_by) || preg_match('/^ORDER BY a\.(real_filename|comment|extension|filesize|download_count|filetime|attach_id) (ASC|DESC)(?:, a\.attach_id \2)? LIMIT ([0-9]+),\s*([0-9]+)$/D', trim($order_by), $sort) !== 1
+		|| strlen($sort[3]) > 7 || (float)$sort[3] > 1000000 || strlen($sort[4]) > 4 || (int)$sort[4] < 1 || (int)$sort[4] > 1000) { attach_admin_search_invalid(); }
+	$start = (int)$sort[3]; $size = (int)$sort[4]; $values = $values === null ? attach_admin_search_input() : attach_admin_search_values($values);
+	$where = array(); $parent = array('t.attach_id=a.attach_id','t.post_id>0','t.privmsgs_id=0');
+	if ($values['search_author'] !== '')
 	{
-		if ($search_size_smaller != '')
-		{
-			$where_sql[] = ' (a.filesize < ' . (int) $search_size_smaller . ') ';
-		}
-		else if ($search_size_greater != '')
-		{
-			$where_sql[] = ' (a.filesize > ' . (int) $search_size_greater . ') ';
-		}
+		require_once dirname(dirname(__DIR__)) . '/includes/functions_username.php';
+		$parent[] = 'EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id=t.user_id_1 AND u.user_id>0 AND ' . phpbb_username_search_sql($db, 'u.username', $values['search_author']) . ')';
 	}
-
-	// Search Attachment Time
-	if ($search_days_greater != '')
+	foreach (array('search_keyword_fname'=>'real_filename','search_keyword_comment'=>'comment') as $field => $column)
 	{
-		$where_sql[] = ' (a.filetime < ' . ( time() - ((int) $search_days_greater * 86400)) . ') ';
+		if ($values[$field] !== '') { $where[] = attach_admin_search_pattern($db, 'a.' . $column, $values[$field]); }
 	}
-
-	// Search Forum
-	if ($search_forum)
+	foreach (array('search_size_smaller'=>array('filesize','<'),'search_size_greater'=>array('filesize','>'),'search_count_smaller'=>array('download_count','<'),'search_count_greater'=>array('download_count','>')) as $field => $spec)
 	{
-		$where_sql[] = ' (p.forum_id = ' . intval($search_forum) . ') ';
+		if ($values[$field] !== '') { $where[] = 'a.' . $spec[0] . $spec[1] . $values[$field]; }
 	}
-	
-	// Search Cat... nope... sorry :(
-
-	$sql = 'SELECT a.*, t.post_id, p.post_time, p.topic_id
-		FROM ' . ATTACHMENTS_TABLE . ' t, ' . ATTACHMENTS_DESC_TABLE . ' a, ' . POSTS_TABLE . ' p WHERE ';
-	
-	if (sizeof($where_sql) > 0)
-	{
-		$sql .= implode('AND', $where_sql) . ' AND ';
-	}
-
-	$sql .= 't.post_id = p.post_id AND a.attach_id = t.attach_id ';
-	
-	$total_rows_sql = $sql;
-
-	$sql .= $order_by; 
-
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Couldn\'t query attachments', '', __LINE__, __FILE__, $sql);
-	}
-
-	$attachments = $db->sql_fetchrowset($result);
-	$num_attach = $db->sql_numrows($result);
-	$db->sql_freeresult($result);
-
-	if ($num_attach == 0)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']);
-	}
-
-	if (!($result = $db->sql_query($total_rows_sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not query attachments', '', __LINE__, __FILE__, $sql);
-	}
-
-	$total_rows = $db->sql_numrows($result);
-	$db->sql_freeresult($result);
-
-	return $attachments;
+	if ($values['search_days_greater'] !== '') { $where[] = 'a.filetime < ' . sprintf('%.0f', (float)$values['search_time'] - (float)$values['search_days_greater'] * 86400.0); }
+	if ($values['search_forum'] !== '' && $values['search_forum'] !== '0') { $parent[] = 'p.forum_id=' . $values['search_forum']; }
+	$where[] = 'EXISTS (SELECT 1 FROM ' . ATTACHMENTS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.post_id WHERE ' . implode(' AND ', $parent) . ')';
+	$from = ' FROM ' . ATTACHMENTS_DESC_TABLE . ' a WHERE ' . implode(' AND ', $where);
+	$sql = 'SELECT COUNT(*) AS total' . $from;
+	if (!($result = $db->sql_query($sql))) { message_die(GENERAL_ERROR, 'Could not count matching attachments', '', __LINE__, __FILE__, $sql); }
+	$count = $db->sql_fetchrow($result); $db->sql_freeresult($result); $total_rows = (int)$count['total'];
+	if (!$total_rows) { message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']); }
+	if ($start >= $total_rows) { $start = (int)(floor(($total_rows-1)/$size)*$size); }
+	$effective_start = $start;
+	$sql = 'SELECT a.*' . $from . ' ORDER BY a.' . $sort[1] . ' ' . $sort[2] . ', a.attach_id ' . $sort[2] . ' LIMIT ' . $start . ', ' . $size;
+	if (!($result = $db->sql_query($sql))) { message_die(GENERAL_ERROR, 'Could not query matching attachments', '', __LINE__, __FILE__, $sql); }
+	$rows = $db->sql_fetchrowset($result); $db->sql_freeresult($result);
+	if (!$rows) { message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']); }
+	return $rows;
 }
 
 /**

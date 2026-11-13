@@ -243,5 +243,6 @@ $lang['Attachment_metadata_unconfirmed'] = 'Saving the attachment changes could 
 $lang['Attachment_metadata_upgrade'] = 'The attachment storage needs updating. Run update_from_153a.php before saving these fields.';
 $lang['Attachment_metadata_saved'] = 'The attachment changes were saved successfully.';
 $lang['Attachment_metadata_return'] = 'Click %sHere%s to return to attachment administration.';
+$lang['Attachment_search_invalid'] = 'Please check the attachment search fields and shorten overly long search text. Sizes, counts, days and forum IDs must be whole nonnegative numbers within the supported range.';
 
 ?>
