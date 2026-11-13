@@ -85,7 +85,7 @@ function phpbb_pm_attachment_context($database, $message_id, $viewer, $allow_pm_
 		}
 		$sql = 'SELECT ' . ($attachments[0] ? 'd.*,' : 'p.privmsgs_id,') . 'u.user_level AS pm_download_level'
 			. ($attachments[0] ? ',' . phpbb_attachment_extension_mode_sql() . ' AS attachment_download_mode' : '') . ' FROM ' . PRIVMSGS_TABLE . ' p'
-			. ' JOIN ' . USERS_TABLE . ' u ON u.user_id=' . $viewer_ids[0] . ' AND u.user_active<>0'
+			. ' JOIN ' . USERS_TABLE . ' u ON u.user_id=' . $viewer_ids[0] . ' AND u.user_active<>0 AND u.user_blocktime<' . time()
 			. ' JOIN ' . SESSIONS_TABLE . ' s ON s.session_user_id=u.user_id AND s.session_logged_in=1'
 			. " AND s.session_id='" . $sid . "' AND HEX(s.session_id)=HEX('" . $sid . "')";
 		if ($attachments[0]) {

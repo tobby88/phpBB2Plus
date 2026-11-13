@@ -6,6 +6,20 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current PM editor and attachment entry authorization
+
+- Read compose-entry authorization on an independent autocommit connection,
+  checking the exact current session, account/block, PM permission and outbox
+  parent together. A caller's old transaction cannot authorize a stale form;
+  pending caller work is neither committed nor closed.
+- Keep the attachment parser on its existing owned write connection and mutex.
+  Revalidate its complete source before parsing, retain ordinary GET/POST
+  behavior and fail safely if a reader factory returns borrowed work.
+- Include current account blocks in parent/descriptor download authorization,
+  preserving valid administrator and other-participant behavior. Cover actual
+  compose/parser/download code and canonical native tables on all supported
+  PHP versions and MySQL 8.4; existing recovery/storage suites are retained.
+
 ### Current account blocks in profile, signature and private messages
 
 - Check current CrackerTracker account block time while holding the profile or

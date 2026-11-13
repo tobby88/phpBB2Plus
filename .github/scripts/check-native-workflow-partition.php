@@ -10,7 +10,10 @@ function native_workflow_partition($source)
 		|| strpos($extra,'image: mysql:8.4') === false || strpos($extra,"php-version: '8.5'") === false
 		|| strpos($extra,"PHPBB_PM_DOWNLOAD_MYSQL: '8.4'") === false || strpos($extra,"PHPBB_PM_NOTIFY_NATIVE: '1'") === false
 		|| preg_match('/^\s+if:/m',$extra) || preg_match_all('/^      - uses:/m',$extra) !== 2
-		|| preg_match_all('/^        run:/m',$extra) !== 28
+		|| preg_match_all('/^        run:/m',$extra) !== 29
+		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-pm-entry-native\\.php (?:compose|download)$/m',$extra) !== 2
+		|| strpos($extra,"PHPBB_PM_ENTRY_NATIVE: '1'") === false
+		|| strpos($extra,"PHPBB_PM_ENTRY_MYSQL: '8.4'") === false
 		|| preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-self-service-block-native\\.php (?:profile|signature|pm)$/m',$extra) !== 3
 		|| strpos($extra,"PHPBB_SELF_BLOCK_NATIVE: '1'") === false
 		|| strpos($extra,"PHPBB_SELF_BLOCK_MYSQL: '8.4'") === false

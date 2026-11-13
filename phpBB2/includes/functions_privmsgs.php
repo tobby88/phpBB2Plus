@@ -87,23 +87,51 @@ function phpbb_pm_delete_attachments($ids, $user_id, $folder)
 // otherwise exposes another message's attachment metadata before the later
 // message controller checks ownership. Reply/quote sources are NOT editable
 // attachment parents; those forms start a new attachment list.
-function phpbb_pm_compose_attachment_source($database, $mode, $message_id)
+function phpbb_pm_compose_attachment_request($mode, $message_id)
 {
 	global $userdata;
 	if (!in_array($mode, array('post','reply','quote','edit'), true)
 		|| empty($userdata['session_logged_in'])) { phpbb_acl_error('Not_Authorised'); }
 	$actor = isset($userdata['user_id']) ? attach_delete_id_array(array($userdata['user_id'])) : false;
-	if (!$actor || !phpbb_acl_rows($database, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $actor[0]
-		. ' AND user_active <> 0 AND user_allow_pm <> 0')) { phpbb_acl_error('Not_Authorised'); }
+	if (!$actor || !isset($userdata['session_id']) || !is_string($userdata['session_id'])
+		|| $userdata['session_id'] === '' || strlen($userdata['session_id']) > 32) { phpbb_acl_error('Not_Authorised'); }
 	if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') { phpbb_mailbox_post_request(); }
-	if ($mode !== 'edit') { return 0; }
-	$ids = attach_delete_id_array(array($message_id));
+	$ids = $mode === 'edit' ? attach_delete_id_array(array($message_id)) : array(0);
 	if (!$ids) { phpbb_acl_error('Not_Authorised'); }
-	$rows = phpbb_acl_rows($database, 'SELECT privmsgs_write_payload FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $ids[0]
-		. ' AND (' . phpbb_pm_mailbox_condition($actor[0], 'outbox') . ')');
+	return array($actor[0], $ids[0], $userdata['session_id']);
+}
+
+// Only a fresh autocommit reader or the attachment parser's existing owned
+// capability may perform this lookup. Never authorize through a caller's RR
+// snapshot or acquire the parser's named mutex for a second time.
+function phpbb_pm_compose_attachment_lookup($database, $mode, $message_id)
+{
+	list($actor, $source, $sid) = phpbb_pm_compose_attachment_request($mode, $message_id);
+	$reader = $database instanceof PhpbbPmAttachmentReader;
+	if (!$reader && !($database instanceof PhpbbPmComposeDatabase)) { phpbb_acl_error('Not_Authorised'); }
+	$connection = $reader ? $database->connection : $database;
+	$sql = 'SELECT u.user_id' . ($source ? ',p.privmsgs_write_payload' : '') . ' FROM ' . USERS_TABLE . ' u';
+	if ($source) { $sql .= ' JOIN ' . PRIVMSGS_TABLE . ' p ON p.privmsgs_id=' . $source; }
+	$sql .= ' WHERE u.user_id=' . $actor . ' AND u.user_active<>0 AND u.user_allow_pm<>0 AND u.user_blocktime<' . time()
+		. ' AND ' . phpbb_pm_current_session_guard($connection, $actor, $sid);
+	if ($source) { $sql .= ' AND (' . str_replace('privmsgs_', 'p.privmsgs_', phpbb_pm_mailbox_condition($actor, 'outbox')) . ')'; }
+	$rows = $reader ? $database->rows($sql) : phpbb_acl_rows($database, $sql);
 	if (!$rows) { phpbb_acl_error('Not_Authorised'); }
-	if ($rows[0]['privmsgs_write_payload'] !== null) { phpbb_acl_error('PM_write_pending'); }
-	return $ids[0];
+	if ($source && $rows[0]['privmsgs_write_payload'] !== null) { phpbb_acl_error('PM_write_pending'); }
+	return $source;
+}
+
+function phpbb_pm_compose_attachment_source($database, $mode, $message_id)
+{
+	phpbb_pm_compose_attachment_request($mode, $message_id);
+	$reader = null;
+	try {
+		$reader = new PhpbbPmAttachmentReader($database);
+		return phpbb_pm_compose_attachment_lookup($reader, $mode, $message_id);
+	} catch (PhpbbAclException $error) { throw $error; }
+	catch (Exception $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	catch (Error $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	finally { if ($reader !== null) { $reader->release(); } }
 }
 
 function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)

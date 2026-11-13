@@ -10,9 +10,15 @@ class PhpbbPmComposeDatabase extends PhpbbPmWriteDatabase
 	var $writable = false;
 	function __construct($connection, $mode, $message_id)
 	{
-		$this->message_id = phpbb_pm_compose_attachment_source(new PhpbbAclDatabase($connection, 'PM_cleanup_failed'), $mode, $message_id);
 		$this->writable = isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST';
 		parent::__construct($connection);
+		// Publishing this file before the new standalone reader keeps requests
+		// safe during per-file deployment. Parent authority already checks the
+		// current account/session on this independently owned connection.
+		$this->message_id = function_exists('phpbb_pm_compose_attachment_lookup')
+			? phpbb_pm_compose_attachment_lookup($this, $mode, $message_id)
+			: phpbb_pm_compose_attachment_source(new PhpbbAclDatabase($connection, 'PM_cleanup_failed'), $mode, $message_id);
+		$this->authority();
 	}
 	function authority()
 	{

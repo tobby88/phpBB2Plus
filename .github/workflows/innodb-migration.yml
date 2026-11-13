@@ -675,6 +675,18 @@ jobs:
         env:
           PHPBB_PM_NOTIFY_NATIVE: '1'
           PHPBB_PM_NOTIFY_PASSWORD: fixture-only
+      - name: Check fresh PM compose entry and actual parser ownership
+        if: matrix.part == 4
+        run: php -d disable_functions=mail .github/scripts/check-pm-entry-native.php compose
+        env:
+          PHPBB_PM_ENTRY_NATIVE: '1'
+          PHPBB_PM_ENTRY_PASSWORD: fixture-only
+      - name: Check current account blocks at PM download entry
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-pm-entry-native.php download
+        env:
+          PHPBB_PM_ENTRY_NATIVE: '1'
+          PHPBB_PM_ENTRY_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php
@@ -1615,6 +1627,14 @@ jobs:
           PHPBB_SELF_BLOCK_NATIVE: '1'
           PHPBB_SELF_BLOCK_PASSWORD: fixture-only
           PHPBB_SELF_BLOCK_MYSQL: '8.4'
+      - name: Check fresh PM editor and download entry on MySQL
+        run: |
+          php -d disable_functions=mail .github/scripts/check-pm-entry-native.php compose
+          php -d disable_functions=mail .github/scripts/check-pm-entry-native.php download
+        env:
+          PHPBB_PM_ENTRY_NATIVE: '1'
+          PHPBB_PM_ENTRY_PASSWORD: fixture-only
+          PHPBB_PM_ENTRY_MYSQL: '8.4'
       - name: Check actual MySQL attachment authorization and reader lifecycle
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php
         env:
