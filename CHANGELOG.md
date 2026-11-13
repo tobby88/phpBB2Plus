@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic shadow cleanup with current module rights
+
+- Recheck the exact delegated Shadow attachments module, account and active ACP
+  session under the shared attachment coordinator. Prepare complete orphan
+  selections, reserve bare filenames and remove stale links and flags in one
+  owned transaction before any physical deletion.
+- Preserve active references, pending PM writes, young or newly registered files
+  and unavailable inventories. Recheck age/presence before commit and protect
+  restored or freshly changed files during cleanup. Allocate reservations above
+  both metadata and dangling link IDs; retain descriptions for retry on failure.
+- Resolve relative upload paths consistently and retain numeric filenames when
+  checking ages. Report uncertain commits and pending physical cleanup distinctly.
+- Also protect legacy attachments without write tokens when their linked PM is
+  being saved. Cover the shared guards and complete Shadow controller with real
+  MariaDB/MySQL installer tables and owned files instead of the old SQLite model.
+
 ### Current ACP attachment removal and recoverable cleanup
 
 - Validate the complete unique attachment selection and current ACP or delegated

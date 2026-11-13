@@ -136,7 +136,7 @@ class SyncDatabase
 	function sql_freeresult($result) {}
 }
 $controller = file_get_contents($forum_root . 'admin/admin_attachments.php');
-inventory_check(strpos($controller, 'attach_shadow_cleanup(') !== false, 'ACP delegates cleanup to the shared locked helper');
+inventory_check(strpos($controller, 'phpbb_attach_shadow_remove($db, $_POST)') !== false, 'ACP delegates cleanup to the current-authority owned helper');
 // Exact-name validation stays isolated here; full deletion/DB coordination and
 // all orphan variants are executed by check-attachment-shadow.php.
 $attach_config['allow_ftp_upload'] = '1';

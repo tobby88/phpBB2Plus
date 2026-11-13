@@ -18,7 +18,7 @@ class PhpbbAttachAdminDeleteStore extends PhpbbAttachAdminStore
     var $commit_attempted=false;
     var $confirmed=false;
     private $descriptions=array();
-    private $thumbnail_files=array();
+    protected $thumbnail_files=array();
     protected function storage_tables() { return array(CONFIG_TABLE,SESSIONS_TABLE,USERS_TABLE,JR_ADMIN_TABLE,POSTS_TABLE,TOPICS_TABLE,PRIVMSGS_TABLE,ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE); }
     protected function storage_fail($key='Attachment_admin_delete_failed')
     {
@@ -31,11 +31,21 @@ class PhpbbAttachAdminDeleteStore extends PhpbbAttachAdminStore
         $terms=array();foreach($row as$key=>$value){if(!is_string($key)){continue;}if(preg_match('/^[a-z_][a-z0-9_]*$/D',$key)!==1){$this->storage_fail();}$terms[]=$value===null?$key.' IS NULL':"HEX(CAST($key AS CHAR))=HEX('".$this->escape((string)$value)."')";}
         if(!$terms){$this->storage_fail();}if($unreferenced){$terms[]='NOT EXISTS(SELECT 1 FROM '.ATTACHMENTS_TABLE.' WHERE attach_id='.(int)$row['attach_id'].')';}return implode(' AND ',$terms);
     }
-    private function active_upload($row)
+    protected function active_upload($row)
     {
         return attach_pm_stage_is_claimed($this,$row['physical_filename'])
-            || ($row['pm_write_token']!==null && $row['pm_write_token']!=='' && $this->rows('SELECT privmsgs_id FROM '.PRIVMSGS_TABLE." WHERE privmsgs_write_payload IS NOT NULL AND HEX(privmsgs_write_token)=HEX('".$this->escape($row['pm_write_token'])."') LIMIT 1"));
+            || ($row['pm_write_token']!==null && $row['pm_write_token']!=='' && $this->rows('SELECT privmsgs_id FROM '.PRIVMSGS_TABLE." WHERE privmsgs_write_payload IS NOT NULL AND HEX(privmsgs_write_token)=HEX('".$this->escape($row['pm_write_token'])."') LIMIT 1"))
+            || $this->rows('SELECT p.privmsgs_id FROM '.PRIVMSGS_TABLE.' p JOIN '.ATTACHMENTS_TABLE.' a ON a.privmsgs_id=p.privmsgs_id WHERE a.attach_id='.(int)$row['attach_id'].' AND p.privmsgs_write_payload IS NOT NULL LIMIT 1');
     }
+    protected function prepare_selection($ids)
+    {
+        if(!$ids){$this->storage_fail('Attachment_admin_delete_invalid');}
+        $rows=$this->rows('SELECT * FROM '.ATTACHMENTS_DESC_TABLE.' WHERE attach_id IN ('.implode(',',$ids).') ORDER BY attach_id FOR UPDATE');
+        if(count($rows)!==count($ids)){$this->storage_fail('Attachment_admin_delete_invalid');}return array($ids,$rows);
+    }
+    protected function validate_locked_selection($ids,$descs) { foreach($descs as$row){if($this->active_upload($row)){$this->storage_fail('Attachment_admin_delete_busy');}} }
+    protected function finish_selection($ids) {}
+    protected function cleanup_ready($row) {}
     private function sync_flag($table,$key,$id,$field,$expected,$actor)
     {
         $this->query('UPDATE '.$table.' SET '.$field.'='.$expected.' WHERE '.$key.'='.$id.' AND '.$actor['guard']);
@@ -44,10 +54,8 @@ class PhpbbAttachAdminDeleteStore extends PhpbbAttachAdminStore
     }
     function remove($ids,$confirm)
     {
-        if(!$ids || !is_bool($confirm)){$this->storage_fail('Attachment_admin_delete_invalid');}
-        $actor=$this->current_actor();$selection=implode(',',$ids);
-        $descs=$this->rows('SELECT * FROM '.ATTACHMENTS_DESC_TABLE.' WHERE attach_id IN ('.$selection.') ORDER BY attach_id FOR UPDATE');
-        if(count($descs)!==count($ids)){$this->storage_fail('Attachment_admin_delete_invalid');}
+        if(!is_bool($confirm)){$this->storage_fail('Attachment_admin_delete_invalid');}
+        $actor=$this->current_actor();list($ids,$descs)=$this->prepare_selection($ids);$selection=implode(',',$ids);
         foreach($descs as$row){if($this->active_upload($row)){$this->storage_fail('Attachment_admin_delete_busy');}$this->descriptions[(int)$row['attach_id']]=$row;if((string)$row['thumbnail']==='1'){$this->thumbnail_files[$row['physical_filename']]=true;}}
         $links=$this->rows('SELECT attach_id,post_id,privmsgs_id FROM '.ATTACHMENTS_TABLE.' WHERE attach_id IN ('.$selection.') ORDER BY attach_id,post_id,privmsgs_id FOR UPDATE');
         $posts=$topics=$messages=array();
@@ -56,6 +64,7 @@ class PhpbbAttachAdminDeleteStore extends PhpbbAttachAdminStore
         foreach($posts as$id=>$unused){$rows=$this->rows('SELECT post_id,topic_id FROM '.POSTS_TABLE.' WHERE post_id='.$id.' FOR UPDATE');if(!$rows){unset($posts[$id]);continue;}$topics[(int)$rows[0]['topic_id']]=true;}
         ksort($topics,SORT_NUMERIC);foreach($topics as$id=>$unused){if(!$this->rows('SELECT topic_id FROM '.TOPICS_TABLE.' WHERE topic_id='.$id.' FOR UPDATE')){unset($topics[$id]);}}
         foreach($messages as$id=>$unused){if(!$this->rows('SELECT privmsgs_id FROM '.PRIVMSGS_TABLE.' WHERE privmsgs_id='.$id.' FOR UPDATE')){unset($messages[$id]);}}
+        $this->validate_locked_selection($ids,$descs);
         if($confirm){
             $this->query('DELETE FROM '.ATTACHMENTS_TABLE.' WHERE attach_id IN ('.$selection.') AND '.$actor['guard']);
             if($this->rows('SELECT attach_id FROM '.ATTACHMENTS_TABLE.' WHERE attach_id IN ('.$selection.')')){$this->storage_fail();}
@@ -64,7 +73,7 @@ class PhpbbAttachAdminDeleteStore extends PhpbbAttachAdminStore
             foreach($messages as$id=>$unused){$this->sync_flag(PRIVMSGS_TABLE,'privmsgs_id',$id,'privmsgs_attachment','EXISTS(SELECT 1 FROM '.ATTACHMENTS_TABLE.' WHERE privmsgs_id='.$id.' AND post_id=0)',$actor);}
         }
         foreach($this->descriptions as$row){if(count($this->rows('SELECT attach_id FROM '.ATTACHMENTS_DESC_TABLE.' WHERE '.$this->guard($row)))!==1){$this->storage_fail();}}
-        $this->current_actor();$this->commit_attempted=$confirm;$this->commit();$this->confirmed=true;
+        $this->finish_selection($ids);$this->current_actor();$this->commit_attempted=$confirm;$this->commit();$this->confirmed=true;
         return array('count'=>count($ids),'cleanup_complete'=>!$confirm || $this->cleanup());
     }
     // Detached descriptions reserve filenames after the atomic link/flag commit.
@@ -79,6 +88,7 @@ class PhpbbAttachAdminDeleteStore extends PhpbbAttachAdminStore
                     if(!$this->rows('SELECT attach_id FROM '.ATTACHMENTS_TABLE.' WHERE attach_id='.$id.' LIMIT 1')){$this->storage_fail();}$this->commit();continue;
                 }
                 if($this->active_upload($old)){$this->storage_fail();}
+                $this->cleanup_ready($old);
                 $shared=$this->rows('SELECT attach_id FROM '.ATTACHMENTS_DESC_TABLE." WHERE physical_filename='".$this->escape($old['physical_filename'])."' AND attach_id<>$id LIMIT 1 LOCK IN SHARE MODE");
                 if(!$shared){
                     if((string)$old['thumbnail']==='1'||isset($this->thumbnail_files[$old['physical_filename']])){

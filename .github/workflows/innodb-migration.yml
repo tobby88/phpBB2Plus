@@ -1048,6 +1048,12 @@ jobs:
         env:
           PHPBB_ATTACH_DELETE_SELECTION_NATIVE: '1'
           PHPBB_ATTACH_DELETE_SELECTION_PASSWORD: fixture-only
+      - name: Check atomic Shadow cleanup and current module rights
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-attachment-shadow.php
+        env:
+          PHPBB_ATTACH_SHADOW_NATIVE: '1'
+          PHPBB_ATTACH_SHADOW_PASSWORD: fixture-only
       - name: Check current ACP attachment removal and recoverable cleanup
         if: matrix.part == 6
         run: php -d disable_functions=mail .github/scripts/check-attachment-admin-delete-native.php
@@ -1664,6 +1670,12 @@ jobs:
           PHPBB_ATTACH_DELETE_SELECTION_NATIVE: '1'
           PHPBB_ATTACH_DELETE_SELECTION_PASSWORD: fixture-only
           PHPBB_ATTACH_DELETE_SELECTION_MYSQL: '8.4'
+      - name: Check atomic Shadow cleanup on MySQL
+        run: php -d disable_functions=mail .github/scripts/check-attachment-shadow.php
+        env:
+          PHPBB_ATTACH_SHADOW_NATIVE: '1'
+          PHPBB_ATTACH_SHADOW_PASSWORD: fixture-only
+          PHPBB_ATTACH_SHADOW_MYSQL: '8.4'
       - name: Check current ACP attachment removal on MySQL
         run: php -d disable_functions=mail .github/scripts/check-attachment-admin-delete-native.php
         env:

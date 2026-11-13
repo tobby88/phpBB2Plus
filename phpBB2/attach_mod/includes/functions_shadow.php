@@ -1,6 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
-if (!function_exists('attach_pm_stage_is_claimed')) { require_once dirname(__FILE__) . '/functions_pm_staging.php'; }
+require_once __DIR__ . '/functions_admin_delete_storage.php';
 
 // Files may belong to unfinished posting forms. Only age-confirmed, abandoned
 // uploads are eligible; an unavailable FTP MDTM is not proof of age.
@@ -24,7 +24,7 @@ function attach_shadow_expired_files($names, $now = null)
 			if ($connection !== false) { $modified = @ftp_mdtm($connection, $name); }
 			else
 			{
-				$path = $upload_dir . '/' . $name;
+				$directory=attach_local_storage_directory();if($directory===false){continue;}$path = $directory . '/' . $name;
 				clearstatcache(true, $path);
 				if (is_link($path) || !is_file($path)) { continue; }
 				$modified = @filemtime($path);
@@ -38,6 +38,7 @@ function attach_shadow_expired_files($names, $now = null)
 	return $expired;
 }
 
+// Read-only guard retained for pending-PM checks outside Shadow cleanup.
 function attach_shadow_query($database, $sql)
 {
 	global $lang;
@@ -57,95 +58,87 @@ function attach_shadow_require_pm_idle($database, $id)
 	if ($reserved) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
 }
 
-function attach_shadow_cleanup($posted_files, $posted_ids)
+function phpbb_attach_shadow_input($request)
 {
-	global $db, $lang;
-	$ids = is_array($posted_ids) ? attach_delete_id_array($posted_ids) : false;
-	if ($ids === false || !is_array($posted_files)) { message_die(GENERAL_ERROR, $lang['Attachment_selection_invalid']); }
-	if (!$ids && !$posted_files) { return; }
-	$lock = attach_require_mutation_lock($db);
-	try { attach_shadow_cleanup_locked($lock->connection, $posted_files, $ids); }
-	finally { $lock->release(); }
+ if(!is_array($request)){throw new PhpbbOwnedStorageFailure('Attachment_selection_invalid');}
+ $ids=array_key_exists('attach_id_list',$request)?$request['attach_id_list']:array();$files=array_key_exists('attach_file_list',$request)?$request['attach_file_list']:array();
+ if(!is_array($ids)||!is_array($files)||count($ids)+count($files)>1000||($files&&array_keys($files)!==range(0,count($files)-1))){throw new PhpbbOwnedStorageFailure('Attachment_selection_invalid');}
+ if($ids){try{$ids=phpbb_attach_admin_delete_ids($ids);}catch(PhpbbOwnedStorageFailure$error){throw new PhpbbOwnedStorageFailure('Attachment_selection_invalid');}}
+ $names=array();foreach($files as$value){if(!is_string($value)||strlen($value)>2040){throw new PhpbbOwnedStorageFailure('Attachment_selection_invalid');}$name=phpbb_request_raw_value($value);if(preg_match('//u',$name)!==1||preg_match_all('/./us',$name,$chars)>255||attach_ftp_listing_entry($name,'0')===false||!attach_inventory_file($name)||isset($names[$name])){throw new PhpbbOwnedStorageFailure('Attachment_selection_invalid');}$names[$name]=$name;}
+ return array($ids,array_values($names));
 }
 
-function attach_shadow_cleanup_locked($database, $posted_files, $ids)
+class PhpbbAttachShadowStore extends PhpbbAttachAdminDeleteStore
 {
-	global $lang;
-	// Validate the entire selection before any database or filesystem mutation.
-	$names = attach_shadow_selected_files($posted_files);
-	$files = collect_attachments();
-	$expired = attach_shadow_expired_files($names);
-	$descriptions = array(); $links = array();
-	foreach ($names as $name)
-	{
-		if (attach_pm_stage_is_claimed($database, $name)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
-		if (!in_array($name, $expired, true)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
-		$result = attach_shadow_query($database, 'SELECT attach_id FROM ' . ATTACHMENTS_DESC_TABLE . " WHERE physical_filename = '" . $database->sql_escape($name) . "' LIMIT 1");
-		$registered = $database->sql_numrows($result) > 0; $database->sql_freeresult($result);
-		if ($registered) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_changed']); }
-	}
-	foreach ($ids as $id)
-	{
-		attach_shadow_require_pm_idle($database, $id);
-		$result = attach_shadow_query($database, 'SELECT attach_id, physical_filename, thumbnail FROM ' . ATTACHMENTS_DESC_TABLE . ' WHERE attach_id = ' . $id);
-		$description = $database->sql_fetchrow($result); $database->sql_freeresult($result);
-		$result = attach_shadow_query($database, 'SELECT post_id, privmsgs_id FROM ' . ATTACHMENTS_TABLE . ' WHERE attach_id = ' . $id);
-		$references = $database->sql_fetchrowset($result); $database->sql_freeresult($result);
-		if (!$description && !$references) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_changed']); }
-		if ($description)
-		{
-			$name = $description['physical_filename'];
-			if (attach_pm_stage_is_claimed($database, $name)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
-			if (attach_ftp_listing_entry($name, '0') === false || !attach_inventory_file($name)) { message_die(GENERAL_ERROR, $lang['Attachment_selection_invalid']); }
-			if (in_array($name, $files, true) && entry_exists($id, $database)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_changed']); }
-		}
-		$descriptions[$id] = $description; $links[$id] = $references;
-	}
-	$thumbs = attach_storage_file_entries(MODE_THUMBNAIL, true);
-	if ($thumbs === false) { message_die(GENERAL_ERROR, $lang['Attachment_listing_failed']); }
-	$thumb_names = array(); foreach ($thumbs as $entry) { $thumb_names[] = $entry['name']; }
+ private $names;
+ private $missing=array();
+ private $bare=array();
+ private $presence=array();
+ function __construct($database,$actor,$names){$this->names=$names;parent::__construct($database,$actor);}
+ function remove($ids,$confirm){if($confirm!==true){$this->storage_fail('Attachment_selection_invalid');}return parent::remove($ids,true);}
+ protected function storage_route(){global$phpEx;return 'admin_attachments.'.$phpEx.'?mode=shadow';}
+ protected function storage_fail($key='Attachment_shadow_database_failed')
+ {
+  $map=array('Owned_storage_failed'=>'Attachment_shadow_database_failed','Owned_storage_upgrade'=>'Attachment_admin_delete_upgrade','Attachment_admin_delete_invalid'=>'Attachment_selection_invalid','Attachment_admin_delete_failed'=>'Attachment_shadow_database_failed','Attachment_admin_delete_busy'=>'Attachment_shadow_pending');
+  throw new PhpbbOwnedStorageFailure(isset($map[$key])?$map[$key]:$key);
+ }
+ private function inventory()
+ {
+  $main=attach_storage_file_entries(false,true);$thumb=attach_storage_file_entries(MODE_THUMBNAIL,true);if($main===false||$thumb===false){$this->storage_fail('Attachment_listing_failed');}
+  $files=$thumbs=array();foreach($main as$row){if(attach_inventory_file($row['name'])){$files[$row['name']]=true;}}foreach($thumb as$row){$thumbs[$row['name']]=true;}return array($files,$thumbs);
+ }
+ private function pending_links($id)
+ {
+  if($this->rows('SELECT p.privmsgs_id FROM '.PRIVMSGS_TABLE.' p JOIN '.ATTACHMENTS_TABLE.' a ON a.privmsgs_id=p.privmsgs_id WHERE a.attach_id='.(int)$id.' AND p.privmsgs_write_payload IS NOT NULL LIMIT 1')){$this->storage_fail('Attachment_shadow_pending');}
+ }
+ protected function prepare_selection($ids)
+ {
+  list($files,$thumbs)=$this->inventory();$expired=attach_shadow_expired_files($this->names);$descs=$ids?$this->rows('SELECT * FROM '.ATTACHMENTS_DESC_TABLE.' WHERE attach_id IN ('.implode(',',$ids).') ORDER BY attach_id FOR UPDATE'):array();$known=array();
+  foreach($descs as$row){$id=(int)$row['attach_id'];$known[$id]=true;$name=$row['physical_filename'];if(attach_ftp_listing_entry($name,'0')===false||!attach_inventory_file($name)){$this->storage_fail('Attachment_selection_invalid');}if($this->active_upload($row)){$this->storage_fail('Attachment_shadow_pending');}if(isset($files[$name])&&entry_exists($id,$this)){$this->storage_fail('Attachment_shadow_changed');}$this->presence[$name]=isset($files[$name]);if(isset($thumbs['t_'.$name])){$this->thumbnail_files[$name]=true;}}
+  foreach($ids as$id){$this->pending_links($id);if(!isset($known[$id])){if(!$this->rows('SELECT attach_id FROM '.ATTACHMENTS_TABLE.' WHERE attach_id='.$id.' LIMIT 1 FOR UPDATE')){$this->storage_fail('Attachment_shadow_changed');}$this->missing[]=$id;}}
+  // Validate the entire orphan selection before reserving any unregistered name.
+  foreach($this->names as$name){if(!isset($files[$name])){$this->storage_fail('Attachment_shadow_changed');}if(!in_array($name,$expired,true)||attach_pm_stage_is_claimed($this,$name)){$this->storage_fail('Attachment_shadow_pending');}if($this->rows('SELECT attach_id FROM '.ATTACHMENTS_DESC_TABLE." WHERE physical_filename='".$this->escape($name)."' LIMIT 1 FOR UPDATE")){$this->storage_fail('Attachment_shadow_changed');}}
+  foreach($this->names as$name){
+   // Avoid registering a new orphan under an existing dangling link ID.
+   $last=$this->rows('SELECT attach_id FROM '.ATTACHMENTS_DESC_TABLE.' ORDER BY attach_id DESC LIMIT 1 FOR UPDATE');$links=$this->rows('SELECT attach_id FROM '.ATTACHMENTS_TABLE.' ORDER BY attach_id DESC LIMIT 1 FOR UPDATE');$id=max($last?(int)$last[0]['attach_id']:0,$links?(int)$links[0]['attach_id']:0)+1;if($id>16777215){$this->storage_fail('Attachment_shadow_changed');}
+   $escaped=$this->escape($name);$thumbnail=isset($thumbs['t_'.$name])?1:0;$this->query('INSERT INTO '.ATTACHMENTS_DESC_TABLE." (attach_id,physical_filename,real_filename,filesize,filetime,thumbnail) VALUES ($id,'$escaped','$escaped',0,0,$thumbnail)");$rows=$this->rows('SELECT * FROM '.ATTACHMENTS_DESC_TABLE.' WHERE attach_id='.$id.' FOR UPDATE');if(count($rows)!==1){$this->storage_fail();}$ids[]=$id;$descs[]=$rows[0];$this->bare[$name]=$id;$this->presence[$name]=true;
+  }
+  sort($ids,SORT_NUMERIC);usort($descs,function($a,$b){return(int)$a['attach_id']-(int)$b['attach_id'];});return array($ids,$descs);
+ }
+ protected function validate_locked_selection($ids,$descs)
+ {
+  parent::validate_locked_selection($ids,$descs);list($files,$thumbs)=$this->inventory();
+  foreach($ids as$id){$this->pending_links($id);}foreach($descs as$row){if(isset($files[$row['physical_filename']])&&entry_exists((int)$row['attach_id'],$this)){$this->storage_fail('Attachment_shadow_changed');}}
+  $this->check_presence($files);
+ }
+ private function check_presence($files)
+ {
+  foreach($this->presence as$name=>$present){if(isset($files[$name])!==$present){$this->storage_fail('Attachment_shadow_changed');}}
+  if($this->bare&&count(attach_shadow_expired_files(array_map('strval',array_keys($this->bare))))!==count($this->bare)){$this->storage_fail('Attachment_shadow_pending');}
+ }
+ protected function finish_selection($ids)
+ {
+  if($this->missing&&$this->rows('SELECT attach_id FROM '.ATTACHMENTS_DESC_TABLE.' WHERE attach_id IN ('.implode(',',$this->missing).')')){$this->storage_fail('Attachment_shadow_changed');}
+  foreach($this->bare as$name=>$id){if($this->rows('SELECT attach_id FROM '.ATTACHMENTS_DESC_TABLE." WHERE physical_filename='".$this->escape($name)."' AND attach_id<>$id LIMIT 1")){$this->storage_fail('Attachment_shadow_changed');}}
+  list($files,$thumbs)=$this->inventory();$this->check_presence($files);
+ }
+ protected function cleanup_ready($row)
+ {
+  list($files,$thumbs)=$this->inventory();$name=$row['physical_filename'];if(isset($this->presence[$name])&&!$this->presence[$name]&&isset($files[$name])){$this->storage_fail('Attachment_shadow_changed');}if(isset($this->bare[$name])&&isset($files[$name])&&!in_array($name,attach_shadow_expired_files(array($name)),true)){$this->storage_fail('Attachment_shadow_pending');}
+ }
+}
 
-	// Reserve unregistered names before touching bytes. If the lock connection
-	// dies during unlink, a stale posting form still cannot publish the file.
-	foreach ($names as $name)
-	{
-		if (attach_pm_stage_is_claimed($database, $name)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
-		$thumbnail = in_array('t_' . $name, $thumb_names, true) ? 1 : 0;
-		$escaped = $database->sql_escape($name);
-		attach_shadow_query($database, 'INSERT INTO ' . ATTACHMENTS_DESC_TABLE . " (physical_filename, real_filename, filesize, filetime, thumbnail) VALUES ('" . $escaped . "', '" . $escaped . "', 0, 0, " . $thumbnail . ')');
-		$id = (int) $database->sql_nextid();
-		$descriptions[$id] = array('attach_id'=>$id, 'physical_filename'=>$name, 'thumbnail'=>$thumbnail);
-		$links[$id] = array();
-	}
-	$posts = array(); $messages = array(); $incomplete = false;
-	foreach ($descriptions as $id => $description)
-	{
-		if ($description && attach_pm_stage_is_claimed($database, $description['physical_filename'])) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
-		attach_shadow_require_pm_idle($database, $id);
-		// Remove stale link sources first, so PM copies cannot revive them after
-		// loss of this session during subsequent filesystem operations.
-		attach_shadow_query($database, 'DELETE FROM ' . ATTACHMENTS_TABLE . ' WHERE attach_id = ' . (int) $id);
-		foreach ($links[$id] as $link)
-		{
-			if ((int) $link['post_id'] > 0) { $posts[(int) $link['post_id']] = (int) $link['post_id']; }
-			if ((int) $link['privmsgs_id'] > 0) { $messages[(int) $link['privmsgs_id']] = (int) $link['privmsgs_id']; }
-		}
-		if (!$description) { continue; }
-		$name = $description['physical_filename'];
-		$result = attach_shadow_query($database, 'SELECT attach_id FROM ' . ATTACHMENTS_DESC_TABLE . " WHERE physical_filename = '" . $database->sql_escape($name) . "' AND attach_id <> " . (int) $id . ' LIMIT 1');
-		$shared = $database->sql_numrows($result) > 0; $database->sql_freeresult($result);
-		if (!$shared)
-		{
-			if ((int) $description['thumbnail'] === 1 || in_array('t_' . $name, $thumb_names, true))
-			{
-				if (!attach_delete_file($name, MODE_THUMBNAIL)) { $incomplete = true; continue; }
-				attach_shadow_query($database, 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' SET thumbnail = 0 WHERE attach_id = ' . (int) $id);
-			}
-			if (!attach_delete_file($name)) { $incomplete = true; continue; }
-		}
-		attach_shadow_query($database, 'DELETE FROM ' . ATTACHMENTS_DESC_TABLE . ' WHERE attach_id = ' . (int) $id);
-	}
-	foreach ($posts as $id) { attach_sync_message($database, 'post', $id); }
-	foreach ($messages as $id) { attach_sync_message($database, 'pm', $id); }
-	if ($incomplete) { message_die(GENERAL_ERROR, $lang['Attachment_delete_incomplete']); }
+function phpbb_attach_shadow_remove($database,$request)
+{
+ $store=null;
+ try{$actor=phpbb_attach_admin_request_actor($request);list($ids,$names)=phpbb_attach_shadow_input($request);if(!$ids&&!$names){return array('count'=>0,'cleanup_complete'=>true);}$store=new PhpbbAttachShadowStore($database,$actor,$names);return $store->remove($ids,true);}
+ catch(PhpbbOwnedStorageFailure$error){if($store&&$store->commit_attempted&&!$store->confirmed){throw new PhpbbOwnedStorageFailure('Attachment_shadow_unconfirmed');}throw$error;}
+ catch(Exception$error){throw new PhpbbOwnedStorageFailure($store&&$store->commit_attempted&&!$store->confirmed?'Attachment_shadow_unconfirmed':'Attachment_shadow_database_failed');}
+ catch(Error$error){throw new PhpbbOwnedStorageFailure($store&&$store->commit_attempted&&!$store->confirmed?'Attachment_shadow_unconfirmed':'Attachment_shadow_database_failed');}
+ finally{if($store){$store->release();}}
+}
+
+function attach_shadow_cleanup($posted_files,$posted_ids)
+{
+ global$db;$request=$_POST;$request['attach_file_list']=$posted_files;$request['attach_id_list']=$posted_ids;return phpbb_attach_shadow_remove($db,$request);
 }

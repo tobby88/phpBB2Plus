@@ -1,183 +1,94 @@
 <?php
-namespace ShadowCleanupFixture;
-use RuntimeException;
-use Exception;
-use Error;
-// Reuse the actual-writer database/file fixture, then exercise the ACP helper
-// with controllable filesystem failures. No production database is loaded.
-define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY',true);
-require __DIR__ . '/check-attachment-mutation.php';
-require $forum_root . 'attach_mod/includes/functions_admin.php';
-require_once $forum_root . 'attach_mod/includes/functions_pm_staging.php';
-eval('namespace ShadowCleanupFixture; use Exception; use Error; ' . substr(file_get_contents($forum_root . 'attach_mod/includes/functions_shadow.php'), 5));
-function attach_delete_file($name, $mode = false)
-{
-	if (is_callable($GLOBALS['shadow_file_hook'])) { call_user_func($GLOBALS['shadow_file_hook'], $name, $mode); }
-	if ($GLOBALS['shadow_file_failure'] === ($mode ? 'thumb' : 'main')) { return false; }
-	return \attach_delete_file($name, $mode);
+if(PHP_SAPI!=='cli'||getenv('PHPBB_ATTACH_SHADOW_NATIVE')!=='1'){echo "ACP attachment deletion tests require explicit disposable storage.\n";return;}
+define('IN_PHPBB',true);define('PHPBB_LEGACY_REQUEST_ESCAPED',true);$table_prefix='fixture_';$phpEx='php';$phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';
+require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'attach_mod/includes/constants.php';require$phpbb_root_path.'attach_mod/includes/functions_admin_delete_storage.php';require$phpbb_root_path.'attach_mod/includes/functions_attach.php';require$phpbb_root_path.'attach_mod/includes/functions_admin.php';require$phpbb_root_path.'attach_mod/includes/functions_shadow.php';require$phpbb_root_path.'includes/template.php';require$phpbb_root_path.'includes/functions_jr_admin.php';require$phpbb_root_path.'db/mysqli.php';require __DIR__.'/uacp-list-native-fixture.php';require __DIR__.'/native-connection-release-fixture.php';require __DIR__.'/native-fixture-locks.php';
+$sh_candidates=$sh_trace=array();$sh_seen=$sh_target=0;$sh_phase='';$sh_fired=false;$sh_hook=null;$sh_mode='normal';$db=$peer=$foreign=null;
+function sh_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
+class ShadowNativeExit extends RuntimeException{}
+function message_die($level,$message){if(strpos($message,$GLOBALS['lang']['Attachment_shadow_cleaned'])===0||strpos($message,$GLOBALS['lang']['Attachment_shadow_cleanup_pending'])===0){foreach($GLOBALS['sh_candidates']as$c){sh_check(!$c->adopted||(!$c->inner->db_connect_id&&$c->intent_confirmed),'No success before acknowledged final COMMIT and owner release');}}throw new ShadowNativeExit($message);}
+class ShadowNativeCandidate{
+ var$inner;var$db_connect_id;var$id;var$fresh;var$adopted=false;var$wrote=false;var$commits=0;var$intent_written=false;var$intent_confirmed=false;
+ function __construct($inner,$fresh){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;$this->fresh=$fresh;$r=$inner->sql_query('SELECT CONNECTION_ID() id');$row=$inner->sql_fetchrow($r);$inner->sql_freeresult($r);$this->id=(int)$row['id'];}
+ function __call($m,$a){return call_user_func_array(array($this->inner,$m),$a);}
+ function sql_query($sql,$transaction=false){$GLOBALS['sh_trace'][]=$sql;$index=++$GLOBALS['sh_seen'];if(strpos($sql,'SELECT GET_LOCK(')===0){$this->adopted=true;}if(is_callable($GLOBALS['sh_hook'])){call_user_func($GLOBALS['sh_hook'],'before',$sql,$this);}$hit=!$GLOBALS['sh_fired']&&$index===$GLOBALS['sh_target'];if($hit&&$GLOBALS['sh_phase']==='before'){$GLOBALS['sh_fired']=true;return false;}$r=$this->inner->sql_query($sql,$transaction);if($r&&strpos($sql,'UPDATE fixture_attachments_desc SET ')===0){$this->wrote=true;}if(is_callable($GLOBALS['sh_hook'])){call_user_func($GLOBALS['sh_hook'],'after',$sql,$this);}if($hit&&$GLOBALS['sh_phase']==='after'){$GLOBALS['sh_fired']=true;return false;}if($sql==='COMMIT'&&$r){$this->commits++;if($this->intent_written){$this->intent_confirmed=true;}}if($r&&strpos($sql,'DELETE FROM fixture_attachments WHERE ')===0){$this->intent_written=true;}return$r;}
 }
-function attach_storage_file_entries($mode = false, $quiet = false)
-{
-	return $GLOBALS['shadow_inventory_failure'] ? false : \attach_storage_file_entries($mode, $quiet);
+class ShadowNativeSource extends sql_db{var$factories=0;function sql_dedicated_connection(){$this->factories++;if($GLOBALS['sh_mode']==='missing'){return false;}if($GLOBALS['sh_mode']==='throw'){throw new RuntimeException('Own metadata factory failure');}if($GLOBALS['sh_mode']==='borrow'){return$this;}$fresh=$GLOBALS['sh_mode']==='normal';$inner=$fresh?parent::sql_dedicated_connection():($GLOBALS['sh_mode']==='alias'?$this:($GLOBALS['sh_mode']==='foreign'?$GLOBALS['foreign']:$GLOBALS['peer']));$candidate=new ShadowNativeCandidate($inner,$fresh);$GLOBALS['sh_candidates'][]=$candidate;return$candidate;}}
+function sh_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);if(!$r){$e=$GLOBALS['peer']->sql_error();throw new RuntimeException('Owned metadata SQL ('.(int)$e['code'].'): '.$e['message']);}return$r;}
+function sh_rows($sql){$r=sh_sql($sql);try{return$GLOBALS['peer']->sql_fetchrowset($r);}finally{$GLOBALS['peer']->sql_freeresult($r);}}
+function sh_tables(){return array('config','sessions','users','jr_admin_users','topics','posts','privmsgs','attachments','attachments_desc');}
+function sh_snapshot(){$out=array();foreach(sh_tables()as$table){$rows=sh_rows('SELECT * FROM fixture_'.$table);$named=array();foreach($rows as$row){$v=array();foreach($row as$k=>$value){if(is_string($k)){$v[$k]=$value;}}$named[]=$v;}usort($named,function($a,$b){return strcmp(json_encode($a),json_encode($b));});$out[$table]=$named;}return$out;}
+function sh_clear_files(){global$sh_directory;if(!isset($sh_directory)){return;}foreach(array('synthetic-1','synthetic-2','synthetic-3','synthetic-4',"old file & 'quote'.dat",'fresh.dat','old-two.dat','123','pm_2_'.str_repeat('c',32).'.jpg')as$name){foreach(array($sh_directory.'/'.$name,$sh_directory.'/'.THUMB_DIR.'/t_'.$name)as$path){if(is_dir($path)&&!is_link($path)){sh_check(rmdir($path),'Remove only own conflict directory');}elseif(file_exists($path)||is_link($path)){sh_check(unlink($path),'Remove only own fixed fixture file');}}}}
+function sh_file_snapshot(){global$sh_directory;$out=array();foreach(array('synthetic-1','synthetic-2','synthetic-3','synthetic-4',"old file & 'quote'.dat",'fresh.dat','old-two.dat','123','pm_2_'.str_repeat('c',32).'.jpg')as$name){foreach(array($name,THUMB_DIR.'/t_'.$name)as$relative){$path=$sh_directory.'/'.$relative;$out[$relative]=is_dir($path)?'directory':(is_link($path)?'symlink':(is_file($path)?hash_file('sha256',$path):null));}}return$out;}
+function sh_reset($role='root'){
+ global$userdata,$sh_hook,$sh_mode,$sh_target,$sh_seen,$sh_fired,$sh_phase,$sh_trace,$sh_candidates,$db,$sh_grant,$sh_directory,$upload_dir,$attach_config,$board_config,$theme,$sh_file_calls;
+ $sh_hook=null;$sh_mode='normal';$sh_target=$sh_seen=0;$sh_fired=false;$sh_phase='';$sh_trace=$sh_candidates=$sh_file_calls=array();$db->factories=0;
+ sh_sql('START TRANSACTION');try{
+  foreach(array_reverse(sh_tables())as$table){sh_sql('DELETE FROM fixture_'.$table);}
+  uacp_list_fixture_insert($GLOBALS['peer'],'fixture_config',array('config_name'=>'session_length','config_value'=>'3600'));uacp_list_fixture_insert($GLOBALS['peer'],'fixture_users',array('user_id'=>2,'username'=>'Synthetic owner','user_level'=>$role==='root'?ADMIN:USER,'user_active'=>1,'user_blocktime'=>0));uacp_list_fixture_insert($GLOBALS['peer'],'fixture_sessions',array('session_id'=>str_repeat('a',32),'session_user_id'=>2,'session_logged_in'=>1,'session_admin'=>1,'session_time'=>time()));
+  if($role==='delegated'){uacp_list_fixture_insert($GLOBALS['peer'],'fixture_jr_admin_users',array('user_id'=>2,'user_jr_admin'=>$sh_grant,'admin_notes'=>''));}
+  foreach(array(1,2,3)as$id){uacp_list_fixture_insert($GLOBALS['peer'],'fixture_attachments_desc',array('attach_id'=>$id,'physical_filename'=>'synthetic-'.$id,'real_filename'=>'Synthetic '.$id.'.jpg','comment'=>$id===2?null:'Original Grüße '.$id,'download_count'=>$id,'filesize'=>123,'filetime'=>1700000000,'thumbnail'=>$id===1?1:0));}
+  foreach(array(20,21)as$id){uacp_list_fixture_insert($GLOBALS['peer'],'fixture_topics',array('topic_id'=>$id,'forum_id'=>1,'topic_title'=>'Owned topic','topic_attachment'=>1));}
+  foreach(array(10=>20,11=>21)as$id=>$topic){uacp_list_fixture_insert($GLOBALS['peer'],'fixture_posts',array('post_id'=>$id,'topic_id'=>$topic,'forum_id'=>1,'poster_id'=>2,'post_attachment'=>1));}
+  foreach(array(100,101)as$id){uacp_list_fixture_insert($GLOBALS['peer'],'fixture_privmsgs',array('privmsgs_id'=>$id,'privmsgs_from_userid'=>2,'privmsgs_to_userid'=>3,'privmsgs_type'=>PRIVMSGS_NEW_MAIL,'privmsgs_attachment'=>1,'privmsgs_subject'=>'Owned message'));}
+  sh_sql('INSERT INTO fixture_attachments VALUES(1,10,0,2,0),(1,0,100,2,3),(1,999,0,2,0),(2,0,101,2,3),(3,11,0,2,0)');sh_sql('COMMIT');
+ }catch(Exception$e){sh_sql('ROLLBACK');throw$e;}
+ sh_clear_files();foreach(array('synthetic-1','synthetic-2','synthetic-3')as$name){sh_check(file_put_contents($sh_directory.'/'.$name,'Owned fixture '.$name)!==false,'Own main fixture file');}sh_check(file_put_contents($sh_directory.'/'.THUMB_DIR.'/t_synthetic-1','Owned thumbnail')!==false,'Own thumbnail');$upload_dir=$sh_directory;$attach_config=array('allow_ftp_upload'=>0,'upload_dir'=>$sh_directory);$board_config=array('default_lang'=>$GLOBALS['locale'],'topics_per_page'=>2,'xs_use_cache'=>0,'xs_auto_compile'=>0,'xs_auto_recompile'=>0);$theme=array('template_name'=>'fisubsilversh');
+ $userdata=array('user_id'=>2,'user_level'=>$role==='root'?ADMIN:USER,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>str_repeat('a',32));$_SERVER['REQUEST_METHOD']='POST';$_SERVER['HTTP_SEC_FETCH_SITE']='same-origin';unset($_SERVER['HTTP_ORIGIN']);$_POST=sh_form();
 }
-function function_exists($name) { return $name === 'ftp_mdtm' ? true : \function_exists($name); }
-function attach_init_ftp($mode = false, $quiet = false) { return $GLOBALS['shadow_ftp_connection']; }
-function ftp_mdtm($connection, $name)
-{
-	if ($GLOBALS['shadow_ftp_time'] === 'throw') { throw new RuntimeException('Private FTP failure'); }
-	return $GLOBALS['shadow_ftp_time'];
+function sh_form(){return array('sid'=>str_repeat('a',32),'submit'=>'1','attach_id_list'=>array('1','2'),'attach_file_list'=>array());}
+function shadow_reset($role='root',$kind='missing'){
+ sh_reset($role);if($kind==='missing'||$kind==='mixed'){sh_check(unlink($GLOBALS['sh_directory'].'/synthetic-1')&&unlink($GLOBALS['sh_directory'].'/synthetic-2'),'Only own absent-file fixture');}elseif($kind==='orphan'){sh_sql('DELETE FROM fixture_attachments WHERE attach_id IN (1,2)');}
+ if($kind==='bare'||$kind==='mixed'){$name="old file & 'quote'.dat";sh_check(file_put_contents($GLOBALS['sh_directory'].'/'.$name,'Own aged orphan')!==false&&touch($GLOBALS['sh_directory'].'/'.$name,time()-172800)&&file_put_contents($GLOBALS['sh_directory'].'/'.THUMB_DIR.'/t_'.$name,'Own aged thumbnail')!==false,'Own aged unregistered files');$_POST['attach_file_list']=array(addslashes($name));if($kind==='bare'){$_POST['attach_id_list']=array();}}
 }
-function ftp_close($connection) { $GLOBALS['shadow_ftp_closed']++; return true; }
-$lang += array('Attachment_selection_invalid'=>'invalid','Attachment_listing_failed'=>'listing','Attachment_shadow_pending'=>'pending','Attachment_shadow_changed'=>'changed','Attachment_shadow_database_failed'=>'database');
-$upload_dir = sys_get_temp_dir() . '/phpbb-shadow-' . uniqid('', true);
-$shadow_file_failure = ''; $shadow_file_hook = null; $shadow_inventory_failure = false;
-$shadow_ftp_connection = 1; $shadow_ftp_time = -1; $shadow_ftp_closed = 0;
-set_error_handler(function ($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
-function shadow_reset()
-{
-	global $mutation_server, $upload_dir, $shadow_file_failure, $shadow_file_hook, $shadow_inventory_failure, $attach_config;
-	$mutation_server = new \MutationServer(); $shadow_file_failure = ''; $shadow_file_hook = null; $shadow_inventory_failure = false; $attach_config['allow_ftp_upload'] = 0;
-	$mutation_server->pdo->exec('ALTER TABLE fixture_descriptions ADD COLUMN pm_write_token CHAR(32) DEFAULT NULL');
-	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_write_token CHAR(32) DEFAULT NULL');
-	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
-	foreach (array('fixture.txt', 'fresh.txt', 'thumbs/t_fixture.txt') as $name) { if (is_file($upload_dir . '/' . $name)) { unlink($upload_dir . '/' . $name); } }
-	file_put_contents($upload_dir . '/fixture.txt', 'owned'); touch($upload_dir . '/fixture.txt', time() - 172800);
-}
-function shadow_publish()
-{
-	\mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment', 'pm', 20);
-	return (int) $GLOBALS['mutation_server']->pdo->query('SELECT attach_id FROM fixture_descriptions')->fetchColumn();
-}
-try
-{
-	\mutation_check(mkdir($upload_dir,0700) && mkdir($upload_dir.'/thumbs',0700),'Owned shadow fixture directories');
-	shadow_reset();
-	attach_shadow_cleanup(array(),array());
-	\mutation_check(!$mutation_server->connections,'Empty selection has no DB work');
-	foreach (array(array(0),array('1 OR 1=1'),array(1,null),'1') as $ids) { \mutation_expect_failure(function () use ($ids) { attach_shadow_cleanup(array(),$ids); },'invalid'); }
-	file_put_contents($upload_dir.'/fresh.txt','new');
-	\mutation_expect_failure(function () { attach_shadow_cleanup(array('fixture.txt','fresh.txt'),array()); },'pending');
-	\mutation_check(is_file($upload_dir.'/fixture.txt') && !$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Whole mixed-age selection rejected before mutations');
-	$id=shadow_publish();
-	\mutation_expect_failure(function () { attach_shadow_cleanup(array('fixture.txt'),array()); },'changed');
-	\mutation_expect_failure(function () use ($id) { attach_shadow_cleanup(array(),array($id)); },'changed');
-	\mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===1 && is_file($upload_dir.'/fixture.txt'),'Stale file and row selections preserve live attachment');
-	$mutation_server->pdo->exec("INSERT INTO fixture_descriptions (physical_filename,thumbnail) VALUES ('orphan.txt',0)");
-	$orphan=(int)$mutation_server->pdo->lastInsertId();
-	\mutation_expect_failure(function () use ($orphan,$id) { attach_shadow_cleanup(array(),array($orphan,$id)); },'changed');
-	\mutation_check($mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===2,'Valid orphan before stale row is not partially removed');
-	\mutation_expect_failure(function () use ($id) { attach_shadow_cleanup(array(),array(999,$id)); },'changed');
+function sh_call($controller=true){global$db,$lang,$phpEx,$userdata,$HTTP_POST_VARS,$HTTP_GET_VARS,$sh_action,$sh_seen,$sh_trace,$sh_candidates;$sh_seen=0;$sh_trace=array();$HTTP_POST_VARS=$_POST;$HTTP_GET_VARS=array();$submit=true;$mode='shadow';$message=null;$result=null;
+ try{try{if($controller){phpbb_admin_require_post_session();eval($sh_action);}else{$result=phpbb_attach_shadow_remove($db,$_POST);}}catch(ShadowNativeExit$e){$message=$e->getMessage();}catch(PhpbbOwnedStorageFailure$e){$message=$e->getMessage();}return array('message'=>$message,'result'=>$result);}finally{$ids=array();foreach($sh_candidates as$c){if($c->adopted){sh_check(!$c->inner->db_connect_id,'Every adopted Shadow owner released');}if($c->fresh){$ids[]=$c->id;if($c->inner->db_connect_id){$c->inner->sql_close();}}}$sh_candidates=array();unset($c);sh_check(native_connections_released('sh_rows',$ids),'Only owned Shadow candidate sessions reclaimed');}}
+function sh_ok($out){return is_string($out['message'])&&(strpos($out['message'],$GLOBALS['lang']['Attachment_shadow_cleaned'])===0||strpos($out['message'],$GLOBALS['lang']['Attachment_shadow_cleanup_pending'])===0);}
+function attach_delete_file($name,$mode=false){global$sh_file_calls,$sh_candidates;$committed=false;foreach($sh_candidates as$c){if($c->adopted&&$c->intent_confirmed){$committed=true;}}sh_check($committed,'Actual physical cleanup follows acknowledged atomic detach');$sh_file_calls[]=array($name,$mode);return sh_actual_delete_file($name,$mode);}
+$port=getenv('PHPBB_ATTACH_SHADOW_PORT')?:'3306';sh_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Owned loopback port');$host='127.0.0.1:'.$port;$password=getenv('PHPBB_ATTACH_SHADOW_PASSWORD')?:'';$schema='codex_attach_shadow_'.bin2hex(phpbb_random_bytes(8));$other=$schema.'_peer';$control=new sql_db($host,'root',$password,'',false);sh_check($control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')&&$control->sql_query('CREATE DATABASE '.$other.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Owned schemas');$reporting=error_reporting(E_ALL);set_error_handler(function($n,$s){if(error_reporting()&$n){throw new RuntimeException($s);}});
+try{
+ $db=new ShadowNativeSource($host,'root',$password,$schema,false);$peer=new sql_db($host,'root',$password,$schema,false);$foreign=new sql_db($host,'root',$password,$other,false);if(getenv('PHPBB_ATTACH_SHADOW_MYSQL')==='8.4'){$v=sh_rows('SELECT VERSION() version');sh_check(strpos($v[0]['version'],'8.4.')===0&&stripos($v[0]['version'],'MariaDB')===false,'Actual MySQL8.4');}
+ $ddl=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');foreach(sh_tables()as$table){sh_check(preg_match('/^CREATE TABLE phpbb_'.$table.'\s*\([\s\S]*?;/m',$ddl,$m)===1,'Canonical metadata participant');sh_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}sh_sql('CREATE TABLE fixture_shadow_caller(id INT PRIMARY KEY,marker INT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC');sh_sql('INSERT INTO fixture_shadow_caller VALUES(1,7),(2,7)');$keys=array_keys(jr_admin_authorization_routes(),'admin_attachments.php?mode=shadow',true);sh_check(count($keys)===1,'Actual delegated ACP attachment route');$sh_grant=$keys[0];
+ $functions=file_get_contents($phpbb_root_path.'includes/functions.php');sh_check(preg_match('/^function phpbb_profile_text\([\s\S]*?^\}/m',$functions,$m)===1,'Actual safe return URL text');eval($m[0]);$sessions=file_get_contents($phpbb_root_path.'includes/sessions.php');sh_check(preg_match('/^function append_sid\([\s\S]*?^\}/m',$sessions,$m)===1,'Actual return URL helper');eval($m[0]);$SID='sid='.str_repeat('a',32);
+ $sh_directory=sys_get_temp_dir().'/codex-shadow-native-'.bin2hex(phpbb_random_bytes(12));sh_check(mkdir($sh_directory,0700)&&mkdir($sh_directory.'/'.THUMB_DIR,0700),'Only owned random file fixture directory');$sh_file_calls=array();
+ $delete_source=file_get_contents($phpbb_root_path.'attach_mod/includes/functions_delete.php');sh_check(substr_count($delete_source,'function attach_delete_file(')===1,'Exact actual physical helper');eval('?>'.str_replace('function attach_delete_file(','function sh_actual_delete_file(',$delete_source));
+ $bootstrap=file_get_contents($phpbb_root_path.'admin/pagestart.php');$a=strpos($bootstrap,"if (!function_exists('phpbb_admin_post_session_valid'))");$b=strpos($bootstrap,'if (empty($no_page_header))',$a);sh_check($a!==false&&$b>$a,'Actual ACP token helpers');eval(substr($bootstrap,$a,$b-$a));
+ $source=str_replace("\r\n","\n",file_get_contents($phpbb_root_path.'admin/admin_attachments.php'));$a=strpos($source,"if (\$submit && \$mode == 'shadow')");$b=strpos($source,"if (\$mode == 'shadow')",$a+1);sh_check($a!==false&&$b>$a,'Actual full Shadow action');$sh_action=substr($source,$a,$b-$a);$cases=$faults=$cleanup_faults=$serialized=0;
+ foreach(array('english','german')as$locale){$lang=array();foreach(array('lang_main','lang_admin','lang_main_attach','lang_admin_attach')as$file){require$phpbb_root_path.'language/lang_'.$locale.'/'.$file.'.php';}
+  foreach(array('root','delegated')as$role){foreach(array('missing','orphan')as$kind){shadow_reset($role,$kind);$before=sh_snapshot();$files=sh_file_snapshot();$out=sh_call();$after=sh_snapshot();sh_check(sh_ok($out)&&strpos($out['message'],$lang['Attachment_shadow_cleaned'])===0&&count($after['attachments_desc'])===1&&$after['attachments_desc'][0]===$before['attachments_desc'][2]&&count($after['attachments'])===1,'Actual root/delegated broken-file/orphan cleanup removes only complete selection: '.json_encode($out).' SQL='.json_encode(array_slice($sh_trace,-5)));$now=sh_file_snapshot();sh_check($now['synthetic-1']===null&&$now['synthetic-2']===null&&$now[THUMB_DIR.'/t_synthetic-1']===null&&$now['synthetic-3']===$files['synthetic-3'],'Actual native cleanup preserves unrelated file');if($kind==='missing'){sh_check($after['posts'][0]['post_attachment']==='0'&&$after['topics'][0]['topic_attachment']==='0'&&$after['privmsgs'][0]['privmsgs_attachment']==='0'&&$after['privmsgs'][1]['privmsgs_attachment']==='0','Broken post/PM references synchronize together');}preg_match('/href="([^"]+)"/',$out['message'],$m);parse_str(parse_url(html_entity_decode($m[1],ENT_QUOTES,'UTF-8'),PHP_URL_QUERY),$query);sh_check($query['mode']==='shadow'&&$query['sid']===str_repeat('a',32)&&preg_match('//u',$out['message'])===1,'Actual localized terminal return preserves exact mode and SID');$cases++;}}
+  shadow_reset('root','bare');$before=sh_snapshot();$files=sh_file_snapshot();$out=sh_call();sh_check(sh_ok($out)&&sh_snapshot()===$before&&sh_file_snapshot()["old file & 'quote'.dat"]===null&&sh_file_snapshot()[THUMB_DIR."/t_old file & 'quote'.dat"]===null&&sh_file_snapshot()['synthetic-1']===$files['synthetic-1'],'Actual aged bare filename is decoded once, durably reserved then removed without touching existing rows/files');$cases++;
+  shadow_reset('root','mixed');$out=sh_call();sh_check(sh_ok($out)&&count(sh_snapshot()['attachments_desc'])===1&&sh_file_snapshot()["old file & 'quote'.dat"]===null,'Mixed canonical descriptors and unregistered file are one atomic intent');$cases++;
+  foreach(array('sid','get','guest','truthy-guest','cached-admin','origin')as$bad){shadow_reset();if($bad==='sid'){$_POST['sid']='wrong';}elseif($bad==='get'){$_SERVER['REQUEST_METHOD']='GET';}elseif($bad==='guest'){$userdata['session_logged_in']=false;}elseif($bad==='truthy-guest'){$userdata['session_logged_in']='false';}elseif($bad==='cached-admin'){$userdata['session_admin']=false;}else{$_SERVER['HTTP_SEC_FETCH_SITE']='cross-site';}$before=sh_snapshot();$files=sh_file_snapshot();sh_check(!sh_ok(sh_call())&&sh_snapshot()===$before&&sh_file_snapshot()===$files&&$db->factories===0,'Raw Shadow request denied before any factory '.$bad);$cases++;}
+  foreach(array('id-scalar','id-nested','id-duplicate','id-zero','id-negative','id-leading','id-overflow','id-sparse','file-scalar','file-nested','file-duplicate','file-nul','file-invalid-utf8','file-traversal','file-reserved','many')as$bad){shadow_reset();if($bad==='id-scalar'){$_POST['attach_id_list']='1';}elseif($bad==='id-nested'){$_POST['attach_id_list']=array(array('1'));}elseif($bad==='id-duplicate'){$_POST['attach_id_list']=array('1','1');}elseif($bad==='id-zero'){$_POST['attach_id_list']=array('0');}elseif($bad==='id-negative'){$_POST['attach_id_list']=array('-1');}elseif($bad==='id-leading'){$_POST['attach_id_list']=array('01');}elseif($bad==='id-overflow'){$_POST['attach_id_list']=array('16777216');}elseif($bad==='id-sparse'){$_POST['attach_id_list']=array(1=>'1');}elseif($bad==='file-scalar'){$_POST['attach_file_list']='x';}elseif($bad==='file-nested'){$_POST['attach_file_list']=array(array('x'));}elseif($bad==='file-duplicate'){$_POST['attach_file_list']=array('x','x');}elseif($bad==='file-nul'){$_POST['attach_file_list']=array("bad\0name");}elseif($bad==='file-invalid-utf8'){$_POST['attach_file_list']=array("\xc3");}elseif($bad==='file-traversal'){$_POST['attach_file_list']=array('../x');}elseif($bad==='file-reserved'){$_POST['attach_file_list']=array('.htpasswd');}else{$_POST['attach_file_list']=array_fill(0,1001,'x');}$before=sh_snapshot();$files=sh_file_snapshot();sh_check(!sh_ok(sh_call())&&sh_snapshot()===$before&&sh_file_snapshot()===$files&&$db->factories===0,'Complete invalid Shadow selection stops before storage '.$bad);$cases++;}
+  foreach(array('role','grant','wrong-grant','wrong-mode','inactive','blocked','missing-user','missing-session','session-admin','expired','ttl-missing','ttl-invalid')as$bad){shadow_reset(in_array($bad,array('grant','wrong-grant','wrong-mode'),true)?'delegated':'root');$change=array('role'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=2','grant'=>'DELETE FROM fixture_jr_admin_users','inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=2','blocked'=>'UPDATE fixture_users SET user_blocktime=2147483647 WHERE user_id=2','missing-user'=>'DELETE FROM fixture_users','missing-session'=>'DELETE FROM fixture_sessions','session-admin'=>'UPDATE fixture_sessions SET session_admin=0','expired'=>'UPDATE fixture_sessions SET session_time=1','ttl-missing'=>'DELETE FROM fixture_config','ttl-invalid'=>"UPDATE fixture_config SET config_value='bad'");if($bad==='wrong-grant'||$bad==='wrong-mode'){$wrong_keys=array_keys(jr_admin_authorization_routes(),$bad==='wrong-mode'?'admin_attachments.php?mode=manage':'admin_attach_cp.php',true);sh_check(count($wrong_keys)===1,'Different exact ACP module exists');sh_sql("UPDATE fixture_jr_admin_users SET user_jr_admin='".$peer->sql_escape($wrong_keys[0])."'");}else{sh_sql($change[$bad]);}$before=sh_snapshot();$files=sh_file_snapshot();sh_check(!sh_ok(sh_call())&&sh_snapshot()===$before&&sh_file_snapshot()===$files&&!$sh_file_calls,'Fresh exact Shadow session/account/module required '.$bad);$cases++;}
+ }
+ foreach(array('valid-ref','mixed-valid-ref','missing-id','pending-token','pending-linked','pending-missing-desc','fresh','missing-file-name','registered-name','claimed-stage','dangling-collision','missing-desc','shared','shared-selected','unmarked-thumbnail','max-id','main-conflict','thumb-conflict','unavailable')as$kind){
+  shadow_reset('root',in_array($kind,array('fresh','missing-file-name','claimed-stage','dangling-collision','max-id'),true)?'bare':(in_array($kind,array('valid-ref','mixed-valid-ref','shared','shared-selected','unmarked-thumbnail','main-conflict','thumb-conflict'),true)?'orphan':'missing'));
+  if($kind==='valid-ref'){sh_sql('INSERT INTO fixture_attachments VALUES(1,10,0,2,0)');}elseif($kind==='mixed-valid-ref'){sh_sql('INSERT INTO fixture_attachments VALUES(2,10,0,2,0)');}elseif($kind==='missing-id'){$_POST['attach_id_list']=array('1','999');}elseif($kind==='pending-token'){sh_sql("UPDATE fixture_privmsgs SET privmsgs_write_payload='{}',privmsgs_write_token='".str_repeat('b',32)."' WHERE privmsgs_id=100");sh_sql("UPDATE fixture_attachments_desc SET pm_write_token='".str_repeat('b',32)."' WHERE attach_id=1");}elseif($kind==='pending-linked'||$kind==='pending-missing-desc'){sh_sql("UPDATE fixture_privmsgs SET privmsgs_write_payload='{}' WHERE privmsgs_id=100");if($kind==='pending-missing-desc'){sh_sql('DELETE FROM fixture_attachments_desc WHERE attach_id=1');}}
+  elseif($kind==='fresh'){sh_check(touch($sh_directory."/old file & 'quote'.dat",time()),'Own young file');}elseif($kind==='missing-file-name'){$_POST['attach_file_list']=array('absent.dat');}elseif($kind==='registered-name'){$_POST['attach_file_list']=array('synthetic-3');sh_check(touch($sh_directory.'/synthetic-3',time()-172800),'Own existing registered file age');}elseif($kind==='claimed-stage'){$name='pm_2_'.str_repeat('c',32).'.jpg';sh_check(file_put_contents($sh_directory.'/'.$name,'Own staged payload')!==false&&touch($sh_directory.'/'.$name,time()-172800),'Own old claimed stage');$_POST['attach_file_list']=array($name);sh_sql("UPDATE fixture_privmsgs SET privmsgs_write_payload='{}' WHERE privmsgs_id=100");}
+  elseif($kind==='dangling-collision'){sh_sql('INSERT INTO fixture_attachments VALUES(99,999,0,2,0)');$_POST['attach_id_list']=array('99');}elseif($kind==='missing-desc'){sh_sql('DELETE FROM fixture_attachments_desc WHERE attach_id=1');}elseif($kind==='shared'||$kind==='shared-selected'){sh_sql("UPDATE fixture_attachments_desc SET physical_filename='synthetic-1',thumbnail=0 WHERE attach_id=3");if($kind==='shared-selected'){sh_sql('DELETE FROM fixture_attachments WHERE attach_id=3');$_POST['attach_id_list']=array('1','2','3');}}elseif($kind==='unmarked-thumbnail'){sh_sql('UPDATE fixture_attachments_desc SET thumbnail=0 WHERE attach_id=1');}
+  elseif($kind==='max-id'){sh_sql('INSERT INTO fixture_attachments VALUES(16777215,999,0,2,0)');}elseif($kind==='main-conflict'){sh_check(unlink($sh_directory.'/synthetic-1')&&mkdir($sh_directory.'/synthetic-1'),'Own main conflict directory');}elseif($kind==='thumb-conflict'){sh_check(unlink($sh_directory.'/'.THUMB_DIR.'/t_synthetic-1')&&mkdir($sh_directory.'/'.THUMB_DIR.'/t_synthetic-1'),'Own thumbnail conflict directory');}else{$upload_dir=$sh_directory.'/missing';}
+  $before=sh_snapshot();$files=sh_file_snapshot();$out=sh_call();$after=sh_snapshot();$now=sh_file_snapshot();
+  if(in_array($kind,array('valid-ref','mixed-valid-ref','missing-id','pending-token','pending-linked','pending-missing-desc','fresh','missing-file-name','registered-name','claimed-stage','max-id','unavailable'),true)){sh_check(!sh_ok($out)&&$after===$before&&$now===$files&&!$sh_file_calls,'Whole stale/pending/young/unavailable selection denied before mutation '.$kind);}
+  elseif($kind==='thumb-conflict'||$kind==='main-conflict'){sh_check(strpos($out['message'],$lang['Attachment_shadow_cleanup_pending'])===0&&count($after['attachments_desc'])===3&&$now['synthetic-1']===$files['synthetic-1'],'Failed actual thumbnail cleanup retains metadata and main bytes');}
+  elseif($kind==='shared'){sh_check(sh_ok($out)&&$after['attachments_desc']===array($before['attachments_desc'][2])&&$now['synthetic-1']===$files['synthetic-1']&&$now[THUMB_DIR.'/t_synthetic-1']===$files[THUMB_DIR.'/t_synthetic-1'],'Unselected shared filename protects main and thumbnail');}
+  elseif($kind==='shared-selected'){sh_check(sh_ok($out)&&!$after['attachments_desc']&&$now['synthetic-1']===null&&$now[THUMB_DIR.'/t_synthetic-1']===null,'Selected shared aliases carry known thumbnail cleanup to final reservation');}
+  elseif($kind==='unmarked-thumbnail'){sh_check(sh_ok($out)&&$now[THUMB_DIR.'/t_synthetic-1']===null,'Actual thumbnail inventory covers old missing thumbnail flag');}
+  elseif($kind==='dangling-collision'){sh_check(sh_ok($out)&&count($after['attachments'])===5&&count($after['attachments_desc'])===3&&$now["old file & 'quote'.dat"]===null,'Reservation avoids current dangling link ID then atomically removes it');}
+  else{sh_check(sh_ok($out)&&count($after['attachments_desc'])===1&&count($after['attachments'])===1,'Missing description links and ordinary broken description cleaned together');}$cases++;
+ }
+ shadow_reset('root','bare');$before=sh_snapshot();$previous_root=$phpbb_root_path;try{$phpbb_root_path=dirname($sh_directory).'/';$upload_dir=basename($sh_directory);$attach_config['upload_dir']=$upload_dir;$out=sh_call();sh_check(sh_ok($out)&&sh_snapshot()===$before&&!is_file($sh_directory."/old file & 'quote'.dat"),'Relative configured storage resolves against forum root for age and cleanup');$cases++;}finally{$phpbb_root_path=$previous_root;} shadow_reset('root','bare');$name='123';sh_check(file_put_contents($sh_directory.'/'.$name,'Own numeric filename')!==false&&touch($sh_directory.'/'.$name,time()-172800),'Own aged numeric file');$_POST['attach_file_list']=array($name);$before=sh_snapshot();$out=sh_call();sh_check(sh_ok($out)&&sh_snapshot()===$before&&!is_file($sh_directory.'/'.$name),'Numeric filename remains a string when checking age after reservation');$cases++; shadow_reset('root','bare');$_POST['attach_file_list']=array();$before=sh_snapshot();$files=sh_file_snapshot();$out=sh_call();sh_check(sh_ok($out)&&sh_snapshot()===$before&&sh_file_snapshot()===$files&&$db->factories===0,'Empty selection is a guarded harmless no-op');$cases++;
+ foreach(array('normal','missing','throw','borrow','alias','busy','foreign')as$mode){shadow_reset();sh_check($db->sql_query('START TRANSACTION')&&$db->sql_query('UPDATE fixture_shadow_caller SET marker=8 WHERE id=1'),'Pending caller transaction');if($mode==='busy'){sh_sql('START TRANSACTION');sh_sql('UPDATE fixture_shadow_caller SET marker=9 WHERE id=2');}$sh_mode=$mode;try{$before=sh_snapshot();$files=sh_file_snapshot();sh_check(sh_ok(sh_call())===($mode==='normal'),'Only an independent owned factory may clean Shadow '.$mode);$r=$db->sql_query('SELECT marker FROM fixture_shadow_caller WHERE id=1');$row=$db->sql_fetchrow($r);$db->sql_freeresult($r);sh_check($row['marker']==='8'&&$db->db_connect_id&&$peer->db_connect_id&&$foreign->db_connect_id,'Caller and borrowed/foreign connections survive');if($mode!=='normal'){sh_check(sh_snapshot()===$before&&sh_file_snapshot()===$files,'Refused candidate preserves data and files');}$cases++;}finally{$sh_mode='normal';if($mode==='busy'){sh_sql('ROLLBACK');}$db->sql_query('ROLLBACK');}}
+ foreach(sh_tables()as$table){shadow_reset();sh_sql('ALTER TABLE fixture_'.$table.' ENGINE=MyISAM');$before=sh_snapshot();$files=sh_file_snapshot();try{sh_check(sh_call()['message']===$lang['Attachment_admin_delete_upgrade']&&sh_snapshot()===$before&&sh_file_snapshot()===$files,'Every Shadow participant is canonical transactional storage');$cases++;}finally{sh_sql('ALTER TABLE fixture_'.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}} shadow_reset('root','mixed');$before=sh_snapshot();$before_files=sh_file_snapshot();$linearized=null;$sh_hook=function($phase,$sql,$owner)use(&$linearized){if($linearized===null&&$phase==='after'&&$sql==='COMMIT'&&$owner->intent_written){$linearized=sh_snapshot();}};$out=sh_call();$sh_hook=null;sh_check(sh_ok($out)&&is_array($linearized),'Record actual reservation/detachment linearization');$protocol=$sh_trace;$complete=sh_snapshot();$detach=-1;foreach($protocol as$i=>$sql){if(strpos($sql,'DELETE FROM fixture_attachments WHERE ')===0){$detach=$i;}if($detach>=0&&$sql==='COMMIT'){$detach=$i;break;}}sh_check($detach>=0,'Actual Shadow detach commit recorded');
+ $targets=array();foreach($protocol as$i=>$sql){if(strpos($sql,'SELECT CONNECTION_ID()')===0||strpos($sql,'information_schema.')!==false||preg_match('/ LIMIT 0$/D',$sql)||strpos($sql,'SELECT config_value FROM fixture_config ')===0||strpos($sql,'SELECT session_time FROM fixture_sessions ')===0||strpos($sql,'SELECT user_id,user_active,user_level,user_blocktime FROM fixture_users ')===0||strpos($sql,'SELECT user_id FROM fixture_jr_admin_users ')===0||strpos($sql,'SELECT 1 AS allowed ')===0){continue;}if($i>=$detach||preg_match('/^(?:INSERT INTO|DELETE FROM|UPDATE|SELECT \* FROM fixture_attachments_desc|SELECT attach_id|SELECT a\.attach_id|SELECT p\.privmsgs_id|SELECT privmsgs_id|SELECT post_id,topic_id|SELECT topic_id FROM fixture_topics|SELECT post_attachment,|SELECT topic_attachment,|SELECT privmsgs_attachment,)/',$sql)){$targets[]=$i;}}
+ if(!isset($argv[1])||$argv[1]!=='--core'){foreach(array('before','after')as$phase){foreach($targets as$i){shadow_reset('root','mixed');$baseline=sh_snapshot();$files=sh_file_snapshot();$sh_target=$i+1;$sh_phase=$phase;$out=sh_call();sh_check($sh_fired,'Every exact Shadow protocol fault reached '.$i.' '.$phase);$after=sh_snapshot();$now=sh_file_snapshot();
+  if($i<$detach||($i===$detach&&$phase==='before')){sh_check(!sh_ok($out)&&$after===$baseline&&$now===$files,'Every precommit failure rolls back reservations, links and flags without file changes');$faults++;}
+  elseif($i===$detach){sh_check($out['message']===$lang['Attachment_shadow_unconfirmed']&&$after['attachments']===$linearized['attachments']&&$after['attachments_desc']===$linearized['attachments_desc']&&$after['posts']===$linearized['posts']&&$after['topics']===$linearized['topics']&&$after['privmsgs']===$linearized['privmsgs']&&$now===$files,'Lost Shadow commit ACK has complete reserved state, no physical cleanup and no automatic retry');$faults++;}
+  else{sh_check(strpos($out['message'],$lang['Attachment_shadow_cleanup_pending'])===0&&$after['attachments']===$linearized['attachments']&&$after['posts']===$linearized['posts']&&$after['topics']===$linearized['topics']&&$after['privmsgs']===$linearized['privmsgs']&&$now['synthetic-3']===$files['synthetic-3'],'Every cleanup failure preserves confirmed logical state and unrelated bytes');$cleanup_faults++;}
+ }}}
+ foreach(array('session','role','grant')as$kind){foreach(array('before','locked','committed')as$boundary){shadow_reset($kind==='grant'?'delegated':'root','mixed');$change=$kind==='session'?'DELETE FROM fixture_sessions':($kind==='role'?'UPDATE fixture_users SET user_level=0 WHERE user_id=2':'DELETE FROM fixture_jr_admin_users');$hit=$blocked=false;$sh_hook=function($phase,$sql,$owner)use($boundary,$change,&$hit,&$blocked){$match=$boundary==='before'?($phase==='before'&&strpos($sql,'SELECT session_time FROM fixture_sessions ')===0):($boundary==='locked'?($phase==='after'&&strpos($sql,'DELETE FROM fixture_attachments WHERE ')===0):($phase==='after'&&$sql==='COMMIT'&&$owner->intent_written));if($hit||!$match){return;}$hit=true;$GLOBALS['sh_hook']=null;list($r,$error)=native_fixture_conflict_query($GLOBALS['peer'],$change);if(!$r){sh_check((int)$error['code']===1205,'Only genuine native conflicts serialize Shadow');$blocked=true;}};$files=sh_file_snapshot();$out=sh_call();$sh_hook=null;sh_check($hit,'Real peer authority change reached');if($boundary==='locked'){sh_check($blocked&&sh_ok($out),'Current rights remain locked through complete intent');sh_sql($change);}elseif($boundary==='committed'){sh_check(!$blocked&&strpos($out['message'],$lang['Attachment_shadow_cleanup_pending'])===0&&sh_file_snapshot()===$files,'Postcommit authority revocation prevents all physical cleanup');}else{sh_check(!$blocked&&!sh_ok($out)&&sh_file_snapshot()===$files,'Earlier committed authority revocation denies whole selection');}$serialized++;}}
+ foreach(array('registry','fresh-file','restored-file')as$kind){foreach(array('before','locked','committed')as$boundary){shadow_reset('root','mixed');$before=sh_snapshot();$files=sh_file_snapshot();$hit=false;$sh_hook=function($phase,$sql,$owner)use($kind,$boundary,&$hit){$match=$boundary==='before'?($phase==='before'&&strpos($sql,'SELECT session_time FROM fixture_sessions ')===0):($boundary==='locked'?($phase==='after'&&strpos($sql,'DELETE FROM fixture_attachments WHERE ')===0):($phase==='after'&&$sql==='COMMIT'&&$owner->intent_written));if($hit||!$match){return;}$hit=true;$GLOBALS['sh_hook']=null;if($kind==='registry'){uacp_list_fixture_insert($GLOBALS['peer'],'fixture_attachments_desc',array('attach_id'=>99,'physical_filename'=>"old file & 'quote'.dat",'real_filename'=>'Concurrent owned registration','filesize'=>123));}elseif($kind==='fresh-file'){sh_check(touch($GLOBALS['sh_directory']."/old file & 'quote'.dat",time()),'Own file becomes fresh');}else{sh_check(file_put_contents($GLOBALS['sh_directory'].'/synthetic-1','Own restored bytes')!==false,'Own missing file restored');}};$out=sh_call();$sh_hook=null;sh_check($hit,'Actual source registration/file boundary reached');$after=sh_snapshot();$now=sh_file_snapshot();
+  if($boundary==='committed'){if($kind==='registry'){sh_check(sh_ok($out)&&$now["old file & 'quote'.dat"]===$files["old file & 'quote'.dat"]&&$after['attachments_desc'][count($after['attachments_desc'])-1]['attach_id']==='99','Newly registered alias keeps its physical bytes after original intent');}else{sh_check(strpos($out['message'],$lang['Attachment_shadow_cleanup_pending'])===0&&($kind==='fresh-file'?$now["old file & 'quote'.dat"]===$files["old file & 'quote'.dat"]:$now['synthetic-1']===hash('sha256','Own restored bytes')),'Fresh/restored bytes after commit stay reserved for review');}}
+  else{sh_check(!sh_ok($out)&&!$sh_file_calls&&$after['attachments']===$before['attachments']&&$after['posts']===$before['posts']&&$after['topics']===$before['topics']&&$after['privmsgs']===$before['privmsgs'],'Changed registration/age/presence before commit rolls back complete selection');}$serialized++;
+ }} echo (isset($argv[1])&&$argv[1]==='--core'?'Shadow attachment cleanup focused: ':'Shadow attachment cleanup native: ').$cases.' controller/selection/file cases, '.$faults.' SQL failures, '.$cleanup_faults.' cleanup failures, '.$serialized.' serialized changes PASS.',"\n";
 
-	// A durable PN reservation is not an orphan even before its link INSERT.
-	shadow_reset(); $id=shadow_publish(); $pending_token=str_repeat('a',32);
-	$mutation_server->pdo->exec("UPDATE fixture_messages SET privmsgs_write_token='".$pending_token."',privmsgs_write_payload='pending' WHERE privmsgs_id=20");
-	$mutation_server->pdo->exec("UPDATE fixture_descriptions SET pm_write_token='".$pending_token."' WHERE attach_id=".$id);
-	$mutation_server->pdo->exec('DELETE FROM fixture_links');
-	\mutation_expect_failure(function () use ($id) { attach_shadow_cleanup(array(),array($id)); },'pending');
-	\mutation_check(is_file($upload_dir.'/fixture.txt') && $mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===1,'Pending unlinked description and bytes retained');
-	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload=NULL WHERE privmsgs_id=20');
-	attach_shadow_cleanup(array(),array($id));
-	\mutation_check(!is_file($upload_dir.'/fixture.txt') && !$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Retired orphan reservation can be cleaned normally');
-
-	// File-only orphan reserves its name; concurrent publishers cannot interleave.
-	shadow_reset();$stage='pm_8_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt';
-	file_put_contents($upload_dir.'/'.$stage,'owned pending bytes');touch($upload_dir.'/'.$stage,time()-90000);
-	try
-	{
-		$intent=json_encode(array('version'=>1,'content'=>array('attachments'=>array(array('id'=>0,'physical_filename'=>$stage)))));
-		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload='.$mutation_server->pdo->quote($intent).' WHERE privmsgs_id=20');
-		\mutation_expect_failure(function()use($stage){attach_shadow_cleanup(array('fixture.txt',$stage),array());},'pending');
-		\mutation_check(is_file($upload_dir.'/'.$stage)&&is_file($upload_dir.'/fixture.txt')&&!$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Accepted file-only intent protects whole selection before any cleanup reservation');
-		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload=NULL WHERE privmsgs_id=20');
-		attach_shadow_cleanup(array($stage),array());
-		\mutation_check(!is_file($upload_dir.'/'.$stage),'Expired stage can be cleaned after its pending claim is retired');
-	}
-	finally{if(is_file($upload_dir.'/'.$stage)){unlink($upload_dir.'/'.$stage);}}
-
-	shadow_reset(); $called=false;
-	$shadow_file_hook=function () use (&$called)
-	{
-		if ($called) { return; } $called=true;
-		\mutation_expect_failure(function () { \mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','pm',20); },'busy');
-	};
-	attach_shadow_cleanup(array('fixture.txt'),array());
-	\mutation_check($called && !is_file($upload_dir.'/fixture.txt') && !$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Expired file-only orphan removed under reservation');
-
-	foreach (array('main','thumb') as $failure)
-	{
-		shadow_reset(); file_put_contents($upload_dir.'/thumbs/t_fixture.txt','thumb'); $shadow_file_failure=$failure;
-		\mutation_expect_failure(function () { attach_shadow_cleanup(array('fixture.txt'),array()); },'incomplete');
-		\mutation_check(is_file($upload_dir.'/fixture.txt') && $mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===1,'Failed physical removal retains main and recovery description');
-		$thumb=(int)$mutation_server->pdo->query('SELECT thumbnail FROM fixture_descriptions')->fetchColumn();
-		\mutation_check($thumb===($failure==='thumb'?1:0),'Recovery records completed thumbnail removal');
-		$shadow_file_failure=''; $id=(int)$mutation_server->pdo->query('SELECT attach_id FROM fixture_descriptions')->fetchColumn();
-		attach_shadow_cleanup(array(),array($id));
-		\mutation_check(!is_file($upload_dir.'/fixture.txt') && !$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Explicit recovery completes preserved orphan cleanup');
-	}
-
-	// Existing description with missing file; dangling parent; missing description.
-	foreach (array('file','parent','description','zero') as $missing)
-	{
-		shadow_reset(); $id=shadow_publish();
-		if ($missing==='file') { unlink($upload_dir.'/fixture.txt'); }
-		if ($missing==='parent') { $mutation_server->pdo->exec('DELETE FROM fixture_messages WHERE privmsgs_id=20'); }
-		if ($missing==='description') { $mutation_server->pdo->exec('DELETE FROM fixture_descriptions'); }
-		if ($missing==='zero') { $mutation_server->pdo->exec('UPDATE fixture_links SET privmsgs_id=0,post_id=0'); }
-		attach_shadow_cleanup(array(),array($id));
-		\mutation_check(!$mutation_server->count_rows(ATTACHMENTS_TABLE) && !$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Clean classified orphan: '.$missing);
-		if ($missing==='description') { \mutation_check(is_file($upload_dir.'/fixture.txt'),'Unknown file is not guessed from broken link'); }
-		if ($missing==='file' || $missing==='description') { \mutation_check((int)$mutation_server->pdo->query('SELECT privmsgs_attachment FROM fixture_messages WHERE privmsgs_id=20')->fetchColumn()===0,'Broken live message flags synchronized'); }
-	}
-	shadow_reset(); $id=shadow_publish();
-	$mutation_server->pdo->exec("INSERT INTO fixture_descriptions (physical_filename,thumbnail) VALUES ('fixture.txt',0)");
-	$orphan=(int)$mutation_server->pdo->lastInsertId();
-	attach_shadow_cleanup(array(),array($orphan));
-	\mutation_check(is_file($upload_dir.'/fixture.txt') && $mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===1,'Orphan duplicate name cannot delete another live attachment');
-	shadow_reset(); $shadow_inventory_failure=true;
-	\mutation_expect_failure(function () { attach_shadow_cleanup(array('fixture.txt'),array()); },'listing');
-	\mutation_check(!$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE) && is_file($upload_dir.'/fixture.txt'),'Unavailable thumbnail inventory rejects before writes');
-	shadow_reset(); $mutation_server->failure='INSERT INTO '.ATTACHMENTS_DESC_TABLE;
-	\mutation_expect_failure(function () { attach_shadow_cleanup(array('fixture.txt'),array()); },'database');
-	\mutation_check(is_file($upload_dir.'/fixture.txt'),'Reservation failure never deletes file');
-	shadow_reset(); $called=false;
-	$shadow_file_hook=function () use (&$called)
-	{
-		if ($called) { return; } $called=true;
-		$GLOBALS['mutation_server']->owner->sql_close();
-		\mutation_expect_failure(function () { \mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','pm',20); },'unavailable');
-	};
-	\mutation_expect_failure(function () { attach_shadow_cleanup(array('fixture.txt'),array()); },'database');
-	\mutation_check($called && !$mutation_server->count_rows(ATTACHMENTS_TABLE) && $mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===1,'Reservation remains effective after owner loss during unlink');
-
-	// Native local mtime and controlled FTP metadata failures/boundaries.
-	shadow_reset(); $now=time();
-	foreach (array($now-86399,$now+100,0) as $stamp)
-	{
-		touch($upload_dir.'/fixture.txt',$stamp);
-		\mutation_check(attach_shadow_expired_files(array('fixture.txt'),$now)===array(),'Recent/future/invalid local age withheld');
-	}
-	touch($upload_dir.'/fixture.txt',$now-86400);
-	\mutation_check(attach_shadow_expired_files(array('fixture.txt'),$now)===array('fixture.txt'),'Exact 24-hour local threshold');
-	$attach_config['allow_ftp_upload']=1;
-	foreach (array(-1,0,$now-86399,'throw',$now-86400) as $stamp)
-	{
-		$shadow_ftp_time=$stamp; $before=$shadow_ftp_closed;
-		$expected=$stamp===$now-86400?array('fixture.txt'):array();
-		\mutation_check(attach_shadow_expired_files(array('fixture.txt'),$now)===$expected && $shadow_ftp_closed===$before+1,'FTP age and connection cleanup');
-	}
-	$shadow_ftp_connection=false;
-	\mutation_check(attach_shadow_expired_files(array('fixture.txt'),$now)===array(),'Failed FTP setup withholds file');
-	foreach (array('german','english') as $language)
-	{
-		$strings=file_get_contents($forum_root.'language/lang_'.$language.'/lang_admin_attach.php');
-		foreach (array('Attachment_shadow_pending','Attachment_shadow_changed','Attachment_shadow_database_failed') as $key) { \mutation_check(strpos($strings,"['".$key."']")!==false,'Localized shadow errors'); }
-	}
-	echo "Attachment shadow selection, upload grace, reservations, failure recovery and file/DB cleanup checks passed.\n";
-}
-finally
-{
-	if (isset($mutation_server) && $mutation_server->owner!==null) { $mutation_server->owner->sql_close(); }
-	foreach (array('fixture.txt','fresh.txt','thumbs/t_fixture.txt') as $name) { if (is_file($upload_dir.'/'.$name)) { unlink($upload_dir.'/'.$name); } }
-	if (is_dir($upload_dir.'/thumbs')) { rmdir($upload_dir.'/thumbs'); } if (is_dir($upload_dir)) { rmdir($upload_dir); }
-	restore_error_handler();
-}
+}finally{if(isset($sh_directory)){sh_clear_files();sh_check(rmdir($sh_directory."/".THUMB_DIR)&&rmdir($sh_directory),"Remove only owned empty fixture directories");}$sh_hook=null;$sh_target=0;foreach($sh_candidates as$c){if($c->fresh&&$c->inner->db_connect_id){$c->inner->sql_close();}}if($db){$db->sql_query('ROLLBACK');$db->sql_close();}if($peer&&$peer->db_connect_id){$peer->sql_query('ROLLBACK');$peer->sql_close();}if($foreign&&$foreign->db_connect_id){$foreign->sql_close();}sh_check($control->sql_query('DROP DATABASE '.$schema)&&$control->sql_query('DROP DATABASE '.$other),'Drop only owned schemas');$control->sql_close();restore_error_handler();error_reporting($reporting);}

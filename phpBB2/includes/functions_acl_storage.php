@@ -89,6 +89,7 @@ function phpbb_acp_actor($db,$route)
 		'admin_ug_auth.'.$phpEx.'?mode=user','admin_ug_auth.'.$phpEx.'?mode=group',
 		'admin_board.'.$phpEx,'admin_board_extend.'.$phpEx,'admin_cracker_tracker.'.$phpEx.'?modu=1',
 		'admin_attachments.'.$phpEx.'?mode=manage','admin_attachments.'.$phpEx.'?mode=cats',
+		'admin_attachments.'.$phpEx.'?mode=shadow',
 		'admin_attachments.'.$phpEx.'?mode=quota','admin_attach_cp.'.$phpEx,'admin_users.'.$phpEx,'admin_groups.'.$phpEx,'admin_user_register.'.$phpEx,'admin_user_ban.'.$phpEx,'admin_users_list.'.$phpEx,
 		'admin_cracker_tracker.'.$phpEx.'?modu=3','admin_cracker_tracker.'.$phpEx.'?modu=4','admin_cracker_tracker.'.$phpEx.'?modu=5','admin_cracker_tracker.'.$phpEx.'?modu=6','admin_cracker_tracker.'.$phpEx.'?modu=7','admin_cracker_tracker.'.$phpEx.'?modu=8','admin_cracker_tracker.'.$phpEx.'?modu=9','admin_cracker_tracker.'.$phpEx.'?modu=10','admin_cracker_tracker.'.$phpEx.'?modu=11',
 		'admin_profile_fields.'.$phpEx.'?mode=add&pfid=x','admin_profile_fields.'.$phpEx.'?mode=edit&pfid=x','xs_frameset.'.$phpEx);

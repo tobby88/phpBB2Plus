@@ -91,7 +91,7 @@ $lang['Shadow_attachments_file_explain'] = 'Unregistered files are listed only w
 $lang['Shadow_attachments_row_explain'] = 'Clean up orphaned database entries and links. Missing files or messages are checked again before deletion. Unused files are removed too; failures retain recovery information.';
 $lang['Attachment_shadow_pending'] = 'A selected file belongs to an unfinished private message, is less than 24 hours old, or its age could not be verified. Cleanup was stopped. Please reload the list.';
 $lang['Attachment_shadow_changed'] = 'The attachment selection is stale or includes an attachment that is now in use. Nothing was deleted. Please reload the list.';
-$lang['Attachment_shadow_database_failed'] = 'Attachment cleanup stopped after a database error. Already completed steps remain in effect; existing recovery information is retained. Please reload the list.';
+$lang['Attachment_shadow_database_failed'] = 'The shadow attachment cleanup could not be prepared. No selected links or descriptions were changed.';
 $lang['Empty_file_entry'] = 'Empty File Entry';
 
 // Attachments -> Sync
@@ -252,5 +252,9 @@ $lang['Attachment_admin_delete_upgrade'] = 'The attachment storage needs updatin
 $lang['Attachment_admin_delete_unconfirmed'] = 'Attachment removal could not be confirmed. Check the current list before submitting again.';
 $lang['Attachment_admin_delete_saved'] = 'The selected attachments were removed successfully.';
 $lang['Attachment_admin_delete_cleanup'] = 'The selected attachment links were removed, but file cleanup could not be fully confirmed. Reserved descriptions remain recoverable under Shadow attachments.';
+
+$lang['Attachment_shadow_cleaned'] = 'The selected shadow attachments were cleaned up successfully.';
+$lang['Attachment_shadow_cleanup_pending'] = 'The selected stale links were removed and orphan files were reserved, but file cleanup could not be fully confirmed. Reload this page to review and retry the remaining descriptions.';
+$lang['Attachment_shadow_unconfirmed'] = 'The shadow attachment changes could not be confirmed. Reload the current list before submitting again.';
 
 ?>

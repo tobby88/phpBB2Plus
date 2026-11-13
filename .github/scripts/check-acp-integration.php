@@ -70,7 +70,7 @@ $integrations = array(
 	'admin/admin_forumauth.php' => array("\$module['Forums']['Permissions']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$s_column_span = 0;'),
 	'admin/admin_groups.php' => array("\$module['Groups']['Manage']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_group_admin_save($db, $_POST)', 'phpbb_group_admin_actor(new PhpbbGroupDatabase($db))'),
 	'admin/admin_ug_auth.php' => array("\$module['Users']['Permissions']", "\$module['Groups']['Permissions']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_acl_save($db, $original_mode, $original_target, $_POST)'),
-	'admin/admin_attachments.php' => array("\$module['Attachments']['Manage']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$sync_confirm'),
+	'admin/admin_attachments.php' => array("\$module['Attachments']['Manage']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$sync_confirm', 'phpbb_attach_shadow_remove($db, $_POST)'),
 	'admin/admin_extensions.php' => array("\$module['Extensions']['Extension_control']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$add_forum || $delete_forum'),
 	'admin/admin_attach_cp.php' => array("\$module['Attachments']['Control_Panel']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_attach_admin_delete_ids', 'phpbb_attach_admin_remove($db, $_POST, true)', 'phpbb_attach_admin_remove($db, $_POST, false)'),
 	'admin/admin_arcade.php' => array('$module[\'Arcade\'][\'Configuration\']', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_arcade_config_save($db,$HTTP_POST_VARS)'),

@@ -281,12 +281,14 @@ if ($mode == 'manage')
 // Shadow Attachments
 if ($submit && $mode == 'shadow')
 {
-	attach_shadow_cleanup(
-		isset($HTTP_POST_VARS['attach_file_list']) ? $HTTP_POST_VARS['attach_file_list'] : array(),
-		isset($HTTP_POST_VARS['attach_id_list']) ? $HTTP_POST_VARS['attach_id_list'] : array()
-	);
+	try { $shadow_result = phpbb_attach_shadow_remove($db, $_POST); }
+	catch (PhpbbOwnedStorageFailure $error)
+	{
+		$key = $error->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Attachment_shadow_database_failed']);
+	}
 
-	$message = $lang['Attach_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=shadow") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
+	$message = $lang[$shadow_result['cleanup_complete'] ? 'Attachment_shadow_cleaned' : 'Attachment_shadow_cleanup_pending'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=shadow") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
 	message_die(GENERAL_MESSAGE, $message);
 }

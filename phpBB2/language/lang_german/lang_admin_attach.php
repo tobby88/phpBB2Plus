@@ -91,7 +91,7 @@ $lang['Shadow_attachments_file_explain'] = 'Nicht registrierte Dateien werden er
 $lang['Shadow_attachments_row_explain'] = 'Verwaiste Datenbankeinträge und Verknüpfungen bereinigen. Fehlende Dateien oder Nachrichten werden vor dem Löschen erneut geprüft. Nicht mehr verwendete Dateien werden mit entfernt; bei Fehlern bleiben Wiederherstellungsinformationen erhalten.';
 $lang['Attachment_shadow_pending'] = 'Eine ausgewählte Datei gehört zu einer noch nicht fertig gespeicherten privaten Nachricht, ist noch keine 24 Stunden alt oder ihr Alter konnte nicht sicher bestimmt werden. Die Bereinigung wurde gestoppt. Bitte lade die Liste neu.';
 $lang['Attachment_shadow_changed'] = 'Die Anhang-Auswahl ist nicht mehr aktuell oder enthält einen inzwischen verwendeten Anhang. Es wurde nichts gelöscht. Bitte lade die Liste neu.';
-$lang['Attachment_shadow_database_failed'] = 'Die Anhang-Bereinigung wurde wegen eines Datenbankfehlers abgebrochen. Bereits abgeschlossene Schritte bleiben bestehen; vorhandene Wiederherstellungsinformationen werden nicht verworfen. Bitte lade die Liste neu.';
+$lang['Attachment_shadow_database_failed'] = 'Die Bereinigung der Schatten-Anhänge konnte nicht vorbereitet werden. Die ausgewählten Verknüpfungen und Beschreibungen wurden nicht geändert.';
 $lang['Empty_file_entry'] = 'Leerer Dateieintrag';
 
 // Attachments -> Sync
@@ -251,5 +251,9 @@ $lang['Attachment_admin_delete_upgrade'] = 'Der Anhangsspeicher muss aktualisier
 $lang['Attachment_admin_delete_unconfirmed'] = 'Das Entfernen der Anhänge konnte nicht bestätigt werden. Bitte prüfe die aktuelle Liste, bevor du das Formular erneut absendest.';
 $lang['Attachment_admin_delete_saved'] = 'Die ausgewählten Anhänge wurden erfolgreich entfernt.';
 $lang['Attachment_admin_delete_cleanup'] = 'Die ausgewählten Anhangsverknüpfungen wurden entfernt, aber die Dateibereinigung konnte nicht vollständig bestätigt werden. Reservierte Beschreibungen bleiben unter Schatten-Anhänge zur Nachbearbeitung erhalten.';
+
+$lang['Attachment_shadow_cleaned'] = 'Die ausgewählten Schatten-Anhänge wurden erfolgreich bereinigt.';
+$lang['Attachment_shadow_cleanup_pending'] = 'Die ausgewählten veralteten Verknüpfungen wurden entfernt und verwaiste Dateien reserviert, aber die Dateibereinigung konnte nicht vollständig bestätigt werden. Bitte lade die Seite neu und prüfe die verbliebenen Beschreibungen für einen erneuten Versuch.';
+$lang['Attachment_shadow_unconfirmed'] = 'Die Änderungen an den Schatten-Anhängen konnten nicht bestätigt werden. Bitte lade vor einem erneuten Absenden die aktuelle Liste neu.';
 
 ?>

@@ -48,7 +48,7 @@ function pd_submit($kind='reply',$options=array())
 $body= <<<'PHP'
  require $phpbb_root_path.'attach_mod/includes/functions_attach.php';
  require $phpbb_root_path.'attach_mod/includes/functions_admin.php';
- require $phpbb_root_path.'attach_mod/includes/functions_shadow.php';
+ require $phpbb_root_path.'attach_mod/includes/functions_shadow.php';require $phpbb_root_path.'../.github/scripts/attachment-shadow-recovery-native-fixture.php';
  $upload_dir=sys_get_temp_dir().'/phpbb-delete-owned-'.bin2hex(phpbb_random_bytes(8));$attach_config=array('allow_ftp_upload'=>'0');
  ae_check(mkdir($upload_dir,0700)&&mkdir($upload_dir.'/'.THUMB_DIR,0700),'Owned file directories');
  try{
@@ -105,7 +105,7 @@ $body= <<<'PHP'
   $ae_hook=null;$ae_fail='';if($failure==='session'){ae_insert('fixture_sessions',array('session_id'=>'edit-sid','session_user_id'=>8,'session_logged_in'=>1));}
   foreach(array($upload_dir.'/owned.txt',$upload_dir.'/'.THUMB_DIR.'/t_owned.txt') as $path){if(is_dir($path)){rmdir($path);ae_check(file_put_contents($path,'owned bytes')!==false,'Repair owned fixture failure');}}
   // Execute the actual ACP orphan recovery on the retained description.
-  attach_shadow_cleanup(array(),array(1));ae_check(!ae_rows('SELECT * FROM fixture_attachments_desc')&&pd_files()===array(false,false),'Existing ACP can finish detached cleanup '.$failure);$cases++;
+  native_attachment_shadow_recover(array(1));ae_check(!ae_rows('SELECT * FROM fixture_attachments_desc')&&pd_files()===array(false,false),'Existing ACP can finish detached cleanup '.$failure);$cases++;
  }
  foreach($ae_tables as $s){pd_fixture();ae_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=pd_snapshot();ae_check(pd_submit()==='error'&&pd_snapshot()===$before&&pd_files()===array(true,true),'Every old-format participant refuses deletion '.$s);ae_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
  foreach(array('english','german') as $locale){require $phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';pd_fixture('moderator');$out=pd_submit('reply',array('controller'=>true));ae_check(is_array($out)&&count(ae_rows('SELECT * FROM fixture_logs'))===1,'Actual controller avoids duplicate audit '.$locale);$cases++;}

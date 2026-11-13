@@ -100,7 +100,7 @@ function kp_delete_suite() {
  }
  $topic=kd_relational_fixture();$_POST['topic']='9999';$_POST['forum_id']='2';kp_check(is_array(kd_run())&&kp_rows('SELECT topic_id FROM fixture_topics WHERE topic_id<>'.$topic)===array(array('topic_id'=>'9999'))&&count(kp_rows('SELECT post_id FROM fixture_posts WHERE topic_id='.$topic.' AND post_deleted=1'))===2,'Posted topic/forum fields cannot broaden stored relation');$cases++;
  kp_reset();kp_check(is_array(kp_run(1)),'Seed standalone article');kp_sql("UPDATE fixture_kb_config SET config_value='1' WHERE config_name='del_topic'");kp_sql('DELETE FROM fixture_forums');kp_check(is_array(kd_run())&&kp_counts(0),'Standalone KB deletion never invents a forum requirement');$cases++;
- require $kp_source.'attach_mod/includes/functions_admin.php';require $kp_source.'attach_mod/includes/functions_shadow.php';
+ require $kp_source.'attach_mod/includes/functions_admin.php';require $kp_source.'attach_mod/includes/functions_shadow.php';require $kp_source.'../.github/scripts/attachment-shadow-recovery-native-fixture.php';
  $GLOBALS['upload_dir']=sys_get_temp_dir().'/phpbb-kb-delete-owned-'.bin2hex(phpbb_random_bytes(8));$GLOBALS['attach_config']=array('allow_ftp_upload'=>'0');
  kp_check(mkdir($GLOBALS['upload_dir'],0700)&&mkdir($GLOBALS['upload_dir'].'/'.THUMB_DIR,0700),'Own file-test directories');
  try{
@@ -111,16 +111,16 @@ function kp_delete_suite() {
   kp_check(kd_run() instanceof PhpbbKbPublicationException&&kp_snapshot()===$before&&kd_files()===array(true,true),'Native late SQL failure restores topic/post/attachment references and never unlinks files');kp_sql('DROP TRIGGER kd_file_failure');$cases++;
   kd_file_fixture();unlink($GLOBALS['upload_dir'].'/owned.txt');kp_check(mkdir($GLOBALS['upload_dir'].'/owned.txt',0700),'Own deliberate storage conflict');
   $out=kd_run();kp_check(is_array($out)&&$out['cleanup_pending']&&is_dir($GLOBALS['upload_dir'].'/owned.txt')&&count(kp_rows('SELECT * FROM fixture_attachments_desc'))===1&&!kp_rows('SELECT * FROM fixture_attachments'),'Confirmed deletion retains description when physical cleanup fails');
-  rmdir($GLOBALS['upload_dir'].'/owned.txt');file_put_contents($GLOBALS['upload_dir'].'/owned.txt','owned bytes');attach_shadow_cleanup(array(),array('1'));
+  rmdir($GLOBALS['upload_dir'].'/owned.txt');file_put_contents($GLOBALS['upload_dir'].'/owned.txt','owned bytes');native_attachment_shadow_recover(array('1'));
   kp_check(kd_files()===array(false,false)&&!kp_rows('SELECT * FROM fixture_attachments_desc'),'Existing ACP shadow cleanup recovers retained description/file');$cases++;
   kd_file_fixture();$reached=false;$kp_hook=function($event,$sql)use(&$reached){if($event==='before'&&strpos($sql,'DELETE FROM fixture_attachments_desc WHERE ')===0){$reached=true;return false;}};
   $out=kd_run();$kp_hook=null;kp_check(is_array($out)&&$out['cleanup_pending']&&$reached&&kd_files()===array(false,false)&&count(kp_rows('SELECT * FROM fixture_attachments_desc'))===1,'Postcommit metadata failure reserves filename without claiming full cleanup');
-  attach_shadow_cleanup(array(),array('1'));kp_check(!kp_rows('SELECT * FROM fixture_attachments_desc'),'Shadow retry can clear a description after already-removed bytes');$cases++;
+  native_attachment_shadow_recover(array('1'));kp_check(!kp_rows('SELECT * FROM fixture_attachments_desc'),'Shadow retry can clear a description after already-removed bytes');$cases++;
   foreach(array('before','after')as$boundary){
    kd_file_fixture();$before=kp_snapshot();$reached=false;$kp_hook=function($event,$sql)use($boundary,&$reached){if($sql==='COMMIT'&&$event===$boundary){$reached=true;return false;}};
    $out=kd_run();$kp_hook=null;kp_check($reached&&$out instanceof PhpbbKbPublicationException&&kd_files()===array(true,true),'Refused/lost COMMIT never reports success or unlinks files');
    if($boundary==='before'){kp_check(kp_snapshot()===$before,'Pre-COMMIT failure preserves all old SQL state');}
-   else{kp_check(!kp_rows('SELECT * FROM fixture_kb_articles')&&!kp_rows('SELECT * FROM fixture_attachments')&&count(kp_rows('SELECT * FROM fixture_attachments_desc'))===1,'Unacknowledged committed deletion retains reserved cleanup metadata');attach_shadow_cleanup(array(),array('1'));kp_check(kd_files()===array(false,false),'Shadow recovery completes unacknowledged committed deletion');}$cases++;
+   else{kp_check(!kp_rows('SELECT * FROM fixture_kb_articles')&&!kp_rows('SELECT * FROM fixture_attachments')&&count(kp_rows('SELECT * FROM fixture_attachments_desc'))===1,'Unacknowledged committed deletion retains reserved cleanup metadata');native_attachment_shadow_recover(array('1'));kp_check(kd_files()===array(false,false),'Shadow recovery completes unacknowledged committed deletion');}$cases++;
   }
   foreach(array('same-id','shared-name')as$sharing){
    kd_file_fixture();if($sharing==='shared-name'){kp_sql("INSERT INTO fixture_attachments_desc(attach_id,physical_filename,real_filename,filesize,filetime,thumbnail) VALUES(2,'owned.txt','shared.txt',11,1,1)");}$id=$sharing==='same-id'?1:2;
@@ -130,7 +130,7 @@ function kp_delete_suite() {
   }
   kd_file_fixture();$reached=false;$kp_hook=function($event,$sql)use(&$reached){if($sql==='COMMIT'&&$event==='after'){$GLOBALS['kp_hook']=null;$reached=true;kp_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=1');}};
   $out=kd_run();$kp_hook=null;kp_check(is_array($out)&&$out['cleanup_pending']&&$reached&&kd_files()===array(true,true)&&!kp_rows('SELECT * FROM fixture_kb_articles'),'Rights revoked after confirmed commit cannot authorize physical cleanup');
-  kp_sql('UPDATE fixture_users SET user_level=1 WHERE user_id=1');attach_shadow_cleanup(array(),array('1'));kp_check(kd_files()===array(false,false),'Authorized later shadow cleanup recovers after postcommit revocation');$cases++;
+  kp_sql('UPDATE fixture_users SET user_level=1 WHERE user_id=1');native_attachment_shadow_recover(array('1'));kp_check(kd_files()===array(false,false),'Authorized later shadow cleanup recovers after postcommit revocation');$cases++;
   kd_file_fixture();kp_sql('CREATE TABLE fixture_delete_caller(marker INT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
   kp_check($GLOBALS['db']->sql_query('START TRANSACTION')&&$GLOBALS['db']->sql_query('INSERT INTO fixture_delete_caller VALUES(7)'),'Caller pending work');$out=kd_run();kp_check(is_array($out)&&kp_rows('SELECT * FROM fixture_delete_caller')===array(),'Owned deletion never commits unrelated caller work');
   $r=$GLOBALS['db']->sql_query('SELECT marker FROM fixture_delete_caller');$row=$GLOBALS['db']->sql_fetchrow($r);$GLOBALS['db']->sql_freeresult($r);kp_check((int)$row['marker']===7&&$GLOBALS['db']->sql_query('ROLLBACK')&&!kp_rows('SELECT * FROM fixture_kb_articles'),'Caller can roll back independently of confirmed KB deletion');kp_sql('DROP TABLE fixture_delete_caller');$cases++;
