@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Topic text downloads
 
+- Keep interactive quote controls out of text downloads, retain both the source
+  and destination of linked images, and separate unordered, numbered and nested
+  list items. Read complete HTML attributes without confusing data attributes or
+  quoted greater-than signs. Literal code stays untouched; incomplete controls,
+  anchors and parser failures reject the download before headers are sent.
+
 - Topic text exports preserve tabs, repeated spaces, UTF-8 and literal code,
   decode stored entities once, retain link/image destinations, and use localized
   headings plus safe Unicode download filenames. Unused profile/rank work is

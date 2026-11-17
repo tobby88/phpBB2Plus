@@ -95,4 +95,23 @@ try{
         $actual=hash_init('sha256');$bytes=hash_update_stream($actual,$r['stream']);nt_check($r['status']==='ok'&&$bytes===$r['bytes']&&$bytes>5242880&&hash_final($actual)===$expected,'Actual multi-megabyte stream has exact complete bytes/hash');nt_check(memory_get_usage(true)-$memory<4194304,'Large export retains bounded memory rather than whole topic');$cases++;
     }finally{fclose($r['stream']);}
     echo 'Topic export native: ',$cases,' cases, ',$faults,' SQL faults, ',$views," actual-controller/header views PASS; canonical SQL/current ACLs and sessions, coherent keyset pages, tombstones, caller isolation, bounded temp stream and exact download headers.\n";
+    $markup_cases=$markup_faults=0;$uid='abc1234567';
+    foreach(array('english','german')as$locale){foreach(array(false,true)as$logged){foreach(array('quote','linked-image','nested-list')as$kind){
+        ex_reset($locale);$userdata=$logged?ex_actor():array('user_id'=>-1,'user_level'=>USER,'session_logged_in'=>false);
+        $source=$kind==='quote'?'[quote:'.$uid.'="Fixture quote author"]Quote ä  text[/quote:'.$uid.']':($kind==='linked-image'?'[url=https://example.invalid/target][img:'.$uid.']https://example.invalid/source.png[/img:'.$uid.'][/url]':'[list:'.$uid.'][*:'.$uid.']Outer[list=1:'.$uid.'][*:'.$uid.']Inner[/list:o:'.$uid.'][*:'.$uid.']Last[/list:u:'.$uid.']');
+        ex_sql("UPDATE fixture_posts_text SET bbcode_uid='$uid',post_text='".$peer->sql_escape($source)."' WHERE post_id=1");$_GET=$_POST=array();$r=ex_controller();
+        nt_check($r['error']===''&&in_array('Content-Length: '.strlen($r['body']),$r['headers'],true),'Actual native markup export completes with exact byte header');
+        if($kind==='quote'){nt_check(strpos($r['body'],'Fixture quote author')!==false&&strpos($r['body'],'Quote ä  text')!==false,'Actual SQL/renderer/controller preserves attributed quote');foreach(array('Select','Contract','markieren','einklappen')as$label){nt_check(strpos($r['body'],$label)===false,'Native download omits interactive quote controls');}}
+        elseif($kind==='linked-image'){nt_check(strpos($r['body'],'https://example.invalid/source.png (https://example.invalid/target)')!==false,'Actual SQL/renderer/controller preserves both linked-image URLs');}
+        else{nt_check(strpos($r['body'],"- Outer\r\n  1. Inner\r\n- Last\r\n")!==false,'Actual SQL/renderer/controller keeps nested numbered list items separate');}
+        nt_check(strpos($r['body'],'DELETED_BODY_MUST_NOT_LEAK')===false&&substr_count($r['body'],$lang['Post_deleted_placeholder'])===1,'Markup download keeps the existing compact deletion policy');$markup_cases++;
+    }}}
+    foreach(array('english','german')as$locale){foreach(array('before','after')as$phase){
+        ex_reset($locale);$userdata=array('user_id'=>-1,'user_level'=>USER,'session_logged_in'=>false);$alias='Fixture '.$locale.' '.$phase.' quote';$source='[quote:'.$uid.'="'.$alias.'"]Visible quote[/quote:'.$uid.']';
+        ex_sql("UPDATE fixture_posts_text SET bbcode_uid='$uid',post_text='".$peer->sql_escape($source)."' WHERE post_id=1");$fired=false;$ex_hook=function($at,$query)use($phase,&$fired){if($at===$phase&&strpos($query,'SELECT n.author_user_id FROM ')===0){$fired=true;return false;}};
+        $_GET=$_POST=array();$saved_db=$db;$saved_user=$userdata;$r=ex_controller();$ex_hook=null;
+        nt_check($fired&&$r['error']===$lang['Topic_export_unavailable']&&$r['body']===''&&$r['headers']===array(),'Privacy lookup failure rejects the entire download before headers/body');
+        nt_check($db===$saved_db&&$userdata===$saved_user&&ex_rows('SELECT post_text FROM fixture_posts_text WHERE post_id=1')[0]['post_text']===$source,'Privacy fault restores caller and leaves original text unchanged');$markup_faults++;
+    }}
+    echo 'Topic export markup native: ',$markup_cases,' output cases, ',$markup_faults," privacy SQL faults PASS; real stored quotes, linked images and nested lists through the actual controller, exact headers, guest/member policies and no partial private output.\n";
 }finally{$ex_hook=null;if($db){$db->sql_close();}if($peer){$peer->sql_close();}if($made&&preg_match('/^codex_export_[a-f0-9]{16}$/D',$schema)){$control->sql_query('DROP DATABASE '.$schema);}if($control){$control->sql_close();}restore_error_handler();}

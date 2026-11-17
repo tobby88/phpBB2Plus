@@ -6,22 +6,97 @@ require_once dirname(__FILE__).'/bbcode.php';
 
 class PhpbbTopicExportFailure extends PhpbbForumReadFailure{}
 
+function phpbb_topic_export_attribute($tag, $name)
+{
+    // Match the complete attribute name, never data-href/data-src. Preserve its
+    // stored entity layer until the final text conversion.
+    $matched = preg_match('~(?:^|[\x20\t\r\n\f])' . preg_quote($name, '~')
+        . '\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))~i', $tag, $match);
+    if ($matched === false || preg_last_error() !== PREG_NO_ERROR) { throw new PhpbbTopicExportFailure('Topic_export_unavailable'); }
+    if (!$matched) { return null; }
+    foreach (array(1, 2, 3) as $index) {
+        if (isset($match[$index]) && $match[$index] !== '') { return $match[$index]; }
+    }
+    return '';
+}
+function phpbb_topic_export_line(&$text)
+{
+    if ($text !== '' && substr($text, -1) !== "\n") { $text .= "\n"; }
+}
+function phpbb_topic_export_list_label($number, $type)
+{
+    if ($type !== 'a' && $type !== 'A') { return $number . '. '; }
+    $label = '';
+    do { $number--; $label = chr(97 + $number % 26) . $label; $number = (int)floor($number / 26); } while ($number);
+    return ($type === 'A' ? strtoupper($label) : $label) . '. ';
+}
 function phpbb_topic_export_text($html)
 {
-    $html=preg_replace_callback('~<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))[^>]*>(.*?)</a\s*>~is',function($m){
-        $href=html_entity_decode($m[1]!==''?$m[1]:($m[2]!==''?$m[2]:$m[3]),ENT_QUOTES,'UTF-8');$label=strip_tags($m[4]);$plain=html_entity_decode($label,ENT_QUOTES,'UTF-8');
-        return $plain===$href||('mailto:'.$plain)===$href?$label:$label.' ('.htmlspecialchars($href,ENT_QUOTES,'UTF-8').')';
-    },(string)$html);
-    if($html===null){throw new PhpbbTopicExportFailure('Topic_export_unavailable');}
-    $html=preg_replace_callback('~<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))[^>]*>~is',function($m){return $m[1]!==''?$m[1]:($m[2]!==''?$m[2]:$m[3]);},$html);
-    if($html===null){throw new PhpbbTopicExportFailure('Topic_export_unavailable');}
-    $html=preg_replace('~<br\b[^>]*>|</(?:p|div|tr|table|blockquote|ul|ol|li|pre)\s*>~i',"\n",$html);
-    if($html===null){throw new PhpbbTopicExportFailure('Topic_export_unavailable');}
-    $html=preg_replace('~</(?:td|th)\s*>~i',"\t",$html);
-    if($html===null){throw new PhpbbTopicExportFailure('Topic_export_unavailable');}
-    $html=preg_replace('~<li\b[^>]*>~i','- ',$html);
-    if($html===null){throw new PhpbbTopicExportFailure('Topic_export_unavailable');}
-    return html_entity_decode(strip_tags($html),ENT_QUOTES,'UTF-8');
+    // Process rendered tags in order. An image inside a link must become its
+    // visible URL before the link label is compared with its destination.
+    // No DOM extension is required on the supported PHP versions.
+    $parts = preg_split('~(<!--.*?-->|<[/!a-z](?:[^>"\']|"[^"]*"|\'[^\']*\')*>)~is',
+        (string)$html, -1, PREG_SPLIT_DELIM_CAPTURE);
+    if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR) { throw new PhpbbTopicExportFailure('Topic_export_unavailable'); }
+    $text = ''; $anchors = $lists = array(); $controls = 0;
+    foreach ($parts as $index => $part) {
+        if ($index % 2 === 0) {
+            if (!$controls) { $text .= $part; }
+            continue;
+        }
+        $matched = preg_match('~^<(/?)([a-z][a-z0-9]*)\b~i', $part, $tag);
+        if ($matched === false || preg_last_error() !== PREG_NO_ERROR) { throw new PhpbbTopicExportFailure('Topic_export_unavailable'); }
+        if (!$matched) { continue; }
+        $closing = $tag[1] === '/'; $name = strtolower($tag[2]); $self_closing = substr($part, -2) === '/>';
+        if ($controls) {
+            if ($name === 'span') { $controls += $closing ? -1 : ($self_closing ? 0 : 1); }
+            continue;
+        }
+        if ($name === 'span' && !$closing && phpbb_topic_export_attribute($part, 'data-sxbb-controls') === '1') {
+            $controls = $self_closing ? 0 : 1;
+            continue;
+        }
+        if ($name === 'a') {
+            if (!$closing) {
+                if (count($anchors) >= 256) { throw new PhpbbTopicExportFailure('Topic_export_unavailable'); }
+                $anchors[] = array('start'=>strlen($text), 'href'=>phpbb_topic_export_attribute($part, 'href'));
+            } elseif ($anchors) {
+                $anchor = array_pop($anchors);
+                if ($anchor['href'] !== null && $anchor['href'] !== '') {
+                    $href = html_entity_decode($anchor['href'], ENT_QUOTES, 'UTF-8');
+                    $label = html_entity_decode(substr($text, $anchor['start']), ENT_QUOTES, 'UTF-8');
+                    if ($label === '') { $text .= htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); }
+                    elseif ($label !== $href && 'mailto:'.$label !== $href) { $text .= ' ('.htmlspecialchars($href, ENT_QUOTES, 'UTF-8').')'; }
+                }
+            }
+        } elseif ($name === 'img' && !$closing) {
+            $src = phpbb_topic_export_attribute($part, 'src');
+            if ($src === null || $src === '') { $src = phpbb_topic_export_attribute($part, 'alt'); }
+            if ($src !== null) { $text .= $src; }
+        } elseif (($name === 'ul' || $name === 'ol') && !$closing) {
+            if (count($lists) >= 256) { throw new PhpbbTopicExportFailure('Topic_export_unavailable'); }
+            phpbb_topic_export_line($text);
+            $lists[] = array('ordered'=>$name === 'ol', 'type'=>phpbb_topic_export_attribute($part, 'type'), 'number'=>0);
+        } elseif (($name === 'ul' || $name === 'ol') && $closing) {
+            if ($lists) { array_pop($lists); } phpbb_topic_export_line($text);
+        } elseif ($name === 'li') {
+            phpbb_topic_export_line($text);
+            if (!$closing) {
+                $last = count($lists) - 1; $label = '- ';
+                if ($last >= 0 && $lists[$last]['ordered']) {
+                    $lists[$last]['number']++;
+                    $label = phpbb_topic_export_list_label($lists[$last]['number'], $lists[$last]['type']);
+                }
+                $text .= str_repeat('  ', max(0, $last)) . $label;
+            }
+        } elseif ($name === 'br' && !$closing) { $text .= "\n"; }
+        elseif ($closing && in_array($name, array('p','div','tr','table','blockquote','pre'), true)) { $text .= "\n"; }
+        elseif ($closing && ($name === 'td' || $name === 'th')) { $text .= "\t"; }
+    }
+    // Reject an incomplete interactive control wrapper rather than silently
+    // consuming all following post content.
+    if ($controls || $anchors) { throw new PhpbbTopicExportFailure('Topic_export_unavailable'); }
+    return html_entity_decode($text, ENT_QUOTES, 'UTF-8');
 }
 function phpbb_topic_export_body($source,$uid)
 {
