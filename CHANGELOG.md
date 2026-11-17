@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### CrackerTracker privacy for nested URL queries
+
+- Hide session IDs, passwords and tokens inside encoded redirect/return URLs
+  and nested query values, as well as repeatedly encoded parameter names.
+  Keep harmless request context unchanged; excessive encoding depth and failed
+  privacy checks redact the outer value. This affects logging only, with no
+  changes to redirects, requests or existing log records.
+
 ### Atomic contact cooldowns in CrackerTracker storage
 
 - Replace per-request file cleanup/writes with an atomic sliding cooldown in

@@ -22,3 +22,4 @@ foreach (array($redacted, $url) as $value)
 	ct_redaction_assert(strpos($value, 'FakeSecret123') === false && strpos($value, 'FakeToken456') === false, 'query/referer fallback must never retain secret values');
 }
 echo "CrackerTracker redaction error tests passed.\n";
+require __DIR__ . '/ctracker-nested-query-fixture.php';

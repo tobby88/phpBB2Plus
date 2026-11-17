@@ -96,7 +96,15 @@ class log_manager
 
 	function sensitive_query_key($key)
 	{
-		$key = strtolower(rawurldecode(str_replace('+', ' ', (string) $key)));
+		$key = (string) $key;
+		for ($depth = 0; $depth < 8; $depth++)
+		{
+			$decoded = rawurldecode(str_replace('+', ' ', $key));
+			if ($decoded === $key) { break; }
+			$key = $decoded;
+		}
+		if ($depth === 8) { return true; }
+		$key = strtolower($key);
 		// Treat brackets, dots, dashes and other form-name separators alike so
 		// nested names such as account[token] cannot bypass redaction.
 		$key = preg_replace('/[^a-z0-9]+/', '_', $key);
@@ -107,6 +115,28 @@ class log_manager
 		$key = trim($key, '_');
 		// A failed privacy check must redact, never expose the original value.
 		return preg_match('/(?:^|_)(?:password|passwd|pass|sid|session(?:id)?|token|csrf|confirm(?:ation)?_?code|act(?:ivation)?_?key|reset_?key|api_?key|access_?key|autologinid|credential|secret|user_actkey)(?:$|_)/', $key) !== 0;
+	}
+
+	function sensitive_query_value($value)
+	{
+		// A redirect/return value may itself contain a query, including encoded
+		// separators and nested URLs. Inspect bounded decoding layers, then hide
+		// the whole outer value; never put a decoded credential back into a log.
+		for ($depth = 0; $depth < 8; $depth++)
+		{
+			$parts = preg_split('/[?&#;]/', $value);
+			if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR) { return true; }
+			foreach ($parts as $part)
+			{
+				$keys = explode('=', $part);
+				array_pop($keys);
+				foreach ($keys as $key) { if ($this->sensitive_query_key($key)) { return true; } }
+			}
+			$decoded = rawurldecode(str_replace('+', ' ', $value));
+			if ($decoded === $value) { return false; }
+			$value = $decoded;
+		}
+		return true;
 	}
 
 	function redact_query_string($query_string)
@@ -126,7 +156,7 @@ class log_manager
 		{
 			$separator = strpos($parts[$i], '=');
 			$key = ($separator === false) ? $parts[$i] : substr($parts[$i], 0, $separator);
-			if ($this->sensitive_query_key($key))
+			if ($this->sensitive_query_key($key) || ($separator !== false && $this->sensitive_query_value(substr($parts[$i], $separator + 1))))
 			{
 				$parts[$i] = $key . '=REDACTED';
 			}
