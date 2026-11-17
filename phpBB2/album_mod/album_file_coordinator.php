@@ -180,15 +180,41 @@ class AlbumFileCoordinator
 		if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { throw new AlbumFileCoordinatorFailure('Album operation requires modern transactional tables'); }
 	}
 
+	private function pin_many($connection, $tables)
+	{
+		// Open every participant first. These metadata locks last until this
+		// owned transaction ends, so the two dictionary reads see pinned layouts.
+		$this->rows($connection, 'SELECT 1 FROM ' . implode(',', $tables) . ' LIMIT 0');
+		$names = $expected = array();
+		foreach ($tables as $table) { $names[] = "'" . $table . "'"; $expected[strtolower($table)] = true; }
+		$scope = 'TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (' . implode(',', $names) . ')';
+		$rows = $this->rows($connection, 'SELECT TABLE_NAME,ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE ' . $scope . " AND TABLE_TYPE='BASE TABLE'");
+		if (count($rows) !== count($tables)) { throw new AlbumFileCoordinatorFailure('Album operation requires modern transactional tables'); }
+		foreach ($rows as $row)
+		{
+			if (!isset($row['TABLE_NAME'], $row['ENGINE'], $row['ROW_FORMAT'], $row['TABLE_COLLATION']) || !is_string($row['TABLE_NAME']) || !is_string($row['ROW_FORMAT'])) { throw new AlbumFileCoordinatorFailure('Album table metadata unavailable'); }
+			$name = strtolower($row['TABLE_NAME']);
+			if (!isset($expected[$name]) || $row['ENGINE'] !== 'InnoDB' || strtolower($row['ROW_FORMAT']) !== 'dynamic' || $row['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { throw new AlbumFileCoordinatorFailure('Album operation requires modern transactional tables'); }
+			unset($expected[$name]);
+		}
+		// One scoped columns read avoids rebuilding the same temporary
+		// dictionary tables for every Album participant. Binary columns have
+		// no character set and remain valid, exactly as in the single-table pin.
+		if ($expected || $this->rows($connection, 'SELECT TABLE_NAME FROM information_schema.COLUMNS WHERE ' . $scope . " AND CHARACTER_SET_NAME IS NOT NULL AND(CHARACTER_SET_NAME<>'utf8mb4' OR COLLATION_NAME<>'utf8mb4_unicode_ci') LIMIT 1"))
+		{
+			throw new AlbumFileCoordinatorFailure('Album operation requires modern transactional tables');
+		}
+	}
+
 	function begin()
 	{
 		$this->assert_lock();
 		if ($this->transaction || $this->journal_transaction || $this->finished) { throw new AlbumFileCoordinatorFailure('Album operation already started or finished'); }
 		$this->query($this->writer, 'START TRANSACTION'); $this->transaction = true;
-		foreach (array('users','sessions','user_group','album','album_cat','album_comment','album_rate','album_config','album_file_jobs','album_file_items') as $suffix)
-		{
-			$table = $this->prefix . $suffix; $this->pin($this->writer, $table); $this->tables[$table] = true;
-		}
+		$tables = array();
+		foreach (array('users','sessions','user_group','album','album_cat','album_comment','album_rate','album_config','album_file_jobs','album_file_items') as $suffix) { $tables[] = $this->prefix . $suffix; }
+		$this->pin_many($this->writer, $tables);
+		foreach ($tables as $table) { $this->tables[$table] = true; }
 		$this->ready = true;
 		return true;
 	}
@@ -249,7 +275,7 @@ class AlbumFileCoordinator
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $this->journal_transaction) { throw new AlbumFileCoordinatorFailure('Invalid prepared Album receipt transaction'); }
 		$this->query($this->journal, 'START TRANSACTION'); $this->journal_transaction = true;
-		foreach (array('album_file_jobs', 'album_file_items') as $suffix) { $this->pin($this->journal, $this->prefix . $suffix); }
+		$this->pin_many($this->journal, array($this->prefix . 'album_file_jobs', $this->prefix . 'album_file_items'));
 	}
 
 	function durable_query($sql)

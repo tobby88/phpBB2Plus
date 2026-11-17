@@ -291,6 +291,14 @@
       "commands": [
         "php -d disable_functions=mail -d memory_limit=16M .github/scripts/check-topic-export-native.php"
       ]
+    },
+    {
+      "name": "Check Album metadata participants and physical pins on MySQL",
+      "part": 2,
+      "sha256": "8855533701271a2a44b5b61ad453528326ccd2e450663a11deb6966f67a0a254",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-album-metadata-native.php"
+      ]
     }
   ]
 }

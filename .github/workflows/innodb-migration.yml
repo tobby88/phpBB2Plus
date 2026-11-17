@@ -240,6 +240,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native Album metadata participants and physical pins
+        if: matrix.part == 4
+        run: php -d disable_functions=mail .github/scripts/check-album-metadata-native.php
+        env:
+          PHPBB_ALBUM_METADATA_NATIVE: '1'
+          PHPBB_ALBUM_METADATA_PASSWORD: fixture-only
       - name: Check native topic text export and current reader authority
         if: matrix.part == 5
         run: php -d disable_functions=mail -d memory_limit=16M .github/scripts/check-topic-export-native.php
@@ -1909,6 +1915,13 @@ jobs:
           PHPBB_RECENT_NATIVE: '1'
           PHPBB_RECENT_PASSWORD: fixture-only
           PHPBB_RECENT_MYSQL: '8.4'
+      - name: Check Album metadata participants and physical pins on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-album-metadata-native.php
+        env:
+          PHPBB_ALBUM_METADATA_NATIVE: '1'
+          PHPBB_ALBUM_METADATA_PASSWORD: fixture-only
+          PHPBB_ALBUM_METADATA_MYSQL: '8.4'
       - name: Check attachment search and result forms on MySQL
         if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-attachment-search-native.php

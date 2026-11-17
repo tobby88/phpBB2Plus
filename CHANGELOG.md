@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album table metadata checks
+
+- Open all required tables before checking their metadata together, reducing
+  repeated dictionary scans during uploads, moderation and recovery. Transaction
+  metadata locks, InnoDB/DYNAMIC/utf8mb4 checks for every table and character
+  column, current schema reads and separate writer/journal ownership remain
+  required. Single optional authority tables keep their existing checks.
+  No schema migration or stored-data change is required.
+
 ### Topic text downloads
 
 - Keep interactive quote controls out of text downloads, retain both the source
