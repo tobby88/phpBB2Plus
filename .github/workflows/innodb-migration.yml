@@ -241,7 +241,7 @@ jobs:
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
       - name: Check native Album metadata participants and physical pins
-        if: matrix.part == 4
+        if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-album-metadata-native.php
         env:
           PHPBB_ALBUM_METADATA_NATIVE: '1'
