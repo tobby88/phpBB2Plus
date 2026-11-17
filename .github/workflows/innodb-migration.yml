@@ -240,6 +240,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native moderator bootstrap and forum-name initialization
+        if: matrix.part == 5
+        run: php .github/scripts/check-moderator-bootstrap.php
+        env:
+          PHPBB_MODERATOR_BOOTSTRAP_NATIVE: '1'
+          PHPBB_MODERATOR_BOOTSTRAP_PASSWORD: fixture-only
       - name: Check native Album picture moderation and deletion
         if: matrix.part == 6
         run: php .github/scripts/check-album-picture-delete-native.php

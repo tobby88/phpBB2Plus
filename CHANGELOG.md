@@ -15,6 +15,8 @@ changes consolidated after that baseline without implying active maintenance.
   without author, subject, body or attachment output. Retain their anchors.
 - Complete the review template's inline wrappers so the standalone review
   also shows its posts and both rendering modes have balanced tables.
+- Run moderator bootstrap checks on canonical MySQL/MariaDB tables instead
+  of the former incomplete SQLite fixture, retaining all six original cases.
 
 ### CrackerTracker privacy for nested URL queries
 
