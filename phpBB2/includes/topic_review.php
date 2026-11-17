@@ -25,8 +25,10 @@ function topic_review($topic_id, $is_inline_review)
 {
 	global $db, $board_config, $template, $lang, $images, $theme, $phpEx, $phpbb_root_path;
 	global $userdata, $user_ip;
+	global $is_auth;
 	global $orig_word, $replacement_word;
 	global $starttime;
+	require_once $phpbb_root_path . 'includes/functions_post_tombstone.php';
 	//-- mod : post icon -------------------------------------------------------------------------------
 //-- add
 	global $icones;
@@ -96,6 +98,7 @@ function topic_review($topic_id, $is_inline_review)
 		}
 	}
 
+	$review_auth = array('auth_view' => !empty($is_auth['auth_view']), 'auth_download' => !empty($is_auth['auth_download']));
 	//
 	// Define censored word matches
 	//
@@ -136,7 +139,7 @@ function topic_review($topic_id, $is_inline_review)
 	{
 		message_die(GENERAL_ERROR, 'Could not obtain post/user information', '', __LINE__, __FILE__, $sql);
 	}
-	init_display_review_attachments($is_auth);
+	init_display_review_attachments($review_auth);
 	//
 	// Okay, let's do the loop, yeah come on baby let's do the loop
 	// and it goes like this ...
@@ -149,6 +152,14 @@ function topic_review($topic_id, $is_inline_review)
 		$i = 0;
 		do
 		{
+			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
+			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
+			if (phpbb_post_is_deleted($row))
+			{
+				$template->assign_block_vars('postrow', array('IS_DELETED' => true, 'U_POST_ID' => (int) $row['post_id'], 'ROW_CLASS' => $row_class, 'DELETED_MESSAGE' => htmlspecialchars($lang['Post_deleted_placeholder'], ENT_QUOTES, 'UTF-8')));
+				$i++;
+				continue;
+			}
 			$poster_id = $row['user_id'];
 			$poster = $row['username'];
 
@@ -222,10 +233,8 @@ function topic_review($topic_id, $is_inline_review)
 			// Again this will be handled by the templating
 			// code at some point
 			//
-			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
 			$template->assign_block_vars('postrow', array(
+				'U_POST_ID' => (int) $row['post_id'],
 				'ROW_COLOR' => '#' . $row_color, 
 				'ROW_CLASS' => $row_class, 
 
@@ -237,7 +246,7 @@ function topic_review($topic_id, $is_inline_review)
 					
 				'L_MINI_POST_ALT' => $mini_post_alt)
 			);
-			display_review_attachments($row['post_id'], $row['post_attachment'], $is_auth);
+			display_review_attachments($row['post_id'], $row['post_attachment'], $review_auth);
 			$i++;
 		}
 		while ( $row = $db->sql_fetchrow($result) );

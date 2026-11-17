@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Moderator split and reply review previews
+
+- Use the actual topic title for replies without their own subject in the
+  moderator split preview, removing the undefined-variable warning.
+- Pass the current attachment permissions into inline reply reviews and
+  default missing flags to false. Deleted posts remain compact placeholders
+  without author, subject, body or attachment output. Retain their anchors.
+- Complete the review template's inline wrappers so the standalone review
+  also shows its posts and both rendering modes have balanced tables.
+
 ### CrackerTracker privacy for nested URL queries
 
 - Hide session IDs, passwords and tokens inside encoded redirect/return URLs

@@ -21,16 +21,18 @@ try{
   $lang=array();require $phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';
   $board_config=array('xs_use_cache'=>0,'xs_auto_compile'=>0,'xs_auto_recompile'=>0,'default_lang'=>$locale,'hide_removed_author_names'=>'1','default_dateformat'=>'Y-m-d H:i','board_timezone'=>0,'allow_html'=>0,'allow_bbcode'=>1,'allow_smilies'=>0);
   $userdata=array('user_id'=>$logged?7:-1,'session_logged_in'=>$logged);$theme=array('template_name'=>'fisubsilversh','td_color1'=>'ffffff','td_color2'=>'eeeeee','td_class1'=>'row1','td_class2'=>'row2');
-  $orig_word=$replacement_word=array();$topic_title='Fixture topic';$split_first_post_id=10;
+  $orig_word=$replacement_word=array();$topic_row=array('topic_title'=>'Fixture Grüße &amp; topic');$split_first_post_id=10;
   $postrow=array();foreach(array(10,20,30,40,50)as$id){$postrow[]=array('post_id'=>$id,'poster_id'=>-1,'username'=>'Anonymous','post_username'=>'','post_author_removed'=>'0','post_deleted'=>'0','post_time'=>1700000000,'post_subject'=>'Subject '.$id,'post_text'=>'Body '.$id.' Größe 😀','bbcode_uid'=>'','enable_html'=>0,'enable_smilies'=>0);}
   $postrow[0]['poster_id']=8;$postrow[0]['username']='Current Größe &amp; User';
   $postrow[1]['post_username']='Former Größe &amp; O&#039;Reilly';$postrow[1]['post_author_removed']='1';
   $postrow[2]['post_username']='Real Größe &amp; O&#039;Reilly';
+  $postrow[1]['post_subject']='';$postrow[3]['post_subject']='0';
   $postrow[4]['post_deleted']='1';$postrow[4]['username']='OLD_KEY_MUST_NOT_LEAK';$postrow[4]['post_username']='OLD_ALIAS_MUST_NOT_LEAK';$postrow[4]['post_text']='OLD_BODY_MUST_NOT_LEAK';$postrow[4]['post_subject']='OLD_SUBJECT_MUST_NOT_LEAK';
   $total_posts=count($postrow);$template=msp_template();eval($msp_loop);
   $rows=$template->_tpldata['postrow.'];msp_check(count($rows)===5,'one row per source post');
   $expected=array($postrow[0]['username'],$logged?$postrow[1]['post_username']:$lang['Former_member'],$postrow[2]['post_username'],$lang['Guest']);
   foreach($expected as$index=>$name){msp_check($rows[$index]['POSTER_NAME']===$name,'actual current/former/guest author labels');}
+  msp_check($rows[1]['POST_SUBJECT']===$topic_row['topic_title']&&$rows[3]['POST_SUBJECT']==='0','blank subject uses actual topic context; literal zero retained');
   msp_check(!empty($rows[4]['IS_DELETED'])&&isset($rows[4]['DELETED_MESSAGE'])&&$rows[4]['DELETED_MESSAGE']===htmlspecialchars($lang['Post_deleted_placeholder'],ENT_QUOTES,'UTF-8'),'controller produces compact deleted marker');
   msp_check(array_intersect(array('MESSAGE','POSTER_NAME','S_SPLIT_CHECKBOX','POST_DATE','POST_SUBJECT'),array_keys($rows[4]))===array(),'deleted controller skips stale body/identity/actions');
   ob_start();try{$template->pparse('split_body');$html=ob_get_contents();}finally{ob_end_clean();}

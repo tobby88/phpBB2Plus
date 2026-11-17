@@ -166,7 +166,7 @@ else
 //
 if ( !empty($topic_id) )
 {
-	$sql = "SELECT f.forum_id, f.forum_name, f.forum_topics
+	$sql = "SELECT t.topic_title, f.forum_id, f.forum_name, f.forum_topics
 		FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f
 		WHERE t.topic_id = " . $topic_id . "
 			AND f.forum_id = t.forum_id";
@@ -736,7 +736,7 @@ switch( $mode )
 
 					$bbcode_uid = $postrow[$i]['bbcode_uid'];
 					$message = $postrow[$i]['post_text'];
-					$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? $postrow[$i]['post_subject'] : $topic_title;
+					$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? $postrow[$i]['post_subject'] : $topic_row['topic_title'];
 
 					//
 					// If the board has HTML off but the post has HTML

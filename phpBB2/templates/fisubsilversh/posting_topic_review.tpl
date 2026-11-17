@@ -6,12 +6,16 @@
 </tr>
 <tr>
 <td class="row1">
+<!-- END switch_inline_mode -->
 <table border="0" cellpadding="3" cellspacing="1" width="100%" class="forumline">
 <tr>
 <th width="22%">{L_AUTHOR}</th>
 <th>{L_MESSAGE}</th>
 </tr>
 <!-- BEGIN postrow -->
+<!-- IF !empty(postrow.IS_DELETED) -->
+<tr><td colspan="2" class="{postrow.ROW_CLASS}"><a name="{postrow.U_POST_ID}" id="{postrow.U_POST_ID}"></a><span class="gensmall">{postrow.DELETED_MESSAGE}</span></td></tr>
+<!-- ELSE -->
 <tr>
 <td width="22%" valign="top" class="{postrow.ROW_CLASS}"><span class="name"><a name="{postrow.U_POST_ID}" id="{postrow.U_POST_ID}"></a>{postrow.POSTER_NAME}</span>
 <br />
@@ -30,8 +34,14 @@
 </table>
 </td>
 </tr>
+<!-- ENDIF -->
 <tr>
 <td colspan="2" height="1" class="spacerow"><img src="images/spacer.gif" alt="" width="1" height="1" /></td>
 </tr>
 <!-- END postrow -->
 </table>
+<!-- BEGIN switch_inline_mode -->
+</td>
+</tr>
+</table>
+<!-- END switch_inline_mode -->
