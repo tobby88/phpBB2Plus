@@ -283,6 +283,14 @@
       "commands": [
         "php .github/scripts/check-recent-topics-native.php"
       ]
+    },
+    {
+      "name": "Check topic text export and current reader authority on MySQL",
+      "part": 2,
+      "sha256": "bac4e6345ca44dd24632ebabaf70645b83bf6f69cac9c5e6bbd089f2309ef80f",
+      "commands": [
+        "php -d disable_functions=mail -d memory_limit=16M .github/scripts/check-topic-export-native.php"
+      ]
     }
   ]
 }

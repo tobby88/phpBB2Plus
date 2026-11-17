@@ -37,276 +37,34 @@ if (phpbb_request_scalar($_GET, POST_POST_URL) !== '')
    $post_id = intval(phpbb_request_scalar($_GET, POST_POST_URL));
 }
 
-$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
-
 if (!$topic_id && !$post_id)
 {
    message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 }
 
-//
-// This rather complex gaggle of code handles querying for topics but
-// also allows for direct linking to a post (and the calculation of which
-// page the post is on and the correct display of viewtopic)
-//
-$join_sql_table = (!$post_id) ? '' : ", " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2 ";
-$join_sql = (!$post_id) ? "t.topic_id = $topic_id" : "p.post_id = $post_id AND t.topic_id = p.topic_id AND p2.topic_id = p.topic_id AND p2.post_id <= $post_id";
-$count_sql = (!$post_id) ? '' : ", COUNT(p2.post_id) AS prev_posts";
-
-$order_sql = (!$post_id) ? '' : "GROUP BY p.post_id, t.topic_id, t.topic_title, t.topic_status, t.topic_replies, t.topic_time, t.topic_type, t.topic_vote, f.forum_name, f.forum_status, f.forum_id, f.auth_view, f.auth_read, f.auth_post, f.auth_reply, f.auth_edit, f.auth_delete, f.auth_sticky, f.auth_announce, f.auth_pollcreate, f.auth_vote, f.auth_attachments ORDER BY p.post_id ASC";
-
-$sql = "SELECT t.topic_id, t.topic_title, t.topic_status, t.topic_replies, t.topic_time, t.topic_type, t.topic_vote, f.forum_name, f.forum_status, f.forum_id, f.auth_view, f.auth_read, f.auth_post, f.auth_reply, f.auth_edit, f.auth_delete, f.auth_sticky, f.auth_announce, f.auth_pollcreate, f.auth_vote, f.auth_attachments" . $count_sql . "
-   FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f" . $join_sql_table . "
-   WHERE $join_sql
-      AND f.forum_id = t.forum_id
-      $order_sql";
-if ( !($result = $db->sql_query($sql)) )
-{
-   message_die(GENERAL_ERROR, "Could not obtain topic information", '', __LINE__, __FILE__, $sql);
+// Resolve the forum for session startup. The exporter re-reads this context
+// and its current permissions in its own snapshot; this is not an ACL cache.
+$lookup=$post_id?'p.post_id='.$post_id:'t.topic_id='.$topic_id;
+$join=$post_id?' JOIN '.POSTS_TABLE.' p ON p.topic_id=t.topic_id AND p.forum_id=t.forum_id':'';
+$sql='SELECT t.topic_id,f.forum_id FROM '.TOPICS_TABLE.' t JOIN '.FORUMS_TABLE.' f ON f.forum_id=t.forum_id'.$join.' WHERE '.$lookup;
+$result=$db->sql_query($sql);if(!$result){message_die(GENERAL_ERROR,$lang['Topic_export_unavailable']);}
+$initial=$db->sql_fetchrow($result);$db->sql_freeresult($result);if(!$initial){message_die(GENERAL_MESSAGE,$lang['Topic_post_not_exist']);}
+$userdata=session_pagestart($user_ip,(int)$initial['forum_id']);init_userprefs($userdata);
+$direction=strtolower(phpbb_request_scalar($_POST,'postorder',phpbb_request_scalar($_GET,'postorder','asc')))==='desc'?'DESC':'ASC';
+require_once $phpbb_root_path.'includes/functions_topic_export.'.$phpEx;
+try{$archive=phpbb_topic_export($db,$userdata,$topic_id,$post_id,$direction);}
+catch(Exception$error){$key=$error instanceof PhpbbTopicExportFailure&&$error->getMessage()==='Topic_export_too_large'?'Topic_export_too_large':'Topic_export_unavailable';message_die(GENERAL_ERROR,$lang[$key]);}
+catch(Error$error){message_die(GENERAL_ERROR,$lang['Topic_export_unavailable']);}
+if($archive['status']!=='ok'){
+    if($archive['status']==='denied'&&empty($userdata['session_logged_in'])){$target=$post_id?POST_POST_URL.'='.$post_id:POST_TOPIC_URL.'='.$topic_id;redirect(append_sid("login.$phpEx?redirect=viewtopic.$phpEx&".$target,true));}
+    message_die(GENERAL_MESSAGE,$lang['Topic_post_not_exist']);
 }
-
-if ( !($forum_row = $db->sql_fetchrow($result)) )
-{
-   message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
-}
-
-$forum_id = intval($forum_row['forum_id']);
-
-//
-// Start session management
-//
-$userdata = session_pagestart($user_ip, $forum_id);
-init_userprefs($userdata);
-//
-// End session management
-//
-
-//
-// Start auth check
-//
-$is_auth = array();
-$is_auth = auth(AUTH_ALL, $forum_id, $userdata, $forum_row);
-
-if( !$is_auth['auth_view'] || !$is_auth['auth_read'] )
-{
-   if ( !$userdata['session_logged_in'] )
-   {
-      $redirect = ($post_id) ? POST_POST_URL . "=$post_id" : POST_TOPIC_URL . "=$topic_id";
-      $redirect .= ($start) ? "&start=$start" : '';
-	redirect(append_sid("login.$phpEx?redirect=viewtopic.$phpEx&$redirect", true));
-   }
-
-   $message = ( !$is_auth['auth_view'] ) ? $lang['Topic_post_not_exist'] : sprintf($lang['Sorry_auth_read'], $is_auth['auth_read_type']);
-
-   message_die(GENERAL_MESSAGE, $message);
-}
-//
-// End auth check
-//
-
-$forum_name = $forum_row['forum_name'];
-$topic_title = $forum_row['topic_title'];
-$topic_id = $forum_row['topic_id'];
-$topic_time = $forum_row['topic_time'];
-
-if ($post_id)
-{
-   $start = floor(($forum_row['prev_posts'] - 1) / $board_config['posts_per_page']) * $board_config['posts_per_page'];
-}
-
-// Decide how to order the post display
-//
-if (phpbb_request_scalar($_POST, 'postorder') !== '' || phpbb_request_scalar($_GET, 'postorder') !== '')
-{
-	$post_order = phpbb_request_scalar($_POST, 'postorder', phpbb_request_scalar($_GET, 'postorder', 'asc'));
-	$post_time_order = ($post_order == "asc") ? "ASC" : "DESC";
-}
-else
-
-{
-   $post_order = 'asc';
-   $post_time_order = 'ASC';
-}
-
-$select_post_order = '<select name="postorder">';
-if ( $post_time_order == 'ASC' )
-{
-   $select_post_order .= '<option value="asc" selected="selected">' . $lang['Oldest_First'] . '</option><option value="desc">' . $lang['Newest_First'] . '</option>';
-}
-else
-{
-   $select_post_order .= '<option value="asc">' . $lang['Oldest_First'] . '</option><option value="desc" selected="selected">' . $lang['Newest_First'] . '</option>';
-}
-$select_post_order .= '</select>';
-
-
-//
-// Hlavicka
-//
-
-$soubor = "Forum:\t$forum_name\r\n";
-$soubor .= "Téma:\t$topic_title\r\n";
-for ($c=0; $c < strlen ($topic_title);$c++) $soubor .= "-";
-$soubor .= "--------\r\n";
-
-$limit_posts_time = '';
-
-//
-// END
-//
-
-//
-// Go ahead and pull all data for this topic
-//
-$sql = "SELECT u.username, u.user_id, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
-   FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt
-   WHERE p.topic_id = $topic_id
-      $limit_posts_time
-      AND pt.post_id = p.post_id
-      AND u.user_id = p.poster_id
-   ORDER BY p.post_time $post_time_order";
-if ( !($result = $db->sql_query($sql)) )
-{
-   message_die(GENERAL_ERROR, "Could not obtain post/user information.", '', __LINE__, __FILE__, $sql);
-}
-
-$postrow = array();
-if ( $row = $db->sql_fetchrow($result) )
-{
-   do
-   {
-      $postrow[] = $row;
-   }
-   while ( $row = $db->sql_fetchrow($result) );
-   $db->sql_freeresult($result);
-
-   $total_posts = count($postrow);
-}
-else
-{
-   message_die(GENERAL_MESSAGE, $lang['No_posts_topic']);
-}
-
-$sql = "SELECT *
-   FROM " . RANKS_TABLE . "
-   ORDER BY rank_special, rank_min";
-if ( !($result = $db->sql_query($sql)) )
-{
-   message_die(GENERAL_ERROR, "Could not obtain ranks information.", '', __LINE__, __FILE__, $sql);
-}
-
-$ranksrow = array();
-while ( $row = $db->sql_fetchrow($result) )
-{
-   $ranksrow[] = $row;
-}
-$db->sql_freeresult($result);
-
-for($i = 0; $i < $total_posts; $i++) {
-   if (phpbb_post_is_deleted($postrow[$i]))
-   {
-      $soubor .= "\r\n" . $lang['Post_deleted_placeholder'] . "\r\n";
-      continue;
-   }
-   $poster_id = $postrow[$i]['user_id'];
-
-   $poster = ( $poster_id == ANONYMOUS ) ? $lang['Guest'] : $postrow[$i]['username'];
-
-   $post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);
-
-   $poster_posts = ( $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $postrow[$i]['user_posts'] : '';
-
-   $poster_from = ( phpbb_profile_details_visible() && $postrow[$i]['user_from'] && $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($postrow[$i]['user_from']) : '';
-
-   $poster_joined = ( $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $postrow[$i]['user_regdate'], $board_config['board_timezone']) : '';
-
-   //
-   // Handle anon users posting with usernames
-   //
-   if ( $poster_id == ANONYMOUS && $postrow[$i]['post_username'] != '' )
-   {
-      $poster = phpbb_post_author_name($postrow[$i]);
-      $poster_rank = phpbb_author_privacy_guest() && !empty($postrow[$i]['post_author_removed']) ? phpbb_former_author_label() : $lang['Guest'];
-   }
-
-   $temp_url = '';
-
-   $post_subject = ( $postrow[$i]['post_subject'] != '' ) ? $postrow[$i]['post_subject'] : '';
-
-   $message = $postrow[$i]['post_text'];
-   $bbcode_uid = $postrow[$i]['bbcode_uid'];
-
-   $user_sig = ( $postrow[$i]['enable_sig'] && $postrow[$i]['user_sig'] != '' && $board_config['allow_sig'] ) ? $postrow[$i]['user_sig'] : '';
-   $user_sig_bbcode_uid = $postrow[$i]['user_sig_bbcode_uid'];
-
-	//
-	// Note! The order used for parsing the message _is_ important, moving things around could break any
-	// output
-	//
-
-	//
-	// If the board has HTML off but the post has HTML
-	// on then we process it, else leave it alone
-	//
-	if ( !$board_config['allow_html'] || !$userdata['user_allowhtml'])
-	{
-		if ( $user_sig != '' )
-		{
-			$user_sig = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig);
-		}
-
-		if ( $postrow[$i]['enable_html'] )
-		{
-			$message = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $message);
-		}
-	}
-
-	//
-	// Parse message and/or sig for BBCode if reqd
-	//
-	if ($user_sig != '' && $user_sig_bbcode_uid != '')
-	{
-		$user_sig = ($board_config['allow_bbcode']) ? bbencode_second_pass($user_sig, $user_sig_bbcode_uid) : preg_replace("/\:$user_sig_bbcode_uid/si", '', $user_sig);
-	}
-
-	if ($bbcode_uid != '')
-	{
-		$message = ($board_config['allow_bbcode']) ? bbencode_second_pass($message, $bbcode_uid) : preg_replace("/\:$bbcode_uid/si", '', $message);
-	}
-
-	if ( $user_sig != '' )
-	{
-		$user_sig = make_clickable($user_sig);
-	}
-	$message = make_clickable($message);
-
-   $message = strip_tags($message);
-   $message = str_replace("  ", "", $message);
-   $message = str_replace("\t", "", $message);
-   $message = str_replace("\r\n\r\n", "\r\n", $message);
-   $message = str_replace("\r\r \r", "", $message);
-   $message = str_replace("\r\r", "", $message);
- //  $message = str_replace("\n", "\n<br />\n", $message);
-   $soubor .= "\r\n$poster:\r\n";
-   $soubor .= "$message\r\n";
-}
-
-$search = array( 'Ö',  'Ä',  'Ü',  'ö',  'ä',  'à', 'é', 'è', 'ü', '$','\\','/', '---');
-$replace = array( 'oe', 'ae', 'ue', 'oe', 'ae', 'a', 'e', 'e', 'ue', '-', '-', '-', '-');
-$filename = str_replace(array(',', ':', "'", '´', '`', '"', '/', '-', '#', '_'), '-', $topic_title);
-$filename = preg_replace('/ +/', '-', $filename);
-$filename = str_ireplace('&amp', '-and-', $filename);
-$filename = str_replace(array('!', '?', '(', ')', ';', '[', ']'), '', $filename);
-$filename = str_replace('&', '-and-', $filename);
-$filename = preg_replace('/-+/', '-', $filename);
-$filename = str_replace ($search, $replace, $filename);
-$filename = preg_replace('/[^a-z0-9._-]+/i', '-', str_replace(array("\r", "\n", "\0"), '', $filename));
-$filename = trim(substr($filename, 0, 180), '.-_');
-$filename = ($filename !== '' ? $filename : 'topic') . '.txt';
-   header('Cache-Control: private, no-store');
-   header('X-Content-Type-Options: nosniff');
-   header('Content-Type: text/plain; charset=UTF-8');
-   header("Content-Length: ".strlen($soubor));
-   header('Content-Disposition: attachment; filename="' . $filename . '"');
-echo $soubor;
+try{
+    header('Cache-Control: private, no-store');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: text/plain; charset=UTF-8');
+    header('Content-Length: '.$archive['bytes']);
+    header('Content-Disposition: '.$archive['disposition']);
+    fpassthru($archive['stream']);
+}finally{fclose($archive['stream']);}
 ?>

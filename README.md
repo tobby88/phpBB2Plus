@@ -34,6 +34,13 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Topic text export
+
+Topic text downloads preserve UTF-8, indentation and literal code. They use the
+current reader's forum permissions and former-author policy. The output is
+prepared in a temporary stream (spilling to disk above 2 MiB) before download,
+with a 64 MiB output limit. PHP's temporary directory must therefore be writable.
+
 ## Former-account author display
 
 For logged-out visitors, classified deleted-account authors appear as **Former

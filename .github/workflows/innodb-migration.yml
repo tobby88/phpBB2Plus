@@ -240,6 +240,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native topic text export and current reader authority
+        if: matrix.part == 5
+        run: php -d disable_functions=mail -d memory_limit=16M .github/scripts/check-topic-export-native.php
+        env:
+          PHPBB_TOPIC_EXPORT_NATIVE: '1'
+          PHPBB_TOPIC_EXPORT_PASSWORD: fixture-only
       - name: Check native recent topic periods and coherent pages
         if: matrix.part == 5
         run: php .github/scripts/check-recent-topics-native.php
@@ -1889,6 +1895,13 @@ jobs:
           PHPBB_ATTACH_ADMIN_ROWS_NATIVE: '1'
           PHPBB_ATTACH_ADMIN_ROWS_PASSWORD: fixture-only
           PHPBB_ATTACH_ADMIN_ROWS_MYSQL: '8.4'
+      - name: Check topic text export and current reader authority on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail -d memory_limit=16M .github/scripts/check-topic-export-native.php
+        env:
+          PHPBB_TOPIC_EXPORT_NATIVE: '1'
+          PHPBB_TOPIC_EXPORT_PASSWORD: fixture-only
+          PHPBB_TOPIC_EXPORT_MYSQL: '8.4'
       - name: Check recent topic periods and coherent pages on MySQL
         if: matrix.part == 2
         run: php .github/scripts/check-recent-topics-native.php

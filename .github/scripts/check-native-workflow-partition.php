@@ -7,7 +7,7 @@ function native_workflow_block_hash($source)
 function native_mysql_workflow_partition($source)
 {
 	$inventory = json_decode(file_get_contents(dirname(__DIR__).'/fixtures/mysql-workflow-inventory.json'), true);
-	if (!is_array($inventory) || $inventory['version'] !== 1 || count($inventory['setup']) !== 2 || count($inventory['steps']) !== 33) { throw new RuntimeException('Complete reviewed MySQL inventory required'); }
+	if (!is_array($inventory) || $inventory['version'] !== 1 || count($inventory['setup']) !== 2 || count($inventory['steps']) !== 34) { throw new RuntimeException('Complete reviewed MySQL inventory required'); }
 	$start = strpos($source, "    steps:\n");
 	if ($start === false || native_workflow_block_hash(substr($source, 0, $start + strlen("    steps:\n"))) !== $inventory['header_sha256']) { throw new RuntimeException('Reviewed two-part MySQL matrix, service and setup required'); }
 	$expected = array(); foreach ($inventory['steps'] as $step) { $expected[$step['name']] = $step; }
@@ -30,7 +30,7 @@ function native_mysql_workflow_partition($source)
 		if ($commands !== $original['commands']) { throw new RuntimeException('Complete original MySQL command inventory required'); }
 		$seen[$name[1]] = true; $parts[$part]++;
 	}
-	if ($setup !== 2 || count($seen) !== 33 || count($expected) !== 33 || min($parts) < 1) { throw new RuntimeException('Both MySQL parts must retain all33 reviewed suites'); }
+	if ($setup !== 2 || count($seen) !== 34 || count($expected) !== 34 || min($parts) < 1) { throw new RuntimeException('Both MySQL parts must retain all34 reviewed suites'); }
 	return $parts;
 }
 function native_workflow_partition($source)

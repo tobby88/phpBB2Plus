@@ -1,4 +1,7 @@
 <?php
+$lang['Topic_export_unavailable'] = 'The topic export could not be created. Please try again.';
+$lang['Topic_export_too_large'] = 'This topic exceeds the text export size limit (64 MiB).';
+
 $lang['Login_changed'] = 'Your login could not be confirmed. Please submit the form again.';
 $lang['Moderation_delete_unconfirmed'] = 'The deletion could not be confirmed. Check the current topics before retrying. Attachment files were not removed by this request.';
 $lang['Moderation_storage_upgrade'] = 'This operation requires the current InnoDB/utf8mb4 database format. An administrator must complete the database updates first.';

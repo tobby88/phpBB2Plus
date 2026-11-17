@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Topic text downloads
+
+- Topic text exports preserve tabs, repeated spaces, UTF-8 and literal code,
+  decode stored entities once, retain link/image destinations, and use localized
+  headings plus safe Unicode download filenames. Unused profile/rank work is
+  removed. Current sessions, forum ACLs, topic location and ordered post batches
+  share an independent read-only snapshot. Deleted posts remain compact markers;
+  former-author bylines and quote headers follow the viewer policy. Downloads
+  use a bounded temporary stream and fail before headers on query/write errors
+  or the documented 64 MiB output limit. No schema migration is required.
+
 ### Recent topic periods, coherent pages and authors
 
 - Use fixed-offset forum/user calendar boundaries for today and yesterday,

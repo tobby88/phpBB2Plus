@@ -43,11 +43,15 @@ try{
  }
  foreach(array(true,1,'1',false,0,'0',null,'false',2,array())as$flag){$userdata=array('session_logged_in'=>$flag);pgv_check(phpbb_profile_details_visible()===in_array($flag,array(true,1,'1'),true),'Only authenticated viewer flags enable personal details');}
  // Execute the actual location expression from each public renderer.
- $surfaces=array('viewtopic.php','album_showpage.php','export.php','groupcp.php','topic_view_users.php','includes/functions_kb.php','shoutbox_max.php','staff.php','pafiledb/includes/functions_comment.php');
+ $surfaces=array('viewtopic.php','album_showpage.php','groupcp.php','topic_view_users.php','includes/functions_kb.php','shoutbox_max.php','staff.php','pafiledb/includes/functions_comment.php');
  $lang=array('Location'=>'Location');$i=0;$registered=true;$row=$staff=array('user_from'=>'private-location-needle');$postrow=$commentrow=array(array('user_from'=>'private-location-needle','user_id'=>42));$comments_row=$shout_row=array('user_from'=>'private-location-needle','user_id'=>42);
  foreach($surfaces as$path){$lines=preg_split('/\r?\n/',file_get_contents($phpbb_root_path.$path));$found=array();foreach($lines as$line){if(strpos($line,"['user_from']")!==false&&strpos($line,'phpbb_profile_text')!==false){$found[]=$line;}}pgv_check(count($found)===1,'Actual location renderer: '.$path);$line=trim($found[0]);
   foreach(array(false,true)as$logged){$userdata=array('session_logged_in'=>$logged);if($line[0]==="'"){$value=eval('return array('.$line.');');$value=reset($value);}else{$poster_from=$from=$user_from='';eval($line);$value=$poster_from.$from.$user_from;}pgv_check((strpos($value,'private-location-needle')!==false)===$logged,'Location visibility on '.$path);}
  }
+ // Text exports no longer compute unused profile fields. Exercise the real
+ // row formatter with a distinctive location instead of a dead assignment.
+ require_once$phpbb_root_path.'includes/functions_topic_export.php';
+ foreach(array(false,true)as$logged){$userdata=array('session_logged_in'=>$logged);$board_config['allow_bbcode']=0;$out=phpbb_topic_export_row(array('post_deleted'=>0,'user_id'=>42,'poster_id'=>42,'username'=>'Member','user_from'=>'private-location-needle','post_text'=>'Visible text','bbcode_uid'=>''));pgv_check(strpos($out,'private-location-needle')===false&&strpos($out,'Visible text')!==false,'Actual export omits unused profile locations for guests and members');}
  restore_error_handler();echo 'Profile guest visibility: ',$pgv_cases," actual-controller/Extreme-Styles/contact/location/preference cases PASS; no database or account changes.\n";
 }finally{restore_error_handler();}
 
