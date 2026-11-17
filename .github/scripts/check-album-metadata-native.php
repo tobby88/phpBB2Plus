@@ -54,7 +54,7 @@ try{
  $source->trace=array();am_check(am_attempt(null,true),'Actual successful baseline');$trace=$source->trace;
  // Actual transport failures at each of the grouped physical/table/column
  // statements, for BOTH writer and journal, preserve the caller and allow retry.
- $targets=array();foreach($trace as$i=>$sql){if(strpos($sql,'SELECT 1 FROM fixture_')===0||strpos($sql,'SELECT TABLE_NAME,ENGINE,ROW_FORMAT,TABLE_COLLATION ')===0||strpos($sql,'SELECT TABLE_NAME FROM information_schema.COLUMNS ')===0){$targets[]=$i;}}am_check(count($targets)===6,'Exactly three fresh statements on each owned transaction');
+ $targets=array();foreach($trace as$i=>$sql){if(strpos($sql,'SELECT * FROM fixture_')===0||strpos($sql,'SELECT TABLE_NAME,ENGINE,ROW_FORMAT,TABLE_COLLATION ')===0||strpos($sql,'SELECT TABLE_NAME FROM information_schema.COLUMNS ')===0){$targets[]=$i;}}am_check(count($targets)===6,'Exactly three fresh statements on each owned transaction');
  foreach(array('before','after')as$phase){foreach($targets as$target){$at=0;$source->hook=function($when,$sql)use($phase,$target,&$at){if($when!==$phase){return;}return$at++===$target?false:null;};try{am_check(!am_attempt(null,true),'Every grouped SQL boundary fails honestly');$faults++;}finally{$source->hook=null;}am_check(am_attempt(null,true),'Fresh operation works after the injected failure');}}
  // A real peer attempts DDL between the dictionary reads for EACH initially
  // opened table. Even empty tables must stay pinned, not only the first one.

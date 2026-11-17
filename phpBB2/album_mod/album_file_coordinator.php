@@ -184,7 +184,9 @@ class AlbumFileCoordinator
 	{
 		// Open every participant first. These metadata locks last until this
 		// owned transaction ends, so the two dictionary reads see pinned layouts.
-		$this->rows($connection, 'SELECT 1 FROM ' . implode(',', $tables) . ' LIMIT 0');
+		// Keep the original all-column SELECT privilege check as well; a
+		// column-restricted connection must not hide a bad column from COLUMNS.
+		$this->rows($connection, 'SELECT * FROM ' . implode(',', $tables) . ' LIMIT 0');
 		$names = $expected = array();
 		foreach ($tables as $table) { $names[] = "'" . $table . "'"; $expected[strtolower($table)] = true; }
 		$scope = 'TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (' . implode(',', $names) . ')';
