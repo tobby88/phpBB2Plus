@@ -13,6 +13,7 @@ $phpbb_root_path = './';
 include($phpbb_root_path .'extension.inc');
 include($phpbb_root_path .'common.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
+require_once $phpbb_root_path.'includes/functions_recent_topics.'.$phpEx;
 
 $userdata = session_pagestart($user_ip, PAGE_RECENT);
 init_userprefs($userdata);
@@ -67,84 +68,21 @@ $db->sql_freeresult($result_auth);
 $is_auth_ary = array();
 $is_auth_ary = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
 
-$except_forums = array();
-for( $f = 0; $f < count($forums); $f++ )
-{
-	$current_forum_id = intval($forums[$f]['forum_id']);
-	if (!isset($is_auth_ary[$current_forum_id]) || !$is_auth_ary[$current_forum_id]['auth_read'] || !$is_auth_ary[$current_forum_id]['auth_view'])
-	{
-		$except_forums[] = $current_forum_id;
-	}
-}
+$allowed_forums = array();
+foreach($forums as$forum){$id=(int)$forum['forum_id'];if(isset($is_auth_ary[$id])&&!empty($is_auth_ary[$id]['auth_read'])&&!empty($is_auth_ary[$id]['auth_view'])){$allowed_forums[]=$id;}}
+if($special_forums){$allowed_forums=array_values(array_intersect($allowed_forums,array_map('intval',explode(',',phpbb_sql_id_list($forum_ids)))));}
+try{
+    $period=phpbb_recent_period($mode,$amount_days,time(),$board_config['board_timezone']);
+    $recent_page=phpbb_recent_topics($db,$allowed_forums,$period,$start,$topic_limit);
+}catch(Exception$error){message_die(GENERAL_ERROR,'Could not obtain recent topic information.');}
+catch(Error$error){message_die(GENERAL_ERROR,'Could not obtain recent topic information.');}
+$line=$recent_page['rows'];$total_topics=$recent_page['total'];$start=$recent_page['start'];
+$status_keys=array('today'=>'Recent_today','yesterday'=>'Recent_yesterday','last24'=>'Recent_last24','lastweek'=>'Recent_lastweek','lastXdays'=>'Recent_lastXdays');
+$title_keys=array('today'=>'Recent_title_today','yesterday'=>'Recent_title_yesterday','last24'=>'Recent_title_last24','lastweek'=>'Recent_title_lastweek','lastXdays'=>'Recent_title_lastXdays');
+$status=$lang[$status_keys[$mode]];$l_mode=$lang[$title_keys[$mode]];
+if($mode==='lastXdays'){$status=sprintf($status,$amount_days);$l_mode=sprintf($l_mode,$amount_days);}
+$template->assign_vars(array('STATUS'=>$status));
 
-$except_forums_sql = phpbb_sql_id_list($except_forums);
-$where_forums = 't.forum_id NOT IN (' . $except_forums_sql . ')';
-if ($special_forums)
-{
-	$where_forums .= ' AND t.forum_id IN (' . phpbb_sql_id_list($forum_ids) . ')';
-}
-$sql_start = "SELECT t.*, p.poster_id, p.post_username AS last_poster_name, p.post_author_removed AS last_poster_removed, p.post_id, p.post_time, f.forum_name, f.forum_id, u.username AS last_poster, u.user_id AS last_poster_id, u2.username AS first_poster, u2.user_id AS first_poster_id, p2.post_username AS first_poster_name, p2.post_author_removed AS first_poster_removed
-	        FROM (". TOPICS_TABLE ." t, ". POSTS_TABLE ." p)
-		LEFT OUTER JOIN ". POSTS_TABLE ." p2 ON (p2.post_id = t.topic_first_post_id)
-		LEFT OUTER JOIN ". FORUMS_TABLE ." f ON (f.forum_id = p.forum_id )
-		LEFT OUTER JOIN ". USERS_TABLE ." u ON (u.user_id = p.poster_id)
-		LEFT OUTER JOIN ". USERS_TABLE ." u2 ON (u2.user_id = t.topic_poster)
-	        WHERE $where_forums AND p.post_id = t.topic_last_post_id AND ";
-$sql_end = "  ORDER BY t.topic_last_post_id DESC LIMIT " . intval($start) . ", " . intval($topic_limit);
-
-switch( $mode )
-{
-	case 'today':
-		$sql = $sql_start ."FROM_UNIXTIME(p.post_time,'%Y%m%d') - FROM_UNIXTIME(unix_timestamp(NOW()),'%Y%m%d') = 0". $sql_end;
-		$template->assign_vars(array('STATUS' => $lang['Recent_today']));
-		$where_count = "$where_forums AND FROM_UNIXTIME(p.post_time,'%Y%m%d') - FROM_UNIXTIME(unix_timestamp(NOW()),'%Y%m%d') = 0";
-		$l_mode = $lang['Recent_title_today'];
-		break;
-
-	case 'yesterday':
-		$sql = $sql_start ."FROM_UNIXTIME(p.post_time,'%Y%m%d') - FROM_UNIXTIME(unix_timestamp(NOW()),'%Y%m%d') = -1". $sql_end;
-		$template->assign_vars(array('STATUS' => $lang['Recent_yesterday']));
-		$where_count = "$where_forums AND FROM_UNIXTIME(p.post_time,'%Y%m%d') - FROM_UNIXTIME(unix_timestamp(NOW()),'%Y%m%d') = -1";
-		$l_mode = $lang['Recent_title_yesterday'];
-		break;
-
-	case 'last24':
-		$sql   = $sql_start ."UNIX_TIMESTAMP(NOW()) - p.post_time < 86400". $sql_end;
-		$template->assign_vars(array('STATUS' => $lang['Recent_last24']));
-		$where_count = "$where_forums AND UNIX_TIMESTAMP(NOW()) - p.post_time < 86400";
-		$l_mode = $lang['Recent_title_last24'];
-		break;
-
-	case 'lastweek':
-		$sql  = $sql_start ."UNIX_TIMESTAMP(NOW()) - p.post_time < 691200". $sql_end;
-		$template->assign_vars(array('STATUS' => $lang['Recent_lastweek']));
-		$where_count = "$where_forums AND UNIX_TIMESTAMP(NOW()) - p.post_time < 691200";
-		$l_mode = $lang['Recent_title_lastweek'];
-		break;
-
-	case 'lastXdays':
-		$sql    = $sql_start ."UNIX_TIMESTAMP(NOW()) - p.post_time < 86400 * " . intval($amount_days) . $sql_end;
-		$template->assign_vars(array('STATUS' => sprintf($lang['Recent_lastXdays'], $amount_days)));
-		$where_count = "$where_forums AND UNIX_TIMESTAMP(NOW()) - p.post_time < 86400 * " . intval($amount_days);
-		$l_mode = sprintf($lang['Recent_title_lastXdays'], $amount_days);
-		break;
-
-	default:
-		$message = $lang['Recent_wrong_mode'] .'<br /><br />'. sprintf($lang['Recent_click_return'], '<a href="'. append_sid("recent.$phpEx") .'">', '</a>') .'<br />'. sprintf($lang['Click_return_index'], '<a href="'. append_sid("index.$phpEx") .'">', '</a>');
-		message_die(GENERAL_MESSAGE, $message);
-		break;
-}
-if( !$result = $db->sql_query($sql) )
-{
-	message_die(GENERAL_ERROR, 'could not obtain main information.', '', __LINE__, __FILE__, $sql);
-}
-$line = array();
-while( $row = $db->sql_fetchrow($result) )
-{
-	$line[] = $row;
-}
-$db->sql_freeresult($result);
-		
 $template->set_filenames(array('body' => 'recent_body.tpl'));
 
 $orig_word = array();
@@ -298,12 +236,16 @@ for( $i = 0; $i < count($line); $i++ )
 		$newest_img = '';
 	}
 			
-	$first_time = create_date($board_config['default_dateformat'], $line[$i]['topic_time'], $board_config['board_timezone']);
-    $first_style_color = color_group_colorize_name($line[$i]['first_poster_id'], true);
-	$first_author = ( $line[$i]['first_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['first_poster_id']) .'" class="gensmall">' . $first_style_color . ' </a>' : phpbb_post_author_name($line[$i],'first_poster_name','first_poster_id','first_poster_removed');
-	$last_time = create_date($board_config['default_dateformat'], $line[$i]['post_time'], $board_config['board_timezone']);
-    $last_style_color = color_group_colorize_name($line[$i]['last_poster_id'], true);
-	$last_author = ( $line[$i]['last_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['last_poster_id']) .'" class="gensmall">' . $last_style_color . ' </a>' : phpbb_post_author_name($line[$i],'last_poster_name','last_poster_id','last_poster_removed');
+    $first_deleted=!empty($line[$i]['first_post_deleted']);
+    $first_time=!$first_deleted&&!empty($line[$i]['first_post_id'])?create_date($board_config['default_dateformat'],$line[$i]['first_post_time'],$board_config['board_timezone']):'';
+    if($first_deleted){$first_author=htmlspecialchars($lang['Post_deleted_placeholder'],ENT_QUOTES,'UTF-8');}
+    elseif((int)$line[$i]['first_poster_id']>0){$first_author='<a href="'.append_sid("profile.$phpEx?mode=viewprofile&amp;".POST_USERS_URL.'='.(int)$line[$i]['first_poster_id']).'" class="gensmall">'.color_group_colorize_name((int)$line[$i]['first_poster_id'],true).'</a>';}
+    elseif((int)$line[$i]['first_actor_id']>0){$first_author=htmlspecialchars($lang['Former_member'],ENT_QUOTES,'UTF-8');}
+    else{$first_author=phpbb_post_author_name($line[$i],'first_poster_name','first_poster_id','first_poster_removed');}
+    $last_time=create_date($board_config['default_dateformat'],$line[$i]['post_time'],$board_config['board_timezone']);
+    if((int)$line[$i]['last_poster_id']>0){$last_author='<a href="'.append_sid("profile.$phpEx?mode=viewprofile&amp;".POST_USERS_URL.'='.(int)$line[$i]['last_poster_id']).'" class="gensmall">'.color_group_colorize_name((int)$line[$i]['last_poster_id'],true).'</a>';}
+    elseif((int)$line[$i]['poster_id']>0){$last_author=htmlspecialchars($lang['Former_member'],ENT_QUOTES,'UTF-8');}
+    else{$last_author=phpbb_post_author_name($line[$i],'last_poster_name','last_poster_id','last_poster_removed');}
 	$last_url = '<a href="'. append_sid("viewtopic.$phpEx?". POST_POST_URL .'='. $line[$i]['topic_last_post_id']) .'#'. $line[$i]['topic_last_post_id'] .'"><img src="'. $images['icon_latest_reply'] .'" alt="'. $lang['View_latest_post'] .'" title="'. $lang['View_latest_post'] .'" border="0" /></a>';
 	$forum_name = phpbb_profile_text(phpbb_text_excerpt($line[$i]['forum_name'], intval($board_config['last_topic_title_length'])));
 
@@ -319,8 +261,8 @@ for( $i = 0; $i < count($line); $i++ )
 		'NEWEST_IMG' => $newest_img,
 		'TOPIC_FOLDER_IMG' => $folder_image,
 		'TOPIC_FOLDER_ALT' => $folder_alt,
-		'FIRST_TIME' => sprintf($lang['Recent_first'], $first_time),
-		'FIRST_AUTHOR' => sprintf($lang['Recent_first_poster'], $first_author),
+		'FIRST_TIME' => $first_time!==''?sprintf($lang['Recent_first'], $first_time):'',
+		'FIRST_AUTHOR' => $first_deleted?$first_author:sprintf($lang['Recent_first_poster'], $first_author),
 		'LAST_TIME' => $last_time,
 		'LAST_AUTHOR' => $last_author,
 		'LAST_URL' => $last_url,
@@ -330,19 +272,7 @@ for( $i = 0; $i < count($line); $i++ )
 	));
 }
 
-$sql = "SELECT count(t.topic_id) AS total_topics FROM ". TOPICS_TABLE ." t , ". POSTS_TABLE ." p
-           WHERE $where_count AND p.post_id = t.topic_last_post_id";
-if( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'error getting total topics.', '', __LINE__, __FILE__, $sql);
-}
-$total_topics = 0;
-$pagination = '';
-if( $total = $db->sql_fetchrow($result) )
-{
-	$total_topics = intval($total['total_topics']);
-	$pagination = generate_pagination("recent.$phpEx?amount_days=" . intval($amount_days) . "&amp;mode=" . urlencode($mode), $total_topics, $topic_limit, $start) .'&nbsp;';
-}
+$pagination=generate_pagination("recent.$phpEx?amount_days=".intval($amount_days)."&amp;mode=".urlencode($mode),$total_topics,$topic_limit,$start).'&nbsp;';
 
 if( $total_topics == '0' )
 {
@@ -362,6 +292,11 @@ $template->assign_vars(array(
 	'L_NO_TOPICS' => $lang['Recent_no_topics'],
 	'AMOUNT_DAYS' => $amount_days,
 	'FORM_ACTION' => append_sid("recent.$phpEx"),
+	'RECENT_SESSION_FIELD' => isset($userdata['session_id'])?'<input type="hidden" name="sid" value="'.htmlspecialchars($userdata['session_id'],ENT_QUOTES,'UTF-8').'" />':'',
+	'U_RECENT_TODAY' => append_sid("recent.$phpEx?mode=today"),
+	'U_RECENT_YESTERDAY' => append_sid("recent.$phpEx?mode=yesterday"),
+	'U_RECENT_LAST24' => append_sid("recent.$phpEx?mode=last24"),
+	'U_RECENT_LASTWEEK' => append_sid("recent.$phpEx?mode=lastweek"),
 	'PAGINATION' => ( $total_topics != '0' ) ? $pagination : '',
 	'PAGE_NUMBER' => ( $total_topics != '0' ) ? sprintf($lang['Page_of'], ( floor( $start / $topic_limit ) + 1 ), ceil( $total_topics / $topic_limit )) : '',
 ));

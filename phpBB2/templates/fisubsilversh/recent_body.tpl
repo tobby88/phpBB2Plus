@@ -1,14 +1,15 @@
 <form name="form" method="get" action="{FORM_ACTION}">
+{RECENT_SESSION_FIELD}
 <table width="60%" cellpadding="1" cellspacing="1" border="0" align="center">
   <tr>
         <td align="center"><span class="genmed">{L_SHOWING_POSTS} <b>{STATUS}</b></span></td>
   </tr>
   <tr>
         <td align="center"><span class="gensmall">{L_SELECT_MODE}
-                                                  [ <a href="{FORM_ACTION}?mode=today" class="mainmenu">{L_TODAY}</a> ]
-                                                  [ <a href="{FORM_ACTION}?mode=yesterday" class="mainmenu">{L_YESTERDAY}</a> ]
-                                                  [ <a href="{FORM_ACTION}?mode=last24" class="mainmenu">{L_LAST24}</a> ]
-                                                  [ <a href="{FORM_ACTION}?mode=lastweek" class="mainmenu">{L_LASTWEEK}</a> ]
+                                                  [ <a href="{U_RECENT_TODAY}" class="mainmenu">{L_TODAY}</a> ]
+                                                  [ <a href="{U_RECENT_YESTERDAY}" class="mainmenu">{L_YESTERDAY}</a> ]
+                                                  [ <a href="{U_RECENT_LAST24}" class="mainmenu">{L_LAST24}</a> ]
+                                                  [ <a href="{U_RECENT_LASTWEEK}" class="mainmenu">{L_LASTWEEK}</a> ]
                                                   [ {L_LAST} <input type="hidden" name="mode" value="lastXdays" />
                                                                    <input type="text" name="amount_days" size="2" value="{AMOUNT_DAYS}" maxlength="3" class="post" />
                                                                    <a href="javascript:document.form.submit();" class="mainmenu">{L_DAYS}</a> ]</span></td>

@@ -275,6 +275,14 @@
       ],
       "part": 1,
       "sha256": "cbe6d4b92bba334f250066e8db73b01e3cf461dfe8a0a98e4e9284b756a56512"
+    },
+    {
+      "name": "Check recent topic periods and coherent pages on MySQL",
+      "part": 2,
+      "sha256": "187a3e8381b8a6951edeef23c8b9e97f83a8c5f1c5297471094bee29036ea96c",
+      "commands": [
+        "php .github/scripts/check-recent-topics-native.php"
+      ]
     }
   ]
 }

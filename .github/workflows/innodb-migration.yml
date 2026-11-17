@@ -240,6 +240,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native recent topic periods and coherent pages
+        if: matrix.part == 5
+        run: php .github/scripts/check-recent-topics-native.php
+        env:
+          PHPBB_RECENT_NATIVE: '1'
+          PHPBB_RECENT_PASSWORD: fixture-only
       - name: Check native moderator bootstrap and forum-name initialization
         if: matrix.part == 5
         run: php .github/scripts/check-moderator-bootstrap.php
@@ -1883,6 +1889,13 @@ jobs:
           PHPBB_ATTACH_ADMIN_ROWS_NATIVE: '1'
           PHPBB_ATTACH_ADMIN_ROWS_PASSWORD: fixture-only
           PHPBB_ATTACH_ADMIN_ROWS_MYSQL: '8.4'
+      - name: Check recent topic periods and coherent pages on MySQL
+        if: matrix.part == 2
+        run: php .github/scripts/check-recent-topics-native.php
+        env:
+          PHPBB_RECENT_NATIVE: '1'
+          PHPBB_RECENT_PASSWORD: fixture-only
+          PHPBB_RECENT_MYSQL: '8.4'
       - name: Check attachment search and result forms on MySQL
         if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-attachment-search-native.php

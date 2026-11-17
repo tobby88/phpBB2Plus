@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Recent topic periods, coherent pages and authors
+
+- Use fixed-offset forum/user calendar boundaries for today and yesterday,
+  including month/year/leap-day transitions. The last week means seven days;
+  rolling periods and today exclude future posts independently of SQL time zone.
+- Read count and page in one independent canonical read-only snapshot. Require
+  positively authorized existing forums and matching topic/post/forum pointers;
+  omit shadows and deleted last posts. Align and clamp obsolete page offsets.
+- Render a deleted first post as a marker without its author/date, retain
+  former-member visibility, and avoid empty profile links for missing accounts.
+- Compose period links before appending session IDs and preserve the session
+  field in the GET form. Existing title excerpts and ordinary rows remain.
+
 ### Moderator split and reply review previews
 
 - Use the actual topic title for replies without their own subject in the

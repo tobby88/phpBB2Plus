@@ -22,7 +22,7 @@ $checks = array(
 		"max(1, intval(\$board_config['posts_per_page']))",
 		'$topic_length = max(1, min(200, intval($topic_length)))',
 		'$topic_limit = max(1, min(100, intval($topic_limit)))',
-		'$except_forums_sql = phpbb_sql_id_list($except_forums)',
+		'phpbb_recent_topics($db,$allowed_forums,$period,$start,$topic_limit)',
 		"phpbb_sql_id_list(\$forum_ids)",
 		// Forum-label escaping is exercised through the real template in check-list-excerpts.php.
 	),
