@@ -94,15 +94,15 @@ $body= <<<'PHP'
  // in for the rendered form, locale, session field or stale selection handling.
  require_once $sd_source.'includes/template.php';
  $footer=$sd_root.'/admin/page_footer_admin.php';file_put_contents($footer,'<?php throw new StyleDataExit("view");');$sd_files[]=$footer;$views=0;
- foreach(array('english','german')as$locale){$lang=array();require $sd_source.'language/lang_'.$locale.'/lang_main.php';require $sd_source.'language/lang_'.$locale.'/lang_admin.php';foreach(array('list','add','edit','delete','cancel','missing','bad-id','unconfirmed')as$view){
-  fl_reset();$template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];$template->load_config($sd_source.'templates/fisubsilversh',false);$before=fl_snapshot();$get=$post=array();$_SERVER['REQUEST_METHOD']='GET';
+ foreach(array('english','german')as$locale){$lang=array();require $sd_source.'language/lang_'.$locale.'/lang_main.php';require $sd_source.'language/lang_'.$locale.'/lang_admin.php';foreach(array('list','add','edit','delete','cancel','missing','bad-id','unconfirmed','unsafe-list','unsafe-edit')as$view){
+  fl_reset();if(strpos($view,'unsafe-')===0){sd_sql("UPDATE fixture_flags SET flag_name='".$peer->sql_escape('<img onerror="x">')."',flag_image='".$peer->sql_escape('x".gif')."' WHERE flag_id=1");}$template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];$template->load_config($sd_source.'templates/fisubsilversh',false);$before=fl_snapshot();$get=$post=array();$_SERVER['REQUEST_METHOD']='GET';
   if($view==='cancel'){$post=array('mode'=>'do_delete','id'=>'1','confirm'=>'1','cancel'=>'1');}
   elseif($view==='unconfirmed'){$post=array('mode'=>'do_delete','id'=>'1');}
-  elseif($view!=='list'){$get=array('mode'=>$view==='missing'||$view==='bad-id'?'edit':$view,'id'=>$view==='missing'?'999':($view==='bad-id'?array('1'):'1'));}
+  elseif($view!=='list'){$get=array('mode'=>$view==='missing'||$view==='bad-id'||$view==='unsafe-edit'?'edit':($view==='unsafe-list'?'':$view),'id'=>$view==='missing'?'999':($view==='bad-id'?array('1'):'1'));}
   $out=fl_run($post,$get);sd_check(fl_snapshot()===$before,'All GET/preview/cancel/unconfirmed views leave data intact');
   if($view==='missing'||$view==='bad-id'){sd_check($out===$lang['Must_select_flag']&&$fl_html==='','Missing selection has localized response, no broken form');}
   else{sd_check($out==='view'&&strpos($fl_html,'<form')!==false,'Actual XS controller view');if($view==='add'||$view==='edit'){sd_check(substr_count($fl_html,'maxlength="25"')===2&&strpos($fl_html,'name="sid" value="fixture-admin"')!==false,'Form capacities and signed session');}if($view==='delete'){sd_check(strpos($fl_html,'name="mode" value="do_delete"')!==false&&strpos($fl_html,'name="sid" value="fixture-admin"')!==false,'Actual standard confirmation');}}
-  $views++;
+  if(strpos($view,'unsafe-')===0){sd_check(strpos($fl_html,'&lt;img onerror=&quot;x&quot;&gt;')!==false&&strpos($fl_html,'<img onerror=')===false&&strpos($fl_html,'images/flags/x')===false,'Stored markup is literal text and invalid image attributes never render');}$views++;
  }}
  echo 'Flags native: '.$cases.' cases, '.$faults.' SQL faults, '.$serialized.' serialized revocations, '.$views.' actual EN/DE XS views PASS; atomic flag/profile changes, exact filename references, current authority, caller isolation, input capacity and owner lifecycle.',"\n";
 PHP;

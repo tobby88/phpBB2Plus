@@ -13,7 +13,6 @@ $root = dirname(dirname(__DIR__));
 $mirror_storage = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_mirror_storage.php');
 $admin_category = file_get_contents($root . '/phpBB2/admin/admin_pa_category.php');
 $admin_custom = file_get_contents($root . '/phpBB2/admin/admin_pa_custom.php');
-$admin_flags = file_get_contents($root . '/phpBB2/admin/admin_flags.php');
 $admin_catauth = file_get_contents($root . '/phpBB2/admin/admin_pa_catauth.php');
 $admin_settings = file_get_contents($root . '/phpBB2/admin/admin_pa_settings.php');
 $settings_storage = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_settings_storage.php');
@@ -48,10 +47,8 @@ pafiledb_admin_assert(strpos($category_actions, "in_array(\$values[\$key],array(
 // Parent existence and cycle checks now run against the current locked tree,
 // not the request's cached rowset; exercised by the native category writer test.
 
-pafiledb_admin_assert(strpos($admin_flags, 'function phpbb_flag_image_name') !== false, 'flag images need a filename validator');
-pafiledb_admin_assert(strpos($admin_flags, "basename(str_replace('\\\\', '/', trim") !== false, 'flag paths must be reduced to a basename');
-pafiledb_admin_assert(substr_count($admin_flags, 'phpbb_admin_require_post_session();') >= 2, 'flag saves and deletes must require POST tokens');
-pafiledb_admin_assert(substr_count($admin_flags, 'phpbb_admin_html($flag_image)') >= 2, 'stored flag images must be escaped when rendered');
+// Country flags have their own actual-controller/native/XS suite. Keep this
+// check focused on paFileDB instead of the flag controller's source layout.
 
 pafiledb_admin_assert(strpos($admin_catauth, 'phpbb_admin_require_post_session();') !== false, 'category permission writes must require a POST token');
 $permission_storage = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_permission_storage.php');
