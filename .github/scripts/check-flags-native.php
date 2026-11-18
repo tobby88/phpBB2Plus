@@ -16,8 +16,12 @@ $body= <<<'PHP'
  $board_config=array('xs_use_cache'=>0,'xs_auto_compile'=>0,'xs_auto_recompile'=>0,'xs_add_comments'=>0,'default_lang'=>'english');
  function fl_reset($actor='root'){
   sd_reset($actor==='root'?'root':'none');sd_sql('DELETE FROM fixture_flags');
-  $next=phpbb_acl_rows($GLOBALS['peer'],"SELECT AUTO_INCREMENT n FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fixture_flags'");
-  if(count($next)!==1){throw new RuntimeException('Owned fixture identity metadata required');}if((int)$next[0]['n']>3){sd_sql('ALTER TABLE fixture_flags AUTO_INCREMENT=1');}
+  $next=phpbb_acl_rows($GLOBALS['peer'],"SELECT AUTO_INCREMENT n,VERSION() server_version FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fixture_flags'");
+  if(count($next)!==1){throw new RuntimeException('Owned fixture identity metadata required');}
+  // MySQL may cache information_schema statistics. Only known MariaDB exposes
+  // the current allocated counter here; other servers retain the original DDL.
+  $fresh=preg_match('/(?:^|-)([0-9]+\.[0-9]+\.[0-9]+)-MariaDB(?:-|$)/i',$next[0]['server_version'],$v)===1&&version_compare($v[1],'10.3.0','>=');
+  if(!$fresh||(int)$next[0]['n']>3){sd_sql('ALTER TABLE fixture_flags AUTO_INCREMENT=1');}
   sd_sql("INSERT INTO fixture_flags(flag_id,flag_name,flag_image) VALUES(1,'Original','de.gif'),(2,'Other','fr.gif')");
   sd_sql("UPDATE fixture_users SET user_from_flag='de.gif' WHERE user_id=1");
   sd_sql("INSERT INTO fixture_users(user_id,user_level,user_active,user_from_flag) VALUES(2,0,1,'de.gif'),(3,0,1,'DE.gif'),(4,0,1,'fr.gif'),(5,0,1,''),(6,0,1,NULL)");
