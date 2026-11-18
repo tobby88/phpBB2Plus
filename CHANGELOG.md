@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Bounded-memory database backups
 
+- Export and restore TIMESTAMP values and literal defaults in UTC so moving
+  a backup between servers in different time zones preserves the original
+  instants. Keep DATETIME wall-clock values and the caller/importer settings.
 - Export stored values from ordinary invisible columns explicitly and omit
   virtual/stored generated columns from INSERT targets. Preserve expression
   defaults, generated definitions, visibility and auto-increment reservations;

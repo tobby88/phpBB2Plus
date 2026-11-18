@@ -206,6 +206,9 @@ function phpbb_database_backup_build($reader, $stream, $tables, $backup_type, $d
 	$dbname = str_replace(array("\r", "\n"), ' ', (string)$dbname);
 	try
 	{
+		// TIMESTAMP values and their literal defaults must use the same zone
+		// during export and import. Only this owned reader changes session state.
+		$reader->control("SET SESSION time_zone='+00:00'");
 		//
 		// Build the sql script file...
 		//
@@ -215,6 +218,7 @@ function phpbb_database_backup_build($reader, $stream, $tables, $backup_type, $d
 		phpbb_database_backup_write($phpbb_backup_output, "#\n# DATE : " .  gmdate("d-m-Y H:i:s", time()) . " GMT\n");
 		phpbb_database_backup_write($phpbb_backup_output, "#\n\nSET @phpbb_backup_old_sql_mode=@@SESSION.sql_mode;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_foreign_keys=@@SESSION.foreign_key_checks;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_time_zone=@@SESSION.time_zone;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_client=@@SESSION.character_set_client;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_results=@@SESSION.character_set_results;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_connection=@@SESSION.character_set_connection;\n");
@@ -222,6 +226,7 @@ function phpbb_database_backup_build($reader, $stream, $tables, $backup_type, $d
 		phpbb_database_backup_write($phpbb_backup_output, "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION sql_mode='STRICT_ALL_TABLES,NO_AUTO_VALUE_ON_ZERO,NO_ENGINE_SUBSTITUTION';\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET FOREIGN_KEY_CHECKS=0;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION time_zone='+00:00';\n");
 
 		for($i = 0; $i < count($tables); $i++)
 		{
@@ -241,6 +246,7 @@ function phpbb_database_backup_build($reader, $stream, $tables, $backup_type, $d
 			}
 		}
 		phpbb_database_backup_write($phpbb_backup_output, "\nSET FOREIGN_KEY_CHECKS=@phpbb_backup_old_foreign_keys;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION time_zone=@phpbb_backup_old_time_zone;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION sql_mode=@phpbb_backup_old_sql_mode;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION character_set_client=@phpbb_backup_old_client;\n");
 		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION character_set_results=@phpbb_backup_old_results;\n");

@@ -1,7 +1,7 @@
 <?php
 // Actual ACP export followed by a native import into a different owned schema.
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_DB_BACKUP_NATIVE') !== '1') { echo "Backup roundtrip checks require an explicitly enabled disposable database.\n"; return; }
-$mode=isset($argv[1])?$argv[1]:'plain';if(!in_array($mode,array('plain','gzip','data','structure','normal-source','revoked','read-failure','concurrent-write','concurrent-gzip','gzip-read-failure','delegated','wrong-grant','revoked-grant','logout','inactive','foreign-session','bad-sid','legacy-table','legacy-structure','legacy-authority','snapshot-failure','commit-failure','lost-ack','lost-authority','authority-concurrency','ddl-concurrency','request-transaction','factory-reuse','columns-full','columns-gzip','columns-data','columns-structure','columns-empty','columns-read-failure','columns-metadata-failure','columns-ddl'),true)){throw new RuntimeException('Unknown backup case');}
+$mode=isset($argv[1])?$argv[1]:'plain';if(!in_array($mode,array('plain','gzip','data','structure','normal-source','revoked','read-failure','concurrent-write','concurrent-gzip','gzip-read-failure','delegated','wrong-grant','revoked-grant','logout','inactive','foreign-session','bad-sid','legacy-table','legacy-structure','legacy-authority','snapshot-failure','commit-failure','lost-ack','lost-authority','authority-concurrency','ddl-concurrency','request-transaction','factory-reuse','columns-full','columns-gzip','columns-data','columns-structure','columns-empty','columns-read-failure','columns-metadata-failure','columns-ddl','timezone-full','timezone-gzip','timezone-data','timezone-structure','timezone-east-west','timezone-west-east','timezone-utc-failure','timezone-read-failure'),true)){throw new RuntimeException('Unknown backup case');}
 $scripts=__DIR__;putenv('PHPBB_STYLE_DATA_NATIVE=1');putenv('PHPBB_STYLE_DATA_PORT='.(getenv('PHPBB_DB_BACKUP_PORT')?:'3306'));putenv('PHPBB_STYLE_DATA_PASSWORD='.(getenv('PHPBB_DB_BACKUP_PASSWORD')?:''));
 $fixture_source=file_get_contents($scripts.'/check-style-data-native.php');$cut=strpos($fixture_source," if (getenv('PHPBB_STYLE_DATA_PROBE')");
 if($cut===false){throw new RuntimeException('Fixture boundary missing');}
@@ -24,10 +24,11 @@ $body= <<<'PHP'
  sd_sql("INSERT INTO fixture_roundtrip VALUES (0,CONVERT(0x".bin2hex($text)." USING utf8mb4),0x".bin2hex($opaque).",NULL)");
  sd_sql("INSERT INTO fixture_roundtrip VALUES (12,'',0x00,'')");
  sd_sql('ALTER TABLE fixture_roundtrip AUTO_INCREMENT=500');
+ $timezone_case=strpos($mode,'timezone-')===0;if($timezone_case){require $scripts.'/db-backup-timezone-native-fixture.php';}
  $column_case=strpos($mode,'columns-')===0;if($column_case){require $scripts.'/db-backup-columns-native-fixture.php';}
  sd_check($db->sql_query("SET SESSION sql_mode='STRICT_ALL_TABLES".($mode==='normal-source'?'':',NO_BACKSLASH_ESCAPES')."'"),'Source escape mode');
  $expected=phpbb_acl_rows($peer,'SELECT * FROM fixture_roundtrip ORDER BY id');
- $source_session_sql='SELECT CONNECTION_ID() AS connection_id,@@SESSION.sql_mode AS sql_mode,@@SESSION.foreign_key_checks AS foreign_keys,@@SESSION.character_set_client AS client_charset,@@SESSION.character_set_results AS results_charset,@@SESSION.character_set_connection AS connection_charset,@@SESSION.collation_connection AS connection_collation,@@SESSION.in_transaction AS in_transaction';
+ $source_session_sql='SELECT CONNECTION_ID() AS connection_id,@@SESSION.sql_mode AS sql_mode,@@SESSION.time_zone AS time_zone,@@SESSION.foreign_key_checks AS foreign_keys,@@SESSION.character_set_client AS client_charset,@@SESSION.character_set_results AS results_charset,@@SESSION.character_set_connection AS connection_charset,@@SESSION.collation_connection AS connection_collation,@@SESSION.in_transaction AS in_transaction';
  if($mode==='request-transaction'){sd_check($db->sql_query('START TRANSACTION'),'Original request owns a transaction');sd_check($db->sql_query("UPDATE fixture_roundtrip SET content='uncommitted caller value' WHERE id=0"),'Uncommitted caller data');}
  if($mode==='factory-reuse'){class BackupReuseDatabase extends StyleDataDatabase {function sql_dedicated_connection(){return $this;}}$db=new BackupReuseDatabase($db->inner);}
  $source_session_before=phpbb_acl_rows($db,$source_session_sql);
@@ -53,7 +54,8 @@ $body= <<<'PHP'
  if($mode==='lost-authority'){$sd_hook=function($sql,$connection)use(&$authority_thread,&$lost_authority){if(strpos($sql,'SELECT session_id FROM fixture_sessions ')===0&&strpos($sql,'LOCK IN SHARE MODE')!==false&&$authority_thread===null){$authority_thread=mysqli_thread_id($connection->db_connect_id);}if($sql==='COMMIT'&&$authority_thread!==null&&mysqli_thread_id($connection->db_connect_id)!==$authority_thread){$GLOBALS['sd_hook']=null;sd_check($GLOBALS['peer']->sql_query('KILL CONNECTION '.$authority_thread),'Kill only captured fixture authority connection');$lost_authority=true;}};}
  $_GET=$HTTP_GET_VARS=array();$_POST=$HTTP_POST_VARS=array('perform'=>'backup','backupstart'=>'1','backup_type'=>'full','sid'=>'fixture-admin');
  if($mode==='data'||$mode==='structure'||$mode==='legacy-structure'||$mode==='columns-data'||$mode==='columns-structure'){$_POST['backup_type']=$HTTP_POST_VARS['backup_type']=$mode==='legacy-structure'?'structure':($mode==='columns-data'?'data':($mode==='columns-structure'?'structure':$mode));}
- $gzip=in_array($mode,array('gzip','concurrent-gzip','gzip-read-failure','columns-gzip'),true);if($gzip){sd_check(function_exists('gzdecode'),'Gzip support');$_POST['gzipcompress']=$HTTP_POST_VARS['gzipcompress']='1';}
+ if($mode==='timezone-data'||$mode==='timezone-structure'){$_POST['backup_type']=$HTTP_POST_VARS['backup_type']=substr($mode,9);}
+ $gzip=in_array($mode,array('gzip','concurrent-gzip','gzip-read-failure','columns-gzip','timezone-gzip'),true);if($gzip){sd_check(function_exists('gzdecode'),'Gzip support');$_POST['gzipcompress']=$HTTP_POST_VARS['gzipcompress']='1';}
  if($mode==='bad-sid'){$_POST['sid']=$HTTP_POST_VARS['sid']='wrong';}
  $controller=file_get_contents($sd_source.'admin/admin_db_utilities.php');
  // Replace only response termination so the fixture can verify and clean up.
@@ -61,7 +63,7 @@ $body= <<<'PHP'
  ob_start();$capture=true;
  try{eval(substr(str_replace('__DIR__',var_export($sd_source.'admin',true),$controller),5));throw new RuntimeException('Backup controller did not terminate');}catch(StyleDataExit $e){$outcome=$e->getMessage();}
  $dump=ob_get_clean();$capture=false;
- $denied=in_array($mode,array('revoked','read-failure','gzip-read-failure','wrong-grant','revoked-grant','logout','inactive','foreign-session','bad-sid','legacy-table','legacy-authority','snapshot-failure','commit-failure','lost-ack','lost-authority','factory-reuse','columns-read-failure','columns-metadata-failure'),true);
+ $denied=in_array($mode,array('revoked','read-failure','gzip-read-failure','wrong-grant','revoked-grant','logout','inactive','foreign-session','bad-sid','legacy-table','legacy-authority','snapshot-failure','commit-failure','lost-ack','lost-authority','factory-reuse','columns-read-failure','columns-metadata-failure','timezone-utc-failure','timezone-read-failure'),true);
  if($denied){
   sd_check($outcome!=='backup'&&$dump==='','Denied/failed backup publishes no SQL bytes, even after earlier tables were read');
   $sd_failure='';$sd_hook=null;sd_check(phpbb_acl_rows($peer,'SELECT * FROM fixture_roundtrip ORDER BY id')===$expected,'Denied/failed backup preserves source data');
@@ -69,6 +71,7 @@ $body= <<<'PHP'
   sd_check(phpbb_acl_rows($db,$source_session_sql)===$source_session_before,'Failed capture neither closes nor changes the original connection');
   sd_check(backup_connections_closed(),'Denied capture releases both dedicated connections');
   if($column_case){bc_finish(null,'',$mode,true);}
+  if($timezone_case){bt_finish(null,'',$mode,true);}
   echo 'Native backup '.$mode." denied without partial output\n";return;
  }
  sd_check($outcome==='backup','Actual backup completed');
@@ -76,23 +79,25 @@ $body= <<<'PHP'
  if($mode==='request-transaction'){$caller_rows=phpbb_acl_rows($db,'SELECT content FROM fixture_roundtrip WHERE id=0');sd_check($caller_rows[0]['content']==='uncommitted caller value','Caller transaction remains uncommitted and usable');sd_check($db->sql_query('ROLLBACK'),'Only caller rolls back its transaction');}
  if($gzip){$dump=gzdecode($dump);}
  sd_check(is_string($dump)&&$dump!=='','Complete actual plain/gzip dump');
- sd_check((strpos($dump,'CREATE TABLE `fixture_roundtrip`')!==false)===(!in_array($mode,array('data','columns-data'),true)),'Selected structure scope');
+ sd_check((strpos($dump,'CREATE TABLE `fixture_roundtrip`')!==false)===(!in_array($mode,array('data','columns-data','timezone-data'),true)),'Selected structure scope');
  sd_check($control->sql_query('CREATE DATABASE '.$restore_name.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Owned restoration schema');
  $restore=new sql_db($host,'root',$password,$restore_name,false);
- if($mode==='data'||$mode==='columns-data'){
+ if($timezone_case){sd_check($restore->sql_query("SET SESSION time_zone='".$bt_source_zone."'"),'Prepare existing target defaults in source zone');}
+ if($mode==='data'||$mode==='columns-data'||$mode==='timezone-data'){
   foreach(phpbb_acl_rows($peer,'SHOW TABLES')as$table){$name=reset($table);$definition=phpbb_acl_rows($peer,'SHOW CREATE TABLE `'.str_replace('`','``',$name).'`');sd_check($restore->sql_query($definition[0]['Create Table']),'Prepare existing target for data-only backup');}
  }
+ if($timezone_case){sd_check($restore->sql_query("SET SESSION time_zone='".$bt_target_zone."'"),'Importer starts in a different zone');}
  sd_check($restore->sql_query("SET NAMES latin1"),'Importer starts with a different connection encoding');
  sd_check($restore->sql_query("SET SESSION sql_mode='STRICT_ALL_TABLES,NO_BACKSLASH_ESCAPES'"),'Importer starts with a different escape mode');
  sd_check($restore->sql_query('SET FOREIGN_KEY_CHECKS='.($mode==='normal-source'?'1':'0')),'Importer original foreign-key state');
- $session_sql='SELECT @@SESSION.sql_mode AS sql_mode,@@SESSION.foreign_key_checks AS foreign_keys,@@SESSION.character_set_client AS client_charset,@@SESSION.character_set_results AS results_charset,@@SESSION.character_set_connection AS connection_charset,@@SESSION.collation_connection AS connection_collation';
+ $session_sql='SELECT @@SESSION.sql_mode AS sql_mode,@@SESSION.time_zone AS time_zone,@@SESSION.foreign_key_checks AS foreign_keys,@@SESSION.character_set_client AS client_charset,@@SESSION.character_set_results AS results_charset,@@SESSION.character_set_connection AS connection_charset,@@SESSION.collation_connection AS connection_collation';
  $session_before=phpbb_acl_rows($restore,$session_sql);
  $connection=$restore->db_connect_id;sd_check(mysqli_multi_query($connection,$dump),'Backup SQL parses in the importing session');
  do{$result=mysqli_store_result($connection);if($result){mysqli_free_result($result);}if(!mysqli_more_results($connection)){break;}sd_check(mysqli_next_result($connection),'Every backup statement imports successfully');}while(true);
  sd_check(phpbb_acl_rows($restore,$session_sql)===$session_before,'Import restores every original SQL mode, foreign-key and charset/collation session setting');
  sd_check($restore->sql_query('SET NAMES utf8mb4'),'Read restored UTF-8 values');
  $actual=phpbb_acl_rows($restore,'SELECT * FROM fixture_roundtrip ORDER BY id');$different=array();
- $expected_import=in_array($mode,array('structure','legacy-structure','columns-structure'),true)?array():$expected;
+ $expected_import=in_array($mode,array('structure','legacy-structure','columns-structure','timezone-structure'),true)?array():$expected;
  foreach(array('id','content','opaque','optional_value')as$field){foreach($expected_import as$i=>$row){if(!isset($actual[$i])||$actual[$i][$field]!==$row[$field]){$different[]=$field;break;}}}
  sd_check($actual===$expected_import,'Roundtrip must preserve exact values; mismatched fields: '.implode(',',$different));
  if($concurrent){sd_check($concurrent_reached,'Concurrent transactional writer actually ran between table reads');sd_check(phpbb_acl_rows($restore,'SELECT * FROM fixture_roundtrip_peer ORDER BY id')===$expected,'Related tables share the same snapshot, not different commit points');}
@@ -105,6 +110,7 @@ $body= <<<'PHP'
  if($mode==='ddl-concurrency'){sd_check($serialized,'Concurrent DDL actually attempted');$columns=phpbb_acl_rows($peer,"SHOW COLUMNS FROM fixture_roundtrip LIKE 'unexpected'");sd_check(!$columns,'Rejected concurrent DDL leaves source schema unchanged');}
  sd_check(backup_connections_closed(),'Successful capture releases both dedicated connections before response');
  if($column_case){bc_finish($restore,$dump,$mode,false);}
+ if($timezone_case){bt_finish($restore,$dump,$mode,false);}
  echo 'Native database backup '.$mode." roundtrip passed\n";
 PHP;
 $tail= <<<'PHP'

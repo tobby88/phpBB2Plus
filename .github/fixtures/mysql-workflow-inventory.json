@@ -379,6 +379,14 @@
       "commands": [
         "php -d memory_limit=64M -d disable_functions=mail .github/scripts/check-db-backup-columns-native.php \"$case\""
       ]
+    },
+    {
+      "name": "Check cross-zone ACP backups on MySQL",
+      "commands": [
+        "php -d memory_limit=64M -d disable_functions=mail .github/scripts/check-db-backup-timezone-native.php \"$case\""
+      ],
+      "part": 2,
+      "sha256": "aebb5271e6481d2b99a50e21ca81d1c21fe075592712eddd0c74e0682ff35184"
     }
   ]
 }
