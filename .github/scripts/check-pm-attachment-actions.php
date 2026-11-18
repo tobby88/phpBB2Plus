@@ -34,9 +34,9 @@ class PmAttachmentRouteProbe extends attach_pm
 class PmAttachmentReadForum extends MutationForum
 {
 	function sql_dedicated_connection() { return new PmAttachmentEntryConnection('fixture','fixture','','fixture',false); }
-	function sql_query($sql) { throw new RuntimeException('Compose preflight must not use the caller connection'); }
-	function sql_fetchrowset($result){return $result->fetchAll(PDO::FETCH_ASSOC);}
-	function sql_freeresult($result){$result->closeCursor();}
+	function sql_query($sql) { if($sql==='SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset'){return(new PmDownloadModelForum())->sql_query($sql);}throw new RuntimeException('Compose preflight must not read caller data'); }
+	function sql_fetchrowset($result){return isset($result->rows)?$result->rows:$result->fetchAll(PDO::FETCH_ASSOC);}
+	function sql_freeresult($result){if(!isset($result->rows)){$result->closeCursor();}}
 }
 // This legacy route model retains its original named-lock writer behavior.
 // Standalone compose preflight now uses a separate read-only capability, just
@@ -45,9 +45,13 @@ class PmAttachmentReadForum extends MutationForum
 class PmAttachmentEntryConnection extends sql_db
 {
 	var $read_only = false;
+	var $model_id;
+	function __construct($server,$user,$password,$name,$persistent){static$next=2;$this->model_id=(string)$next++;parent::__construct($server,$user,$password,$name,$persistent);}
 	function sql_query($sql)
 	{
 		if ($this->closed || !$this->db_connect_id) { return false; }
+		if($sql==='SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset'){return$this->result(array(array('owned_connection_id'=>$this->model_id,'owned_schema'=>'fixture','owned_autocommit'=>'1','owned_charset'=>'utf8mb4')));}
+		if($sql==='SET TRANSACTION READ WRITE'){return true;}
 		if ($sql === 'SELECT @@SESSION.autocommit AS pm_autocommit') { return $this->result(array(array('pm_autocommit'=>1))); }
 		if ($sql === 'SET TRANSACTION READ ONLY') { $this->read_only = true; return true; }
 		if (!$this->read_only) { return parent::sql_query($sql); }

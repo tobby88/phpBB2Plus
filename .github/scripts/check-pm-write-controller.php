@@ -32,6 +32,9 @@ class PmWriteDisplayForum extends PmRepairForum
 	function sql_dedicated_connection() { return new PmWriteControllerConnection($GLOBALS['pm_repair_server']); }
 	function sql_query($sql)
 	{
+		if($sql==='SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset'){
+			return new PmRepairRows($GLOBALS['native']?$GLOBALS['pm_repair_server']->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC):array(array('owned_connection_id'=>'1','owned_schema'=>$this->dbname,'owned_autocommit'=>'1','owned_charset'=>'utf8mb4')));
+		}
 		pm_repair_check(strpos($sql,'SELECT ')===0,'Unprotected controller connection is read-only');
 		return new PmRepairRows($GLOBALS['pm_repair_server']->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
 	}
@@ -47,9 +50,15 @@ class PmWriteDisplayForum extends PmRepairForum
 class PmWriteControllerConnection extends PmRepairConnection
 {
 	var $read_only = false;
+	var $model_id;
+	function __construct($server){static$next=2;$this->model_id=(string)$next++;parent::__construct($server);}
 	function sql_query($sql)
 	{
 		if ($this->closed || !$this->db_connect_id) { return false; }
+		if($sql==='SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset'){
+			return new PmRepairRows($GLOBALS['native']?$this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC):array(array('owned_connection_id'=>$this->model_id,'owned_schema'=>'pm-counter-fixture','owned_autocommit'=>'1','owned_charset'=>'utf8mb4')));
+		}
+		if($sql==='SET TRANSACTION READ WRITE'){return !$GLOBALS['native']||$this->pdo->exec($sql)!==false;}
 		if ($sql === 'SELECT @@SESSION.autocommit AS pm_autocommit') {
 			return new PmRepairRows($GLOBALS['native'] ? $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) : array(array('pm_autocommit'=>1)));
 		}
