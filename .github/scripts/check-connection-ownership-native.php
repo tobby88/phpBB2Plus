@@ -26,6 +26,7 @@ $body= <<<'PHP'
   var$slot=0;var$calls=0;var$borrowed=null;var$owned=array();
   function sql_dedicated_connection(){if(++$this->calls===$this->slot){return$this->borrowed;}$candidate=new ConnectionOwnerObserved($this->inner->sql_dedicated_connection());$this->owned[]=$candidate;return$candidate;}
  }
+ class ConnectionOwnerInvalidSource {function sql_dedicated_connection(){return false;}}
  function co_run($kind,$source){
   $owner=null;
   try{
@@ -43,6 +44,7 @@ $body= <<<'PHP'
  co_sql($control,'CREATE TABLE '.$co_other.'.fixture_owner_marker LIKE '.$fixture.'.fixture_owner_marker');co_sql($control,"INSERT INTO ".$co_other.".fixture_owner_marker VALUES(0,'committed')");
  $co_lock='caller:'.md5($fixture);$co_borrowed=null;
  foreach(array('backup','board','kb','album','pm','scan')as$kind){
+  $invalid_denied=false;try{co_run($kind,new ConnectionOwnerInvalidSource());}catch(Exception$error){$invalid_denied=true;}co_check($invalid_denied,'Invalid adapters refuse cleanly, including PHP5.6');$co_cases++;
   foreach(array('normal','autocommit-off','latin1','wrapped')as$caller_kind){
    $db=new ConnectionOwnerSource($db->inner);if($caller_kind==='autocommit-off'){co_sql($db,'SET autocommit=0');}if($caller_kind==='latin1'){co_sql($db,'SET NAMES latin1');}if($caller_kind==='wrapped'){unset($db->db_connect_id);}
    co_sql($db,'START TRANSACTION');co_sql($db,"INSERT INTO fixture_owner_marker VALUES(10,'caller pending')");$before=co_state($db);co_run($kind,$db);
@@ -79,7 +81,7 @@ $body= <<<'PHP'
    if(!$shared){co_sql($co_borrowed->inner,'ROLLBACK');$co_borrowed->sql_close();}$co_borrowed=null;co_sql($db,'ROLLBACK');co_check(count(co_rows($peer,'SELECT * FROM '.$peer_schema.'.fixture_owner_marker'))===1,'Borrowed caller retains rollback');$co_cases++;
   }}
  }
- co_check($co_cases===143,'All six owners and both backup factory slots covered');
+ co_check($co_cases===149,'All six owners and both backup factory slots covered');
  echo 'Native connection ownership: ',$co_cases,' cases, ',$co_assertions,' assertions PASS; six production owners, both backup slots, active/read-only/autocommit/uncertain/context/same-handle cases, caller rollback and advisory locks; no production access.',"\n";
 PHP;
 $tail= <<<'PHP'

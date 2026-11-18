@@ -23,18 +23,10 @@ class PhpbbDatabaseBackupConnection extends PhpbbAclDatabase
     function __construct($database)
     {
         if (!is_callable(array($database, 'sql_dedicated_connection'))) { phpbb_database_backup_failed(); }
-        $source_result = $database->sql_query('SELECT CONNECTION_ID() AS backup_connection_id');
-        if (!$source_result) { phpbb_database_backup_failed(); }
-        $source_row = $database->sql_fetchrow($source_result); $database->sql_freeresult($source_result);
-        if (!$source_row || !isset($source_row['backup_connection_id'])) { phpbb_database_backup_failed(); }
         try {
             $this->connection = phpbb_acquire_idle_connection($database);
             $this->identity = $this->current_identity();
             if ($this->identity === '') { phpbb_database_backup_failed(); }
-            if ($this->identity === (string)$source_row['backup_connection_id']) {
-                // An invalid factory must not make us commit/close its caller.
-                $this->connection = null; phpbb_database_backup_failed();
-            }
         } catch (Exception $error) { $this->close(); throw $error; }
         catch (Error $error) { $this->close(); throw $error; }
     }

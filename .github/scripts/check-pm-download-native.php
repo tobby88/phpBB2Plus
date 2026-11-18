@@ -24,6 +24,9 @@ function pd_classes(){
     }
     class PdDatabase extends PnDatabase {
         function sql_query($sql='',$transaction=false){
+            // A table-free connection probe does not read caller data. Keep
+            // every actual data query subject to the original fault/spy.
+            if($sql==='SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset'){return parent::sql_query($sql,$transaction);}
             $GLOBALS['pd_root_queries'][]=$sql;
             if($GLOBALS['pd_root_fault']!==''&&strpos($sql,$GLOBALS['pd_root_fault'])===0){return false;}
             return parent::sql_query($sql,$transaction);

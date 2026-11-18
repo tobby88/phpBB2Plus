@@ -5,6 +5,9 @@ class PhpbbConnectionOwnershipFailure extends RuntimeException {}
 
 function phpbb_connection_ownership_state($database)
 {
+    foreach (array('sql_query', 'sql_fetchrowset', 'sql_freeresult') as $method) {
+        if (!is_object($database) || !is_callable(array($database, $method))) { throw new PhpbbConnectionOwnershipFailure('Invalid database adapter'); }
+    }
     $result = $database->sql_query('SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset');
     if (!$result) { throw new PhpbbConnectionOwnershipFailure('Connection identity unavailable'); }
     try { $rows = $database->sql_fetchrowset($result); }
@@ -30,7 +33,8 @@ function phpbb_acquire_idle_connection($database)
     $source = phpbb_connection_ownership_state($database);
     $candidate = $database->sql_dedicated_connection();
     if (!is_object($candidate) || $candidate === $database
-        || (isset($candidate->db_connect_id, $database->db_connect_id) && $candidate->db_connect_id === $database->db_connect_id)) { throw new PhpbbConnectionOwnershipFailure('Borrowed caller connection'); }
+        || (isset($candidate->db_connect_id, $database->db_connect_id) && (is_object($database->db_connect_id) || is_resource($database->db_connect_id))
+            && $candidate->db_connect_id === $database->db_connect_id)) { throw new PhpbbConnectionOwnershipFailure('Borrowed caller connection'); }
     $target = phpbb_connection_ownership_state($candidate);
     if ((string) $target['owned_connection_id'] === (string) $source['owned_connection_id']
         || $target['owned_schema'] !== $source['owned_schema'] || $target['owned_charset'] !== 'utf8mb4'

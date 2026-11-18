@@ -74,15 +74,10 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 		if (!in_array($context, array('acp', 'moderator', 'category', 'type', 'config'), true) || !method_exists($database, 'sql_dedicated_connection')) { kb_publication_fail(); }
 		$this->context = $context; $candidate = null;
 		try {
-			$source = phpbb_acl_rows($database, 'SELECT CONNECTION_ID() AS kb_connection_id');
-			if (count($source) !== 1) { kb_publication_fail(); }
 			$candidate = phpbb_acquire_idle_connection($database);
 			if (!$candidate || !$candidate->db_connect_id) { kb_publication_fail(); }
 			$rows = phpbb_acl_rows($candidate, 'SELECT CONNECTION_ID() AS kb_connection_id');
-			if (count($rows) !== 1 || (string)$rows[0]['kb_connection_id'] === (string)$source[0]['kb_connection_id']) {
-				// A broken factory must never close/commit/roll back its caller.
-				$candidate = null; kb_publication_fail();
-			}
+            if (count($rows) !== 1 || !isset($rows[0]['kb_connection_id'])) { kb_publication_fail(); }
 			$this->connection = $candidate; $this->identity = (string)$rows[0]['kb_connection_id'];
 			register_shutdown_function(array($this, 'release'));
 			$name = 'attachment:' . md5($database->dbname . "\0" . ATTACHMENTS_TABLE);

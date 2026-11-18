@@ -19,7 +19,7 @@ class AlbumRootDatabase extends sql_db{
  function observed_query($database,$sql,$transaction=false){
   $owner=strpos($sql,'SELECT username')===0;$root=strpos($sql,'SELECT c.cat_id')===0;$insert=strpos($sql,'INSERT INTO fixture_album_cat')===0;
   if($this->recording){
-   ar_check($owner||$root||$insert||preg_match('/^(SELECT |SET SESSION |START TRANSACTION$|COMMIT$|ROLLBACK$)/D',$sql),'Creator cannot emit unrelated writes/DDL');
+   ar_check($owner||$root||$insert||$sql==='SET TRANSACTION READ WRITE'||preg_match('/^(SELECT |SET SESSION |START TRANSACTION$|COMMIT$|ROLLBACK$)/D',$sql),'Creator cannot emit unrelated writes/DDL');
    if($owner||$root||$insert){$this->queries[]=$sql;}
    if(($this->failure==='owner-read'&&$owner)||($this->failure==='root-read'&&$root)||($this->failure==='insert'&&$insert)){return false;}
   }

@@ -54,6 +54,10 @@ class AlbumRootStorage
 
 	private function rows($database, $sql)
 	{
+		foreach (array('sql_query', 'sql_fetchrowset', 'sql_freeresult') as $method)
+		{
+			if (!is_object($database) || !is_callable(array($database, $method))) { throw new AlbumRootStorageFailure(); }
+		}
 		$result = $database->sql_query($sql);
 		if (!$result) { throw new AlbumRootStorageFailure(); }
 		try { $rows = $database->sql_fetchrowset($result); }
