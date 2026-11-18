@@ -247,7 +247,7 @@ class emailer
 		if ($metadata) { $this->msg = trim($this->msg); }
 		$subject = isset($metadata['Subject']) ? trim($render($metadata['Subject'])) : '';
 		$this->subject = $subject !== '' ? $subject : ($this->subject !== '' ? $this->subject : 'No Subject');
-		$this->subject = trim(preg_replace('#[\x00\r\n]+#', '', (string)$this->subject));
+		$this->subject = trim(preg_replace('#[\x00\r\n]+#', '', (string) $this->subject));
 		if ($this->subject === '') { $this->subject = 'No Subject'; }
 		$encoding = isset($metadata['Charset']) ? trim($render($metadata['Charset'])) : '';
 		if ($encoding === '') { $encoding = isset($lang['ENCODING']) && is_scalar($lang['ENCODING']) ? trim((string)$lang['ENCODING']) : ''; }
