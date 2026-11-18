@@ -809,6 +809,15 @@ jobs:
         env:
           PHPBB_USER_BAN_LIFECYCLE_NATIVE: '1'
           PHPBB_USER_BAN_LIFECYCLE_PASSWORD: fixture-only
+      - name: Check generated and invisible backup column roundtrips
+        if: matrix.part == 1
+        run: |
+          for case in full gzip data structure empty read-failure metadata-failure ddl; do
+            php -d memory_limit=64M -d disable_functions=mail .github/scripts/check-db-backup-columns-native.php "$case"
+          done
+        env:
+          PHPBB_DB_BACKUP_NATIVE: '1'
+          PHPBB_DB_BACKUP_PASSWORD: fixture-only
       - name: Check bounded-memory ACP backup streams and interrupted readers
         if: matrix.part == 1
         run: |
@@ -1742,6 +1751,15 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check generated and invisible backup columns on MySQL
+        if: matrix.part == 2
+        run: |
+          for case in full gzip data structure empty read-failure metadata-failure ddl; do
+            php -d memory_limit=64M -d disable_functions=mail .github/scripts/check-db-backup-columns-native.php "$case"
+          done
+        env:
+          PHPBB_DB_BACKUP_NATIVE: '1'
+          PHPBB_DB_BACKUP_PASSWORD: fixture-only
       - name: Check bounded-memory ACP backups on MySQL
         if: matrix.part == 2
         run: |

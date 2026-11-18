@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Bounded-memory database backups
 
+- Export stored values from ordinary invisible columns explicitly and omit
+  virtual/stored generated columns from INSERT targets. Preserve expression
+  defaults, generated definitions, visibility and auto-increment reservations;
+  valid all-computed tables retain their row counts through empty INSERTs.
+- Read complete column metadata before opening the row stream. Missing or
+  inconsistent metadata refuses the whole backup instead of losing columns.
 - Stream table rows from MySQL/MariaDB into the completed backup spool instead
   of buffering an entire table in PHP memory. Plain and gzip exports retain
   the same coherent read-only snapshot, current administrator authorization,

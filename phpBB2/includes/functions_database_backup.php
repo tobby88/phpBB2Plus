@@ -155,6 +155,29 @@ function phpbb_database_backup_pin($owner, $tables, $canonical = false, $require
     }
 }
 
+function phpbb_database_backup_columns($database, $table)
+{
+    if (!is_string($table) || $table === '' || strpos($table, "\0") !== false) { phpbb_database_backup_failed(); }
+    $quoted_table = '`' . str_replace('`', '``', $table) . '`';
+    $columns = phpbb_acl_rows($database, 'SHOW FULL COLUMNS FROM ' . $quoted_table);
+    if (!$columns) { phpbb_database_backup_failed(); }
+    $fields = array(); $quoted = array(); $seen = array(); $project = false;
+    foreach ($columns as $column) {
+        if (!isset($column['Field'], $column['Extra']) || !is_string($column['Field']) || $column['Field'] === ''
+            || strpos($column['Field'], "\0") !== false || !is_string($column['Extra']) || isset($seen[$column['Field']])) { phpbb_database_backup_failed(); }
+        $seen[$column['Field']] = true; $extra = $column['Extra'];
+        // DEFAULT_GENERATED describes an ordinary expression default, not a
+        // computed column. Its actual stored value must still be exported.
+        $generated = preg_match('/(?:^|\\s)(?:VIRTUAL|STORED|PERSISTENT)(?:\\s+GENERATED)?(?:\\s|$)/i', $extra) === 1;
+        if ($generated) { $project = true; continue; }
+        if (preg_match('/(?:^|\\s)GENERATED(?:\\s|$)/i', $extra)) { phpbb_database_backup_failed(); }
+        $fields[] = $column['Field']; $quoted[] = '`' . str_replace('`', '``', $column['Field']) . '`';
+        if (preg_match('/(?:^|\\s)INVISIBLE(?:\\s|$)/i', $extra)) { $project = true; }
+    }
+    // A valid all-computed table still needs one empty INSERT per source row.
+    return array('fields'=>$fields, 'quoted'=>$quoted, 'projection'=>$project ? ($quoted ? implode(', ', $quoted) : '1') : '*');
+}
+
 function phpbb_database_backup_write($stream, $bytes)
 {
     if (!is_resource($stream) || !is_string($bytes)) { phpbb_database_backup_failed(); }

@@ -371,6 +371,14 @@
       "commands": [
         "php -d memory_limit=64M -d disable_functions=mail .github/scripts/check-db-backup-stream-native.php \"$case\""
       ]
+    },
+    {
+      "name": "Check generated and invisible backup columns on MySQL",
+      "part": 2,
+      "sha256": "94439a8605b826ca3c47e8a8bcb02d2c732f209bc11fe7e0f5d24fb0e562ea78",
+      "commands": [
+        "php -d memory_limit=64M -d disable_functions=mail .github/scripts/check-db-backup-columns-native.php \"$case\""
+      ]
     }
   ]
 }

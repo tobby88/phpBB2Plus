@@ -110,7 +110,9 @@ function get_table_content_mysql($table, $handler)
 	$quoted_table = '`' . str_replace('`', '``', $table) . '`';
 
 	// Grab the data from the table.
-	if (!($result = $db->sql_query_unbuffered("SELECT * FROM $quoted_table")))
+	$backup_columns = phpbb_database_backup_columns($db, $table);
+	$projection = $backup_columns['projection'];
+	if (!($result = $db->sql_query_unbuffered("SELECT $projection FROM $quoted_table")))
 	{
 		phpbb_database_backup_failed();
 	}
@@ -120,18 +122,19 @@ function get_table_content_mysql($table, $handler)
 	$released = false;
 	try
 	{
+	if ($db->sql_numfields($result) !== max(1, count($backup_columns['fields']))) { phpbb_database_backup_failed(); }
 	// Loop through the resulting rows and build the sql statement.
 	if ($row = $db->sql_fetchrow($result))
 	{
 		$handler("\n#\n# Table Data for " . str_replace(array("\r", "\n"), ' ', $table) . "\n#\n");
-		$field_names = array();
+		$field_names = $backup_columns['fields'];
 
 		// Grab the list of field names.
-		$num_fields = $db->sql_numfields($result);
+		$num_fields = count($field_names);
 		$table_list = '(';
 		for ($j = 0; $j < $num_fields; $j++)
 		{
-			$field_names[$j] = $db->sql_fieldname($j, $result);
+			if ($db->sql_fieldname($j, $result) !== $field_names[$j]) { phpbb_database_backup_failed(); }
 			$table_list .= (($j > 0) ? ', ' : '') . '`' . str_replace('`', '``', $field_names[$j]) . '`';
 			
 		}
