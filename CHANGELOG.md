@@ -18,6 +18,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Download table metadata checks
 
+- Ordinary MySQL accounts can connect when InnoDB strict mode is already
+  enabled, without requiring a redundant administrative SET. Disabled mode
+  must still be enabled successfully; unreadable or unrepairable settings
+  close the connection. InnoDB defaults for regular and temporary tables,
+  UTF-8 and the no-engine-substitution policy remain required.
+
 - Open all 18 Download participants before checking their current table and
   character-column metadata together. This removes repeated dictionary scans
   during uploads, replacement, recovery and administration while retaining

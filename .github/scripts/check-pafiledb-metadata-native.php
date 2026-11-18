@@ -82,6 +82,13 @@ try{
  $grant_password=bin2hex(phpbb_random_bytes(32));$grant_account="'".$grant_user."'@'%'";
  pam_sql('CREATE USER '.$grant_account." IDENTIFIED BY '".$grant_password."'");$grant_created=true;
  foreach($base as$s){pam_sql('GRANT SELECT'.($s==='users'?' (user_id)':'').' ON '.$schema.'.fixture_'.$s.' TO '.$grant_account);}
+ $direct=@mysqli_connect($host,$grant_user,$grant_password,$schema);
+ pam_check($direct instanceof mysqli,'Own restricted native connection before driver bootstrap');
+ try{$legacy=@mysqli_query($direct,'SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON');
+  if(getenv('PHPBB_PA_METADATA_MYSQL')==='8.4'){pam_check($legacy===false&&(int)$direct->errno===1227,'Original unprivileged MySQL bootstrap fails1227');}
+  else{pam_check($legacy===true,'MariaDB permits original session bootstrap');}
+  $cases++;
+ }finally{mysqli_close($direct);}
  $privileged=$source;$restricted=new PaMetadataSource($host,$grant_user,$grant_password,$schema,false);
  if(!$restricted->db_connect_id){
   $direct=@mysqli_connect($host,$grant_user,$grant_password,$schema);
@@ -94,6 +101,17 @@ try{
  try{$source=$restricted;pam_check(!pam_attempt()&&in_array($restricted->last_errno,array(1142,1143),true),'Partial native column privileges cannot bypass the all-column participant opening');$cases++;
   pam_sql('GRANT SELECT ON '.$schema.'.fixture_users TO '.$grant_account);pam_check(pam_attempt(null,true),'Same native user succeeds after full participant SELECT is granted');$cases++;
  }finally{$source=$privileged;$restricted->sql_close();$restricted=null;}
+ $global_strict=pam_rows('SELECT @@GLOBAL.innodb_strict_mode strict_mode')[0]['strict_mode'];pam_check((string)$global_strict==='1','Disposable service begins with strict InnoDB enabled');
+ $off_user=$off_admin=null;
+ try{
+  pam_sql('SET GLOBAL innodb_strict_mode=OFF');
+  $off_user=new PaMetadataSource($host,$grant_user,$grant_password,$schema,false);
+  if(getenv('PHPBB_PA_METADATA_MYSQL')==='8.4'){pam_check(!$off_user->db_connect_id,'Restricted MySQL connection fails closed when inherited strictness cannot be enabled');}
+  else{pam_check($off_user->db_connect_id&&$off_user->sql_query('SELECT @@SESSION.innodb_strict_mode strict_mode')&&(string)$off_user->sql_fetchrow()['strict_mode']==='1','MariaDB ordinary connection enables inherited disabled strictness');}
+  $cases++;
+  $off_admin=new PaMetadataSource($host,'root',$password,$schema,false);
+  pam_check($off_admin->db_connect_id&&$off_admin->sql_query('SELECT @@SESSION.innodb_strict_mode strict_mode')&&(string)$off_admin->sql_fetchrow()['strict_mode']==='1','Authorized SQL user enables inherited disabled strictness');$cases++;
+ }finally{if($off_user){$off_user->sql_close();}if($off_admin){$off_admin->sql_close();}pam_sql('SET GLOBAL innodb_strict_mode='.(int)$global_strict);}
  pam_sql('DROP USER '.$grant_account);$grant_created=false;
  $source->trace=array();pam_check(pam_attempt(null,true),'Actual successful baseline');$trace=$source->trace;
  // Actual transport failures at each of the grouped physical/table/column
@@ -110,5 +128,6 @@ try{
  pam_sql("INSERT INTO fixture_config(config_name,config_value) VALUES('own-pending','original')");
  pam_check($source->sql_query('START TRANSACTION')&&$source->sql_query("UPDATE fixture_config SET config_value='pending' WHERE config_name='own-pending'"),'Own caller pending work');
  try{pam_check(pam_attempt('config'),'Dedicated metadata checks preserve independent caller work');pam_check(pam_rows("SELECT config_value FROM fixture_config WHERE config_name='own-pending'")[0]['config_value']==='original','Pending caller row is not committed');$cases++;}finally{$source->sql_query('ROLLBACK');}
- echo 'Download metadata native: '.$cases.' cases, '.$faults.' SQL faults, '.$ddl_blocks." real DDL blocks PASS; canonical participants, per-table engines/formats/collations/columns, binary fields, views/missing tables, exact journal columns/indexes, native column grants, both owned transactions, current schema and isolated callers.\n";
+ echo 'Download metadata native: '.$cases.' cases, '.$faults.' SQL faults, '.$ddl_blocks." real DDL blocks PASS; canonical participants, per-table engines/formats/collations/columns, binary fields, views/missing tables, exact journal columns/indexes, native column grants and strict driver startup, both owned transactions, current schema and isolated callers.\n";
+ if(getenv('PHPBB_PA_METADATA_MYSQL')==='8.4'){echo "Restricted MySQL driver native: original bootstrap fails1227; enabled strict mode connects, disabled unrepairable mode refuses, privileged repair succeeds.\n";}
 }finally{if($restricted){$restricted->sql_close();}if($source){$source->hook=null;$source->sql_close();}if($peer){$peer->sql_close();}if($grant_created&&preg_match('/^codex_pam_[a-f0-9]{16}$/D',$grant_user)){$control->sql_query("DROP USER '".$grant_user."'@'%'");}if($made&&preg_match('/^codex_pa_metadata_[a-f0-9]{16}$/D',$schema)){$control->sql_query('DROP DATABASE '.$schema);}if($control){$control->sql_close();}restore_error_handler();}

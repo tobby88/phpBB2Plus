@@ -27,6 +27,8 @@ function mysqli_query($connection,$sql)
 	if($sql==='SELECT first') { return new mysqli_result(array(array(0=>11,1=>null,'id'=>11,'value'=>null),array(0=>12,1=>'Grüße','id'=>12,'value'=>'Grüße'))); }
 	if($sql==='SELECT second') { return new mysqli_result(array(array(0=>99,1=>'other','id'=>99,'value'=>'other'))); }
 	if($sql==='SELECT empty') { return new mysqli_result(array()); }
+	if($sql==='SELECT @@SESSION.innodb_strict_mode AS strict_mode') { return new mysqli_result(array(array('strict_mode'=>isset($GLOBALS['driver_fixture_strict'])?$GLOBALS['driver_fixture_strict']:'1'))); }
+	if($sql==='SET SESSION innodb_strict_mode = ON') { $GLOBALS['driver_fixture_strict']='1'; }
 	return true;
 }
 function mysqli_close($connection) { if($connection->closed) { throw new \RuntimeException('Connection closed twice'); } $connection->closed=true; return true; }
@@ -92,7 +94,8 @@ try
 	// rather than a fixture that retains the original public password forever.
 	$db=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
 	foreach (array("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')",
-		"SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON") as $policy)
+		"SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB",
+		"SELECT @@SESSION.innodb_strict_mode AS strict_mode") as $policy)
 	{
 		check(in_array($policy,$GLOBALS['driver_fixture_queries'],true),'Connection configures storage policy');
 		$GLOBALS['driver_fixture_fail']=$policy;
@@ -100,6 +103,23 @@ try
 		check($failed->db_connect_id===false && $GLOBALS['driver_fixture_connection']->closed,'Policy failure closes even a pooled connection');
 		unset($GLOBALS['driver_fixture_fail']);
 	}
+	$GLOBALS['driver_fixture_fail']='SET SESSION innodb_strict_mode = ON';
+	$ready=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
+	check($ready->db_connect_id instanceof mysqli,'Enabled strict mode needs no privileged reassignment');
+	$ready->sql_close();
+	$GLOBALS['driver_fixture_strict']='0';
+	$failed=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
+	check($failed->db_connect_id===false && $GLOBALS['driver_fixture_connection']->closed,'Disabled strictness cannot bypass a rejected SET');
+	unset($GLOBALS['driver_fixture_fail']);
+	$enabled=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
+	check($enabled->db_connect_id instanceof mysqli && $GLOBALS['driver_fixture_strict']==='1','Permitted strict-mode repair remains required and succeeds');
+	$enabled->sql_close();
+	foreach(array('','ON','invalid') as $invalid){
+		$GLOBALS['driver_fixture_strict']=$invalid;
+		$failed=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
+		check($failed->db_connect_id===false && $GLOBALS['driver_fixture_connection']->closed,'Malformed strictness metadata closes the connection');
+	}
+	unset($GLOBALS['driver_fixture_strict']);
 	$dbuser='fixture-user'; $dbpasswd='fixture-secret';
 	$reset=file_get_contents(dirname(dirname(__DIR__)).'/phpBB2/ctracker/engines/ct_varsetter.php');
 	$reset_start=strpos($reset,'unset($dbuser)'); $reset_end=strpos($reset,'include($phpbb_root_path',$reset_start);

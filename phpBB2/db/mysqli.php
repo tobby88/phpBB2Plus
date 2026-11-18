@@ -86,7 +86,8 @@ class sql_db
 				// Apply on every checkout, including pooled and dedicated connections.
 				// Do not replace unrelated SQL modes or change server-wide defaults.
 				!@mysqli_query($this->db_connect_id, "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')") ||
-				!@mysqli_query($this->db_connect_id, "SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON"))
+				!@mysqli_query($this->db_connect_id, "SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB") ||
+				!$this->sql_require_innodb_strict_mode())
 			{
 				@mysqli_close($this->db_connect_id);
 				$this->db_connect_id = false;
@@ -114,6 +115,19 @@ class sql_db
 	//
 	// Other base methods
 	//
+	private function sql_require_innodb_strict_mode()
+	{
+		// MySQL restricts SET SESSION innodb_strict_mode to administrative SQL
+		// users, even when assigning its existing value. Ordinary forum users
+		// can retain an already enabled mode without that unnecessary privilege.
+		$result = @mysqli_query($this->db_connect_id, 'SELECT @@SESSION.innodb_strict_mode AS strict_mode');
+		if (!($result instanceof mysqli_result)) { return false; }
+		try { $row = @mysqli_fetch_array($result); }
+		finally { @mysqli_free_result($result); }
+		if (!is_array($row) || !isset($row['strict_mode']) || !in_array((string) $row['strict_mode'], array('0', '1'), true)) { return false; }
+		return (string) $row['strict_mode'] === '1' || @mysqli_query($this->db_connect_id, 'SET SESSION innodb_strict_mode = ON') === true;
+	}
+
 	function sql_dedicated_connection()
 	{
 		return is_callable($this->dedicated_connection_factory) ? call_user_func($this->dedicated_connection_factory) : false;
