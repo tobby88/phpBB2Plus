@@ -41,3 +41,4 @@ try{foreach($native?array('InnoDB'):array('SQLite') as $engine){
  poll_mtnc_run($lang['Session_invalid']);poll_mtnc_check($snapshot===poll_session_snapshot()&&!$poll_mtnc_server->queries,'Malformed cached session fails before queries without warnings');
  echo $engine." current poll session, every write boundary, delegated access and retry passed\n";
 }}finally{restore_error_handler();}
+if($native){poll_fixture_schema_checks();poll_fixture_peer_wait_checks();}

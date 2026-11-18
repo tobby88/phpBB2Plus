@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Native poll maintenance fixtures
+
+- Reuse exactly matching disposable poll tables and reset all fixture data in
+  a committed seed transaction. Rebuild on missing tables, changed definitions,
+  unexpected triggers or an engine switch; retain every existing controller,
+  session, delegation, failure and retry case.
+- Use MariaDB's immediate row-lock conflict mode only for the fixture peer,
+  retaining MySQL's one-second minimum. Verify actual conflicting writes,
+  post-release retries, unchanged worker/server defaults and advisory leases
+  scoped to each independently owned test database.
+
 ### Interrupted Album cache files
 
 - Insert JPEG cache metadata in the existing unpublished stage, using bounded
