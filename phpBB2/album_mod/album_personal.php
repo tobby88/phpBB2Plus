@@ -210,30 +210,14 @@ else
  	$view_mode_text = $lang['Show_selected_pic_view_mode'];
 }
 
-$row['count'] = 0;
-
-if ($cat_ids != '')
+try
 {
-
-// ------------------------------------------------------------------------
-// Count Pics of the root category of personal gallery,
-// - $cat_ids is set in the above IF statement
-// ------------------------------------------------------------------------
-$sql = 'SELECT COUNT(p.pic_id) AS count
-		FROM '. ALBUM_TABLE .' AS p, ' . ALBUM_CAT_TABLE .' AS c
-		WHERE c.cat_user_id = '.$album_user_id.'
-			AND c.cat_id IN ('.$cat_ids.')
-			AND p.pic_cat_id = c.cat_id';
-
-if( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not count pics !!', '', __LINE__, __FILE__, $sql);
+	$picture_listing = album_picture_page($db, (int)$album_user_id, $cat_ids === '' ? array() : $cat_ids, $sort_method, $sort_order, (int)$start);
 }
-
-$row = $db->sql_fetchrow($result);
-$db->sql_freeresult($result);
-}
-$total_pics = $row['count'];
+catch (Exception $error) { message_die(GENERAL_ERROR, 'Could not count pics !!'); }
+catch (Error $error) { message_die(GENERAL_ERROR, 'Could not count pics !!'); }
+$row['count'] = $total_pics = $picture_listing['total'];
+$start = $picture_listing['start']; $sort_method = $picture_listing['sort']; $sort_order = $picture_listing['order'];
 
 // ------------------------------------------------------------------------
 // Build up the page
@@ -307,18 +291,13 @@ if ($row['count'] == 0)
 	// ------------------------------------------------------------------------
 	if ($album_view_mode != ALBUM_VIEW_ALL && !empty($allowed_cat))
 	{
-		$sql = 'SELECT COUNT(p.pic_id) AS count
-				FROM '. ALBUM_TABLE .' AS p, ' . ALBUM_CAT_TABLE .' AS c
-				WHERE c.cat_user_id = ' . $album_user_id . '
-					AND c.cat_id IN (' . $allowed_cat.')
-					AND p.pic_cat_id = c.cat_id';
-
-		if( !($result = $db->sql_query($sql)) )
+		try
 		{
-			message_die(GENERAL_ERROR, 'Could not count pics !!', '', __LINE__, __FILE__, $sql);
+			$other_pictures = album_picture_page($db, (int)$album_user_id, $allowed_cat, $sort_method, $sort_order, 0, 0, 'pic', true);
+			$row['count'] = $other_pictures['total'];
 		}
-		$row = $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);
+		catch (Exception $error) { message_die(GENERAL_ERROR, 'Could not count pics !!'); }
+		catch (Error $error) { message_die(GENERAL_ERROR, 'Could not count pics !!'); }
 
 		$total_pics = $row['count'];
 	}
@@ -344,7 +323,7 @@ if ($row['count'] == 0)
 }
 else
 {
-	album_build_picture_table($album_user_id, $cat_ids, $thiscat, $auth_data, $start, $sort_method, $sort_order, $total_pics);
+	album_build_picture_table($album_user_id, $cat_ids, $thiscat, $auth_data, $start, $sort_method, $sort_order, $total_pics, $picture_listing);
 
 	if ($album_config['personal_show_recent_in_subcats'] == 1 && $album_view_mode != ALBUM_VIEW_ALL)
 	{
@@ -404,8 +383,8 @@ $template->assign_vars(array(
 
 	'L_RECENT_PUBLIC_PICS' => sprintf($lang['Recent_Personal_Pics'], $username_html),
 
-	'S_COLS' => $album_config['cols_per_page'],
-	'S_COL_WIDTH' => (100/$album_config['cols_per_page']) . '%',
+	'S_COLS' => $picture_listing['columns'],
+	'S_COL_WIDTH' => (100/$picture_listing['columns']) . '%',
 
 	'L_VIEW' => $lang['View'],
 	'L_PIC_CAT' => $lang['Pic_Cat'],

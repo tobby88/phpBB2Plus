@@ -22,6 +22,10 @@ function album_make_nav_tree($id, $url, $style, $owner) { return '<a href="paren
 function append_sid($url) { return $url; }
 function album_append_uid($url) { return $url; }
 function album_build_picture_table($owner, $ids, $category, $auth, $start, $sort, $order, $total) {}
+function album_picture_page($database, $owner, $ids, $sort, $order, $start, $member = 0, $kind = 'pic', $count_only = false)
+{
+ return array('total'=>$GLOBALS['apr_count'], 'columns'=>4, 'start'=>$start, 'sort'=>$sort, 'order'=>$order);
+}
 function album_build_recent_pics($ids) {}
 function album_get_sub_cat_ids($id, &$ids, $mask, $recursive) { $ids = array(20); }
 function album_build_jumpbox($id, $owner) { return '<select><option>Trusted</option></select>'; }

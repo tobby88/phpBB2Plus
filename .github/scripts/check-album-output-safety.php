@@ -51,7 +51,7 @@ album_output_test_true(substr_count($album_cat, 'album_build_recent_pics($allowe
 album_output_test_true(strpos($hierarchy, "album_html_text(\$grouprows[\$j]['group_name'])") !== false && strpos($album_cat, "album_html_text(\$grouprows[\$j]['group_name'])") !== false, 'Album moderator group names must be escaped.');
 album_output_test_true(substr_count($hierarchy, 'album_html_text(') >= 18, 'Picture grids and recent/highest/random listings must normalize stored labels.');
 album_output_test_true(strpos($memberlist, '$album_view_type = ALBUM_LISTTYPE_PICTURES;') !== false, 'Member picture lists must initialize their view mode.');
-album_output_test_true(strpos($memberlist, '$total_pics = 0;') !== false, 'Empty category sets must leave a defined picture count.');
+album_output_test_true(strpos($memberlist, "\$total_pics = \$picture_listing['total'];") !== false, 'Member counts must come from the same visible-picture snapshot as the page.');
 album_output_test_true(strpos($memberlist, '$pics_per_page = min(100,') !== false, 'Member picture page sizes must be bounded.');
 album_output_test_true(strpos($showpage, "smilies_pass(album_html_text(\$commentrow[\$i]['comment_text']))") !== false, 'Album comments must be normalized before markup expansion.');
 album_output_test_true(strpos($showpage, "'PIC_DESC' => nl2br(album_html_text(\$thispic['pic_desc']))") !== false, 'Picture descriptions must be normalized before line-break markup.');

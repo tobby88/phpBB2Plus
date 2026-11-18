@@ -1750,6 +1750,12 @@ jobs:
         env:
           PHPBB_ALBUM_SEARCH_NATIVE: '1'
           PHPBB_ALBUM_SEARCH_PASSWORD: fixture-only
+      - name: Check Album picture counts and coherent gallery pages
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-album-picture-pages-native.php
+        env:
+          PHPBB_ALBUM_PAGES_NATIVE: '1'
+          PHPBB_ALBUM_PAGES_PASSWORD: fixture-only
   pm-download-mysql:
     name: MySQL 8.4 (part ${{ matrix.part }}, PHP 8.5)
     runs-on: ubuntu-latest
@@ -2132,3 +2138,10 @@ jobs:
           PHPBB_ALBUM_SEARCH_NATIVE: '1'
           PHPBB_ALBUM_SEARCH_PASSWORD: fixture-only
           PHPBB_ALBUM_SEARCH_MYSQL: '8.4'
+      - name: Check Album picture counts and coherent gallery pages on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-album-picture-pages-native.php
+        env:
+          PHPBB_ALBUM_PAGES_NATIVE: '1'
+          PHPBB_ALBUM_PAGES_PASSWORD: fixture-only
+          PHPBB_ALBUM_PAGES_MYSQL: '8.4'

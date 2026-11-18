@@ -96,6 +96,12 @@ class PhpbbForumReadSnapshot
 	}
 	function sql_fetchrow($result) { return $this->connection->sql_fetchrow($result); }
 	function sql_fetchrowset($result) { return $this->connection->sql_fetchrowset($result); }
+	function sql_numrows($result)
+	{
+		$count = $this->connection->sql_numrows($result);
+		if ($count === false) { $this->fail(); }
+		return $count;
+	}
 	function sql_freeresult($result) { return $this->connection->sql_freeresult($result); }
 	function sql_escape($value) { return $this->connection->sql_escape((string)$value); }
 	function release()

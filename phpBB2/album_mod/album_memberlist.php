@@ -65,114 +65,25 @@ else
 	$start = 0;
 }
 
-$cols_per_page = max(1, min(20, intval($album_config['cols_per_page'])));
-$rows_per_page = max(1, min(50, intval($album_config['rows_per_page'])));
-$pics_per_page = min(100, $rows_per_page * $cols_per_page);
-$limit_sql = ($start == 0) ? $pics_per_page : $start .','. $pics_per_page;
-
-// set some initial values...
-// $allowed_cat is set in album.php !!!
-$list_sql = '';
-$count_sql = '';
-$total_pics = 0;
-$allowed_sort_methods = array('pic_time', 'pic_title', 'username', 'pic_view_count', 'rating', 'comments', 'new_comment');
-if (!in_array($sort_method, $allowed_sort_methods, true))
+// Keep the historical default sort for member rating/comment views.
+if (!in_array($album_view_type, array(ALBUM_LISTTYPE_RATINGS, ALBUM_LISTTYPE_COMMENTS), true)) { $album_view_type = ALBUM_LISTTYPE_PICTURES; }
+if (!isset($_GET['sort_method']) && !isset($_POST['sort_method']))
 {
-	$sort_method = 'pic_time';
+	if ($album_view_type === ALBUM_LISTTYPE_RATINGS) { $sort_method = 'rating'; $sort_order = 'ASC'; }
+	elseif ($album_view_type === ALBUM_LISTTYPE_COMMENTS) { $sort_method = 'comments'; $sort_order = 'ASC'; }
 }
-$sort_order = ($sort_order === 'ASC') ? 'ASC' : 'DESC';
-switch (strtolower($album_view_type))
+try
 {
- 	case ALBUM_LISTTYPE_RATINGS:
- 		$album_view_type = ALBUM_LISTTYPE_RATINGS;
-
-		// default sorting if not specified directly
-        if ( !isset($_GET['sort_method']) && !isset($_POST['sort_method']) )
-        {
-            $sort_method = 'rating';
-            $sort_order = 'ASC';
-        }
-
-		$count_sql = 'SELECT COUNT(DISTINCT r.rate_pic_id) AS count
-						FROM '. ALBUM_RATE_TABLE .' AS r, '. ALBUM_TABLE .' AS p, '.ALBUM_CAT_TABLE .' AS ct
-						WHERE r.rate_point > 0 AND r.rate_user_id = '. $album_user_id .'
-							AND ct.cat_id IN (' . $allowed_cat .')
-							AND p.pic_id = r.rate_pic_id
-							AND p.pic_cat_id = ct.cat_id';
-
-		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id, r.rate_pic_id,
-						AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
-					FROM ".ALBUM_RATE_TABLE." AS r
-						LEFT JOIN ".ALBUM_TABLE. " AS p ON p.pic_id = r.rate_pic_id
-						LEFT JOIN ".ALBUM_COMMENT_TABLE." AS c ON p.pic_id = c.comment_pic_id
-						LEFT JOIN ".ALBUM_CAT_TABLE." AS ct ON p.pic_cat_id = ct.cat_id
-					WHERE r.rate_point > 0 AND r.rate_user_id = $album_user_id AND ct.cat_id IN ($allowed_cat)
-					GROUP BY r.rate_pic_id
-					ORDER BY $sort_method $sort_order
-					LIMIT $limit_sql";
- 		break;
- 	case ALBUM_LISTTYPE_COMMENTS:
- 		$album_view_type = ALBUM_LISTTYPE_COMMENTS;
-
-		// default sorting if not specified directly
-        if ( !isset($_GET['sort_method']) && !isset($_POST['sort_method']) )
-        {
-            $sort_method = 'comments';
-            $sort_order = 'ASC';
-        }
-
-		$count_sql = 'SELECT COUNT(comment_id) AS count
-						FROM '. ALBUM_COMMENT_TABLE .', '. ALBUM_CAT_TABLE .'
-						WHERE comment_user_id = '. $album_user_id .'
-							AND cat_id IN (' . $allowed_cat .')
-							AND comment_cat_id = cat_id';
-
-		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id,
-						AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment, c.comment_pic_id
-					FROM ".ALBUM_COMMENT_TABLE." AS c
-                        LEFT JOIN ".ALBUM_TABLE. " AS p ON c.comment_pic_id = p.pic_id
-						LEFT JOIN ".ALBUM_RATE_TABLE." AS r ON p.pic_id = r.rate_pic_id
-						LEFT JOIN ".ALBUM_CAT_TABLE." AS ct ON p.pic_cat_id = ct.cat_id
-					WHERE c.comment_user_id = $album_user_id AND ct.cat_id IN ($allowed_cat)
-					GROUP BY c.comment_pic_id
-					ORDER BY $sort_method $sort_order
-					LIMIT $limit_sql";
- 		break;
- 	default:
- 		$album_view_type = ALBUM_LISTTYPE_PICTURES;
-
-		$count_sql = 'SELECT COUNT(pic_id) AS count
-						FROM '. ALBUM_TABLE .', '. ALBUM_CAT_TABLE .'
-						WHERE pic_user_id = '. $album_user_id . '
-							AND cat_id IN (' . $allowed_cat .')
-							AND pic_cat_id = cat_id';
-
-		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id,
-						AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
-					FROM ".ALBUM_TABLE. " AS p
-						LEFT JOIN ".ALBUM_RATE_TABLE." AS r ON p.pic_id = r.rate_pic_id
-						LEFT JOIN ".ALBUM_COMMENT_TABLE." AS c ON p.pic_id = c.comment_pic_id
-						LEFT JOIN ".ALBUM_CAT_TABLE." AS ct ON p.pic_cat_id = ct.cat_id
-					WHERE p.pic_user_id = $album_user_id AND ct.cat_id IN ($allowed_cat)
-					GROUP BY p.pic_id
-					ORDER BY $sort_method $sort_order
-					LIMIT $limit_sql";
+	$picture_listing = album_picture_page($db, null, empty($allowed_cat) ? array() : $allowed_cat, $sort_method, $sort_order, $start, (int)$album_user_id, $album_view_type);
 }
+catch (Exception $error) { message_die(GENERAL_ERROR, 'Could not query memberlist information'); }
+catch (Error $error) { message_die(GENERAL_ERROR, 'Could not query memberlist information'); }
+$cols_per_page = $picture_listing['columns']; $pics_per_page = min(100, $picture_listing['size']);
+$total_pics = $picture_listing['total']; $start = $picture_listing['start']; $picrow = $picture_listing['rows'];
+$sort_method = $picture_listing['sort']; $sort_order = $picture_listing['order'];
+// Mutating links use the actual current actor, not an earlier role snapshot.
+$picture_viewer = $picture_listing['viewer'];
 
-// ------------------------------------
-// Count pics, comments or ratings
-// ------------------------------------
-if (!empty($allowed_cat))
-{
-	if( !($result = $db->sql_query($count_sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not count ' . $album_view_type. 's', '', __LINE__, __FILE__, $count_sql);
-	}
-
-	$row = $db->sql_fetchrow($result);
-
-	$total_pics = $row['count'];
-}
 // ------------------------------------
 // Build up
 // ------------------------------------
@@ -182,18 +93,6 @@ $album_view_type_param = (!empty($album_view_type)) ? '&type=' . $album_view_typ
 
 if ($total_pics > 0 && !empty($allowed_cat))
 {
-	if( !($result = $db->sql_query($list_sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not query memberlist information', '', __LINE__, __FILE__, $list_sql);
-	}
-
-	$picrow = array();
-
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		$picrow[] = $row;
-	}
-
 	// --------------------------------
 	// Thumbnails table
 	// --------------------------------
@@ -269,9 +168,9 @@ if ($total_pics > 0 && !empty($allowed_cat))
 
 				'COMMENTS' => ($album_config['comment'] == 1) ? ($lang['Comments'] . ' : <a href="'. append_sid(album_append_uid($album_comment_pic_url .'?pic_id='. $picrow[$j]['pic_id'])) . '">' . $image_comment . '</a><br />') : '',
 
-				'DELETE' => ( ($userdata['user_level'] == ADMIN) or ($userdata['user_id'] == $picrow[$j]['pic_user_id']) ) ? '<a href="'. append_sid("album_delete.$phpEx?pic_id=". $picrow[$j]['pic_id']) . '">' . $lang['Delete_pic'] . '</a>' : '',
+				'DELETE' => ( !empty($picture_listing['rights'][(int)$picrow[$j]['pic_cat_id']]['delete']) && (int)$picture_viewer['user_id'] > 0 && (int)$picture_viewer['user_id'] === (int)$picrow[$j]['pic_user_id'] || $picture_viewer['user_level'] == ADMIN ) ? '<a href="'. append_sid("album_delete.$phpEx?pic_id=". $picrow[$j]['pic_id']) . '">' . $lang['Delete_pic'] . '</a>' : '',
 
-				'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($picrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
+				'IP' => ($picture_viewer['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($picrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 				)
 			);
 		}

@@ -411,6 +411,14 @@
       ],
       "part": 2,
       "sha256": "a5cfa362f1279fd74cf76f3e2bf3bd0a1511880966747189c563a64b07d7b7f4"
+    },
+    {
+      "name": "Check Album picture counts and coherent gallery pages on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-album-picture-pages-native.php"
+      ],
+      "part": 2,
+      "sha256": "9499b339c86a03be3a4358a13b35a40047f8f787f046c79776759b78b65777b6"
     }
   ]
 }

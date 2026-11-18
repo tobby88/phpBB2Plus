@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album gallery counts and pages
+
+- Count visible pictures consistently in category totals, personal galleries and
+  member lists. Multiple comments or ratings of one picture produce one result;
+  outdated offsets return the last real page instead of an empty extra page.
+- Read the current session, category/group permissions, approval policy, count
+  and selected page in one independent read-only snapshot. Preserve pending
+  picture access per category when showing an entire personal gallery.
+- Use indexed aggregates compatible with strict SQL grouping in both database
+  engines. Retain member-specific rating/comment totals, bounded page sizes and
+  exact unsigned picture IDs; preserve caller transactions.
+- Apply category approval to newest counters and latest picture/comment labels
+  as well as recent, highest-rated and random panels. Repair excluded-category
+  filtering and use the actual viewer for preview metadata.
+
 ### Album search visibility
 
 - Apply the 500-result limit to pictures the current viewer may see. Exclude
