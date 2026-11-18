@@ -1133,7 +1133,7 @@ CREATE TABLE phpbb_pa_file_journal (
   item_index int UNSIGNED NOT NULL,
   schema_version smallint UNSIGNED NOT NULL default '1',
   operation_kind varchar(16) NOT NULL,
-  actor_id mediumint(8) NOT NULL,
+  actor_id mediumint NOT NULL,
   file_scope varchar(16) NOT NULL,
   file_dir varchar(255) NOT NULL,
   filename varchar(255) NOT NULL,
@@ -1774,10 +1774,10 @@ CREATE TABLE phpbb_ina_scores (
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_ina_game_saves (
-  user_id mediumint(8) unsigned NOT NULL,
-  game_id mediumint(9) NOT NULL,
+  user_id mediumint unsigned NOT NULL,
+  game_id mediumint NOT NULL,
   game_data text NOT NULL,
-  saved_at bigint(20) unsigned NOT NULL DEFAULT 0,
+  saved_at bigint unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, game_id),
   KEY game_id (game_id)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

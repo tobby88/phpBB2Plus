@@ -28,6 +28,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Refresh existing component credits without deleting the current CrackerTracker
   entry or reserving fresh auto-increment IDs on every run. Existing identity,
   visibility, dates and custom links remain intact.
+- New Download journals and private Arcade-save tables omit deprecated integer
+  display widths. Numeric types, ranges and existing table compatibility stay
+  unchanged; migration verification still rejects every unexpected DDL warning.
 
 ### Download table metadata checks
 

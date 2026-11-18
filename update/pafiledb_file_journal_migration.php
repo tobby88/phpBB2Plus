@@ -114,7 +114,8 @@ function plus_pa_file_journal_apply($db, $prefix, $backup_confirmed, $maintenanc
 			// Plain CREATE, never IF NOT EXISTS: a concurrent foreign object is
 			// an error, not a reason to trust or replace an unknown definition.
 			plus_storage_query($db, $sql);
-			if (plus_storage_rows($db, 'SHOW WARNINGS') || !plus_pa_file_journal_assert($db, $table, plus_pa_file_journal_definitions($prefix)[$table])) { throw new RuntimeException('Download journal DDL verification failed; keep writers stopped and inspect before retry'); }
+			$warnings = plus_storage_rows($db, 'SHOW WARNINGS');
+			if ($warnings || !plus_pa_file_journal_assert($db, $table, plus_pa_file_journal_definitions($prefix)[$table])) { throw new RuntimeException('Download journal DDL verification failed: ' . json_encode($warnings) . '; keep writers stopped and inspect before retry'); }
 		}
 		if (plus_pa_file_journal_plan($db, $prefix)) { throw new RuntimeException('Download journal schema migration incomplete'); }
 		return count($plan);

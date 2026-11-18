@@ -72,6 +72,13 @@ try {
     if ($legacy instanceof mysqli_result) { mysqli_free_result($legacy); } $cases++;
     us_query($control,'CREATE DATABASE ' . $schema . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); $created = true;
     us_check(mysqli_select_db($control,$schema), 'Selected owned schema');
+    // Preserve the actual MySQL warning which used to reject creation of the
+    // Download journal. The numeric range does not depend on display width.
+    us_query($control,'CREATE TABLE own_legacy_width(actor_id MEDIUMINT(8)) ENGINE=InnoDB');
+    $width_warnings=us_rows($control,'SHOW WARNINGS');$width_note=false;
+    foreach($width_warnings as$warning){if((int)$warning['Code']===1681&&strpos($warning['Message'],'Integer display width is deprecated')!==false){$width_note=true;}}
+    us_check($mysql?$width_note:!$width_warnings,'Original explicit integer width warning reproduced on actual backend');$cases++;
+    us_query($control,'DROP TABLE own_legacy_width');
     us_query($control,"CREATE USER '" . $account . "'@'%' IDENTIFIED BY '" . $secret . "'"); $account_created = true;
     us_query($control,'GRANT ALL ON ' . $schema . ".* TO '" . $account . "'@'%'");
     $db = mysqli_connect('127.0.0.1',$account,$secret,$schema,(int)$port); us_check($db && mysqli_set_charset($db,'utf8mb4'), 'Database-local SQL account connects');
