@@ -1232,6 +1232,18 @@ $lang['Icons_selection_changed'] = 'Das ausgewählte Icon oder sein Ersatz ist n
 $lang['Icons_limit'] = 'Die maximale Icon-Anzahl oder der verfügbare ID-Bereich ist erreicht.';
 $lang['Icons_storage_failed'] = 'Die Icon-Änderung konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die aktuelle Liste prüfen. Falls der Speicher fehlt, zuerst den Updater für Versionen nach 1.53a ausführen.';
 $lang['Icons_usage_unavailable'] = 'Nicht verfügbar';
+// Current mass-mail recipient selection and honest delivery outcomes.
+$lang['Mass_mail_group_invalid'] = 'Die ausgewählte Gruppe ist nicht verfügbar. Bitte eine vorhandene Gruppe oder alle Benutzer auswählen.';
+$lang['Mass_mail_select_group'] = 'Bitte Empfänger auswählen';
+$lang['Mass_mail_unavailable'] = 'Der Massenversand konnte nicht vorbereitet werden. Es wurde keine E-Mail übergeben. Bitte die Einstellungen prüfen und erneut versuchen.';
+$lang['Mass_mail_no_recipients'] = 'In dieser Auswahl sind keine gültigen E-Mail-Empfänger mehr vorhanden. Es wurde keine E-Mail übergeben.';
+$lang['Mass_mail_busy'] = 'Für dein Konto läuft bereits ein Massenversand. Es wurde kein weiterer Versand gestartet.';
+$lang['Mass_mail_source_changed'] = 'Konto, Empfänger oder E-Mail-Einstellungen wurden während der Vorbereitung geändert. Es wurde keine E-Mail übergeben.';
+$lang['Mass_mail_delivery_failed'] = 'Der Mailserver hat die Annahme nicht bestätigt. Bitte vor einem erneuten Versand prüfen.';
+$lang['Mass_mail_sent'] = 'Der Mailserver hat Nachrichten für %d unterschiedliche Empfängeradressen in %d Versandpaketen angenommen.';
+$lang['Mass_mail_partial_unknown'] = 'Die Annahme durch den Mailserver ist für %d Empfängeradressen in %d Versandpaketen bestätigt. Auch der zuletzt versuchte Versand wurde möglicherweise bereits angenommen. Der weitere Versand wurde gestoppt. Bitte den vollständigen Versand nicht erneut absenden, sondern zuerst die Zustellung prüfen.';
+$lang['Mass_mail_partial_stopped'] = 'Die Annahme durch den Mailserver ist für %d Empfängeradressen in %d Versandpaketen bestätigt. Der weitere Versand wurde vor dem nächsten Versandversuch gestoppt. Bitte den vollständigen Versand nicht erneut absenden, sondern zuerst die Zustellung prüfen.';
+
 // That's all Folks!
 // Na Gott sei Dank!
 // -------------------------------------------------

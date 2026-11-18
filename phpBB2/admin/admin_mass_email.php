@@ -39,137 +39,48 @@ $no_page_header = TRUE;
 $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+require_once dirname(__DIR__) . '/includes/functions_mass_mail.php';
 $error = false;
 $error_msg = '';
-$notice = '';
-
-//
-// Increase maximum execution time in case of a lot of users, but don't complain about it if it isn't
-// allowed.
-//
+$subject = isset($_POST['subject']) && is_string($_POST['subject']) ? phpbb_request_raw_value($_POST['subject']) : '';
+$message = isset($_POST['message']) && is_string($_POST['message']) ? phpbb_request_raw_value($_POST['message']) : '';
+$selected_group = -1;
 @set_time_limit(1200);
 
-$message = '';
-$subject = '';
-
-//
-// Do the job ...
-//
-if ( isset($_POST['submit']) )
+if (isset($_POST['submit']))
 {
 	phpbb_admin_require_post_session();
-	$subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? stripslashes(trim((string) $_POST['subject'])) : '';
-	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? stripslashes(trim((string) $_POST['message'])) : '';
-	$subject = substr(str_replace(array("\r", "\n"), ' ', $subject), 0, 255);
-	$message = substr($message, 0, 1048576);
-	
-	$error = FALSE;
-	$error_msg = '';
-
-	if ( empty($subject) )
+	$selected_group = '';
+	try { $selected_group = phpbb_mass_mail_group(isset($_POST[POST_GROUPS_URL]) ? $_POST[POST_GROUPS_URL] : null); }
+	catch (PhpbbMassMailFailure $ignored) {}
+	$service = new PhpbbMassMailController();
+	try
 	{
-		$error = true;
-		$error_msg .= ( !empty($error_msg) ) ? '<br />' . $lang['Empty_subject'] : $lang['Empty_subject'];
+		$sent = $service->send($db, $_POST);
+		$message = sprintf($lang['Mass_mail_sent'], $sent['recipients'], $sent['batches']);
+		$message .= '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
+		message_die(GENERAL_MESSAGE, $message);
 	}
-
-	if ( empty($message) )
+	catch (PhpbbMassMailFailure $failure)
 	{
-		$error = true;
-		$error_msg .= ( !empty($error_msg) ) ? '<br />' . $lang['Empty_message'] : $lang['Empty_message'];
-	}
-
-	$group_id = (isset($_POST[POST_GROUPS_URL]) && is_scalar($_POST[POST_GROUPS_URL])) ? intval($_POST[POST_GROUPS_URL]) : 0;
-
-	$sql = ( $group_id != -1 ) ? "SELECT u.user_email FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug WHERE ug.group_id = $group_id AND ug.user_pending <> " . TRUE . " AND u.user_id = ug.user_id" : "SELECT user_email FROM " . USERS_TABLE;
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not select group members', '', __LINE__, __FILE__, $sql);
-	}
-
-	if ( $row = $db->sql_fetchrow($result) )
-	{
-		$bcc_list = array();
-		do
+		if ($failure->attempted)
 		{
-			$bcc_list[] = $row['user_email'];
+			$key = $failure->uncertain ? 'Mass_mail_partial_unknown' : 'Mass_mail_partial_stopped';
+			$message = sprintf($lang[$key], $failure->recipients, $failure->batches);
+			$message .= '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
+			message_die(GENERAL_MESSAGE, $message);
 		}
-		while ( $row = $db->sql_fetchrow($result) );
-
-		$db->sql_freeresult($result);
-	}
-	else
-	{
-		$message = ( $group_id != -1 ) ? $lang['Group_not_exist'] : $lang['No_such_user'];
-
+		$key = $failure->getMessage();
+		$error_msg = isset($lang[$key]) ? $lang[$key] : $lang['Mass_mail_unavailable'];
+		if (in_array($key, array('Session_invalid','Not_Authorised'), true)) { message_die(GENERAL_MESSAGE, $error_msg); }
 		$error = true;
-		$error_msg .= ( !empty($error_msg) ) ? '<br />' . $message : $message;
 	}
+}
 
-	if ( !$error )
-	{
-		include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-
-		//
-		// Let's do some checking to make sure that mass mail functions
-		// are working in win32 versions of php.
-		//
-		if ( preg_match('/[c-z]:\\\.*/i', getenv('PATH')) && !$board_config['smtp_delivery'])
-		{
-			$ini_val = ( @phpversion() >= '4.0.0' ) ? 'ini_get' : 'get_cfg_var';
-
-			// We are running on windows, force delivery to use our smtp functions
-			// since php's are broken by default
-			$board_config['smtp_delivery'] = 1;
-			$board_config['smtp_host'] = @$ini_val('SMTP');
-		}
-
-		$sendloops = ceil((count($bcc_list)-1)/500); 
-		$sendstart = 0; 
-		for ($j = 0; $j <= $sendloops; $j++) 
-		{ 
-			$emailer = new emailer($board_config['smtp_delivery']);
-		
-			$emailer->from($board_config['board_email']);
-			$emailer->replyto($board_config['board_email']);
-	
-			for ($i = $sendstart; ($i < count($bcc_list)) && ($i < ($sendstart + 500)); $i++) 
-			{
-				$emailer->bcc($bcc_list[$i]);
-			}
-	
-			$email_headers = 'X-AntiAbuse: Board servername - ' . $board_config['server_name'] . "\n";
-			$email_headers .= 'X-AntiAbuse: User_id - ' . $userdata['user_id'] . "\n";
-			$email_headers .= 'X-AntiAbuse: Username - ' . $userdata['username'] . "\n";
-			$email_headers .= 'X-AntiAbuse: User IP - ' . decode_ip($user_ip) . "\n";
-	
-			$emailer->use_template('admin_send_email');
-			$emailer->email_address($board_config['board_email']);
-			$emailer->set_subject($subject);
-			$emailer->extra_headers($email_headers);
-	
-			$emailer->assign_vars(array(
-				'SITENAME' => $board_config['sitename'], 
-				'BOARD_EMAIL' => $board_config['board_email'], 
-				'MESSAGE' => $message)
-			);
-			$emailer->send();
-			$emailer->reset();
-			
-			$sendstart = $sendstart + 500; 
-		} 
-	
-		message_die(GENERAL_MESSAGE, $lang['Email_sent'] . '<br /><br />' . sprintf($lang['Click_return_admin_index'],  '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
-	}
-}	
-
-if ( $error )
+if ($error)
 {
-	$template->set_filenames(array(
-		'reg_header' => 'error_body.tpl')
-	);
-	$template->assign_vars(array(
-		'ERROR_MESSAGE' => $error_msg)
-	);
+	$template->set_filenames(array('reg_header'=>'error_body.tpl'));
+	$template->assign_vars(array('ERROR_MESSAGE'=>phpbb_admin_html($error_msg)));
 	$template->assign_var_from_handle('ERROR_BOX', 'reg_header');
 }
 
@@ -185,14 +96,18 @@ if ( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, 'Could not obtain list of groups', '', __LINE__, __FILE__, $sql);
 }
 
-$select_list = '<select name = "' . POST_GROUPS_URL . '"><option value = "-1">' . $lang['All_users'] . '</option>';
-if ( $row = $db->sql_fetchrow($result) )
+$groups = $db->sql_fetchrowset($result);
+$db->sql_freeresult($result);
+$available = $selected_group === -1;
+foreach ($groups as $group) { if ((int)$group['group_id'] === $selected_group) { $available = true; } }
+$select_list = '<select name="' . POST_GROUPS_URL . '">';
+// A removed/invalid group must never silently redisplay as "all users".
+if (!$available) { $select_list .= '<option value="" selected="selected">' . phpbb_admin_html($lang['Mass_mail_select_group']) . '</option>'; }
+$select_list .= '<option value="-1"' . ($selected_group === -1 ? ' selected="selected"' : '') . '>' . phpbb_admin_html($lang['All_users']) . '</option>';
+foreach ($groups as $group)
 {
-	do
-	{
-		$select_list .= '<option value = "' . (int) $row['group_id'] . '">' . phpbb_admin_html($row['group_name']) . '</option>';
-	}
-	while ( $row = $db->sql_fetchrow($result) );
+	$id = (int)$group['group_id'];
+	$select_list .= '<option value="' . $id . '"' . ($selected_group === $id ? ' selected="selected"' : '') . '>' . phpbb_admin_html($group['group_name']) . '</option>';
 }
 $select_list .= '</select>';
 
@@ -216,7 +131,6 @@ $template->assign_vars(array(
 	'L_EMAIL_SUBJECT' => $lang['Subject'],
 	'L_EMAIL_MSG' => $lang['Message'],
 	'L_EMAIL' => $lang['Email'],
-	'L_NOTICE' => $notice,
 
 	'S_USER_ACTION' => append_sid('admin_mass_email.'.$phpEx),
 	'S_FORM_TOKEN' => phpbb_admin_session_field(),

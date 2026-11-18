@@ -303,6 +303,14 @@ jobs:
         env:
           PHPBB_CONTENT_NATIVE: '1'
           PHPBB_CONTENT_PASSWORD: fixture-only
+      - name: Check current administrator mass mail without real transport
+        if: matrix.part == 2
+        run: |
+          php -d disable_functions=mail .github/scripts/check-mass-mail-native.php
+          PHPBB_MASS_MAIL_RAW=1 php -d disable_functions=mail .github/scripts/check-mass-mail-native.php
+        env:
+          PHPBB_MASS_MAIL_NATIVE: '1'
+          PHPBB_MASS_MAIL_PASSWORD: fixture-only
       - name: Check atomic smiley administration
         if: matrix.part == 3
         run: |
@@ -1725,6 +1733,13 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check current administrator mass mail on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-mass-mail-native.php
+        env:
+          PHPBB_MASS_MAIL_NATIVE: '1'
+          PHPBB_MASS_MAIL_PASSWORD: fixture-only
+          PHPBB_MASS_MAIL_MYSQL: '8.4'
       - name: Check atomic smiley administration on MySQL
         if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-smilies-native.php

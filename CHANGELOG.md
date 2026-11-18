@@ -6,6 +6,28 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Current administrator mass mail and literal email bodies
+
+- Remove the extra empty mass-mail iteration. Validate current recipient
+  addresses, omit pending group memberships and malformed addresses, and
+  deduplicate mailboxes across batches without merging different local parts.
+  Preserve administrative delivery to inactive accounts and the board copy.
+- Recheck the active administrator, exact live ACP session and delegated
+  Mass Email permission before delivery and between batches. Read current
+  recipients and SMTP settings on independent canonical read-only snapshots;
+  preserve caller transactions and hold no database transaction or global
+  mutation lock during mail transport. Reject overlapping campaigns for the
+  same account. No additional schema or data migration is required.
+- Stop on transport failure without retrying a batch. Distinguish confirmed
+  acceptance from an uncertain last attempt, and do not invite resubmission of
+  already accepted mail. Preserve escaped Unicode drafts and the selected
+  group on validation errors; a removed group never defaults to all users.
+- Parse Subject/Charset metadata only from the original template's leading
+  header block, before expanding variables. Literal headings inside message
+  text now remain body text and cannot replace the subject or MIME metadata.
+  Preserve header-variable expansion, existing fallback subjects and all
+  bundled English/German email templates.
+
 ### Atomic smiley administration and package imports
 
 - Validate the complete smiley package and its images before replacing existing

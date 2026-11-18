@@ -18,7 +18,7 @@
 </tr>
 <tr> 
 <td class="row1" align="right">{L_EMAIL_SUBJECT}:</td>
-<td class="row2"><input type="text" name="subject" size="45" maxlength="100" tabindex="2" class="post" value="{SUBJECT}" /> 
+<td class="row2"><input type="text" name="subject" size="45" maxlength="255" tabindex="2" class="post" value="{SUBJECT}" />
 </td>
 </tr>
 <tr> 

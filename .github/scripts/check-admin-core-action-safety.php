@@ -12,13 +12,21 @@ function admin_core_action_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $mail = file_get_contents($root . '/phpBB2/admin/admin_mass_email.php');
 $mail_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/user_email_body.tpl');
+$mail_worker = file_get_contents($root . '/phpBB2/includes/functions_mass_mail.php');
+require_once $root . '/update/innodb_migration.php';
+$participants = plus_storage_tables(file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql'), 'fixture_');
+foreach (array('config','users','sessions','jr_admin_users','groups','user_group') as $suffix)
+{
+	admin_core_action_assert(in_array('fixture_' . $suffix, $participants, true), 'mass-mail read participants require the existing consolidated storage migration');
+}
 $prune = file_get_contents($root . '/phpBB2/admin/admin_forum_prune.php');
 $prune_select = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/forum_prune_select_body.tpl');
 $prune_form = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/forum_prune_body.tpl');
 
-admin_core_action_assert(strpos($mail, "if ( isset(\$_POST['submit']) )\n{\n\tphpbb_admin_require_post_session();") !== false, 'mass mail delivery must require the administrator form token');
-admin_core_action_assert(strpos($mail, "is_scalar(\$_POST['subject'])") !== false && strpos($mail, "is_scalar(\$_POST['message'])") !== false, 'mass mail fields must reject nested input');
-admin_core_action_assert(strpos($mail, "str_replace(array(\"\\r\", \"\\n\"), ' ', \$subject)") !== false, 'mass mail subjects must not contain injected header lines');
+admin_core_action_assert(strpos($mail, "if (isset(\$_POST['submit']))\n{\n\tphpbb_admin_require_post_session();") !== false, 'mass mail delivery must require the administrator form token');
+admin_core_action_assert(strpos($mail, "is_string(\$_POST['subject'])") !== false && strpos($mail, "is_string(\$_POST['message'])") !== false, 'mass mail fields must reject nested input');
+admin_core_action_assert(strpos($mail_worker, "phpbb_mail_text(phpbb_mail_input(\$request,'subject'),255,true)") !== false, 'mass mail subjects use the current Unicode/header-value validator');
+admin_core_action_assert(strpos($mail, '$service->send($db, $_POST)') !== false && strpos($mail_worker, 'phpbb_mass_mail_context($request)') !== false, 'actual controller must use the supplied request token and shared current-authority worker');
 admin_core_action_assert(strpos($mail, "'MESSAGE' => phpbb_admin_html(\$message)") !== false && strpos($mail, "'SUBJECT' => phpbb_admin_html(\$subject)") !== false, 'mass mail form redisplay must be escaped');
 admin_core_action_assert(strpos($mail_template, '{S_FORM_TOKEN}') !== false, 'mass mail form must submit its session token');
 

@@ -1243,6 +1243,18 @@ $lang['Icons_selection_changed'] = 'The selected icon or its replacement no long
 $lang['Icons_limit'] = 'The icon count or ID range is exhausted.';
 $lang['Icons_storage_failed'] = 'The icon change could not be confirmed. Check the current list before retrying. If storage is unavailable, run the post-1.53a updater first.';
 $lang['Icons_usage_unavailable'] = 'Not available';
+// Current mass-mail recipient selection and honest delivery outcomes.
+$lang['Mass_mail_group_invalid'] = 'The selected group is unavailable. Please choose a current group or all users.';
+$lang['Mass_mail_select_group'] = 'Please select recipients';
+$lang['Mass_mail_unavailable'] = 'The mass mailing could not be prepared. No email was submitted. Please check the settings and try again.';
+$lang['Mass_mail_no_recipients'] = 'No valid email recipients remain in this selection. No email was submitted.';
+$lang['Mass_mail_busy'] = 'Another mass mailing for your account is still running. No additional mailing was started.';
+$lang['Mass_mail_source_changed'] = 'The account, recipients or mail settings changed during preparation. No email was submitted.';
+$lang['Mass_mail_delivery_failed'] = 'The mail server did not confirm acceptance. Please check before sending again.';
+$lang['Mass_mail_sent'] = 'The mail server accepted messages for %d distinct recipient addresses in %d batches.';
+$lang['Mass_mail_partial_unknown'] = 'Mail server acceptance was confirmed for %d recipient addresses in %d batches. The last attempted batch may also have been accepted. Further sending stopped. Do not resubmit the complete mailing; check delivery before sending to any remaining recipients.';
+$lang['Mass_mail_partial_stopped'] = 'Mail server acceptance was confirmed for %d recipient addresses in %d batches. Further sending stopped before another batch was attempted. Do not resubmit the complete mailing; check delivery before sending to any remaining recipients.';
+
 // That's all Folks!
 // -------------------------------------------------
 

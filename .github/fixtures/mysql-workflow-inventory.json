@@ -355,6 +355,14 @@
       "commands": [
         "php -d disable_functions=mail .github/scripts/check-smilies-native.php"
       ]
+    },
+    {
+      "name": "Check current administrator mass mail on MySQL",
+      "part": 2,
+      "sha256": "220dee06a535e3f388873f49d3da785928265928b6737a2f4c823edb763c95b8",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-mass-mail-native.php"
+      ]
     }
   ]
 }
