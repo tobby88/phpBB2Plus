@@ -71,17 +71,21 @@ function plus_arcade_progress_apply($db,$prefix,$backup_confirmed,$maintenance_c
 {
     if($backup_confirmed!==true||$maintenance_confirmed!==true||!is_int($wait)||$wait<1||$wait>30){throw new RuntimeException('Confirmed backup, stopped writers and bounded wait required');}
     list($table,$sql)=plus_arcade_progress_definition($prefix);
-    $state=plus_storage_rows($db,'SELECT DATABASE() schema_name,CONNECTION_ID() id,@@SESSION.in_transaction active,@@SESSION.autocommit automatic,@@SESSION.lock_wait_timeout ddl_wait,@@SESSION.innodb_lock_wait_timeout row_wait,@@SESSION.sql_mode mode,@@SESSION.innodb_strict_mode strict_mode');$state=$state[0];
-    if(!is_string($state['schema_name'])||$state['schema_name']===''||(string)$state['active']!=='0'||(string)$state['automatic']!=='1'||mysqli_character_set_name($db)!=='utf8mb4'||!preg_match('/^[0-9]{1,10}$/D',(string)$state['ddl_wait'])||!preg_match('/^[0-9]{1,10}$/D',(string)$state['row_wait'])){throw new RuntimeException('Independent idle native UTF-8 progress migration connection required');}
+    $state=plus_storage_rows($db,'SELECT DATABASE() schema_name,CONNECTION_ID() id,@@SESSION.autocommit automatic,@@SESSION.lock_wait_timeout ddl_wait,@@SESSION.innodb_lock_wait_timeout row_wait,@@SESSION.sql_mode mode,@@SESSION.innodb_strict_mode strict_mode');$state=$state[0];
+    if(!is_string($state['schema_name'])||$state['schema_name']===''||(string)$state['automatic']!=='1'||mysqli_character_set_name($db)!=='utf8mb4'||!preg_match('/^[0-9]{1,10}$/D',(string)$state['ddl_wait'])||!preg_match('/^[0-9]{1,10}$/D',(string)$state['row_wait'])){throw new RuntimeException('Independent idle native UTF-8 progress migration connection required');}
+    // An active transaction refuses this one-shot setting without committing it.
+    plus_storage_query($db,'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
     $held=array();$settings=false;$owned=false;
     try{
+        plus_storage_query($db,'START TRANSACTION READ ONLY');$owned=true;
         foreach(array('plus_innodb_'.sha1($state['schema_name']),'attachment:'.md5($state['schema_name']."\0".$prefix.'attachments'))as$lock){
             $owner=plus_storage_rows($db,"SELECT IS_USED_LOCK('$lock') owner");if((string)$owner[0]['owner']===(string)$state['id']){throw new RuntimeException('Caller-owned progress migration lease refused');}
             $r=plus_storage_rows($db,"SELECT GET_LOCK('$lock',$wait) held");if(count($r)!==1||(string)$r[0]['held']!=='1'){throw new RuntimeException('Another migration or forum writer is running');}$held[]=$lock;
         }
         plus_storage_query($db,'SET SESSION lock_wait_timeout='.$wait.',innodb_lock_wait_timeout='.$wait);$settings=true;
-        plus_storage_query($db,"SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");plus_storage_query($db,'SET SESSION innodb_strict_mode=ON');
+        plus_storage_query($db,"SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");plus_storage_strict_mode($db,true);
         $plan=plus_arcade_progress_plan($db,$prefix);plus_arcade_progress_legacy_plan($db,$prefix);
+        plus_storage_query($db,'COMMIT');$owned=false;
         if($plan){
             // A foreign object appearing after preview is an error. Never
             // DROP, alter or silently adopt it with CREATE IF NOT EXISTS.
@@ -97,7 +101,7 @@ function plus_arcade_progress_apply($db,$prefix,$backup_confirmed,$maintenance_c
         return array('created'=>count($plan),'imported'=>$imported);
     }finally{
         if($owned){try{mysqli_query($db,'ROLLBACK');}catch(Exception$ignored){}catch(Error$ignored){}}
-        try{if($settings){plus_storage_query($db,"SET SESSION sql_mode='".mysqli_real_escape_string($db,$state['mode'])."',lock_wait_timeout=".$state['ddl_wait'].',innodb_lock_wait_timeout='.$state['row_wait'].',innodb_strict_mode='.(int)$state['strict_mode']);}}
+        try{if($settings){plus_storage_query($db,"SET SESSION sql_mode='".mysqli_real_escape_string($db,$state['mode'])."',lock_wait_timeout=".$state['ddl_wait'].',innodb_lock_wait_timeout='.$state['row_wait']);plus_storage_strict_mode($db,(bool)(int)$state['strict_mode']);}}
         finally{foreach(array_reverse($held)as$lock){try{mysqli_query($db,"SELECT RELEASE_LOCK('$lock')");}catch(Exception$ignored){}catch(Error$ignored){}}}
     }
 }

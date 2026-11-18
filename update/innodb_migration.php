@@ -17,6 +17,21 @@ function plus_storage_rows($db, $sql)
 	mysqli_free_result($result); return $rows;
 }
 
+// MySQL restricts assigning this session variable even when its value would
+// stay unchanged. Ordinary database accounts can retain the enabled default;
+// a disabled mode still has to be changed successfully before any DDL.
+function plus_storage_strict_mode($db, $enabled)
+{
+	if ($enabled !== true && $enabled !== false) { throw new RuntimeException('Typed InnoDB strict mode required'); }
+	$rows = plus_storage_rows($db, 'SELECT @@SESSION.innodb_strict_mode AS strict_mode');
+	if (count($rows) !== 1 || !isset($rows[0]['strict_mode']) ||
+		(!is_int($rows[0]['strict_mode']) && !is_string($rows[0]['strict_mode'])) ||
+		!in_array((string) $rows[0]['strict_mode'], array('0', '1'), true)) { throw new RuntimeException('InnoDB strict mode unavailable'); }
+	if ((string) $rows[0]['strict_mode'] === ($enabled ? '1' : '0')) { return false; }
+	plus_storage_query($db, 'SET SESSION innodb_strict_mode=' . ($enabled ? 'ON' : 'OFF'));
+	return true;
+}
+
 function plus_storage_identifier($name)
 {
 	if (!is_string($name) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $name)) { throw new RuntimeException('Invalid storage identifier'); }
@@ -127,16 +142,24 @@ function plus_storage_fatal_warnings($warnings)
 function plus_storage_apply($db, $tables, $backup_confirmed, $maintenance_confirmed, $progress = null)
 {
 	if (!$backup_confirmed || !$maintenance_confirmed) { throw new RuntimeException('Verified backup and stopped web/cron writers are required'); }
-	$identity = plus_storage_rows($db, 'SELECT DATABASE() AS db, @@SESSION.sql_mode AS mode, @@SESSION.innodb_strict_mode AS strict_mode, @@SESSION.lock_wait_timeout AS wait_timeout');
-	$lock = 'plus_innodb_' . sha1($identity[0]['db']);
-	$held = plus_storage_rows($db, "SELECT GET_LOCK('" . $lock . "',0) AS held");
-	if ((string) $held[0]['held'] !== '1') { throw new RuntimeException('Another storage migration is running'); }
+	$identity = plus_storage_rows($db, 'SELECT DATABASE() AS db,@@SESSION.autocommit AS automatic,@@SESSION.sql_mode AS mode,@@SESSION.innodb_strict_mode AS strict_mode,@@SESSION.lock_wait_timeout AS wait_timeout');
+	if (count($identity) !== 1 || !is_string($identity[0]['db']) || $identity[0]['db'] === '' || (string) $identity[0]['automatic'] !== '1') { throw new RuntimeException('Storage migration requires an idle autocommit connection'); }
+	// Refuses an active caller transaction before taking locks or changing
+	// settings. The one-shot isolation is consumed only by our own preview.
+	plus_storage_query($db, 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+	$lock = 'plus_innodb_' . sha1($identity[0]['db']); $held = false; $owned = false;
 	try
 	{
-		$plan = plus_storage_plan($db, $tables);
-		plus_storage_query($db, "SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION','NO_AUTO_VALUE_ON_ZERO')");
-		plus_storage_query($db, 'SET SESSION innodb_strict_mode=ON');
+		plus_storage_query($db, 'START TRANSACTION READ ONLY'); $owned = true;
+		$owner = plus_storage_rows($db, "SELECT IS_USED_LOCK('" . $lock . "') AS owner");
+		if (count($owner) !== 1 || $owner[0]['owner'] !== null) { throw new RuntimeException('Storage migration lease already owned; no lock is adopted'); }
+		$lease = plus_storage_rows($db, "SELECT GET_LOCK('" . $lock . "',0) AS held");
+		if (count($lease) !== 1 || (string) $lease[0]['held'] !== '1') { throw new RuntimeException('Another storage migration is running'); } $held = true;
 		plus_storage_query($db, 'SET SESSION lock_wait_timeout=30');
+		$plan = plus_storage_plan($db, $tables);
+		plus_storage_query($db, 'COMMIT'); $owned = false;
+		plus_storage_query($db, "SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION','NO_AUTO_VALUE_ON_ZERO')");
+		plus_storage_strict_mode($db, true);
 		foreach ($plan as $table => $sql)
 		{
 			$before = plus_storage_metadata($db, $table);
@@ -161,12 +184,13 @@ function plus_storage_apply($db, $tables, $backup_confirmed, $maintenance_confir
 	finally
 	{
 		// DDL commits per table; a retry resumes remaining tables, not a rollback.
+		if ($owned) { try { mysqli_query($db, 'ROLLBACK'); } catch (Exception $ignored) {} catch (Error $ignored) {} }
 		try
 		{
 			plus_storage_query($db, "SET SESSION sql_mode='" . mysqli_real_escape_string($db, $identity[0]['mode']) . "'");
-			plus_storage_query($db, 'SET SESSION innodb_strict_mode=' . (int) $identity[0]['strict_mode']);
+			plus_storage_strict_mode($db, (bool) (int) $identity[0]['strict_mode']);
 			plus_storage_query($db, 'SET SESSION lock_wait_timeout=' . (int) $identity[0]['wait_timeout']);
 		}
-		finally { plus_storage_query($db, "DO RELEASE_LOCK('" . $lock . "')"); }
+		finally { if ($held) { plus_storage_query($db, "DO RELEASE_LOCK('" . $lock . "')"); } }
 	}
 }

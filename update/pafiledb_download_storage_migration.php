@@ -62,7 +62,7 @@ function plus_pa_download_apply($db,$prefix,$backup_confirmed,$maintenance_confi
         plus_storage_query($db,'START TRANSACTION READ ONLY');$owned=true;
         foreach(array('plus_innodb_'.sha1($state['db']),'attachment:'.md5($state['db']."\0".$prefix.'attachments'))as$lock){$rows=plus_storage_rows($db,"SELECT IS_USED_LOCK('".$lock."') owner");if(count($rows)!==1||$rows[0]['owner']!==null){throw new RuntimeException('Download/schema lock already owned; no lease is adopted');}$rows=plus_storage_rows($db,"SELECT GET_LOCK('".$lock."',0) held");if(count($rows)!==1||(string)$rows[0]['held']!=='1'){throw new RuntimeException('Another download writer or schema migration is active');}$held[]=$lock;}
         $plan=plus_pa_download_plan($db,$prefix);$before=array();foreach($plan as$table=>$item){$before[$table]=array('meta'=>plus_storage_metadata($db,$table),'signature'=>plus_storage_signature($db,$table),'digest'=>plus_pa_download_digest($db,$table));}
-        plus_storage_query($db,'COMMIT');$owned=false;plus_storage_query($db,"SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");plus_storage_query($db,'SET SESSION innodb_strict_mode=ON');plus_storage_query($db,'SET SESSION lock_wait_timeout='.$wait_seconds);
+        plus_storage_query($db,'COMMIT');$owned=false;plus_storage_query($db,"SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");plus_storage_strict_mode($db,true);plus_storage_query($db,'SET SESSION lock_wait_timeout='.$wait_seconds);
         foreach($plan as$table=>$item){
             foreach($held as$lock){$rows=plus_storage_rows($db,"SELECT IS_USED_LOCK('".$lock."') owner");if(count($rows)!==1||(string)$rows[0]['owner']!==(string)$state['id']){throw new RuntimeException('Download migration lease lost');}}
             plus_storage_query($db,$item['sql']);if(plus_storage_rows($db,'SHOW WARNINGS')){throw new RuntimeException('Download storage DDL reported warnings; keep writers stopped');}
@@ -76,6 +76,6 @@ function plus_pa_download_apply($db,$prefix,$backup_confirmed,$maintenance_confi
         if(plus_pa_download_plan($db,$prefix)){throw new RuntimeException('Download storage migration incomplete');}return count($plan);
     }finally{
         if($owned){try{mysqli_query($db,'ROLLBACK');}catch(Exception$ignored){}catch(Error$ignored){}}
-        try{plus_storage_query($db,"SET SESSION sql_mode='".mysqli_real_escape_string($db,$state['mode'])."'");plus_storage_query($db,'SET SESSION lock_wait_timeout='.(int)$state['wait_timeout']);plus_storage_query($db,'SET SESSION innodb_strict_mode='.((int)$state['strict_mode']?'ON':'OFF'));}finally{foreach(array_reverse($held)as$lock){plus_storage_query($db,"DO RELEASE_LOCK('".$lock."')");}}
+        try{plus_storage_query($db,"SET SESSION sql_mode='".mysqli_real_escape_string($db,$state['mode'])."'");plus_storage_query($db,'SET SESSION lock_wait_timeout='.(int)$state['wait_timeout']);plus_storage_strict_mode($db,(bool)(int)$state['strict_mode']);}finally{foreach(array_reverse($held)as$lock){plus_storage_query($db,"DO RELEASE_LOCK('".$lock."')");}}
     }
 }

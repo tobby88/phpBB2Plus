@@ -33,22 +33,27 @@ function plus_post_tombstone_digest($db,$table,$columns)
 function plus_post_tombstone_apply($db,$prefix,$backup_confirmed,$maintenance_confirmed,$wait=3)
 {
     if($backup_confirmed!==true||$maintenance_confirmed!==true||!is_int($wait)||$wait<1||$wait>30){throw new RuntimeException('Typed backups, maintenance and bounded wait required');}$names=plus_post_tombstone_names($prefix);
-    $state=plus_storage_rows($db,'SELECT DATABASE() db,@@SESSION.in_transaction active,@@SESSION.autocommit automatic,@@SESSION.lock_wait_timeout waiting,@@SESSION.sql_mode mode');$state=$state[0];
-    if(!is_string($state['db'])||$state['db']===''||$state['active']!=='0'||$state['automatic']!=='1'||!preg_match('/^[A-Z0-9_,]*$/D',$state['mode'])){throw new RuntimeException('Independent tombstone migration connection required');}
-    $locks=array('plus_innodb_'.sha1($state['db']),'attachment:'.md5($state['db']."\0".$prefix.'attachments'));$held=array();$changed=0;
+    $state=plus_storage_rows($db,'SELECT DATABASE() db,@@SESSION.autocommit automatic,@@SESSION.lock_wait_timeout waiting,@@SESSION.sql_mode mode');$state=$state[0];
+    if(!is_string($state['db'])||$state['db']===''||$state['automatic']!=='1'||!preg_match('/^[A-Z0-9_,]*$/D',$state['mode'])){throw new RuntimeException('Independent tombstone migration connection required');}
+    plus_storage_query($db,'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+    $locks=array('plus_innodb_'.sha1($state['db']),'attachment:'.md5($state['db']."\0".$prefix.'attachments'));$held=array();$changed=0;$owned=false;
     try{
+        plus_storage_query($db,'START TRANSACTION READ ONLY');$owned=true;
         foreach($locks as$lock){$owner=plus_storage_rows($db,"SELECT IS_USED_LOCK('".$lock."') owner");if($owner[0]['owner']!==null){throw new RuntimeException('Migration lease already belongs to a caller or worker');}$lease=plus_storage_rows($db,"SELECT GET_LOCK('".$lock."',0) held");if($lease[0]['held']!=='1'){throw new RuntimeException('Tombstone migration lease busy');}$held[]=$lock;}
+        plus_storage_query($db,'SET SESSION lock_wait_timeout='.$wait);
         foreach($names as$table){if(!plus_storage_metadata($db,$table)){throw new RuntimeException('Install forum storage before adding tombstones');}}
         $plan=plus_post_tombstone_plan($db,$prefix,true);
         if($plan){
         $before=plus_storage_signature($db,$names['posts']);$columns=array();foreach($before[0]as$column){$columns[]=$column['Field'];}$digest=plus_post_tombstone_digest($db,$names['posts'],$columns);$meta=plus_storage_metadata($db,$names['posts']);$config=plus_storage_rows($db,'SELECT * FROM '.plus_storage_identifier($names['config'])." WHERE config_name<>'post_delete_allow_permanent' ORDER BY config_name");
-        plus_storage_query($db,'SET SESSION lock_wait_timeout='.$wait);plus_storage_query($db,"SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");
+        plus_storage_query($db,'COMMIT');$owned=false;
+        plus_storage_query($db,"SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");
         foreach($plan as$sql){plus_storage_query($db,$sql);if(plus_storage_rows($db,'SHOW WARNINGS')){throw new RuntimeException('Tombstone migration reported warnings; inspect before retrying');}}
         $after=plus_storage_signature($db,$names['posts']);$after[0]=array_values(array_filter($after[0],function($column)use($columns){return in_array($column['Field'],$columns,true);}));$after_meta=plus_storage_metadata($db,$names['posts']);$floor=$meta['AUTO_INCREMENT'];$new_floor=$after_meta['AUTO_INCREMENT'];unset($meta['AUTO_INCREMENT'],$after_meta['AUTO_INCREMENT']);
         if($before!==$after||$meta!==$after_meta||($floor!==null&&!plus_storage_counter_at_least($new_floor,$floor))||plus_post_tombstone_digest($db,$names['posts'],$columns)!==$digest||plus_storage_rows($db,'SELECT * FROM '.plus_storage_identifier($names['config'])." WHERE config_name<>'post_delete_allow_permanent' ORDER BY config_name")!==$config||plus_post_tombstone_plan($db,$prefix,true)){throw new RuntimeException('Tombstone schema/data readback differs; keep writers stopped');}
         $changed=count($plan);
         }
     }finally{
+        if($owned){try{mysqli_query($db,'ROLLBACK');}catch(Exception$ignored){}catch(Error$ignored){}}
         try{plus_storage_query($db,'SET SESSION lock_wait_timeout='.(int)$state['waiting']);plus_storage_query($db,"SET SESSION sql_mode='".$state['mode']."'");}finally{foreach(array_reverse($held)as$lock){plus_storage_query($db,"DO RELEASE_LOCK('".$lock."')");}}
     }
     return $changed;

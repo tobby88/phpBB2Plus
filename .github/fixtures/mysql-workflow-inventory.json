@@ -315,6 +315,14 @@
       "commands": [
         "php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php"
       ]
+    },
+    {
+      "name": "Check migration sessions and complete updater on MySQL",
+      "part": 2,
+      "sha256": "40eeb7835237f3c62da8e4a6ed2ea7726931065c8261414f4f87a47b384e67b9",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-updater-session-native.php"
+      ]
     }
   ]
 }

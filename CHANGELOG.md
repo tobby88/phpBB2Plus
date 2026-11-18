@@ -16,6 +16,19 @@ changes consolidated after that baseline without implying active maintenance.
   transaction variable with the same portable MySQL/MariaDB transaction guard.
   No schema migration or stored-data change is required.
 
+### Migration sessions and repeatable updates
+
+- Storage conversion refuses active caller transactions and inherited migration
+  leases before DDL can commit unrelated work. Targeted migrations use portable
+  idle-transaction checks instead of MariaDB-only session variables. Original
+  SQL modes, waits and strictness are restored after success and failure.
+- Migration helpers and the complete updater retain an already enabled InnoDB
+  strict mode without requiring MySQL server-administration privileges.
+  Disabled strictness must still be enabled where the migration requires it.
+- Refresh existing component credits without deleting the current CrackerTracker
+  entry or reserving fresh auto-increment IDs on every run. Existing identity,
+  visibility, dates and custom links remain intact.
+
 ### Download table metadata checks
 
 - Ordinary MySQL accounts can connect when InnoDB strict mode is already

@@ -240,6 +240,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native migration sessions and ordinary SQL accounts
+        if: matrix.part == 3
+        run: php -d disable_functions=mail .github/scripts/check-updater-session-native.php
+        env:
+          PHPBB_UPDATER_SESSION_NATIVE: '1'
+          PHPBB_UPDATER_SESSION_PASSWORD: fixture-only
       - name: Check native Download metadata participants and journal shape
         if: matrix.part == 3
         run: php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php
@@ -1689,6 +1695,13 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check migration sessions and complete updater on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-updater-session-native.php
+        env:
+          PHPBB_UPDATER_SESSION_NATIVE: '1'
+          PHPBB_UPDATER_SESSION_PASSWORD: fixture-only
+          PHPBB_UPDATER_SESSION_MYSQL: '8.4'
       - name: Check Download metadata participants and journal shape on MySQL
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php

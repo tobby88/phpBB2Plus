@@ -103,7 +103,7 @@ function plus_album_file_journal_apply($db, $prefix, $backup_confirmed, $mainten
 		$plan = plus_album_file_journal_plan($db, $prefix);
 		plus_storage_query($db, 'COMMIT'); $owned = false;
 		plus_storage_query($db, "SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");
-		plus_storage_query($db, 'SET SESSION innodb_strict_mode=ON'); plus_storage_query($db, 'SET SESSION lock_wait_timeout=' . $wait_seconds);
+		plus_storage_strict_mode($db, true); plus_storage_query($db, 'SET SESSION lock_wait_timeout=' . $wait_seconds);
 		foreach ($plan as $table => $sql)
 		{
 			$owner = plus_storage_rows($db, "SELECT IS_USED_LOCK('" . $lock . "') AS owner");
@@ -122,7 +122,7 @@ function plus_album_file_journal_apply($db, $prefix, $backup_confirmed, $mainten
 		try {
 			plus_storage_query($db, "SET SESSION sql_mode='" . mysqli_real_escape_string($db, $identity['mode']) . "'");
 			plus_storage_query($db, 'SET SESSION lock_wait_timeout=' . (int) $identity['wait_timeout']);
-			plus_storage_query($db, 'SET SESSION innodb_strict_mode=' . ((int) $identity['strict_mode'] ? 'ON' : 'OFF'));
+			plus_storage_strict_mode($db, (bool) (int) $identity['strict_mode']);
 		} finally { if ($held) { plus_storage_query($db, "DO RELEASE_LOCK('" . $lock . "')"); } }
 	}
 }

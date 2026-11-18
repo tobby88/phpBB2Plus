@@ -65,11 +65,13 @@ function plus_arcade_log_redaction_apply($db,$prefix,$backup_confirmed,$maintena
     if($backup_confirmed!==true||$maintenance_confirmed!==true||!is_int($wait)||$wait<1||$wait>30){throw new RuntimeException('Confirmed backup, stopped writers and bounded wait required');}
     if($expected_before!==null&&(!is_string($expected_before)||!preg_match('/^[a-f0-9]{64}$/D',$expected_before))){throw new RuntimeException('Exact optional backup snapshot digest required');}
     $table=plus_arcade_log_table($prefix);
-    $state=plus_storage_rows($db,'SELECT DATABASE() db,CONNECTION_ID() id,@@SESSION.in_transaction active,@@SESSION.autocommit automatic,@@SESSION.lock_wait_timeout ddl_wait,@@SESSION.innodb_lock_wait_timeout row_wait');$state=$state[0];
-    if(!is_string($state['db'])||$state['db']===''||(string)$state['active']!=='0'||(string)$state['automatic']!=='1'||mysqli_character_set_name($db)!=='utf8mb4'){throw new RuntimeException('Independent idle UTF-8 migration connection required');}
+    $state=plus_storage_rows($db,'SELECT DATABASE() db,CONNECTION_ID() id,@@SESSION.autocommit automatic,@@SESSION.lock_wait_timeout ddl_wait,@@SESSION.innodb_lock_wait_timeout row_wait');$state=$state[0];
+    if(!is_string($state['db'])||$state['db']===''||(string)$state['automatic']!=='1'||mysqli_character_set_name($db)!=='utf8mb4'){throw new RuntimeException('Independent idle UTF-8 migration connection required');}
     foreach(array('ddl_wait','row_wait')as$key){if(!preg_match('/^[0-9]{1,10}$/D',(string)$state[$key])){throw new RuntimeException('Original migration waits unavailable');}}
+    plus_storage_query($db,'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
     $locks=array('plus_innodb_'.sha1($state['db']),'attachment:'.md5($state['db']."\0".$prefix.'attachments'));$held=array();$owned=false;$statement=null;$waits_changed=false;
     try{
+        plus_storage_query($db,'START TRANSACTION READ ONLY');$owned=true;
         foreach($locks as$lock){
             $owner=plus_storage_rows($db,"SELECT IS_USED_LOCK('$lock') owner");
             if((string)$owner[0]['owner']===(string)$state['id']){throw new RuntimeException('Caller already owns a migration lease');}
@@ -78,6 +80,7 @@ function plus_arcade_log_redaction_apply($db,$prefix,$backup_confirmed,$maintena
         }
         plus_storage_query($db,'SET SESSION lock_wait_timeout='.$wait.',innodb_lock_wait_timeout='.$wait);$waits_changed=true;
         if(plus_storage_metadata($db,$table)===null){if($expected_before!==null){throw new RuntimeException('Backed-up Arcade table disappeared');}return array('present'=>false,'rows'=>0,'redacted_rows'=>0);}
+        plus_storage_query($db,'COMMIT');$owned=false;
         plus_storage_query($db,'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');plus_storage_query($db,'START TRANSACTION');$owned=true;
         $probe=plus_storage_query($db,'SELECT * FROM '.plus_storage_identifier($table).' LIMIT 0');mysqli_free_result($probe);
         $meta=plus_storage_metadata($db,$table);

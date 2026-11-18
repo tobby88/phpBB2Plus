@@ -1325,7 +1325,8 @@ foreach ($username_snapshot_tables as $snapshot)
 // the public page was opened. It is no longer distributed or scanned there.
 $hacks_table = update_quote_identifier($table_prefix . 'hacks_list');
 $operations[] = "DELETE FROM $hacks_table WHERE hack_name = 'Hack Name' OR hack_file LIKE '%nivisec_hack_list_auto_insert.hl'";
-$operations[] = "DELETE FROM $hacks_table WHERE hack_name IN ('Cracker Tracker Professional 2nd Ed.', 'CrackerTracker Professional 2nd Ed.', 'CrackerTracker Professional G5', 'IntegraMOD Responsive Styles', 'Google Visit Counter')";
+$operations[] = "DELETE FROM $hacks_table WHERE hack_name IN ('Cracker Tracker Professional 2nd Ed.', 'CrackerTracker Professional 2nd Ed.', 'IntegraMOD Responsive Styles', 'Google Visit Counter')";
+$credit_catalog_exists = update_table_exists($connection, $dbname, $table_prefix . 'hacks_list');
 $credit_rows = array(
 	array('Birthday Mod', 'Adds birthday and age information to user profiles and posts.', 'Niels', 'http://mods.db9.dk', '1.5.7'),
 	array('Photo Album Addon v2 for phpBB2', 'Integrated phpBB-based photo album and gallery management system.', 'Smartor', 'http://smartor.is-root.com', '2.0.53'),
@@ -1351,7 +1352,18 @@ foreach ($credit_rows as $credit)
 {
 	$values = array();
 	foreach ($credit as $value) { $values[] = "'" . mysqli_real_escape_string($connection, $value) . "'"; }
-	$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0) ON DUPLICATE KEY UPDATE hack_desc = VALUES(hack_desc), hack_author = VALUES(hack_author), hack_author_website = VALUES(hack_author_website), hack_version = VALUES(hack_version)";
+	// Preserve existing IDs, visibility and dates. INSERT ... ON DUPLICATE KEY
+	// reserves new AUTO_INCREMENT values even when only updating an old row.
+	// Exclude the bogus sample-file rows already queued for removal above.
+	$credit_present = $credit_catalog_exists && (int) update_scalar($connection, "SELECT COUNT(*) FROM $hacks_table WHERE hack_name = " . $values[0] . " AND (hack_file IS NULL OR hack_file NOT LIKE '%nivisec_hack_list_auto_insert.hl')") > 0;
+	if ($credit_present)
+	{
+		$operations[] = "UPDATE $hacks_table SET hack_desc = " . $values[1] . ', hack_author = ' . $values[2] . ', hack_author_website = ' . $values[3] . ', hack_version = ' . $values[4] . ' WHERE hack_name = ' . $values[0];
+	}
+	else
+	{
+		$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0)";
+	}
 }
 
 // The account-wide visual-confirmation lock was disabled because an
@@ -1443,7 +1455,9 @@ if ($apply)
 {
 	// A disabled engine must fail, never silently fall back to MyISAM.
 	update_query_or_fail($connection, "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')");
-	update_query_or_fail($connection, "SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON");
+	update_query_or_fail($connection, "SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB");
+	try { plus_storage_strict_mode($connection, true); }
+	catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nStorage policy setup failed. No changes made.\n"); exit(3); }
 }
 // Widen references before the standard-style update can assign a large ID.
 foreach ($style_ids_plan as $item) { echo $item['sql'] . ";\n"; }
