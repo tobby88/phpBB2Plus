@@ -89,9 +89,13 @@ function phpbb_orient_image($image, $orientation)
         if ($limit !== '-1') {
             if (!preg_match('/^([0-9]+)\s*([KMG]?)$/iD', $limit, $m)) { return false; }
             $power = array(''=>0,'K'=>1,'M'=>2,'G'=>3);
-            if (memory_get_usage(true) + imagesx($image) * imagesy($image) * 5 + 8388608 >= (float) $m[1] * pow(1024, $power[strtoupper($m[2])])) { return false; }
+            $cost = imageistruecolor($image) ? 5 : 9;
+            if (memory_get_usage(true) + imagesx($image) * imagesy($image) * $cost + 8388608 >= (float) $m[1] * pow(1024, $power[strtoupper($m[2])])) { return false; }
         }
         if (!function_exists('imagerotate')) { return false; }
+        // Some system GD builds corrupt palette images during rotation. The
+        // legacy resize mode may still produce a palette; normalize it first.
+        if (!imageistruecolor($image) && (!function_exists('imagepalettetotruecolor') || !@imagepalettetotruecolor($image))) { return false; }
     }
     if (in_array($orientation, array(2,4,5,7), true) && (!function_exists('imageflip') || !@imageflip($image, $orientation === 4 ? IMG_FLIP_VERTICAL : IMG_FLIP_HORIZONTAL))) { return false; }
     if (!$rotate) { return $image; }
