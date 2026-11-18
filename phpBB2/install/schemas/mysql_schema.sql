@@ -124,6 +124,13 @@ CREATE TABLE phpbb_user_removal_items (
 #
 # Table structure for table 'phpbb_groups'
 #
+CREATE TABLE phpbb_post_icon_config (
+   config_id tinyint unsigned NOT NULL,
+   schema_version smallint unsigned NOT NULL default '1',
+   config_value mediumtext NOT NULL,
+   PRIMARY KEY (config_id)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_groups (
    group_id mediumint(8) NOT NULL auto_increment,
    group_type tinyint(4) default '1' NOT NULL,
@@ -294,7 +301,7 @@ CREATE TABLE phpbb_posts (
    post_deleted_time int unsigned NOT NULL default '0',
    post_deleted_by mediumint NOT NULL default '0',
    post_attachment tinyint(1) default '0' NOT NULL,
-   post_icon tinyint(2),
+   post_icon int DEFAULT NULL,
    post_bluecard tinyint(1),
    PRIMARY KEY (post_id),
    KEY forum_id (forum_id),
@@ -608,7 +615,7 @@ CREATE TABLE phpbb_topics (
    topic_last_post_id mediumint(8) UNSIGNED default '0' NOT NULL,
    topic_moved_id mediumint(8) UNSIGNED default '0' NOT NULL,
    topic_attachment tinyint(1) default '0' NOT NULL,
-   topic_icon tinyint(2),
+   topic_icon int DEFAULT NULL,
    topic_calendar_time int(11),
    topic_calendar_duration int(11),
    topic_announce_duration mediumint(5) default '0' NOT NULL,

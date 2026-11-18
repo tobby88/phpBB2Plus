@@ -1227,6 +1227,11 @@ $lang['File_not_writable_777'] = '<font color="red"><b>ist nicht beschreibbar !<
 $lang['xs_import_pending'] = 'Für dieses Template ist ein unterbrochener Import offen. Bitte diesen zuerst unter „Styles importieren“ fortsetzen oder zurücknehmen. Andere Templates bleiben verfügbar.';
 $lang['Flags_invalid'] = 'Bitte einen Flaggennamen mit höchstens 25 Zeichen und optional einen Bilddateinamen mit höchstens 25 Zeichen angeben (GIF, PNG oder JPEG).';
 $lang['Flags_failed'] = 'Die Flaggenänderung konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die aktuelle Flaggenliste prüfen; unvollständige Profiländerungen werden nicht übernommen.';
+$lang['Icons_invalid'] = 'Die Icon-Felder oder Standardzuordnungen sind ungültig. Unvollständige Icon-Änderungen werden nicht übernommen.';
+$lang['Icons_selection_changed'] = 'Das ausgewählte Icon oder sein Ersatz ist nicht mehr vorhanden. Bitte die Icon-Liste neu laden.';
+$lang['Icons_limit'] = 'Die maximale Icon-Anzahl oder der verfügbare ID-Bereich ist erreicht.';
+$lang['Icons_storage_failed'] = 'Die Icon-Änderung konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die aktuelle Liste prüfen. Falls der Speicher fehlt, zuerst den Updater für Versionen nach 1.53a ausführen.';
+$lang['Icons_usage_unavailable'] = 'Nicht verfügbar';
 // That's all Folks!
 // Na Gott sei Dank!
 // -------------------------------------------------

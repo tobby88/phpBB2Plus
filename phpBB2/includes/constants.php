@@ -243,6 +243,7 @@ define('PROFILE_FIELD_ACTIONS_TABLE', $table_prefix.'profile_field_actions');
 // END Custom Profile Fields MOD
 define('PRUNE_TABLE', $table_prefix.'forum_prune');
 define('RANKS_TABLE', $table_prefix.'ranks');
+define('POST_ICON_CONFIG_TABLE', $table_prefix.'post_icon_config');
 define('SEARCH_TABLE', $table_prefix.'search_results');
 define('SEARCH_WORD_TABLE', $table_prefix.'search_wordlist');
 define('SEARCH_MATCH_TABLE', $table_prefix.'search_wordmatch');

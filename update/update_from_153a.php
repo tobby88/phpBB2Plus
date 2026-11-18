@@ -18,10 +18,10 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-icons-only', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only');
 foreach (array_slice($argv, 1) as $argument)
 {
-	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
+	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0 && strpos($argument, '--icon-source-root=') !== 0))
 	{ fwrite(STDERR, "Unknown or positional updater argument. Use --help for supported options. No changes made.\n"); exit(2); }
 }
 
@@ -38,6 +38,7 @@ require_once __DIR__ . '/user_post_counter_migration.php';
 require_once __DIR__ . '/kb_rating_storage_migration.php';
 require_once __DIR__ . '/post_author_storage_migration.php';
 require_once __DIR__ . '/post_tombstone_migration.php';
+require_once __DIR__ . '/post_icon_storage_migration.php';
 require_once __DIR__ . '/album_text_storage_migration.php';
 require_once __DIR__ . '/album_file_journal_migration.php';
 require_once __DIR__ . '/pafiledb_file_journal_migration.php';
@@ -64,6 +65,7 @@ function update_usage()
 	echo "  php update/update_from_153a.php --database=clone_name       Use a clone\n";
 	echo "  php update/update_from_153a.php --self-test                 Test schema input\n";
 	echo "  --storage-only         Only convert known existing forum tables to InnoDB\n";
+	echo "  --post-icons-only      Import existing post icons atomically and widen icon references\n";
 	echo "  --post-tombstones-only  Add deleted-post placeholder state; preserve all existing posts\n";
 	echo "  --style-ids-only       Only align style reference column capacity\n";
 	echo "  --kb-counters-only     Rebuild derived Knowledge Base category counts only\n";
@@ -86,13 +88,14 @@ function update_usage()
 	echo "  --arcade-last-play-only Reconcile last-game snapshots with current categories\n";
 	echo "  --arcade-counters-only Rebuild direct game counts and historical parent plays\n";
 	echo "  --arcade-progress-only Create/verify private game saves without changing scores or existing progress\n";
+	echo "  --icon-source-root=/existing/forum  Import legacy icon files from this trusted forum root\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|banner|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts|profile_field_jobs|profile_field_actions|album_file_jobs|album_file_items|pa_file_journal))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|banner|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts|profile_field_jobs|profile_field_actions|album_file_jobs|album_file_items|pa_file_journal|post_icon_config))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)
@@ -135,6 +138,8 @@ $seed_statements = update_extract_seed_statements($basic_source);
 if (in_array('--self-test', $argv, true))
 {
 	try {
+		plus_icon_storage_definition('phpbb_', $schema_source);
+		if (!isset($create_statements['phpbb_post_icon_config']) || strpos($basic_source, 'INSERT INTO phpbb_post_icon_config (config_id,schema_version,config_value)') === false || phpbb_icon_defaults($forum_root) === false) { throw new RuntimeException('Canonical icon storage/defaults missing'); }
 		$download_journal = plus_pa_file_journal_definitions('phpbb_', $schema_source);
 		if (count($download_journal) !== 1 || !isset($create_statements['phpbb_pa_file_journal'])) { throw new RuntimeException('Download file journal missing from full updater'); }
 		$journal_definitions = plus_album_file_journal_definitions('phpbb_', $schema_source);
@@ -198,7 +203,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only'), $argv)) > 1)
+if (count(array_intersect(array('--post-icons-only', '--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -240,6 +245,13 @@ foreach ($argv as $argument)
 	}
 }
 
+$icon_source_root=$forum_root;$icon_source_seen=false;
+foreach($argv as$argument){
+    if(strpos($argument,'--icon-source-root=')!==0){continue;}
+    $path=substr($argument,strlen('--icon-source-root='));$resolved=$path===''?false:realpath($path);
+    if($icon_source_seen||$resolved===false||!is_dir($resolved)){fwrite(STDERR,"One existing trusted icon source directory is required. No changes made.\n");exit(2);}
+    $icon_source_seen=true;$icon_source_root=$resolved;
+}
 $required_config = array('dbhost', 'dbuser', 'dbpasswd', 'dbname', 'table_prefix');
 foreach ($required_config as $variable)
 {
@@ -717,6 +729,14 @@ try
 	{
 		if($apply){$count=plus_arcade_counters_apply($connection,$table_prefix,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));plus_arcade_counters_evict($forum_root);echo "Arcade category counter repair complete: $count categories.\n";}
 		else{plus_arcade_counters_print_plan(plus_arcade_counters_plan($connection,$table_prefix));echo "Dry run only. No database changes made.\n";}
+		mysqli_close($connection);exit(0);
+	}
+	if (in_array('--post-icons-only', $argv, true))
+	{
+		$plan=plus_icon_storage_plan($connection,$table_prefix,$icon_source_root,true);
+		echo 'Post icon storage: '.count($plan['create']).' new tables, '.count($plan['references']).' reference columns, '.($plan['import']?'1':'0').' configuration imports; source '.$plan['source']['kind']."\n";
+		if($apply){$count=plus_icon_storage_apply($connection,$table_prefix,$icon_source_root,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));echo "Post icon storage complete: {$count['created']} tables, {$count['references']} reference columns, {$count['imported']} configurations imported. Original files and post/topic data retained.\n";}
+		else{echo "Dry run only. No database changes made.\n";}
 		mysqli_close($connection);exit(0);
 	}
 	if (in_array('--arcade-progress-only', $argv, true))
@@ -1435,6 +1455,8 @@ foreach (array(
 }
 $legacy_cleanup_count = count($operations) - $legacy_cleanup_start;
 
+try { $icon_storage_plan=plus_icon_storage_plan($connection,$table_prefix,$icon_source_root); }
+catch(Exception$error){fwrite(STDERR,$error->getMessage()."\nNo changes made.\n");exit(3);}
 try { $arcade_progress_plan=plus_arcade_progress_plan($connection,$table_prefix); }
 catch(Exception$error){fwrite(STDERR,$error->getMessage()."\nNo changes made.\n");exit(3);}
 $version_table = $table_prefix . 'config';
@@ -1444,7 +1466,7 @@ $version_operations = update_version_identity_sql($version_table, update_scalar(
 echo ($apply ? 'APPLY' : 'DRY RUN') . " post-1.53a database update\n";
 echo "Database: $dbname\n";
 echo "Table prefix: $table_prefix\n";
-echo 'Operations: ' . (count($operations) + count($arcade_progress_plan) + count($album_username_snapshot_operations) + count($version_operations) + count($style_ids_plan) + count($kb_counter_plan['changes']) + ($user_counter_plan['changes'] ? 1 : 0) + count($rating_plan) + count($author_plan)) . "\n\n";
+echo 'Operations: ' . (count($operations) + count($icon_storage_plan['references']) + ($icon_storage_plan['import'] ? 1 : 0) + count($arcade_progress_plan) + count($album_username_snapshot_operations) + count($version_operations) + count($style_ids_plan) + count($kb_counter_plan['changes']) + ($user_counter_plan['changes'] ? 1 : 0) + count($rating_plan) + count($author_plan)) . "\n\n";
 
 if ($legacy_cleanup_count > 0)
 {
@@ -1655,6 +1677,12 @@ try
 {
     if($apply){$count=plus_arcade_last_play_apply($connection,$table_prefix,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));plus_arcade_counters_evict($forum_root);echo "Arcade last-play repair complete: $count categories.\n";}
     else{plus_arcade_last_play_print_plan(plus_arcade_last_play_plan($connection,$table_prefix));}
+}
+catch(Exception$error){fwrite(STDERR,$error->getMessage()."\nPartial update: keep writers stopped; inspect before retrying.\n");exit(3);}
+try
+{
+    if($apply){$count=plus_icon_storage_apply($connection,$table_prefix,$icon_source_root,$backup_confirmed,in_array('--maintenance-confirmed',$argv,true));echo "Post icon storage complete: {$count['created']} tables, {$count['references']} reference columns, {$count['imported']} configurations imported. Original files and post/topic data retained.\n";}
+    else{echo 'Post icon migration: '.count($icon_storage_plan['references']).' reference columns and '.($icon_storage_plan['import']?'1':'0')." configuration imports.\n";}
 }
 catch(Exception$error){fwrite(STDERR,$error->getMessage()."\nPartial update: keep writers stopped; inspect before retrying.\n");exit(3);}
 foreach ($version_operations as $sql)

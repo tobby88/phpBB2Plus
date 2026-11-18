@@ -278,10 +278,18 @@ controls in the original ACP module instead.
 
 The source update also replaces legacy executable configuration/cache files
 with non-executable data. Run `set-permissions.sh` after deploying the files;
-it makes the protected `phpBB2/data` directory writable. Existing post-icon
-settings are imported automatically from `includes/def_icons.php` on first
-use and subsequently stored in `data/icons.dat`. No database operation is
-needed for that migration.
+it makes the protected `phpBB2/data` directory writable for the remaining data
+stores. Post-icon settings now use the modern `post_icon_config` database table.
+The consolidated updater imports `data/icons.dat`, or `includes/def_icons.php`
+when the serialized file is absent, without rewriting either source. It also
+widens narrow post/topic icon references while retaining their values and
+metadata. Run it before enabling the new runtime, with all writers stopped and
+drained and a fresh verified backup. Preview only this migration with
+`--post-icons-only`; apply with the usual three confirmation flags. For an
+updater outside the installed forum, `--icon-source-root=/path/to/existing/forum`
+selects the trusted legacy source directory. Existing valid database settings
+are never overwritten by a later file import; invalid or changing source data
+requires inspection. A completed or interrupted schema step is safe to resume.
 
 ## UTF-8 and search maintenance
 

@@ -6,6 +6,27 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic post icon settings and reference migration
+
+- Commit icon edits, order and default assignments together. Deleting an icon
+  replaces all affected post, topic and default references in the same database
+  transaction. SQL failures leave the complete previous state intact, and an
+  unconfirmed commit is reported without claiming success.
+- Import the existing serialized or older PHP icon settings through the
+  consolidated updater, preserving their files. Fresh installations seed the
+  bundled defaults in the new modern `post_icon_config` table. Existing valid
+  database settings take precedence; invalid or changing source data refuses
+  import. Repeated and resumed updates preserve rows and wider custom columns.
+- Widen the old signed tinyint post/topic references to support the icon IDs
+  already accepted by the interface. Retain NULL/negative legacy values, indexes,
+  defaults, comments and auto-increment positions.
+- Recheck the current ACP account, exact session and delegated icon permission
+  on an independent connection. Keep caller transactions untouched. Prevent
+  deletion of icon zero, reject stale selections, retain hidden custom defaults,
+  escape scalar translated labels and render English/German forms without
+  uninitialized-field warnings. An optional usage-counter read cannot turn an
+  acknowledged save into a reported failure.
+
 ### Atomic country flag administration
 
 - Commit flag additions, edits and deletion together with affected profile

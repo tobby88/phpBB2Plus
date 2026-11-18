@@ -34,6 +34,24 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Post icon settings
+
+Post icon settings and post/topic replacements are stored together in the
+database. Before enabling this code on an existing installation, run the
+consolidated updater with a fresh backup and all web/cron writers stopped and
+drained. It imports the existing `data/icons.dat`, or the older
+`includes/def_icons.php` when no serialized file exists, and widens narrow icon
+reference columns. Original files and existing post/topic values are retained.
+Fresh installations seed the bundled defaults directly in the database.
+
+For an installation whose other migrations are already complete, preview this
+part with `php update/update_from_153a.php --post-icons-only`, then apply with
+`--apply --backup-confirmed --maintenance-confirmed`. An updater kept outside
+the installed forum can use `--icon-source-root=/path/to/existing/forum` to
+identify the trusted source of its existing icon settings. A valid imported
+database configuration takes precedence on subsequent runs; invalid existing
+settings require inspection and are never silently replaced by defaults.
+
 ## Topic text export
 
 Topic text downloads preserve UTF-8, indentation and literal code. They use the

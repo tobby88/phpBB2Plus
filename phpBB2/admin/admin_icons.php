@@ -32,6 +32,7 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+require_once dirname(__DIR__) . '/includes/functions_icon_storage.php';
 
 //
 // constants
@@ -48,61 +49,30 @@ if (!isset($nav_separator)) $nav_separator = '&nbsp;->&nbsp;';
 //
 // functions
 //
-function icons_read()
-{
-	global $icones, $icon_defined_special, $map_icon;
-
-	// read icons
-	phpbb_load_icon_config();
-
-	// build a map
-	$map_icon = array();
-	for ($i=0; $i < count($icones); $i++)
-	{
-		$map_icon[ $icones[$i]['ind'] ] = $i;
-	}
-}
-
-
-function icons_write()
-{
-	global $icones, $icon_defined_special, $map_icon;
-
-	// rebuild the map
-	$map_icon = array();
-	for ($i=0; $i < count($icones); $i++)
-	{
-		$map_icon[ $icones[$i]['ind'] ] = $i;
-	}
-
-	return phpbb_save_icon_config($icones, $icon_defined_special);
-}
-
-
-//
 // read parameters
 //
 // read the icons
-icons_read();
+try { phpbb_admin_icons_read(); } catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 // mode
 $mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
 	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
 
 // icon
+foreach(array($_POST,$_GET)as$source){if(array_key_exists('icon',$source)&&!is_int($source['icon'])&&!is_string($source['icon'])){message_die(GENERAL_MESSAGE,$lang['Icons_selection_changed']);}}
 $icon = -1;
 if ( isset($_POST['icon']) && is_scalar($_POST['icon']) )
 {
-	$icon = intval($_POST['icon']);
+	$icon = ($_POST['icon']==='-1'&&$mode==='edit'?-1:phpbb_icon_config_id($_POST['icon']));if($icon===false){message_die(GENERAL_MESSAGE,$lang['Icons_selection_changed']);}
 }
 else if ( isset($_GET['icon']) && is_scalar($_GET['icon']) )
 {
-	$icon = intval($_GET['icon']);
+	$icon = ($_GET['icon']==='-1'&&$mode==='edit'?-1:phpbb_icon_config_id($_GET['icon']));if($icon===false){message_die(GENERAL_MESSAGE,$lang['Icons_selection_changed']);}
 }
 if (isset($_POST['icon_action']) && is_scalar($_POST['icon_action']) && preg_match('/^(up|dw):([0-9]+)$/D', (string) $_POST['icon_action'], $icon_action))
 {
 	$mode = $icon_action[1];
-	$icon = (int) $icon_action[2];
+	$icon = phpbb_icon_config_id($icon_action[2]);if($icon===false){message_die(GENERAL_MESSAGE,$lang['Icons_selection_changed']);}
 }
 if (!in_array($mode, array('edit', 'up', 'dw', 'del'), true)) $mode = '';
 
@@ -113,10 +83,16 @@ $confirm = isset($_POST['confirm']);
 $cancel = isset($_POST['cancel']);
 $refresh = isset($_POST['refresh']);
 
+if(!$create&&$icon>=0&&!isset($map_icon[$icon])&&in_array($mode,array('edit','del','up','dw'),true)){message_die(GENERAL_MESSAGE,$lang['Icons_selection_changed']);}
 $mutating_request = (($mode == 'up') || ($mode == 'dw') || ($mode == 'del' && $confirm) || ($mode == 'edit' && $submit));
-if ($mutating_request)
+if ($mutating_request && !$cancel)
 {
-	phpbb_admin_require_post_session();
+    phpbb_admin_require_post_session();
+    $request=$_POST;$request['icon']=(string)$icon;
+    $operation=$mode==='edit'?'save':($mode==='del'?'delete':($mode==='up'?'up':'down'));
+    try { phpbb_admin_icons_read(phpbb_icon_admin_change($db,$operation,$request)); }
+    catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE,$error->getMessage()); }
+    $mode='';$submit=$confirm=false;
 }
 if ((($mode == 'up') || ($mode == 'dw')) && (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST'))
 {
@@ -158,53 +134,13 @@ if ($mode == 'del')
 		$mode = '';
 		$cancel = false;
 	}
-	else if ($confirm)
-	{
-		// builded a new icones array
-		$tmp = array();
-		for ($i=0; $i < count($icones); $i++)
-		{
-			if ($icones[$i]['ind'] != $icon)
-			{
-				$tmp[] = $icones[$i];
-			}
-		}
-
-		// move the result in place
-		$icones = array();
-		$icones = $tmp;
-
-		// handle the replacement icon
-		$replace_icon = -1;
-		if (isset($_POST['replace_icon']) && is_scalar($_POST['replace_icon']))
-		{
-			$replace_icon = intval($_POST['replace_icon']);
-			if (isset($map_icon[$replace_icon]))
-			{
-				// replace post icons
-				$sql = "UPDATE " . POSTS_TABLE . " SET post_icon=$replace_icon WHERE post_icon=$icon";
-				if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, 'unable to update icon on posts', '', __LINE__, __FILE__, $sql);
-
-				// replace topic icons
-				$sql = "UPDATE " . TOPICS_TABLE . " SET topic_icon=$replace_icon WHERE topic_icon=$icon";
-				if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, 'unable to update icon on topics', '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-		// update the table
-		if (!icons_write()) message_die(GENERAL_ERROR, 'Unable to save icon configuration');
-		icons_read();
-
-		// back to the main list
-		$mode = '';
-		$cancel = false;
-	}
 
 	if ($mode == 'del')
 	{
 		if (isset($map_icon[$icon]))
 		{
 			$used = ($icon == 0);
+            foreach($icon_defined_special as$special){if((int)$special['icon']===$icon){$used=true;}}
 
 			// check if posts are using this icon
 			if (!$used)
@@ -330,38 +266,12 @@ if ($mode == 'del')
 }
 
 //
-// move an icon up and down
-//
-if ( ($mode == 'up') || ($mode == 'dw') )
-{
-	$inc = -1;
-	if ($mode == 'dw') $inc = 1;
-
-	// get the map value of the icon to moved and the dest one
-	$map = $map_icon[$icon];
-	$moveto = $map + $inc;
-
-	// in the limits
-	if ( ($moveto >= 0) && ($moveto < count($icones)) )
-	{
-		// swap
-		$dst = $icones[$moveto];
-		$icones[$moveto] = $icones[$map];
-		$icones[$map] = $dst;
-	}
-
-	// back to the main list
-	if (!icons_write()) message_die(GENERAL_ERROR, 'Unable to save icon configuration');
-	icons_read();
-	$mode = '';
-}
-
-//
 // edit an icon
 //
 if ($mode == 'edit')
 {
 	// get the values from the existing state
+	$icon_title='';$icon_url='';$icon_auth=AUTH_ALL;
 	$icon_ids = array();
 	if ($icon >= 0)
 	{
@@ -371,7 +281,7 @@ if ($mode == 'edit')
 		@reset($icon_defined_special);
 		foreach ($icon_defined_special as $key => $data)
 		{
-			if (isset($lang[ $data['lang_key'] ]))
+			if (isset($lang[ $data['lang_key'] ]) && is_scalar($lang[ $data['lang_key'] ]))
 			{
 				if ($icon_defined_special[$key]['icon'] == $icon)
 				{
@@ -382,8 +292,8 @@ if ($mode == 'edit')
 	}
 
 	// read the formular
-	if (isset($_POST['icon_title']) && is_scalar($_POST['icon_title'])) $icon_title = trim((string) $_POST['icon_title']);
-	if (isset($_POST['icon_url']) && is_scalar($_POST['icon_url'])) $icon_url = trim((string) $_POST['icon_url']);
+	if (isset($_POST['icon_title']) && is_scalar($_POST['icon_title'])) $icon_title = trim(phpbb_request_raw_value((string) $_POST['icon_title']));
+	if (isset($_POST['icon_url']) && is_scalar($_POST['icon_url'])) $icon_url = trim(phpbb_request_raw_value((string) $_POST['icon_url']));
 	if (isset($_POST['icon_auth']) && is_scalar($_POST['icon_auth'])) $icon_auth = (int) $_POST['icon_auth'];
 
 	if ($refresh || $submit)
@@ -397,79 +307,6 @@ if ($mode == 'edit')
 		// back to the main list
 		$mode = '';
 		$cancel = false;
-	}
-	else if ($submit)
-	{
-		$error = false;
-		$error_msg = '';
-
-		// check if the lang_key is fitted
-		if (!preg_match('/^[A-Za-z0-9_]{1,100}$/D', $icon_title) || !preg_match('#^(?:|[A-Za-z0-9_][A-Za-z0-9_./-]{0,254})$#D', $icon_url) || strpos($icon_url, '..') !== false || !isset($auths[(int) $icon_auth]))
-		{
-			$error = true;
-			$error_msg = (empty($error_msg) ? '' : '<br />') . $lang['Icons_error_title'];
-		}
-
-		// error found, send message
-		if ($error)
-		{
-			message_die(GENERAL_MESSAGE, '<br /><br />' . $error_msg . '<br /><br /><br />');
-		}
-
-		// creation : get a new indice
-		if ($icon < 0)
-		{
-			// find the last ind
-			$last = -1;
-			for ($i=0; $i < count($icones); $i++)
-			{
-				if ($icones[$i]['ind'] > $last)
-				{
-					$last = $icones[$i]['ind'];
-				}
-			}
-			$icon = $last + 1;
-			$map = count($icones);
-		}
-		else
-		{
-			// find the existing map entry
-			$map = $map_icon[$icon];
-		}
-
-		// add or update the row
-		$icones[$map]['ind'] = $icon;
-		$icones[$map]['alt'] = $icon_title;
-		$icones[$map]['img'] = $icon_url;
-		$icones[$map]['auth'] = $icon_auth;
-
-		// consider the default sets
-		@reset($icon_defined_special);
-		foreach ($icon_defined_special as $key => $data)
-		{
-			if (isset($lang[ $data['lang_key'] ]))
-			{
-				// reset a prec value
-				if ($icon_defined_special[$key]['icon'] == $icon)
-				{
-					$icon_defined_special[$key]['icon'] = '';
-				}
-
-				// set the new values
-				if ( @in_array($key, $icon_ids) )
-				{
-					$icon_defined_special[$key]['icon'] = $icon;
-				}
-			}
-		}
-
-		// generate the file
-		if (!icons_write()) message_die(GENERAL_ERROR, 'Unable to save icon configuration');
-		icons_read();
-
-		// back to the main list
-		$mode = '';
-		$submit = false;
 	}
 
 	// detail
@@ -502,14 +339,14 @@ if ($mode == 'edit')
 
 		// get the icon url
 		$url = (preg_match('#^(?:|[A-Za-z0-9_][A-Za-z0-9_./-]{0,254})$#D', $icon_url) && strpos($icon_url, '..') === false) ? $icon_url : '';
-		if (isset($images[$icon_url]))
+		if (isset($images[$icon_url]) && is_string($images[$icon_url]))
 		{
 			$url = $images[$icon_url];
 		}
 		$pic = '';
 		if (!empty($url))
 		{
-			$pic = '<img src="../' . $url . '" align="middle" alt="' . (isset($lang[$icon_title]) ? $lang[$icon_title] : '') . '" border="0" />&nbsp;';
+			$pic = '<img src="../' . phpbb_admin_html($url) . '" align="middle" alt="' . phpbb_icon_label($icon_title) . '" border="0" />&nbsp;';
 		}
 
 		// prepare auth level list
@@ -530,7 +367,7 @@ if ($mode == 'edit')
 		{
 			if ( !is_array($image_url) )
 			{
-				$s_icons .= '<option value="' . $image_key . '">' . $image_key . '</option>';
+				$s_icons .= '<option value="' . phpbb_admin_html((string)$image_key) . '">' . phpbb_admin_html((string)$image_key) . '</option>';
 			}
 		}
 		$s_icons = '<select name="icon_url_pickup_list" onChange="javascript:icon_url.value=this.options[this.selectedIndex].value; this.selectedIndex=0;">' . $s_icons . '</select>';
@@ -543,17 +380,17 @@ if ($mode == 'edit')
 		{
 			if ( !is_array($lang_data) )
 			{
-				$s_langs .= '<option value="' . $lang_key . '">' . $lang_key . '</option>';
+				$s_langs .= '<option value="' . phpbb_admin_html((string)$lang_key) . '">' . phpbb_admin_html((string)$lang_key) . '</option>';
 			}
 		}
 		$s_langs = '<select name="lang_key_pickup_list" onChange="javascript:icon_title.value=this.options[this.selectedIndex].value; this.selectedIndex=0;">' . $s_langs . '</select>';
 
 		// vars
 		$template->assign_vars(array(
-			'ICON_TITLE_KEY'	=> phpbb_profile_text($icon_title),
-			'ICON_TITLE'		=> isset($lang[$icon_title]) ? '<br />' . $lang[$icon_title] : '',
+			'ICON_TITLE_KEY'	=> phpbb_admin_html($icon_title),
+			'ICON_TITLE'		=> isset($lang[$icon_title]) && is_scalar($lang[$icon_title]) ? '<br />' . phpbb_icon_label($icon_title) : '',
 			'ICON'				=> $pic,
-			'ICON_URL'			=> phpbb_profile_text($icon_url),
+			'ICON_URL'			=> phpbb_admin_html($icon_url),
 			'S_AUTHS'			=> $s_auths,
 			'S_ICONS'			=> $s_icons,
 			'S_LANGS'			=> $s_langs,
@@ -564,10 +401,10 @@ if ($mode == 'edit')
 		@reset($icon_defined_special);
 		foreach ($icon_defined_special as $key => $data)
 		{
-			if (isset($lang[ $data['lang_key'] ]))
+			if (isset($lang[ $data['lang_key'] ]) && is_scalar($lang[ $data['lang_key'] ]))
 			{
 				$template->assign_block_vars('defaults', array(
-					'NAME'		=> $lang[ $data['lang_key'] ],
+					'NAME'		=> phpbb_icon_label($data['lang_key']),
 					'ID'		=> $key,
 					'CHECKED'	=> @in_array($key, $icon_ids) ? ' checked="checked"' : '',
 					)
@@ -601,9 +438,9 @@ if ($mode == '')
 	$sql = "SELECT post_icon, count(*) as count FROM " . POSTS_TABLE . " 
 			GROUP BY post_icon 
 			ORDER BY post_icon";
-	if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, 'unable to count icons on posts', '', __LINE__, __FILE__, $sql);
+	$result = $db->sql_query($sql);$icon_usage_available=(bool)$result;
 	$total_posts = 0;
-	while ($row = $db->sql_fetchrow($result))
+	while ($result && ($row = $db->sql_fetchrow($result)))
 	{
 		$total_posts = $total_posts + $row['count'];
 		$row['post_icon'] = intval($row['post_icon']);
@@ -645,10 +482,10 @@ if ($mode == '')
 		$template->assign_block_vars('row', array(
 			'ICON'		=> get_icon_title($icones[$i]['ind'], 1, -1, true),
 			'ICON_KEY'	=> $icones[$i]['img'],
-			'L_LANG'	=> isset($lang[ $icones[$i]['alt'] ]) ? $lang[ $icones[$i]['alt'] ] : $icones[$i]['alt'],
+			'L_LANG'	=> phpbb_icon_label($icones[$i]['alt']),
 			'LANG_KEY'	=> isset($lang[ $icones[$i]['alt'] ]) ? '<br />(' . $icones[$i]['alt'] . ')' : '',
 			'L_AUTH'	=> $auths[ $icones[$i]['auth'] ],
-			'USAGE'		=> (intval($icones[$i]['usage']) > 0) ? $icones[$i]['usage'] . '&nbsp;(' . ( round( ($icones[$i]['usage'] * 100 )/ $total_posts ) ) . '%)' : '',
+			'USAGE' => !$icon_usage_available ? phpbb_admin_html($lang['Icons_usage_unavailable']) : ((intval(isset($icones[$i]['usage'])?$icones[$i]['usage']:0) > 0) ? $icones[$i]['usage'] . '&nbsp;(' . round(($icones[$i]['usage'] * 100)/$total_posts) . '%)' : ''),
 			'U_EDIT'	=> append_sid("./admin_icons.$phpEx?mode=edit&icon=" . $icones[$i]['ind']),
 			'U_DELETE'	=> append_sid("./admin_icons.$phpEx?mode=del&icon=" . $icones[$i]['ind']),
 			'ICON_ID'	=> (int) $icones[$i]['ind'],
@@ -662,7 +499,7 @@ if ($mode == '')
 			if ( ($data['icon'] == $icones[$i]['ind']) && isset($lang[ $data['lang_key'] ]) )
 			{
 				$template->assign_block_vars('row.default', array(
-					'L_DEFAULT' => $lang[ $data['lang_key'] ],
+					'L_DEFAULT' => phpbb_icon_label($data['lang_key']),
 					)
 				);
 			}

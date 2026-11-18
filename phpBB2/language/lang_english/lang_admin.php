@@ -1238,6 +1238,11 @@ $lang['File_not_writable_777'] = '<font color="red"><b>is not writable !</b> [ch
 $lang['xs_import_pending'] = 'This template has an interrupted import. Resume or roll it back under Import styles before changing it. Other templates remain available.';
 $lang['Flags_invalid'] = 'Enter a flag name of at most 25 characters and, optionally, an image filename of at most 25 characters (GIF, PNG or JPEG).';
 $lang['Flags_failed'] = 'The flag change could not be confirmed. Check the current flag list before retrying; no partial profile update is accepted.';
+$lang['Icons_invalid'] = 'The icon fields or default assignments are invalid. No incomplete icon change is accepted.';
+$lang['Icons_selection_changed'] = 'The selected icon or its replacement no longer exists. Reload the icon list.';
+$lang['Icons_limit'] = 'The icon count or ID range is exhausted.';
+$lang['Icons_storage_failed'] = 'The icon change could not be confirmed. Check the current list before retrying. If storage is unavailable, run the post-1.53a updater first.';
+$lang['Icons_usage_unavailable'] = 'Not available';
 // That's all Folks!
 // -------------------------------------------------
 

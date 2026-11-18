@@ -303,6 +303,20 @@ jobs:
         env:
           PHPBB_CONTENT_NATIVE: '1'
           PHPBB_CONTENT_PASSWORD: fixture-only
+      - name: Check atomic post icon administration
+        if: matrix.part == 4
+        run: |
+          php -d disable_functions=mail .github/scripts/check-post-icons-native.php
+          PHPBB_ICONS_RAW=1 php -d disable_functions=mail .github/scripts/check-post-icons-native.php
+        env:
+          PHPBB_ICONS_NATIVE: '1'
+          PHPBB_ICONS_PASSWORD: fixture-only
+      - name: Check post icon migration and actual complete updater
+        if: matrix.part == 5
+        run: php -d disable_functions=mail .github/scripts/check-post-icon-migration-native.php
+        env:
+          PHPBB_ICONS_MIGRATION_NATIVE: '1'
+          PHPBB_ICONS_MIGRATION_PASSWORD: fixture-only
       - name: Check atomic country flag administration
         if: matrix.part == 4
         run: |
@@ -1703,6 +1717,20 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check atomic post icon administration on MySQL
+        if: matrix.part == 1
+        run: php -d disable_functions=mail .github/scripts/check-post-icons-native.php
+        env:
+          PHPBB_ICONS_NATIVE: '1'
+          PHPBB_ICONS_PASSWORD: fixture-only
+          PHPBB_ICONS_MYSQL: '8.4'
+      - name: Check post icon migration and complete updater on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-post-icon-migration-native.php
+        env:
+          PHPBB_ICONS_MIGRATION_NATIVE: '1'
+          PHPBB_ICONS_MIGRATION_PASSWORD: fixture-only
+          PHPBB_ICONS_MIGRATION_MYSQL: '8.4'
       - name: Check atomic country flag administration on MySQL
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-flags-native.php

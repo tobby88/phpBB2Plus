@@ -331,6 +331,22 @@
       "commands": [
         "php -d disable_functions=mail .github/scripts/check-flags-native.php"
       ]
+    },
+    {
+      "name": "Check atomic post icon administration on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-post-icons-native.php"
+      ],
+      "part": 1,
+      "sha256": "bd9ffe9754ddefb3bb1685a5784255164c1ebf2dc00120ade8d4f4ab3f51d6c4"
+    },
+    {
+      "name": "Check post icon migration and complete updater on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-post-icon-migration-native.php"
+      ],
+      "part": 2,
+      "sha256": "b867f8ae76f6a42f7c25dc1cc56e52af480c421239eb56ae5dbbd72587024a23"
     }
   ]
 }
