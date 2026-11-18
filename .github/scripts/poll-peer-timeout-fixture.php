@@ -116,7 +116,12 @@ function poll_fixture_peer_wait_checks()
         try { $check(!$competitor->acquired, 'Real competing application lease conflicts in the same schema'); }
         finally { $competitor->release(); }
         $lease->release();
-        $check($peer->query('SELECT IS_USED_LOCK(' . $peer->quote($name) . ')')->fetchColumn() === null, 'Only the owned application lease is released');
+        // The server may observe the socket close after the next peer query.
+        // A bounded real acquisition synchronizes with that disconnect; a
+        // genuinely leaked owner still makes this acquisition fail.
+        $released = (int) $peer->query('SELECT GET_LOCK(' . $peer->quote($name) . ',1)')->fetchColumn() === 1;
+        $probe_released = $released && (int) $peer->query('SELECT RELEASE_LOCK(' . $peer->quote($name) . ')')->fetchColumn() === 1;
+        $check($released && $probe_released && $peer->query('SELECT IS_USED_LOCK(' . $peer->quote($name) . ')')->fetchColumn() === null, 'Only the owned application lease is released');
     } finally {
         if ($lease !== null) { $lease->release(); }
         if ($peer->inTransaction()) { $peer->rollBack(); }

@@ -104,10 +104,23 @@ function ad_parallel_vote_cases(){
 function ad_rating_display_cases(){
  global $root,$cases,$db,$userdata,$album_sp_config;
  ad_reset();ad_sql("INSERT INTO fixture_album_rate VALUES(1,7,'7f000001',4,0),(1,8,'7f000002',0,8)");
- foreach(array('album.php','album_cat.php','album_modcp.php','album_personal.php','album_showpage.php','album_hotornot.php','portal.php','album_mod/album_hierarchy_sql.php','album_mod/album_memberlist.php')as$file){
+ foreach(array('album.php','album_cat.php','album_modcp.php','album_personal.php','album_showpage.php','album_hotornot.php','portal.php')as$file){
   $source=file_get_contents($root.$file);ad_check(!preg_match('/AVG\(r\.rate_(?:hon_)?point\)/',$source),'Every Album/portal reader excludes unused zero channel placeholders');
   ad_check(preg_match_all('/AVG\(NULLIF\(r\.(rate_(?:hon_)?point), 0\)\)/',$source,$matches,PREG_SET_ORDER)>0,'Actual rating expression extracted');
   foreach($matches as$match){$row=ad_rows('SELECT '.$match[0].' AS rating FROM fixture_album_rate r WHERE rate_pic_id=1')[0];ad_check((float)$row['rating']===($match[1]==='rate_point'?4.0:8.0),'Actual display SQL excludes the other channel instead of diluting its average');$cases++;}
+ }
+ // The hierarchical grid, its three panels and the member list now share the
+ // actual picture reader. Follow those five call sites to the shared SQL;
+ // requiring the former duplicated expression in each controller is stale.
+ $source=file_get_contents($root.'album_mod/album_picture_listing.php');
+ ad_check(!preg_match('/AVG\(rr\.rate_(?:hon_)?point\)/',$source),'Shared picture reader excludes unused channel placeholders');
+ ad_check(preg_match('/AVG\(NULLIF\(rr\.rate_point,\s*0\)\)/',$source,$shared)===1,'Actual shared rating expression extracted');
+ foreach(array('album_build_picture_table','album_build_recent_pics','album_build_highest_rated_pics','album_build_random_pics',null)as$consumer){
+  $caller=file_get_contents($root.($consumer===null?'album_mod/album_memberlist.php':'album_mod/album_hierarchy_sql.php'));
+  if($consumer!==null){ad_check(preg_match('/^function '.$consumer.'\([\s\S]*?^\}/m',$caller,$body)===1,'Actual picture consumer extracted');$caller=$body[0];}
+  ad_check(strpos($caller,'album_picture_page(')!==false&&strpos($caller,"['rating']")!==false,'Actual picture consumer uses shared ratings');
+  $row=ad_rows('SELECT '.$shared[0].' AS rating FROM fixture_album_rate rr WHERE rate_pic_id=1')[0];
+  ad_check((float)$row['rating']===4.0,'Shared display SQL excludes the unused HotOrNot placeholder');$cases++;
  }
  $phpbb_root_path=$root;$phpEx='php';require_once $root.'album_mod/clown_album_functions.php';$album_sp_config=array('hon_rate_users'=>1,'hon_rate_times'=>0,'hon_rate_sep'=>1);
  ad_check(CanRated(1,7)===true,'Actual HotOrNot UI allows a separate vote after normal rating');$cases++;
