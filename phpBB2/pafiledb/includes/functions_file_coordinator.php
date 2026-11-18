@@ -93,11 +93,11 @@ class PaFileDbFileCoordinator
 		catch (Error $error) { $this->failed = true; throw $error; }
 	}
 
-	private function identity($connection)
+	private function identity($connection, $require_utf8 = true)
 	{
-		$rows = $this->rows($connection, 'SELECT CONNECTION_ID() AS id,DATABASE() AS schema_name,@@SESSION.autocommit AS automatic,@@SESSION.in_transaction AS active,@@SESSION.character_set_connection AS charset');
-		if (count($rows) !== 1 || !isset($rows[0]['id'], $rows[0]['schema_name'], $rows[0]['automatic'], $rows[0]['active'], $rows[0]['charset']) ||
-			!preg_match('/^[1-9][0-9]*$/D', (string) $rows[0]['id']) || !is_string($rows[0]['schema_name']) || $rows[0]['schema_name'] === '' || $rows[0]['charset'] !== 'utf8mb4') { throw new PaFileDbFileCoordinatorFailure('Invalid Download connection identity'); }
+		$rows = $this->rows($connection, 'SELECT CONNECTION_ID() AS id,DATABASE() AS schema_name,@@SESSION.autocommit AS automatic,@@SESSION.character_set_connection AS charset');
+		if (count($rows) !== 1 || !isset($rows[0]['id'], $rows[0]['schema_name'], $rows[0]['automatic'], $rows[0]['charset']) ||
+			!preg_match('/^[1-9][0-9]*$/D', (string) $rows[0]['id']) || !is_string($rows[0]['schema_name']) || $rows[0]['schema_name'] === '' || ($require_utf8 && $rows[0]['charset'] !== 'utf8mb4')) { throw new PaFileDbFileCoordinatorFailure('Invalid Download connection identity'); }
 		$rows[0]['id'] = (string) $rows[0]['id']; return $rows[0];
 	}
 
@@ -109,19 +109,23 @@ class PaFileDbFileCoordinator
 		{
 			if ($connection === $borrowed || (isset($borrowed->db_connect_id) && $connection->db_connect_id === $borrowed->db_connect_id)) { throw new PaFileDbFileCoordinatorFailure('Borrowed Download connection'); }
 		}
-		// Only a proven distinct native handle is ours to close on failure.
+		// A distinct handle can still belong to another active transaction.
+		// SET TRANSACTION is portable to MySQL and MariaDB and refuses active
+		// work without committing or rolling it back. Until it succeeds, leave
+		// an unproven factory participant entirely in its caller's ownership.
+		$owned = false;
 		try
 		{
-			$target = $this->identity($connection);
-			// A factory may return an unrelated active participant. Disown it
-			// before taking any lock or closing a handle with pending work.
-			if ((string)$target['active'] !== '0' || (string)$target['automatic'] !== '1') { $connection = null; throw new PaFileDbFileCoordinatorFailure('Active foreign download participant'); }
-			if ($target['schema_name'] !== $identity['schema_name'] || (string) $target['automatic'] !== '1') { throw new PaFileDbFileCoordinatorFailure('Wrong Download connection context'); }
+			$target = $this->identity($connection, false);
+			if ((string) $target['automatic'] !== '1') { throw new PaFileDbFileCoordinatorFailure('Foreign Download transaction setting'); }
+			if (!$connection->sql_query('SET TRANSACTION READ WRITE')) { throw new PaFileDbFileCoordinatorFailure('Active or unavailable Download participant'); }
+			$owned = true;
+			if ($target['schema_name'] !== $identity['schema_name'] || $target['charset'] !== 'utf8mb4') { throw new PaFileDbFileCoordinatorFailure('Wrong Download connection context'); }
 			foreach ($known as $borrowed) { if ($this->identity($borrowed)['id'] === $target['id']) { throw new PaFileDbFileCoordinatorFailure('Reused Download connection identity'); } }
 			return $connection;
 		}
-		catch (Exception $error) { if ($connection) { $connection->sql_close(); } throw $error; }
-		catch (Error $error) { if ($connection) { $connection->sql_close(); } throw $error; }
+		catch (Exception $error) { if ($owned) { $connection->sql_close(); } throw $error; }
+		catch (Error $error) { if ($owned) { $connection->sql_close(); } throw $error; }
 	}
 
 	function assert_lock()

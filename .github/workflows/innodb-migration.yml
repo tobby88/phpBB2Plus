@@ -240,6 +240,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native file participant ownership
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-file-coordinator-ownership-native.php
+        env:
+          PHPBB_FILE_OWNER_NATIVE: '1'
+          PHPBB_FILE_OWNER_PASSWORD: fixture-only
       - name: Check native Album metadata participants and physical pins
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-album-metadata-native.php
@@ -1929,3 +1935,10 @@ jobs:
           PHPBB_ATTACH_SEARCH_NATIVE: '1'
           PHPBB_ATTACH_SEARCH_PASSWORD: fixture-only
           PHPBB_ATTACH_SEARCH_MYSQL: '8.4'
+      - name: Check file participant ownership and portable identity on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-file-coordinator-ownership-native.php
+        env:
+          PHPBB_FILE_OWNER_NATIVE: '1'
+          PHPBB_FILE_OWNER_PASSWORD: fixture-only
+          PHPBB_FILE_OWNER_MYSQL: '8.4'

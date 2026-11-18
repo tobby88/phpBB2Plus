@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Upload coordinator connection ownership
+
+- Album and Download file coordinators establish that a factory connection is
+  idle before adopting it. Rejected active or uncertain participants retain
+  their connection and pending changes, including when creating the second
+  journal connection fails. Proven idle connections with a wrong schema or
+  charset are still released. Replace the Download identity's MariaDB-only
+  transaction variable with the same portable MySQL/MariaDB transaction guard.
+  No schema migration or stored-data change is required.
+
 ### Album table metadata checks
 
 - Open all required tables before checking their metadata together, reducing
