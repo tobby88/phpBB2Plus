@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic smiley administration and package imports
+
+- Validate the complete smiley package and its images before replacing existing
+  smilies. Additions, edits, deletion and imports use one owned transaction;
+  failed imports retain the complete previous list, including when a later
+  insert fails after clearing it. Unconfirmed commits are reported honestly.
+- Preserve caller transactions and recheck the current ACP session, active
+  account and exact delegated Smilies permission. Reject changed import files,
+  missing images, stale selections and insufficient remaining smiley IDs.
+- Count UTF-8 characters against the existing storage limits, encode angle
+  brackets before checking code capacity and edit stored angle codes correctly.
+  Keep differently cased codes separate when merging packages. Retain the
+  existing keep/replace choices, wider custom storage and English/German forms.
+- Use the existing InnoDB/utf8mb4 smiley schema and consolidated storage updater;
+  no additional table, column or automatic content conversion is required.
+
 ### Atomic post icon settings and reference migration
 
 - Commit icon edits, order and default assignments together. Deleting an icon

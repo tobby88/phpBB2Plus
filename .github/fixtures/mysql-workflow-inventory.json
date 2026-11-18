@@ -347,6 +347,14 @@
       ],
       "part": 2,
       "sha256": "b867f8ae76f6a42f7c25dc1cc56e52af480c421239eb56ae5dbbd72587024a23"
+    },
+    {
+      "name": "Check atomic smiley administration on MySQL",
+      "part": 1,
+      "sha256": "c9ea634334e0ab852e9ec0ed50f662e777b3010e2b5be7b6f62eb98f08b8e2f3",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-smilies-native.php"
+      ]
     }
   ]
 }

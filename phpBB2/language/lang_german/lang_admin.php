@@ -1236,4 +1236,11 @@ $lang['Icons_usage_unavailable'] = 'Nicht verfügbar';
 // Na Gott sei Dank!
 // -------------------------------------------------
 
+
+// Atomic smiley administration and package import.
+$lang['Smilies_invalid'] = 'Der Smiley oder das Paket ist ungültig. Bitte Bild sowie Länge von Code und Beschreibung prüfen.';
+$lang['Smilies_selection_changed'] = 'Der ausgewählte Smiley existiert nicht mehr. Bitte die Smiley-Liste neu laden.';
+$lang['Smilies_storage_failed'] = 'Die Smiley-Änderung konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die Liste neu laden.';
+$lang['Smilies_capacity'] = 'Für dieses Paket sind nicht genügend Smiley-IDs verfügbar. Die bisherigen Smilies wurden beibehalten.';
+$lang['Smilies_source_changed'] = 'Das Smiley-Paket wurde während des Imports verändert. Es wurden keine Änderungen gespeichert.';
 ?>

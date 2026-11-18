@@ -19,7 +19,7 @@ function update_smiley(newimage)
 <tr> 
 <td class="row2">{L_SMILEY_CODE}</td>
 <td class="row2"> 
-<input type="text" name="smile_code" value="{SMILEY_CODE}" class="post" />
+<input type="text" name="smile_code" maxlength="50" value="{SMILEY_CODE}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -32,7 +32,7 @@ function update_smiley(newimage)
 <tr> 
 <td class="row2">{L_SMILEY_EMOTION}</td>
 <td class="row2"> 
-<input type="text" name="smile_emotion" value="{SMILEY_EMOTICON}" class="post" />
+<input type="text" name="smile_emotion" maxlength="75" value="{SMILEY_EMOTICON}" class="post" />
 </td>
 </tr>
 <tr> 
