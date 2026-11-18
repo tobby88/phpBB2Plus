@@ -809,6 +809,12 @@ jobs:
         env:
           PHPBB_USER_BAN_LIFECYCLE_NATIVE: '1'
           PHPBB_USER_BAN_LIFECYCLE_PASSWORD: fixture-only
+      - name: Check bounded native topic fixture peers
+        if: matrix.part == 5
+        run: php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php peer-waits
+        env:
+          PHPBB_TOPIC_PREF_NATIVE: '1'
+          PHPBB_TOPIC_PREF_PASSWORD: fixture-only
       - name: Check idle connection ownership across six modules
         if: matrix.part == 5
         run: php -d disable_functions=mail .github/scripts/check-connection-ownership-native.php
@@ -1903,6 +1909,13 @@ jobs:
           PHPBB_TOPIC_NOTIFY_NATIVE: '1'
           PHPBB_TOPIC_NOTIFY_PASSWORD: fixture-only
           PHPBB_TOPIC_NOTIFY_MYSQL: '8.4'
+      - name: Check bounded native topic fixture peers on MySQL
+        if: matrix.part == 1
+        run: php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php peer-waits
+        env:
+          PHPBB_TOPIC_PREF_NATIVE: '1'
+          PHPBB_TOPIC_PREF_PASSWORD: fixture-only
+          PHPBB_TOPIC_PREF_MYSQL: '8.4'
       - name: Check actual MySQL attachment authorization and reader lifecycle
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-pm-download-native.php

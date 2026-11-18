@@ -6,6 +6,13 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Native test peer waits
+
+- Bound the disposable topic-test peer to a one-second row-lock timeout.
+  Preserve genuine native conflicts and every existing failure/authority case;
+  verify original caller settings and fresh worker/server defaults separately.
+  Indexed NOWAIT probes no longer inherit a fifty-second fallback wait.
+
 ### Independent database connection ownership
 
 - Refuse inherited knowledge-base and CrackerTracker advisory leases before

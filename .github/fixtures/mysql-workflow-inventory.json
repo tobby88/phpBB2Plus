@@ -395,6 +395,14 @@
       ],
       "part": 2,
       "sha256": "c611d5ecd21bd82b86a4ddcd7291bea2250e757abc18a10c3291c28d372efa5c"
+    },
+    {
+      "name": "Check bounded native topic fixture peers on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php peer-waits"
+      ],
+      "part": 1,
+      "sha256": "db0d05c91ec763c55de01bdcfdc6e8d2285914e3cc452f2e8fdc42152febe2c1"
     }
   ]
 }
