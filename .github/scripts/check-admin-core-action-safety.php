@@ -36,5 +36,6 @@ admin_core_action_assert(substr_count($prune, "'S_FORM_TOKEN' => phpbb_admin_ses
 admin_core_action_assert(strpos($prune_select, '{S_FORM_TOKEN}') !== false && strpos($prune_form, '{S_FORM_TOKEN}') !== false, 'forum-prune templates must render their session tokens');
 
 echo "ACP core action safety tests passed.\n";
+require __DIR__ . '/mass-mail-input-fixture.php';
 
 ?>

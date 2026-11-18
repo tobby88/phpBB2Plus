@@ -19,7 +19,14 @@ function phpbb_mass_mail_group($value)
 function phpbb_mass_mail_payload($request)
 {
     if(!is_array($request)){phpbb_mass_mail_fail('Mail_invalid');}
-    try{$subject=phpbb_mail_text(phpbb_mail_input($request,'subject'),255,true);$message=phpbb_mail_text(phpbb_mail_input($request,'message'),1048576);}
+    try{
+        $subject=phpbb_mail_text(phpbb_mail_input($request,'subject'),255,true);$raw=phpbb_mail_input($request,'message');
+        // Retain the historical 1 MiB byte limit without allocating an array
+        // for up to a million individual characters or cutting through UTF-8.
+        if(strpos($raw,"\0")!==false){phpbb_mail_fail('Mail_invalid');}$message=trim($raw);
+        if($message===''){phpbb_mail_fail('Mail_invalid');}if(strlen($message)>1048576){phpbb_mail_fail('Mail_too_long');}
+        if(preg_match('//u',$message)!==1){phpbb_mail_fail('Mail_invalid');}
+    }
     catch(PhpbbMailFailure$error){phpbb_mass_mail_fail($error->getMessage());}
     $group=phpbb_mass_mail_group(isset($request[POST_GROUPS_URL])?$request[POST_GROUPS_URL]:null);
     return array('subject'=>$subject,'message'=>$message,'group'=>$group);

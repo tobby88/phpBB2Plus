@@ -22,6 +22,9 @@ changes consolidated after that baseline without implying active maintenance.
   acceptance from an uncertain last attempt, and do not invite resubmission of
   already accepted mail. Preserve escaped Unicode drafts and the selected
   group on validation errors; a removed group never defaults to all users.
+- Retain the historical 1 MiB message byte limit without collecting every
+  character in memory. Maximum valid ASCII/UTF-8 input fits within 32 MiB;
+  oversized or malformed text is rejected without silently cutting the draft.
 - Parse Subject/Charset metadata only from the original template's leading
   header block, before expanding variables. Literal headings inside message
   text now remain body text and cannot replace the subject or MIME metadata.

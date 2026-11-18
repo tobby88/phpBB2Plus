@@ -1,5 +1,6 @@
 <?php
 mm_reset(1000);$r=mm_send(mm_request());sd_check($r===array('recipients'=>1000,'batches'=>2)&&count($mm_captured)===2,'All-user selection excludes initially invalid mailboxes before dividing batches');$cases++;
+mm_reset(1);$r=mm_request('7');$r['message']=str_repeat('x',1048576);sd_check(mm_send($r)['recipients']===1&&substr($mm_captured[0]['body'],-1048576)===$r['message'],'Maximum byte-sized body survives actual validation/template/transport');$cases++;
 mm_reset(2,'wrong');$e=mm_refused(mm_request());sd_check(!$e->attempted&&!$mm_captured,'Unrelated delegated module cannot send mass mail');mm_lease_free();$cases++;
 mm_reset();sd_sql('DELETE FROM fixture_users WHERE user_id=1');$e=mm_refused(mm_request());sd_check(!$e->attempted&&!$mm_captured,'Removed administrator cannot send');mm_lease_free();$cases++;
 foreach(array('GET','HEAD')as$method){mm_reset();$_SERVER['REQUEST_METHOD']=$method;$e=mm_refused(mm_request());sd_check(!$e->attempted&&!$mm_captured&&$mm_factories===0,'Non-POST never constructs transport');$cases++;}
