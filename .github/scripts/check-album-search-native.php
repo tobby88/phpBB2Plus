@@ -141,6 +141,7 @@ try
 		as_insert('album_cat', array('cat_id'=>$id, 'cat_title'=>'Category <' . $id . '>', 'cat_desc'=>str_repeat('large', 3000), 'cat_order'=>$id, 'cat_view_level'=>$level, 'cat_upload_level'=>$id===6?ALBUM_PRIVATE:ALBUM_USER, 'cat_view_groups'=>'9', 'cat_moderator_groups'=>'10', 'cat_user_id'=>$id===6?7:0, 'cat_parent'=>0));
 	}
 	$cases = $faults = 0;
+	as_sql('UPDATE fixture_album_cat SET cat_approval=' . ALBUM_ADMIN . ' WHERE cat_id IN (1,2)');
 	foreach (array('english', 'german') as $locale)
 	{
 		$lang = array(); require $phpbb_root_path . 'language/lang_' . $locale . '/lang_main.php'; require $phpbb_root_path . 'language/lang_' . $locale . '/lang_main_album.php';
@@ -171,6 +172,9 @@ try
 		as_sql('DELETE FROM fixture_album');as_picture(1,0,-1);as_viewer(-1);$album_config['personal_gallery_view']=ALBUM_GUEST;as_expect(as_call(),array('1'),'Existing Anonymous sentinel gallery remains readable without owner privileges');
 		as_viewer();$album_config=$defaults;as_sql('DELETE FROM fixture_album');as_picture(1,1,7,'needle');as_picture(2,2,7,'needle');as_sql('UPDATE fixture_album SET pic_approval=0 WHERE pic_id=1');as_expect(as_call(),array(),'Unapproved and all-hidden rows produce localized no-match result');
 		as_viewer(7,ADMIN);as_expect(as_call(),array('2'),'Approval remains mandatory even for administrator searches');as_viewer();
+		as_sql('UPDATE fixture_album_cat SET cat_approval=' . ALBUM_USER . ' WHERE cat_id=1');
+		foreach(array(array(-1,USER),array(7,USER),array(7,ADMIN))as$viewer){as_viewer($viewer[0],$viewer[1]);as_expect(as_call(),$viewer[1]===ADMIN?array('2','1'):array('1'),'Disabling category approval exposes old zero-flag pictures to every authorized viewer');}
+		as_sql('UPDATE fixture_album_cat SET cat_approval=' . ALBUM_ADMIN . ' WHERE cat_id=1');as_viewer();
 		as_sql('DELETE FROM fixture_album');as_picture(1,1,-1,'needle',100,'Former Name');as_picture(2,1,-1,'needle',100,'Real Guest');
 		if($locale==='english'){as_insert('removed_author_names',array('author_user_id'=>0,'author_name_hash'=>hash('sha256','Former Name'),'author_name'=>'Former Name','recorded_at'=>1));}
 		$board_config['hide_removed_author_names']=1;as_viewer(-1);as_expect(as_call('Former Name','user'),array(),'Guest cannot search removed author metadata');as_expect(as_call('Real Guest','user'),array('2'),'Genuine guest author remains searchable');

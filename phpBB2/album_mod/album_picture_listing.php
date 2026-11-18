@@ -20,7 +20,11 @@ function album_picture_category_ids($values)
 function album_picture_pending_visible($category, $rights, $actor = null)
 {
 	if ($actor === null) { $actor = isset($GLOBALS['userdata']) ? $GLOBALS['userdata'] : array(); }
-	if (!is_array($category) || !is_array($rights) || !is_array($actor) || !isset($actor['session_logged_in'], $actor['user_id'], $category['cat_approval'])
+	if (!is_array($category) || !is_array($rights) || !isset($category['cat_approval']) || !(is_int($category['cat_approval']) || is_string($category['cat_approval']))) { return false; }
+	// Disabling category approval makes old picture flags irrelevant. Category
+	// view permission is checked separately before applying this predicate.
+	if ((string)$category['cat_approval'] === (string)ALBUM_USER) { return true; }
+	if (!is_array($actor) || !isset($actor['session_logged_in'], $actor['user_id'])
 		|| !in_array($actor['session_logged_in'], array(true, 1, '1'), true) || !(is_int($actor['user_id']) || is_string($actor['user_id']))
 		|| preg_match('/^[1-9][0-9]{0,6}$/D', (string)$actor['user_id']) !== 1 || (int)$actor['user_id'] > 8388607 || !(is_int($category['cat_approval']) || is_string($category['cat_approval']))) { return false; }
 	$policy = (string)$category['cat_approval'];
@@ -38,8 +42,8 @@ function album_picture_approval_sql($values, $alias = 'p')
 	$pending = array();
 	foreach (album_picture_category_ids($values) as $id)
 	{
-		if (isset($album_data['keys'][$id], $album_data['data'][$album_data['keys'][$id]], $album_data['auth'][$id])
-			&& album_picture_pending_visible($album_data['data'][$album_data['keys'][$id]], $album_data['auth'][$id])) { $pending[] = $id; }
+		if (isset($album_data['keys'][$id], $album_data['data'][$album_data['keys'][$id]])
+			&& album_picture_pending_visible($album_data['data'][$album_data['keys'][$id]], isset($album_data['auth'][$id]) ? $album_data['auth'][$id] : array())) { $pending[] = $id; }
 	}
 	return ' AND (' . $alias . '.pic_approval=1' . ($pending ? ' OR ' . $alias . '.pic_cat_id IN (' . implode(',', $pending) . ')' : '') . ')';
 }

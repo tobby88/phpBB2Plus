@@ -126,7 +126,8 @@ include($phpbb_root_path . 'common.'.$phpEx);
 				c.cat_view_groups,c.cat_upload_groups,c.cat_rate_groups,c.cat_comment_groups,c.cat_edit_groups,c.cat_delete_groups,c.cat_moderator_groups
 				FROM " . ALBUM_TABLE . " AS p
 				LEFT JOIN " . ALBUM_CAT_TABLE . " AS c ON c.cat_id = p.pic_cat_id
-				WHERE p.pic_approval = 1
+				WHERE (p.pic_approval = 1 OR c.cat_approval = " . ALBUM_USER . "
+					OR (p.pic_cat_id = " . PERSONAL_GALLERY . " AND c.cat_id IS NULL))
 					AND " . $where . " LIKE '%" . $search_sql . "%'
 					" . $author_visibility_sql . "
 					AND (c.cat_id IS NOT NULL OR (p.pic_cat_id = " . PERSONAL_GALLERY . " AND p.pic_user_id <> 0

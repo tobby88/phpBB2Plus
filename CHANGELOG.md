@@ -20,6 +20,8 @@ changes consolidated after that baseline without implying active maintenance.
 - Apply category approval to newest counters and latest picture/comment labels
   as well as recent, highest-rated and random panels. Repair excluded-category
   filtering and use the actual viewer for preview metadata.
+- Match the actual image viewer when category approval is disabled: old zero
+  flags no longer hide otherwise visible images from lists or Album searches.
 
 ### Album search visibility
 
