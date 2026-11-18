@@ -240,6 +240,12 @@ jobs:
           PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
+      - name: Check native Download metadata participants and journal shape
+        if: matrix.part == 3
+        run: php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php
+        env:
+          PHPBB_PA_METADATA_NATIVE: '1'
+          PHPBB_PA_METADATA_PASSWORD: fixture-only
       - name: Check native file participant ownership
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-file-coordinator-ownership-native.php
@@ -1942,3 +1948,10 @@ jobs:
           PHPBB_FILE_OWNER_NATIVE: '1'
           PHPBB_FILE_OWNER_PASSWORD: fixture-only
           PHPBB_FILE_OWNER_MYSQL: '8.4'
+      - name: Check Download metadata participants and journal shape on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php
+        env:
+          PHPBB_PA_METADATA_NATIVE: '1'
+          PHPBB_PA_METADATA_PASSWORD: fixture-only
+          PHPBB_PA_METADATA_MYSQL: '8.4'

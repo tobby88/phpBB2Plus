@@ -16,6 +16,15 @@ changes consolidated after that baseline without implying active maintenance.
   transaction variable with the same portable MySQL/MariaDB transaction guard.
   No schema migration or stored-data change is required.
 
+### Download table metadata checks
+
+- Open all 18 Download participants before checking their current table and
+  character-column metadata together. This removes repeated dictionary scans
+  during uploads, replacement, recovery and administration while retaining
+  all-column SELECT privileges and transaction-lifetime metadata locks.
+  Exact journal columns/indexes and its independent connection checks remain
+  unchanged. No metadata cache or schema/data migration is introduced.
+
 ### Album table metadata checks
 
 - Open all required tables before checking their metadata together, reducing

@@ -196,6 +196,34 @@ class PaFileDbFileCoordinator
 		if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { throw new PaFileDbFileCoordinatorFailure('Download operation requires modern transactional tables'); }
 	}
 
+	private function pin_many($connection, $tables)
+	{
+		// Open every participant first. These metadata locks last until this
+		// owned transaction ends, so the two dictionary reads see pinned layouts.
+		// Keep the original all-column SELECT privilege check as well; a
+		// column-restricted connection must not hide a bad column from COLUMNS.
+		$this->rows($connection, 'SELECT * FROM ' . implode(',', $tables) . ' LIMIT 0');
+		$names = $expected = array();
+		foreach ($tables as $table) { $names[] = "'" . $table . "'"; $expected[strtolower($table)] = true; }
+		$scope = 'TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (' . implode(',', $names) . ')';
+		$rows = $this->rows($connection, 'SELECT TABLE_NAME,ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE ' . $scope . " AND TABLE_TYPE='BASE TABLE'");
+		if (count($rows) !== count($tables)) { throw new PaFileDbFileCoordinatorFailure('Download operation requires modern transactional tables'); }
+		foreach ($rows as $row)
+		{
+			if (!isset($row['TABLE_NAME'], $row['ENGINE'], $row['ROW_FORMAT'], $row['TABLE_COLLATION']) || !is_string($row['TABLE_NAME']) || !is_string($row['ROW_FORMAT'])) { throw new PaFileDbFileCoordinatorFailure('Download table metadata unavailable'); }
+			$name = strtolower($row['TABLE_NAME']);
+			if (!isset($expected[$name]) || $row['ENGINE'] !== 'InnoDB' || strtolower($row['ROW_FORMAT']) !== 'dynamic' || $row['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { throw new PaFileDbFileCoordinatorFailure('Download operation requires modern transactional tables'); }
+			unset($expected[$name]);
+		}
+		// One scoped columns read avoids rebuilding the same temporary
+		// dictionary tables for every Download participant. Binary columns have
+		// no character set and remain valid, exactly as in the single-table pin.
+		if ($expected || $this->rows($connection, 'SELECT TABLE_NAME FROM information_schema.COLUMNS WHERE ' . $scope . " AND CHARACTER_SET_NAME IS NOT NULL AND(CHARACTER_SET_NAME<>'utf8mb4' OR COLLATION_NAME<>'utf8mb4_unicode_ci') LIMIT 1"))
+		{
+			throw new PaFileDbFileCoordinatorFailure('Download operation requires modern transactional tables');
+		}
+	}
+
 	private function journal_shape($table)
 	{
 		$expected = array('operation_id'=>'char(32)','item_index'=>'int unsigned','schema_version'=>'smallint unsigned','operation_kind'=>'varchar(16)','actor_id'=>'mediumint','file_scope'=>'varchar(16)','file_dir'=>'varchar(255)','filename'=>'varchar(255)','file_bytes'=>'bigint unsigned','file_sha256'=>'char(64)','binding_hash'=>'char(64)','item_state'=>'tinyint unsigned','created_at'=>'int unsigned','completed_at'=>'int unsigned');
@@ -226,10 +254,10 @@ class PaFileDbFileCoordinator
 		// under READ COMMITTED while an existing subtree is being removed.
 		if ($stable_ranges) { $this->query($this->writer, 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ'); }
 		$this->query($this->writer, 'START TRANSACTION'); $this->transaction = true;
-		foreach (array('users','sessions','user_group','groups','config','jr_admin_users','pa_config','pa_cat','pa_files','pa_votes','pa_comments','pa_custom','pa_customdata','pa_mirrors','pa_license','pa_auth','pa_file_journal','pa_download_info') as $suffix)
-		{
-			$table = $this->prefix . $suffix; $this->pin($this->writer, $table); $this->tables[$table] = true;
-		}
+		$tables = array();
+		foreach (array('users','sessions','user_group','groups','config','jr_admin_users','pa_config','pa_cat','pa_files','pa_votes','pa_comments','pa_custom','pa_customdata','pa_mirrors','pa_license','pa_auth','pa_file_journal','pa_download_info') as $suffix) { $tables[] = $this->prefix . $suffix; }
+		$this->pin_many($this->writer, $tables);
+		foreach ($tables as $table) { $this->tables[$table] = true; }
 		$this->journal_shape($this->prefix.'pa_file_journal');
 		$this->ready = true;
 		return true;

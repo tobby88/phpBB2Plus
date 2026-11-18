@@ -307,6 +307,14 @@
       "commands": [
         "php -d disable_functions=mail .github/scripts/check-file-coordinator-ownership-native.php"
       ]
+    },
+    {
+      "name": "Check Download metadata participants and journal shape on MySQL",
+      "part": 2,
+      "sha256": "656b20342293bd315c372a0dfb8a64e17c99af5d5b9dec59dc711ca03c832dfb",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php"
+      ]
     }
   ]
 }
