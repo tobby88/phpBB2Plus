@@ -781,6 +781,8 @@ jobs:
       - name: Test topic notification additive migration
         run: php .github/scripts/check-topic-notification-migration.php
 
+      - name: Preserve original mail metadata and literal body headings in every EN/DE template
+        run: php .github/scripts/check-mail-template-metadata.php
       - name: Test mail failure boundaries and SMTP protocol runtime
         run: php .github/scripts/check-mail-delivery-runtime.php
       - name: Preserve Unicode mail headers and seven-bit MIME transport

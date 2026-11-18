@@ -225,60 +225,34 @@ class emailer
 		{
 			$server_name = 'localhost';
 		}
-		$this->msg = preg_replace_callback(
-			'#\{([a-z0-9\-_]*?)\}#is',
-			function ($match) use ($vars)
+		// Metadata belongs only to the original template's leading header block.
+		// Parse before expanding variables: a Subject/Charset line in MESSAGE,
+		// a display name or a topic title is literal content, never metadata.
+		$body = $this->msg;
+		$metadata = array();
+		while (preg_match('/\A(Subject|Charset):([^\r\n]*)(?:\r\n|\r|\n|\z)/', $body, $match))
+		{
+			if (isset($metadata[$match[1]])) { break; }
+			$metadata[$match[1]] = $match[2];
+			$body = substr($body, strlen($match[0]));
+		}
+		$render = function ($text) use ($vars)
+		{
+			return preg_replace_callback('#\{([a-z0-9\-_]*?)\}#is', function ($match) use ($vars)
 			{
-				return isset($vars[$match[1]]) && is_scalar($vars[$match[1]]) ? (string) $vars[$match[1]] : '';
-			},
-			$this->msg
-		);
-
-		// We now try and pull a subject from the email body ... if it exists,
-		// do this here because the subject may contain a variable
-		$drop_header = '';
-		$match = array();
-		if (preg_match('#^(Subject:(.*?))$#m', $this->msg, $match))
-		{
-			$this->subject = (trim($match[2]) != '') ? trim($match[2]) : (($this->subject != '') ? $this->subject : 'No Subject');
-			$drop_header .= '[\r\n]*?' . preg_quote($match[1], '#');
-		}
-		else
-		{
-			$this->subject = (($this->subject != '') ? $this->subject : 'No Subject');
-		}
-
-		// Template variables may be user-controlled (for example topic titles).
-		// Never allow them to turn the subject into additional mail headers.
-		$this->subject = trim(preg_replace('#[\x00\r\n]+#', '', (string) $this->subject));
-		if ($this->subject == '')
-		{
-			$this->subject = 'No Subject';
-		}
-
-		if (preg_match('#^(Charset:(.*?))$#m', $this->msg, $match))
-		{
-			$this->encoding = (trim($match[2]) != '') ? trim($match[2]) : trim($lang['ENCODING']);
-			$drop_header .= '[\r\n]*?' . preg_quote($match[1], '#');
-		}
-		else
-		{
-			$this->encoding = trim($lang['ENCODING']);
-		}
-
-		// Charset is used verbatim in a MIME header, so keep it to a valid token.
-		$this->encoding = preg_replace('#[^a-z0-9._-]+#i', '', (string) $this->encoding);
-		if ($this->encoding == '')
-		{
-			$this->encoding = 'UTF-8';
-		}
-
-		if ($drop_header != '')
-		{
-			// Remove the template metadata once; a quoted copy in the body is
-			// user content and must not disappear with the same replacement.
-			$this->msg = trim(preg_replace('#' . $drop_header . '#s', '', $this->msg, 1));
-		}
+				return isset($vars[$match[1]]) && is_scalar($vars[$match[1]]) ? (string)$vars[$match[1]] : '';
+			}, $text);
+		};
+		$this->msg = $render($body);
+		if ($metadata) { $this->msg = trim($this->msg); }
+		$subject = isset($metadata['Subject']) ? trim($render($metadata['Subject'])) : '';
+		$this->subject = $subject !== '' ? $subject : ($this->subject !== '' ? $this->subject : 'No Subject');
+		$this->subject = trim(preg_replace('#[\x00\r\n]+#', '', (string)$this->subject));
+		if ($this->subject === '') { $this->subject = 'No Subject'; }
+		$encoding = isset($metadata['Charset']) ? trim($render($metadata['Charset'])) : '';
+		if ($encoding === '') { $encoding = isset($lang['ENCODING']) && is_scalar($lang['ENCODING']) ? trim((string)$lang['ENCODING']) : ''; }
+		$this->encoding = preg_replace('#[^a-z0-9._-]+#i', '', $encoding);
+		if ($this->encoding === '') { $this->encoding = 'UTF-8'; }
 
 		$to = $this->addresses['to'];
 
