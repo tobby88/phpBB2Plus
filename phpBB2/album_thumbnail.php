@@ -170,11 +170,15 @@ else
 
 	// On-demand regeneration writes pic_filename without changing old thumbnail
 	// metadata. Prefer an existing explicit name, then the regenerated filename.
+	$orientation_info = $pic_filetype === '.jpg' ? phpbb_jpeg_file_info(ALBUM_UPLOAD_PATH . $pic_filename) : false;
+	$source_orientation = is_array($orientation_info) ? $orientation_info['orientation'] : 1;
+	// Explicit GD-disabled uploads supply their own thumbnail; preserve it.
+	$cache_orientation = (isset($album_config['gd_version']) && intval($album_config['gd_version']) === 0 && $pic_thumbnail !== '') ? 1 : $source_orientation;
 	$cached_thumbnail = '';
 	if ($album_config['thumbnail_cache'] == 1)
 	{
-		if ($pic_thumbnail !== '' && album_cached_image_valid(ALBUM_CACHE_PATH, $pic_thumbnail, $pic_filetype, $album_config['thumbnail_size'], $album_config['thumbnail_size'])) { $cached_thumbnail = $pic_thumbnail; }
-		else if (album_cached_image_valid(ALBUM_CACHE_PATH, $pic_filename, $pic_filetype, $album_config['thumbnail_size'], $album_config['thumbnail_size'])) { $cached_thumbnail = $pic_filename; }
+		if ($pic_thumbnail !== '' && album_cached_image_valid(ALBUM_CACHE_PATH, $pic_thumbnail, $pic_filetype, $album_config['thumbnail_size'], $album_config['thumbnail_size'], $cache_orientation)) { $cached_thumbnail = $pic_thumbnail; }
+		else if (album_cached_image_valid(ALBUM_CACHE_PATH, $pic_filename, $pic_filetype, $album_config['thumbnail_size'], $album_config['thumbnail_size'], $cache_orientation)) { $cached_thumbnail = $pic_filename; }
 	}
 	if ($cached_thumbnail !== '')
 	{
@@ -209,12 +213,13 @@ else
 	$pic_width = intval($pic_size[0]);
 	$pic_height = intval($pic_size[1]);
 
-	$dimensions = album_thumbnail_dimensions($pic_width, $pic_height, $album_config['thumbnail_size'], $album_config['thumbnail_size']);
+	$dimensions = album_thumbnail_dimensions($pic_width, $pic_height, $album_config['thumbnail_size'], $album_config['thumbnail_size'], $source_orientation);
 	$read_function = ($pic_filetype === '.jpg') ? 'imagecreatefromjpeg' : 'imagecreatefrompng';
 	$write_function = ($pic_filetype === '.jpg') ? 'imagejpeg' : 'imagepng';
 	$use_gd1 = (intval($album_config['gd_version']) == 1 || !function_exists('imagecreatetruecolor'));
 	$resize_function = $use_gd1 ? 'imagecopyresized' : 'imagecopyresampled';
-	$needs_resize = $dimensions !== false && ($dimensions[0] !== $pic_width || $dimensions[1] !== $pic_height);
+	$raster_dimensions = $dimensions !== false && $source_orientation >= 5 ? array($dimensions[1], $dimensions[0]) : $dimensions;
+	$needs_resize = $raster_dimensions !== false && ($raster_dimensions[0] !== $pic_width || $raster_dimensions[1] !== $pic_height);
 	if ($dimensions === false || !function_exists($read_function) || !function_exists($write_function) ||
 		($needs_resize && (!function_exists($use_gd1 ? 'imagecreate' : 'imagecreatetruecolor') || !function_exists($resize_function))))
 	{
@@ -233,8 +238,8 @@ else
 	}
 	else if ($needs_resize)
 	{
-		$thumbnail_width = $dimensions[0];
-		$thumbnail_height = $dimensions[1];
+		$thumbnail_width = $raster_dimensions[0];
+		$thumbnail_height = $raster_dimensions[1];
 		$thumbnail = $use_gd1 ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
 		if (!$thumbnail)
 		{
@@ -254,6 +259,13 @@ else
 	else
 	{
 		$thumbnail = $src;
+	}
+
+	if (!$gd_errored)
+	{
+		$oriented = phpbb_orient_image($thumbnail, $source_orientation);
+		if (!$oriented) { $gd_errored = true; }
+		else { if ($oriented !== $thumbnail && $thumbnail !== $src) { phpbb_gd_release($thumbnail); } $thumbnail = $oriented; }
 	}
 
 	if (!$gd_errored)

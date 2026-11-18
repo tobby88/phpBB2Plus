@@ -699,18 +699,23 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 	{
 		return false;
 	}
-	if (($pic_width / $pic_height) > ($resize_width / $resize_height))
+	$orientation_info = $image_data[2] === IMAGETYPE_JPEG ? phpbb_jpeg_file_info($image_file_name) : false;
+	$source_orientation = is_array($orientation_info) ? $orientation_info['orientation'] : 1;
+	$display_width = $source_orientation >= 5 ? $pic_height : $pic_width;
+	$display_height = $source_orientation >= 5 ? $pic_width : $pic_height;
+	if (($display_width / $display_height) > ($resize_width / $resize_height))
 	{
-		$resize_height = max(1, (int) round($resize_width * ($pic_height / $pic_width)));
+		$resize_height = max(1, (int) round($resize_width * ($display_height / $display_width)));
 	}
 	else
 	{
-		$resize_width = max(1, (int) round($resize_height * ($pic_width / $pic_height)));
+		$resize_width = max(1, (int) round($resize_height * ($display_width / $display_height)));
 	}
 	$use_gd1 = (gdVersion() == 1 || !function_exists('imagecreatetruecolor'));
-	$resize = $use_gd1 ? @imagecreate($resize_width, $resize_height) : @imagecreatetruecolor($resize_width, $resize_height);
+	$raster_width = $source_orientation >= 5 ? $resize_height : $resize_width; $raster_height = $source_orientation >= 5 ? $resize_width : $resize_height;
+	$resize = $use_gd1 ? @imagecreate($raster_width, $raster_height) : @imagecreatetruecolor($raster_width, $raster_height);
 	$resize_function = $use_gd1 ? 'imagecopyresized' : 'imagecopyresampled';
-	if (!$resize || !@$resize_function($resize, $src, 0, 0, 0, 0, $resize_width, $resize_height, $pic_width, $pic_height))
+	if (!$resize || !@$resize_function($resize, $src, 0, 0, 0, 0, $raster_width, $raster_height, $pic_width, $pic_height))
 	{
 		if ($resize)
 		{
@@ -719,6 +724,10 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 		@phpbb_gd_release($src);
 		return false;
 	}
+
+	$oriented = phpbb_orient_image($resize, $source_orientation);
+	if (!$oriented) { phpbb_gd_release($src); phpbb_gd_release($resize); return false; }
+	if ($oriented !== $resize) { phpbb_gd_release($resize); $resize = $oriented; }
 
 	// Render beside the original first. The upload must remain intact when GD,
 	// the filesystem or the final replacement fails.

@@ -1795,6 +1795,11 @@ call the removed PHP `mysql_*` extension on PHP 7 or 8. Fresh installations
 offer only MySQL/MariaDB through MySQLi; obsolete and unsupported alternative
 database-driver sources are no longer distributed.
 
+Album JPEG previews honor EXIF rotation and mirroring without requiring the EXIF
+extension. Uploaded originals remain unchanged. Outdated automatic previews for
+these photographs regenerate on demand; no bulk image or database migration is
+needed. Manually supplied thumbnails remain unchanged.
+
 ## Writable permissions
 
 Git cannot preserve arbitrary directory permissions. On Unix-like hosting,

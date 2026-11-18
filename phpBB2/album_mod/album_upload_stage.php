@@ -124,16 +124,22 @@ class AlbumUploadStage
 
 	private function thumbnail($source)
 	{
-		$shape = album_thumbnail_dimensions($source['width'],$source['height'],$this->policy['thumbnail_size'],$this->policy['thumbnail_size']);
+		$metadata = $source['extension'] === '.jpg' ? phpbb_jpeg_data_info($source['data']) : false;
+		$orientation = is_array($metadata) ? $metadata['orientation'] : 1;
+		$shape = album_thumbnail_dimensions($source['width'],$source['height'],$this->policy['thumbnail_size'],$this->policy['thumbnail_size'],$orientation);
+		$raster = $shape && $orientation >= 5 ? array($shape[1],$shape[0]) : $shape;
 		$allocator = $this->policy['gd_version'] === 1 ? 'imagecreate' : 'imagecreatetruecolor'; $copier = $this->policy['gd_version'] === 1 ? 'imagecopyresized' : 'imagecopyresampled'; $encoder = $source['extension'] === '.jpg' ? 'imagejpeg' : 'imagepng';
-		if (!$shape || !function_exists('imagecreatefromstring') || !function_exists($allocator) || !function_exists($copier) || !function_exists($encoder) || !self::budget($source['width']*$source['height']*8 + $shape[0]*$shape[1]*8 + $source['metadata']['bytes'])) { return null; }
+		if (!$shape || !function_exists('imagecreatefromstring') || !function_exists($allocator) || !function_exists($copier) || !function_exists($encoder) || !self::budget($source['width']*$source['height']*8 + $shape[0]*$shape[1]*($orientation === 1 ? 8 : 12) + $source['metadata']['bytes'])) { return null; }
 		$image = null; $small = null; $level = ob_get_level();
 		try
 		{
 			$image = @imagecreatefromstring($source['data']); if (!$image) { return null; }
-			if ($shape[0] === $source['width'] && $shape[1] === $source['height']) { $small = $image; }
-			else { $small = @$allocator($shape[0],$shape[1]); if (!$small || !@$copier($small,$image,0,0,0,0,$shape[0],$shape[1],$source['width'],$source['height'])) { return null; } }
+			if ($raster[0] === $source['width'] && $raster[1] === $source['height']) { $small = $image; }
+			else { $small = @$allocator($raster[0],$raster[1]); if (!$small || !@$copier($small,$image,0,0,0,0,$raster[0],$raster[1],$source['width'],$source['height'])) { return null; } }
+			$oriented = phpbb_orient_image($small,$orientation); if (!$oriented) { return null; }
+			if ($oriented !== $small) { if (PHP_VERSION_ID < 80000 && $small !== $image && is_resource($small)) { imagedestroy($small); } $small = $oriented; }
 			ob_start(); $ok = $source['extension'] === '.jpg' ? @$encoder($small,null,$this->policy['thumbnail_quality']) : @$encoder($small); $bytes = ob_get_clean();
+			if ($ok && $source['extension'] === '.jpg' && $orientation !== 1) { $bytes = phpbb_jpeg_mark_cache_data($bytes,$orientation); }
 			if (!$ok || !is_string($bytes) || strlen($bytes) < 1 || strlen($bytes) > AlbumFileStorage::MAX_BYTES) { return null; }
 			// Unlike a generic system tmpfile, this private derived image remains
 			// in the bounded PSID cleanup namespace even after a hard process kill.

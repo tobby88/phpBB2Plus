@@ -417,6 +417,11 @@ jobs:
       - name: Test image processing safety
         run: php .github/scripts/check-image-processing-safety.php
 
+      - name: Test Album JPEG EXIF orientation and cache renewal
+        run: php .github/scripts/check-album-orientation.php
+        env:
+          PHPBB_ALBUM_ORIENTATION_GD_REQUIRED: '1'
+
       - name: Test moderator action safety
         run: php .github/scripts/check-moderator-action-safety.php
 

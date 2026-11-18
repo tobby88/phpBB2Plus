@@ -21,6 +21,8 @@
  ***************************************************************************/
 
 
+require_once dirname(__DIR__) . '/includes/functions_image_orientation.php';
+
 // ------------------------------------
 // All common functions are here!
 // ------------------------------------
@@ -686,13 +688,15 @@ function init_personal_gallery_cat($user_id = 0)
 // Shared, best-effort cache I/O. It never changes picture or user metadata.
 // Fit inside both configured edges without enlarging the original. Refuse bad
 // settings before passing dimensions to GD (PHP 8 raises errors for bad sizes).
-function album_thumbnail_dimensions($width, $height, $max_width, $max_height)
+function album_thumbnail_dimensions($width, $height, $max_width, $max_height, $orientation = 1)
 {
 	foreach (array($width, $height, $max_width, $max_height) as $value)
 	{
 		if ((!is_int($value) && !is_string($value)) || !preg_match('/^[0-9]{1,5}$/D', (string) $value) || (int) $value < 1 || (int) $value > 10000) { return false; }
 	}
 	$width = (int) $width; $height = (int) $height;
+	if (!is_int($orientation) || $orientation < 1 || $orientation > 8) { return false; }
+	if ($orientation >= 5) { $swap = $width; $width = $height; $height = $swap; }
 	$max_width = (int) $max_width; $max_height = (int) $max_height;
 	if (!phpbb_image_dimensions_safe($width, $height)) { return false; }
 	$scale = min(1, $max_width / $width, $max_height / $height);
@@ -738,11 +742,16 @@ function album_cache_image_complete($path, $type)
 	finally { fclose($handle); }
 }
 
-function album_cached_image_valid($directory, $filename, $type, $max_width = null, $max_height = null)
+function album_cached_image_valid($directory, $filename, $type, $max_width = null, $max_height = null, $orientation = 1)
 {
 	$base = album_cache_directory($directory);
 	if ($base === false || !album_cache_filename($filename, $type) || !album_cache_image_complete($base . DIRECTORY_SEPARATOR . $filename, $type)) { return false; }
 	if (func_num_args() === 3) { return true; }
+	if (!is_int($orientation) || $orientation < 1 || $orientation > 8) { return false; }
+	if ($type === '.jpg' && $orientation !== 1) {
+		$metadata = phpbb_jpeg_file_info($base . DIRECTORY_SEPARATOR . $filename);
+		if ($metadata === false || $metadata['cache_orientation'] !== $orientation) { return false; }
+	}
 	$info = @getimagesize($base . DIRECTORY_SEPARATOR . $filename);
 	if ($info === false) { return false; }
 	$dimensions = album_thumbnail_dimensions($info[0], $info[1], $max_width, $max_height);
@@ -750,9 +759,9 @@ function album_cached_image_valid($directory, $filename, $type, $max_width = nul
 }
 
 // Picture renderers must supply their current owned publication capability.
-function album_store_cached_image($image, $directory, $filename, $type, $quality = 80, $publication_guard = null)
+function album_store_cached_image($image, $directory, $filename, $type, $quality = 80, $publication_guard = null, $orientation = 1)
 {
-	if ($publication_guard !== null && !is_callable($publication_guard)) { return false; }
+	if (($publication_guard !== null && !is_callable($publication_guard)) || !is_int($orientation) || $orientation < 1 || $orientation > 8 || ($type !== '.jpg' && $orientation !== 1)) { return false; }
 	$base = album_cache_directory($directory);
 	if ($base === false || !album_cache_filename($filename, $type) || !is_int($quality) || $quality < 0 || $quality > 100 ||
 		!function_exists($type === '.jpg' ? 'imagejpeg' : 'imagepng') ||
@@ -773,6 +782,7 @@ function album_store_cached_image($image, $directory, $filename, $type, $quality
 		}
 		if ($temporary === null || album_cache_directory($directory) !== $base || is_link($temporary)) { return false; }
 		$written = $type === '.jpg' ? @imagejpeg($image, $temporary, $quality) : @imagepng($image, $temporary);
+		if ($written && $type === '.jpg' && $orientation !== 1) { $written = phpbb_jpeg_mark_cache_file($temporary, $orientation); }
 		if (!$written || !album_cache_image_complete($temporary, $type) || album_cache_directory($directory) !== $base || is_link($target) || is_dir($target)) { return false; }
 		if ($publication_guard !== null && call_user_func($publication_guard) !== true) { return false; }
 		if (!@rename($temporary, $target)) { return false; }

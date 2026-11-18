@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album JPEG orientation
+
+- Honor all eight EXIF orientations, including mirrored photographs, in upload
+  thumbnails, small/medium previews and explicit Nuffload resizing. Keep uploaded
+  originals unchanged and fit the displayed orientation within both size limits.
+- Renew old incorrectly oriented automatic previews on demand. Preserve manually
+  supplied thumbnails and retain the existing publication and access checks.
+  Read bounded JPEG headers without requiring the PHP EXIF extension.
+
 ### Native test peer waits
 
 - Bound the disposable topic-test peer to a one-second row-lock timeout.

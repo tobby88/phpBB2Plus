@@ -94,6 +94,24 @@ function ad_cache_peer_case($medium)
 		ad_check(is_array($result)&&$result['deleted']===1&&$result['pending']===0&&!ad_rows('SELECT pic_id FROM fixture_album WHERE pic_id=1')&&!file_exists(ad_cache_target())&&!file_exists($cache_base.'/album_mod/upload/one.png'),'Queued real deletion removes original and the newly published cache; no resurrection');$cases++;
 	}finally{if(is_resource($p)){proc_terminate($p,9);foreach(array(1,2)as$i){if(is_resource($pipes[$i])){fclose($pipes[$i]);}}proc_close($p);}foreach(array('cache-owner','cache-peer-ready','cache-peer-start','cache-peer-attempt','cache-peer-done')as$file){if(is_file($cache_base.'/'.$file)){unlink($cache_base.'/'.$file);}}}
 }
+function ad_cache_orientation_cases()
+{
+	global $cases,$cache_base,$db;
+	$before_cases=$cases;
+	foreach(array(false,true)as$medium){foreach(range(1,8)as$orientation){
+		ad_cache_frame($medium,'.jpg');$path=$cache_base.'/album_mod/upload/one.jpg';$original=file_get_contents($path);
+		$tiff='II'.pack('v',42).pack('V',8).pack('v',1).pack('v',0x0112).pack('v',3).pack('V',1).pack('v',$orientation)."\0\0".pack('V',0);$exif="Exif\0\0".$tiff;$original=substr($original,0,2)."\xff\xe1".pack('n',strlen($exif)+2).$exif.substr($original,2);file_put_contents($path,$original);
+		if($orientation>=5){ad_cache_refused('Current oriented source rejects a derivative with old landscape dimensions');}
+		$image=$GLOBALS['cache_image'];$oriented=phpbb_orient_image($image,$orientation);ad_check($oriented!==false,'Own physically oriented cache');if($image!==$oriented){phpbb_gd_release($image);}$GLOBALS['cache_image']=$oriented;
+		$before=ad_snapshot();$expected=phpbb_jpeg_mark_cache_data(ad_cache_expected(),$orientation);ad_check(ad_cache_publish()===true&&file_get_contents(ad_cache_target())===$expected&&file_get_contents($path)===$original&&ad_snapshot()===$before,'Actual native owner publishes oriented bytes/version without changing source or metadata');
+		ad_check(album_cached_image_valid($medium?ALBUM_MED_CACHE_PATH:ALBUM_CACHE_PATH,basename(ad_cache_target()),'.jpg',$medium?8:10,$medium?8:10,$orientation),'Actually published oriented cache passes strict read validation');ad_cache_no_temps();$cases++;
+		if($orientation===6){
+			$writer=new AlbumCacheExpiryFixture($db,'fixture_',$cache_base);$writer->image_directory=dirname(ad_cache_target());ad_check(ad_cache_publish($writer)===false&&file_get_contents(ad_cache_target())===$expected&&file_get_contents($path)===$original&&ad_snapshot()===$before,'Final authority loss after oriented encoding preserves old cache, source and metadata');ad_cache_no_temps();$cases++;
+			ad_sql('UPDATE fixture_users SET user_active=0 WHERE user_id=7');ad_cache_refused('Oriented cache cannot bypass current actor authority');
+		}
+	}}
+	echo 'Native Album cache orientation: '.($cases-$before_cases).' cases PASS; all eight EXIF orientations, actual native publication/read validation, stale dimensions, final authority and unchanged originals/metadata; own files/schema only.',"\n";
+}
 function ad_cache_cases()
 {
 	global $cache_base,$schema,$cases,$db,$root;
@@ -130,6 +148,7 @@ function ad_cache_cases()
 			}
 		}
 		echo 'Native Album cache publication: '.$cases.' cases PASS; '.(getenv('PHPBB_ALBUM_CACHE_QUICK')==='1'?'quick current/stale parent, policy, final-rename guard and real peer deletion':'current/stale parent, policy, final-rename guard, real peer deletion and actual SQL failure boundaries')."; own files/schema only.\n";
+		ad_cache_orientation_cases();
 	}
 	finally
 	{
