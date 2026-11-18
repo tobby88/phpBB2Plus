@@ -6,6 +6,17 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album search visibility
+
+- Apply the 500-result limit to pictures the current viewer may see. Exclude
+  refused categories and personal galleries before retrying the bounded query,
+  preserving the existing per-picture permission checks and former-author privacy.
+- Keep the final results consistently ordered, including equal upload times and
+  large picture IDs, and avoid copying descriptions into search candidate rows.
+- Exercise the actual search controller against disposable MariaDB and MySQL
+  databases; name the broader PHP workflow "PHP compatibility checks" to reflect
+  its functional tests as well as syntax checks.
+
 ### Native poll maintenance fixtures
 
 - Reuse exactly matching disposable poll tables and reset all fixture data in

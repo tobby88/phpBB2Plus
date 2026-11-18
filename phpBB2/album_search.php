@@ -103,83 +103,112 @@ include($phpbb_root_path . 'common.'.$phpEx);
 		$search_sql = $db->sql_escape($search);
 		$author_visibility_sql = $mode==='user' ? phpbb_removed_author_metadata_sql('p.pic_user_id','p.pic_username') : '';
 
-		$sql = "SELECT p.*, c.*
+		// Limit visible results, not raw matches. Once a category/gallery is
+		// refused, exclude that whole context and restart the bounded result set.
+		// The final batch is ordered and authorized together, even when new
+		// pictures arrive between queries. Never cache a positive permission.
+		$denied_categories = array();
+		$denied_personal = array();
+		do
+		{
+			$denied_before = count($denied_categories) + count($denied_personal);
+			$exclude_sql = '';
+			if ($denied_categories) { $exclude_sql .= ' AND p.pic_cat_id NOT IN (' . implode(',', array_keys($denied_categories)) . ')'; }
+			if ($denied_personal) { $exclude_sql .= ' AND NOT (p.pic_cat_id = ' . PERSONAL_GALLERY . ' AND p.pic_user_id IN (' . implode(',', array_keys($denied_personal)) . '))'; }
+			$matches = array();
+			$in = array();
+
+			// Descriptions may be very large. Search them in SQL without loading
+			// their bytes for every candidate; only render/permission fields travel.
+			$sql = "SELECT p.pic_id,p.pic_cat_id,p.pic_user_id,p.pic_username,p.pic_title,p.pic_time,
+				c.cat_id,c.cat_user_id,c.cat_title,c.cat_parent,c.cat_approval,
+				c.cat_view_level,c.cat_upload_level,c.cat_rate_level,c.cat_comment_level,c.cat_edit_level,c.cat_delete_level,
+				c.cat_view_groups,c.cat_upload_groups,c.cat_rate_groups,c.cat_comment_groups,c.cat_edit_groups,c.cat_delete_groups,c.cat_moderator_groups
 				FROM " . ALBUM_TABLE . " AS p
 				LEFT JOIN " . ALBUM_CAT_TABLE . " AS c ON c.cat_id = p.pic_cat_id
 				WHERE p.pic_approval = 1
 					AND " . $where . " LIKE '%" . $search_sql . "%'
 					" . $author_visibility_sql . "
-				ORDER BY p.pic_time DESC
+					AND (c.cat_id IS NOT NULL OR (p.pic_cat_id = " . PERSONAL_GALLERY . " AND p.pic_user_id <> 0
+						AND EXISTS (SELECT 1 FROM " . USERS_TABLE . " album_search_owner WHERE album_search_owner.user_id = p.pic_user_id)))
+					" . $exclude_sql . "
+				ORDER BY p.pic_time DESC,p.pic_id DESC
 				LIMIT 500";
 
-
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, "Couldn't obtain Album search results", "", __LINE__, __FILE__, $sql);
-		}
-
-		$numres = 0;
-
-		if ( $row = $db->sql_fetchrow($result) )
-		{
-			$in = array();
-			do
+			if (!($result = $db->sql_query($sql)))
 			{
-				$pic_id = intval($row['pic_id']);
-				$cat_id = intval($row['pic_cat_id']);
-				$album_user_id = ($cat_id === PERSONAL_GALLERY) ? intval($row['pic_user_id']) : intval($row['cat_user_id']);
-				if ($cat_id !== PERSONAL_GALLERY && (empty($row['cat_id']) || $album_user_id < ALBUM_PUBLIC_GALLERY))
+				message_die(GENERAL_ERROR, "Couldn't obtain Album search results", "", __LINE__, __FILE__, $sql);
+			}
+			try
+			{
+				while ($row = $db->sql_fetchrow($result))
 				{
-					continue;
-				}
+					$pic_id = (string) $row['pic_id'];
+					if (preg_match('/^(?:0|[1-9][0-9]{0,9})$/D', $pic_id) !== 1 || (strlen($pic_id) === 10 && strcmp($pic_id, '4294967295') > 0))
+					{
+						message_die(GENERAL_ERROR, "Couldn't obtain Album search results");
+					}
+					$cat_id = intval($row['pic_cat_id']);
+					$album_user_id = ($cat_id === PERSONAL_GALLERY) ? intval($row['pic_user_id']) : intval($row['cat_user_id']);
+					if (($cat_id === PERSONAL_GALLERY && isset($denied_personal[$album_user_id])) ||
+						($cat_id !== PERSONAL_GALLERY && isset($denied_categories[$cat_id])) || isset($in[$pic_id])) { continue; }
+					if ($cat_id !== PERSONAL_GALLERY && (empty($row['cat_id']) || $album_user_id < ALBUM_PUBLIC_GALLERY))
+					{
+						$denied_categories[$cat_id] = true;
+						continue;
+					}
 
-				$album_user_access = ($cat_id === PERSONAL_GALLERY)
-					? album_permissions($album_user_id, PERSONAL_GALLERY, ALBUM_AUTH_VIEW)
-					: album_permissions($album_user_id, $cat_id, ALBUM_AUTH_VIEW, $row);
-				if (!album_check_permission($album_user_access, ALBUM_AUTH_VIEW) || in_array($pic_id, $in, true))
-				{
-					continue;
-				}
-
-				if ( !in_array($pic_id, $in, true) )
-				{
-					$user_cat_root_id = album_get_personal_root_id($album_user_id);
-					$is_personal = ($cat_id === PERSONAL_GALLERY || $album_user_id !== ALBUM_PUBLIC_GALLERY);
-
-					$template->assign_block_vars('switch_search_results.search_results', array(
-						'L_USERNAME' => phpbb_author_name((int)$row['pic_user_id'],$row['pic_username']),
-						'U_PROFILE' => append_sid('profile.php?mode=viewprofile&u=' . intval($row['pic_user_id'])),
-
-						'L_CAT' => $is_personal ? $lang['Users_Personal_Galleries'] : htmlspecialchars((string) $row['cat_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-						'U_CAT' => ($cat_id === PERSONAL_GALLERY || $cat_id == $user_cat_root_id)
-							? append_sid(album_append_uid($album_user_id, 'album.php'))
-							: append_sid(album_append_uid($album_user_id, 'album_cat.php?cat_id=' . $cat_id)),
-
-						'L_PIC' => htmlspecialchars((string) $row['pic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-						'U_PIC' => append_sid('album_showpage.php?pic_id=' . $pic_id),
-
-						'L_TIME' => create_date($board_config['default_dateformat'], $row['pic_time'], $board_config['board_timezone'])
-					));
-
-					$in[$numres] = $pic_id;
-					$numres++;
+					$album_user_access = ($cat_id === PERSONAL_GALLERY)
+						? album_permissions($album_user_id, PERSONAL_GALLERY, ALBUM_AUTH_VIEW)
+						: album_permissions($album_user_id, $cat_id, ALBUM_AUTH_VIEW, $row);
+					if (!album_check_permission($album_user_access, ALBUM_AUTH_VIEW))
+					{
+						if ($cat_id === PERSONAL_GALLERY) { $denied_personal[$album_user_id] = true; }
+						else { $denied_categories[$cat_id] = true; }
+						continue;
+					}
+					$in[$pic_id] = true;
+					$matches[] = $row;
 				}
 			}
-			while( $row = $db->sql_fetchrow($result) );
+			finally { $db->sql_freeresult($result); }
+		}
+		while (count($denied_categories) + count($denied_personal) > $denied_before);
 
-			$template->assign_vars(array(
-				'L_NRESULTS' => $numres,
-				'L_SEARCH_RESULTS' => sprintf($numres == 1 ? $lang['Found_search_match'] : $lang['Found_search_matches'], $numres),
-				'L_TCATEGORY' => $lang['Category'],
-				'L_TTITLE' => $lang['Name'],
-				'L_TSUBMITER' => $lang['Author'],
-				'L_TSUBMITED' => $lang['Posted']
+		$numres = count($matches);
+		if ($numres === 0) { message_die(GENERAL_MESSAGE, $lang['No_search_match']); }
+		foreach ($matches as $row)
+		{
+			$pic_id = (string) $row['pic_id'];
+			$cat_id = intval($row['pic_cat_id']);
+			$album_user_id = ($cat_id === PERSONAL_GALLERY) ? intval($row['pic_user_id']) : intval($row['cat_user_id']);
+			$user_cat_root_id = album_get_personal_root_id($album_user_id);
+			$is_personal = ($cat_id === PERSONAL_GALLERY || $album_user_id !== ALBUM_PUBLIC_GALLERY);
+
+			$template->assign_block_vars('switch_search_results.search_results', array(
+				'L_USERNAME' => phpbb_author_name((int)$row['pic_user_id'],$row['pic_username']),
+				'U_PROFILE' => append_sid('profile.php?mode=viewprofile&u=' . intval($row['pic_user_id'])),
+
+				'L_CAT' => $is_personal ? $lang['Users_Personal_Galleries'] : htmlspecialchars((string) $row['cat_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+				'U_CAT' => ($cat_id === PERSONAL_GALLERY || $cat_id == $user_cat_root_id)
+					? append_sid(album_append_uid($album_user_id, 'album.php'))
+					: append_sid(album_append_uid($album_user_id, 'album_cat.php?cat_id=' . $cat_id)),
+
+				'L_PIC' => htmlspecialchars((string) $row['pic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+				'U_PIC' => append_sid('album_showpage.php?pic_id=' . $pic_id),
+
+				'L_TIME' => create_date($board_config['default_dateformat'], $row['pic_time'], $board_config['board_timezone'])
 			));
 		}
-		else
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_search_match']);
-		}
+
+		$template->assign_vars(array(
+			'L_NRESULTS' => $numres,
+			'L_SEARCH_RESULTS' => sprintf($numres == 1 ? $lang['Found_search_match'] : $lang['Found_search_matches'], $numres),
+			'L_TCATEGORY' => $lang['Category'],
+			'L_TTITLE' => $lang['Name'],
+			'L_TSUBMITER' => $lang['Author'],
+			'L_TSUBMITED' => $lang['Posted']
+		));
 	}
 	else
 	{

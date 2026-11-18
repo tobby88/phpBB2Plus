@@ -1744,6 +1744,12 @@ jobs:
         env:
           PHPBB_LINK_ROTATION_NATIVE: '1'
           PHPBB_LINK_ROTATION_PASSWORD: fixture-only
+      - name: Check Album visible search results and current gallery rights
+        if: matrix.part == 6
+        run: php -d disable_functions=mail .github/scripts/check-album-search-native.php
+        env:
+          PHPBB_ALBUM_SEARCH_NATIVE: '1'
+          PHPBB_ALBUM_SEARCH_PASSWORD: fixture-only
   pm-download-mysql:
     name: MySQL 8.4 (part ${{ matrix.part }}, PHP 8.5)
     runs-on: ubuntu-latest
@@ -2119,3 +2125,10 @@ jobs:
           PHPBB_FILE_OWNER_NATIVE: '1'
           PHPBB_FILE_OWNER_PASSWORD: fixture-only
           PHPBB_FILE_OWNER_MYSQL: '8.4'
+      - name: Check Album visible search results and current gallery rights on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-album-search-native.php
+        env:
+          PHPBB_ALBUM_SEARCH_NATIVE: '1'
+          PHPBB_ALBUM_SEARCH_PASSWORD: fixture-only
+          PHPBB_ALBUM_SEARCH_MYSQL: '8.4'

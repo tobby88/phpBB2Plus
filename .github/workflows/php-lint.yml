@@ -1,4 +1,4 @@
-name: PHP syntax compatibility
+name: PHP compatibility checks
 
 on:
   push:
