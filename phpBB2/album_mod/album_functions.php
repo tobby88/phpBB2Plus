@@ -742,12 +742,108 @@ function album_cache_image_complete($path, $type)
 	finally { fclose($handle); }
 }
 
-function album_cached_image_valid($directory, $filename, $type, $max_width = null, $max_height = null, $orientation = 1)
+// PNG cache metadata stays in bounded header chunks, never decoded pixels.
+// Version automatic alpha previews so older black-composited caches renew once.
+function album_png_read_info($read, $length)
+{
+	$info = array('alpha' => false, 'cache_version' => false);
+	if (!is_callable($read) || !is_int($length) || $length < 33 || $length > 67108864 || call_user_func($read, 0, 8) !== "\x89PNG\r\n\x1a\n") { return $info; }
+	$at = 8; $color = null;
+	for ($chunks = 0; $chunks < 4096 && $at + 12 <= $length; $chunks++) {
+		$head = call_user_func($read, $at, 8);
+		if (!is_string($head) || strlen($head) !== 8) { break; }
+		$size = unpack('Nvalue', substr($head, 0, 4)); $size = $size['value']; $kind = substr($head, 4, 4);
+		if ($size < 0 || $size > $length - $at - 12) { break; }
+		if ($chunks === 0) {
+			if ($kind !== 'IHDR' || $size !== 13) { break; }
+			$data = call_user_func($read, $at + 8, 13); if (!is_string($data) || strlen($data) !== 13) { break; }
+			$color = ord($data[9]); if (!in_array($color, array(0,2,3,4,6), true)) { break; } $info['alpha'] = $color === 4 || $color === 6;
+		} elseif ($kind === 'tRNS' && (($color === 0 && $size === 2) || ($color === 2 && $size === 6) || ($color === 3 && $size > 0 && $size <= 256))) {
+			$data = call_user_func($read, $at + 8, (int) $size); if (!is_string($data) || strlen($data) !== $size) { break; }
+			$info['alpha'] = $color !== 3 || strspn($data, "\xff") !== $size;
+		} elseif ($kind === 'tEXt' && $size === 23) {
+			$info['cache_version'] = $info['cache_version'] || call_user_func($read, $at + 8, 23) === "phpBB2PlusThumb\0alpha-1";
+		}
+		if ($kind === 'IDAT' || $kind === 'IEND') { break; }
+		$at += 12 + $size;
+	}
+	return $info;
+}
+
+function album_png_data_info($data)
+{
+	return is_string($data) ? album_png_read_info(function($at, $size) use ($data) { return substr($data, $at, $size); }, strlen($data)) : array('alpha' => false, 'cache_version' => false);
+}
+
+function album_png_file_info($path)
+{
+	if (!is_string($path) || strpos($path, '://') !== false || is_link($path) || !is_file($path) || !($stream = @fopen($path, 'rb'))) { return false; }
+	try {
+		$before = fstat($stream); if (!$before || ($before['mode'] & 0170000) !== 0100000 || !is_int($before['size']) || $before['size'] > 67108864) { return false; }
+		$info = album_png_read_info(function($at, $size) use ($stream) { return @fseek($stream, $at) === 0 ? ($size === 0 ? '' : @fread($stream, $size)) : false; }, $before['size']);
+		$after = fstat($stream); foreach (array('dev','ino','size','mtime','ctime') as $key) { if (!isset($after[$key]) || $before[$key] !== $after[$key]) { return false; } } return $info;
+	} finally { fclose($stream); }
+}
+
+function album_png_prepare($image, $clear = false)
+{
+	if (!is_bool($clear) || !((is_resource($image) && get_resource_type($image) === 'gd') || (is_object($image) && is_a($image, 'GdImage'))) || !function_exists('imagealphablending') || !function_exists('imagesavealpha') || !@imagealphablending($image, false) || !@imagesavealpha($image, true)) { return false; }
+	if ($clear) { $transparent = @imagecolorallocatealpha($image, 0, 0, 0, 127); return $transparent !== false && @imagefill($image, 0, 0, $transparent); }
+	$source_key = imagecolortransparent($image);
+	if (!imageistruecolor($image) || $source_key < 0 || (($source_key >> 24) & 127) === 127) { return true; }
+	// Truecolor PNG color keys are ignored by some GD resamplers. Expand the
+	// key to real alpha one row at a time, with no second full-size allocation.
+	if (!function_exists('imagecreatetruecolor') || !function_exists('imagecopy')) { return false; }
+	$width = imagesx($image); $height = imagesy($image); $row = @imagecreatetruecolor($width, 1); if (!$row) { return false; }
+	try {
+		if (!album_png_prepare($row, true)) { return false; } $transparent = imagecolorallocatealpha($row, 0, 0, 0, 127);
+		for ($y = 0; $y < $height; $y++) { if (!@imagefill($row, 0, 0, $transparent) || !@imagecopy($row, $image, 0, 0, 0, $y, $width, 1) || !@imagecopy($image, $row, 0, $y, 0, 0, $width, 1)) { return false; } }
+		// PHP's negative color argument queries rather than clears this flag.
+		// Keep it on an already fully transparent alpha pixel instead.
+		return imagecolortransparent($image, 0x7f000000) === 0x7f000000;
+	} finally { phpbb_gd_release($row); }
+}
+
+function album_png_cache_chunk()
+{
+	$data = "tEXtphpBB2PlusThumb\0alpha-1";
+	return pack('N', strlen($data) - 4) . $data . hash('crc32b', $data, true);
+}
+
+function album_png_mark_cache_data($data)
+{
+	if (!is_string($data) || strlen($data) < 33 || substr($data, 0, 16) !== "\x89PNG\r\n\x1a\n\0\0\0\x0dIHDR") { return false; }
+	return substr($data, 0, 33) . album_png_cache_chunk() . substr($data, 33);
+}
+
+function album_png_mark_cache_file($path)
+{
+	if (!is_string($path) || strpos($path, '://') !== false || !preg_match('/^\.album-cache-[a-f0-9]{32}\.tmp$/D', basename(str_replace('\\', '/', $path))) || is_link($path) || !is_file($path)) { return false; }
+	$stream = @fopen($path, 'r+b'); if (!$stream) { return false; }
+	try {
+		$before = fstat($stream);
+		if (!$before || ($before['mode'] & 0170000) !== 0100000 || $before['size'] < 33 || $before['size'] > 67108864) { return false; }
+		if (album_png_mark_cache_data(fread($stream, 33)) === false) { return false; }
+		$chunk = album_png_cache_chunk(); $extra = strlen($chunk); $end = $before['size'];
+		// Shift backwards inside the caller's unpublished stage. A failed or
+		// killed write never touches the old cache or creates another orphan.
+		if (!@ftruncate($stream, $end + $extra)) { return false; }
+		while ($end > 33) {
+			$size = min(65536, $end - 33); $at = $end - $size;
+			if (@fseek($stream, $at) !== 0 || !is_string($bytes = @fread($stream, $size)) || strlen($bytes) !== $size || @fseek($stream, $at + $extra) !== 0 || @fwrite($stream, $bytes) !== $size) { return false; } $end = $at;
+		}
+		return @fseek($stream, 33) === 0 && @fwrite($stream, $chunk) === $extra && @fflush($stream);
+	} finally { fclose($stream); }
+}
+
+function album_cached_image_valid($directory, $filename, $type, $max_width = null, $max_height = null, $orientation = 1, $png_alpha = false)
 {
 	$base = album_cache_directory($directory);
 	if ($base === false || !album_cache_filename($filename, $type) || !album_cache_image_complete($base . DIRECTORY_SEPARATOR . $filename, $type)) { return false; }
 	if (func_num_args() === 3) { return true; }
 	if (!is_int($orientation) || $orientation < 1 || $orientation > 8) { return false; }
+	if (!is_bool($png_alpha) || ($type !== '.png' && $png_alpha)) { return false; }
+	if ($png_alpha) { $metadata = album_png_file_info($base . DIRECTORY_SEPARATOR . $filename); if ($metadata === false || !$metadata['cache_version']) { return false; } }
 	if ($type === '.jpg' && $orientation !== 1) {
 		$metadata = phpbb_jpeg_file_info($base . DIRECTORY_SEPARATOR . $filename);
 		if ($metadata === false || $metadata['cache_orientation'] !== $orientation) { return false; }
@@ -759,9 +855,9 @@ function album_cached_image_valid($directory, $filename, $type, $max_width = nul
 }
 
 // Picture renderers must supply their current owned publication capability.
-function album_store_cached_image($image, $directory, $filename, $type, $quality = 80, $publication_guard = null, $orientation = 1)
+function album_store_cached_image($image, $directory, $filename, $type, $quality = 80, $publication_guard = null, $orientation = 1, $png_alpha = false)
 {
-	if (($publication_guard !== null && !is_callable($publication_guard)) || !is_int($orientation) || $orientation < 1 || $orientation > 8 || ($type !== '.jpg' && $orientation !== 1)) { return false; }
+	if (($publication_guard !== null && !is_callable($publication_guard)) || !is_int($orientation) || $orientation < 1 || $orientation > 8 || ($type !== '.jpg' && $orientation !== 1) || !is_bool($png_alpha) || ($type !== '.png' && $png_alpha)) { return false; }
 	$base = album_cache_directory($directory);
 	if ($base === false || !album_cache_filename($filename, $type) || !is_int($quality) || $quality < 0 || $quality > 100 ||
 		!function_exists($type === '.jpg' ? 'imagejpeg' : 'imagepng') ||
@@ -783,6 +879,7 @@ function album_store_cached_image($image, $directory, $filename, $type, $quality
 		if ($temporary === null || album_cache_directory($directory) !== $base || is_link($temporary)) { return false; }
 		$written = $type === '.jpg' ? @imagejpeg($image, $temporary, $quality) : @imagepng($image, $temporary);
 		if ($written && $type === '.jpg' && $orientation !== 1) { $written = phpbb_jpeg_mark_cache_file($temporary, $orientation); }
+		if ($written && $png_alpha) { $written = album_png_mark_cache_file($temporary); }
 		if (!$written || !album_cache_image_complete($temporary, $type) || album_cache_directory($directory) !== $base || is_link($target) || is_dir($target)) { return false; }
 		if ($publication_guard !== null && call_user_func($publication_guard) !== true) { return false; }
 		if (!@rename($temporary, $target)) { return false; }

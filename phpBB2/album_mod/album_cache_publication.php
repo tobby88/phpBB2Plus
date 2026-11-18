@@ -104,12 +104,14 @@ class AlbumCachePublication
 			if (!is_array($info) || $info[2] !== ($type === '.jpg' ? IMAGETYPE_JPEG : IMAGETYPE_PNG)) { return false; }
 			$metadata = $type === '.jpg' ? phpbb_jpeg_file_info($this->source_path) : false;
 			$orientation = is_array($metadata) ? $metadata['orientation'] : 1;
+			$png_metadata = $type === '.png' ? album_png_file_info($this->source_path) : false;
+			$png_alpha = is_array($png_metadata) && $png_metadata['alpha'];
 			$dimensions = album_thumbnail_dimensions($info[0], $info[1], $width, $height, $orientation);
 			if ($dimensions === false || imagesx($image) !== $dimensions[0] || imagesy($image) !== $dimensions[1]) { return false; }
 			$directory = $medium ? ALBUM_MED_CACHE_PATH : ALBUM_CACHE_PATH;
 			$expected_directory = $base . DIRECTORY_SEPARATOR . 'album_mod' . DIRECTORY_SEPARATOR . 'upload' . DIRECTORY_SEPARATOR . ($medium ? 'med_cache' : 'cache');
 			if (album_cache_directory($directory) !== $expected_directory || !$this->current()) { return false; }
-			if (!album_store_cached_image($image, $directory, $rows[0]['pic_filename'], $type, $quality, array($this, 'current'), $orientation)) { return false; }
+			if (!album_store_cached_image($image, $directory, $rows[0]['pic_filename'], $type, $quality, array($this, 'current'), $orientation, $png_alpha)) { return false; }
 			$this->storage->commit();
 			return true;
 		}

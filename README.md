@@ -1799,6 +1799,8 @@ Album JPEG previews honor EXIF rotation and mirroring without requiring the EXIF
 extension. Uploaded originals remain unchanged. Outdated automatic previews for
 these photographs regenerate on demand; no bulk image or database migration is
 needed. Manually supplied thumbnails remain unchanged.
+PNG previews also retain partial/full transparency and transparent color keys;
+older automatic previews with black backgrounds regenerate on demand.
 
 ## Writable permissions
 

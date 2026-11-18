@@ -699,6 +699,7 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 	{
 		return false;
 	}
+	if ($image_data[2] === IMAGETYPE_PNG && !album_png_prepare($src)) { phpbb_gd_release($src); return false; }
 	$orientation_info = $image_data[2] === IMAGETYPE_JPEG ? phpbb_jpeg_file_info($image_file_name) : false;
 	$source_orientation = is_array($orientation_info) ? $orientation_info['orientation'] : 1;
 	$display_width = $source_orientation >= 5 ? $pic_height : $pic_width;
@@ -715,7 +716,7 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 	$raster_width = $source_orientation >= 5 ? $resize_height : $resize_width; $raster_height = $source_orientation >= 5 ? $resize_width : $resize_height;
 	$resize = $use_gd1 ? @imagecreate($raster_width, $raster_height) : @imagecreatetruecolor($raster_width, $raster_height);
 	$resize_function = $use_gd1 ? 'imagecopyresized' : 'imagecopyresampled';
-	if (!$resize || !@$resize_function($resize, $src, 0, 0, 0, 0, $raster_width, $raster_height, $pic_width, $pic_height))
+	if (!$resize || ($image_data[2] === IMAGETYPE_PNG && !album_png_prepare($resize, true)) || !@$resize_function($resize, $src, 0, 0, 0, 0, $raster_width, $raster_height, $pic_width, $pic_height))
 	{
 		if ($resize)
 		{

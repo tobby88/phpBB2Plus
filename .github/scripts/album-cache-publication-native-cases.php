@@ -112,6 +112,18 @@ function ad_cache_orientation_cases()
 	}}
 	echo 'Native Album cache orientation: '.($cases-$before_cases).' cases PASS; all eight EXIF orientations, actual native publication/read validation, stale dimensions, final authority and unchanged originals/metadata; own files/schema only.',"\n";
 }
+function ad_cache_alpha_cases()
+{
+	global $cases,$cache_base,$db;$before_cases=$cases;
+	foreach(array(false,true)as$medium){foreach(array(0,63,127)as$alpha){foreach(array(1,2)as$gd){
+		ad_cache_frame($medium,'.png');$path=$cache_base.'/album_mod/upload/one.png';$source=imagecreatetruecolor(20,10);ad_check(album_png_prepare($source,true),'Own alpha source canvas');$color=imagecolorallocatealpha($source,20,80,150,$alpha);imagefill($source,0,0,$color);$opaque=imagecolorallocatealpha($source,20,80,150,0);imagefilledrectangle($source,5,2,14,7,$opaque);ad_check(imagepng($source,$path),'Own complete alpha original');$original=file_get_contents($path);
+		phpbb_gd_release($GLOBALS['cache_image']);$size=$medium?array(8,4):array(10,5);$image=$gd===1?imagecreate($size[0],$size[1]):imagecreatetruecolor($size[0],$size[1]);ad_check(album_png_prepare($image,true),'Own alpha derivative canvas');$copy=$gd===1?'imagecopyresized':'imagecopyresampled';ad_check($copy($image,$source,0,0,0,0,$size[0],$size[1],20,10),'Own actual alpha derivative');phpbb_gd_release($source);$GLOBALS['cache_image']=$image;
+		$before=ad_snapshot();$expected=album_png_mark_cache_data(ad_cache_expected());ad_check(ad_cache_publish()===true&&file_get_contents(ad_cache_target())===$expected&&file_get_contents($path)===$original&&ad_snapshot()===$before,'Actual native alpha publication versions complete bytes without changing original or metadata');ad_check(album_cached_image_valid($medium?ALBUM_MED_CACHE_PATH:ALBUM_CACHE_PATH,'one.png','.png',$medium?8:10,$medium?8:10,1,true),'Actual native alpha cache passes strict read policy');
+		$decoded=imagecreatefrompng(ad_cache_target());$corner=imagecolorsforindex($decoded,imagecolorat($decoded,0,0));$center=imagecolorsforindex($decoded,imagecolorat($decoded,(int)($size[0]/2),(int)($size[1]/2)));phpbb_gd_release($decoded);ad_check($corner['alpha']===$alpha&&$center['alpha']===0,'Native published PNG keeps exact alpha and same-RGB opaque foreground');ad_cache_no_temps();$cases++;
+		if($alpha===63&&$gd===2){$writer=new AlbumCacheExpiryFixture($db,'fixture_',$cache_base);$writer->image_directory=dirname(ad_cache_target());ad_check(ad_cache_publish($writer)===false&&file_get_contents(ad_cache_target())===$expected&&file_get_contents($path)===$original&&ad_snapshot()===$before,'Alpha metadata insertion cannot bypass the final current-authority check');ad_cache_no_temps();$cases++;ad_sql('DELETE FROM fixture_sessions');ad_cache_refused('Alpha cache cannot bypass a revoked current session');}
+	}}}
+	echo 'Native Album PNG cache alpha: '.($cases-$before_cases).' cases PASS; actual small/medium publication, both GD modes, exact alpha and same-RGB foreground, version/read policy, final authority and unchanged originals/metadata; own files/schema only.',"\n";
+}
 function ad_cache_cases()
 {
 	global $cache_base,$schema,$cases,$db,$root;
@@ -149,6 +161,7 @@ function ad_cache_cases()
 		}
 		echo 'Native Album cache publication: '.$cases.' cases PASS; '.(getenv('PHPBB_ALBUM_CACHE_QUICK')==='1'?'quick current/stale parent, policy, final-rename guard and real peer deletion':'current/stale parent, policy, final-rename guard, real peer deletion and actual SQL failure boundaries')."; own files/schema only.\n";
 		ad_cache_orientation_cases();
+		ad_cache_alpha_cases();
 	}
 	finally
 	{

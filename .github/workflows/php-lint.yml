@@ -422,6 +422,11 @@ jobs:
         env:
           PHPBB_ALBUM_ORIENTATION_GD_REQUIRED: '1'
 
+      - name: Test Album PNG transparency and cache renewal
+        run: php .github/scripts/check-album-png-alpha.php
+        env:
+          PHPBB_ALBUM_PNG_GD_REQUIRED: '1'
+
       - name: Test moderator action safety
         run: php .github/scripts/check-moderator-action-safety.php
 

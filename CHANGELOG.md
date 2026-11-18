@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album PNG transparency
+
+- Preserve full and partial PNG transparency in upload thumbnails, small/medium
+  previews and explicit Nuffload resizing, including indexed PNGs, grayscale
+  alpha and truecolor transparency keys. Keep opaque foreground pixels opaque.
+- Renew older automatic alpha previews on demand. Preserve manually supplied
+  thumbnails and original uploads; read bounded PNG headers and version only
+  private cache stages before the existing final publication checks.
+
 ### Album JPEG orientation
 
 - Honor all eight EXIF orientations, including mirrored photographs, in upload

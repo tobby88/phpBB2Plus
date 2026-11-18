@@ -184,12 +184,14 @@ else
 	// historical pic_thumbnail field. Reuse that result on subsequent requests.
 	$orientation_info = $pic_filetype === '.jpg' ? phpbb_jpeg_file_info(ALBUM_UPLOAD_PATH . $pic_filename) : false;
 	$source_orientation = is_array($orientation_info) ? $orientation_info['orientation'] : 1;
+	$png_info = $pic_filetype === '.png' ? album_png_file_info(ALBUM_UPLOAD_PATH . $pic_filename) : false;
+	$png_alpha = is_array($png_info) && $png_info['alpha'];
 	$cache_orientation = $source_orientation;
 	$cached_thumbnail = '';
 	if ($album_sp_config['midthumb_cache'] == 1)
 	{
-		if ($pic_thumbnail !== '' && album_cached_image_valid(ALBUM_MED_CACHE_PATH, $pic_thumbnail, $pic_filetype, $album_sp_config['midthumb_width'], $album_sp_config['midthumb_height'], $cache_orientation)) { $cached_thumbnail = $pic_thumbnail; }
-		else if (album_cached_image_valid(ALBUM_MED_CACHE_PATH, $pic_filename, $pic_filetype, $album_sp_config['midthumb_width'], $album_sp_config['midthumb_height'], $cache_orientation)) { $cached_thumbnail = $pic_filename; }
+		if ($pic_thumbnail !== '' && album_cached_image_valid(ALBUM_MED_CACHE_PATH, $pic_thumbnail, $pic_filetype, $album_sp_config['midthumb_width'], $album_sp_config['midthumb_height'], $cache_orientation, $png_alpha)) { $cached_thumbnail = $pic_thumbnail; }
+		else if (album_cached_image_valid(ALBUM_MED_CACHE_PATH, $pic_filename, $pic_filetype, $album_sp_config['midthumb_width'], $album_sp_config['midthumb_height'], $cache_orientation, $png_alpha)) { $cached_thumbnail = $pic_filename; }
 	}
 	if ($cached_thumbnail !== '')
 	{
@@ -241,6 +243,7 @@ else
 	$gd_errored = FALSE;
 
 	$src = @$read_function(ALBUM_UPLOAD_PATH  . $pic_filename);
+	if ($src && $pic_filetype === '.png' && !album_png_prepare($src)) { phpbb_gd_release($src); $src = false; }
 
 	if (!$src)
 	{
@@ -252,6 +255,7 @@ else
 		$thumbnail_width = $raster_dimensions[0];
 		$thumbnail_height = $raster_dimensions[1];
 		$thumbnail = $use_gd1 ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
+		if ($thumbnail && $pic_filetype === '.png' && !album_png_prepare($thumbnail, true)) { phpbb_gd_release($thumbnail); $thumbnail = false; }
 		if (!$thumbnail)
 		{
 			$gd_errored = TRUE;
@@ -271,6 +275,7 @@ else
 	{
 		$thumbnail = $src;
 	}
+	if (!$gd_errored && $pic_filetype === '.png' && !album_png_prepare($thumbnail)) { $gd_errored = true; }
 
 	if (!$gd_errored)
 	{
