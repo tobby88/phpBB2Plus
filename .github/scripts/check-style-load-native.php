@@ -8,6 +8,9 @@ $function_source=file_get_contents($root.'includes/functions.php');
 require_once $root.'includes/functions_author_visibility.php';
 $function_source=str_replace("require_once dirname(__FILE__) . '/functions_author_visibility.php';", '', $function_source, $privacy_dependency_count);
 if($privacy_dependency_count!==1){throw new RuntimeException('Actual author visibility dependency missing');}
+require_once $root.'includes/functions_icon_config.php';
+$function_source=str_replace("require_once dirname(__FILE__) . '/functions_icon_config.php';", '', $function_source, $icon_dependency_count);
+if($icon_dependency_count!==1){throw new RuntimeException('Actual icon configuration dependency missing');}
 $function_source=str_replace('function message_die(', 'function unused_style_fixture_message_die(', $function_source, $renderer_count);
 if($renderer_count!==1){throw new RuntimeException('Actual error-rendering boundary missing');}eval(substr($function_source,5));
 $category_source=file_get_contents($root.'includes/functions_categories_hierarchy.php');
