@@ -6,6 +6,18 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Bounded-memory database backups
+
+- Stream table rows from MySQL/MariaDB into the completed backup spool instead
+  of buffering an entire table in PHP memory. Plain and gzip exports retain
+  the same coherent read-only snapshot, current administrator authorization,
+  exact stored bytes and independent caller connection.
+- Reject incomplete row streams, premature cursor release, overlapping queries
+  and failed output writes. Read failures cannot become successful end-of-file
+  after another query clears the database error. Publish no partial backup.
+- Retain buffered queries throughout the rest of the forum. No schema or data
+  migration is required.
+
 ### Current administrator mass mail and literal email bodies
 
 - Remove the extra empty mass-mail iteration. Validate current recipient

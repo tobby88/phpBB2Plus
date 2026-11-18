@@ -167,6 +167,20 @@ class sql_db
 		return $this->query_result;
 	}
 
+	// A streaming SELECT keeps only the current row in client memory. Its
+	// caller must consume/release the result before issuing another query on
+	// this connection; ordinary forum queries retain their buffered behavior.
+	function sql_query_unbuffered($query)
+	{
+		$this->query_result = false;
+		if (!is_string($query) || !preg_match('/^SELECT\\b/i', $query) || !($this->db_connect_id instanceof mysqli)) { return false; }
+		$this->num_queries++;
+		try { $this->query_result = @mysqli_query($this->db_connect_id, $query, MYSQLI_USE_RESULT); }
+		catch (\Exception $error) { return false; }
+		catch (\Throwable $error) { return false; }
+		return $this->query_result;
+	}
+
 	function sql_escape($value)
 	{
 		return mysqli_real_escape_string($this->db_connect_id, (string) $value);

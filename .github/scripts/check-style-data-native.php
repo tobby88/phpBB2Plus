@@ -41,6 +41,12 @@ class StyleDataConnection {
   if ($sql === 'COMMIT' && $GLOBALS['sd_failure'] === 'lost-ack') { return false; }
   return $r;
  }
+ function sql_query_unbuffered($sql) {
+  $GLOBALS['sd_queries'][] = $sql;
+  if (is_callable($GLOBALS['sd_hook'])) { call_user_func($GLOBALS['sd_hook'], $sql, $this); }
+  if ($GLOBALS['sd_failure'] !== '' && strpos($sql, $GLOBALS['sd_failure']) === 0) { return false; }
+  return $this->inner->sql_query_unbuffered($sql);
+ }
 }
 class StyleDataDatabase extends StyleDataConnection {
  var $dbname;

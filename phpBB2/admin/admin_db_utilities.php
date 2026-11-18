@@ -110,11 +110,16 @@ function get_table_content_mysql($table, $handler)
 	$quoted_table = '`' . str_replace('`', '``', $table) . '`';
 
 	// Grab the data from the table.
-	if (!($result = $db->sql_query("SELECT * FROM $quoted_table")))
+	if (!($result = $db->sql_query_unbuffered("SELECT * FROM $quoted_table")))
 	{
 		phpbb_database_backup_failed();
 	}
 
+	// Read each row directly into the completed-backup spool. Buffering the
+	// entire table here defeats streaming and exhausts ordinary PHP limits.
+	$released = false;
+	try
+	{
 	// Loop through the resulting rows and build the sql statement.
 	if ($row = $db->sql_fetchrow($result))
 	{
@@ -171,7 +176,11 @@ function get_table_content_mysql($table, $handler)
 		while ($row = $db->sql_fetchrow($result));
 	}
 
-	$db->sql_freeresult($result);
+	$error = $db->sql_error();
+	if (!is_array($error) || !isset($error['code']) || (int)$error['code'] !== 0) { phpbb_database_backup_failed(); }
+	}
+	finally { $released = $db->sql_freeresult($result); }
+	if (!$released) { phpbb_database_backup_failed(); }
 	return(true);
 }
 

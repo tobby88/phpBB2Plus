@@ -363,6 +363,14 @@
       "commands": [
         "php -d disable_functions=mail .github/scripts/check-mass-mail-native.php"
       ]
+    },
+    {
+      "name": "Check bounded-memory ACP backups on MySQL",
+      "part": 2,
+      "sha256": "ddfab65137171bfe11116c1383cddee8370400af8ee476aac455eff984acb4fb",
+      "commands": [
+        "php -d memory_limit=64M -d disable_functions=mail .github/scripts/check-db-backup-stream-native.php \"$case\""
+      ]
     }
   ]
 }

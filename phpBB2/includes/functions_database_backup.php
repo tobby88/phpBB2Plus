@@ -16,6 +16,9 @@ class PhpbbDatabaseBackupConnection extends PhpbbAclDatabase
     var $identity = '';
     var $transactional = false;
     var $finished = false;
+    var $stream_result = null;
+    var $stream_complete = false;
+    var $stream_failed = false;
     function __construct($database)
     {
         if (!is_callable(array($database, 'sql_dedicated_connection'))) { phpbb_database_backup_failed(); }
@@ -38,6 +41,7 @@ class PhpbbDatabaseBackupConnection extends PhpbbAclDatabase
     function current_identity()
     {
         if (!$this->connection) { phpbb_database_backup_failed(); }
+        if ($this->stream_result !== null || $this->stream_failed) { $this->stream_failed = true; phpbb_database_backup_failed(); }
         $result = $this->connection->sql_query('SELECT CONNECTION_ID() AS backup_connection_id');
         if (!$result) { phpbb_database_backup_failed(); }
         $row = $this->connection->sql_fetchrow($result); $this->connection->sql_freeresult($result);
@@ -55,6 +59,45 @@ class PhpbbDatabaseBackupConnection extends PhpbbAclDatabase
     {
         if (!$this->transactional || !is_string($sql) || !preg_match('/^(SELECT|SHOW)\b/', $sql)) { phpbb_database_backup_failed(); }
         return $this->control($sql);
+    }
+    function sql_query_unbuffered($sql)
+    {
+        if (!$this->transactional || $this->finished || !is_string($sql) || !preg_match('/^SELECT\\b/', $sql)
+            || $this->current_identity() !== $this->identity || !is_callable(array($this->connection, 'sql_query_unbuffered'))) { phpbb_database_backup_failed(); }
+        $result = $this->connection->sql_query_unbuffered($sql);
+        if (!($result instanceof mysqli_result)) { $this->stream_failed = true; phpbb_database_backup_failed(); }
+        $this->stream_result = $result; $this->stream_complete = false;
+        return $result;
+    }
+    function sql_fetchrow($result = 0)
+    {
+        if ($this->stream_result === null) { return $this->connection->sql_fetchrow($result); }
+        if ($result !== 0 && $result !== $this->stream_result) { $this->stream_failed = true; phpbb_database_backup_failed(); }
+        try {
+            $row = $this->connection->sql_fetchrow($this->stream_result);
+            if ($row === false) {
+                // Inspect the fetch error before a later identity query or
+                // COMMIT can clear it and turn a truncated export into success.
+                $error = $this->connection->sql_error();
+                if (!is_array($error) || !isset($error['code']) || (int)$error['code'] !== 0) { phpbb_database_backup_failed(); }
+                $this->stream_complete = true;
+            } elseif (!is_array($row)) { phpbb_database_backup_failed(); }
+            return $row;
+        } catch (Exception $error) { $this->stream_failed = true; throw $error; }
+        catch (Error $error) { $this->stream_failed = true; throw $error; }
+    }
+    function sql_freeresult($result = 0)
+    {
+        if ($this->stream_result === null || ($result !== 0 && $result !== $this->stream_result)) { return $this->connection->sql_freeresult($result); }
+        $stream = $this->stream_result;
+        if (!$this->stream_complete) { $this->stream_failed = true; }
+        try {
+            $released = $this->connection->sql_freeresult($stream);
+            if (!$released) { $this->stream_failed = true; }
+            return $released;
+        } catch (Exception $error) { $this->stream_failed = true; throw $error; }
+        catch (Error $error) { $this->stream_failed = true; throw $error; }
+        finally { $this->stream_result = null; }
     }
     function begin($snapshot)
     {
@@ -74,10 +117,12 @@ class PhpbbDatabaseBackupConnection extends PhpbbAclDatabase
     function close()
     {
         if (!$this->connection) { return; }
-        try { if ($this->transactional) { @$this->connection->sql_query('ROLLBACK'); } }
+        // A partly consumed result cannot accept ROLLBACK. Close only this
+        // owned connection; never leave its cursor/transaction for shutdown.
+        try { if ($this->transactional && $this->stream_result === null) { @$this->connection->sql_query('ROLLBACK'); } }
         catch (Exception $ignored) {} catch (Error $ignored) {}
         try { $this->connection->sql_close(); } catch (Exception $ignored) {} catch (Error $ignored) {}
-        $this->connection = null; $this->transactional = false; $this->finished = true;
+        $this->connection = null; $this->stream_result = null; $this->transactional = false; $this->finished = true;
     }
 }
 

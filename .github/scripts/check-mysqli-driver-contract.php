@@ -1,5 +1,6 @@
 <?php
 namespace PhpbbDriverFixture;
+if (!defined('MYSQLI_USE_RESULT')) { define('MYSQLI_USE_RESULT', 1); }
 // Execute the actual driver, substituting only the mysqli transport/result API.
 // These namespaced stubs also work when the native extension is already loaded.
 class mysqli { public $closed=false; public $error=''; public $errno=0; }
@@ -16,9 +17,10 @@ function mysqli_connect($server,$user,$password,$database,$port)
 function mysqli_set_charset($connection,$charset) { return $charset==='utf8mb4'; }
 function mysqli_character_set_name($connection) { return 'utf8mb4'; }
 function mysqli_select_db($connection,$database) { return true; }
-function mysqli_query($connection,$sql)
+function mysqli_query($connection,$sql,$mode=0)
 {
 	$GLOBALS['driver_fixture_queries'][]=$sql;
+	$GLOBALS['driver_fixture_last_mode']=$mode;
 	if(isset($GLOBALS['driver_fixture_fail']) && $sql===$GLOBALS['driver_fixture_fail']) { return false; }
 	if($connection->closed) { throw new \RuntimeException('Closed connection used'); }
 	if($sql==='FAIL') { $connection->error='fixture SQL failure'; $connection->errno=1064; return false; }
@@ -88,8 +90,18 @@ try
 	check($db->sql_fetchrow(false)===false,'Explicit failure is not silently replaced with latest successful result');
 	$empty=$db->sql_query('SELECT empty'); check($db->sql_numrows()===0 && $db->sql_numfields()===2 && $db->sql_fetchrow()===false && $db->sql_fetchfield('id',0)===false,'Empty SELECT is valid metadata but has no rows');
 	check($db->sql_freeresult()===true && $db->query_result===false,'Release current result clears pointer');
+	$stream=$db->sql_query_unbuffered('SELECT first');
+	check($stream instanceof mysqli_result && $GLOBALS['driver_fixture_last_mode']===MYSQLI_USE_RESULT,'Streaming SELECT explicitly uses native unbuffered transport');
+	check($db->sql_numfields($stream)===2 && $db->sql_fieldname(1,$stream)==='value','Streaming result retains field metadata');
+	check($db->sql_fetchrow($stream)['id']===11 && $db->sql_fetchrow($stream)['id']===12 && $db->sql_fetchrow($stream)===false,'Streaming rows and EOF preserve the ordinary driver contract');
+	check($db->sql_freeresult($stream) && $db->query_result===false,'Streaming result releases its own current pointer');
+	$before_queries=$db->num_queries;
+	foreach(array(null,array(),'UPDATE fixture','')as$invalid){check($db->sql_query_unbuffered($invalid)===false,'Streaming entry refuses non-SELECT input');}
+	check($db->num_queries===$before_queries,'Rejected streaming input executes no SQL');
+	$GLOBALS['driver_fixture_fail']='SELECT first';check($db->sql_query_unbuffered('SELECT first')===false && $db->query_result===false,'Failed streaming SQL remains a failure');unset($GLOBALS['driver_fixture_fail']);
 	check($db->sql_close()===true && $db->db_connect_id===false && $db->sql_close()===false,'Close is safe to repeat and invalidates owned connection');
 	check($db->sql_query('SELECT second')===false,'Closed driver cannot execute SQL');
+	check($db->sql_query_unbuffered('SELECT second')===false,'Closed driver cannot start a stream');
 	// Exercise the real credential reset from the CrackerTracker bootstrap,
 	// rather than a fixture that retains the original public password forever.
 	$db=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
@@ -146,5 +158,6 @@ try
 	$lock=new attach_mutation_lock($missing,false);
 	check(!$lock->acquired,'Adapter without credentials fails closed without an undefined-property warning');
 	echo "MySQLi failure, result metadata, field/cursor and connection contract checks passed.\n";
+	echo "MySQLi unbuffered SELECT transport, input, metadata, rows, failure and cleanup checks passed.\n";
 }
 finally { restore_error_handler(); }
