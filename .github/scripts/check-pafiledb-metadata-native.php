@@ -77,7 +77,9 @@ try{
  foreach(array('','ANSI_QUOTES','STRICT_TRANS_TABLES,NO_BACKSLASH_ESCAPES','TRADITIONAL')as$mode){$source->mode=$mode;pam_check(pam_attempt(null,true),'Real alternate SQL mode preserves complete table contract');$cases++;}$source->mode='';
  // COLUMNS only exposes columns visible to the SQL user. Keep the original
  // all-column opening check: partial column grants cannot hide layout drift.
- $grant_password=bin2hex(phpbb_random_bytes(32));$grant_account="'".$grant_user."'@'127.0.0.1'";
+ // CI reaches its disposable server through a container port mapping, whose
+ // client address differs from the configured loopback connection target.
+ $grant_password=bin2hex(phpbb_random_bytes(32));$grant_account="'".$grant_user."'@'%'";
  pam_sql('CREATE USER '.$grant_account." IDENTIFIED BY '".$grant_password."'");$grant_created=true;
  foreach($base as$s){pam_sql('GRANT SELECT'.($s==='users'?' (user_id)':'').' ON '.$schema.'.fixture_'.$s.' TO '.$grant_account);}
  $privileged=$source;$restricted=new PaMetadataSource($host,$grant_user,$grant_password,$schema,false);pam_check($restricted->db_connect_id,'Own restricted SQL user');
@@ -101,4 +103,4 @@ try{
  pam_check($source->sql_query('START TRANSACTION')&&$source->sql_query("UPDATE fixture_config SET config_value='pending' WHERE config_name='own-pending'"),'Own caller pending work');
  try{pam_check(pam_attempt('config'),'Dedicated metadata checks preserve independent caller work');pam_check(pam_rows("SELECT config_value FROM fixture_config WHERE config_name='own-pending'")[0]['config_value']==='original','Pending caller row is not committed');$cases++;}finally{$source->sql_query('ROLLBACK');}
  echo 'Download metadata native: '.$cases.' cases, '.$faults.' SQL faults, '.$ddl_blocks." real DDL blocks PASS; canonical participants, per-table engines/formats/collations/columns, binary fields, views/missing tables, exact journal columns/indexes, native column grants, both owned transactions, current schema and isolated callers.\n";
-}finally{if($restricted){$restricted->sql_close();}if($source){$source->hook=null;$source->sql_close();}if($peer){$peer->sql_close();}if($grant_created&&preg_match('/^codex_pam_[a-f0-9]{16}$/D',$grant_user)){$control->sql_query("DROP USER '".$grant_user."'@'127.0.0.1'");}if($made&&preg_match('/^codex_pa_metadata_[a-f0-9]{16}$/D',$schema)){$control->sql_query('DROP DATABASE '.$schema);}if($control){$control->sql_close();}restore_error_handler();}
+}finally{if($restricted){$restricted->sql_close();}if($source){$source->hook=null;$source->sql_close();}if($peer){$peer->sql_close();}if($grant_created&&preg_match('/^codex_pam_[a-f0-9]{16}$/D',$grant_user)){$control->sql_query("DROP USER '".$grant_user."'@'%'");}if($made&&preg_match('/^codex_pa_metadata_[a-f0-9]{16}$/D',$schema)){$control->sql_query('DROP DATABASE '.$schema);}if($control){$control->sql_close();}restore_error_handler();}
