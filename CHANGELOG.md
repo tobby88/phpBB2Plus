@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Atomic country flag administration
+
+- Commit flag additions, edits and deletion together with affected profile
+  selections. Failed writes roll back the complete operation; changing an image
+  updates its current users, while shared and case-different filenames stay
+  separate. Empty profile selections are never swept by an image-less flag.
+- Recheck the current ACP account, exact session and delegated Flag permission
+  on an independent transactional connection. Reject foreign, completed or
+  borrowed owners and leave the caller's pending work untouched.
+- Validate complete UTF-8 names and literal image filenames against the existing
+  25-character storage capacity. Forms use the same limits. Missing selections
+  return a localized message, and cancel/preview requests cannot change data.
+- Use the existing modern flags/profile schema and supported storage updater;
+  no new table, column or automatic content migration is required.
+
 ### Upload coordinator connection ownership
 
 - Album and Download file coordinators establish that a factory connection is

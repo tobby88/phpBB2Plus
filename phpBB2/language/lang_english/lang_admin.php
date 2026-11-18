@@ -1236,6 +1236,8 @@ $lang['File_not_writable_666'] = '<font color="red"><b>is not writable !</b> [ch
 $lang['File_not_writable_777'] = '<font color="red"><b>is not writable !</b> [change permission to 777]</font>';
 //
 $lang['xs_import_pending'] = 'This template has an interrupted import. Resume or roll it back under Import styles before changing it. Other templates remain available.';
+$lang['Flags_invalid'] = 'Enter a flag name of at most 25 characters and, optionally, an image filename of at most 25 characters (GIF, PNG or JPEG).';
+$lang['Flags_failed'] = 'The flag change could not be confirmed. Check the current flag list before retrying; no partial profile update is accepted.';
 // That's all Folks!
 // -------------------------------------------------
 

@@ -303,6 +303,14 @@ jobs:
         env:
           PHPBB_CONTENT_NATIVE: '1'
           PHPBB_CONTENT_PASSWORD: fixture-only
+      - name: Check atomic country flag administration
+        if: matrix.part == 4
+        run: |
+          php -d disable_functions=mail .github/scripts/check-flags-native.php
+          PHPBB_FLAGS_RAW=1 php -d disable_functions=mail .github/scripts/check-flags-native.php
+        env:
+          PHPBB_FLAGS_NATIVE: '1'
+          PHPBB_FLAGS_PASSWORD: fixture-only
       - name: Check native username restriction administration
         if: matrix.part == 4
         run: |
@@ -1695,6 +1703,12 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check atomic country flag administration on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-flags-native.php
+        env:
+          PHPBB_FLAGS_NATIVE: '1'
+          PHPBB_FLAGS_PASSWORD: fixture-only
       - name: Check migration sessions and complete updater on MySQL
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-updater-session-native.php

@@ -32,350 +32,72 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
-function phpbb_flag_image_name($value)
-{
-	$value = basename(str_replace('\\', '/', trim((string) $value)));
-	return preg_match('/^[A-Za-z0-9._-]+\.(?:gif|png|jpe?g)$/iD', $value) ? $value : '';
+require_once dirname(__DIR__) . '/includes/functions_flags_storage.php';
+
+$mode = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
+$mode = is_string($mode) && in_array($mode, array('add','edit','save','delete','do_delete'), true) ? $mode : '';
+if ($mode === '' && isset($_POST['add'])) { $mode = 'add'; }
+if ($mode === '' && isset($_POST['save'])) { $mode = 'save'; }
+if (isset($_POST['cancel']) || ($mode === 'do_delete' && empty($_POST['confirm']))) { $mode = ''; }
+
+if ($mode === 'save' || $mode === 'do_delete') {
+    phpbb_admin_require_post_session();
+    $request = $_POST; $request['mode'] = $mode;
+    try { $message = $lang[phpbb_flags_change($db, $request)]; }
+    catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+    $message .= '<br /><br />' . sprintf($lang['Click_return_flagadmin'], '<a href="' . append_sid('admin_flags.' . $phpEx) . '">', '</a>')
+        . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid('index.' . $phpEx . '?pane=right') . '">', '</a>');
+    message_die(GENERAL_MESSAGE, $message);
 }
 
-if( isset($_GET['mode']) || isset($_POST['mode']) )
-{
-	$mode_value = isset($_POST['mode']) ? $_POST['mode'] : $_GET['mode'];
-	$mode = is_scalar($mode_value) ? (string) $mode_value : '';
+if ($mode === 'add' || $mode === 'edit' || $mode === 'delete') {
+    $flag_id = 0; $flag_info = array('flag_name'=>'', 'flag_image'=>'');
+    if ($mode !== 'add') {
+        $selection = isset($_POST['id']) ? $_POST['id'] : (isset($_GET['id']) ? $_GET['id'] : null);
+        try { $flag_id = phpbb_flag_id($selection); }
+        catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+        $result = $db->sql_query('SELECT flag_id,flag_name,flag_image FROM ' . FLAG_TABLE . ' WHERE flag_id=' . $flag_id);
+        if (!$result) { message_die(GENERAL_ERROR, $lang['Flags_failed']); }
+        $flag_info = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+        if (!$flag_info) { message_die(GENERAL_MESSAGE, $lang['Must_select_flag']); }
+    }
+    $hidden = phpbb_admin_session_field() . '<input type="hidden" name="id" value="' . $flag_id . '" />';
+    if ($mode === 'delete') {
+        $template->set_filenames(array('body'=>'admin/confirm_body.tpl'));
+        $template->assign_vars(array(
+            'MESSAGE_TITLE'=>$lang['Flag_confirm'], 'MESSAGE_TEXT'=>$lang['Confirm_delete_flag'],
+            'L_YES'=>$lang['Yes'], 'L_NO'=>$lang['No'],
+            'S_CONFIRM_ACTION'=>append_sid('admin_flags.' . $phpEx),
+            'S_HIDDEN_FIELDS'=>$hidden . '<input type="hidden" name="mode" value="do_delete" />'));
+    } else {
+        $image = phpbb_flag_image_name($flag_info['flag_image']);
+        $template->set_filenames(array('body'=>'admin/flags_edit_body.tpl'));
+        $template->assign_vars(array(
+            'FLAG'=>phpbb_admin_html($flag_info['flag_name']), 'IMAGE'=>phpbb_admin_html($image),
+            'IMAGE_DISPLAY'=>$image === '' ? '' : '<img src="../images/flags/' . phpbb_admin_html($image) . '" alt="" />',
+            'L_FLAGS_TITLE'=>$lang['Flags_title'], 'L_FLAGS_TEXT'=>$lang['Flags_explain'],
+            'L_FLAG_NAME'=>$lang['Flag_name'], 'L_FLAG_IMAGE'=>$lang['Flag_image'], 'L_FLAG_IMAGE_EXPLAIN'=>$lang['Flag_image_explain'],
+            'L_SUBMIT'=>$lang['Submit'], 'L_RESET'=>$lang['Reset'],
+            'S_FLAG_ACTION'=>append_sid('admin_flags.' . $phpEx),
+            'S_HIDDEN_FIELDS'=>$hidden . '<input type="hidden" name="mode" value="save" />'));
+    }
+} else {
+    $template->set_filenames(array('body'=>'admin/flags_list_body.tpl'));
+    $result = $db->sql_query('SELECT flag_id,flag_name,flag_image FROM ' . FLAG_TABLE . ' ORDER BY flag_name,flag_id');
+    if (!$result) { message_die(GENERAL_ERROR, $lang['Flags_failed']); }
+    $flags = $db->sql_fetchrowset($result); $db->sql_freeresult($result);
+    $template->assign_vars(array(
+        'L_FLAGS_TITLE'=>$lang['Flags_title'], 'L_FLAGS_TEXT'=>$lang['Flags_explain'], 'L_FLAG'=>$lang['Flag_name'], 'L_FLAG_PIC'=>$lang['Flag_pic'],
+        'L_EDIT'=>$lang['Edit'], 'L_DELETE'=>$lang['Delete'], 'L_ADD_FLAG'=>$lang['Add_new_flag'], 'L_ACTION'=>$lang['Action'],
+        'S_FLAGS_ACTION'=>append_sid('admin_flags.' . $phpEx)));
+    foreach ($flags as $i=>$flag) {
+        $image = phpbb_flag_image_name($flag['flag_image']); $flag_id = (int)$flag['flag_id'];
+        $template->assign_block_vars('flags', array(
+            'ROW_COLOR'=>'#' . $theme[$i % 2 ? 'td_color2' : 'td_color1'], 'ROW_CLASS'=>$theme[$i % 2 ? 'td_class2' : 'td_class1'],
+            'FLAG'=>phpbb_admin_html($flag['flag_name']), 'IMAGE_DISPLAY'=>$image === '' ? '' : '<img src="../images/flags/' . phpbb_admin_html($image) . '" alt="" />',
+            'U_FLAG_EDIT'=>append_sid('admin_flags.' . $phpEx . '?mode=edit&amp;id=' . $flag_id),
+            'U_FLAG_DELETE'=>append_sid('admin_flags.' . $phpEx . '?mode=delete&amp;id=' . $flag_id)));
+    }
 }
-else 
-{
-	//
-	// These could be entered via a form button
-	//
-	if( isset($_POST['add']) )
-	{
-		$mode = "add";
-	}
-	else if( isset($_POST['save']) )
-	{
-		$mode = "save";
-	}
-	else
-	{
-		$mode = "";
-	}
-}
-
-// if we are are doing a delete make sure we got confirmation
-if ( $mode == 'do_delete')
-{
-	// user bailed out, return to flag admin
-	if ( empty($_POST['confirm']) )
-	{
-		$mode = '' ;
-	}
-}
-
-
-if( $mode != "" )
-{
-	if( $mode == "edit" || $mode == "add" )
-	{
-		//
-		// They want to add a new flag, show the form.
-		//
-		$flag_id = ( isset($_GET['id']) ) ? intval($_GET['id']) : 0;
-		
-		$s_hidden_fields = phpbb_admin_session_field();
-		$flag_info = array('flag_name' => '', 'flag_image' => '');
-		
-		if( $mode == "edit" )
-		{
-			if( empty($flag_id) )
-			{
-				message_die(GENERAL_MESSAGE, $lang['Must_select_flag']);
-			}
-
-			$sql = "SELECT * FROM " . FLAG_TABLE . "
-				WHERE flag_id = $flag_id";
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, "Couldn't obtain flag data", "", __LINE__, __FILE__, $sql);
-			}
-			
-			$flag_info = $db->sql_fetchrow($result);
-			$flag_info['flag_image'] = phpbb_flag_image_name($flag_info['flag_image']);
-			$s_hidden_fields .= '<input type="hidden" name="id" value="' . $flag_id . '" />';
-
-		}
-
-		$s_hidden_fields .= '<input type="hidden" name="mode" value="save" />';
-
-		$template->set_filenames(array(
-			"body" => "admin/flags_edit_body.tpl")
-		);
-
-		$template->assign_vars(array(
-			"FLAG" => phpbb_admin_html($flag_info['flag_name']),
-			"IMAGE" => phpbb_admin_html($flag_info['flag_image']),
-			"IMAGE_DISPLAY" => ( $flag_info['flag_image'] != "" ) ? '<img src="../images/flags/' . phpbb_admin_html($flag_info['flag_image']) . '" alt="" />' : "",
-			
-			"L_FLAGS_TITLE" => $lang['Flags_title'],
-			"L_FLAGS_TEXT" => $lang['Flags_explain'],
-			"L_FLAG_NAME" => $lang['Flag_name'],
-			"L_FLAG_IMAGE" => $lang['Flag_image'],
-			"L_FLAG_IMAGE_EXPLAIN" => $lang['Flag_image_explain'],
-			"L_SUBMIT" => $lang['Submit'],
-			"L_RESET" => $lang['Reset'],
-			
-			"S_FLAG_ACTION" => append_sid("admin_flags.$phpEx"),
-			"S_HIDDEN_FIELDS" => $s_hidden_fields)
-		);
-		
-	}
-	else if( $mode == "save" )
-	{
-		phpbb_admin_require_post_session();
-		//
-		// Ok, they sent us our info, let's update it.
-		//
-		
-		$flag_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
-		$flag_name = (isset($_POST['title']) && is_scalar($_POST['title'])) ? trim(stripslashes((string) $_POST['title'])) : "";
-		$flag_image = (isset($_POST['flag_image']) && is_scalar($_POST['flag_image'])) ? phpbb_flag_image_name($_POST['flag_image']) : "";
-
-		if( $flag_name == "" )
-		{
-			message_die(GENERAL_MESSAGE, $lang['Must_select_flag']);
-		}
-
-		//
-		// The flag image has to be a jpg, gif or png
-		//
-		$flag_name_sql = $db->sql_escape($flag_name);
-		$flag_image_sql = $db->sql_escape($flag_image);
-
-		if ($flag_id)
-		{
-			$sql = "UPDATE " . FLAG_TABLE . "
-				SET flag_name = '" . $flag_name_sql . "', flag_image = '" . $flag_image_sql . "'
-				WHERE flag_id = $flag_id";
-
-			$message = $lang['Flag_updated'];
-		}
-		else
-		{
-			$sql = "INSERT INTO " . FLAG_TABLE . " (flag_name, flag_image)
-				VALUES ('" . $flag_name_sql . "', '" . $flag_image_sql . "')";
-
-			$message = $lang['Flag_added'];
-		}
-		
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, "Couldn't update/insert into flags table", "", __LINE__, __FILE__, $sql);
-		}
-
-		$message .= "<br /><br />" . sprintf($lang['Click_return_flagadmin'], "<a href=\"" . append_sid("admin_flags.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-
-		message_die(GENERAL_MESSAGE, $message);
-
-	}
-	else if( $mode == 'delete' )
-	{
-		if( isset($_POST['id']) || isset($_GET['id']) )
-		{
-			$flag_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : intval($_GET['id']);
-		}
-		else
-		{
-			$flag_id = 0;
-		}
-		$hidden_fields = '<input type="hidden" name="id" value="' . $flag_id . '" /><input type="hidden" name="mode" value="do_delete" />' . phpbb_admin_session_field();
-
-		//
-		// Set template files
-		//
-		$template->set_filenames(array(
-			'body' => 'confirm_body.tpl')
-		);
-
-		$template->assign_vars(array(
-			'MESSAGE_TITLE' => $lang['Flag_confirm'],
-			'MESSAGE_TEXT' => $lang['Confirm_delete_flag'],
-
-			'L_YES' => $lang['Yes'],
-			'L_NO' => $lang['No'],
-
-			'S_CONFIRM_ACTION' => append_sid("admin_flags.$phpEx"),
-			'S_HIDDEN_FIELDS' => $hidden_fields)
-		);
-
-	}
-	else if( $mode == 'do_delete' )
-	{
-		phpbb_admin_require_post_session();
-
-		//
-		// Ok, they want to delete their flag
-		//
-		
-		if( isset($_POST['id']) || isset($_GET['id']) )
-		{
-			$flag_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : intval($_GET['id']);
-		}
-		else
-		{
-			$flag_id = 0;
-		}
-		
-		if( $flag_id )
-		{
-			// get the doomed flag's info
-			$sql = "SELECT * FROM " . FLAG_TABLE . " 
-				WHERE flag_id = $flag_id" ;
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't get flag data", "", __LINE__, __FILE__, $sql);
-			}
-			$row = $db->sql_fetchrow($result);
-			$flag_image = isset($row['flag_image']) ? $db->sql_escape($row['flag_image']) : '';
-
-
-			// delete the flag
-			$sql = "DELETE FROM " . FLAG_TABLE . "
-				WHERE flag_id = $flag_id";
-			
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't delete flag data", "", __LINE__, __FILE__, $sql);
-			}
-
-
-			// update the users who where using this flag			
-			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_from_flag = 'blank.gif' 
-				WHERE user_from_flag = '$flag_image'";
-			if( !$result = $db->sql_query($sql) ) 
-			{
-				message_die(GENERAL_ERROR, $lang['No_update_flags'], "", __LINE__, __FILE__, $sql);
-			}
-
-			$message = $lang['Flag_removed'] . "<br /><br />" . sprintf($lang['Click_return_flagadmin'], "<a href=\"" . append_sid("admin_flags.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-
-			message_die(GENERAL_MESSAGE, $message);
-
-		}
-		else
-		{
-			message_die(GENERAL_MESSAGE, $lang['Must_select_flag']);
-		}
-	}
-	else
-	{
-		//
-		// They didn't feel like giving us any information. Oh, too bad, we'll just display the
-		// list then...
-		//
-		$template->set_filenames(array(
-			"body" => "admin/flags_list_body.tpl")
-		);
-		
-		$sql = "SELECT * FROM " . FLAG_TABLE . "
-			ORDER BY flag_name";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, "Couldn't obtain flags data", "", __LINE__, __FILE__, $sql);
-		}
-		
-		$flag_rows = $db->sql_fetchrowset($result);
-		$flag_count = count($flag_rows);
-		
-		$template->assign_vars(array(
-			"L_FLAGS_TITLE" => $lang['Flags_title'],
-			"L_FLAGS_TEXT" => $lang['Flags_explain'],
-			"L_FLAG" => $lang['Flag_name'],
-
-			"L_EDIT" => $lang['Edit'],
-			"L_DELETE" => $lang['Delete'],
-			"L_ADD_FLAG" => $lang['Add_new_flag'],
-			"L_ACTION" => $lang['Action'],
-			
-			"S_FLAGS_ACTION" => append_sid("admin_flags.$phpEx"))
-		);
-		
-		for( $i = 0; $i < $flag_count; $i++)
-		{
-			$flag = phpbb_admin_html($flag_rows[$i]['flag_name']);
-			$flag_image = phpbb_flag_image_name($flag_rows[$i]['flag_image']);
-			$flag_id = $flag_rows[$i]['flag_id'];
-			
-			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-	
-			$template->assign_block_vars("flags", array(
-				"ROW_COLOR" => "#" . $row_color,
-				"ROW_CLASS" => $row_class,
-
-				"FLAG" => $flag,
-				"IMAGE_DISPLAY" => ( $flag_image != "" ) ? '<img src="../images/flags/' . phpbb_admin_html($flag_image) . '" alt="" />' : "",
-
-				"U_FLAG_EDIT" => append_sid("admin_flags.$phpEx?mode=edit&amp;id=$flag_id"),
-				"U_FLAG_DELETE" => append_sid("admin_flags.$phpEx?mode=delete&amp;id=$flag_id"))
-			);
-		}
-	}
-}
-else
-{
-	//
-	// Show the default page
-	//
-	$template->set_filenames(array(
-		"body" => "admin/flags_list_body.tpl")
-	);
-	
-	$sql = "SELECT * FROM " . FLAG_TABLE . "
-		ORDER BY flag_name ASC";
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, "Couldn't obtain flags data", "", __LINE__, __FILE__, $sql);
-	}
-	$flag_count = $db->sql_numrows($result);
-
-	$flag_rows = $db->sql_fetchrowset($result);
-	
-	$template->assign_vars(array(
-		"L_FLAGS_TITLE" => $lang['Flags_title'],
-		"L_FLAGS_TEXT" => $lang['Flags_explain'],
-		"L_FLAG" => $lang['Flag_name'],
-		"L_FLAG_PIC" => $lang['Flag_pic'],
-		"L_EDIT" => $lang['Edit'],
-		"L_DELETE" => $lang['Delete'],
-		"L_ADD_FLAG" => $lang['Add_new_flag'],
-		"L_ACTION" => $lang['Action'],
-		
-		"S_FLAGS_ACTION" => append_sid("admin_flags.$phpEx"))
-	);
-	
-	for($i = 0; $i < $flag_count; $i++)
-	{
-		$flag = phpbb_admin_html($flag_rows[$i]['flag_name']);
-		$flag_image = phpbb_flag_image_name($flag_rows[$i]['flag_image']);
-		$flag_id = $flag_rows[$i]['flag_id'];
-		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
-		$template->assign_block_vars("flags", array(
-			"ROW_COLOR" => "#" . $row_color,
-			"ROW_CLASS" => $row_class,
-			"FLAG" => $flag,
-			"IMAGE_DISPLAY" => ( $flag_image != "" ) ? '<img src="../images/flags/' . phpbb_admin_html($flag_image) . '" alt="" />' : "",
-
-			"U_FLAG_EDIT" => append_sid("admin_flags.$phpEx?mode=edit&amp;id=$flag_id"),
-			"U_FLAG_DELETE" => append_sid("admin_flags.$phpEx?mode=delete&amp;id=$flag_id"))
-		);
-	}
-}
-
-$template->pparse("body");
-
-include('./page_footer_admin.'.$phpEx);
-
-?>
+$template->pparse('body');
+include './page_footer_admin.' . $phpEx;

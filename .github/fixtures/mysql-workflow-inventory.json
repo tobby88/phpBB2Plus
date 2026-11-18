@@ -323,6 +323,14 @@
       "commands": [
         "php -d disable_functions=mail .github/scripts/check-updater-session-native.php"
       ]
+    },
+    {
+      "name": "Check atomic country flag administration on MySQL",
+      "part": 2,
+      "sha256": "5ff586322c44be6ba89bb564773531702f32f6a65cbcd75c037990371db258f1",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-flags-native.php"
+      ]
     }
   ]
 }

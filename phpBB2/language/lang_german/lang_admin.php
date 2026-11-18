@@ -1225,6 +1225,8 @@ $lang['Permission_Check'] = '<u>Überprüfe Verzeichnisrechte:</u><br /><br />Di
 $lang['File_not_writable_666'] = '<font color="red"><b>ist nicht beschreibbar !</b> [CHMOD 666 setzen]</font>';
 $lang['File_not_writable_777'] = '<font color="red"><b>ist nicht beschreibbar !</b> [CHMOD 777 setzen]</font>';
 $lang['xs_import_pending'] = 'Für dieses Template ist ein unterbrochener Import offen. Bitte diesen zuerst unter „Styles importieren“ fortsetzen oder zurücknehmen. Andere Templates bleiben verfügbar.';
+$lang['Flags_invalid'] = 'Bitte einen Flaggennamen mit höchstens 25 Zeichen und optional einen Bilddateinamen mit höchstens 25 Zeichen angeben (GIF, PNG oder JPEG).';
+$lang['Flags_failed'] = 'Die Flaggenänderung konnte nicht bestätigt werden. Bitte vor einem erneuten Versuch die aktuelle Flaggenliste prüfen; unvollständige Profiländerungen werden nicht übernommen.';
 // That's all Folks!
 // Na Gott sei Dank!
 // -------------------------------------------------

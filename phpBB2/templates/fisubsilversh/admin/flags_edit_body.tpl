@@ -9,12 +9,12 @@
 	</tr>
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_FLAG_NAME}:</span></td>
-		<td class="row2"><input class="post" type="text" name="title" size="35" maxlength="40" value="{FLAG}" /></td>
+		<td class="row2"><input class="post" type="text" name="title" size="35" maxlength="25" value="{FLAG}" /></td>
 	</tr>
 	<tr>
 		<td class="row1" width="38%"><span class="gen">{L_FLAG_IMAGE}:</span><br />
 		<span class="gensmall">{L_FLAG_IMAGE_EXPLAIN}</span></td>
-		<td class="row2"><input class="post" type="text" name="flag_image" size="40" maxlength="255" value="{IMAGE}" /><br />{IMAGE_DISPLAY}</td>
+		<td class="row2"><input class="post" type="text" name="flag_image" size="40" maxlength="25" value="{IMAGE}" /><br />{IMAGE_DISPLAY}</td>
 	</tr>
 	<tr>
 		<td class="cat" colspan="2" align="center"><input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" />&nbsp;&nbsp;<input type="reset" value="{L_RESET}" class="liteoption" /></td>
