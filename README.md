@@ -1801,6 +1801,8 @@ these photographs regenerate on demand; no bulk image or database migration is
 needed. Manually supplied thumbnails remain unchanged.
 PNG previews also retain partial/full transparency and transparent color keys;
 older automatic previews with black backgrounds regenerate on demand.
+The Album ACP cache-clear action also reclaims interrupted preview stages under
+the shared publisher lock. Original uploads and resumable upload stages remain.
 
 ## Writable permissions
 

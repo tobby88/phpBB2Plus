@@ -427,6 +427,11 @@ jobs:
         env:
           PHPBB_ALBUM_PNG_GD_REQUIRED: '1'
 
+      - name: Test interrupted Album cache stages and exact cleanup
+        run: php .github/scripts/check-album-cache-stages.php
+        env:
+          PHPBB_ALBUM_CACHE_STAGES_GD_REQUIRED: '1'
+
       - name: Test moderator action safety
         run: php .github/scripts/check-moderator-action-safety.php
 

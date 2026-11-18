@@ -117,28 +117,23 @@ function phpbb_jpeg_mark_cache_data($data, $orientation)
     return $orientation === 1 ? $data : substr($data, 0, 2) . $marker . substr($data, 2);
 }
 
-// Version only an owned, newly encoded cache stage. Copy in bounded chunks,
-// then replace that stage; final publication remains the caller's guarded step.
+// Version only an owned, newly encoded cache stage. Shift bounded blocks inside
+// it so a process kill cannot strand an extra copy outside its cleanup name.
+// Final publication remains the caller's guarded step.
 function phpbb_jpeg_mark_cache_file($path, $orientation)
 {
     if ($orientation === 1) { return true; }
     $marker = phpbb_jpeg_cache_marker($orientation);
-    if ($marker === false || !is_string($path) || !preg_match('/^\.album-cache-[a-f0-9]{32}\.tmp$/D', basename(str_replace('\\', '/', $path))) || is_link($path) || !is_file($path)) { return false; }
-    $source = $target = null; $copy = null;
+    if ($marker === false || !is_string($path) || strpos($path, '://') !== false || !preg_match('/^\.album-cache-[a-f0-9]{32}\.tmp$/D', basename(str_replace('\\', '/', $path))) || is_link($path) || !is_file($path)) { return false; }
+    $stream = @fopen($path, 'r+b'); if (!$stream) { return false; }
     try {
-        $source = @fopen($path, 'rb'); if (!$source) { return false; } $before = fstat($source);
-        if (!$before || ($before['mode'] & 0170000) !== 0100000 || $before['size'] < 2 || $before['size'] > 67108864 || fread($source, 2) !== "\xff\xd8") { return false; }
-        $copy = $path . '.orientation-' . bin2hex(phpbb_random_bytes(8)); $target = @fopen($copy, 'x+b');
-        if (!$target || !@chmod($copy, 0600)) { return false; }
-        $head = "\xff\xd8" . $marker;
-        if (fwrite($target, $head) !== strlen($head) || stream_copy_to_stream($source, $target, $before['size'] - 2) !== $before['size'] - 2 || !fflush($target)) { return false; }
-        $after = fstat($source); $written = fstat($target);
-        foreach (array('dev','ino','size','mtime','ctime') as $key) { if (!isset($after[$key]) || $after[$key] !== $before[$key]) { return false; } }
-        if ($written['size'] !== $before['size'] + strlen($marker) || is_link($path) || is_dir($path)) { return false; }
-        fclose($source); $source = null; fclose($target); $target = null;
-        if (!@rename($copy, $path)) { return false; } $copy = null; return true;
-    } finally {
-        if (is_resource($source)) { fclose($source); } if (is_resource($target)) { fclose($target); }
-        if ($copy !== null && (is_file($copy) || is_link($copy))) { @unlink($copy); }
-    }
+        $before = fstat($stream);
+        if (!$before || ($before['mode'] & 0170000) !== 0100000 || $before['size'] < 2 || $before['size'] > 67108864 || fread($stream, 2) !== "\xff\xd8") { return false; }
+        $end = $before['size']; $extra = strlen($marker); if (!@ftruncate($stream, $end + $extra)) { return false; }
+        while ($end > 2) {
+            $size = min(65536, $end - 2); $at = $end - $size;
+            if (@fseek($stream, $at) !== 0 || !is_string($bytes = @fread($stream, $size)) || strlen($bytes) !== $size || @fseek($stream, $at + $extra) !== 0 || @fwrite($stream, $bytes) !== $size) { return false; } $end = $at;
+        }
+        return @fseek($stream, 2) === 0 && @fwrite($stream, $marker) === $extra && @fflush($stream);
+    } finally { fclose($stream); }
 }

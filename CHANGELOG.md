@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Interrupted Album cache files
+
+- Insert JPEG cache metadata in the existing unpublished stage, using bounded
+  blocks, so interrupted processing cannot leave an additional orientation copy.
+- Include interrupted cache stages and old orientation copies in the Album ACP
+  cache-clear action, under the existing current administrator and publication
+  lease checks. Preserve uploaded originals, resumable upload stages, links,
+  nested files and unrelated temporary names.
+
 ### Album PNG transparency
 
 - Preserve full and partial PNG transparency in upload thumbnails, small/medium

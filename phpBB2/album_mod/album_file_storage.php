@@ -11,6 +11,9 @@ class AlbumFileStorageFailure extends RuntimeException {}
 class AlbumFileStorage
 {
 	const MAX_BYTES = 67108864;
+	// A partially encoded 20MP RGBA preview can exceed the upload limit.
+	// This separate bound applies only to disposable cache-stage cleanup.
+	const MAX_CACHE_STAGE_BYTES = 134217728;
 	private $base;
 	private $guard;
 	private $directories = array('original' => 'album_mod/upload', 'small' => 'album_mod/upload/cache', 'medium' => 'album_mod/upload/med_cache');
@@ -34,9 +37,19 @@ class AlbumFileStorage
 
 	static function metadata($value)
 	{
+		return self::bounded_metadata($value, self::MAX_BYTES);
+	}
+
+	static function cache_stage_metadata($value)
+	{
+		return self::bounded_metadata($value, self::MAX_CACHE_STAGE_BYTES);
+	}
+
+	private static function bounded_metadata($value, $maximum)
+	{
 		if (!is_array($value) || count($value) !== 3 || !array_key_exists('present', $value) || !array_key_exists('bytes', $value) || !array_key_exists('sha256', $value)) { return false; }
 		if ($value['present'] === false) { return $value['bytes'] === 0 && $value['sha256'] === null; }
-		return $value['present'] === true && is_int($value['bytes']) && $value['bytes'] >= 0 && $value['bytes'] <= self::MAX_BYTES && is_string($value['sha256']) && preg_match('/^[a-f0-9]{64}$/D', $value['sha256']) === 1;
+		return $value['present'] === true && is_int($value['bytes']) && $value['bytes'] >= 0 && $value['bytes'] <= $maximum && is_string($value['sha256']) && preg_match('/^[a-f0-9]{64}$/D', $value['sha256']) === 1;
 	}
 
 	static function cache_filename($name)
@@ -44,9 +57,14 @@ class AlbumFileStorage
 		return self::filename($name) || (is_string($name) && strlen($name) <= 255 && preg_match('/\.webp$/iD', $name) && self::filename(substr($name, 0, -5) . '.png'));
 	}
 
-	private function same_metadata($left, $right)
+	static function cache_stage_filename($name)
 	{
-		return self::metadata($left) && self::metadata($right) && $left['present'] === $right['present'] && $left['bytes'] === $right['bytes'] && $left['sha256'] === $right['sha256'];
+		return is_string($name) && preg_match('/^\.album-cache-[a-f0-9]{32}\.tmp(?:\.orientation-[a-f0-9]{16})?$/D', $name) === 1;
+	}
+
+	private function same_metadata($left, $right, $stage = false)
+	{
+		return ($stage ? self::cache_stage_metadata($left) && self::cache_stage_metadata($right) : self::metadata($left) && self::metadata($right)) && $left['present'] === $right['present'] && $left['bytes'] === $right['bytes'] && $left['sha256'] === $right['sha256'];
 	}
 
 	function stage_name($operation, $scope, $name)
@@ -77,11 +95,11 @@ class AlbumFileStorage
 		return $this->base . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $this->directories[$scope]) . DIRECTORY_SEPARATOR . $name;
 	}
 
-	private function stat($path)
+	private function stat($path, $stage = false)
 	{
 		clearstatcache(true, $path); $stat = @lstat($path);
 		if ($stat === false) { return false; }
-		if (($stat['mode'] & 0170000) !== 0100000 || !is_int($stat['size']) || $stat['size'] < 0 || $stat['size'] > self::MAX_BYTES) { throw new AlbumFileStorageFailure('Album item is not a bounded regular file'); }
+		if (($stat['mode'] & 0170000) !== 0100000 || !is_int($stat['size']) || $stat['size'] < 0 || $stat['size'] > ($stage ? self::MAX_CACHE_STAGE_BYTES : self::MAX_BYTES)) { throw new AlbumFileStorageFailure('Album item is not a bounded regular file'); }
 		return $stat;
 	}
 
@@ -112,9 +130,16 @@ class AlbumFileStorage
 		return $this->snapshot_file($scope, $name, 'cache-snapshot');
 	}
 
+	function snapshot_cache_stage($scope, $name)
+	{
+		if (!in_array($scope, array('small', 'medium'), true) || !self::cache_stage_filename($name)) { throw new AlbumFileStorageFailure('Invalid Album cache stage basename'); }
+		return $this->snapshot_file($scope, $name, 'cache-stage-snapshot');
+	}
+
 	private function snapshot_file($scope, $name, $action)
 	{
-		$this->check($action, $scope, $name); $path = $this->path($scope, $name); $before = $this->stat($path);
+		$stage = $action === 'cache-stage-snapshot';
+		$this->check($action, $scope, $name); $path = $this->path($scope, $name); $before = $this->stat($path, $stage);
 		if ($before === false) { return array('present' => false, 'bytes' => 0, 'sha256' => null); }
 		$handle = @fopen($path, 'rb'); if (!$handle) { throw new AlbumFileStorageFailure('Album snapshot unavailable'); }
 		try
@@ -125,10 +150,10 @@ class AlbumFileStorage
 			while (!feof($handle))
 			{
 				$chunk = fread($handle, 65536); if ($chunk === false || ($chunk === '' && !feof($handle))) { throw new AlbumFileStorageFailure('Album snapshot read failed'); }
-				$bytes += strlen($chunk); if ($bytes > self::MAX_BYTES) { throw new AlbumFileStorageFailure('Album snapshot grew'); } hash_update($hash, $chunk);
+				$bytes += strlen($chunk); if ($bytes > ($stage ? self::MAX_CACHE_STAGE_BYTES : self::MAX_BYTES)) { throw new AlbumFileStorageFailure('Album snapshot grew'); } hash_update($hash, $chunk);
 			}
 			$this->check($action, $scope, $name);
-			if ($bytes !== $before['size'] || !$this->same_stat($opened, fstat($handle)) || !$this->same_stat($before, $this->stat($path))) { throw new AlbumFileStorageFailure('Album snapshot changed during read'); }
+			if ($bytes !== $before['size'] || !$this->same_stat($opened, fstat($handle)) || !$this->same_stat($before, $this->stat($path, $stage))) { throw new AlbumFileStorageFailure('Album snapshot changed during read'); }
 			return array('present' => true, 'bytes' => $bytes, 'sha256' => hash_final($hash));
 		}
 		finally { fclose($handle); }
@@ -180,17 +205,23 @@ class AlbumFileStorage
 		return $this->remove_snapshot($scope, $name, $expected, true);
 	}
 
-	private function remove_snapshot($scope, $name, $expected, $cache)
+	function remove_cache_stage_exact($scope, $name, $expected)
 	{
-		if (!self::metadata($expected)) { throw new AlbumFileStorageFailure('Invalid Album cleanup receipt'); }
-		$current = $cache ? $this->snapshot_cache($scope, $name) : $this->snapshot($scope, $name);
+		if (!in_array($scope, array('small', 'medium'), true) || !self::cache_stage_filename($name)) { throw new AlbumFileStorageFailure('Invalid Album cache stage removal scope'); }
+		return $this->remove_snapshot($scope, $name, $expected, true, true);
+	}
+
+	private function remove_snapshot($scope, $name, $expected, $cache, $stage = false)
+	{
+		if (!($stage ? self::cache_stage_metadata($expected) : self::metadata($expected))) { throw new AlbumFileStorageFailure('Invalid Album cleanup receipt'); }
+		$current = $stage ? $this->snapshot_cache_stage($scope, $name) : ($cache ? $this->snapshot_cache($scope, $name) : $this->snapshot($scope, $name));
 		if ($current['present'] === false) { return 'missing'; }
-		if ($expected['present'] === false || !$this->same_metadata($current, $expected)) { return 'changed'; }
-		$this->check($cache ? 'cache-remove' : 'remove', $scope, $name, null, $expected); $path = $this->path($scope, $name); $stat = $this->stat($path);
+		if ($expected['present'] === false || !$this->same_metadata($current, $expected, $stage)) { return 'changed'; }
+		$this->check($stage ? 'cache-stage-remove' : ($cache ? 'cache-remove' : 'remove'), $scope, $name, null, $expected); $path = $this->path($scope, $name); $stat = $this->stat($path, $stage);
 		if ($stat === false) { return 'missing'; }
 		if ($stat['size'] !== $expected['bytes']) { return 'changed'; }
 		if (!@unlink($path)) { return 'busy'; }
-		if ($this->stat($path) !== false) { throw new AlbumFileStorageFailure('Album path unexpectedly reused'); }
+		if ($this->stat($path, $stage) !== false) { throw new AlbumFileStorageFailure('Album path unexpectedly reused'); }
 		return 'removed';
 	}
 

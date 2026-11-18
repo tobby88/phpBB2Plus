@@ -21,8 +21,9 @@ class AlbumCacheMaintenance
 	{
 		if (!$this->storage || !$this->authority || !$this->authority->current() || !$this->storage->can_publish() || !is_array($context) || !isset($context['action'])) { return false; }
 		if ($context['action'] === 'roots') { return $context['scope'] === null && $context['name'] === null; }
-		if (!in_array($context['action'], array('cache-snapshot', 'cache-remove'), true) || !in_array($context['scope'], array('small','medium'), true) || !AlbumFileStorage::cache_filename($context['name'])) { return false; }
-		return $context['action'] === 'cache-snapshot' || (AlbumFileStorage::metadata($context['metadata']) && $context['metadata']['present'] === true);
+		$stage = in_array($context['action'], array('cache-stage-snapshot','cache-stage-remove'), true);
+		if (!in_array($context['action'], array('cache-snapshot','cache-remove','cache-stage-snapshot','cache-stage-remove'), true) || !in_array($context['scope'], array('small','medium'), true) || !($stage ? AlbumFileStorage::cache_stage_filename($context['name']) : AlbumFileStorage::cache_filename($context['name']))) { return false; }
+		return in_array($context['action'], array('cache-snapshot','cache-stage-snapshot'), true) || (($stage ? AlbumFileStorage::cache_stage_metadata($context['metadata']) : AlbumFileStorage::metadata($context['metadata'])) && $context['metadata']['present'] === true);
 	}
 
 	function clear($snapshot)
@@ -40,14 +41,16 @@ class AlbumCacheMaintenance
 				$path = $base.DIRECTORY_SEPARATOR.'album_mod'.DIRECTORY_SEPARATOR.'upload'.DIRECTORY_SEPARATOR.$directory;
 				$handle = @opendir($path); if ($handle === false) { throw new AlbumFileStorageFailure('Album cache directory unavailable'); }
 				try {
-					// Stream one flat directory: staged uploads, index files, links,
-					// originals and nested directories never enter the deletion set.
+					// The owned namespace lease excludes active cache publishers.
+					// Include their interrupted stages, but never staged uploads,
+					// index files, links, originals or nested directories.
 					while (($name = readdir($handle)) !== false) {
-						if (!AlbumFileStorage::cache_filename($name)) { continue; }
+						$stage = AlbumFileStorage::cache_stage_filename($name);
+						if (!$stage && !AlbumFileStorage::cache_filename($name)) { continue; }
 						$item = $path.DIRECTORY_SEPARATOR.$name; clearstatcache(true, $item);
 						if (is_link($item) || !is_file($item)) { continue; }
-						$expected = $files->snapshot_cache($scope, $name);
-						$result = $files->remove_cache_exact($scope, $name, $expected);
+						$expected = $stage ? $files->snapshot_cache_stage($scope, $name) : $files->snapshot_cache($scope, $name);
+						$result = $stage ? $files->remove_cache_stage_exact($scope, $name, $expected) : $files->remove_cache_exact($scope, $name, $expected);
 						if (!in_array($result, array('removed','missing'), true)) { throw new AlbumFileStorageFailure('Album cache item changed or could not be removed'); }
 						if ($result === 'removed') { $removed++; }
 					}
