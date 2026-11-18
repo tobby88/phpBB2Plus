@@ -22,6 +22,8 @@ changes consolidated after that baseline without implying active maintenance.
   filtering and use the actual viewer for preview metadata.
 - Match the actual image viewer when category approval is disabled: old zero
   flags no longer hide otherwise visible images from lists or Album searches.
+- Preserve the normal empty view for accounts without a created personal
+  gallery and for empty member picture, rating and comment lists.
 
 ### Album search visibility
 

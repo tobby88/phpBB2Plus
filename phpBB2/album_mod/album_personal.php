@@ -212,7 +212,10 @@ else
 
 try
 {
-	$picture_listing = album_picture_page($db, (int)$album_user_id, $cat_ids === '' ? array() : $cat_ids, $sort_method, $sort_order, (int)$start);
+	// The virtual root denotes a gallery which has not been created yet;
+	// it has no physical category IDs and keeps the normal empty-gallery view.
+	$picture_ids = in_array($cat_ids, array('', 0, '0', ALBUM_ROOT_CATEGORY, (string)ALBUM_ROOT_CATEGORY), true) ? array() : $cat_ids;
+	$picture_listing = album_picture_page($db, (int)$album_user_id, $picture_ids, $sort_method, $sort_order, (int)$start);
 }
 catch (Exception $error) { message_die(GENERAL_ERROR, 'Could not count pics !!'); }
 catch (Error $error) { message_die(GENERAL_ERROR, 'Could not count pics !!'); }
@@ -293,7 +296,8 @@ if ($row['count'] == 0)
 	{
 		try
 		{
-			$other_pictures = album_picture_page($db, (int)$album_user_id, $allowed_cat, $sort_method, $sort_order, 0, 0, 'pic', true);
+			$other_picture_ids = in_array($allowed_cat, array('', 0, '0', ALBUM_ROOT_CATEGORY, (string)ALBUM_ROOT_CATEGORY), true) ? array() : $allowed_cat;
+			$other_pictures = album_picture_page($db, (int)$album_user_id, $other_picture_ids, $sort_method, $sort_order, 0, 0, 'pic', true);
 			$row['count'] = $other_pictures['total'];
 		}
 		catch (Exception $error) { message_die(GENERAL_ERROR, 'Could not count pics !!'); }
