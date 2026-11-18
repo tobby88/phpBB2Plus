@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__DIR__) . '/includes/functions_moderator_identity.php';
+require_once dirname(__DIR__) . '/includes/functions_connection_ownership.php';
 
 class AlbumRootStorageFailure extends RuntimeException {}
 
@@ -24,7 +25,7 @@ class AlbumRootStorage
 		try
 		{
 			$source = $this->connection_info($database);
-			$connection = $database->sql_dedicated_connection();
+			$connection = phpbb_acquire_idle_connection($database);
 			if (!is_object($connection) || $connection === $database) { throw new AlbumRootStorageFailure(); }
 			$this->connection = $connection;
 			if (isset($database->db_connect_id, $connection->db_connect_id) &&

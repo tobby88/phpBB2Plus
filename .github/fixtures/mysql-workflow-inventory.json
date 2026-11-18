@@ -387,6 +387,14 @@
       ],
       "part": 2,
       "sha256": "aebb5271e6481d2b99a50e21ca81d1c21fe075592712eddd0c74e0682ff35184"
+    },
+    {
+      "name": "Check idle connection ownership on MySQL",
+      "commands": [
+        "php -d disable_functions=mail .github/scripts/check-connection-ownership-native.php"
+      ],
+      "part": 2,
+      "sha256": "c611d5ecd21bd82b86a4ddcd7291bea2250e757abc18a10c3291c28d372efa5c"
     }
   ]
 }

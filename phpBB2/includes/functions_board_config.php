@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_connection_ownership.php';
 require_once dirname(__FILE__) . '/functions_style_policy.php';
 
 function phpbb_board_config_fields()
@@ -97,7 +98,7 @@ class PhpbbBoardConfigWriter extends PhpbbAclDatabase
 	function __construct($database)
 	{
 		if (!method_exists($database, 'sql_dedicated_connection')) { phpbb_acl_error('Board_config_failed'); }
-		try { $connection = $database->sql_dedicated_connection(); }
+		try { $connection = phpbb_acquire_idle_connection($database); }
 		catch (Exception $error) { phpbb_acl_error('Board_config_failed'); }
 		catch (Error $error) { phpbb_acl_error('Board_config_failed'); }
 		if (!$connection || !$connection->db_connect_id) { phpbb_acl_error('Board_config_failed'); }

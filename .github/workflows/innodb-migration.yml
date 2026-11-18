@@ -809,6 +809,12 @@ jobs:
         env:
           PHPBB_USER_BAN_LIFECYCLE_NATIVE: '1'
           PHPBB_USER_BAN_LIFECYCLE_PASSWORD: fixture-only
+      - name: Check idle connection ownership across six modules
+        if: matrix.part == 5
+        run: php -d disable_functions=mail .github/scripts/check-connection-ownership-native.php
+        env:
+          PHPBB_CONNECTION_OWNER_NATIVE: '1'
+          PHPBB_CONNECTION_OWNER_PASSWORD: fixture-only
       - name: Check cross-zone ACP database backups
         if: matrix.part == 1
         run: |
@@ -1760,6 +1766,12 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check idle connection ownership on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-connection-ownership-native.php
+        env:
+          PHPBB_CONNECTION_OWNER_NATIVE: '1'
+          PHPBB_CONNECTION_OWNER_PASSWORD: fixture-only
       - name: Check cross-zone ACP backups on MySQL
         if: matrix.part == 2
         run: |

@@ -6,8 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
-### Bounded-memory database backups
+### Independent database connection ownership
 
+- Establish idle connection ownership before backup, board configuration,
+  knowledge-base publication, personal-album administration, private-message attachment
+  reads and CrackerTracker scans adopt a factory result. Refuse borrowed active
+  transactions, reused caller handles, foreign contexts and uncertain probes
+  without committing, rolling back, closing or changing their session settings.
+
+### Bounded-memory database backups
 - Export and restore TIMESTAMP values and literal defaults in UTC so moving
   a backup between servers in different time zones preserves the original
   instants. Keep DATETIME wall-clock values and the caller/importer settings.

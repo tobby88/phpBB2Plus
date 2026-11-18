@@ -28,10 +28,11 @@ $body= <<<'PHP'
  $column_case=strpos($mode,'columns-')===0;if($column_case){require $scripts.'/db-backup-columns-native-fixture.php';}
  sd_check($db->sql_query("SET SESSION sql_mode='STRICT_ALL_TABLES".($mode==='normal-source'?'':',NO_BACKSLASH_ESCAPES')."'"),'Source escape mode');
  $expected=phpbb_acl_rows($peer,'SELECT * FROM fixture_roundtrip ORDER BY id');
- $source_session_sql='SELECT CONNECTION_ID() AS connection_id,@@SESSION.sql_mode AS sql_mode,@@SESSION.time_zone AS time_zone,@@SESSION.foreign_key_checks AS foreign_keys,@@SESSION.character_set_client AS client_charset,@@SESSION.character_set_results AS results_charset,@@SESSION.character_set_connection AS connection_charset,@@SESSION.collation_connection AS connection_collation,@@SESSION.in_transaction AS in_transaction';
+ $source_session_sql='SELECT CONNECTION_ID() AS connection_id,@@SESSION.sql_mode AS sql_mode,@@SESSION.time_zone AS time_zone,@@SESSION.foreign_key_checks AS foreign_keys,@@SESSION.character_set_client AS client_charset,@@SESSION.character_set_results AS results_charset,@@SESSION.character_set_connection AS connection_charset,@@SESSION.collation_connection AS connection_collation';
  if($mode==='request-transaction'){sd_check($db->sql_query('START TRANSACTION'),'Original request owns a transaction');sd_check($db->sql_query("UPDATE fixture_roundtrip SET content='uncommitted caller value' WHERE id=0"),'Uncommitted caller data');}
  if($mode==='factory-reuse'){class BackupReuseDatabase extends StyleDataDatabase {function sql_dedicated_connection(){return $this;}}$db=new BackupReuseDatabase($db->inner);}
  $source_session_before=phpbb_acl_rows($db,$source_session_sql);
+ sd_check(count($source_session_before)===1&&isset($source_session_before[0]['connection_id'],$source_session_before[0]['time_zone'],$source_session_before[0]['connection_collation']),'Actual portable caller session fingerprint, never two failed/empty reads');
  $concurrent=in_array($mode,array('concurrent-write','concurrent-gzip'),true);$read_failure=in_array($mode,array('read-failure','gzip-read-failure'),true);
  if($concurrent||$read_failure){
   sd_sql('CREATE TABLE fixture_roundtrip_peer LIKE fixture_roundtrip');sd_sql('INSERT INTO fixture_roundtrip_peer SELECT * FROM fixture_roundtrip');

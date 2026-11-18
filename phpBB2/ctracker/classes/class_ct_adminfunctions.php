@@ -29,8 +29,11 @@ if ( !defined('IN_PHPBB') || !defined('CTRACKER_ACP') )
  * cannot leave it on a pooled forum connection. All scan/recovery SQL uses that same
  * connection, so losing the lock session also prevents further publication.
  */
+require_once dirname(dirname(__DIR__)) . '/includes/functions_connection_ownership.php';
+
 class ct_scan_lock
 {
+
 	var $connection = null;
 	var $acquired = null;
 
@@ -42,7 +45,7 @@ class ct_scan_lock
 		{
 			if (method_exists($database, 'sql_dedicated_connection'))
 			{
-				$this->connection = $database->sql_dedicated_connection();
+				$this->connection = phpbb_acquire_idle_connection($database);
 			}
 			else
 			{

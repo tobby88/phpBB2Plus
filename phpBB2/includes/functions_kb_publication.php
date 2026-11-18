@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_connection_ownership.php';
 require_once dirname(__FILE__) . '/functions_kb_counter_policy.php';
 require_once dirname(__FILE__) . '/functions_kb_discussion.php';
 
@@ -75,7 +76,7 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 		try {
 			$source = phpbb_acl_rows($database, 'SELECT CONNECTION_ID() AS kb_connection_id');
 			if (count($source) !== 1) { kb_publication_fail(); }
-			$candidate = $database->sql_dedicated_connection();
+			$candidate = phpbb_acquire_idle_connection($database);
 			if (!$candidate || !$candidate->db_connect_id) { kb_publication_fail(); }
 			$rows = phpbb_acl_rows($candidate, 'SELECT CONNECTION_ID() AS kb_connection_id');
 			if (count($rows) !== 1 || (string)$rows[0]['kb_connection_id'] === (string)$source[0]['kb_connection_id']) {

@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_connection_ownership.php';
 
 // A single autocommit SELECT gets a current authorization snapshot without
 // joining a caller transaction or holding the attachment writer's mutex.
@@ -10,7 +11,9 @@ class PhpbbPmAttachmentReader
 	function __construct($database)
 	{
 		if (!is_object($database) || !method_exists($database, 'sql_dedicated_connection')) { phpbb_acl_error('PM_cleanup_failed'); }
-		$connection = $database->sql_dedicated_connection();
+		try { $connection = phpbb_acquire_idle_connection($database); }
+		catch (Exception $error) { phpbb_acl_error('PM_cleanup_failed'); }
+		catch (Error $error) { phpbb_acl_error('PM_cleanup_failed'); }
 		if (!is_object($connection) || empty($connection->db_connect_id)) { phpbb_acl_error('PM_cleanup_failed'); }
 		if ($connection === $database || (isset($database->db_connect_id)
 			&& (is_object($database->db_connect_id) || is_resource($database->db_connect_id))

@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_connection_ownership.php';
 
 class PhpbbDatabaseBackupException extends RuntimeException {}
 function phpbb_database_backup_failed($storage = false)
@@ -26,9 +27,8 @@ class PhpbbDatabaseBackupConnection extends PhpbbAclDatabase
         if (!$source_result) { phpbb_database_backup_failed(); }
         $source_row = $database->sql_fetchrow($source_result); $database->sql_freeresult($source_result);
         if (!$source_row || !isset($source_row['backup_connection_id'])) { phpbb_database_backup_failed(); }
-        $this->connection = $database->sql_dedicated_connection();
-        if (!$this->connection) { phpbb_database_backup_failed(); }
         try {
+            $this->connection = phpbb_acquire_idle_connection($database);
             $this->identity = $this->current_identity();
             if ($this->identity === '') { phpbb_database_backup_failed(); }
             if ($this->identity === (string)$source_row['backup_connection_id']) {

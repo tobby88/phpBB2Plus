@@ -32,10 +32,12 @@ class sql_db
 	var $rows = array();
 	var $pending = null;
 	var $affected = 0;
+	var $dbname = 'fixture';
 	function __construct($server, $user, $password, $dbname, $persistent)
 	{
 		lock_assert($server === 'fixture' && $persistent === false, 'Lock connection must never be persistent');
 		$this->server_state = $GLOBALS['lock_server'];
+		$this->dbname = $dbname;
 		$this->server_state->connections[] = $this;
 		$this->db_connect_id = $this->server_state->failure !== 'connect';
 	}
@@ -45,6 +47,11 @@ class sql_db
 		$s = $this->server_state;
 		$s->queries[] = $sql;
 		if ($this->closed || !$this->db_connect_id) { return false; }
+		if (strpos($sql, 'SELECT CONNECTION_ID() AS owned_connection_id,') === 0)
+		{
+			return new CtFixtureAuthorityResult(array(array('owned_connection_id' => (string) (100 + count($s->connections)), 'owned_schema' => $this->dbname, 'owned_autocommit' => '1', 'owned_charset' => 'utf8mb4')));
+		}
+		if ($sql === 'SET TRANSACTION READ WRITE') { return $this->pending === null; }
 		if (preg_match("/^SELECT GET_LOCK\('([^']+)', 0\) AS acquired$/", $sql, $m))
 		{
 			lock_assert(strlen($m[1]) <= 64, 'MySQL lock-name limit');
@@ -104,8 +111,17 @@ class LockTestForumDatabase
 }
 class LockTestFactoryDatabase extends LockTestForumDatabase
 {
+	var $db_connect_id;
 	var $factory_calls = 0;
 	var $factory_failure = '';
+	function __construct() { $this->db_connect_id = new stdClass(); }
+	function sql_query($sql)
+	{
+		if (strpos($sql, 'SELECT CONNECTION_ID() AS owned_connection_id,') === 0) { return new CtFixtureAuthorityResult(array(array('owned_connection_id'=>'1','owned_schema'=>$this->dbname,'owned_autocommit'=>'1','owned_charset'=>'utf8mb4'))); }
+		return parent::sql_query($sql);
+	}
+	function sql_fetchrowset($result) { return $result->rows; }
+	function sql_freeresult($result) {}
 	function sql_dedicated_connection()
 	{
 		$this->factory_calls++;

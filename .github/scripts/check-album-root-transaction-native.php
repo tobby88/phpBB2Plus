@@ -13,8 +13,9 @@ class AlbumTransactionConnection extends AlbumNativeObservedConnection{
  function sql_close(){$this->observer->closed++;return $this->database->sql_close();}
 }
 class AlbumTransactionSource extends sql_db{
- var$queries=array();var$failure=0;var$kind='';var$closed=0;var$otherSchema='';var$barrier='';var$worker='';
- function reset_case($failure=0,$kind=''){$this->queries=array();$this->failure=$failure;$this->kind=$kind;$this->closed=0;}
+ var$queries=array();var$failure=0;var$kind='';var$closed=0;var$otherSchema='';var$barrier='';var$worker='';var$issued=array();
+ function reset_case($failure=0,$kind=''){$this->close_fixture_connections();$this->queries=array();$this->failure=$failure;$this->kind=$kind;$this->closed=0;}
+ function close_fixture_connections(){foreach($this->issued as$connection){if($connection->db_connect_id){$connection->sql_close();}}$this->issued=array();}
  function sql_query($sql='',$transaction=false){
   if(strpos($sql,'SELECT CONNECTION_ID()')===0&&$this->kind==='source-metadata-false'){return false;}
   if(strpos($sql,'SELECT CONNECTION_ID()')===0&&$this->kind==='source-metadata-throw'){throw new RuntimeException('Synthetic source metadata failure');}
@@ -25,6 +26,7 @@ class AlbumTransactionSource extends sql_db{
   if($this->kind==='throw'){throw new RuntimeException('Synthetic factory failure');}
   if($this->kind==='borrowed-handle'){return new AlbumTransactionConnection($this,$this);}
   $connection=parent::sql_dedicated_connection();
+  $this->issued[]=$connection;
   if($this->kind==='wrong-schema'){at_check($connection->sql_query('USE '.$this->otherSchema)!==false,'Own alternate schema');}
   return new AlbumTransactionConnection($connection,$this);
  }
@@ -82,8 +84,8 @@ try{
  at_sql("INSERT INTO fixture_users(user_id,username) VALUES(7,'".$control->sql_escape("O'Connor \\ 😀")."'),(8,'Independent owner')");at_sql('INSERT INTO fixture_members VALUES(7,10,0)');
  $db=new AlbumTransactionSource($host,'root',$password,$schema,false);$db->otherSchema=$otherSchema;$original=$db;
  $db->reset_case();at_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&at_count()===1&&$GLOBALS['db']===$original&&$db->closed===1,'Real owned transaction commits/closes and restores caller');$baseline=$db->queries;$cases++;
- foreach($baseline as$index=>$sql){at_sql('DELETE FROM fixture_album_cat');$db->reset_case($index+1);at_check(at_failed_create()&&at_count()===0&&$GLOBALS['db']===$original&&$db->closed===1,'Every owned statement failure rolls back/closes without caller damage: '.($index+1));$cases++;}
- foreach(array('same-object','borrowed-handle','throw','wrong-schema','source-metadata-false','source-metadata-throw')as$kind){at_sql('DELETE FROM fixture_album_cat');$db->reset_case(0,$kind);at_check(at_failed_create()&&at_count()===0&&$db->sql_query('SELECT 1')!==false&&$db->closed===($kind==='wrong-schema'?1:0),'Reject unsafe dedicated factory without closing caller: '.$kind);$cases++;}
+ foreach($baseline as$index=>$sql){at_sql('DELETE FROM fixture_album_cat');$db->reset_case($index+1);$unproven=strpos($sql,'SELECT CONNECTION_ID() AS owned_connection_id,')===0||$sql==='SET TRANSACTION READ WRITE';at_check(at_failed_create()&&at_count()===0&&$GLOBALS['db']===$original&&$db->closed===($unproven?0:1),'Every statement failure preserves unproven peers and releases owned work: '.($index+1));$cases++;}
+ foreach(array('same-object','borrowed-handle','throw','wrong-schema','source-metadata-false','source-metadata-throw')as$kind){at_sql('DELETE FROM fixture_album_cat');$db->reset_case(0,$kind);at_check(at_failed_create()&&at_count()===0&&$db->sql_query('SELECT 1')!==false&&$db->closed===0,'Reject unsafe dedicated factory without closing caller: '.$kind);$cases++;}
  at_sql('DELETE FROM fixture_album_cat');$db->reset_case(0,'lost-commit-ack');at_check(at_failed_create()&&at_count()===1&&$db->closed===1,'Unacknowledged real commit is not reported as success');$cases++;
  $db->reset_case();at_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&at_count()===1,'Retry after lost commit acknowledgement is idempotent');$cases++;
  at_sql('DELETE FROM fixture_album_cat');$db->reset_case();$r=$db->sql_query('SELECT @@SESSION.sql_mode AS mode,@@SESSION.innodb_lock_wait_timeout AS wait_time');$before=$db->sql_fetchrow($r);$db->sql_freeresult($r);
@@ -106,6 +108,6 @@ try{
  echo 'Native Album root transactions: '.$cases.' dedicated/fault/caller-transaction/storage/real-process concurrency cases PASS; '.count($baseline)." owned statements fault-injected; no live HTTP/data.\n";
 }finally{
  foreach($children as$entry){if(!$entry){continue;}$status=proc_get_status($entry[0]);if($status['running']){proc_terminate($entry[0]);}foreach(array(1,2)as$pipe){if(is_resource($entry[1][$pipe])){fclose($entry[1][$pipe]);}}proc_close($entry[0]);}
- if($db){$db->sql_close();}if($created){$control->sql_query('DROP DATABASE '.$schema);}if($otherCreated){$control->sql_query('DROP DATABASE '.$otherSchema);}$control->sql_close();
+ if($db){$db->close_fixture_connections();$db->sql_close();}if($created){$control->sql_query('DROP DATABASE '.$schema);}if($otherCreated){$control->sql_query('DROP DATABASE '.$otherSchema);}$control->sql_close();
  if(is_dir($fixture)){foreach(array('holder-locked','peer-attempt')as$name){if(is_file($fixture.'/'.$name)){unlink($fixture.'/'.$name);}}rmdir($fixture);}restore_error_handler();error_reporting($reporting);
 }
