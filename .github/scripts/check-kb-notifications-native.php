@@ -20,14 +20,23 @@ function kn_dispatch($out,$failure=0){
  $kp_hook=function($phase,$sql,$owner)use($failure){if($phase!=='before'){return;}$GLOBALS['kn_queries'][]=$sql;return ++$GLOBALS['kn_count']===$failure?false:null;};$phpbb_root_path=__DIR__.'/../fixtures/kb-notifications-native/';
  try{$ok=kb_notify_after_write($out);}finally{$phpbb_root_path=$kp_source;$kp_hook=null;}
  kp_check($board_config===$prior_config&&$lang===$prior_lang&&$db===$prior_db,'Mail restores caller config/language/database on every path');
- foreach($GLOBALS['kp_owner_connections']as$owner){kp_check(!$owner->connection->db_connect_id,'All actual KB readers/writers closed');}
+ foreach($GLOBALS['kp_owner_connections']as$owner){
+  if($owner->connection->db_connect_id){
+   // The fixture retains every factory result. A failed ownership probe
+   // must leave that unproven result untouched; reclaim our known fresh
+   // fixture handle explicitly instead of closing an unknown caller's work.
+   kp_check(!$owner->ownership_proven&&$owner->connection->sql_query('SET TRANSACTION READ WRITE')===true,'Only unproven idle fixture candidates may remain open');
+   $owner->connection->sql_close();$GLOBALS['kn_unproven_reclaimed']++;
+  }
+  kp_check(!$owner->connection->db_connect_id,'Every proven KB owner closes; fixture reclaims only its own unproven candidates');
+ }
  foreach($kn_queries as$sql){kp_check(!preg_match('/^\s*(?:INSERT|UPDATE|DELETE|COMMIT)\b/i',$sql),'KB readiness never writes or commits');}
  return array('ok'=>$ok,'mail'=>$kn_mail,'sql'=>$kn_queries);
 }
 function kn_approve($id){$GLOBALS['userdata']['user_id']=1;kp_sql('UPDATE fixture_sessions SET session_user_id=1,session_admin=1');$out=kp_run(1,'acp',$id);kp_check(is_array($out)||$out===true,'Actual root approval after author commit');}
 function kn_suite(){
  global$kp_source,$kn_app,$kn_fault,$board_config,$userdata,$peer,$db,$kp_factory;
- require$kp_source.'includes/functions_kb_write_storage.php';require$kp_source.'includes/functions_kb_write_notifications.php';$kn_app=$kp_source;$cases=$failures=0;
+ require$kp_source.'includes/functions_kb_write_storage.php';require$kp_source.'includes/functions_kb_write_notifications.php';$kn_app=$kp_source;$cases=$failures=0;$GLOBALS['kn_unproven_reclaimed']=0;
  foreach(array('english','german')as$language){
   foreach(array('add','edit')as$mode){foreach(array('ordinary','approved','deleted','renamed','notify-off','notify-pm','notify-missing','notify-invalid','address','address-invalid','cached-address-invalid','language','language-invalid','site','signature','actor-inactive','actor-deleted','actor-revoked','construct','template','transport-false','transport-exception','missing-settings','literal-title')as$kind){
    $out=kn_prepare($language,$mode);$title=$out['article_title'];$actual_language=$language;
@@ -48,9 +57,10 @@ function kn_suite(){
   foreach(array('fixture_kb_articles','fixture_kb_config','fixture_config')as$table){$out=kn_prepare($language);kp_sql('ALTER TABLE '.$table.' ENGINE=MyISAM');try{$before=kp_snapshot();$result=kn_dispatch($out);kp_check(!$result['ok']&&!$result['mail']&&kp_snapshot()===$before,'Legacy participant cannot send or undo article');$cases++;}finally{kp_sql('ALTER TABLE '.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}}
   $out=kn_prepare($language);$out['notify_email']=false;$result=kn_dispatch($out,1);kp_check($result['ok']&&!$result['mail']&&!$result['sql'],'Disabled committed outcome creates no read owner');$cases++;
   $out=kn_prepare($language);$out['article_id']=array(1);$result=kn_dispatch($out);kp_check(!$result['ok']&&!$result['mail']&&!$result['sql'],'Complete typed article identity rejected before reader');$cases++;
-  $out=kn_prepare($language);$reference=kn_dispatch($out);$positions=array();$seen=array();$index=0;foreach($reference['sql']as$sql){$index++;$kind=null;if($index<=3){$kind='initial-'.$index;}elseif($sql==='START TRANSACTION READ ONLY'){$kind='start';}elseif(strpos($sql,'information_schema.TABLES')!==false){$kind='metadata';}elseif(strpos($sql,'SELECT article_id,article_title,approved')===0){$kind='article';}elseif(strpos($sql,'SELECT config_value FROM')===0){$kind='notify';}elseif(strpos($sql,'SELECT config_name,config_value FROM')===0){$kind='board';}if($kind!==null&&!isset($seen[$kind])){$seen[$kind]=true;$positions[]=$index;}}
+  $out=kn_prepare($language);$reference=kn_dispatch($out);$positions=array();$seen=array();$index=$identities=0;foreach($reference['sql']as$sql){$index++;$kind=null;if(strpos($sql,'SELECT CONNECTION_ID() AS owned_connection_id,')===0){$kind='ownership-identity';}elseif($sql==='SET TRANSACTION READ WRITE'){$kind='ownership-idle';}elseif($sql==='SELECT CONNECTION_ID() AS kb_connection_id'&&++$identities<=2){$kind='initial-identity-'.$identities;}elseif(strpos($sql,'SELECT GET_LOCK(')===0){$kind='initial-lock';}elseif($sql==='START TRANSACTION READ ONLY'){$kind='start';}elseif(strpos($sql,'information_schema.TABLES')!==false){$kind='metadata';}elseif(strpos($sql,'SELECT article_id,article_title,approved')===0){$kind='article';}elseif(strpos($sql,'SELECT config_value FROM')===0){$kind='notify';}elseif(strpos($sql,'SELECT config_name,config_value FROM')===0){$kind='board';}if($kind!==null&&!isset($seen[$kind])){$seen[$kind]=true;$positions[]=$index;}}
   foreach($positions as$position){$before=kp_snapshot();$result=kn_dispatch($out,$position);kp_check(!$result['ok']&&!$result['mail']&&kp_snapshot()===$before,'Optional readiness SQL failure leaves saved article unchanged');$failures++;}
  }
+ kp_check($GLOBALS['kn_unproven_reclaimed']===4&&$failures===20,'Both uncertain ownership probes and all original identity/lock/read faults remain covered in both languages');
  echo 'KB notifications native: '.$cases.' cases, '.$failures." SQL failures PASS; actual committed articles and approvals, real EN/DE mailer/templates, current pending state and board settings, plain text, caller isolation and released locks.\n";
 }
 $kn_publication_file=__DIR__.'/check-kb-publication-native.php';$kn_publication=file_get_contents($kn_publication_file);$kn_anchor='if(!empty($kp_write_mode)){kp_write_suite();return;}';if(substr_count($kn_publication,$kn_anchor)!==1){throw new RuntimeException('Actual canonical setup suite boundary');}$kn_publication=str_replace($kn_anchor,'if(!empty($kp_write_mode)){kn_suite();return;}',$kn_publication);$kn_anchor='if(!empty($kp_write_mode)){$kp_tables=array_merge($kp_tables,array(PRIVMSGS_TABLE,PRIVMSGS_TEXT_TABLE));}';if(substr_count($kn_publication,$kn_anchor)!==1){throw new RuntimeException('Canonical board config participant boundary');}$kn_publication=str_replace($kn_anchor,$kn_anchor.'$kp_tables=array_unique(array_merge($kp_tables,array(CONFIG_TABLE)));',$kn_publication);$kn_eval='';foreach(token_get_all($kn_publication)as$t){$kn_eval.=is_array($t)?($t[0]===T_DIR?var_export(__DIR__,true):$t[1]):$t;}eval(substr($kn_eval,5));

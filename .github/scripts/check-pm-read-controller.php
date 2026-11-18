@@ -22,20 +22,31 @@ class PmReadDisplayForum extends PmRepairForum
 	function sql_dedicated_connection() { return new PmReadControllerConnection($GLOBALS['pm_repair_server']); }
     function sql_query($sql)
     {
+		if($sql==='SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset'){
+			return new PmRepairRows($GLOBALS['native']?$GLOBALS['pm_repair_server']->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC):array(array('owned_connection_id'=>'1','owned_schema'=>$this->dbname,'owned_autocommit'=>'1','owned_charset'=>'utf8mb4')));
+		}
         pm_repair_check(strpos($sql, 'SELECT ') === 0, 'Controller writes only through owning worker');
         $pdo = $GLOBALS['pm_repair_server']->pdo;
         return new PmRepairRows($pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
     }
     function sql_fetchrow($result) { return array_shift($result->rows); }
+    function sql_fetchrowset($result) { return $result->rows; }
+    function sql_freeresult($result) {}
 }
 // Retain the original named-lock writer protocol; independent SELECTs have
 // their own read-only path. Canonical native view tests cover actual factories.
 class PmReadControllerConnection extends PmRepairConnection
 {
 	var $read_only = false;
+	var $model_id;
+	function __construct($server){static$next=2;$this->model_id=(string)$next++;parent::__construct($server);}
 	function sql_query($sql)
 	{
 		if ($this->closed || !$this->db_connect_id) { return false; }
+		if($sql==='SELECT CONNECTION_ID() AS owned_connection_id,DATABASE() AS owned_schema,@@SESSION.autocommit AS owned_autocommit,@@SESSION.character_set_connection AS owned_charset'){
+			return new PmRepairRows($GLOBALS['native']?$this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC):array(array('owned_connection_id'=>$this->model_id,'owned_schema'=>'pm-counter-fixture','owned_autocommit'=>'1','owned_charset'=>'utf8mb4')));
+		}
+		if($sql==='SET TRANSACTION READ WRITE'){return !$GLOBALS['native']||$this->pdo->exec($sql)!==false;}
 		if ($sql === 'SELECT @@SESSION.autocommit AS pm_autocommit') {
 			return new PmRepairRows($GLOBALS['native'] ? $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) : array(array('pm_autocommit'=>1)));
 		}

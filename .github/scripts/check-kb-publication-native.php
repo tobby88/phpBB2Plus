@@ -29,7 +29,7 @@ $kp_hook = null; $kp_factory = 'normal'; $db = null; $peer = null; $kp_owner_con
 $kp_original_reporting=error_reporting(E_ALL);
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 class KpOwnerConnection {
- public $connection; public $db_connect_id;
+ public $connection; public $db_connect_id; public $ownership_proven=false;
  function __construct($connection) { $this->connection = $connection; $this->db_connect_id = $connection->db_connect_id; }
  function __call($name, $args) { return call_user_func_array(array($this->connection, $name), $args); }
  function sql_query($sql, $transaction = false) {
@@ -37,6 +37,7 @@ class KpOwnerConnection {
   $result = $this->connection->sql_query($sql, $transaction);
   if(!$result){$error=$this->connection->sql_error();$GLOBALS['kp_last_sql_failure']=array('code'=>$error['code'],'message'=>$error['message'],'context'=>preg_match('/^(?:SELECT|UPDATE|INSERT INTO|DELETE FROM) [A-Za-z0-9_*.,]+/',$sql,$m)?$m[0]:'native owner');}
   if (is_callable($GLOBALS['kp_hook']) && call_user_func($GLOBALS['kp_hook'], 'after', $sql, $this) === false) { return false; }
+  if ($sql==='SET TRANSACTION READ WRITE' && $result===true) { $this->ownership_proven=true; }
   return $result;
  }
 }
