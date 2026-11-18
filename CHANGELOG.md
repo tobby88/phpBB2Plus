@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Independent database connection ownership
 
+- Refuse inherited knowledge-base and CrackerTracker advisory leases before
+  adopting an idle connection. Reentrant GET_LOCK calls must not let a nested
+  operation close another operation's session and release its existing lock.
+- Preserve existing leases when their ownership cannot be read reliably;
+  allow an independent competing lease to finish normally before acquisition.
 - Establish idle connection ownership before backup, board configuration,
   knowledge-base publication, personal-album administration, private-message attachment
   reads and CrackerTracker scans adopt a factory result. Refuse borrowed active

@@ -43,9 +43,11 @@ class ct_scan_lock
 		// factory for independent, non-persistent writer connections.
 		try
 		{
+			if (!isset($database->dbname) || !is_string($database->dbname) || $database->dbname === '') { return; }
+			$name = 'ctscan:' . md5($database->dbname . "\0" . $table);
 			if (method_exists($database, 'sql_dedicated_connection'))
 			{
-				$this->connection = phpbb_acquire_idle_connection($database);
+				$this->connection = phpbb_acquire_idle_connection($database, $name);
 			}
 			else
 			{
@@ -62,7 +64,6 @@ class ct_scan_lock
 		}
 		register_shutdown_function(array($this, 'release'));
 		// GET_LOCK names are server-global and limited to 64 bytes on MySQL.
-		$name = 'ctscan:' . md5($database->dbname . "\0" . $table);
 		$result = $this->connection->sql_query("SELECT GET_LOCK('" . $name . "', 0) AS acquired");
 		if ($result)
 		{

@@ -52,6 +52,11 @@ class sql_db
 			return new CtFixtureAuthorityResult(array(array('owned_connection_id' => (string) (100 + count($s->connections)), 'owned_schema' => $this->dbname, 'owned_autocommit' => '1', 'owned_charset' => 'utf8mb4')));
 		}
 		if ($sql === 'SET TRANSACTION READ WRITE') { return $this->pending === null; }
+		if (preg_match("/^SELECT IS_USED_LOCK\\('([^']+)'\\) AS owned_lock_id$/", $sql, $m))
+		{
+			$holder = isset($s->locks[$m[1]]) ? (string) (100 + array_search($s->locks[$m[1]], $s->connections, true) + 1) : null;
+			return new CtFixtureAuthorityResult(array(array('owned_lock_id' => $holder)));
+		}
 		if (preg_match("/^SELECT GET_LOCK\('([^']+)', 0\) AS acquired$/", $sql, $m))
 		{
 			lock_assert(strlen($m[1]) <= 64, 'MySQL lock-name limit');

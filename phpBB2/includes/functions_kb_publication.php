@@ -74,13 +74,14 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 		if (!in_array($context, array('acp', 'moderator', 'category', 'type', 'config'), true) || !method_exists($database, 'sql_dedicated_connection')) { kb_publication_fail(); }
 		$this->context = $context; $candidate = null;
 		try {
-			$candidate = phpbb_acquire_idle_connection($database);
+			if (!isset($database->dbname) || !is_string($database->dbname) || $database->dbname === '') { kb_publication_fail(); }
+			$name = 'attachment:' . md5($database->dbname . "\0" . ATTACHMENTS_TABLE);
+			$candidate = phpbb_acquire_idle_connection($database, $name);
 			if (!$candidate || !$candidate->db_connect_id) { kb_publication_fail(); }
 			$rows = phpbb_acl_rows($candidate, 'SELECT CONNECTION_ID() AS kb_connection_id');
             if (count($rows) !== 1 || !isset($rows[0]['kb_connection_id'])) { kb_publication_fail(); }
 			$this->connection = $candidate; $this->identity = (string)$rows[0]['kb_connection_id'];
 			register_shutdown_function(array($this, 'release'));
-			$name = 'attachment:' . md5($database->dbname . "\0" . ATTACHMENTS_TABLE);
 			$rows = $this->rows("SELECT GET_LOCK('" . $name . "', 10) AS acquired");
 			if (count($rows) !== 1 || (int)$rows[0]['acquired'] !== 1) { kb_publication_fail(); }
 		} catch (Exception $error) {

@@ -12,14 +12,24 @@ $body= <<<'PHP'
  function co_sql($database,$sql){co_check($database->sql_query($sql)!==false,'Native setup succeeds: '.$sql);}
  function co_state($database){$rows=co_rows($database,'SELECT CONNECTION_ID() id,DATABASE() schema_name,@@SESSION.autocommit automatic,@@SESSION.sql_mode sql_mode,@@SESSION.time_zone zone,@@SESSION.character_set_connection charset,@@SESSION.collation_connection collation_name,@@SESSION.innodb_lock_wait_timeout row_wait');co_check(count($rows)===1,'Complete portable session fingerprint');return$rows;}
  class ConnectionOwnerObserved extends StyleDataConnection {
-  var$fault='';var$closed=0;var$queries=array();var$fault_seen=false;
+  var$fault='';var$closed=0;var$queries=array();var$fault_seen=false;var$lease_release=null;
   function sql_query($sql,$transaction=false){
-   $this->queries[]=$sql;$identity=strpos($sql,'SELECT CONNECTION_ID() AS owned_connection_id,')===0;$sentinel=$sql==='SET TRANSACTION READ WRITE';
+   $this->queries[]=$sql;$identity=strpos($sql,'SELECT CONNECTION_ID() AS owned_connection_id,')===0;$sentinel=$sql==='SET TRANSACTION READ WRITE';$lease=strpos($sql,'SELECT IS_USED_LOCK(')===0&&strpos($sql,' AS owned_lock_id')!==false;
+   if($lease&&$this->fault==='lease-false'){$this->fault_seen=true;return false;}
+   if($lease&&$this->fault==='lease-throw'){$this->fault_seen=true;throw new RuntimeException('Own native lease fault');}
    if(($identity&&$this->fault==='identity-false')||($sentinel&&$this->fault==='sentinel-false')){$this->fault_seen=true;return false;}
    if(($identity&&$this->fault==='identity-throw')||($sentinel&&$this->fault==='sentinel-throw')){$this->fault_seen=true;throw new RuntimeException('Own native fault');}
    return$this->inner->sql_query($sql,$transaction);
   }
-  function sql_fetchrowset($result){$rows=$this->inner->sql_fetchrowset($result);if(isset($rows[0]['owned_connection_id'])){if($this->fault==='identity-malformed'){$this->fault_seen=true;$rows[0]['owned_connection_id']=array('invalid');}if($this->fault==='identity-duplicate'){$this->fault_seen=true;$rows[]=$rows[0];}}return$rows;}
+  function sql_fetchrowset($result){$rows=$this->inner->sql_fetchrowset($result);if(isset($rows[0]['owned_connection_id'])){if($this->fault==='identity-malformed'){$this->fault_seen=true;$rows[0]['owned_connection_id']=array('invalid');}if($this->fault==='identity-duplicate'){$this->fault_seen=true;$rows[]=$rows[0];}}
+   if(isset($rows[0])&&array_key_exists('owned_lock_id',$rows[0])){
+    if($this->fault==='lease-missing'){$this->fault_seen=true;unset($rows[0]['owned_lock_id']);}
+    if($this->fault==='lease-duplicate'){$this->fault_seen=true;$rows[]=$rows[0];}
+    if($this->fault==='lease-zero'){$this->fault_seen=true;$rows[0]['owned_lock_id']='0';}
+    if($this->fault==='lease-array'){$this->fault_seen=true;$rows[0]['owned_lock_id']=array('invalid');}
+    if($this->fault==='lease-row'){$this->fault_seen=true;$rows[0]='invalid';}
+    if(is_callable($this->lease_release)){call_user_func($this->lease_release);$this->lease_release=null;}
+   }return$rows;}
   function sql_close(){$this->closed++;return$this->inner->sql_close();}
  }
  class ConnectionOwnerSource extends StyleDataDatabase {
@@ -73,7 +83,7 @@ $body= <<<'PHP'
    if(!$shared&&$active&&$case!=='read-only'){co_check(count(co_rows($co_borrowed->inner,'SELECT * FROM fixture_owner_marker'))===2,'Borrowed pending row retained');}
    if($case==='read-only'){co_check(!$co_borrowed->inner->sql_query("INSERT INTO fixture_owner_marker VALUES(21,'forbidden')"),'Borrowed read-only transaction remains read-only');}
    co_check(count(co_rows($peer,'SELECT * FROM '.$peer_schema.'.fixture_owner_marker'))===1,'No borrowed work committed');
-   foreach($co_borrowed->queries as$sql){co_check(strpos($sql,'SELECT CONNECTION_ID() AS owned_connection_id,')===0||$sql==='SET TRANSACTION READ WRITE','No rollback, commit, lock or session mutation before ownership');}
+   foreach($co_borrowed->queries as$sql){co_check(strpos($sql,'SELECT CONNECTION_ID() AS owned_connection_id,')===0||$sql==='SET TRANSACTION READ WRITE'||(in_array($kind,array('kb','scan'),true)&&strpos($sql,'SELECT IS_USED_LOCK(')===0&&strpos($sql,' AS owned_lock_id')!==false),'No rollback, commit, lock or session mutation before ownership');}
    if(strpos($case,'identity-')===0||strpos($case,'sentinel-')===0){co_check($co_borrowed->fault_seen,'Actual injected uncertainty reached');}
    foreach($db->owned as$owned){co_check($owned->closed===1,'Proven idle sibling closes on refusal');}
    if($kind==='backup'){co_check(empty($GLOBALS['co_builder']),'Rejected backup cannot run output builder');}
@@ -83,6 +93,34 @@ $body= <<<'PHP'
  }
  co_check($co_cases===149,'All six owners and both backup factory slots covered');
  echo 'Native connection ownership: ',$co_cases,' cases, ',$co_assertions,' assertions PASS; six production owners, both backup slots, active/read-only/autocommit/uncertain/context/same-handle cases, caller rollback and advisory locks; no production access.',"\n";
+ $lease_cases=0;$lease_assertions=$co_assertions;
+ foreach(array('kb','scan')as$kind){
+  $name=$kind==='kb'?'attachment:'.md5($fixture."\0".ATTACHMENTS_TABLE):'ctscan:'.md5($fixture."\0fixture_scan");
+  foreach(array('inherited','recursive','lease-false','lease-throw','lease-missing','lease-duplicate','lease-zero','lease-array','lease-row')as$case){
+   $db=new ConnectionOwnerSource($db->inner);$db->slot=1;$co_borrowed=new ConnectionOwnerObserved(new sql_db($host,'root',$password,$fixture,false));$db->borrowed=$co_borrowed;
+   co_sql($db,'START TRANSACTION');co_sql($db,"INSERT INTO fixture_owner_marker VALUES(10,'caller pending')");$source_before=co_state($db);
+   $held=co_rows($co_borrowed->inner,"SELECT GET_LOCK('$name',0) acquired");co_check((string)$held[0]['acquired']==='1','Own idle inherited lease');
+   if($case==='recursive'){co_rows($co_borrowed->inner,"SELECT GET_LOCK('$name',0) acquired");}
+   $loan_before=co_state($co_borrowed->inner);$co_borrowed->fault=$case;$denied=false;
+   try{co_run($kind,$db);}catch(Exception$error){$denied=true;}
+   co_check($denied&&$co_borrowed->closed===0,'Inherited/unknown lease is refused without closing its owner');
+   co_check(co_state($db)===$source_before&&co_state($co_borrowed->inner)===$loan_before,'Both sessions remain unchanged');
+   $held=co_rows($peer,"SELECT IS_USED_LOCK('$name') held");co_check((string)$held[0]['held']===(string)$loan_before[0]['id'],'Original lease remains held');
+   co_check(count(co_rows($peer,'SELECT * FROM fixture_owner_marker'))===1&&count(co_rows($db,'SELECT * FROM fixture_owner_marker'))===2,'Source pending row remains private');
+   foreach($co_borrowed->queries as$sql){co_check(strpos($sql,'SELECT CONNECTION_ID() AS owned_connection_id,')===0||strpos($sql,'SELECT IS_USED_LOCK(')===0,'No sentinel or reentrant GET_LOCK before inherited lease refusal');}
+   if(strpos($case,'lease-')===0){co_check($co_borrowed->fault_seen,'Actual native lease fault reached');}
+   $co_borrowed->fault='';co_rows($co_borrowed->inner,"SELECT RELEASE_LOCK('$name') released");
+   if($case==='recursive'){$held=co_rows($peer,"SELECT IS_USED_LOCK('$name') held");co_check((string)$held[0]['held']===(string)$loan_before[0]['id'],'Recursive lease count not consumed');co_rows($co_borrowed->inner,"SELECT RELEASE_LOCK('$name') released");}
+   $co_borrowed->sql_close();$co_borrowed=null;co_sql($db,'ROLLBACK');$lease_cases++;
+  }
+  // Another session's lease may finish between the read-only probe and GET_LOCK.
+  $db=new ConnectionOwnerSource($db->inner);$db->slot=1;$co_borrowed=new ConnectionOwnerObserved(new sql_db($host,'root',$password,$fixture,false));$db->borrowed=$co_borrowed;
+  $held=co_rows($peer,"SELECT GET_LOCK('$name',0) acquired");co_check((string)$held[0]['acquired']==='1','Independent competing lease');
+  $co_borrowed->lease_release=function()use($peer,$name){co_rows($peer,"SELECT RELEASE_LOCK('$name') released");};
+  co_run($kind,$db);co_check($co_borrowed->closed===1&&$co_borrowed->lease_release===null,'A different completed lease does not block a genuine idle owner');$co_borrowed=null;$lease_cases++;
+ }
+ co_check($lease_cases===20,'Both advisory services, seven uncertainty faults, inherited/recursive and foreign completed leases');
+ echo 'Native inherited advisory ownership: ',$lease_cases,' cases, ',($co_assertions-$lease_assertions),' assertions PASS; actual KB and CrackerTracker constructors, recursive leases, uncertain metadata, foreign completed owners and unchanged caller work; no production access.',"\n";
 PHP;
 $tail= <<<'PHP'
 }finally{

@@ -25,8 +25,11 @@ function phpbb_connection_ownership_state($database)
 // Do not adopt or close an unproven factory result. A different object/socket
 // can still be somebody else's pending transaction. SET TRANSACTION refuses
 // active work on both MySQL and MariaDB without committing or rolling it back.
-function phpbb_acquire_idle_connection($database)
+function phpbb_acquire_idle_connection($database, $lock_name = null)
 {
+    if ($lock_name !== null && (!is_string($lock_name) || !preg_match('/^[A-Za-z0-9:_-]{1,64}$/D', $lock_name))) {
+        throw new PhpbbConnectionOwnershipFailure('Invalid ownership lock');
+    }
     if (!is_object($database) || !is_callable(array($database, 'sql_dedicated_connection'))) {
         throw new PhpbbConnectionOwnershipFailure('Dedicated connection unavailable');
     }
@@ -39,6 +42,20 @@ function phpbb_acquire_idle_connection($database)
     if ((string) $target['owned_connection_id'] === (string) $source['owned_connection_id']
         || $target['owned_schema'] !== $source['owned_schema'] || $target['owned_charset'] !== 'utf8mb4'
         || (string) $target['owned_autocommit'] !== '1') { throw new PhpbbConnectionOwnershipFailure('Foreign connection context'); }
+    // GET_LOCK is reentrant. An idle session can still own another operation's
+    // lease; adopting and closing it would silently release that existing lease.
+    if ($lock_name !== null) {
+        $result = $candidate->sql_query("SELECT IS_USED_LOCK('" . $lock_name . "') AS owned_lock_id");
+        if (!$result) { throw new PhpbbConnectionOwnershipFailure('Connection lease unavailable'); }
+        try { $rows = $candidate->sql_fetchrowset($result); }
+        finally { $candidate->sql_freeresult($result); }
+        if (!is_array($rows) || count($rows) !== 1 || !is_array($rows[0]) || !array_key_exists('owned_lock_id', $rows[0])) {
+            throw new PhpbbConnectionOwnershipFailure('Invalid connection lease');
+        }
+        $holder = $rows[0]['owned_lock_id'];
+        if ($holder !== null && (!(is_int($holder) || is_string($holder)) || !preg_match('/^[1-9][0-9]*$/D', (string) $holder)
+            || (string) $holder === (string) $target['owned_connection_id'])) { throw new PhpbbConnectionOwnershipFailure('Inherited connection lease'); }
+    }
     if ($candidate->sql_query('SET TRANSACTION READ WRITE') !== true) { throw new PhpbbConnectionOwnershipFailure('Active or unavailable connection'); }
     return $candidate;
 }
