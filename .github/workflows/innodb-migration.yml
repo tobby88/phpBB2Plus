@@ -1689,6 +1689,13 @@ jobs:
           php-version: '8.5'
           extensions: mysqli, openssl
           coverage: none
+      - name: Check Download metadata participants and journal shape on MySQL
+        if: matrix.part == 2
+        run: php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php
+        env:
+          PHPBB_PA_METADATA_NATIVE: '1'
+          PHPBB_PA_METADATA_PASSWORD: fixture-only
+          PHPBB_PA_METADATA_MYSQL: '8.4'
       - name: Check actual user-list pages on MySQL
         if: matrix.part == 2
         run: php -d disable_functions=mail .github/scripts/check-userlist-pages-native.php
@@ -1948,10 +1955,3 @@ jobs:
           PHPBB_FILE_OWNER_NATIVE: '1'
           PHPBB_FILE_OWNER_PASSWORD: fixture-only
           PHPBB_FILE_OWNER_MYSQL: '8.4'
-      - name: Check Download metadata participants and journal shape on MySQL
-        if: matrix.part == 2
-        run: php -d disable_functions=mail .github/scripts/check-pafiledb-metadata-native.php
-        env:
-          PHPBB_PA_METADATA_NATIVE: '1'
-          PHPBB_PA_METADATA_PASSWORD: fixture-only
-          PHPBB_PA_METADATA_MYSQL: '8.4'

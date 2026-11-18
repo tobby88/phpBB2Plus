@@ -82,7 +82,15 @@ try{
  $grant_password=bin2hex(phpbb_random_bytes(32));$grant_account="'".$grant_user."'@'%'";
  pam_sql('CREATE USER '.$grant_account." IDENTIFIED BY '".$grant_password."'");$grant_created=true;
  foreach($base as$s){pam_sql('GRANT SELECT'.($s==='users'?' (user_id)':'').' ON '.$schema.'.fixture_'.$s.' TO '.$grant_account);}
- $privileged=$source;$restricted=new PaMetadataSource($host,$grant_user,$grant_password,$schema,false);pam_check($restricted->db_connect_id,'Own restricted SQL user');
+ $privileged=$source;$restricted=new PaMetadataSource($host,$grant_user,$grant_password,$schema,false);
+ if(!$restricted->db_connect_id){
+  $direct=@mysqli_connect($host,$grant_user,$grant_password,$schema);
+  if(!$direct){throw new RuntimeException('Restricted native connect failed: '.mysqli_connect_errno().' '.mysqli_connect_error());}
+  $startup=@mysqli_query($direct,'SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON');
+  $diagnostic=(int)$direct->errno.' '.$direct->error;mysqli_close($direct);
+  throw new RuntimeException('Restricted native connect succeeds; original combined storage bootstrap result='.($startup===false?'false':'true').'; '.$diagnostic);
+ }
+ pam_check($restricted->db_connect_id,'Own restricted SQL user');
  try{$source=$restricted;pam_check(!pam_attempt()&&in_array($restricted->last_errno,array(1142,1143),true),'Partial native column privileges cannot bypass the all-column participant opening');$cases++;
   pam_sql('GRANT SELECT ON '.$schema.'.fixture_users TO '.$grant_account);pam_check(pam_attempt(null,true),'Same native user succeeds after full participant SELECT is granted');$cases++;
  }finally{$source=$privileged;$restricted->sql_close();$restricted=null;}
