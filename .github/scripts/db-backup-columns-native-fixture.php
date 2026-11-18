@@ -1,7 +1,16 @@
 <?php
 // Valid modern additional tables, captured through the actual ACP controller.
-$bc_tables=array();$bc_queries=array();$bc_expected=array();$bc_definitions=array();$bc_fault=false;$bc_computed_only=0;
-function bc_definition($database,$table){return phpbb_acl_rows($database,'SHOW CREATE TABLE `'.$table.'`')[0]['Create Table'];}
+$bc_tables=array();$bc_queries=array();$bc_expected=array();$bc_definitions=array();$bc_metadata=array();$bc_fault=false;$bc_computed_only=0;
+function bc_definition($database,$table){
+ $definition=phpbb_acl_rows($database,'SHOW CREATE TABLE `'.$table.'`')[0]['Create Table'];
+ // MySQL adds an explicit character set when recreating a column whose
+ // collation already determines that same charset. Keep every other DDL byte
+ // and compare the actual column properties independently below.
+ return str_replace(' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',' COLLATE utf8mb4_unicode_ci',$definition);
+}
+function bc_metadata($database,$table){
+ $result=array();foreach(phpbb_acl_rows($database,'SHOW FULL COLUMNS FROM `'.$table.'`')as$column){$entry=array();foreach(array('Field','Type','Collation','Null','Key','Default','Extra','Comment')as$key){$entry[$key]=$column[$key];}$result[]=$entry;}return$result;
+}
 function bc_rows($database,$table){return phpbb_acl_rows($database,$GLOBALS['bc_queries'][$table]);}
 function bc_add($table,$definition,$query){sd_sql('CREATE TABLE `'.$table.'`('.$definition.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');$GLOBALS['bc_tables'][]=$table;$GLOBALS['bc_queries'][$table]=$query;}
 $bc_mixed='`1` VARCHAR(64) NOT NULL,id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,seed INT NOT NULL,hidden INT INVISIBLE NOT NULL DEFAULT 7,opaque BLOB INVISIBLE,`quo``te` VARCHAR(64) NOT NULL,defaulted INT DEFAULT (ABS(-7)),changed DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,virtual_value INT AS(seed*2) VIRTUAL,stored_value INT AS(seed+hidden) STORED,hidden_generated INT AS(hidden*2) VIRTUAL INVISIBLE';
@@ -22,7 +31,7 @@ foreach(array('VIRTUAL','STORED')as$kind){
  for($i=0;$i<3;$i++){sd_sql('INSERT INTO '.$table.' () VALUES()');}
 }
 if($mode==='columns-empty'){foreach($bc_tables as$table){sd_sql('DELETE FROM `'.$table.'`');}}
-foreach($bc_tables as$table){$bc_expected[$table]=bc_rows($peer,$table);$bc_definitions[$table]=bc_definition($peer,$table);}
+foreach($bc_tables as$table){$bc_expected[$table]=bc_rows($peer,$table);$bc_definitions[$table]=bc_definition($peer,$table);$bc_metadata[$table]=bc_metadata($peer,$table);}
 if($mode==='columns-metadata-failure'){$sd_failure='SHOW FULL COLUMNS FROM `fixture_columns`';$sd_hook=function($sql){if($sql==='SHOW FULL COLUMNS FROM `fixture_columns`'){$GLOBALS['bc_fault']=true;}};}
 if($mode==='columns-read-failure'||$mode==='columns-ddl'){
  if($mode==='columns-ddl'){sd_sql('SET SESSION lock_wait_timeout=1');}
@@ -33,10 +42,10 @@ if($mode==='columns-read-failure'||$mode==='columns-ddl'){
  };
 }
 function bc_finish($restore,$dump,$mode,$denied){
- global$peer,$bc_tables,$bc_queries,$bc_expected,$bc_definitions,$bc_fault,$bc_computed_only;
+ global$peer,$bc_tables,$bc_queries,$bc_expected,$bc_definitions,$bc_metadata,$bc_fault,$bc_computed_only;
  foreach($bc_tables as$table){
-  sd_check(bc_rows($peer,$table)===$bc_expected[$table]&&bc_definition($peer,$table)===$bc_definitions[$table],'Column backup never changes source values or definitions');
-  if(!$denied){sd_check(bc_rows($restore,$table)===($mode==='columns-structure'?array():$bc_expected[$table]),'Native import preserves every stored/hidden/default value and recomputed expression');sd_check(bc_definition($restore,$table)===$bc_definitions[$table],'Native import preserves exact column/default/visibility/generated definitions');}
+  sd_check(bc_rows($peer,$table)===$bc_expected[$table]&&bc_definition($peer,$table)===$bc_definitions[$table]&&bc_metadata($peer,$table)===$bc_metadata[$table],'Column backup never changes source values or definitions');
+  if(!$denied){sd_check(bc_rows($restore,$table)===($mode==='columns-structure'?array():$bc_expected[$table]),'Native import preserves every stored/hidden/default value and recomputed expression');$restored_definition=bc_definition($restore,$table);sd_check($restored_definition===$bc_definitions[$table]&&bc_metadata($restore,$table)===$bc_metadata[$table],'Native import preserves equivalent DDL and exact column/default/visibility/generated properties for '.$table."\nSOURCE: ".$bc_definitions[$table]."\nRESTORED: ".$restored_definition);}
  }
  if($denied){sd_check($bc_fault,'Actual projected read or metadata failure was reached');}
  elseif($mode!=='columns-structure'&&$mode!=='columns-empty'){
