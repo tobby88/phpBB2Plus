@@ -31,8 +31,8 @@ foreach (array(array(),array('restore_start'=>'1','sql'=>'DROP TABLE users;')) a
 policy_check(strpos($admin, "\$_FILES['backup_file']") === false && strpos($admin, 'split_sql_file($sql_query') === false, 'No hidden upload executor');
 $schema=file_get_contents($root.'/phpBB2/install/schemas/mysql_schema.sql');
 preg_match_all('/CREATE TABLE\s+.*?;(?=\s*(?:#|CREATE|$))/s', $schema, $definitions);
-policy_check(count($definitions[0])===123, 'Review inventory when adding fresh-install tables');
-foreach (array('album_file_jobs','album_file_items','removed_author_names','pa_file_journal','ina_game_saves') as $journal) {
+policy_check(count($definitions[0])===124, 'Review inventory when adding fresh-install tables');
+foreach (array('album_file_jobs','album_file_items','removed_author_names','pa_file_journal','ina_game_saves','post_icon_config') as $journal) {
  policy_check(preg_match_all('/^CREATE TABLE phpbb_'. $journal .'\s*\([\s\S]*?;/m', $schema, $journal_definitions)===1, 'One reviewed auxiliary table definition per fresh install');
  policy_check(strpos($journal_definitions[0][0], 'ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')!==false, 'New auxiliary tables never inherit legacy storage defaults');
 }
