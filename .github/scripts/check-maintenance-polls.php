@@ -18,10 +18,12 @@ class PollMaintenanceServer {
   $signature=array();$tables=array();foreach($names as$name){$row=$this->pdo->query('SHOW CREATE TABLE fixture_'.$name)->fetch(PDO::FETCH_NUM);if(!is_array($row)||!isset($row[1])){throw new RuntimeException('Native poll fixture schema unavailable');}$signature[$name]=hash('sha256',$row[1]);$tables[]=$this->pdo->quote('fixture_'.$name);}
   $signature['__triggers']=(bool)$this->pdo->query('SELECT 1 FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND EVENT_OBJECT_TABLE IN ('.implode(',',$tables).') LIMIT 1')->fetchColumn();return $signature;
  }
- function __construct($engine){
+ function __construct($engine,$peer_wait=true){
   static $native_schemas=array();
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_POLL_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  if($GLOBALS['native']){poll_fixture_peer_timeout($this->pdo);}
+  // Schema/data setup is not the intentional zero-wait conflict probe.
+  // InnoDB schema changes must not inherit the conflict probe's NOWAIT.
+  if($GLOBALS['native']){$this->pdo->exec('SET SESSION innodb_lock_wait_timeout=1');}
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0','topics'=>'topic_id INTEGER PRIMARY KEY,topic_vote INTEGER','polls'=>'vote_id INTEGER PRIMARY KEY,topic_id INTEGER,vote_text VARCHAR(255),vote_start INTEGER,vote_length INTEGER','options'=>'vote_id INTEGER,vote_option_id INTEGER,vote_option_text VARCHAR(255),vote_result INTEGER','voters'=>'vote_id INTEGER,vote_user_id INTEGER,vote_user_ip VARCHAR(45)','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
   $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
   $names=array_keys($definitions);$key=$GLOBALS['native']?$GLOBALS['dsn'].'|'.$engine:'';
@@ -42,6 +44,7 @@ class PollMaintenanceServer {
   $this->pdo->exec("INSERT INTO fixture_voters VALUES (1,8,'192.0.2.8'),(1,-1,'192.0.2.9'),(1,77,'192.0.2.77'),(2,8,'192.0.2.8'),(99,8,'192.0.2.8'),(3,8,'192.0.2.8')");
   if($seed_transaction){$this->pdo->commit();}
   }catch(Exception $error){if($seed_transaction&&$this->pdo->inTransaction()){$this->pdo->rollBack();}throw $error;}catch(Error $error){if($seed_transaction&&$this->pdo->inTransaction()){$this->pdo->rollBack();}throw $error;}
+  if($GLOBALS['native']&&$peer_wait){poll_fixture_peer_timeout($this->pdo);}
  }
 }
 class PollMaintenanceForum {

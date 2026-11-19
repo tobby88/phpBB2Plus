@@ -27,8 +27,11 @@ function poll_fixture_schema_checks()
         }
         return $out;
     };
-    $GLOBALS['poll_mtnc_server']->pdo->exec('DROP TABLE fixture_junior');
-    $cold = new PollMaintenanceServer('InnoDB'); $expected = $cold->schema_signature($names); $rows = $snapshot($cold);
+    // Only schema-reset peers retain the bounded setup wait. The original
+    // conflict peer remains at its engine-specific minimum throughout.
+    $schema_peer = new PollMaintenanceServer('InnoDB', false);
+    $schema_peer->pdo->exec('DROP TABLE fixture_junior');
+    $cold = new PollMaintenanceServer('InnoDB', false); $expected = $cold->schema_signature($names); $rows = $snapshot($cold);
     $check(!$cold->native_schema_reused && $expected['__triggers'] === false, 'Missing owned schema is constructed without triggers');
     $cold->pdo->exec("INSERT INTO fixture_users VALUES(999,'stale',1,0,0)");
     $cold->pdo->exec('INSERT INTO fixture_topics VALUES(999,1)');
@@ -38,26 +41,27 @@ function poll_fixture_schema_checks()
     $cold->pdo->exec("INSERT INTO fixture_junior VALUES(999,'stale')");
     $cold->pdo->exec("INSERT INTO fixture_sessions VALUES('stale',999,1,1)");
     $cold->pdo->exec("UPDATE fixture_users SET username='changed',user_active=0 WHERE user_id=1");
-    $warm = new PollMaintenanceServer('InnoDB');
+    $warm = new PollMaintenanceServer('InnoDB', false);
     $check($warm->native_schema_reused && $warm->schema_signature($names) === $expected, 'Exactly matching native table definitions are reused');
     $check($snapshot($warm) === $rows && !$warm->pdo->inTransaction(), 'All seven complete original data states restored and seed transaction closed');
     $warm->pdo->exec('ALTER TABLE fixture_options ADD COLUMN fixture_drift INTEGER NULL');
-    $drift = new PollMaintenanceServer('InnoDB');
+    $drift = new PollMaintenanceServer('InnoDB', false);
     $check(!$drift->native_schema_reused && $drift->schema_signature($names) === $expected && $snapshot($drift) === $rows, 'Column drift forces exact schema and data reconstruction');
-    $drift->pdo->exec('DROP TABLE fixture_sessions'); $missing = new PollMaintenanceServer('InnoDB');
+    $drift->pdo->exec('DROP TABLE fixture_sessions'); $missing = new PollMaintenanceServer('InnoDB', false);
     $check(!$missing->native_schema_reused && $missing->schema_signature($names) === $expected && $snapshot($missing) === $rows, 'Missing session table cannot contaminate subsequent authority cases');
     $missing->pdo->exec('CREATE TRIGGER fixture_poll_probe BEFORE INSERT ON fixture_users FOR EACH ROW SET NEW.user_active=0');
-    $trigger = new PollMaintenanceServer('InnoDB');
+    $trigger = new PollMaintenanceServer('InnoDB', false);
     $check(!$trigger->native_schema_reused && $trigger->schema_signature($names) === $expected && $snapshot($trigger) === $rows, 'Unexpected real trigger is removed before original fixture seeding');
-    $legacy = new PollMaintenanceServer('MyISAM'); $legacy_schema = $legacy->schema_signature($names);
+    $legacy = new PollMaintenanceServer('MyISAM', false); $legacy_schema = $legacy->schema_signature($names);
     $check(!$legacy->native_schema_reused && $legacy_schema !== $expected && $snapshot($legacy) === $rows, 'Real legacy engine remains distinct with all original rows');
-    $legacy_warm = new PollMaintenanceServer('MyISAM');
+    $legacy_warm = new PollMaintenanceServer('MyISAM', false);
     $check($legacy_warm->native_schema_reused && $legacy_warm->schema_signature($names) === $legacy_schema && $snapshot($legacy_warm) === $rows, 'Legacy refusal cases also start with fresh matching data');
-    $switched = new PollMaintenanceServer('InnoDB');
+    $switched = new PollMaintenanceServer('InnoDB', false);
     $check(!$switched->native_schema_reused && $switched->schema_signature($names) === $expected && $snapshot($switched) === $rows && !$switched->pdo->inTransaction(), 'Engine switch restores exact InnoDB schema, original rows and idle seed state');
     $forum = new PollMaintenanceForum();
-    $check($forum->dbname === $switched->pdo->query('SELECT DATABASE()')->fetchColumn() && preg_match('/^codex_poll_mtnc_[a-f0-9]{16}$/D', $forum->dbname) === 1, 'Actual application advisory namespace follows this owned database');
-    unset($cold, $warm, $drift, $missing, $trigger, $legacy, $legacy_warm, $switched, $forum);
+    $expected_peer_wait = stripos($GLOBALS['poll_mtnc_server']->pdo->getAttribute(PDO::ATTR_SERVER_VERSION), 'MariaDB') !== false ? 0 : 1;
+    $check($forum->dbname === $switched->pdo->query('SELECT DATABASE()')->fetchColumn() && preg_match('/^codex_poll_mtnc_[a-f0-9]{16}$/D', $forum->dbname) === 1 && (int)$switched->pdo->query('SELECT @@SESSION.innodb_lock_wait_timeout')->fetchColumn() === 1 && (int)$GLOBALS['poll_mtnc_server']->pdo->query('SELECT @@SESSION.innodb_lock_wait_timeout')->fetchColumn() === $expected_peer_wait, 'Actual owned schema uses a bounded reset wait without changing the conflict peer');
+    unset($schema_peer, $cold, $warm, $drift, $missing, $trigger, $legacy, $legacy_warm, $switched, $forum);
     echo 'Native poll fixture schema: ', $checks, " checks PASS; exact warm schema, seven original data states, missing/column/trigger drift, legacy refusal, engine switch and closed seed transactions.\n";
 }
 
