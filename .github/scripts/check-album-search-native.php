@@ -191,6 +191,38 @@ try
 	foreach(array('before','after')as$phase){for($target=1;$target<=count($baseline['queries']);$target++){$out=as_call('needle','name',$target,$phase);as_check($out['hit']&&$out['error']!==null&&!isset($out['vars']['L_NRESULTS'])&&!$out['rows'],'SQL failure cannot render a partial successful search');$faults++;}}
 	$r=as_sql('SELECT COUNT(*) total FROM fixture_album');$row=$control->sql_fetchrow($r);$control->sql_freeresult($r);as_check($row['total']==='2','Actual read-only search leaves the fixture pictures intact');
 	echo 'Album search native: '.$cases.' actual controller/ACL cases, '.$faults." SQL failures PASS; visible500 limit, stable unsigned IDs, group and owner rights, coherent retries, EN/DE and former-author privacy.\n";
+	// Retain every original case above. Registered author names must agree with
+	// the current account, while real guests and retired accounts keep their
+	// existing stored-name and privacy rules.
+	$original_cases=$cases;
+	as_insert('removed_author_names',array('author_user_id'=>8,'author_name_hash'=>hash('sha256','OldHandle'),'author_name'=>'OldHandle','recorded_at'=>1));
+	foreach(array('english','german')as$locale)
+	{
+		$lang=array();require $phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';require $phpbb_root_path.'language/lang_'.$locale.'/lang_main_album.php';
+		$board_config=array('hide_removed_author_names'=>1,'default_lang'=>$locale,'default_dateformat'=>'Y-m-d H:i','board_timezone'=>0);$album_config=$defaults;
+		foreach(array('','NO_BACKSLASH_ESCAPES','ANSI_QUOTES')as$sql_mode)
+		{
+			as_check($db->sql_query("SET SESSION sql_mode='".$sql_mode."'")!==false,'Current author fixture SQL mode');
+			as_sql('DELETE FROM fixture_album');as_sql('DELETE FROM fixture_user_group');as_sql('DELETE FROM fixture_users WHERE user_id=8');
+			$current_name="Neuer Grüße O'Neil";
+			as_insert('users',array('user_id'=>8,'username'=>$current_name,'user_password'=>'','user_email'=>'','user_level'=>USER,'user_active'=>1));
+			as_picture(700,1,8,'by-title-700',100,'OldHandle');as_picture(701,1,-1,'Guest picture',100,'Named Guest');as_picture(702,1,0,'Zero guest picture',100,'Zero Guest');as_picture(703,1,9,'Missing account picture',100,'Unclassified missing');
+			as_viewer();$out=as_call($current_name,'user');as_expect($out,array('700'),'Current registered username finds the existing upload');
+			as_check($out['rows'][0]['L_USERNAME']===htmlspecialchars($current_name,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')&&strpos($out['rows'][0]['U_PROFILE'],'u=8')!==false,'Current registered byline is escaped once and links to its actual account');
+			as_expect(as_call('OldHandle','user'),array(),'Previous upload name no longer identifies an existing renamed account');
+			as_viewer(-1);as_expect(as_call($current_name,'user'),array('700'),'Future retirement marker does not mask a currently existing account');
+			as_expect(as_call('Named Guest','user'),array('701'),'True anonymous guest keeps the submitted name');
+			as_expect(as_call('Anonymous','user'),array(),'Anonymous sentinel username is not substituted for guest names');
+			as_expect(as_call('Zero Guest','user'),array('702'),'Legacy zero guest identity keeps the submitted name');
+			as_sql('DELETE FROM fixture_users WHERE user_id=8');
+			as_expect(as_call($current_name,'user'),array(),'Missing account cannot supply its former current username');
+			as_expect(as_call('OldHandle','user'),array(),'Retired account name search remains hidden from guests');
+			$out=as_call('by-title-700','name');as_expect($out,array('700'),'Title search still returns the visible retired-author upload');as_check($out['rows'][0]['L_USERNAME']===$lang['Former_member'],'Retired upload byline retains localized guest privacy');
+			as_viewer();$out=as_call('OldHandle','user');as_expect($out,array('700'),'Signed-in readers retain the stored retired-author name');as_check($out['rows'][0]['L_USERNAME']==='OldHandle','Retired name is not replaced for signed-in readers');
+			as_viewer(-1);as_expect(as_call('Unclassified missing','user'),array('703'),'Missing unclassified account retains historical stored author data');
+		}
+	}
+	echo 'Album current author search native: '.($cases-$original_cases)." cases PASS; actual registered renames/bylines, EN/DE, three SQL modes, true guests and missing/former-account privacy.\n";
 }
 finally
 {

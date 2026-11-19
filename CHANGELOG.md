@@ -21,6 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Match Album author searches and result bylines to the current registered
+  username. Preserve submitted guest names, missing-account fallback and
+  former-account privacy when a stored upload name differs from the account.
 - Send old personal-gallery bookmarks to the current hierarchy renderer with
   bounded pagination and supported sort options. Retain the original reader
   when an authorized collection still has legacy category-zero pictures,

@@ -75,8 +75,10 @@ include($phpbb_root_path . 'common.'.$phpEx);
 	$mode_value = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
 	$search = is_scalar($search_value) ? trim((string) $search_value) : '';
 	$mode = is_scalar($mode_value) ? strtolower((string) $mode_value) : '';
+	// Existing accounts supply their current name; guests and missing accounts
+	// retain the upload's stored name and its former-author privacy policy.
 	$search_columns = array(
-		'user' => 'p.pic_username',
+		'user' => 'COALESCE(album_author.username, p.pic_username)',
 		'name' => 'p.pic_title',
 		'desc' => 'p.pic_desc',
 	);
@@ -120,12 +122,13 @@ include($phpbb_root_path . 'common.'.$phpEx);
 
 			// Descriptions may be very large. Search them in SQL without loading
 			// their bytes for every candidate; only render/permission fields travel.
-			$sql = "SELECT p.pic_id,p.pic_cat_id,p.pic_user_id,p.pic_username,p.pic_title,p.pic_time,
+			$sql = "SELECT p.pic_id,p.pic_cat_id,p.pic_user_id,COALESCE(album_author.username, p.pic_username) AS pic_username,p.pic_title,p.pic_time,
 				c.cat_id,c.cat_user_id,c.cat_title,c.cat_parent,c.cat_approval,
 				c.cat_view_level,c.cat_upload_level,c.cat_rate_level,c.cat_comment_level,c.cat_edit_level,c.cat_delete_level,
 				c.cat_view_groups,c.cat_upload_groups,c.cat_rate_groups,c.cat_comment_groups,c.cat_edit_groups,c.cat_delete_groups,c.cat_moderator_groups
 				FROM " . ALBUM_TABLE . " AS p
 				LEFT JOIN " . ALBUM_CAT_TABLE . " AS c ON c.cat_id = p.pic_cat_id
+				LEFT JOIN " . USERS_TABLE . " AS album_author ON album_author.user_id = p.pic_user_id AND p.pic_user_id > 0
 				WHERE (p.pic_approval = 1 OR c.cat_approval = " . ALBUM_USER . "
 					OR (p.pic_cat_id = " . PERSONAL_GALLERY . " AND c.cat_id IS NULL))
 					AND " . $where . " LIKE '%" . $search_sql . "%'
