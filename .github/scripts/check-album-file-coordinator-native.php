@@ -42,7 +42,31 @@ class AlbumFileCoordinatorObserved extends AlbumNativeObservedConnection
         }
         return parent::sql_query($sql, $transaction);
     }
-    function sql_close() { $this->observer->closed++; return $this->database->sql_close(); }
+    function sql_close()
+    {
+        $this->observer->closed++;
+        $id = $this->database->db_connect_id ? (string) mysqli_thread_id($this->database->db_connect_id) : '';
+        $schema = $this->database->dbname; $closed = $this->database->sql_close();
+        // Native close sends COM_QUIT without waiting for the server to release
+        // its named locks. Observe that exact old owner before a zero-wait
+        // successor; never release or wait for a different connection's lease.
+        if ($id !== '' && $closed)
+        {
+            $deadline = microtime(true) + 1;
+            foreach (array('fixture_', 'other_') as $prefix)
+            {
+                $lock = 'album_files_' . sha1($schema . "\0" . $prefix);
+                do
+                {
+                    $rows = afc_rows("SELECT IS_USED_LOCK('" . $lock . "') AS holder");
+                    if ((string) $rows[0]['holder'] !== $id) { break; }
+                    afc_check(microtime(true) < $deadline, 'Server must finish closing the exact owned fixture lease');
+                    usleep(1000);
+                } while (true);
+            }
+        }
+        return $closed;
+    }
 }
 $port = getenv('PHPBB_ALBUM_FILE_COORDINATOR_PORT') ?: '3306'; $password = getenv('PHPBB_ALBUM_FILE_COORDINATOR_PASSWORD') ?: '';
 afc_check(preg_match('/^[0-9]{1,5}$/D', $port) && (int) $port > 0 && (int) $port <= 65535, 'Own loopback port'); $host = '127.0.0.1:' . $port;

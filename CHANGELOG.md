@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Local and native checks
 
+- Synchronize native Album coordinator fixtures with server-side disconnect
+  processing before testing zero-wait successors. Observe only the exact old
+  connection; retain all real contention checks and application lock waits.
 - Prepare disposable Album discussion, authority, upload and deletion data in
   committed batches. Keep application transactions and real contention/failure
   probes unchanged; verify rollback, caller isolation, exact values and legacy
