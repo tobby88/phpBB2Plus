@@ -21,6 +21,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Send old personal-gallery bookmarks to the current hierarchy renderer with
+  bounded pagination and supported sort options. Retain the original reader
+  when an authorized account still has legacy category-zero pictures; perform
+  no implicit data conversion during a page request.
 - Apply current category access and approval rules to the personal-gallery owner
   directory. Hide owners without visible pictures, count only visible pictures,
   and keep owner totals and pages in the same snapshot. Support strict grouping,

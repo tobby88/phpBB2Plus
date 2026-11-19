@@ -80,9 +80,43 @@ else
 // Check $user_id
 // ------------------------------------
 
-if( ($user_id < 1) and (!$userdata['session_logged_in']) )
+if ($user_id < 1)
 {
-	redirect(append_sid("login.$phpEx?redirect=album_personal.$phpEx"));
+	if (!$userdata['session_logged_in'])
+	{
+		redirect(append_sid("login.$phpEx?redirect=album_personal.$phpEx"));
+	}
+	$user_id = (int) $userdata['user_id'];
+}
+
+// Old bookmarks should use the hierarchy's current permissions, counts and
+// renderer. Keep the original reader for a permitted account that still has
+// pre-hierarchy category-zero pictures; dispatch never migrates or deletes data.
+$personal_gallery_access = personal_gallery_access(1,1);
+$legacy_personal_gallery = false;
+if (!empty($personal_gallery_access['view']))
+{
+	$sql = 'SELECT pic_id FROM ' . ALBUM_TABLE . ' WHERE pic_cat_id=0 AND pic_user_id=' . (int) $user_id . ' LIMIT 1';
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not query personal gallery routing', '', __LINE__, __FILE__, $sql);
+	}
+	$legacy_personal_gallery = (bool) $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+}
+if (!$legacy_personal_gallery)
+{
+	$parameters = array('user_id' => (int) $user_id);
+	$offset = isset($_GET['start']) ? phpbb_request_scalar($_GET, 'start', 0) : phpbb_request_scalar($_POST, 'start', 0);
+	$offset = max(0, min(1000000, intval($offset)));
+	if ($offset) { $parameters['start'] = $offset; }
+	$allowed = array('sort_method' => array('pic_time','pic_title','username','pic_view_count','rating','comments','new_comment'), 'sort_order' => array('ASC','DESC'));
+	foreach ($allowed as $key => $values)
+	{
+		$value = isset($_GET[$key]) ? phpbb_request_scalar($_GET, $key) : phpbb_request_scalar($_POST, $key);
+		if (in_array($value, $values, true)) { $parameters[$key] = $value; }
+	}
+	redirect(append_sid("album.$phpEx?" . http_build_query($parameters, '', '&')));
 }
 
 
@@ -114,8 +148,6 @@ $username_html = album_html_text($username);
 // ------------------------------------
 // Check Permissions
 // ------------------------------------
-$personal_gallery_access = personal_gallery_access(1,1);
-
 if( $personal_gallery_access['view'] == 0 )
 {
 	if (!$userdata['session_logged_in'])
