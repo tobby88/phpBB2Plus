@@ -49,7 +49,7 @@ if ( isset($_GET['mode']) || isset($_POST['mode']) )
 }
 else
 {
-	$mode = 'joined';
+	$mode = 'joindate';
 }
 
 if(isset($_POST['order']))
@@ -64,6 +64,21 @@ else
 {
 	$sort_order = 'ASC';
 }
+
+$items_per_page = max(1, min(100, intval($board_config['topics_per_page'])));
+try
+{
+	$listing = album_gallery_owner_page($db, $mode, $sort_order, $start, $items_per_page);
+}
+catch (PhpbbForumReadFailure $error)
+{
+	message_die(GENERAL_ERROR, 'Could not query personal galleries');
+}
+$mode = $listing['sort'];
+$sort_order = $listing['order'];
+$start = $listing['start'];
+$total_galleries = $listing['total'];
+$memberrow = $listing['rows'];
 
 //
 // Memberlist sorting
@@ -118,50 +133,6 @@ $template->assign_vars(array(
 );
 
 
-$items_per_page = max(1, min(100, intval($board_config['topics_per_page'])));
-switch( $mode )
-{
-	case 'joined':
-		$order_by = "user_regdate ASC LIMIT $start, $items_per_page";
-		break;
-	case 'username':
-		$order_by = "username $sort_order LIMIT $start, $items_per_page";
-		break;
-	case 'pics':
-		$order_by = "pics $sort_order LIMIT $start, $items_per_page";
-		break;
-	case 'last_pic':
-		$order_by = "last_pic $sort_order LIMIT $start, $items_per_page";
-		break;
-	default:
-		$mode = 'joined';
-		$order_by = "user_regdate $sort_order LIMIT $start, $items_per_page";
-		break;
-}
-
-//--- Album Category Hierarchy : begin
-//--- version : 1.1.0
-$sql = "SELECT u.username, u.user_id, u.user_regdate, COUNT(p.pic_id) AS pics, MAX(p.pic_id) AS last_pic, COUNT(c.cat_user_id) AS cats
-		FROM ". USERS_TABLE ." AS u, " . ALBUM_TABLE . " AS p, " . ALBUM_CAT_TABLE . " AS c
-		WHERE u.user_id <> ". ANONYMOUS ."
-			AND c.cat_user_id = u.user_id
-			AND c.cat_id = p.pic_cat_id
-		GROUP BY user_id
-		ORDER BY $order_by";
-//--- Album Category Hierarchy : end
-
-if( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query users', '', __LINE__, __FILE__, $sql);
-}
-
-$memberrow = array();
-
-while( $row = $db->sql_fetchrow($result) )
-{
-	$memberrow[] = $row;
-}
-
 for ($i = 0; $i < count($memberrow); $i++)
 {
 	$template->assign_block_vars('memberrow', array(
@@ -173,28 +144,7 @@ for ($i = 0; $i < count($memberrow); $i++)
 	);
 }
 
-//--- Album Category Hierarchy : begin
-//--- version : 1.1.0
-$sql = "SELECT COUNT(DISTINCT u.user_id) AS total
-		FROM ". USERS_TABLE ." AS u, ". ALBUM_TABLE ." AS p, " . ALBUM_CAT_TABLE . " AS c
-		WHERE u.user_id <> ". ANONYMOUS ."
-			AND c.cat_user_id = u.user_id
-			AND c.cat_id = p.pic_cat_id";
-//--- Album Category Hierarchy : end
-
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Error getting total galleries', '', __LINE__, __FILE__, $sql);
-}
-
-$total_galleries = 0;
-$pagination = '';
-if ( $total = $db->sql_fetchrow($result) )
-{
-	$total_galleries = (int) $total['total'];
-
-	$pagination = generate_pagination("album_personal_index.$phpEx?mode=$mode&amp;order=$sort_order", $total_galleries, $items_per_page, $start). '&nbsp;';
-}
+$pagination = generate_pagination("album_personal_index.$phpEx?mode=$mode&amp;order=$sort_order", $total_galleries, $items_per_page, $start);
 
 $template->assign_vars(array(
 	'PAGINATION' => $pagination,

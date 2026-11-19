@@ -18,6 +18,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Apply current category access and approval rules to the personal-gallery owner
+  directory. Hide owners without visible pictures, count only visible pictures,
+  and keep owner totals and pages in the same snapshot. Support strict grouping,
+  stable ordering and stale-page correction; sort latest uploads by their time.
 - Count visible pictures consistently in category totals, personal galleries and
   member lists. Multiple comments or ratings of one picture produce one result;
   outdated offsets return the last real page instead of an empty extra page.

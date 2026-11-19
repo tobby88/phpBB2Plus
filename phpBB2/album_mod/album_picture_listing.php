@@ -17,6 +17,65 @@ function album_picture_category_ids($values)
 	return array_values($ids);
 }
 
+// The owner directory is a projection of visible pictures, including each
+// category's approval policy. Aggregate only after authorizing the categories;
+// count and page must use the same independent snapshot as those permissions.
+function album_gallery_owner_page($database, $sort, $order, $start, $size)
+{
+	global $db, $userdata, $album_config, $album_data;
+	$original = array($db, $userdata, $album_config, $album_data); $reader = null;
+	try
+	{
+		if (!is_int($start) || $start < 0 || $start > 1000000 || !is_int($size) || $size < 1 || $size > 100) { throw new PhpbbForumReadFailure('Invalid Album gallery page'); }
+		$sorts = array('joindate'=>'u.user_regdate', 'username'=>'u.username', 'pics'=>'g.pics', 'last_pic'=>'g.last_pic');
+		$sort = is_string($sort) && isset($sorts[$sort]) ? $sort : 'joindate'; $order = $order === 'DESC' ? 'DESC' : 'ASC';
+		$out = array('rows'=>array(), 'total'=>0, 'start'=>0, 'size'=>$size, 'sort'=>$sort, 'order'=>$order);
+		$reader = new PhpbbForumReadSnapshot($database, array(ALBUM_TABLE, ALBUM_CAT_TABLE, ALBUM_CONFIG_TABLE, USERS_TABLE, USER_GROUP_TABLE, SESSIONS_TABLE, CONFIG_TABLE, BANLIST_TABLE));
+		$actor = $userdata;
+		if (!empty($actor['session_logged_in']))
+		{
+			$fresh = $reader->authenticated_user($actor);
+			if (!$fresh) { throw new PhpbbForumReadFailure('Album session unavailable'); }
+			$actor = array_merge($actor, $fresh);
+		}
+		else { $actor = array('user_id'=>ANONYMOUS, 'user_level'=>USER, 'session_logged_in'=>false, 'session_id'=>''); }
+		$settings = array();
+		foreach ($reader->rows('SELECT config_name,config_value FROM ' . ALBUM_CONFIG_TABLE) as $setting) { $settings[$setting['config_name']] = $setting['config_value']; }
+		foreach (array('rate','comment','personal_gallery','personal_gallery_view','personal_gallery_private','personal_allow_gallery_mod','personal_allow_sub_categories','personal_sub_category_limit','album_debug_mode') as $key) { if (!isset($settings[$key])) { throw new PhpbbForumReadFailure('Album settings unavailable'); } }
+		$db = $reader; $userdata = $actor; $album_config = $settings; $album_data = array();
+		$visible = $pending = array();
+		foreach ($reader->rows('SELECT ct.* FROM ' . ALBUM_CAT_TABLE . ' ct JOIN ' . USERS_TABLE . ' u ON u.user_id=ct.cat_user_id WHERE ct.cat_id>0 AND ct.cat_user_id>0 AND ct.cat_user_id<=8388607') as $category)
+		{
+			$id = (int)$category['cat_id']; $rights = album_permissions((int)$category['cat_user_id'], $id, ALBUM_AUTH_ALL, $category);
+			if (!album_check_permission($rights, ALBUM_AUTH_VIEW)) { continue; }
+			$visible[] = $id;
+			if (album_picture_pending_visible($category, $rights, $actor)) { $pending[] = $id; }
+		}
+		if (!$visible) { return $out; }
+		// Group the picture facts separately, so username and join date do not
+		// depend on permissive GROUP BY behavior. Last picture means upload time,
+		// rather than the numeric ID of a possibly imported older picture.
+		$from = ' FROM (SELECT ct.cat_user_id user_id,COUNT(p.pic_id) pics,MAX(p.pic_time) last_pic FROM ' . ALBUM_TABLE . ' p JOIN ' . ALBUM_CAT_TABLE . ' ct ON ct.cat_id=p.pic_cat_id'
+			. ' WHERE p.pic_cat_id IN (' . implode(',', $visible) . ') AND (p.pic_approval=1' . ($pending ? ' OR p.pic_cat_id IN (' . implode(',', $pending) . ')' : '') . ') GROUP BY ct.cat_user_id) g'
+			. ' JOIN ' . USERS_TABLE . ' u ON u.user_id=g.user_id';
+		$count = $reader->rows('SELECT COUNT(*) total' . $from);
+		if (count($count) !== 1 || !isset($count[0]['total']) || preg_match('/^(?:0|[1-9][0-9]{0,6})$/D', (string)$count[0]['total']) !== 1 || (int)$count[0]['total'] > 8388607) { throw new PhpbbForumReadFailure('Invalid Album gallery count'); }
+		$out['total'] = (int)$count[0]['total']; $last = $out['total'] ? (int)floor(($out['total'] - 1) / $size) * $size : 0;
+		$out['start'] = (int)floor(min($start, $last) / $size) * $size;
+		if ($out['total'])
+		{
+			$out['rows'] = $reader->rows('SELECT u.user_id,u.username,u.user_regdate,g.pics,g.last_pic' . $from . ' ORDER BY ' . $sorts[$sort] . ' ' . $order . ',u.user_id ' . $order . ' LIMIT ' . $out['start'] . ',' . $size);
+			if (count($out['rows']) !== min($size, $out['total'] - $out['start'])) { throw new PhpbbForumReadFailure('Inconsistent Album gallery page'); }
+		}
+		return $out;
+	}
+	finally
+	{
+		$db = $original[0]; $userdata = $original[1]; $album_config = $original[2]; $album_data = $original[3];
+		if ($reader !== null) { $reader->release(); }
+	}
+}
+
 function album_picture_pending_visible($category, $rights, $actor = null)
 {
 	if ($actor === null) { $actor = isset($GLOBALS['userdata']) ? $GLOBALS['userdata'] : array(); }
