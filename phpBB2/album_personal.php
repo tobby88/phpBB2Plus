@@ -80,17 +80,13 @@ else
 // Check $user_id
 // ------------------------------------
 
-if ($user_id < 1)
+if ($user_id < 1 && !$userdata['session_logged_in'])
 {
-	if (!$userdata['session_logged_in'])
-	{
-		redirect(append_sid("login.$phpEx?redirect=album_personal.$phpEx"));
-	}
-	$user_id = (int) $userdata['user_id'];
+	redirect(append_sid("login.$phpEx?redirect=album_personal.$phpEx"));
 }
 
 // Old bookmarks should use the hierarchy's current permissions, counts and
-// renderer. Keep the original reader for a permitted account that still has
+// renderer. Keep the original reader for a permitted collection that still has
 // pre-hierarchy category-zero pictures; dispatch never migrates or deletes data.
 $personal_gallery_access = personal_gallery_access(1,1);
 $legacy_personal_gallery = false;
@@ -106,6 +102,9 @@ if (!empty($personal_gallery_access['view']))
 }
 if (!$legacy_personal_gallery)
 {
+	// A historical guest collection also uses -1. Normalize an empty old
+	// bookmark only after preserving any permitted category-zero pictures.
+	if ($user_id < 1) { $user_id = (int) $userdata['user_id']; }
 	$parameters = array('user_id' => (int) $user_id);
 	$offset = isset($_GET['start']) ? phpbb_request_scalar($_GET, 'start', 0) : phpbb_request_scalar($_POST, 'start', 0);
 	$offset = max(0, min(1000000, intval($offset)));
