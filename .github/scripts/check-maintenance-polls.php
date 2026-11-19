@@ -90,7 +90,18 @@ function poll_mtnc_value($sql){return (int)$GLOBALS['poll_mtnc_server']->pdo->qu
 function poll_mtnc_run($expected='',$request=null){
  $caught='';$result=null;try{$result=dbmtnc_maintain_polls(new PollMaintenanceForum(),$request===null?$_POST:$request);}catch(PhpbbAclException $e){$caught=$e->getMessage();}
  if(is_callable($expected)){$expected=call_user_func($expected);}
- poll_mtnc_check($caught===$expected,'Expected maintenance outcome: '.$caught.' / '.$expected);poll_mtnc_check($GLOBALS['poll_mtnc_server']->owner===null,'Owner released');return $result;
+ poll_mtnc_check($caught===$expected,'Expected maintenance outcome: '.$caught.' / '.$expected);poll_mtnc_check($GLOBALS['poll_mtnc_server']->owner===null,'Owner released');
+ if($GLOBALS['native']){
+  // PDO close sends COM_QUIT asynchronously. Finish the real server-side
+  // disconnect before the fixture resets rows with its zero-wait peer. This
+  // retains actual connection-loss rollback and every application contention
+  // check, while a genuinely leaked lease still fails the bounded acquisition.
+  $forum=new PollMaintenanceForum();$name='attachment:'.md5($forum->dbname."\0".ATTACHMENTS_TABLE);$peer=$GLOBALS['poll_mtnc_server']->pdo;
+  $released=(int)$peer->query('SELECT GET_LOCK('.$peer->quote($name).',1)')->fetchColumn()===1;
+  $probe_released=$released&&(int)$peer->query('SELECT RELEASE_LOCK('.$peer->quote($name).')')->fetchColumn()===1;
+  poll_mtnc_check($released&&$probe_released,'Native maintenance disconnect releases the actual owned lease before fixture reset');
+ }
+ return $result;
 }
 function phpbb_admin_html($value){return htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 $controller=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($controller,"case 'check_vote':");$b=strpos($controller,"case 'check_pm':",$a);
