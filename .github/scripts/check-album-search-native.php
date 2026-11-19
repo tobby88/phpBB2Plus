@@ -12,6 +12,14 @@ require_once $album_root_path . 'album_constants.php';
 require $album_root_path . 'album_functions.php';
 require $album_root_path . 'album_hierarchy_functions.php';
 function as_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
+$as_legacy_requests=isset($argv[1])&&$argv[1]==='legacy';
+as_check(!isset($argv[1])||$as_legacy_requests,'Known native request mode');
+$as_request_bootstrap='';
+if($as_legacy_requests)
+{
+	$bootstrap=file_get_contents($phpbb_root_path.'common.php');$a=strpos($bootstrap,'$_GET = phpbb_addslashes_recursive($_GET);');$last='$HTTP_COOKIE_VARS = $_COOKIE;';$b=strpos($bootstrap,$last,$a);
+	as_check($a!==false&&$b>$a,'Actual complete common request quoting and legacy aliases');$as_request_bootstrap=substr($bootstrap,$a,$b+strlen($last)-$a);
+}
 class AlbumSearchExit extends RuntimeException {}
 function message_die($level, $message) { throw new AlbumSearchExit($message); }
 function append_sid($url) { return $url; }
@@ -96,8 +104,9 @@ function as_viewer($id = 7, $level = USER)
 }
 function as_call($term = 'needle', $mode = 'name', $fault = 0, $phase = '', $on_query = null, $on_row = null)
 {
-	global $db, $template, $userdata, $album_config, $album_data, $board_config, $lang, $as_program;
+	global $db, $template, $userdata, $album_config, $album_data, $board_config, $lang, $as_program, $as_request_bootstrap, $HTTP_GET_VARS, $HTTP_POST_VARS, $HTTP_COOKIE_VARS;
 	$_POST = array('search'=>$term, 'mode'=>$mode); $_GET = array(); $template = new AlbumSearchTemplate(); $album_data = array(); $error = null;
+	if($as_request_bootstrap!==''){$_COOKIE=array();$_REQUEST=$_POST;eval($as_request_bootstrap);as_check($HTTP_POST_VARS===$_POST&&$HTTP_GET_VARS===$_GET&&$HTTP_COOKIE_VARS===$_COOKIE,'Actual legacy request aliases stay synchronized');}
 	$db->queries = $db->searches = $db->search_results = array(); $db->freed_searches = $db->candidate_rows = 0;
 	$db->fault = $fault; $db->phase = $phase; $db->hit = false; $db->on_query = $on_query; $db->on_row = $on_row; $db->armed = true;
 	try { eval($as_program); } catch (AlbumSearchExit $exception) { $error = $exception->getMessage(); } finally { $db->armed = false; }
@@ -190,7 +199,7 @@ try
 	as_sql('DELETE FROM fixture_album');as_sql('DELETE FROM fixture_user_group');as_picture(1,1);as_picture(2,3);$baseline=as_call();as_expect($baseline,array('1'),'Fault scenario positive control');
 	foreach(array('before','after')as$phase){for($target=1;$target<=count($baseline['queries']);$target++){$out=as_call('needle','name',$target,$phase);as_check($out['hit']&&$out['error']!==null&&!isset($out['vars']['L_NRESULTS'])&&!$out['rows'],'SQL failure cannot render a partial successful search');$faults++;}}
 	$r=as_sql('SELECT COUNT(*) total FROM fixture_album');$row=$control->sql_fetchrow($r);$control->sql_freeresult($r);as_check($row['total']==='2','Actual read-only search leaves the fixture pictures intact');
-	echo 'Album search native: '.$cases.' actual controller/ACL cases, '.$faults." SQL failures PASS; visible500 limit, stable unsigned IDs, group and owner rights, coherent retries, EN/DE and former-author privacy.\n";
+	echo ($as_legacy_requests?'Album search escaped request native: ':'Album search native: ').$cases.' actual controller/ACL cases, '.$faults." SQL failures PASS; visible500 limit, stable unsigned IDs, group and owner rights, coherent retries, EN/DE and former-author privacy.\n";
 	// Retain every original case above. Registered author names must agree with
 	// the current account, while real guests and retired accounts keep their
 	// existing stored-name and privacy rules.
@@ -222,7 +231,7 @@ try
 			as_viewer(-1);as_expect(as_call('Unclassified missing','user'),array('703'),'Missing unclassified account retains historical stored author data');
 		}
 	}
-	echo 'Album current author search native: '.($cases-$original_cases)." cases PASS; actual registered renames/bylines, EN/DE, three SQL modes, true guests and missing/former-account privacy.\n";
+	echo ($as_legacy_requests?'Album current author search escaped native: ':'Album current author search native: ').($cases-$original_cases)." cases PASS; actual registered renames/bylines, EN/DE, three SQL modes, true guests and missing/former-account privacy.\n";
 }
 finally
 {

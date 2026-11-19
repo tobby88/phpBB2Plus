@@ -45,6 +45,7 @@ function native_workflow_partition($source)
 		|| strpos($matrix_source,"PHPBB_PM_VIEW_NATIVE: '1'") === false) { throw new RuntimeException('Actual PM body and mailbox reads must run in the native PHP matrix'); }
 	if (preg_match_all('/^        run: php -d disable_functions=mail \\.github\\/scripts\\/check-topic-preferences-native\\.php (?:watch|bookmark|controllers)$/m',$matrix_source) !== 3
 		|| strpos($matrix_source,"PHPBB_TOPIC_PREF_NATIVE: '1'") === false) { throw new RuntimeException('All current topic preference modes must run in the native PHP matrix'); }
+	if (preg_match_all('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-album-search-native\\.php legacy$/m',$matrix_source) !== 1) { throw new RuntimeException('Album search must execute the actual legacy request quoting context in every PHP version'); }
 	native_mysql_workflow_partition($extra);
 
 	$start = strpos($matrix_source,'    steps:'); if ($start === false) { throw new RuntimeException('Native CI steps missing'); }
@@ -79,6 +80,8 @@ $variants[]=$prefix.preg_replace('/if: matrix\.part == 1/', 'if: matrix.part == 
 $variants[]=$prefix.preg_replace('/if: matrix\.part == [12]/', 'if: matrix.part == 1 && false', $mysql_source, 1);
 $variants[]=$prefix.str_replace('disable_functions=mail', 'disable_functions=', $mysql_source);
 $variants[]=$prefix.str_replace("PHPBB_TOPIC_PREF_NATIVE: '1'", "PHPBB_TOPIC_PREF_NATIVE: '0'", $mysql_source);
+$variants[]=$prefix.str_replace("          php -d disable_functions=mail .github/scripts/check-album-search-native.php legacy\n", '', $mysql_source);
+$variants[]=preg_replace('/^          php -d disable_functions=mail \\.github\\/scripts\\/check-album-search-native\\.php legacy\n/m', '', $source, 1);
 $variants[]=$prefix.preg_replace('/^        run: /m', "        continue-on-error: true\n        run: ", $mysql_source, 1);
 $mysql_steps = strpos($mysql_source,"    steps:\n"); $step_blocks=preg_split('/(?=^      - )/m',substr($mysql_source,$mysql_steps+strlen("    steps:\n")));$test_index=null;foreach($step_blocks as$index=>$step){if(strpos($step,'      - name:')===0){$test_index=$index;break;}}
 if($test_index===null){throw new RuntimeException('Original MySQL test required for mutation checks');}

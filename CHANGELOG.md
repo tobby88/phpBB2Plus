@@ -21,6 +21,8 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Decode legacy request quoting before Album searches so quoted UTF-8 terms
+  work consistently in all supported SQL modes.
 - Match Album author searches and result bylines to the current registered
   username. Preserve submitted guest names, missing-account fallback and
   former-account privacy when a stored upload name differs from the account.

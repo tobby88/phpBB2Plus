@@ -73,7 +73,7 @@ include($phpbb_root_path . 'common.'.$phpEx);
 
 	$search_value = isset($_POST['search']) ? $_POST['search'] : (isset($_GET['search']) ? $_GET['search'] : '');
 	$mode_value = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
-	$search = is_scalar($search_value) ? trim((string) $search_value) : '';
+	$search = is_scalar($search_value) ? trim((string) phpbb_request_raw_value($search_value)) : '';
 	$mode = is_scalar($mode_value) ? strtolower((string) $mode_value) : '';
 	// Existing accounts supply their current name; guests and missing accounts
 	// retain the upload's stored name and its former-author privacy policy.
