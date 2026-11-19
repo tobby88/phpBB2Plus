@@ -48,6 +48,7 @@ function apu_clear_files(){foreach($GLOBALS['known']as$path){if(is_file($path)&&
 function apu_reset($guest=false,$gd=2,$type='.png')
 {
     if($GLOBALS['stage']){$GLOBALS['stage']->release();$GLOBALS['stage']=null;}apu_clear_files();
+    album_native_seed_batch($GLOBALS['control'],$GLOBALS['schema'],array_map(function($suffix){return'fixture_'.$suffix;},array('album_file_items','album_file_jobs','album','album_cat','album_config','config','sessions','user_group','users')),function()use($guest,$gd){
     foreach(array('album_file_items','album_file_jobs','album','album_cat','album_config','config','sessions','user_group','users')as$suffix){apu_sql('DELETE FROM fixture_'.$suffix);}
     apu_sql("INSERT INTO fixture_users(user_id,username,user_password,user_active,user_level) VALUES(-1,'Anonymous','',0,0),(7,".apu_literal("O'Connor \ 😀").",'',1,0),(8,'Other owner','',1,0)");
     apu_sql("INSERT INTO fixture_config VALUES('session_length','3600'),('unrelated','preserve')");foreach($GLOBALS['seeds']as$sql){apu_sql($sql);}
@@ -55,6 +56,7 @@ function apu_reset($guest=false,$gd=2,$type='.png')
     apu_sql("INSERT INTO fixture_album_cat(cat_id,cat_title,cat_order,cat_user_id,cat_upload_level,cat_upload_groups,cat_moderator_groups) VALUES(1,'Public',1,0,".($guest?-1:0).",'',''),(2,'Own gallery',2,7,3,'',''),(3,'Other gallery',3,8,3,'10',''),(4,'Moderated',4,0,2,'','10')");apu_sql('INSERT INTO fixture_user_group(group_id,user_id,user_pending) VALUES(10,7,0)');
     $GLOBALS['userdata']=array('user_id'=>$guest?-1:7,'username'=>'Old name','user_level'=>ADMIN,'user_active'=>1,'session_id'=>$GLOBALS['sid'],'session_logged_in'=>!$guest,'session_ip'=>'ffffffff','marker'=>'preserve');
     apu_sql("INSERT INTO fixture_sessions(session_id,session_user_id,session_logged_in,session_time,session_ip) VALUES('".$GLOBALS['sid']."',".($guest?-1:7).','.($guest?0:1).','.time().",'7f000001')");
+    });
     $GLOBALS['album_config']=array('marker'=>'preserve');$GLOBALS['album_data']=array('auth'=>array(1=>array('upload'=>1)));
     $settings=array();foreach(apu_rows('SELECT config_name,config_value FROM fixture_album_config')as$row){$settings[$row['config_name']]=$row['config_value'];}$GLOBALS['processing']=$settings;
     $original=$type==='.gif'?base64_decode('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='):apu_image($type);$thumb=$type==='.gif'?$original:apu_image($type,100,50);

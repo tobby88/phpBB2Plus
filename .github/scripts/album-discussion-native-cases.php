@@ -122,6 +122,19 @@ function ad_rating_display_cases(){
   $row=ad_rows('SELECT '.$shared[0].' AS rating FROM fixture_album_rate rr WHERE rate_pic_id=1')[0];
   ad_check((float)$row['rating']===4.0,'Shared display SQL excludes the unused HotOrNot placeholder');$cases++;
  }
+ // The former member queries also distinguished own ratings from the full
+ // average. Exercise the shared reader's actual filter with differing values.
+ ad_sql("INSERT INTO fixture_album_rate VALUES(1,9,'7f000003',2,0)");
+ $assignment='';$capturing=false;
+ foreach(token_get_all($source)as$token){
+  if(!$capturing&&is_array($token)&&$token[0]===T_VARIABLE&&$token[1]==='$rate_where'){$capturing=true;}
+  if($capturing){$assignment.=is_array($token)?$token[1]:$token;if($token===';'){break;}}
+ }
+ ad_check($assignment!==''&&substr(rtrim($assignment),-1)===';','Actual shared member rating filter extracted');
+ $member=7;foreach(array('rating'=>4.0,'comment'=>3.0)as$kind=>$expected){
+  eval($assignment);$row=ad_rows('SELECT (SELECT '.$shared[0].' FROM fixture_album_rate rr WHERE '.$rate_where.') AS rating FROM fixture_album p WHERE p.pic_id=1')[0];
+  ad_check((float)$row['rating']===$expected,'Actual member rating/comment scope preserves its own aggregate');$cases++;
+ }
  $phpbb_root_path=$root;$phpEx='php';require_once $root.'album_mod/clown_album_functions.php';$album_sp_config=array('hon_rate_users'=>1,'hon_rate_times'=>0,'hon_rate_sep'=>1);
  ad_check(CanRated(1,7)===true,'Actual HotOrNot UI allows a separate vote after normal rating');$cases++;
  $album_sp_config['hon_rate_sep']=0;ad_check(CanRated(1,7)===false,'Actual shared-channel UI recognizes normal rating');$cases++;

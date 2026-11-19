@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/album-native-seed.php';
 // Instrument the actual dedicated native connection, not an in-memory model.
 class AlbumNativeObservedConnection
 {

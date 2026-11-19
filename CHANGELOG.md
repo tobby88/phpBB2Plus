@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Local and native checks
+
+- Prepare disposable Album discussion, authority, upload and deletion data in
+  committed batches. Keep application transactions and real contention/failure
+  probes unchanged; verify rollback, caller isolation, exact values and legacy
+  refusal setup on MariaDB and MySQL.
+- Follow shared picture-rating queries in their actual consumers, including
+  distinct member rating/comment scopes. Synchronize native poll lease checks
+  with server-side disconnect processing using a bounded real lock acquisition.
+
 ### Album gallery counts and pages
 
 - Count visible pictures consistently in category totals, personal galleries and

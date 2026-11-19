@@ -29,6 +29,7 @@ function ala_literal($value) { return 'CONVERT(0x' . bin2hex($value) . ' USING u
 function ala_globals() { return array($GLOBALS['db'],$GLOBALS['userdata'],$GLOBALS['album_config'],$GLOBALS['album_data'],$GLOBALS['board_config']); }
 function ala_reset($guest = false)
 {
+    album_native_seed_batch($GLOBALS['control'],$GLOBALS['schema'],array_map(function($suffix){return 'fixture_'.$suffix;},array('album','album_file_items','album_file_jobs','album_cat','album_config','config','sessions','user_group','jr_admin_users','users')),function()use($guest){
     foreach (array('album','album_file_items','album_file_jobs','album_cat','album_config','config','sessions','user_group','jr_admin_users','users') as $suffix) { ala_sql('DELETE FROM fixture_' . $suffix); }
     ala_sql("INSERT INTO fixture_users(user_id,username,user_password,user_level,user_active) VALUES(-1,'Anonymous','',0,0),(7," . ala_literal("O'Connor \ 😀") . ",'',0,1),(8,'Gallery owner','',0,1)");
     ala_sql("INSERT INTO fixture_config VALUES('session_length','3600'),('unrelated','preserve')");
@@ -38,6 +39,7 @@ function ala_reset($guest = false)
     $GLOBALS['userdata'] = array('user_id'=>$guest ? -1 : 7,'username'=>'Stale name','user_level'=>ADMIN,'user_active'=>1,'session_id'=>str_repeat('a',32),'session_logged_in'=>!$guest,'session_ip'=>'ffffffff','marker'=>'preserve');
     ala_sql("INSERT INTO fixture_sessions(session_id,session_user_id,session_logged_in,session_time,session_ip,session_admin) VALUES('" . str_repeat('a',32) . "'," . ($guest ? -1 : 7) . ',' . ($guest ? 0 : 1) . ',' . time() . ",'7f000001',0)");
     if ($guest) { ala_sql('UPDATE fixture_album_cat SET cat_upload_level=-1 WHERE cat_id=1'); }
+    });
     $GLOBALS['album_config'] = array('personal_gallery'=>ALBUM_ADMIN,'rate'=>1,'comment'=>1,'marker'=>'preserve'); $GLOBALS['album_data'] = array('auth'=>array(3=>array('upload'=>1)));
     $GLOBALS['db']->reset_case();
 }
