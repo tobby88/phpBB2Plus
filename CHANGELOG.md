@@ -21,6 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Show legacy personal galleries under strict MariaDB and MySQL settings.
+  Count comments and average nonzero ratings independently, and keep a
+  stable thumbnail order when multiple pictures share a sort value.
 - Decode legacy request quoting before Album searches so quoted UTF-8 terms
   work consistently in all supported SQL modes.
 - Match Album author searches and result bylines to the current registered

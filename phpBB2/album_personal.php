@@ -310,14 +310,16 @@ if ($total_pics > 0)
 {
 	$limit_sql = ($start == 0) ? $pics_per_page : $start .','. $pics_per_page;
 
-	$sql = "SELECT p.pic_id, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
-			FROM ". ALBUM_TABLE ." AS p
-				LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-				LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
+	// Compute each aggregate independently to keep one row per picture in
+	// strict SQL modes, including pictures without votes or comments.
+	$sql = "SELECT p.pic_id, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock,
+				(SELECT AVG(NULLIF(r.rate_point, 0)) FROM ". ALBUM_RATE_TABLE ." r WHERE r.rate_pic_id = p.pic_id) AS rating,
+				(SELECT COUNT(*) FROM ". ALBUM_COMMENT_TABLE ." c WHERE c.comment_pic_id = p.pic_id) AS comments,
+				(SELECT MAX(c.comment_id) FROM ". ALBUM_COMMENT_TABLE ." c WHERE c.comment_pic_id = p.pic_id) AS new_comment
+			FROM ". ALBUM_TABLE ." p
 			WHERE p.pic_cat_id = ". PERSONAL_GALLERY ."
 				AND p.pic_user_id = $user_id
-			GROUP BY p.pic_id
-			ORDER BY $sort_method $sort_order
+			ORDER BY $sort_method $sort_order, p.pic_id $sort_order
 			LIMIT $limit_sql";
 	if( !($result = $db->sql_query($sql)) )
 	{

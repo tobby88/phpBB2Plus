@@ -1,6 +1,6 @@
 <?php
 // Run inside the existing owned Album fixture; exercise the actual legacy
-// controller prefix, stopping only at the redirect or its unchanged old reader.
+// controller prefix, stopping at the redirect or entry to the old reader.
 apt_check(isset($created,$schema) && $created && preg_match('/^codex_album_pages_[a-f0-9]{16}$/D',$schema), 'Owned personal-route fixture required');
 class AlbumPersonalRouteRedirect extends RuntimeException { var $url; function __construct($url){$this->url=$url;parent::__construct('Actual gallery redirect');} }
 function redirect($url){throw new AlbumPersonalRouteRedirect($url);}
@@ -81,6 +81,7 @@ try
 	apt_check($db->sql_query('START TRANSACTION')!==false && $db->sql_query("UPDATE fixture_users SET username='Pending caller' WHERE user_id=8")!==false,'Owned pending caller transaction');
 	apr_expect_url(array('user_id'=>'8'),array(),'album.php?user_id=8');apt_check(apt_rows('SELECT username FROM fixture_users WHERE user_id=8')[0]['username']==='Other','Route leaves caller work uncommitted');apt_check($db->sql_query('ROLLBACK')!==false && apt_rows('SELECT username FROM fixture_users WHERE user_id=8')[0]['username']==='Other','Caller rollback remains available');
 	echo 'Album personal route native: '.$apr_cases.' cases, '.$apr_canonical_views." target views PASS; actual request/redirect prefix, bounded sort/page options, modern pictures, permitted legacy-zero data, private/pending groups, storage failures and no row writes.\n";
+	require __DIR__.'/album-personal-legacy-native-cases.php';
 }
 finally
 {
