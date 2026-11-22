@@ -105,7 +105,14 @@ function ad_rating_display_cases(){
  global $root,$cases,$db,$userdata,$album_sp_config;
  ad_reset();ad_sql("INSERT INTO fixture_album_rate VALUES(1,7,'7f000001',4,0),(1,8,'7f000002',0,8)");
  foreach(array('album.php','album_cat.php','album_modcp.php','album_personal.php','album_showpage.php','album_hotornot.php','portal.php')as$file){
-  $source=file_get_contents($root.$file);ad_check(!preg_match('/AVG\(r\.rate_(?:hon_)?point\)/',$source),'Every Album/portal reader excludes unused zero channel placeholders');
+  $source=file_get_contents($root.$file);
+  if($file==='album_showpage.php'){
+   ad_check(strpos($source,'album_picture_details_sql($pic_id)')!==false,'Photo detail uses the shared query');
+   $helpers=file_get_contents($root.'album_mod/album_functions.php');
+   ad_check(preg_match('/^function album_picture_details_sql\([\s\S]*?^\}/m',$helpers,$body)===1,'Actual shared detail query extracted');
+   $source=$body[0];
+  }
+  ad_check(!preg_match('/AVG\(r\.rate_(?:hon_)?point\)/',$source),'Every Album/portal reader excludes unused zero channel placeholders');
   ad_check(preg_match_all('/AVG\(NULLIF\(r\.(rate_(?:hon_)?point), 0\)\)/',$source,$matches,PREG_SET_ORDER)>0,'Actual rating expression extracted');
   foreach($matches as$match){$row=ad_rows('SELECT '.$match[0].' AS rating FROM fixture_album_rate r WHERE rate_pic_id=1')[0];ad_check((float)$row['rating']===($match[1]==='rate_point'?4.0:8.0),'Actual display SQL excludes the other channel instead of diluting its average');$cases++;}
  }

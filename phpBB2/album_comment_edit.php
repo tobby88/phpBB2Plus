@@ -117,16 +117,7 @@ $pic_id = intval($thiscomment['comment_pic_id']);
 // ------------------------------------
 // Get this pic info and current category info
 // ------------------------------------
-// NOTE: we don't do a left join here against the category table
-// since ALL pictures belong to some category, if not then it's database error
-$sql = "SELECT p.*, cat.*, u.user_id, u.username, COUNT(c.comment_id) as comments_count
-		FROM ". ALBUM_CAT_TABLE ."  AS cat, ". ALBUM_TABLE ." AS p
-			LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-			LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-		WHERE pic_id = $pic_id
-			AND cat.cat_id = p.pic_cat_id
-		GROUP BY p.pic_id
-		LIMIT 1";
+$sql = album_picture_details_sql($pic_id);
 
 if( !($result = $db->sql_query($sql)) )
 {
@@ -217,10 +208,7 @@ if( !isset($_POST['comment']) )
     //begin shows smilies
     $max_smilies = 20;
 
-    $sql = 'SELECT emoticon, code, smile_url
-                 	FROM ' . SMILIES_TABLE . '
-                    GROUP BY smile_url
-                    ORDER BY smilies_id LIMIT ' . $max_smilies;
+    $sql = album_inline_smilies_sql($max_smilies);
 
     if (!$result = $db->sql_query($sql))
     {
@@ -228,6 +216,7 @@ if( !isset($_POST['comment']) )
     }
     $smilies_count = $db->sql_numrows($result);
     $smilies_data = $db->sql_fetchrowset($result);
+    $db->sql_freeresult($result);
 
 
 	for ($i = 1; $i < $smilies_count+1; $i++)

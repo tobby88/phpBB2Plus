@@ -133,21 +133,13 @@ $pic_id = $row['comment_pic_id'];
 // ------------------------------------
 // Get this pic info and current category info
 // ------------------------------------
-// NOTE: we don't do a left join here against the category table
-// since ALL pictures belong to some category, if not then it's database error
-$sql = "SELECT p.*, cat.*, u.user_id, u.username, COUNT(c.comment_id) as comments_count
-		FROM ". ALBUM_CAT_TABLE ."  AS cat, ". ALBUM_TABLE ." AS p
-			LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-			LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-		WHERE pic_id = '$pic_id'
-			AND cat.cat_id = p.pic_cat_id
-		GROUP BY p.pic_id
-		LIMIT 1";
+$sql = album_picture_details_sql($pic_id);
 if( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
 }
 $thispic = $db->sql_fetchrow($result);
+$db->sql_freeresult($result);
 
 if (empty($thispic)) { message_die(GENERAL_ERROR, $lang['Pic_not_exist']); }
 $cat_id = $thispic['pic_cat_id'];

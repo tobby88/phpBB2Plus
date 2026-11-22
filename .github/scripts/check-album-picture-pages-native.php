@@ -85,5 +85,6 @@ try{
  foreach(array(array(0),array(-1),array('1 OR 1=1'),array(array(1)))as$bad){$out=apt_request(0,$bad);apt_check($out['error']!==null&&!$out['trace'],'Invalid category refuses before opening storage');$cases++;}apt_expect(apt_request(0,array()),array(),0);
  require __DIR__.'/album-gallery-owner-native-cases.php';
  require __DIR__.'/album-personal-route-native-cases.php';
+ require __DIR__.'/album-detail-read-native-cases.php';
  echo 'Album picture pages native: '.$cases.' actual count/ACL/page cases, '.$faults.' SQL failures, '.$views." grid views PASS; one visible-picture snapshot, current sessions/groups, distinct commented/rated pictures, strict SQL modes, stable unsigned IDs and caller isolation.\n";
 }finally{$apt_hook=null;$apt_fault=0;if($db){$db->sql_query('ROLLBACK');$db->sql_close();}if($peer){$peer->sql_query('ROLLBACK');$peer->sql_close();}if($created){apt_check(preg_match('/^codex_album_pages_[a-f0-9]{16}$/D',$schema)===1,'Exact own schema');apt_check($control->sql_query('DROP DATABASE '.$schema)!==false,'Only own database removed');}$control->sql_close();restore_error_handler();error_reporting($reporting);}

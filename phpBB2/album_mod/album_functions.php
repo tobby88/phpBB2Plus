@@ -33,6 +33,38 @@ if ( !defined('IN_PHPBB') )
 	die('Hacking attempt');
 }
 
+function album_picture_details_sql($picture_id)
+{
+	// Keep unsigned IDs readable on 32-bit PHP and keep the category join
+	// mandatory. Missing categories must not be treated as public pictures.
+	$picture_id = (string) $picture_id;
+	if (!preg_match('/^[0-9]{1,10}$/D', $picture_id))
+	{
+		$picture_id = '0';
+	}
+
+	return 'SELECT p.*, ac.*, u.user_id, u.username, u.user_rank,
+				(SELECT AVG(NULLIF(r.rate_point, 0)) FROM '.ALBUM_RATE_TABLE.' r WHERE r.rate_pic_id = p.pic_id) AS rating,
+				(SELECT COUNT(*) FROM '.ALBUM_COMMENT_TABLE.' c WHERE c.comment_pic_id = p.pic_id) AS comments_count
+			FROM '.ALBUM_TABLE.' p
+				INNER JOIN '.ALBUM_CAT_TABLE.' ac ON ac.cat_id = p.pic_cat_id
+				LEFT JOIN '.USERS_TABLE.' u ON u.user_id = p.pic_user_id
+			WHERE p.pic_id = '.$picture_id.'
+			LIMIT 1';
+}
+
+function album_inline_smilies_sql($limit)
+{
+	// Use the first whole entry for each image, including its own code and label.
+	return 'SELECT s.emoticon, s.code, s.smile_url
+			FROM '.SMILIES_TABLE.' s
+			INNER JOIN (
+				SELECT MIN(smilies_id) AS id FROM '.SMILIES_TABLE.'
+				GROUP BY smile_url ORDER BY id LIMIT '.(int) $limit.'
+			) first_smiley ON first_smiley.id = s.smilies_id
+			ORDER BY s.smilies_id';
+}
+
 function album_nuffload_base_path($configured_path)
 {
 	$path = str_replace('\\', '/', trim((string) $configured_path));

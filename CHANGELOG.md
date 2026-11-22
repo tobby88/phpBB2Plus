@@ -21,6 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Show photo details and comment edit/delete pages under strict SQL modes.
+  Keep rating and comment totals independent and choose one consistent
+  smiley code and label per image.
 - Show legacy personal galleries under strict MariaDB and MySQL settings.
   Count comments and average nonzero ratings independently, and keep a
   stable thumbnail order when multiple pictures share a sort value.

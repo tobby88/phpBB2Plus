@@ -239,21 +239,14 @@ if( isset($comment_id) )
 // Get this pic info and current category info
 // ------------------------------------
 
-$sql = "SELECT p.*, ac.*, u.user_id, u.username, u.user_rank, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT( DISTINCT c.comment_id) AS comments_count
-		FROM ". ALBUM_CAT_TABLE ." AS ac, ". ALBUM_TABLE ." AS p
-			LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-			LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-			LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-		WHERE pic_id = '$pic_id'
-		    AND ac.cat_id = p.pic_cat_id
-		GROUP BY p.pic_id
-		LIMIT 1";
+$sql = album_picture_details_sql($pic_id);
 
 if( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
 }
 $thispic = $db->sql_fetchrow($result);
+$db->sql_freeresult($result);
 
 if( empty($thispic) )
 {
@@ -629,10 +622,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
         //begin shows smilies
         $max_smilies = 20;
 
-         $sql = 'SELECT emoticon, code, smile_url
-                        FROM ' . SMILIES_TABLE . '
-                        GROUP BY smile_url
-                        ORDER BY smilies_id LIMIT ' . $max_smilies;
+        $sql = album_inline_smilies_sql($max_smilies);
 
         if (!$result = $db->sql_query($sql))
         {
@@ -640,6 +630,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
         }
         $smilies_count = $db->sql_numrows($result);
         $smilies_data = $db->sql_fetchrowset($result);
+        $db->sql_freeresult($result);
 
 		for ($i = 1; $i < $smilies_count+1; $i++)
 		{
