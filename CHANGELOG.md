@@ -21,6 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Keep photo previews, album uploads and moderation lists usable under
+  strict SQL modes. Count only the pictures shown on the moderation page
+  and report each comment once, regardless of the number of ratings.
 - Show photo details and comment edit/delete pages under strict SQL modes.
   Keep rating and comment totals independent and choose one consistent
   smiley code and label per image.

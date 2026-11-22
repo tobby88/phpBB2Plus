@@ -377,15 +377,21 @@ if ($mode == '')
 		$sort_order = 'DESC';
 	}
 
-	// Count Pics
-	$sql = "SELECT COUNT(pic_id) AS count
-			FROM ". ALBUM_TABLE ."
-			WHERE pic_cat_id = '$cat_id'";
+	// Use the same approval filter for the page count and its rows.
+	$pic_approval_sql = '';
+	if ($userdata['user_level'] != ADMIN && $thiscat['cat_approval'] == ALBUM_ADMIN)
+	{
+		$pic_approval_sql = 'AND p.pic_approval = 1';
+	}
+	$sql = "SELECT COUNT(*) AS count
+			FROM ". ALBUM_TABLE ." p
+			WHERE p.pic_cat_id = '$cat_id' $pic_approval_sql";
 	if( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not count pics in this category', '', __LINE__, __FILE__, $sql);
 	}
 	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
 
 	$total_pics = $row['count'];
 
@@ -396,21 +402,15 @@ if ($mode == '')
 	{
 		$limit_sql = ($start == 0) ? $pics_per_page : $start .', '. $pics_per_page;
 
-		$pic_approval_sql = '';
-		if( ($userdata['user_level'] != ADMIN) and ($thiscat['cat_approval'] == ALBUM_ADMIN) )
-		{
-			// because he went through my Permission Checking above so he must be at least a Moderator
-			$pic_approval_sql = 'AND p.pic_approval = 1';
-		}
-
-		$sql = "SELECT p.pic_id, p.pic_title, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, p.pic_lock, p.pic_approval, u.user_id, u.username, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(c.comment_id) AS comments, MAX(c.comment_id) AS new_comment
-				FROM ". ALBUM_TABLE ." AS p
-					LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-					LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-					LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
+		$sql = "SELECT p.pic_id, p.pic_title, p.pic_user_id, p.pic_user_ip, p.pic_username,
+					p.pic_time, p.pic_cat_id, p.pic_view_count, p.pic_lock, p.pic_approval, u.user_id, u.username,
+					(SELECT AVG(NULLIF(r.rate_point, 0)) FROM ". ALBUM_RATE_TABLE ." r WHERE r.rate_pic_id = p.pic_id) AS rating,
+					(SELECT COUNT(*) FROM ". ALBUM_COMMENT_TABLE ." c WHERE c.comment_pic_id = p.pic_id) AS comments,
+					(SELECT MAX(c.comment_id) FROM ". ALBUM_COMMENT_TABLE ." c WHERE c.comment_pic_id = p.pic_id) AS new_comment
+				FROM ". ALBUM_TABLE ." p
+					LEFT JOIN ". USERS_TABLE ." u ON p.pic_user_id = u.user_id
 				WHERE p.pic_cat_id = '$cat_id' $pic_approval_sql
-				GROUP BY p.pic_id
-				ORDER BY $sort_method $sort_order
+				ORDER BY $sort_method $sort_order, p.pic_id $sort_order
 				LIMIT $limit_sql";
 		if( !($result = $db->sql_query($sql)) )
 		{
@@ -423,6 +423,7 @@ if ($mode == '')
 		{
 			$picrow[] = $row;
 		}
+		$db->sql_freeresult($result);
 
 		for ($i = 0; $i <count($picrow); $i++)
 		{

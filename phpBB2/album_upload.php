@@ -150,11 +150,10 @@ if( $upload_submitted ) // is it submitted?
 // ------------------------------------
 // Get the current Category Info
 // ------------------------------------
-$sql = "SELECT c.*, COUNT(p.pic_id) AS count, IF (cat_user_id > 0, 1, 0) AS personal
-		FROM ". ALBUM_CAT_TABLE ." AS c
-			LEFT JOIN ". ALBUM_TABLE ." AS p ON c.cat_id = p.pic_cat_id
+$sql = "SELECT c.*,
+			(SELECT COUNT(*) FROM ". ALBUM_TABLE ." p WHERE p.pic_cat_id = c.cat_id) AS count
+		FROM ". ALBUM_CAT_TABLE ." c
 		WHERE c.cat_id = '$cat_id'
-		GROUP BY c.cat_id
 		LIMIT 1";
 
 if( !($result = $db->sql_query($sql)) )

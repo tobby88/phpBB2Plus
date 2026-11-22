@@ -563,144 +563,42 @@ else
 // Start add  - Photo Album Block
 if ( $CFG['pics_number'] > 0 )
 {
-	// Build Categories Index
-	$sql_private_last = ($CFG['pics_all'] == '1') ? '' : ' AND c.cat_user_id = 0';
-	$sql = "SELECT c.*, COUNT(p.pic_id) AS count
-			FROM ". ALBUM_CAT_TABLE ." AS c
-				LEFT JOIN ". ALBUM_TABLE ." AS p ON c.cat_id = p.pic_cat_id
-			WHERE cat_id <> 0
-			$sql_private_last
-			GROUP BY cat_id
-			ORDER BY cat_order ASC";
-	if ( !($result = $db->sql_query($sql)) )
+	// Pick the authorized categories first, honoring the portal's scope.
+	$public_only = ($CFG['pics_all'] === '1') ? '' : ' AND c.cat_user_id = 0';
+	$sql = 'SELECT c.* FROM '.ALBUM_CAT_TABLE.' c
+			WHERE c.cat_id > 0'.$public_only.'
+			ORDER BY c.cat_order, c.cat_id';
+	if (!($result = $db->sql_query($sql)))
 	{
 		message_die(GENERAL_ERROR, 'Could not query categories list', '', __LINE__, __FILE__, $sql);
 	}
-	$catrows = array();
-	
-	while( $row = $db->sql_fetchrow($result) )
+	$allowed_cat = array();
+	while ($category = $db->sql_fetchrow($result))
 	{
-		$album_user_access = album_user_access($row['cat_id'], $row, 1, 0, 0, 0, 0, 0); // VIEW
-		if ($album_user_access['view'] == 1)
+		$access = album_user_access($category['cat_id'], $category, 1, 0, 0, 0, 0, 0);
+		if ($access['view'] == 1)
 		{
-			$catrows[] = $row;
+			$allowed_cat[] = $category['cat_id'];
 		}
 	}
 	$db->sql_freeresult($result);
-	
-	if ( $CFG['pics_all'] == '1' )
-	{
-		$allowed_cat = '0'; // For Recent Public Pics below
-	}
-	else
-	{
-		$allowed_cat = ''; 
-	}
-	
-	//
-	// $catrows now stores all categories which this user can view. Dump them out!
-	//
-	for ($i = 0; $i < count($catrows); $i++)
-	{
-		// Build allowed category-list (for recent pics after here)
-		$allowed_cat .= ($allowed_cat == '') ? $catrows[$i]['cat_id'] : ',' . $catrows[$i]['cat_id'];
-	
-		// Get Last Pic of this Category
-		if ($catrows[$i]['count'] == 0)
-		{
-			// Category is empty
-			$last_pic_info = $lang['No_Pics'];
-			$u_last_pic = '';
-			$last_pic_title = '';
-		}
-		else
-		{
-			// Check Pic Approval
-			if ( ($catrows[$i]['cat_approval'] == ALBUM_ADMIN) or ($catrows[$i]['cat_approval'] == ALBUM_MOD) )
-			{
-				$pic_approval_sql = 'AND p.pic_approval = 1'; // Pic Approval ON
-			}
-			else
-			{
-				$pic_approval_sql = ''; // Pic Approval OFF
-			}
-		}
-		// END of Last Pic
-	}
-	
-	// Recent Public Pics
-	if ( $CFG['pics_all'] == '1' )
-	{
-		$pics_allowed = '0';
-	}
-	else
-	{
-		$pics_allowed = '';
-	}
-	
-	if ( $allowed_cat != $pics_allowed )
+
+	if ($allowed_cat)
 	{
 		$CategoryID = phpbb_sql_id_list(isset($CFG['cat_id']) ? $CFG['cat_id'] : '');
 		$allowed_cat_sql = phpbb_sql_id_list($allowed_cat);
-	
-		if ( $CFG['pics_sort'] == '1' )
-		{
-			if ( $CategoryID !== '0' )
-			{
-				$sql = "SELECT p.pic_id, p.pic_title, p.pic_thumbnail, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments
-					FROM ". ALBUM_TABLE ." AS p
-						LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
-						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 ) AND pic_cat_id IN ($CategoryID)
-					GROUP BY p.pic_id
-					ORDER BY RAND()
-					LIMIT ". $CFG['pics_number'];
-			}
-			else
-			{
-				$sql = "SELECT p.pic_id, p.pic_title, p.pic_thumbnail, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments
-					FROM ". ALBUM_TABLE ." AS p
-						LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
-						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 )
-					GROUP BY p.pic_id
-					ORDER BY RAND()
-					LIMIT ". $CFG['pics_number'];
-				}
-		}
-		else if ( $CFG['pics_sort'] == '0' )
-		{
-			if ( $CategoryID !== '0' )
-			{
-				$sql = "SELECT p.pic_id, p.pic_title, p.pic_thumbnail, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments
-					FROM ". ALBUM_TABLE ." AS p
-						LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
-						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 ) AND pic_cat_id IN ($CategoryID)
-					GROUP BY p.pic_id
-					ORDER BY pic_time DESC
-					LIMIT ". $CFG['pics_number'];
-			}
-			else
-			{
-				$sql = "SELECT p.pic_id, p.pic_title, p.pic_thumbnail, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments
-					FROM ". ALBUM_TABLE ." AS p
-						LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
-						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 )
-					GROUP BY p.pic_id
-					ORDER BY pic_time DESC
-					LIMIT ". $CFG['pics_number'];
-			}
-		}
+		$subset = ($CategoryID === '0') ? '' : ' AND p.pic_cat_id IN ('.$CategoryID.')';
+		$sort = ($CFG['pics_sort'] === '1') ? 'RAND()' : 'p.pic_time DESC, p.pic_id DESC';
+		$sql = "SELECT p.pic_id, p.pic_title, p.pic_thumbnail, p.pic_desc, p.pic_user_id, p.pic_username,
+					p.pic_time, p.pic_view_count, u.user_id, u.username,
+					(SELECT AVG(NULLIF(r.rate_point, 0)) FROM ". ALBUM_RATE_TABLE ." r WHERE r.rate_pic_id = p.pic_id) AS rating,
+					(SELECT COUNT(*) FROM ". ALBUM_COMMENT_TABLE ." c WHERE c.comment_pic_id = p.pic_id) AS comments
+				FROM ". ALBUM_TABLE ." p
+					INNER JOIN ". ALBUM_CAT_TABLE ." ct ON ct.cat_id = p.pic_cat_id
+					LEFT JOIN ". USERS_TABLE ." u ON u.user_id = p.pic_user_id
+				WHERE p.pic_cat_id IN ($allowed_cat_sql) AND (p.pic_approval = 1 OR ct.cat_approval = 0)$subset
+				ORDER BY $sort
+				LIMIT ". $CFG['pics_number'];
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not query recent pics information', '', __LINE__, __FILE__, $sql);
