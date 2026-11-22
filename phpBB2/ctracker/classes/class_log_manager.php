@@ -313,8 +313,9 @@ class log_manager
 	 * recreate it later
 	 *
 	 * @param $file_id File Identification Number
+	 * @param bool $automatic Reset triggered by the log's size limit
 	 */
-	function delete_logfile($file_id)
+	function delete_logfile($file_id, $automatic = false)
 	{
 		// Set Vars
 		$this->last_deleted_entries = 0;
@@ -323,7 +324,8 @@ class log_manager
 		{
 			return $this->ct_file_error();
 		}
-		$resetstring = ($file_id != 6) ? '1|||' . time() . "|||null|||null|||null|||null|||null|||cleared\n" : '';
+		$kind = $automatic ? 'rotated' : 'cleared';
+		$resetstring = ($file_id != 6) ? '1|||' . time() . '|||null|||null|||null|||null|||null|||' . $kind . "\n" : '';
 
 		// Delete now
 		$logentry = @fopen($path, 'c+b');
@@ -493,7 +495,7 @@ class log_manager
         // read_log_lines preserves record endings. Only remove that framing;
         // other whitespace or an unknown token still denotes a legacy marker.
         $kind=isset($fields[7])&&is_string($fields[7])?rtrim($fields[7],"\r\n"):'';
-        return in_array($kind, array('created','cleared'), true) ? $kind : 'legacy';
+        return in_array($kind, array('created','cleared','rotated'), true) ? $kind : 'legacy';
     }
 
     function check_log_size($file_id)
@@ -566,7 +568,7 @@ class log_manager
 		$current_size = $this->check_log_size(2);
 		if ($current_size >= $max_log_size)
 		{
-			if ($this->delete_logfile(2))
+			if ($this->delete_logfile(2, true))
 			{
 				$this->increment_counter($this->last_deleted_entries);
 			}
@@ -589,7 +591,7 @@ class log_manager
 		{
 			// Match get_counter_value(): failed logins and debug records are
 			// not attacks merely because their bounded logs are being rotated.
-			if ($this->delete_logfile($file_id) && in_array(intval($file_id), array(2, 3, 5), true))
+			if ($this->delete_logfile($file_id, true) && in_array(intval($file_id), array(2, 3, 5), true))
 			{
 				$this->increment_counter($this->last_deleted_entries);
 			}

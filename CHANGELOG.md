@@ -1345,6 +1345,8 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Accurate CrackerTracker log metadata and dates
 
+- Mark automatic log resets at the entry limit separately from explicit
+  clears and explain the reason in the admin panel in English and German.
 - Recognize the log writer's explicit creation and clearing markers with LF or
   CRLF record endings; inherited package markers remain an unknown history.
 - Display log events and metadata dates using the forum's timezone and

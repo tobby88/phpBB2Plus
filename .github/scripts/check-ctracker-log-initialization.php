@@ -30,6 +30,38 @@ try{
   $cases++;
  }}
  echo 'CrackerTracker first-entry initialization: ',$cases," real filesystem cases passed\n";
+ foreach (array(2, 3, 4, 5) as $id) {
+  $path = $init_root.'ctracker/logfiles/'.$init_files[$id];
+  file_put_contents($path, '');
+  file_put_contents($init_root.'ctracker/logfiles/'.$init_files[1], '7');
+  $manager = new log_manager();
+  $manager->prepare_log('Synthetic first event');
+  $manager->write_general_logfile(1, $id);
+  $manager->prepare_log('Synthetic next event');
+  $manager->write_general_logfile(1, $id);
+  $lines = $manager->read_log_lines($id, 10);
+  cli_check(count($lines) === 2 && $manager->metadata_kind(explode('|||', $lines[0])) === 'rotated' &&
+   strpos($lines[1], 'Synthetic next event') !== false, 'Automatic size-limit reset has its own marker: '.$id);
+  $counted = in_array($id, array(2, 3, 5), true);
+  cli_check((int) file_get_contents($init_root.'ctracker/logfiles/'.$init_files[1]) === ($counted ? 8 : 7),
+   'Only counted log types transfer the deleted fixture entry');
+  cli_check($manager->delete_logfile($id) &&
+   $manager->metadata_kind(explode('|||', $manager->read_log_lines($id, 10)[0])) === 'cleared',
+   'The explicit clear retains its existing marker');
+ }
+ $path = $init_root.'ctracker/logfiles/'.$init_files[2];
+ $header = "1|||0|||null|||null|||null|||null|||null\n";
+ file_put_contents($path, $header.str_repeat("0|||1|||synthetic|||referrer|||agent|||ip|||host\n", 100));
+ file_put_contents($init_root.'ctracker/logfiles/'.$init_files[1], '7');
+ $manager = new log_manager();
+ $manager->prepare_log('Synthetic next event');
+ $manager->write_worm();
+ $lines = $manager->read_log_lines(2, 10);
+ cli_check(count($lines) === 2 && $manager->metadata_kind(explode('|||', $lines[0])) === 'rotated' &&
+  strpos($lines[1], 'Synthetic next event') !== false &&
+  (int) file_get_contents($init_root.'ctracker/logfiles/'.$init_files[1]) === 107,
+  'The fixed-size log uses the automatic marker and transfers the same event count');
+ echo "CrackerTracker automatic rotation metadata: five real filesystem cases passed\n";
 }finally{
  restore_error_handler();foreach($init_files as$name){$path=$init_root.'ctracker/logfiles/'.$name;if(is_file($path)){unlink($path);}}
  rmdir($init_root.'ctracker/logfiles');rmdir($init_root.'ctracker');rmdir($init_root);

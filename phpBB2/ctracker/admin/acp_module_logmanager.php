@@ -106,6 +106,11 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 	$a		   = 0;
 	$lastclean = 0;
 	$split_token = '|||';
+	$metadata_captions = array(
+		'cleared' => 'ctracker_log_manager_sysmsg',
+		'created' => 'ctracker_log_manager_initialized',
+		'rotated' => 'ctracker_log_manager_rotated',
+	);
 
 	for ( $i = count($filename) - 1; $i >= 0; $i-- )
 	{
@@ -119,7 +124,8 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 		{
 			$lastclean = intval($line[1]);
 			$metadata_kind = $logmanager->metadata_kind($line);
-			$metadata_caption = $metadata_kind === 'cleared' ? 'ctracker_log_manager_sysmsg' : ($metadata_kind === 'created' ? 'ctracker_log_manager_initialized' : 'ctracker_log_manager_legacy_marker');
+			$metadata_caption = isset($metadata_captions[$metadata_kind], $lang[$metadata_captions[$metadata_kind]])
+				? $metadata_captions[$metadata_kind] : 'ctracker_log_manager_legacy_marker';
 
 			$template->assign_block_vars('show_system_message', array(
 					'L_SYS_MSG'		=>	sprintf($lang[$metadata_caption], phpbb_admin_html(create_date($board_config['default_dateformat'], $lastclean, $board_config['board_timezone']))),
