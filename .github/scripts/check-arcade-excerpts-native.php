@@ -1,6 +1,7 @@
 <?php
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ARCADE_EXCERPT_NATIVE')!=='1'){echo "Arcade excerpt checks require an explicitly enabled disposable database.\n";return;}
 require __DIR__.'/arcade-excerpt-fixture.php';require $as_app.'db/mysqli.php';
+require __DIR__.'/arcade-catalog-fixture.php';
 $db=$control=null;$created=false;$count=0;$schema='codex_arc_excerpt_'.bin2hex(phpbb_random_bytes(8));
 try{
  $port=getenv('PHPBB_ARCADE_EXCERPT_PORT')?:'3306';as_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Own loopback fixture port');$host='127.0.0.1:'.$port;$password=getenv('PHPBB_ARCADE_EXCERPT_PASSWORD')?:'';
@@ -13,4 +14,5 @@ try{
   $r=$db->sql_query('SELECT * FROM fixture_ina_games');as_check((bool)$r,'Canonical row after rendering');$after=$db->sql_fetchrow($r);$db->sql_freeresult($r);as_check($before===$after,'Display never changes stored caption or game metadata');
  }
  echo 'Native Arcade excerpts: '.$count." canonical stored-caption/link cases PASS; exact raw data, stable targets and read-only rendering.\n";
+ ae_catalog_test($db, $canonical, file_get_contents($as_app.'activity.php'));
 }finally{if($db){$db->sql_close();}if($created){as_check(preg_match('/^codex_arc_excerpt_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Exact own schema cleanup');}if($control){$control->sql_close();}}

@@ -856,6 +856,7 @@ if( $mode != '' )
 			$template->assign_vars(array("L_MONEY" => $lang['game_number']));
 		}
 		$user_id = $userdata['user_id'];
+		$favorite_games = 'EXISTS (SELECT 1 FROM '.iNA_FAV.' f WHERE f.fav_game_name=g.game_name AND f.user_id='.(int) $user_id.')';
 //
 //	User Favourites Mode
 //
@@ -902,7 +903,7 @@ if( $mode != '' )
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
-			$sql_and = " AND f.user_id = " . $userdata['user_id'] . " AND f.fav_game_name = g.game_name";		
+			$sql_and = ' AND '.$favorite_games;
 
 			$sort_mode_link_info = append_sid("$filename?mode=fav&amp;");
 
@@ -1026,33 +1027,48 @@ if( $mode != '' )
          ));
       }
 		}
-		$sql_order = " GROUP BY game_id ORDER BY " . $order_by . " " . $arcade->sort_order;
+		$sql_order = " ORDER BY " . $order_by . " " . $arcade->sort_order;
+		if ($order_by !== 'game_id')
+		{
+			$sql_order .= ', g.game_id ASC';
+		}
 //
 //  If the Games Per Page is set, then add a LIMIT
 //
 		if($arcade->arcade_config['games_per_page'] > 0)
 		{
-			$sql_order .= " LIMIT $start," . $arcade->arcade_config['games_per_page'];
+			$sql_order .= " LIMIT ".(int) $start."," . (int) $arcade->arcade_config['games_per_page'];
 		}
 //
 // Main Query to get as much Information as we can.
 //
-		$sql = "SELECT g.*, f.fav_game_name, c.cat_name, c.total_games, c.total_played, AVG(r.rate_point) AS rating, COUNT(comment_id) AS comment_count, s.score, u.username, u.user_allow_viewonline, a.score AS at_score, a.player_name, au.username AS at_username, au.user_allow_viewonline AS at_user_allow_viewonline
-      FROM " . iNA_CAT . " c, 
-           " . iNA_GAMES . " g
-        LEFT JOIN " . iNA_SCORES . " s ON g.highscore_id = s.player_id AND g.game_name = s.game_name
-        LEFT JOIN " . USERS_TABLE . " u ON g.highscore_id = u.user_id
-        LEFT JOIN " . iNA_AT_SCORES . " a ON g.at_highscore_id = a.player_id AND g.game_name = a.game_name
-		LEFT JOIN " . USERS_TABLE . " au ON g.at_highscore_id = au.user_id
-			  LEFT JOIN " . iNA_FAV . " f ON g.game_name = f.fav_game_name AND f.user_id = " . $userdata['user_id'] . "
-        LEFT JOIN " . iNA_GAMES_RATE . " r ON g.game_name = r.rate_game_name
-        LEFT JOIN " . iNA_GAMES_COMMENT . " ON g.game_name = comment_game_name
-      WHERE c.cat_id = g.cat_id $sql_and $sql_order";
+		// Page rows and the total use the same category and access scope.
+		$catalog_source = ' FROM '.iNA_GAMES.' g INNER JOIN '.iNA_CAT.' c ON c.cat_id=g.cat_id';
+		$catalog_filter = ' WHERE g.game_id<>0 '.$sql_and;
+		// Independent lookups prevent ratings, comments, or duplicate legacy
+		// favorites and score rows from multiplying the number of games.
+		$at_name = 'SELECT a.player_name FROM '.iNA_AT_SCORES.' a WHERE a.game_name=g.game_name AND a.player_id=g.at_highscore_id';
+		$at_ties = ', a.date ASC, CAST(a.player_name AS BINARY) ASC LIMIT 1';
+		$sql = 'SELECT g.*, c.cat_name, c.total_games, c.total_played,
+			CASE WHEN '.$favorite_games.' THEN g.game_name ELSE NULL END AS fav_game_name,
+			(SELECT AVG(r.rate_point) FROM '.iNA_GAMES_RATE.' r WHERE r.rate_game_name=g.game_name) AS rating,
+			(SELECT COUNT(*) FROM '.iNA_GAMES_COMMENT.' m WHERE m.comment_game_name=g.game_name) AS comment_count,
+			(SELECT CASE WHEN g.reverse_list<>0 THEN MIN(s.score) ELSE MAX(s.score) END
+				FROM '.iNA_SCORES.' s WHERE s.game_name=g.game_name AND s.player_id=g.highscore_id) AS score,
+			(SELECT CASE WHEN g.reverse_list<>0 THEN MIN(a.score) ELSE MAX(a.score) END
+				FROM '.iNA_AT_SCORES.' a WHERE a.game_name=g.game_name AND a.player_id=g.at_highscore_id) AS at_score,
+			CASE WHEN g.reverse_list<>0 THEN ('.$at_name.' ORDER BY a.score ASC'.$at_ties.')
+				ELSE ('.$at_name.' ORDER BY a.score DESC'.$at_ties.') END AS player_name,
+			u.username, u.user_allow_viewonline, au.username AS at_username, au.user_allow_viewonline AS at_user_allow_viewonline'
+			.$catalog_source.' LEFT JOIN '.USERS_TABLE.' u ON g.highscore_id=u.user_id
+				LEFT JOIN '.USERS_TABLE.' au ON g.at_highscore_id=au.user_id'
+			.$catalog_filter.$sql_order;
   	if( !$result = $db->sql_query($sql) )
 		{
-			$arcade->message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $listsql . '<br>' . $sql);
+			$arcade->message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
 		}
 		$game_rows = $db->sql_fetchrowset($result);
+		$db->sql_freeresult($result);
     $game_count = count($game_rows);
 //
 //  Now build the list of games for displaying.
@@ -1270,7 +1286,7 @@ if( $mode != '' )
             $game_rate = ' &nbsp; ';
           }
         }
-        for ($rate_count = round($game_rows[$i]['rating'], 2); $rate_count > 0; $rate_count--)
+        for ($rate_count = round((float) $game_rows[$i]['rating'], 2); $rate_count > 0; $rate_count--)
         {
           if (($rate_count >= .5) && ($rate_count <= .9))
           {
@@ -1396,37 +1412,19 @@ if( $mode != '' )
 //
 		if($arcade->arcade_config['games_per_page'] > 0)
 		{
-			$sql = "SELECT count(*) AS total FROM " . iNA_GAMES . " g
-					WHERE game_id <> 0";
-			if ($mode == 'search')
-			{
-				$sql = "SELECT count(*) as total from " . iNA_GAMES . "
-					WHERE game_desc LIKE '%$search_sql%'
-						AND game_id <> 0";
-			}
-			else if ($mode == 'fav')
-			{
-				$sql = "SELECT count(*) AS total FROM " . iNA_FAV . " f, " . iNA_GAMES . " g
-					WHERE f.user_id = '" . $user_id . "'
-						AND f.fav_game_name = g.game_name";
-			}
-			if($arcade->cat_id > 0)
-			{
-				$sql .= " AND cat_id = '$arcade->cat_id'";
-			}
-			if($userdata['user_level'] != ADMIN)
-			{
-				$sql .= " AND game_avail = 1 AND level_required IN (".($level_required==MOD?'0,2':'0').") AND rank_required <= " . $rank_required . " AND group_required IN (" . $group_list . ")";
-			}
+			$sql = 'SELECT COUNT(*) AS total'.$catalog_source.$catalog_filter;
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				$arcade->message_die(GENERAL_ERROR, $lang['no_game_total'], '', __LINE__, __FILE__, $sql);
 			}
 			$total = $db->sql_fetchrow($result);
+			$db->sql_freeresult($result);
 			if ( $total['total'] >= $arcade->arcade_config['games_per_page'] )
 			{
 				$total_games = $total['total'];
-				$pagination = generate_pagination("$filename?mode=$mode&amp;sort_mode=$arcade->sort_mode&amp;order=$arcade->sort_order&amp;cat_id=$arcade->cat_id", $total_games, $arcade->arcade_config['games_per_page'], $start). '&nbsp;';
+				$page_url = "$filename?mode=$mode&amp;sort_mode=$arcade->sort_mode&amp;order=$arcade->sort_order&amp;cat_id=$arcade->cat_id";
+				if ($mode === 'search') { $page_url .= '&amp;search_word='.rawurlencode($search_term); }
+				$pagination = generate_pagination($page_url, $total_games, $arcade->arcade_config['games_per_page'], $start). '&nbsp;';
 				$page_number = sprintf($lang['Page_of'], ( floor( $start / $arcade->arcade_config['games_per_page'] ) + 1 ), ceil( $total_games / $arcade->arcade_config['games_per_page'] ));
 			}
 		}

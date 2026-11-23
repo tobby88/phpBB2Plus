@@ -44,7 +44,12 @@ $asset_gate = strpos($loader, '$asset_path = phpbb_arcade_local_asset(');
 $accounting = strpos($loader, 'phpbb_arcade_record_launch($db, $game_info, $session)');
 arcade_secondary_assert($asset_gate !== false && $accounting !== false && $asset_gate < $accounting, 'missing Arcade assets must be rejected before owned play accounting');
 arcade_secondary_assert(strpos($functions, "ctracker_enforce_request_limit_profile(array('arcade-launch',300,'request_limit_content',60))") !== false && strpos($functions, 'PAGE_ARCADE_LAUNCH_PENDING') !== false, 'GET game launches need a dedicated request bucket before preparing their pending capability');
-arcade_secondary_assert(strpos($activity, "WHERE game_desc LIKE '%\$search_sql%'") !== false, 'Arcade search totals must use the SQL-escaped term');
+arcade_secondary_assert(strpos($activity, '$search_sql = $db->sql_escape($search_term);') !== false &&
+    strpos($activity, "AND game_desc LIKE '%\$search_sql%'") !== false &&
+    strpos($activity, '$catalog_filter = \' WHERE g.game_id<>0 \'.$sql_and;') !== false &&
+    strpos($activity, '.$catalog_filter.$sql_order;') !== false &&
+    strpos($activity, '\'SELECT COUNT(*) AS total\'.$catalog_source.$catalog_filter;') !== false,
+    'Arcade list and total must share the search filter assembled from the SQL-escaped term');
 arcade_secondary_assert(strpos($activity, "WHERE rate_game_name = '\$game_name_sql'") !== false, 'Arcade rating lookups must escape stored game names');
 arcade_secondary_assert(substr_count($activity, "AND game_name = '\" . \$game_info_name_sql . \"'") === 2, 'Arcade summary score lookups must escape stored game names');
 arcade_secondary_assert(strpos($activity, "isset(\$game_rows[0]['total_games'])") !== false, 'empty Arcade categories need stable totals');

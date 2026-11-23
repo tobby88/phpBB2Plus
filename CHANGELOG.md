@@ -1383,6 +1383,12 @@ changes consolidated after that baseline without implying active maintenance.
 - Retain URL sessions in game links and show removed accounts with the existing
   generic translated label instead of linking an empty profile name.
 
+### Arcade catalogue counts and pagination
+
+- Use portable Arcade list queries with independent rating, comment and score
+  lookups. Match pagination totals to visible games and retain the search term
+  when switching pages.
+
 ### Consistent Arcade parent counters on catalogue edits
 
 - Transfer historical plays between the affected parent categories when moving
