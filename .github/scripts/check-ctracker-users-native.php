@@ -17,7 +17,7 @@ $body = <<<'PHP'
  $a=strpos($loader,'function ats_load_function('); $b=strpos($loader,'ats_load_function($ats_source',$a);
  sd_check($a!==false&&$b>$a,'Production function loader'); eval(substr($loader,$a,$b-$a));
  function ats_check($ok,$message){sd_check($ok,$message);}
- foreach(array('phpbb_rtrim','phpbb_clean_username','get_userdata')as$name){ats_load_function($sd_source.'includes/functions.php',$name);}
+ foreach(array('phpbb_rtrim','phpbb_clean_username','get_userdata','phpbb_stored_text')as$name){ats_load_function($sd_source.'includes/functions.php',$name);}
  sd_sql("ALTER TABLE fixture_users ADD username VARCHAR(25) NOT NULL DEFAULT 'Actor', ADD ct_miserable_user TINYINT NOT NULL DEFAULT 0");
  class CtUserTemplate {
   var $blocks=array();
@@ -93,6 +93,37 @@ $body = <<<'PHP'
   ctu_reset();sd_check($db->sql_query('START TRANSACTION'),'Conflicting caller transaction');sd_check($db->sql_query('UPDATE fixture_users SET user_level=1 WHERE user_id=2'),'Caller uncommitted target promotion');$before=ctu_snap();$caller=phpbb_acl_rows($db,'SELECT CONNECTION_ID() AS id,@@SESSION.sql_mode AS mode,@@SESSION.in_transaction AS tx');$sd_hook=function($sql,$connection){if(strpos($sql,'SET SESSION sql_mode ')!==0){return;}$GLOBALS['sd_hook']=null;sd_check($connection->inner->sql_query('SET SESSION innodb_lock_wait_timeout=0'),'Bounded conflicting owner lock');};sd_check(!ctu_success('mark',ctu_run(ctu_request('mark')))&&ctu_snap()===$before,'Conflicting caller row refuses whole change');sd_check(phpbb_acl_rows($db,'SELECT CONNECTION_ID() AS id,@@SESSION.sql_mode AS mode,@@SESSION.in_transaction AS tx')===$caller&&(int)phpbb_acl_rows($db,'SELECT user_level FROM fixture_users WHERE user_id=2')[0]['user_level']===1,'Refusal preserves caller pending target change');sd_check($db->sql_query('ROLLBACK'),'Caller alone controls conflicting rollback');sd_unlocked();$cases++;
   class CtUserReuseDatabase extends StyleDataDatabase {function sql_dedicated_connection(){return $this;}}
   ctu_reset();$original=$db;$db=new CtUserReuseDatabase($original->inner);$before=ctu_snap();sd_check(!ctu_success('mark',ctu_run(ctu_request('mark')))&&ctu_snap()===$before&&$db->db_connect_id instanceof mysqli,'Factory reuse is refused without closing source');$db=$original;sd_unlocked();$cases++;
+  ctu_reset('root', 1);
+  $_SERVER['REQUEST_METHOD'] = 'GET';
+  sd_check(ctu_run(array()) === 'rendered' && $template->blocks['output'][0]['L_USERNAME'] === 'A&amp;B',
+      'A stored ampersand appears once in the marked-user list');
+  $cases++;
+
+  sd_sql("INSERT INTO fixture_users (user_id,user_level,user_active,username,ct_miserable_user) VALUES
+      (-1,0,0,'Anonymous',1),(3,0,1,'Zulu',1),(4,0,1,'Beta &lt;Label&gt;',1),
+      (5,0,0,'Beta &lt;Label&gt;',1),(6,0,1,'A &amp;amp; B',1),(7,0,1,'Unmarked',0)");
+  $before = ctu_snap();
+  $sd_queries = array();
+  sd_check(ctu_run(array()) === 'rendered' && ctu_snap() === $before, 'Listing does not modify marked accounts');
+  $visible = $template->blocks['output'];
+  sd_check($sd_queries === array('SELECT user_id, username FROM fixture_users WHERE ct_miserable_user = 1 AND user_id > 0 ORDER BY username ASC, user_id ASC'),
+      'One query reads only the display columns in stable account order');
+  sd_check(array_column($visible, 'USER_ID') === array(6, 2, 4, 5, 3),
+      'Anonymous records and unmarked members are excluded; inactive marked members remain removable');
+  sd_check(array_column($visible, 'L_USERNAME') === array('A &amp;amp; B', 'A&amp;B', 'Beta &lt;Label&gt;', 'Beta &lt;Label&gt;', 'Zulu'),
+      'Stored entity literals and escaped angle brackets render as the original names');
+  sd_check(array_column($visible, 'ROW_CLASS') === array('row1', 'row2', 'row1', 'row2', 'row1'), 'Alternating row classes follow the stable order');
+  $cases++;
+
+  sd_sql('UPDATE fixture_users SET ct_miserable_user=0 WHERE user_id>0');
+  sd_check(ctu_run(array()) === 'rendered' && isset($template->blocks['no_entry']) && !isset($template->blocks['output']),
+      'A guest flag alone leaves the list empty');
+  $cases++;
+  $sd_failure = 'SELECT user_id, username FROM fixture_users';
+  sd_check(ctu_run(array()) === $lang['ctracker_error_loading_config'] && !$template->blocks, 'A list read failure shows the existing localized error');
+  $sd_failure = '';
+  $cases++;
+
   require_once dirname(rtrim($sd_source,'/')).'/update/innodb_migration.php';$covered=plus_storage_tables($schema,'fixture_');foreach(array('users','sessions','jr_admin_users')as$kind){sd_check(in_array('fixture_'.$kind,$covered,true),'Current migration covers authority/target participant');}
   echo 'CrackerTracker user flags: '.$cases.' cases; '.$serialized." concurrent changes serialized.\n";
  }

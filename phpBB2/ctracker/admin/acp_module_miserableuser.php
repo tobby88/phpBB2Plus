@@ -75,32 +75,36 @@ else if ( $mode == 'unmis' )
 
 
 // List output
-$sql = 'SELECT * FROM ' . USERS_TABLE . ' WHERE ct_miserable_user = 1';
-		
-if ( !($result = $db->sql_query($sql)) )
+$sql = 'SELECT user_id, username FROM ' . USERS_TABLE . ' WHERE ct_miserable_user = 1 AND user_id > 0 ORDER BY username ASC, user_id ASC';
+if (!($result = $db->sql_query($sql)))
 {
 	message_die(GENERAL_ERROR, $lang['ctracker_error_loading_config'], '', __LINE__, __FILE__, $sql);
 }
 
-// Define some vars
 $row_class = false;
-$entry_def = false;
-		
-while ( $row = $db->sql_fetchrow($result) )
+$has_entries = false;
+try
 {
-	$row_class = !$row_class;	// row class changer without counter
-	$entry_def = true;			// yes, we have users in our list!
-	
-	$template->assign_block_vars('output', array(
-			'ROW_CLASS'		=>	($row_class)? 'row1' : 'row2',
-			'USER_ID'		=> intval($row['user_id']),
-			'L_USERNAME'	=> phpbb_admin_html($row['username']))
-	);
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$row_class = !$row_class;
+		$has_entries = true;
+		$template->assign_block_vars('output', array(
+			'ROW_CLASS' => $row_class ? 'row1' : 'row2',
+			'USER_ID' => (int) $row['user_id'],
+			'L_USERNAME' => phpbb_stored_text($row['username'])
+		));
+	}
 }
-$db->sql_freeresult($result);
+finally
+{
+	$db->sql_freeresult($result);
+}
 
-// No entry in List?
-($entry_def)? null: $template->assign_block_vars('no_entry', array());
+if (!$has_entries)
+{
+	$template->assign_block_vars('no_entry', array());
+}
 
 /*
  * Send some vars to the template
