@@ -498,22 +498,37 @@ class log_manager
 	}
 
 
-	/**
-	 * check_log_size is responsible to check how much entrys are in a Log file
-	 *
-	 * @param $file_id Identification of the Log File
-	 * @return $logsize Count how many entrys are in the Log
-	 */
     // Count physical records, not bounded fgets fragments. The caller owns
     // any file lock; clearing must retain its exclusive lock throughout.
-    private function count_event_records($handle)
+    private function count_event_records($handle, &$metadata = null)
     {
-        if(!@rewind($handle)){return false;}$count=0;$seen=false;$ends_lf=false;
-        while(!feof($handle)){
-            $chunk=@fread($handle,8192);if($chunk===false||($chunk===''&&!feof($handle))){return false;}
-            if($chunk===''){break;}$seen=true;$ends_lf=substr($chunk,-1)==="\n";$count+=substr_count($chunk,"\n");
+        $metadata = null;
+        if (!@rewind($handle)) { return false; }
+        $first = @fgets($handle, 16385);
+        if ($first === false) { return feof($handle) ? 0 : false; }
+        $fields = (substr($first, -1) === "\n" || feof($handle)) ? explode('|||', $first) : array();
+        $first_is_event = count($fields) >= 7 && $fields[0] === '0';
+        if (count($fields) >= 7 && $this->metadata_kind($fields) && preg_match('/^[0-9]+$/D', $fields[1]))
+        {
+            $metadata = $fields;
         }
-        if($seen&&!$ends_lf){$count++;}return max(0,$count-($seen?1:0));
+        if (!@rewind($handle)) { return false; }
+
+        $count = 0;
+        $seen = false;
+        $ends_lf = false;
+        while (!feof($handle))
+        {
+            $chunk = @fread($handle, 8192);
+            if ($chunk === false || ($chunk === '' && !feof($handle))) { return false; }
+            if ($chunk === '') { break; }
+            $seen = true;
+            $ends_lf = substr($chunk, -1) === "\n";
+            $count += substr_count($chunk, "\n");
+        }
+        if ($seen && !$ends_lf) { $count++; }
+        // Keep the old reserved slot for damaged or unrecognized headers.
+        return max(0, $count - ($first_is_event ? 0 : 1));
     }
 
     // Debug groups repeat the exact first logical line. Fingerprinting keeps
@@ -546,9 +561,9 @@ class log_manager
         }finally{@flock($handle,LOCK_UN);@fclose($handle);}
     }
 
-    private function count_log_records($handle, $debug)
+    private function count_log_records($handle, $debug, &$metadata = null)
     {
-        if (!$debug) { return $this->count_event_records($handle); }
+        if (!$debug) { return $this->count_event_records($handle, $metadata); }
         $first = $this->read_record_fingerprint($handle);
         if ($first === false) { return 0; }
         $count = 1;
@@ -568,31 +583,12 @@ class log_manager
         {
             if (!@flock($handle, LOCK_SH)) { return $empty; }
             $debug = intval($file_id) === 6;
-            $count = $this->count_log_records($handle, $debug);
+            $metadata = null;
+            $count = $this->count_log_records($handle, $debug, $metadata);
             if ($count === false) { return $empty; }
 
-            // Event logs reserve their physical first line for metadata, even
-            // when it is older than both read limits.
-            $metadata = null;
-            if (!$debug && @rewind($handle))
-            {
-                $first = @fgets($handle, 16385);
-                if ($first !== false && (substr($first, -1) === "\n" || feof($handle)))
-                {
-                    $fields = explode('|||', $first);
-                    if (count($fields) >= 7 && $this->metadata_kind($fields) &&
-                        preg_match('/^[0-9]+$/D', $fields[1]) && (int) $fields[1] > 0)
-                    {
-                        $metadata = $fields;
-                    }
-                    elseif (count($fields) >= 7 && $fields[0] === '0')
-                    {
-                        // Imported event logs can predate the metadata line.
-                        $count++;
-                    }
-                }
-            }
-            return array('count'=>$count, 'metadata'=>$metadata,
+            // A zero-date seed is still a header; it cannot label a reset.
+            return array('count'=>$count, 'metadata'=>$metadata !== null && (int) $metadata[1] > 0 ? $metadata : null,
                 'lines'=>$this->read_log_tail($handle, $max_lines, $metadata !== null));
         }
         finally { @flock($handle, LOCK_UN); @fclose($handle); }

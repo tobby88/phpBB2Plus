@@ -84,6 +84,33 @@ try {
     cp_check($before===10 && $manager->get_counter_value()===$before, 'Actual ACP clear-all preserves existing historical aggregate and current attack total'); $cases++;
     cp_admin('delete_all'); cp_check($manager->get_counter_value()===$before, 'Repeated clear-all is counter-idempotent'); $cases++;
 
+    foreach (array(2, 3, 4, 5) as $id) {
+        foreach (array("\n", "\r\n", '') as $ending) {
+            $entries = "0|||11|||First imported event|||referrer|||agent|||ip|||host\r\n" .
+                '0|||12|||Second imported event|||referrer|||agent|||ip|||host' . $ending;
+            $attack_log = $id !== 4;
+            foreach (array(false, true) as $automatic) {
+                cp_reset(); $manager = new log_manager();
+                cp_check(file_put_contents($manager->create_ct_path($id), $entries) === strlen($entries), 'Seed own headerless imported log');
+                $log = $manager->read_log_snapshot($id, 1);
+                cp_check($log['count'] === 2 && $log['metadata'] === null && count($log['lines']) === 1,
+                    'The bounded detail view counts both imported records without inventing a header');
+                cp_check($manager->check_log_size($id) === 2, 'The overview agrees with the headerless log detail count');
+                cp_check($manager->get_counter_value() === 7 + ($attack_log ? 2 : 0), 'The counter includes each imported attack event');
+                if ($automatic) {
+                    $manager->write_general_logfile(2, $id);
+                    cp_check($manager->check_log_size($id) === 1 && $manager->get_counter_value() === 7 + ($attack_log ? 3 : 0),
+                        'Automatic reset honors the imported record limit and retains the total');
+                } else {
+                    cp_admin('delete', $id);
+                    cp_check($manager->check_log_size($id) === 0 && $manager->get_counter_value() === 7 + ($attack_log ? 2 : 0),
+                        'An ACP reset transfers all imported attack records to the counter');
+                }
+                $cases++;
+            }
+        }
+    }
+
     foreach (array(2,3,4,5) as $id) {
         $limit = $id === 2 ? 100 : 3;
         foreach (array($limit, $limit-1) as $start) {
