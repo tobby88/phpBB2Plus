@@ -7,12 +7,12 @@ function aur_check($ok, $message) { if (!$ok) { throw new RuntimeException($mess
 function aur_denied($callback, $message) { $denied = false; try { $callback(); } catch (AlbumFileCoordinatorFailure $error) { $denied = true; } catch (AlbumFileStorageFailure $error) { $denied = true; } aur_check($denied, $message); $GLOBALS['cases']++; }
 class AlbumUploadReceiptSource extends sql_db
 {
-    var $queries = array(); var $failure = 0; var $count = 0; var $factory_count = 0; var $lost = '';
-    function sql_dedicated_connection() { $connection = new AlbumUploadReceiptObserved(parent::sql_dedicated_connection(), $this); $connection->role = ++$this->factory_count; return $connection; }
+    var $queries = array(); var $failure = 0; var $count = 0; var $factory_count = 0; var $lost = ''; var $closing_owners = array();
+    function sql_dedicated_connection() { album_native_wait_for_closed_owners($this); $connection = new AlbumUploadReceiptObserved(parent::sql_dedicated_connection(), $this); $connection->role = ++$this->factory_count; return $connection; }
     function observed_query($database, $sql, $transaction = false) { $this->queries[] = $sql; if (++$this->count === $this->failure) { return false; } return $database->sql_query($sql, $transaction); }
     function reset_case($failure = 0) { $this->queries = array(); $this->failure = $failure; $this->count = 0; $this->factory_count = 0; $this->lost = ''; }
 }
-class AlbumUploadReceiptObserved extends AlbumNativeObservedConnection
+class AlbumUploadReceiptObserved extends AlbumNativeDisconnectObservedConnection
 {
     var $role;
     function sql_query($sql = '', $transaction = false) { if ($sql === 'COMMIT' && $this->observer->lost === (string) $this->role) { $this->observer->lost = ''; aur_check($this->database->sql_query($sql) !== false, 'Actual lost commit acknowledgement'); return false; } return parent::sql_query($sql, $transaction); }
@@ -103,10 +103,17 @@ function aur_crash_worker($boundary, $recovery = false)
             aur_check($status['running'] && microtime(true) < $deadline, 'Worker reaches exact journal boundary: ' . $out . $err); usleep(10000);
         } while (true);
         aur_check(file_get_contents($ready) === $boundary && $status['running'], 'Kill only owned live worker at confirmed boundary: ' . json_encode($status) . ' ready=' . file_get_contents($ready) . ' output=' . $out . $err);
+        $lock = 'album_files_' . sha1($GLOBALS['schema'] . "\0fixture_");
+        $owners = aur_rows("SELECT IS_USED_LOCK('$lock') AS owner");
+        aur_check(count($owners) === 1 && (int) $owners[0]['owner'] > 0, 'Identify the owned crash worker connection before killing it');
+        $owner = (int) $owners[0]['owner'];
         aur_check(proc_terminate($process, 9), 'Forced native process termination, without PHP shutdown cleanup'); $deadline = microtime(true) + 5;
         do { $status = proc_get_status($process); if (!$status['running']) { break; } aur_check(microtime(true) < $deadline, 'Bounded actual worker termination'); usleep(10000); } while (true);
         $out .= stream_get_contents($pipes[1]); $err .= stream_get_contents($pipes[2]); aur_check($out === '' && $err === '', 'Actual killed child emitted no PHP error');
         fclose($pipes[1]); fclose($pipes[2]); proc_close($process); $process = null; aur_check(unlink($ready), 'Remove own exact barrier');
+        $source = $GLOBALS['source'];
+        $source->closing_owners[$owner] = $owner;
+        album_native_wait_for_closed_owners($source);
     } finally { if (is_resource($process)) { proc_terminate($process, 9); foreach (array(1,2) as $index) { if (is_resource($pipes[$index])) { fclose($pipes[$index]); } } proc_close($process); } }
 }
 $reporting = error_reporting(E_ALL); set_error_handler(function ($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
@@ -182,8 +189,7 @@ try {
     }
     foreach (array('prepared','files','published') as $boundary) {
         aur_clear(); aur_crash_worker($boundary); aur_consistent(); $source->reset_case();
-        $deadline = microtime(true) + 3;
-        do { try { $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); break; } catch (AlbumFileCoordinatorFailure $error) { aur_check(microtime(true) < $deadline, 'Killed worker releases its DB namespace'); usleep(10000); } } while (true);
+        $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0);
         $receipt = new AlbumUploadReceipt($coordinator, 'fixture_', $base); $saved = $receipt->committed($descriptor);
         aur_check($saved['state'] === ($boundary === 'published' ? 'published' : 'prepared'), 'Independent resolver sees durable state after forced process death: ' . $boundary);
         foreach ($items as $item) { aur_check(is_file($base . $scopes[$item['scope']] . $item['name']) === ($boundary !== 'prepared'), 'Forced death never loses a file already published: ' . $boundary); }

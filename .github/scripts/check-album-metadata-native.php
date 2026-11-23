@@ -4,11 +4,11 @@ define('IN_PHPBB',true);$root=dirname(dirname(__DIR__));
 require$root.'/phpBB2/includes/php_compat.php';require$root.'/phpBB2/db/mysqli.php';require$root.'/phpBB2/album_mod/album_file_coordinator.php';require __DIR__.'/album-native-observer.php';
 function am_check($ok,$why){if(!$ok){throw new RuntimeException($why);}$GLOBALS['assertions']++;}
 class AlbumMetadataSource extends sql_db{
- var$hook=null,$trace=array(),$owners=array(),$mode='',$row_fault='';
- function sql_dedicated_connection(){$db=parent::sql_dedicated_connection();if($this->mode!==''){am_check($db->sql_query("SET SESSION sql_mode='".$db->sql_escape($this->mode)."'"),'Own alternate SQL mode');}$owner=new AlbumMetadataObserved($db,$this);$this->owners[]=$owner;return$owner;}
+ var$hook=null,$trace=array(),$owners=array(),$mode='',$row_fault='',$closing_owners=array();
+ function sql_dedicated_connection(){album_native_wait_for_closed_owners($this);$db=parent::sql_dedicated_connection();if($this->mode!==''){am_check($db->sql_query("SET SESSION sql_mode='".$db->sql_escape($this->mode)."'"),'Own alternate SQL mode');}$owner=new AlbumMetadataObserved($db,$this);$this->owners[]=$owner;return$owner;}
  function observed_query($db,$sql,$transaction=false){$this->trace[]=$sql;if(is_callable($this->hook)&&call_user_func($this->hook,'before',$sql)===false){return false;}$r=$db->sql_query($sql,$transaction);if(is_callable($this->hook)&&call_user_func($this->hook,'after',$sql)===false){return false;}return$r;}
 }
-class AlbumMetadataObserved extends AlbumNativeObservedConnection{
+class AlbumMetadataObserved extends AlbumNativeDisconnectObservedConnection{
  var$last='';
  function sql_query($sql='',$transaction=false){$this->last=$sql;return parent::sql_query($sql,$transaction);}
  function sql_fetchrowset($r=0){$rows=$this->database->sql_fetchrowset($r);$kind=$this->observer->row_fault;if($kind&&strpos($this->last,'SELECT TABLE_NAME,ENGINE,ROW_FORMAT,TABLE_COLLATION ')===0){if($kind==='missing-name'){unset($rows[0]['TABLE_NAME']);}elseif($kind==='duplicate'){$rows[1]=$rows[0];}elseif($kind==='unexpected'){$rows[0]['TABLE_NAME']='not_a_participant';}elseif($kind==='missing-format'){unset($rows[0]['ROW_FORMAT']);}elseif($kind==='null-format'){$rows[0]['ROW_FORMAT']=null;}elseif($kind==='invalid-rows'){return false;}}return$rows;}
