@@ -50,14 +50,33 @@ if ($include_previous_month)
 $month_conditions = array();
 foreach ($monthly_ranges as $range)
 {
-	$month_conditions[] = '(highscore_year = ' . $range[0] . ' AND highscore_mon = ' . $range[1] . ')';
+	$month_conditions[] = '(h.highscore_year = ' . $range[0] . ' AND h.highscore_mon = ' . $range[1] . ')';
 }
 
+// Scores refer to game names. Legacy duplicate names share one eligible game.
+$eligible_game_ids = "SELECT MIN(game_id) AS game_id FROM " . iNA_GAMES . "
+	WHERE game_name <> '' AND game_avail = 1 AND game_show_score = 1
+	GROUP BY game_name";
+
+// Older installations can have more than one monthly row for the same game.
+// Pick the winner using the same ordering as score submission.
 $sql = "SELECT h.highscore_user_id, COALESCE(u.username, h.highscore_player) AS player,
 		COUNT(*) AS score_count
 	FROM " . iNA_HIGHSCORES . " h
+	INNER JOIN " . iNA_GAMES . " g ON g.game_name = h.highscore_game
+	INNER JOIN (" . $eligible_game_ids . ") eligible ON eligible.game_id = g.game_id
 	LEFT JOIN " . USERS_TABLE . " u ON u.user_id = h.highscore_user_id
-	WHERE " . implode(' OR ', $month_conditions) . "
+	WHERE (" . implode(' OR ', $month_conditions) . ")
+		AND h.highscore_id = (
+			SELECT candidate.highscore_id
+			FROM " . iNA_HIGHSCORES . " candidate
+			WHERE candidate.highscore_game = h.highscore_game
+				AND candidate.highscore_year = h.highscore_year
+				AND candidate.highscore_mon = h.highscore_mon
+			ORDER BY CASE WHEN g.reverse_list <> 0 THEN candidate.highscore_score ELSE -candidate.highscore_score END,
+				candidate.highscore_date ASC, candidate.highscore_user_id ASC, candidate.highscore_id ASC
+			LIMIT 1
+		)
 	GROUP BY h.highscore_user_id, COALESCE(u.username, h.highscore_player)";
 if (!($result = $db->sql_query($sql)))
 {
@@ -86,14 +105,13 @@ $db->sql_freeresult($result);
 // applying each game's direction is its current all-time winner.
 foreach (array(0 => 'DESC', 1 => 'ASC') as $reverse_list => $sort_order)
 {
-	$sql = "SELECT s.game_name, s.player_id, u.username AS player
+	$sql = "SELECT g.game_name, s.player_id, u.username AS player
 		FROM " . iNA_AT_SCORES . " s
 		INNER JOIN " . iNA_GAMES . " g ON g.game_name = s.game_name
+		INNER JOIN (" . $eligible_game_ids . ") eligible ON eligible.game_id = g.game_id
 		INNER JOIN " . USERS_TABLE . " u ON u.user_id = s.player_id
 		WHERE g.reverse_list = " . (int) $reverse_list . "
-			AND g.game_avail = 1
-			AND g.game_show_score = 1
-		ORDER BY s.game_name ASC, s.score $sort_order, s.date ASC";
+		ORDER BY g.game_name ASC, s.score $sort_order, s.date ASC, s.player_id ASC";
 	if (!($result = $db->sql_query($sql)))
 	{
 		message_die(GENERAL_ERROR, $lang['no_score_data'], '', __LINE__, __FILE__, $sql);

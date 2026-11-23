@@ -7,7 +7,7 @@ class ArcadePointsDatabaseFixture
  function sql_query($sql){
   $this->queries[]=$sql;
   if(strpos($sql,'SELECT h.highscore_user_id,')===0){$kind='monthly';$rows=$this->monthly;}
-  elseif(strpos($sql,'SELECT s.game_name, s.player_id, u.username AS player')===0){$kind='alltime';$rows=strpos($sql,'g.reverse_list = 0')!==false?$this->descending:$this->ascending;}
+  elseif(strpos($sql,'SELECT g.game_name, s.player_id, u.username AS player')===0){$kind='alltime';$rows=strpos($sql,'g.reverse_list = 0')!==false?$this->descending:$this->ascending;}
   elseif(strpos($sql,'SELECT n.author_user_id FROM fixture_removed_author_names n WHERE ')===0){$kind='alias';$match=strpos($sql,'n.author_user_id=40 OR')!==false||strpos($sql,"n.author_name='Legacy former'")!==false;if(strpos($sql,'current_author.user_id=9')!==false){$match=false;}$rows=$match?array(array('author_user_id'=>0)):array();}
   else{throw new RuntimeException('Only actual synthetic points and alias SELECTs allowed');}
   if($this->fail===$kind){return false;}$this->opened++;return(object)array('rows'=>$rows,'offset'=>0);

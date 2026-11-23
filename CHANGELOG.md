@@ -1389,6 +1389,7 @@ changes consolidated after that baseline without implying active maintenance.
   lookups. Match pagination totals to visible games and retain the search term
   when switching pages or sorting results.
 - Select the 60 visible monthly high scores after applying game access settings.
+- Award Arcade points once per eligible game and month, using consistent tie breakers for monthly and all-time winners.
 
 ### Consistent Arcade parent counters on catalogue edits
 
