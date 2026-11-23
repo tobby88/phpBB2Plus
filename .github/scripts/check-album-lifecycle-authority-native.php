@@ -43,10 +43,10 @@ function ala_reset($guest = false)
     $GLOBALS['album_config'] = array('personal_gallery'=>ALBUM_ADMIN,'rate'=>1,'comment'=>1,'marker'=>'preserve'); $GLOBALS['album_data'] = array('auth'=>array(3=>array('upload'=>1)));
     $GLOBALS['db']->reset_case();
 }
-function ala_authorize($owner = 0, $category = 1, $checks = ALBUM_AUTH_VIEW_AND_UPLOAD)
+function ala_authorize($owner = 0, $category = 1, $checks = ALBUM_AUTH_VIEW_AND_UPLOAD, $clock = null)
 {
     $GLOBALS['storage'] = new AlbumFileCoordinator($GLOBALS['db'], 'fixture_', 0); $GLOBALS['storage']->begin();
-    $authority = new AlbumLifecycleAuthority($GLOBALS['storage'], 'fixture_'); $before = ala_globals();
+    $authority = new AlbumLifecycleAuthority($GLOBALS['storage'], 'fixture_', $clock); $before = ala_globals();
     try { $context = $authority->lock($GLOBALS['userdata'], $owner, $category, $checks); }
     finally { ala_check(ala_globals() === $before, 'Exact global request DB/config/userdata/authcache restored'); }
     return array($authority, $context);
@@ -121,7 +121,21 @@ try {
     }
     ala_reset(); $db->reset_case(); $result = ala_authorize(); $storage->commit(); ala_release(); $baseline = $db->queries;
     foreach ($baseline as $index => $sql) { ala_reset(); $db->reset_case($index+1); $failed = false; try { $result = ala_authorize(); ala_check($result[1] !== false, 'Untampered fixture grants authority before injected fault'); $storage->commit(); } catch (AlbumFileCoordinatorFailure $error) { $failed = true; } finally { ala_release(); } ala_check($failed && !ala_rows('SELECT pic_id FROM fixture_album'), 'Every real authority SQL failure aborts safely: ' . ($index+1)); $cases++; }
-    ala_reset(); ala_sql("UPDATE fixture_config SET config_value='2' WHERE config_name='session_length'"); $start = time(); ala_sql('UPDATE fixture_sessions SET session_time=' . $start); $result = ala_authorize(); ala_check($result[1] !== false, 'Short live session initially valid'); $storage->sql_query("INSERT INTO fixture_album(pic_id,pic_filename,pic_title,pic_user_id,pic_time) VALUES(7,'owned.jpg','Pending',7,1)"); while (time() < $start+2) { usleep(10000); } $denied = false; try { $storage->commit(); } catch (AlbumFileCoordinatorFailure $error) { $denied = true; } ala_release(); ala_check($denied && !ala_rows('SELECT pic_id FROM fixture_album'), 'Wall-clock expiry prevents actual final commit and rolls back picture'); $cases++;
+    ala_reset();
+    ala_sql("UPDATE fixture_config SET config_value='2' WHERE config_name='session_length'");
+    $now = time();
+    ala_sql('UPDATE fixture_sessions SET session_time=' . $now);
+    $result = ala_authorize(0, 1, ALBUM_AUTH_VIEW_AND_UPLOAD, function () use (&$now) { return $now; });
+    ala_check($result[1] !== false, 'Short session initially valid');
+    $storage->sql_query("INSERT INTO fixture_album(pic_id,pic_filename,pic_title,pic_user_id,pic_time) VALUES(7,'owned.jpg','Pending',7,1)");
+    $now++;
+    ala_check($result[0]->current(), 'Pending picture can still be committed one second before expiry');
+    $now++;
+    $denied = false;
+    try { $storage->commit(); } catch (AlbumFileCoordinatorFailure $error) { $denied = true; }
+    ala_release();
+    ala_check($denied && !ala_rows('SELECT pic_id FROM fixture_album'), 'Expiry at the deadline prevents actual final commit and rolls back picture');
+    $cases++;
     foreach (array('ENGINE=MyISAM','ROW_FORMAT=COMPACT','DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci') as $change) { ala_reset(); ala_sql('ALTER TABLE fixture_config ' . $change); ala_denied(); ala_sql('ALTER TABLE fixture_config ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'); }
     ala_reset(); $before = ala_globals(); $db->sql_query('START TRANSACTION'); $db->sql_query("UPDATE fixture_config SET config_value='pending' WHERE config_name='unrelated'"); $result = ala_authorize(); ala_check($result[1] !== false, 'Authority uses independent committed connection'); $storage->commit(); ala_release(); ala_check(ala_rows("SELECT config_value FROM fixture_config WHERE config_name='unrelated'")[0]['config_value'] === 'preserve' && ala_globals() === $before, 'Caller pending transaction and exact globals preserved'); $db->sql_query('ROLLBACK'); $cases++;
     require __DIR__.'/album-admin-authority-native-cases.php';ala_admin_cases();

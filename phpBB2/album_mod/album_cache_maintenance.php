@@ -10,11 +10,13 @@ class AlbumCacheMaintenance
 	private $root;
 	private $storage = null;
 	private $authority = null;
+	private $clock;
 
-	function __construct($database, $prefix, $root = null)
+	function __construct($database, $prefix, $root = null, $clock = null)
 	{
 		$this->database = $database; $this->prefix = $prefix;
 		$this->root = $root === null ? dirname(__DIR__) : $root;
+		$this->clock = $clock;
 	}
 
 	function current($context)
@@ -33,7 +35,7 @@ class AlbumCacheMaintenance
 		$removed = 0;
 		try {
 			$this->storage = new AlbumFileCoordinator($this->database, $this->prefix); $this->storage->begin();
-			$this->authority = new AlbumLifecycleAuthority($this->storage, $this->prefix);
+			$this->authority = new AlbumLifecycleAuthority($this->storage, $this->prefix, $this->clock);
 			if ($this->authority->lock_cache_admin($snapshot) === false) { throw new AlbumFileCoordinatorFailure('Current Album cache administration denied'); }
 			$files = new AlbumFileStorage(array($this, 'current'), $this->root);
 			$base = realpath($this->root);

@@ -10,15 +10,22 @@ class AlbumLifecycleAuthority
 	private $prefix;
 	private $locked = false;
 	private $expires = null;
+	private $clock;
 
-	function __construct($storage, $prefix)
+	function __construct($storage, $prefix, $clock = null)
 	{
+		if ($clock !== null && !is_callable($clock)) { throw new InvalidArgumentException('Invalid Album clock'); }
 		if (!($storage instanceof AlbumFileCoordinator) || !$storage->namespace_matches($prefix)) { throw new AlbumFileCoordinatorFailure('Invalid Album authority namespace'); }
 		foreach (array('USERS_TABLE'=>'users','SESSIONS_TABLE'=>'sessions','USER_GROUP_TABLE'=>'user_group','CONFIG_TABLE'=>'config','ALBUM_CAT_TABLE'=>'album_cat','ALBUM_CONFIG_TABLE'=>'album_config') as $constant => $suffix)
 		{
 			if (!defined($constant) || constant($constant) !== $prefix . $suffix) { throw new AlbumFileCoordinatorFailure('Album permission tables differ from owned namespace'); }
 		}
-		$this->storage = $storage; $this->prefix = $prefix;
+		$this->storage = $storage; $this->prefix = $prefix; $this->clock = $clock;
+	}
+
+	private function now()
+	{
+		return $this->clock === null ? time() : call_user_func($this->clock);
 	}
 
 	private static function integer($value, $minimum, $maximum)
@@ -38,7 +45,7 @@ class AlbumLifecycleAuthority
 
 	function current()
 	{
-		return $this->locked && $this->expires !== null && $this->expires > time() && $this->storage->publication_ready();
+		return $this->locked && $this->expires !== null && $this->expires > $this->now() && $this->storage->publication_ready();
 	}
 
 	private function admin_allowed($fresh, $module)
@@ -117,7 +124,7 @@ class AlbumLifecycleAuthority
 			foreach (array('session_id','session_user_id','session_logged_in','session_time','session_ip','session_admin') as $field) { if (!array_key_exists($field, $session)) { return $this->storage->abort(); } }
 			$session_time = self::integer($session['session_time'], 1, 4294967295);
 			if ($session['session_id'] !== $sid || self::integer($session['session_user_id'], -1, 8388607) !== $actor_id ||
-				self::integer($session['session_logged_in'], 0, 1) !== ($logged ? 1 : 0) || $session_time === false || $session_time <= time() - $seconds ||
+				self::integer($session['session_logged_in'], 0, 1) !== ($logged ? 1 : 0) || $session_time === false || $session_time <= $this->now() - $seconds ||
 				!is_string($session['session_ip']) || !preg_match('/^[a-f0-9]{8}$/iD', $session['session_ip']) || self::integer($session['session_admin'], 0, 1) === false) { return $this->storage->abort(); }
 			if ($logged) { $this->rows('SELECT group_id,user_pending FROM ' . USER_GROUP_TABLE . ' WHERE user_id=' . $actor_id . ' ORDER BY group_id LOCK IN SHARE MODE'); }
 			$settings = array();

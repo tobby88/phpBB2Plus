@@ -54,12 +54,23 @@ class AcmStageProbe extends AlbumCacheMaintenance {
 	function current($context){$begin=count($GLOBALS['db']->queries);$result=parent::current($context);if(is_array($context)&&isset($context['action'])&&in_array($context['action'],array('cache-stage-snapshot','cache-stage-remove'),true)){$key=$context['scope'].'/'.$context['action'];if(!isset($this->boundaries[$key])){$this->boundaries[$key]=array('scope'=>$context['scope'],'indices'=>range($begin+1,count($GLOBALS['db']->queries)));}}return$result;}
 }
 class AcmExpiryProbe extends AlbumCacheMaintenance {
-	var$deadline=0;var$observed=false;var$stages=false;
+	public $started;
+	public $observed = false;
+	private $stages;
+	private $timestamp;
+	function __construct($database, $prefix, $root, $stages = false) {
+		$this->stages = $stages;
+		$this->timestamp = $this->started = time();
+		parent::__construct($database, $prefix, $root, function () { return $this->timestamp; });
+	}
 	function current($context){
-		// Observe the physical deletion before the real authority's clock check.
-		// An expired authority may refuse without issuing another SQL query.
 		clearstatcache();$remaining=$this->stages?acm_stage_count():acm_existing_cache();
-		if(!$this->observed&&$remaining===($this->stages?3:4)){$this->observed=true;while(time()<$this->deadline){usleep(10000);}}
+		if (!$this->observed && $remaining === ($this->stages ? 3 : 4)) {
+			$this->timestamp = $this->started + 4;
+			acm_check(parent::current($context), 'Authority still permits the operation one second before expiry');
+			$this->timestamp++;
+			$this->observed = true;
+		}
 		return parent::current($context);
 	}
 }
@@ -92,8 +103,8 @@ try{
 	acm_frame();$originals=acm_file('one.jpg');$small=acm_file('cache');$held=acm_file('cache-held');acm_check(rename($small,$held),'Own alias fixture boundary');
 	try{if(function_exists('symlink')&&@symlink(realpath(acm_file('')),$small)){$link_cases++;$failed=false;try{acm_apply();}catch(Exception$error){$failed=true;}acm_check($failed&&is_file($originals)&&file_get_contents($originals)==='PROTECTED:one.jpg','Aliased cache-to-original root refuses before any unlink');}else{acm_check(DIRECTORY_SEPARATOR===chr(92),'POSIX cache alias coverage required');$failed=false;try{acm_apply();}catch(Exception$error){$failed=true;}acm_check($failed&&is_file($originals),'Missing configured cache root refuses all file work');}}finally{if(is_link($small)){unlink($small);}acm_check(!file_exists($small)&&rename($held,$small),'Restore only own cache directory');}
 	acm_frame();if(function_exists('symlink')&&@symlink(realpath(acm_file('one.jpg')),acm_file('cache/linked.jpg'))){$link_cases++;try{acm_check(acm_apply()===array('removed'=>5)&&is_link(acm_file('cache/linked.jpg')),'Linked cache entries preserved without following targets');acm_protected();}finally{unlink(acm_file('cache/linked.jpg'));}}else{acm_check(DIRECTORY_SEPARATOR===chr(92),'POSIX cache entry link coverage required');}
-	acm_frame();$probe=new AcmExpiryProbe($db,'fixture_',$base);$start=time();$probe->deadline=$start+5;acm_sql("UPDATE fixture_config SET config_value='5' WHERE config_name='session_length'");acm_sql('UPDATE fixture_sessions SET session_time='.$start);
-	$failed=false;try{$probe->clear($userdata);}catch(Exception$error){$failed=true;}acm_check($failed&&$probe->observed&&time()>=$probe->deadline&&acm_existing_cache()===4,'Wall-clock expiry after first derived deletion prevents all later file removals');acm_protected();
+	acm_frame();$probe=new AcmExpiryProbe($db,'fixture_',$base);acm_sql("UPDATE fixture_config SET config_value='5' WHERE config_name='session_length'");acm_sql('UPDATE fixture_sessions SET session_time='.$probe->started);
+	$failed=false;try{$probe->clear($userdata);}catch(Exception$error){$failed=true;}acm_check($failed&&$probe->observed&&acm_existing_cache()===4,'Session expiry after first derived deletion prevents all later file removals');acm_protected();
 	$boundaries=0;foreach(array(false,true)as$junior){
 		acm_frame($junior);acm_apply();$baseline=$db->queries;$boundaries+=count($baseline);
 		foreach($baseline as$index=>$sql){acm_frame($junior);$db->reset_case($index+1);$failed=false;try{acm_apply();}catch(Exception$error){$failed=true;}acm_check($failed,'Every native root/delegated SQL boundary reports failure: '.($index+1));acm_protected();acm_check(!acm_rows('SELECT * FROM fixture_album_file_jobs')&&!acm_rows('SELECT * FROM fixture_album_file_items'),'Cache-only operation never invents file receipts');}
@@ -109,7 +120,9 @@ try{
 	foreach(array('method','sid')as$bad){acm_frame();acm_stage_files();if($bad==='method'){$_SERVER['REQUEST_METHOD']='GET';}else{$_POST['sid']='bad';}$failed=false;try{acm_apply();}catch(Exception$error){$failed=true;}acm_check($failed&&acm_stage_count()===4,'Stage cleanup cannot bypass POST/SID checks');acm_protected();acm_stage_fixture_cleanup();$stage_cases++;}
 	acm_frame();acm_stage_files();acm_check(acm_controller()===GENERAL_MESSAGE&&acm_stage_count()===0,'Actual ACP controller reaches interrupted-stage cleanup');acm_protected();$stage_cases++;
 	acm_frame();acm_stage_files();$namespace='album_files_'.sha1($schema."\0fixture_");acm_sql("SELECT GET_LOCK('".$namespace."',0)");$owner=acm_rows('SELECT CONNECTION_ID() id')[0]['id'];$failed=false;try{acm_apply();}catch(Exception$error){$failed=true;}acm_check($failed&&acm_stage_count()===4&&acm_rows("SELECT IS_USED_LOCK('".$namespace."') owner")[0]['owner']===$owner,'Actual competing publisher namespace protects every stage and retains its original owner');acm_sql("DO RELEASE_LOCK('".$namespace."')");acm_check(acm_apply()===array('removed'=>9)&&acm_stage_count()===0,'Stage cleanup succeeds only after the real competing lease ends');acm_protected();$stage_cases++;
-	acm_frame();acm_stage_files();foreach($cache_names as$name){acm_check(unlink(acm_file($name)),'Expiry-only stage fixture excludes unrelated derived caches before starting its clock');}$probe=new AcmExpiryProbe($db,'fixture_',$base);$probe->stages=true;$start=time();$probe->deadline=$start+5;acm_sql("UPDATE fixture_config SET config_value='5' WHERE config_name='session_length'");acm_sql('UPDATE fixture_sessions SET session_time='.$start);$failed=false;try{$probe->clear($userdata);}catch(Exception$error){$failed=true;}acm_check($failed&&$probe->observed&&time()>=$probe->deadline&&acm_stage_count()===3,'Real session expiry after the first stage removal stops all subsequent stage removals');acm_protected();acm_stage_fixture_cleanup();$stage_cases++;
+	acm_frame();acm_stage_files();foreach($cache_names as$name){acm_check(unlink(acm_file($name)),'Expiry-only stage fixture excludes unrelated derived caches');}
+	$probe=new AcmExpiryProbe($db,'fixture_',$base,true);acm_sql("UPDATE fixture_config SET config_value='5' WHERE config_name='session_length'");acm_sql('UPDATE fixture_sessions SET session_time='.$probe->started);
+	$failed=false;try{$probe->clear($userdata);}catch(Exception$error){$failed=true;}acm_check($failed&&$probe->observed&&acm_stage_count()===3,'Session expiry after the first stage removal stops all subsequent stage removals');acm_protected();acm_stage_fixture_cleanup();$stage_cases++;
 	acm_frame();acm_stage_files();$db->lost=true;$failed=false;try{acm_apply();}catch(Exception$error){$failed=true;}acm_check($failed&&acm_stage_count()===0&&acm_existing_cache()===0,'Lost cache-clear acknowledgement cannot restore or damage user originals');acm_protected();acm_check(acm_apply()===array('removed'=>0),'Retry after uncertain cache-clear commit is idempotent');$stage_cases++;
 	acm_frame();acm_stage_files();$probe=new AcmStageProbe($db,'fixture_',$base);acm_check($probe->clear($userdata)===array('removed'=>9)&&count($probe->boundaries)===4,'Observe all four actual stage-snapshot/remove and cache-root SQL contexts');$stage_cases++;
 	foreach($probe->boundaries as$boundary){foreach($boundary['indices']as$failure){acm_frame();acm_stage_files();$db->reset_case($failure);$failed=false;try{acm_apply();}catch(Exception$error){$failed=true;}acm_check($failed&&acm_stage_count($boundary['scope']==='small'?'cache':'med_cache')===2,'Every new-action SQL failure preserves stages in the affected root');acm_protected();acm_check(!acm_rows('SELECT * FROM fixture_album_file_jobs')&&!acm_rows('SELECT * FROM fixture_album_file_items'),'Stage cleanup never creates upload/deletion receipts');acm_stage_fixture_cleanup();$stage_sql_failures++;}}
