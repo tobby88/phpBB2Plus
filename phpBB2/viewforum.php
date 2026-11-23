@@ -373,7 +373,7 @@ unset($moderators);
 // then get it's value, find the number of topics with dates newer than it (to properly
 // handle pagination) and alter the main query
 //
-$previous_days = array(0, 1, 7, 14, 30, 90, 180, 364);
+$previous_days = phpbb_post_day_options();
 $previous_days_text = array($lang['All_Topics'], $lang['1_Day'], $lang['7_Days'], $lang['2_Weeks'], $lang['1_Month'], $lang['3_Months'], $lang['6_Months'], $lang['1_Year']);
 
 $topic_days_value = phpbb_request_scalar($_POST, 'topicdays', phpbb_request_scalar($_GET, 'topicdays'));

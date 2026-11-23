@@ -2,12 +2,10 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_topic_preferences.php';
 
-function phpbb_topic_posts_page($db, $topic, $since, $order, $start, $per_page, $profile_fields)
+function phpbb_topic_posts_from($topic, $since)
 {
 	$topic_id = (int) $topic['topic_id'];
 	$forum_id = (int) $topic['forum_id'];
-	$per_page = (int) $per_page > 0 ? (int) $per_page : 15;
-	$direction = $order === 'desc' ? 'DESC' : 'ASC';
 	$from = ' FROM ' . POSTS_TABLE . ' p
 		JOIN ' . POSTS_TEXT_TABLE . ' pt ON pt.post_id = p.post_id
 		JOIN ' . USERS_TABLE . " u ON u.user_id = p.poster_id
@@ -16,6 +14,27 @@ function phpbb_topic_posts_page($db, $topic, $since, $order, $start, $per_page, 
 	{
 		$from .= ' AND p.post_time >= ' . (int) $since;
 	}
+	return $from;
+}
+
+function phpbb_topic_print_posts($db, $topic, $since, $order)
+{
+	$direction = $order === 'desc' ? 'DESC' : 'ASC';
+	$sql = 'SELECT u.username, u.user_id, p.*, pt.post_text, pt.post_subject, pt.bbcode_uid'
+		. phpbb_topic_posts_from($topic, $since)
+		. " ORDER BY p.post_time $direction, p.post_id $direction";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain topic posts', '', __LINE__, __FILE__, $sql);
+	}
+	return $result;
+}
+
+function phpbb_topic_posts_page($db, $topic, $since, $order, $start, $per_page, $profile_fields)
+{
+	$per_page = (int) $per_page > 0 ? (int) $per_page : 15;
+	$direction = $order === 'desc' ? 'DESC' : 'ASC';
+	$from = phpbb_topic_posts_from($topic, $since);
 	$position = '';
 	if (!empty($topic['requested_post_id']) && $topic['requested_post_time'] >= $since)
 	{

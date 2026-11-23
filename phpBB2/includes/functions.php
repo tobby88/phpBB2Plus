@@ -1428,6 +1428,11 @@ function create_date_day($format, $gmepoch, $tz)
 	return $text;
 }
 //-- end mod : today at   yesterday at ------------------------------------------------------------------------
+function phpbb_post_day_options()
+{
+	return array(0, 1, 7, 14, 30, 90, 180, 364);
+}
+
 //
 // Pagination routine, generates
 // page number sequence

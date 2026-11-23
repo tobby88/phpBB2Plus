@@ -114,6 +114,11 @@ function check_topic_post_pages($db)
 	$topic['requested_post_time'] = $rn_now;
 	foreach (array('asc' => array(501, 502), 'desc' => array(502, 501)) as $order => $expected)
 	{
+		$printed = \phpbb_topic_print_posts($db, $topic, $rn_now, $order);
+		$print_rows = $db->sql_fetchrowset($printed);
+		$db->sql_freeresult($printed);
+		check(array_map('intval', array_column($print_rows, 'post_id')) === $expected
+			&& !array_key_exists('user_email', $print_rows[0]), 'Print view respects the period and stable order without loading contact fields');
 		$page = \phpbb_topic_posts_page($db, $topic, $before, $order, 100, 2, array());
 		check($ids($page) === $expected && $page['page'] === ($order === 'asc' ? 2 : 1),
 			'Permalink resolves to the same post in either order, including equal timestamps');

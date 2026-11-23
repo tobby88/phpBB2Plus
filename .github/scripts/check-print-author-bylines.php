@@ -12,6 +12,7 @@ class PrintAuthorLookupFixture {
   if(strpos($sql,'SELECT n.author_user_id FROM fixture_removed_author_names n WHERE ')!==0){throw new RuntimeException('Unexpected database operation');}
   $this->queries[]=$sql;return(object)array('rows'=>strpos($sql,"n.author_name='Legacy former'")!==false?array(array('author_user_id'=>0)):array());
  }
+ function sql_fetchrow($result){return isset($result->rows[$result->index]) ? $result->rows[$result->index++] : false;}
  function sql_fetchrowset($result){return$result->rows;}function sql_freeresult($result){}
 }
 class PrintAuthorTemplateFixture {
@@ -19,7 +20,7 @@ class PrintAuthorTemplateFixture {
  function assign_block_vars($block,$values){$this->rows[]=array('block'=>$block,'values'=>$values);}
 }
 $checks=0;$cases=0;$keep=array();$source=file_get_contents($app.'printview.php');
-$start=strpos($source,'for($i = 0; $i < $total_posts; $i++)');$end=strpos($source,"\t\$post_date =",$start);
+$start=strpos($source,'while ($post = $db->sql_fetchrow($posts_result))');$end=strpos($source,"\t\$post_date =",$start);
 pa_check($start!==false&&$end>$start,'Actual print loop, tombstone branch and author bindings');
 $loop=substr($source,$start,$end-$start).'$template->assign_block_vars("fixture_byline",array("POSTER_NAME"=>$poster));}';
 foreach(array('english','german')as$locale){$lang=array();require$app.'language/lang_'.$locale.'/lang_main.php';
@@ -43,7 +44,8 @@ foreach(array('english','german')as$locale){$lang=array();require$app.'language/
    $row=array('user_id'=>$value[0],'poster_id'=>$value[0],'username'=>$value[1],'post_username'=>$value[2],'post_deleted'=>$value[4]?1:0);
    if($value[3]!==null){$row['post_author_removed']=$value[3];}$postrow[]=$row;$expected[]=$value[5];
   }
-  $snapshot=serialize(array($postrow,$userdata,$board_config,$lang));$total_posts=count($postrow);eval($loop);
+  $snapshot=serialize(array($postrow,$userdata,$board_config,$lang));$total_posts=count($postrow);
+  $posts_result=(object)array('rows'=>$postrow,'index'=>0);eval($loop);
   pa_check(count($template->rows)===$total_posts,'Every actual print row is represented');
   foreach($expected as$index=>$name){$actual=$template->rows[$index];
    if($name===null){pa_check($actual['block']==='postrow'&&$actual['values']===array('IS_DELETED'=>true,'MESSAGE'=>htmlspecialchars($lang['Post_deleted_placeholder'],ENT_QUOTES,'UTF-8')),'Deleted placeholder never emits a byline or original author');}

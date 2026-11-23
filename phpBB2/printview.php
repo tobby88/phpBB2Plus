@@ -23,6 +23,7 @@ $phpbb_root_path = "./";
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
+require_once $phpbb_root_path . 'includes/functions_topic_views.' . $phpEx;
 
 //
 // gzip_compression
@@ -72,7 +73,7 @@ $template->set_filenames(array(
 	'body' => 'viewtopic_print.tpl')
 );
                                    
-$sql = "SELECT t.topic_id, t.topic_title, t.topic_status, t.topic_replies, t.topic_time, t.topic_type, t.topic_vote, f.forum_name, f.forum_status, f.forum_id, f.auth_view, f.auth_read
+$sql = "SELECT t.topic_id, t.topic_title, t.topic_status, f.forum_name, f.forum_status, f.forum_id, f.auth_view, f.auth_read
 	FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f
 	WHERE t.topic_id = " . $topic_id . "
 		AND f.forum_id = t.forum_id";
@@ -83,12 +84,13 @@ if( !($result = $db->sql_query($sql)) )
 
 if( !($forum_row = $db->sql_fetchrow($result)) )
 {
+	$db->sql_freeresult($result);
 	message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 }
+$db->sql_freeresult($result);
 $forum_id = intval($forum_row['forum_id']);
 $forum_name = $forum_row['forum_name'];
 $topic_title = $forum_row['topic_title'];
-$topic_time = $forum_row['topic_time'];
 
 
 //
@@ -119,35 +121,16 @@ if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
 //
 // Decide how to order the post display
 //
-if(phpbb_request_scalar($_POST, 'postorder') !== '' || phpbb_request_scalar($_GET, 'postorder') !== '')
-{
-	$post_order = phpbb_request_scalar($_POST, 'postorder', phpbb_request_scalar($_GET, 'postorder', 'asc'));
-	$post_time_order = ($post_order == "asc") ? "ASC" : "DESC";
-}
-else
-{
-	$post_order = 'asc';
-	$post_time_order = 'ASC';
-}
+$order = phpbb_request_scalar($_POST, 'postorder', phpbb_request_scalar($_GET, 'postorder'));
+$days = (int) phpbb_request_scalar($_POST, 'postdays', phpbb_request_scalar($_GET, 'postdays'));
+$since = $days > 0 && in_array($days, phpbb_post_day_options(), true) ? time() - $days * 86400 : 0;
 
-$sql = "SELECT u.username, u.user_id, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
-	FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt
-	WHERE p.topic_id = $topic_id
-		AND pt.post_id = p.post_id
-		AND u.user_id = p.poster_id
-	ORDER BY p.post_time $post_time_order";
-if(!$result = $db->sql_query($sql))
+$posts_result = phpbb_topic_print_posts($db, $forum_row, $since, $order);
+if (!$db->sql_numrows($posts_result))
 {
-	message_die(GENERAL_ERROR, "Couldn't obtain post/user information.", "", __LINE__, __FILE__, $sql);
+	$db->sql_freeresult($posts_result);
+	message_die(GENERAL_MESSAGE, $since ? $lang['No_posts_in_period'] : $lang['No_posts_topic']);
 }
-
-$postrow = array();
-if(!$total_posts = $db->sql_numrows($result))
-{
-	message_die(GENERAL_MESSAGE, $lang['No_posts_topic']);
-}
-$postrow = $db->sql_fetchrowset($result);
-$db->sql_freeresult($result);
 
 //
 // Define censored word matches
@@ -169,22 +152,22 @@ if( count($orig_word) )
 // Loop through the posts
 //
 require_once dirname(__FILE__).'/includes/functions_post_tombstone.php';
-for($i = 0; $i < $total_posts; $i++)
+while ($post = $db->sql_fetchrow($posts_result))
 {
-	if(phpbb_post_is_deleted($postrow[$i])){
+	if(phpbb_post_is_deleted($post)){
 		$template->assign_block_vars('postrow',array('IS_DELETED'=>true,'MESSAGE'=>htmlspecialchars($lang['Post_deleted_placeholder'],ENT_QUOTES,'UTF-8')));
 		continue;
 	}
-	$poster_id = $postrow[$i]['user_id'];
+	$poster_id = $post['user_id'];
 	$poster = ((int) $poster_id === ANONYMOUS)
-		? phpbb_post_author_name($postrow[$i])
-		: phpbb_author_name($poster_id, $postrow[$i]['username']);
+		? phpbb_post_author_name($post)
+		: phpbb_author_name($poster_id, $post['username']);
 
-	$post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);
-	$post_subject = ( $postrow[$i]['post_subject'] != "" ) ? $postrow[$i]['post_subject'] : "";
+	$post_date = create_date($board_config['default_dateformat'], $post['post_time'], $board_config['board_timezone']);
+	$post_subject = ( $post['post_subject'] != "" ) ? $post['post_subject'] : "";
 
-	$message = $postrow[$i]['post_text'];
-	$bbcode_uid = $postrow[$i]['bbcode_uid'];
+	$message = $post['post_text'];
+	$bbcode_uid = $post['bbcode_uid'];
  
 	//
 	// Note! The order used for parsing the message _is_ important, moving things around could break any
@@ -197,7 +180,7 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	if ( !$board_config['allow_html'] || !$userdata['user_allowhtml'])
 	{
-		if ( $postrow[$i]['enable_html'] )
+		if ( $post['enable_html'] )
 		{
 			$message = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $message);
 		}
@@ -229,7 +212,7 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	if ( $board_config['allow_smilies'] )
 	{
-		if ( $postrow[$i]['enable_smilies'] )
+		if ( $post['enable_smilies'] )
 		{
 			$message = smilies_pass($message);
 		}
@@ -243,7 +226,7 @@ for($i = 0; $i < $total_posts; $i++)
 		'MESSAGE' => $message)
 	);
 }
-
+$db->sql_freeresult($posts_result);
 
 //
 // Set up all the other template variables
@@ -259,7 +242,6 @@ $template->assign_vars(array(
 	'PAGE_TITLE' => $page_title,
 	'L_POSTED' => $lang['Posted'],
 	'L_POST_SUBJECT' => $lang['Post_subject'],
-	'L_POSTED' => $lang['Posted'],
 	'L_AUTHOR' => $lang['Author'],
 	'L_SUBJECT' => $lang['Subject'],
 	'L_MESSAGE' => $lang['Message'],
