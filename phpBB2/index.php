@@ -27,6 +27,7 @@ if (!defined('IN_PHPBB'))
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once $phpbb_root_path . 'includes/functions_daily_activity.' . $phpEx;
 //-- add
 include_once($phpbb_root_path . 'includes/functions_announces.'. $phpEx);
 //-- fin mod : announces ---------------------------------------------------------------------------
@@ -229,16 +230,13 @@ if (!empty($plus_config['show_links']))
 $l_today_text = '';
 $l_today_users = '';
 $users_today_list = '';
-$guests_today = 0;
-$logged_visible_today = 0;
-$logged_hidden_today = 0;
-$users_lasthour = 0;
-$total_users_today = 0;
 $birthday_today_list = '';
 $birthday_week_list = '';
 
 // Birthday Mod, Show users with birthday
-if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
+$show_online_stats = (int) $board_config['display_viewonline'] === 2
+	|| ($viewcat < 0 && (int) $board_config['display_viewonline'] === 1);
+if ($show_online_stats && $board_config['birthday_check_day'] > 0)
 {
 	$cache_data_file = $phpbb_root_path . 'cache/birthday_data_' . md5((string) $board_config['board_timezone']) . '.cache';
 	if (@is_file($cache_data_file)  && empty($SID))
@@ -311,155 +309,21 @@ if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonl
 $birthday_today_list = stripslashes($birthday_today_list);
 $birthday_week_list = stripslashes($birthday_week_list);
 
-// Start add - Last visit MOD
-if ( ($plus_config['show_last_visit'] != 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
+if ($show_online_stats && (int) $plus_config['show_last_visit'] !== 0)
 {
-    $template->assign_block_vars('switch_show_lastvisit', array()); 
-	$cache_data_file = $phpbb_root_path . 'cache/last_visit_data_' . intval($userdata['user_level']) . '_' . md5((string) $board_config['board_timezone']) . '.cache';
-	if (@is_file($cache_data_file)) 
-	{ 
-		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false; 
-	} else 
-	{ 
-	   $valid = false; 
-	} 
-	
-	if ($valid ) 
-	{ 
-	   $visit_cache = phpbb_data_cache_read($cache_data_file);
-	   if (is_array($visit_cache))
-	   {
-		  $total_users_today = isset($visit_cache['total']) ? intval($visit_cache['total']) : 0;
-		  $users_lasthour = isset($visit_cache['last_hour']) ? intval($visit_cache['last_hour']) : 0;
-		  $guests_today = isset($visit_cache['guests']) ? intval($visit_cache['guests']) : 0;
-		  $logged_visible_today = isset($visit_cache['visible']) ? intval($visit_cache['visible']) : 0;
-		  $logged_hidden_today = isset($visit_cache['hidden']) ? intval($visit_cache['hidden']) : 0;
-		  $users_today_list = isset($visit_cache['users']) ? (string) $visit_cache['users'] : '';
-	   }
-	   else
-	   {
-		  $valid = false;
-	   }
-	}
-	if (!$valid)
-	{
-		$time_now=time();
-		$time1Hour=$time_now-3600;
-		$minutes = date('is', $time_now);
-		$hour_now = $time_now - (60*($minutes[0].$minutes[1])) - ($minutes[2].$minutes[3]); 
-		$dato=create_date('H', $time_now,$board_config['board_timezone']);
-		$timetoday = $hour_now - (3600*$dato); 
-		if ($plus_config['show_last_visit'] == 2 )
-	   {
-		  $sql = 'SELECT session_ip, MAX(session_time) as session_time FROM '.SESSIONS_TABLE.' WHERE session_user_id="'.ANONYMOUS.'" AND session_time >= '.$timetoday.' AND session_time< '.($timetoday+86399).' GROUP BY session_ip';
-		  if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, "Couldn't retrieve guest user today data", "", __LINE__, __FILE__, $sql);
-		  while( $guest_list = $db->sql_fetchrow($result))
-		  {
-			 if ($guest_list['session_time'] >$time1Hour) $users_lasthour++;
-		  }
-		  $guests_today = $db->sql_numrows($result);
-	   }
-		$sql = 'SELECT user_id,username,user_allow_viewonline,user_level,user_lastlogon FROM ' . USERS_TABLE . ' WHERE user_id!="'.ANONYMOUS.'" AND user_session_time >= '.$timetoday.' AND user_session_time< '.($timetoday+86399).' ORDER BY username';
-		if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, "Couldn't retrieve user today data", "", __LINE__, __FILE__, $sql); 
-		while( $todayrow = $db->sql_fetchrow($result)) 
-		{ 
-			$style_color = ""; 
-			if ($todayrow['user_lastlogon']>=$time1Hour)
-			{
-				$users_lasthour++;
-			}
-			$colored_user = color_group_colorize_name($todayrow['user_id'],false);
-			$users_today_list.= ($todayrow['user_allow_viewonline']) ? $colored_user.', ' : (($userdata['user_level'] == ADMIN) ? '<i>' . $colored_user .'</i>, ' : '');  
-			if (!$todayrow['user_allow_viewonline']) $logged_hidden_today++;
-			else $logged_visible_today++;
-		}
-		if ($users_today_list) 
-		{
-			$users_today_list[ strlen( $users_today_list)-2] = ' '; 
-		} else
-		{
-			$users_today_list = $lang['None'];
-		}
-		$total_users_today = $db->sql_numrows($result)+$guests_today;
-		if ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_sid'])) 
-		{ 
-		   // stores the data set in a cache file 
-		   phpbb_data_cache_write($cache_data_file, array(
-			  'total' => intval($total_users_today),
-			  'last_hour' => intval($users_lasthour),
-			  'guests' => intval($guests_today),
-			  'visible' => intval($logged_visible_today),
-			  'hidden' => intval($logged_hidden_today),
-			  'users' => $users_today_list,
-		   ));
-		} 
-	}
-	$users_today_list = stripslashes($users_today_list);
-	$l_today_user_s = ($total_users_today) ? ( ( $total_users_today == 1 )? $lang['User_today_total'] : $lang['Users_today_total'] ) : $lang['Users_today_zero_total'];
-	$l_today_r_user_s = ($logged_visible_today) ? ( ( $logged_visible_today == 1 ) ? $lang['Reg_user_total'] : $lang['Reg_users_total'] ) : $lang['Reg_users_zero_total'];
-	$l_today_h_user_s = ($logged_hidden_today) ? (($logged_hidden_today == 1) ? $lang['Hidden_user_total'] : $lang['Hidden_users_total'] ) : $lang['Hidden_users_zero_total'];
-	$l_today_users = sprintf($l_today_user_s, $total_users_today); 
-	if ($plus_config['show_last_visit'] == 2 )
-   {
-      $l_today_g_user_s = ($guests_today) ? (($guests_today == 1) ? $lang['Guest_user_total'] : $lang['Guest_users_total']) : $lang['Guest_users_zero_total'];
-      $l_today_users .= sprintf($l_today_r_user_s, $logged_visible_today);
-      $l_today_users .= sprintf($l_today_h_user_s, $logged_hidden_today);
-      $l_today_users .= sprintf($l_today_g_user_s, $guests_today);
-      $l_today_text = ($users_lasthour)?sprintf($lang['Users_lasthour_explain'],$users_lasthour):$lang['Users_lasthour_none_explain'];
-   }
+	$visitors = phpbb_daily_visitors($db, time(), $board_config['board_timezone'],
+		(int) $plus_config['show_last_visit'] === 2, (int) $userdata['user_level'] === ADMIN);
+	$users_today_list = $visitors['names'];
+	$l_today_users = $visitors['summary'];
+	$l_today_text = $visitors['last_hour'];
+	$template->assign_block_vars('switch_show_lastvisit', array());
 }
-// End add - Last visit MOD
 
 if ($plus_config['index_layout'] == 'index_body_plus.tpl')
-	{
-	$today_registered_users = 0;
-	$yesterday_registered_users = 0;
-
-		$today_time = time();
-		$yesterday_time = $today_time - 86400;
-
-		$day = create_date('d', $yesterday_time, $userdata['user_timezone']);
-		$month = create_date('m', $yesterday_time, $userdata['user_timezone']);
-		$year = create_date('Y', $yesterday_time, $userdata['user_timezone']);
-
-		$y_day_from = strtotime($year.'-'.$month.'-'.$day.' 00:00:00');
-
-		$day = create_date('d', $today_time, $userdata['user_timezone']);
-		$month = create_date('m', $today_time, $userdata['user_timezone']);
-		$year = create_date('Y', $today_time, $userdata['user_timezone']);
-
-		$t_day_from = strtotime($year.'-'.$month.'-'.$day.' 00:00:00');
-
-	$sql = "SELECT count(distinct user_id) as total_users FROM " . USERS_TABLE . "
-	WHERE user_regdate >= $y_day_from
-		AND user_regdate < $t_day_from
-		AND user_id <> " . ANONYMOUS;
-	if ( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not get yesterday registered users', '', __LINE__, __FILE__, $sql);
-	}
-	
-	while ( $row = $db->sql_fetchrow($result) )
-	{
-		$yesterday_registered_users = $row['total_users'];
-	}
-	
-	$db->sql_freeresult($result);
-	
-		$sql = "SELECT count(distinct user_id) as total_users FROM " . USERS_TABLE . "
-			WHERE user_regdate >= $t_day_from
-			AND user_id <> " . ANONYMOUS;
-	if ( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not get yesterday registered users', '', __LINE__, __FILE__, $sql);
-	}
-	
-	while ( $row = $db->sql_fetchrow($result) )
-	{
-		$today_registered_users = $row['total_users'];
-	}
-	
-	$db->sql_freeresult($result);
+{
+	$registrations = phpbb_daily_registrations($db, time(), $userdata['user_timezone']);
+	$today_registered_users = $registrations['today'];
+	$yesterday_registered_users = $registrations['yesterday'];
 }
 	//
 	// Start output of page

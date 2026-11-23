@@ -40,6 +40,7 @@ $phpbb_root_path = './';
 $album_root_path = $phpbb_root_path . 'album_mod/';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once $phpbb_root_path . 'includes/functions_daily_activity.' . $phpEx;
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 include_once ($phpbb_root_path . 'includes/news.' . $phpEx ); 
 include_once ($phpbb_root_path . 'pafiledb/includes/pafiledb_constants.' . $phpEx ); 
@@ -54,11 +55,6 @@ $birthday_today_list = '';
 $birthday_week_list = '';
 $show_lastvbox = false;
 $users_today_list = '';
-$users_lasthour = 0;
-$guests_today = 0;
-$logged_visible_today = 0;
-$logged_hidden_today = 0;
-$total_users_today = 0;
 $l_today_text = '';
 $l_today_users = '';
 $topic_id = 0;
@@ -414,109 +410,16 @@ if ($board_config['birthday_check_day'] > 0 )
 $birthday_today_list = stripslashes($birthday_today_list);
 $birthday_week_list = stripslashes($birthday_week_list);
 
-// Start add - Last visit MOD
-if ($plus_config['show_last_visit'] != 0 && (($board_config['display_viewonline'] == 2) || ($board_config['display_viewonline'] == 1)) )
+if ((int) $plus_config['show_last_visit'] !== 0 && in_array((int) $board_config['display_viewonline'], array(1, 2), true))
 {
-	
-	$cache_data_file = $phpbb_root_path . 'cache/last_visit_data_' . intval($userdata['user_level']) . '_' . md5((string) $board_config['board_timezone']) . '.cache';
-	if (@is_file($cache_data_file)) 
-	{ 
-		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false; 
-	} else 
-	{ 
-	   $valid = false; 
-	} 
-	
-	if ($valid ) 
-	{ 
-	   $visit_cache = phpbb_data_cache_read($cache_data_file);
-	   if (is_array($visit_cache))
-	   {
-		  $total_users_today = isset($visit_cache['total']) ? intval($visit_cache['total']) : 0;
-		  $users_lasthour = isset($visit_cache['last_hour']) ? intval($visit_cache['last_hour']) : 0;
-		  $guests_today = isset($visit_cache['guests']) ? intval($visit_cache['guests']) : 0;
-		  $logged_visible_today = isset($visit_cache['visible']) ? intval($visit_cache['visible']) : 0;
-		  $logged_hidden_today = isset($visit_cache['hidden']) ? intval($visit_cache['hidden']) : 0;
-		  $users_today_list = isset($visit_cache['users']) ? (string) $visit_cache['users'] : '';
-	   }
-	   else
-	   {
-		  $valid = false;
-	   }
-	}
-	if (!$valid)
-	{
-		$time_now=time();
-		$time1Hour=$time_now-3600;
-		$minutes = date('is', $time_now);
-		$hour_now = $time_now - (60*($minutes[0].$minutes[1])) - ($minutes[2].$minutes[3]); 
-		$dato=create_date('H', $time_now,$board_config['board_timezone']);
-		$timetoday = $hour_now - (3600*$dato); 
-		if ($plus_config['show_last_visit'] == 2 )
-	   {
-		  $sql = 'SELECT session_ip, MAX(session_time) as session_time FROM '.SESSIONS_TABLE.' WHERE session_user_id="'.ANONYMOUS.'" AND session_time >= '.$timetoday.' AND session_time< '.($timetoday+86399).' GROUP BY session_ip';
-		  if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, "Couldn't retrieve guest user today data", "", __LINE__, __FILE__, $sql);
-		  while( $guest_list = $db->sql_fetchrow($result))
-		  {
-			 if ($guest_list['session_time'] >$time1Hour) $users_lasthour++;
-		  }
-		  $guests_today = $db->sql_numrows($result);
-	   }
-		$sql = 'SELECT user_id,username,user_allow_viewonline,user_level,user_lastlogon FROM ' . USERS_TABLE . ' WHERE user_id!="'.ANONYMOUS.'" AND user_session_time >= '.$timetoday.' AND user_session_time< '.($timetoday+86399).' ORDER BY username';
-		if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, "Couldn't retrieve user today data", "", __LINE__, __FILE__, $sql); 
-		while( $todayrow = $db->sql_fetchrow($result)) 
-		{ 
-			$style_color = ""; 
-			if ($todayrow['user_lastlogon']>=$time1Hour)
-			{
-				$users_lasthour++;
-			}
-			$style_color = addslashes(color_group_colorize_name($todayrow['user_id'],false));
-			$users_today_list.=( $todayrow['user_allow_viewonline'])?' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $todayrow['user_id']) . '" class="gensmall">' . $style_color . '</a>,' : (($userdata['user_level']==ADMIN) ? ' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $todayrow['user_id']) . '" class="gensmall"><i>' . $style_color .'</i></a>,' : '');  
-			if (!$todayrow['user_allow_viewonline']) $logged_hidden_today++;
-			else $logged_visible_today++;
-		}
-		if ($users_today_list) 
-		{
-			$users_today_list[ strlen( $users_today_list)-1] = ' '; 
-		} else
-		{
-			$users_today_list = $lang['None'];
-		}
-		$total_users_today = $db->sql_numrows($result)+$guests_today;
-		$db->sql_freeresult($result);
-		if ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_sid'])) 
-		{ 
-		   // stores the data set in a cache file 
-		   phpbb_data_cache_write($cache_data_file, array(
-			  'total' => intval($total_users_today),
-			  'last_hour' => intval($users_lasthour),
-			  'guests' => intval($guests_today),
-			  'visible' => intval($logged_visible_today),
-			  'hidden' => intval($logged_hidden_today),
-			  'users' => $users_today_list,
-		   ));
-		} 
-	}
-	
-	$users_today_list = $lang['Registered_users'].' ' . $users_today_list;
-	$l_today_user_s = ($total_users_today) ? ( ( $total_users_today == 1 )? $lang['User_today_total'] : $lang['Users_today_total'] ) : $lang['Users_today_zero_total'];
-	$l_today_r_user_s = ($logged_visible_today) ? ( ( $logged_visible_today == 1 ) ? $lang['Reg_user_total'] : $lang['Reg_users_total'] ) : $lang['Reg_users_zero_total'];
-	$l_today_h_user_s = ($logged_hidden_today) ? (($logged_hidden_today == 1) ? $lang['Hidden_user_total'] : $lang['Hidden_users_total'] ) : $lang['Hidden_users_zero_total'];
-	$l_today_users = sprintf($l_today_user_s, $total_users_today); 
-	
-	if ($plus_config['show_last_visit'] == 2 )
-	{
-		$l_today_g_user_s = ($guests_today) ? (($guests_today == 1) ? $lang['Guest_user_total'] : $lang['Guest_users_total']) : $lang['Guest_users_zero_total'];
-		$l_today_users .= sprintf($l_today_r_user_s, $logged_visible_today);
-		$l_today_users .= sprintf($l_today_h_user_s, $logged_hidden_today);
-		$l_today_users .= sprintf($l_today_g_user_s, $guests_today);
-		$l_today_text = ($users_lasthour)?sprintf($lang['Users_lasthour_explain'],$users_lasthour):$lang['Users_lasthour_none_explain'];
-	}
+	$visitors = phpbb_daily_visitors($db, time(), $board_config['board_timezone'],
+		(int) $plus_config['show_last_visit'] === 2, (int) $userdata['user_level'] === ADMIN);
+	$users_today_list = $lang['Registered_users'] . ' ' . $visitors['names'];
+	$l_today_users = $visitors['summary'];
+	$l_today_text = $visitors['last_hour'];
 	$template->assign_block_vars('lastvisits', array());
 	$show_lastvbox = true;
 }
-// End add - Last visit MOD
 if ($show_lastvbox) 
 {
 	$template->assign_block_vars('switch_lastvbox', array());
