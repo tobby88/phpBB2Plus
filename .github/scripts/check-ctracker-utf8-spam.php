@@ -165,19 +165,38 @@ foreach ($normalization_cases as $case) {
 }
 $requests = array(); foreach ($cases as $index=>$case) { $requests[] = array(array('--case', (string)$index), "UTF8_SPAM_CASE_OK\n"); }
 foreach (array('english','german') as $locale) { foreach (array('global','local') as $scope) { $requests[] = array(array('--scope',$locale,$scope), "UTF8_SPAM_SCOPE_OK\n"); } }
-foreach ($requests as $index=>$request) {
-    // Windows fixtures intentionally have no php.ini. Linux retains its CLI
-    // module stack (ctype can be a separately packaged extension on old PHP).
-    $command = escapeshellarg(PHP_BINARY);
-    if (PHP_OS === 'WINNT') { $command .= ' -n -d date.timezone=UTC'; }
-    else { $ini = php_ini_loaded_file(); if ($ini !== false) { $command .= ' -c ' . escapeshellarg($ini); } }
-    $command .= ' ' . escapeshellarg(__FILE__); foreach ($request[0] as $argument) { $command .= ' ' . escapeshellarg($argument); }
-    $pipes = array();
-    $process = proc_open($command, array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')), $pipes, null, null, array('bypass_shell'=>true));
-    utf8_spam_assert(is_resource($process), 'Fresh request process unavailable');
-    fclose($pipes[0]);
-    $stdout = stream_get_contents($pipes[1]); $stderr = stream_get_contents($pipes[2]);
-    fclose($pipes[1]); fclose($pipes[2]); $status = proc_close($process);
-    utf8_spam_assert($status === 0 && $stdout === $request[1] && $stderr === '', 'Actual fresh handler failed case ' . $index . ': ' . $stdout . $stderr);
+// Preserve a cold process for every request, including the four dictionary
+// preload cases. The children share no files or database state.
+$command_prefix = escapeshellarg(PHP_BINARY);
+if (PHP_OS === 'WINNT') { $command_prefix .= ' -n -d date.timezone=UTC'; }
+else { $ini = php_ini_loaded_file(); if ($ini !== false) { $command_prefix .= ' -c ' . escapeshellarg($ini); } }
+$command_prefix .= ' ' . escapeshellarg(__FILE__);
+foreach (array_chunk($requests, 3, true) as $batch) {
+    $children = array();
+    $failure = null;
+    try {
+        foreach ($batch as $index=>$request) {
+            $command = $command_prefix;
+            foreach ($request[0] as $argument) { $command .= ' ' . escapeshellarg($argument); }
+            $pipes = array();
+            $process = proc_open($command, array(0=>array('pipe','r'), 1=>array('pipe','w'), 2=>array('pipe','w')), $pipes, null, null, array('bypass_shell'=>true));
+            utf8_spam_assert(is_resource($process), 'Fresh request process unavailable');
+            fclose($pipes[0]);
+            $children[$index] = array($process, $pipes[1], $pipes[2], $request[1]);
+        }
+    } finally {
+        foreach ($children as $index=>$child) {
+            list($process, $stdout, $stderr, $expected) = $child;
+            $result = stream_get_contents($stdout);
+            $errors = stream_get_contents($stderr);
+            fclose($stdout);
+            fclose($stderr);
+            $status = proc_close($process);
+            if (($status !== 0 || $result !== $expected || $errors !== '') && $failure === null) {
+                $failure = 'Actual fresh handler failed case ' . $index . ': ' . $result . $errors;
+            }
+        }
+    }
+    if ($failure !== null) { throw new RuntimeException($failure); }
 }
 echo 'CrackerTracker UTF-8 spam checks passed: ' . count($normalization_cases) . ' byte-preservation, ' . count($cases) . " fresh localized handler cases repeated three times, and four preloaded/cross-handler scope requests.\n";
