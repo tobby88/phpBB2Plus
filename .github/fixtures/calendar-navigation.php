@@ -7,7 +7,7 @@ foreach (array('IN_PHPBB'=>true,'PAGE_INDEX'=>0,'POST_FORUM_URL'=>'f','POST_CAT_
 }
 $cn_root=dirname(dirname(__DIR__)).'/phpBB2/';
 $cn_functions=file_get_contents($cn_root.'includes/functions_calendar.php');
-foreach (array('calendar_normalize_forum_filter','calendar_month_date','calendar_html_excerpt') as $name) {
+foreach (array('calendar_normalize_forum_filter','calendar_month_date','calendar_month_grid','calendar_html_excerpt') as $name) {
     if (preg_match('/^function '.$name.'\(.*?^\}/ms',$cn_functions,$part)===1) { eval($part[0]); }
 }
 function session_pagestart($ip,$page) { return array('session_logged_in'=>true,'user_id'=>7); }
@@ -64,7 +64,7 @@ function cn_run($page,$get,$post,$server='UTC',$week=1,$locale='english',$fixtur
     global $cn_root,$board_config,$lang,$template,$userdata,$images,$phpEx,$user_ip;
     if (!in_array($page,array('calendar','calendar_scheduler'),true)) { throw new RuntimeException('Known calendar controller required'); }
     date_default_timezone_set($server);$_GET=$get;$_POST=$post;
-    $board_config=array('default_lang'=>$locale,'topics_per_page'=>3,'calendar_week_start'=>$week,'calendar_forum'=>0);
+    $board_config=array('default_lang'=>$locale,'topics_per_page'=>isset($fixture['page_size'])?$fixture['page_size']:3,'calendar_week_start'=>$week,'calendar_forum'=>0);
     $lang=array();$lang_extend_admin=false;
     require $cn_root.'language/lang_'.$locale.'/lang_main.php';
     require $cn_root.'language/lang_'.$locale.'/lang_extend_topic_calendar.php';

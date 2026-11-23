@@ -30,6 +30,9 @@ try{
    get_birthday($events,$number,$a,$b);cn_check(count($events)===$date[3]&&$number===$date[3],'Actual MariaDB birthday selection/range differs');$cases++;
   }
   $a=mktime(0,0,0,11,3,2026);$b=$a+86400;$all=array();$number=0;get_birthday($all,$number,$a,$b);
+  $ranges=array();$range_count=0;get_birthday($ranges,$range_count,$a,$b,false,0,-1,true);
+  $expected=array();foreach($all as $event){$expected[]=array('event_calendar_time'=>$event['event_calendar_time'],'event_calendar_duration'=>$event['event_calendar_duration']);}
+  cn_check($range_count===$number && $ranges===$expected,'Month grid birthdays select the same dates without profile markup');$cases++;
   foreach(array(0,1,2)as$start){$events=array();$count=-1;get_birthday($events,$count,$a,$b,true,$start,1);cn_check($events===array_slice($all,$start,1)&&$count===2,'Actual driver birthday pagination/count differs');$cases++;}
   $before=$db->num_queries;$userdata['session_logged_in']=false;$events=array();$number=-1;get_birthday($events,$number,$a,$b);
   cn_check($events===array()&&$number===0&&$db->num_queries===$before,'Guest must not query the native user table');$userdata['session_logged_in']=true;$cases++;
@@ -38,6 +41,7 @@ try{
  $r=cn_sql('SELECT COUNT(*) AS n FROM `'.$schema.'`.fixture_users');$row=$admin->sql_fetchrow($r);$admin->sql_freeresult($r);cn_check((int)$row['n']===7,'Read-only collector changed fixture rows');
  echo 'Native calendar birthdays: ',$cases,' actual collector cases, ',$checks," assertions PASS; MariaDB/InnoDB, production mysqli driver, EN/DE, ranges, privacy and paging.\n";
  require dirname(__DIR__).'/fixtures/calendar-topic-collector.php';
+ require dirname(__DIR__).'/fixtures/mini-calendar-topic-native.php';
 }finally{
  if($db){$db->sql_close();}
  if($created){if(!preg_match('/^phpbb_calendar_birthdays_[a-f0-9]{12}$/D',$schema)){throw new RuntimeException('Own fixture schema identity invalid');}cn_sql('DROP DATABASE `'.$schema.'`');}

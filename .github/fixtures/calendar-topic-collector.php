@@ -81,6 +81,7 @@ foreach($raw as$index=>$text){
     $stored=\prepare_message($text,0,1,$smile,$uid);
     foreach(array("INSERT INTO fixture_posts(post_id,topic_id,forum_id,poster_id,post_username,post_author_removed,post_time,poster_ip,enable_smilies) VALUES($id,$id,$forum,$poster,'".$db->sql_escape($name)."',$removed,1793664000,'7f000001',$smile)","INSERT INTO fixture_topics(topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id,topic_calendar_time,topic_calendar_duration,topic_status) VALUES($id,$forum,'".$db->sql_escape($title)."',$poster,1793664000,$id,$id,$when,3600,$status)","INSERT INTO fixture_posts_text(post_id,post_text,bbcode_uid) VALUES($id,'".$db->sql_escape($stored)."','$uid')")as$sql){check((bool)$db->sql_query($sql),'Own stored-post seed failed');}
 }
+check((bool)$db->sql_query('UPDATE fixture_topics SET topic_calendar_duration=NULL WHERE topic_id=10'),'Legacy event without a duration');
 $before=fingerprint();$db->readonly=true;
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new \RuntimeException($message);}});
 try{
@@ -105,6 +106,13 @@ try{
         $board_config['allow_bbcode']=0;list($rows,$number)=run();check(strpos($rows[1]['event_message'],'[b]')!==false&&strpos($rows[1]['event_message'],':'.$uid)===false,'Disabled BBCode must not leak internal UIDs');$board_config['allow_bbcode']=1;
         foreach(array('SELECT COUNT(*) AS total','SELECT t.*')as$failure){$db->fail=$failure;$failed=false;try{run();}catch(\RuntimeException$error){$failed=$error->getMessage()==='Could not obtain topics information';}$db->fail='';check($failed&&$db->active===array(),'SQL failure must propagate and release earlier results');}
         $topic_render_fail=true;$failed=false;try{run();}catch(\RuntimeException$error){$failed=$error->getMessage()==='Synthetic overview render failure';}$topic_render_fail=false;check($failed&&$db->active===array()&&$template->_tpldata===$topic_initial_vars,'Renderer failure must release actual topic query and restore template variables');
+        list($full,$full_count)=run('f6',0,100,false);
+        $ranges=array();$range_count=0;$db->queries=array();$template->fail=true;
+        get_event_topics($ranges,$range_count,1793664000,1793750400,false,0,-1,'f6',true);
+        $template->fail=false;
+        $projection=array();foreach($full as $event){$projection[]=array('event_calendar_time'=>$event['event_calendar_time'],'event_calendar_duration'=>$event['event_calendar_duration']);}
+        check($range_count===$full_count && $ranges===$projection && strpos(implode(' ',$db->queries),'pt.post_text')===false,
+            'Scheduler month markers need only dates and retain the full calendar’s visible events');
         $topic_auth[6]['auth_read']=false;$tree['auth']['f6']['auth_read']=false;
         list($rows,$number)=run('Root');check($rows===array()&&$number===0&&$db->queries===array(),'No readable forum must not query post storage');
         $topic_auth[6]['auth_read']=true;$tree['auth']['f6']['auth_read']=true;

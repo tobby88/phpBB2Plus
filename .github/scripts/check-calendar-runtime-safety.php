@@ -78,6 +78,22 @@ require dirname(__DIR__) . '/fixtures/calendar-navigation.php';
 error_reporting(E_ALL);
 set_error_handler(function($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 $navigation_cases=0;$navigation_checks=0;
+foreach (array(array(2021,2,4),array(2020,2,5),array(2021,5,6),array(2025,3,6),array(2021,10,5)) as $case) {
+    list($year,$month,$weeks)=$case;
+    foreach (array('UTC','Europe/Berlin') as $zone) {
+        date_default_timezone_set($zone);
+        $first=mktime(0,0,0,$month,1,$year);
+        $grid=calendar_month_grid($first,1);
+        $result=cn_run('calendar_scheduler',array('d'=>(string)$first),array(),$zone,1);
+        cn_check($grid['weeks']===$weeks && count($result['blocks']['row'])===$weeks &&
+            cn_grid_days($result)===range(1,(int)date('t',$first)), 'Month grid contains each civil date once in the required four, five or six weeks');
+    }
+}
+foreach (array(0=>15,-2=>15,2000=>1000) as $setting=>$expected) {
+    $result=cn_run('calendar_scheduler',array('d'=>'1612180800'),array(),'UTC',99,'english',array('topics'=>4,'page_size'=>$setting));
+    cn_check($result['blocks']['header_cell'][0]['L_DAY']==='Mon' && count($result['display_rows'])===4 &&
+        $result['windows'][2][5]===$expected, 'Legacy calendar values use a valid week start and a consistent page size');
+}
 function cn_check($ok,$message) { if (!$ok) { throw new RuntimeException($message); } $GLOBALS['navigation_checks']++; }
 function cn_query($url) { $parts=parse_url(html_entity_decode($url,ENT_QUOTES,'UTF-8'));$query=array();parse_str(isset($parts['query'])?$parts['query']:'',$query);return $query; }
 function cn_day_window($result) { $windows=array_values(array_filter($result['windows'],function($row) { return $row[0]==='topic' && $row[3]===true; }));cn_check(count($windows)===1,'Actual scheduler queries exactly one selected topic interval');return array($windows[0][1],$windows[0][2]); }

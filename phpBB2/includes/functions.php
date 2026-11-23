@@ -1347,6 +1347,14 @@ function phpbb_local_day_start($year, $month, $day, $tz)
 		- (int) round(3600 * ($tz + date('I')));
 }
 
+// Add elapsed calendar seconds before converting to local time. A long event's
+// end can fall outside a 32-bit timestamp even when its stored start fits.
+function phpbb_calendar_clock($timestamp, $duration = 0)
+{
+	$clock = new \DateTimeImmutable('@' . (int) $timestamp);
+	return $clock->modify(sprintf('%+d seconds', (int) $duration))->setTimezone(new \DateTimeZone(date_default_timezone_get()));
+}
+
 // Preserve integral database values exactly; never round or clamp a timestamp
 // outside the native integer range. Fractional numeric inputs remain supported.
 function phpbb_date_number($value)

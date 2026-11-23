@@ -140,8 +140,8 @@ $month_start = mktime(0,0,0, $month, 01, $year);
 $month_end	 = mktime(0,0,0, $month+1, 01, $year);
 $number = 0;
 $events	= array();
-get_birthday($events, $number, $month_start, $month_end);
-get_event_topics($events, $number, $month_start, $month_end, false, 0, -1, $fid);
+get_birthday($events, $number, $month_start, $month_end, false, 0, -1, true);
+get_event_topics($events, $number, $month_start, $month_end, false, 0, -1, $fid, true);
 
 // get the days with events
 $days = array();
@@ -166,16 +166,18 @@ for ($i=0; $i < count($events); $i++)
 // Collect the selected page. A saved link can outlive its visible results.
 // Retry at most once from the first page, which remains valid even if more
 // events disappear between reads. A known empty list needs no second pass.
+$page_size = isset($board_config['topics_per_page']) ? (int) $board_config['topics_per_page'] : 0;
+$page_size = $page_size > 0 ? min(1000, $page_size) : 15;
 for ($page_attempt = 0; $page_attempt < 2; $page_attempt++)
 {
 	$events = array();
 	$birthdays_count = 0;
-	$remaining = $board_config['topics_per_page'];
+	$remaining = $page_size;
 	get_birthday($events, $birthdays_count, $start_date, $end_date, true, $start, $remaining);
 	$displayed = count($events);
 
 	$topics_count = 0;
-	$remaining = $board_config['topics_per_page'] - $displayed;
+	$remaining = $page_size - $displayed;
 	$local_start = max(0, $start - $birthdays_count);
 	get_event_topics($events, $topics_count, $start_date, $end_date, true, $local_start, $remaining, $fid);
 	$total_events = $birthdays_count + $topics_count;
@@ -229,7 +231,8 @@ foreach ($hours as $i => $slot)
 }
 
 // send the month box
-$first_day_of_week = isset($board_config['calendar_week_start']) ? intval($board_config['calendar_week_start']) : 1;
+$grid = calendar_month_grid($month_start, isset($board_config['calendar_week_start']) ? $board_config['calendar_week_start'] : 1);
+$first_day_of_week = $grid['week_start'];
 
 // buid select list for month
 $s_month = '';
@@ -238,7 +241,7 @@ for ($i=0; $i < count($set_of_months); $i++)
 	$selected = ($month == $i+1) ? ' selected="selected"' : '';
 	$s_month .= '<option value="' . ($i+1) . '"' . $selected . '>' . $lang['datetime'][ $set_of_months[$i] ] . '</option>';
 }
-$s_month = sprintf('<select name="start_month" onchange="forms[\'_calendar_scheduler\'].submit();">%s</select>', $s_month);;
+$s_month = sprintf('<select name="start_month" onchange="forms[\'_calendar_scheduler\'].submit();">%s</select>', $s_month);
 
 // buid select list for year
 $year = intval(date('Y', $start_date));
@@ -289,19 +292,8 @@ $template->assign_vars(array(
 );
 
 // get first day of the month
-$offset		= date('w', $month_start) - $first_day_of_week;
-if ($offset < 0) $offset = $offset + 7;
-$nb_days = (int) date('t', $month_start) + $offset;
-$offset		= mktime(0,0,0, $month, 01-$offset, $year);
-$nb_rows	= intval($nb_days / 7);
-
-$start_m	= mktime(0,0,0, $month, 01, $year);
-$end_m		= mktime(0,0,0, $month+1, 01, $year);
-$today		= mktime(0,0,0, $month, $day, $year);
-if (($nb_days % 7) > 0)
-{
-	$nb_rows++;
-}
+$offset = mktime(0, 0, 0, $month, 1 - $grid['offset'], $year);
+$nb_rows = $grid['weeks'];
 
 $color = false;
 for ($j=0; $j < $nb_rows; $j++)
@@ -312,12 +304,12 @@ for ($j=0; $j < $nb_rows; $j++)
 	{
 		$cur = intval(date('d', $offset));
 		$class = ($color) ? 'row1' : 'row2';
-		if (($offset < $start_m) || ($offset >= $end_m))
+		if (($offset < $month_start) || ($offset >= $month_end))
 		{
 			$cur = '&nbsp;';
 			$class = 'row3';
 		}
-		if ($offset == $today)
+		if ($offset == $day_start)
 		{
 			$class = 'quote';
 		}
@@ -384,11 +376,9 @@ if (!isset($nav_separator))
 	$nav_separator = '&nbsp;->&nbsp;';
 }
 
-$total = $topics_count + $birthdays_count;
-if ($total == 0) $total++;
 $template->assign_vars(array(
-	'PAGINATION' => generate_pagination("calendar_scheduler.$phpEx?d=$date&mode=$mode&fid=$fid", $total, $board_config['topics_per_page'], $start),
-	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $total / $board_config['topics_per_page'] )),
+	'PAGINATION' => generate_pagination("calendar_scheduler.$phpEx?d=$date&mode=$mode&fid=$fid", $total_events, $page_size, $start),
+	'PAGE_NUMBER' => sprintf($lang['Page_of'], (int) floor($start / $page_size) + 1, max(1, (int) ceil($total_events / $page_size))),
 	'L_GOTO_PAGE' => $lang['Goto_page'],
 
 	'NAV_SEPARATOR'		=> $nav_separator,

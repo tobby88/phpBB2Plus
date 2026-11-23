@@ -31,28 +31,18 @@
     {
 		global $lang;
 		
-        // initialise out date formatting patterns
-        $cal_date_pattern = phpbb_safe_unserialize_array(MINI_CAL_DATE_PATTERNS);
-
-        $cal_date_replace = array( 
-            $lang['mini_cal']['day'][$cal_weekday], 
-            $lang['mini_cal']['month'][$cal_month], 
-            $cal_month, 
-            ( (strlen($cal_monthday) < 2 ) ?  '0' : '' ) . $cal_monthday, 
-            $cal_monthday, 
-            ( (strlen($cal_month) < 2 ) ?  '0' : '' ) . $cal_month, 
-            substr($cal_year, -2),
-            $cal_year,
-            ( (strlen($cal_hour) < 2 ) ?  '0' : '' ) . $cal_hour,
-            $cal_hour,
-            ( (strlen($cal_hour) < 2 ) ?  '0' : '' ) . ( ( $cal_hour > 12 ) ? $cal_hour-12 : $cal_hour ),
-            ( $cal_hour > 12 ) ? $cal_hour-12 : $cal_hour,
-            $cal_min,
-            $cal_sec,
-            ( $cal_hour < 12 ) ? 'AM' : 'PM'
-        );
-        
-        return preg_replace($cal_date_pattern, $cal_date_replace, $format); 
+		static $patterns;
+		if (!isset($patterns)) { $patterns = phpbb_safe_unserialize_array(MINI_CAL_DATE_PATTERNS); }
+		$hour = (int) $cal_hour;
+		$twelve_hour = $hour % 12 === 0 ? 12 : $hour % 12;
+		$values = array(
+			$lang['mini_cal']['day'][(int) $cal_weekday], $lang['mini_cal']['month'][(int) $cal_month],
+			(int) $cal_month, sprintf('%02d', $cal_monthday), (int) $cal_monthday, sprintf('%02d', $cal_month),
+			substr((string) $cal_year, -2), $cal_year, sprintf('%02d', $hour), $hour,
+			sprintf('%02d', $twelve_hour), $twelve_hour, sprintf('%02d', $cal_min), sprintf('%02d', $cal_sec),
+			$hour < 12 ? 'AM' : 'PM'
+		);
+		return preg_replace($patterns, $values, $format);
     }
     
 

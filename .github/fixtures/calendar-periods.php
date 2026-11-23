@@ -5,6 +5,7 @@ $root=dirname(dirname(__DIR__)).'/phpBB2/';
 require_once $root.'includes/functions_calendar_posting.php';
 foreach(array('POST_USERS_URL'=>'u','POST_BIRTHDAY'=>91)as$name=>$value){if(!defined($name)){define($name,$value);}}
 function actual($source,$name){if(preg_match('/^function '.preg_quote($name,'/').'\(/m',$source,$match,PREG_OFFSET_CAPTURE)!==1){throw new \RuntimeException('Actual calendar period function missing');}$body='';$depth=0;$started=false;foreach(token_get_all('<?php '.substr($source,$match[0][1]))as$token){if(is_array($token)&&$token[0]===T_OPEN_TAG){continue;}if($token==='{'){$depth++;$started=true;}if($token==='}'){$depth--;}$body.=is_array($token)?$token[1]:$token;if($started&&$depth===0){break;}}return$body;}
+eval('namespace CalendarPeriodFixture;'.actual(file_get_contents($root.'includes/functions.php'),'phpbb_calendar_clock'));
 $source=file_get_contents($root.'includes/functions_calendar.php');foreach(array('calendar_date_clock','calendar_event_message_attribute','date_dsp','get_calendar_title_date')as$name){eval('namespace CalendarPeriodFixture;'.actual($source,$name));}
 function check($ok,$message){if(!$ok){throw new \RuntimeException($message);}$GLOBALS['period_checks']++;}
 $period_checks=0;$period_count=0;

@@ -127,13 +127,14 @@ for($birthdays=0;$birthdays<=7;$birthdays++){for($topics=0;$topics<=7;$topics++)
 }}}
 // The page count must include birthdays, including a birthday-only page.
 class CalendarPageTemplate {public $values=array();function assign_vars($values){$this->values=$values;}}
-$footer=cb_fragment($scheduler,'$total = $topics_count + $birthdays_count;','// send to browser');
+$footer_start=strrpos($scheduler,'$template->assign_vars(array(');
+$footer=cb_fragment(substr($scheduler,$footer_start),'$template->assign_vars(array(','// send to browser');
 $template=new CalendarPageTemplate();$date=1;$mode='';$nav_separator='';$s_hidden_fields='';$board_config['topics_per_page']=3;
 foreach(array(array(0,0),array(4,0),array(2,3))as$totals)
 {
-    $birthdays_count=$totals[0];$topics_count=$totals[1];$start=0;
-    eval($footer);$expected=max(1,array_sum($totals));
-    cb_check($template->values['PAGINATION']===generate_pagination('calendar_scheduler.php?d=1&mode=&fid=',$expected,3,0)&&$template->values['PAGE_NUMBER']===sprintf($lang['Page_of'],1,ceil($expected/3)),'Page label and links must use the same birthday-plus-topic count');$cases++;
+    $total_events=array_sum($totals);$page_size=3;$start=0;
+    eval($footer);
+    cb_check($template->values['PAGINATION']===generate_pagination('calendar_scheduler.php?d=1&mode=&fid=',$total_events,3,0)&&$template->values['PAGE_NUMBER']===sprintf($lang['Page_of'],1,max(1,ceil($total_events/3))),'Page label and links must use the same birthday-plus-topic count');$cases++;
 }
 restore_error_handler();
 echo 'Calendar birthdays: ',$cases,' collector/pagination cases, ',$checks," assertions PASS; real EN/DE messages, privacy, supported dates, counts, paging and tooltip data.\n";

@@ -45,6 +45,14 @@ function calendar_month_date($month, $year, $day)
 	return mktime(0, 0, 0, $month, $day, $year);
 }
 
+function calendar_month_grid($month_start, $week_start)
+{
+	$week = is_numeric($week_start) && (int) $week_start >= 0 && (int) $week_start <= 6 ? (int) $week_start : 1;
+	$offset = ((int) date('w', $month_start) - $week + 7) % 7;
+	$days = (int) date('t', $month_start);
+	return array('week_start' => $week, 'offset' => $offset, 'weeks' => (int) ceil(($days + $offset) / 7));
+}
+
 function calendar_normalize_forum_filter($value)
 {
 	if (!is_scalar($value))
@@ -152,8 +160,7 @@ function calendar_forum_select($selected_id='')
 // Formatting and the visible-month clamp can then use the complete local date.
 function calendar_date_clock($timestamp, $duration = 0)
 {
-	$clock = new \DateTimeImmutable('@' . (int)$timestamp);
-	return $clock->modify(sprintf('%+d seconds',(int)$duration))->setTimezone(new \DateTimeZone(date_default_timezone_get()));
+	return phpbb_calendar_clock($timestamp, $duration);
 }
 
 // Topic overviews are rendered HTML; Birthday MOD retains its older encoded
@@ -337,7 +344,7 @@ function calendar_html_excerpt($html, $length)
 	return $out;
 }
 
-function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=false, $start=0, $max_limit=-1, $fid='')
+function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=false, $start=0, $max_limit=-1, $fid='', $dates_only=false)
 {
 	global $lang, $userdata, $board_config, $db, $tree;
 	$number = 0;
@@ -352,8 +359,6 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 	if ($fid === '' && $requested_filter !== '' && $requested_filter !== null) { return; }
 	$topic_title_length = isset($board_config['calendar_title_length']) ? max(0, min(255, (int) $board_config['calendar_title_length'])) : 30;
 	$topic_text_length = isset($board_config['calendar_text_length']) ? max(0, min(32767, (int) $board_config['calendar_text_length'])) : 200;
-	$orig_word = array(); $replacement_word = array();
-	obtain_word_list($orig_word, $replacement_word);
 	$cat_hierarchy = function_exists('get_auth_keys');
 	$ids = array();
 	if (!$cat_hierarchy)
@@ -399,7 +404,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		. ' JOIN ' . USERS_TABLE . ' lu ON lu.user_id=lp.poster_id'
 		. ' JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=t.forum_id'
 		. ' WHERE t.forum_id IN (' . implode(',',$forum_ids) . ') AND t.topic_calendar_time < ' . $end_date
-		. ' AND (t.topic_calendar_time+t.topic_calendar_duration) >= ' . $start_date . ' AND t.topic_status <> ' . TOPIC_MOVED;
+		. ' AND (t.topic_calendar_time+COALESCE(t.topic_calendar_duration,0)) >= ' . $start_date . ' AND t.topic_status <> ' . TOPIC_MOVED;
 	if ($limit)
 	{
 		$sql = 'SELECT COUNT(*) AS total' . $from;
@@ -409,17 +414,32 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		finally { $db->sql_freeresult($result); }
 		if ($max_limit === 0 || $start >= $number) { return; }
 	}
-	$sql = 'SELECT t.*,p.poster_id,p.post_username,p.post_author_removed,p.enable_bbcode,p.enable_html,p.enable_smilies,'
-		. 'u.username,pt.post_text,pt.bbcode_uid,lp.poster_id AS lp_poster_id,lu.username AS lp_username,'
-		. 'lp.post_username AS lp_post_username,lp.post_author_removed AS lp_post_author_removed,lp.post_time AS lp_post_time,f.forum_name'
-		. $from . ' ORDER BY t.topic_calendar_time,t.topic_calendar_duration DESC,t.topic_last_post_id DESC';
+	if ($dates_only)
+	{
+		$columns = 't.topic_calendar_time,t.topic_calendar_duration';
+	}
+	else
+	{
+		$orig_word = array(); $replacement_word = array();
+		obtain_word_list($orig_word, $replacement_word);
+		$columns = 't.*,p.poster_id,p.post_username,p.post_author_removed,p.enable_bbcode,p.enable_html,p.enable_smilies,'
+			. 'u.username,pt.post_text,pt.bbcode_uid,lp.poster_id AS lp_poster_id,lu.username AS lp_username,'
+			. 'lp.post_username AS lp_post_username,lp.post_author_removed AS lp_post_author_removed,lp.post_time AS lp_post_time,f.forum_name';
+	}
+	$sql = 'SELECT ' . $columns . $from . ' ORDER BY t.topic_calendar_time,t.topic_calendar_duration DESC,t.topic_last_post_id DESC,t.topic_id';
 	if ($limit) { $sql .= ' LIMIT ' . $start . ',' . $max_limit; }
 	$result = $db->sql_query($sql);
 	if (!$result) { message_die(GENERAL_ERROR, 'Could not obtain topics information', '', __LINE__, __FILE__, $sql); }
 	try
 	{
 		if (!$limit) { $number = $db->sql_numrows($result); }
-		while ($row = $db->sql_fetchrow($result)) { $events[] = calendar_topic_event($row,$cat_hierarchy,$orig_word,$replacement_word,$topic_title_length,$topic_text_length); }
+		while ($row = $db->sql_fetchrow($result))
+		{
+			if ($row['topic_calendar_duration'] === null) { $row['topic_calendar_duration'] = 0; }
+			$events[] = $dates_only
+				? array('event_calendar_time'=>$row['topic_calendar_time'], 'event_calendar_duration'=>$row['topic_calendar_duration'])
+				: calendar_topic_event($row,$cat_hierarchy,$orig_word,$replacement_word,$topic_title_length,$topic_text_length);
+		}
 	}
 	finally { $db->sql_freeresult($result); }
 }
@@ -572,7 +592,7 @@ function calendar_topic_event($row, $cat_hierarchy, $orig_word, $replacement_wor
 // 
 // Birthday MOD stores whole days from 1970-01-01, not PCP's YYYYMMDD.
 // Count and page only occurrences overlapping the requested half-open interval.
-function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, $start=0, $max_limit=-1)
+function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, $start=0, $max_limit=-1, $dates_only=false)
 {
     global $lang, $images, $userdata, $board_config, $db, $phpbb_root_path, $phpEx;
     $number = 0;
@@ -589,7 +609,8 @@ function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, 
     $max_limit = is_scalar($max_limit) ? (int)$max_limit : 0;
     if ($max_limit < 0) { $max_limit = (int)$board_config['topics_per_page']; }
     $max_limit = max(0, min(1000, $max_limit));
-    $sql = 'SELECT user_id, username, user_birthday FROM ' . USERS_TABLE .
+    $fields = $dates_only ? 'user_id, user_birthday' : 'user_id, username, user_birthday';
+    $sql = 'SELECT ' . $fields . ' FROM ' . USERS_TABLE .
         ' WHERE user_id <> ' . ANONYMOUS . ' AND user_birthday <> 999999 ORDER BY username, user_id';
     if (!$result = $db->sql_query($sql))
     {
@@ -615,6 +636,11 @@ function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, 
                 if ($event_time >= $end_date || $next_day <= $start_date) { continue; }
                 $position = $number++;
                 if ($limit && ($position < $start || $position - $start >= $max_limit)) { continue; }
+                if ($dates_only)
+                {
+                    $events[] = array('event_calendar_time'=>$event_time, 'event_calendar_duration'=>$next_day - $event_time - 1);
+                    continue;
+                }
                 $user_id = (int)$row['user_id']; $username = phpbb_stored_text($row['username']);
                 $age = $year - (int)$parts[1];
                 $markup = '<table cellspacing="1" cellpadding="2" border="0" width="100%" class="forumline"><tr><td class="row1" align="center"><b>' .
@@ -681,7 +707,6 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 		);
 
 	// get some parameter
-	$first_day_of_week = isset($board_config['calendar_week_start']) ? intval($board_config['calendar_week_start']) : 1;
 	$nb_row_per_cell = isset($board_config['calendar_nb_row']) ? intval($board_config['calendar_nb_row']) : 5;
 
 	// get the start date - calendar doesn't go before 1971
@@ -697,31 +722,12 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 		// set the start day on the start of the month
 		$start_date = mktime( 0,0,0, intval(date('m', $cur_date)), 01, intval(date('Y', $cur_date)) );
 
-		// get the day number set as start of the display
-		$cfg_week_day_start = $first_day_of_week;
-
-		// get the number of blank cells
-		$start_inc = intval(date('w', $start_date )) - $cfg_week_day_start;
-		if ($start_inc < 0)
-		{
-			$start_inc = 7 + $start_inc;
-		}
-
-		//  get the end date
-		$year = intval(date('Y', $start_date));
-		$month = intval(date('m', $start_date))+1;
-		if ($month > 12)
-		{
-			$year++;
-			$month = 1;
-		}
-		$end_date = mktime( 0,0,0, $month, 01, $year);
-
-		// set the number of cells per line
+		$grid = calendar_month_grid($start_date, isset($board_config['calendar_week_start']) ? $board_config['calendar_week_start'] : 1);
+		$cfg_week_day_start = $grid['week_start'];
+		$start_inc = $grid['offset'];
+		$end_date = mktime(0, 0, 0, (int) date('n', $start_date) + 1, 1, (int) date('Y', $start_date));
 		$nb_cells = 7;
-
-		// get the number of rows
-		$nb_rows = intval( ($start_inc + intval(($end_date - $start_date) / 86400)) / $nb_cells ) + 1;
+		$nb_rows = $grid['weeks'];
 	}
 	else
 	{
@@ -864,8 +870,10 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 		'TOGGLE_STATUS'		=> intval($board_config['calendar_display_open']) ? '' : 'none',
 		)
 	);
-	$prec = (date('Ym', $start_date) > 197101) ? date('Ymd', mktime(0,0,0, date('m', $start_date)-1, 01, date('Y', $start_date)) ) : date('Ymd', $start_date);
-	$next = date( 'Ymd', mktime(0,0,0, date('m', $start_date)+1, 01, date('Y', $start_date)) );
+	$previous_month = calendar_month_date($month - 1, $year, 1);
+	$next_month = calendar_month_date($month + 1, $year, 1);
+	$prec = date('Ymd', $previous_month === false ? $start_date : $previous_month);
+	$next = date('Ymd', $next_month === false ? $start_date : $next_month);
 	$template->assign_block_vars('_calendar_box', array(
 		'L_CALENDAR'		=> '<a href="' . append_sid($phpbb_root_path . "./calendar.$phpEx?start=" . date( 'Ymd', time())) . '"><img src="' . $images['icon_calendar'] . '" hspace="3" border="0" align="top" alt="' . $lang['Calendar_event'] . '" /></a>' . $lang['Calendar'],
 		'L_CALENDAR_TXT'	=> $lang['Calendar'],

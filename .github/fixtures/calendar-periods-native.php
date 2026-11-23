@@ -4,7 +4,7 @@ if(PHP_SAPI!=='cli'||!isset($schema)||preg_match('/^codex_full_editor_[a-f0-9]{1
 // Reuse the actual parser/writer/collector/template loader. Only the unrelated
 // category selector is an output adapter; birthdays are explicitly disabled.
 function calendar_get_tree_option($selected=''){return '<option value="f3" selected="selected">Fixture forum</option>';}
-foreach(array('display_calendar','get_birthday','calendar_event_message_attribute')as$name){eval('namespace CalendarAllDayFixture;'.extract_function($ad_calendar,$name));}
+foreach(array('display_calendar','calendar_month_date','calendar_month_grid','get_birthday','calendar_event_message_attribute')as$name){eval('namespace CalendarAllDayFixture;'.extract_function($ad_calendar,$name));}
 foreach(array('realdate','mkrealdate')as$name){eval('namespace CalendarAllDayFixture;'.extract_function($ad_core,$name));}
 function attribute_view($html,$url_pattern,$expected,$expected_count){
     if(!class_exists('DOMDocument')){throw new \RuntimeException('Native calendar DOM test dependency missing');}

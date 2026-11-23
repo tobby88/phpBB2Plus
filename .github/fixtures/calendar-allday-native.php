@@ -11,7 +11,7 @@ function fragment($source,$first,$last){$a=strpos($source,$first);$b=$a===false?
 function auth($kind,$scope,$user){return array(3=>array('auth_read'=>true));}
 function get_icon_title($icon,$unused=0,$kind=-1){return '';}
 $ad_core=file_get_contents($phpbb_root_path.'includes/functions.php');
-foreach(array('phpbb_profile_text','phpbb_stored_text','phpbb_text_excerpt','phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text','create_date')as$name){eval('namespace CalendarAllDayFixture;'.extract_function($ad_core,$name));}
+foreach(array('phpbb_profile_text','phpbb_stored_text','phpbb_text_excerpt','phpbb_calendar_clock','phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text','create_date')as$name){eval('namespace CalendarAllDayFixture;'.extract_function($ad_core,$name));}
 // Template::load_config uses the global path helper, not the date adapter.
 if(!function_exists('phpbb_realpath')){eval('namespace {'.extract_function($ad_core,'phpbb_realpath').'}');}
 $ad_calendar=file_get_contents($phpbb_root_path.'includes/functions_calendar.php');
