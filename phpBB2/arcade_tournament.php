@@ -69,6 +69,7 @@ $in_tour = false;
 $games_played_list = array();
 $tour = array('tour_name' => '', 'tour_desc' => '', 'tour_max_players' => 2, 'tour_player_turns' => 1);
 $url		    = '&nbsp;&raquo;&nbsp;<a href="activity.'.$phpEx.'" class="nav">' . $lang['games_catagories'] . '</a>&nbsp;&raquo;&nbsp;' . $lang['tournaments'];
+$champions_heading = sprintf($lang['Champions'], 5);
 
 function arcade_tournament_player_html($user_id, $username, $link = true)
 {
@@ -81,6 +82,45 @@ function arcade_tournament_player_html($user_id, $username, $link = true)
   $label = phpbb_author_name($user_id, $username);
   return $link ? '<a href="' . append_sid('profile.' . $phpEx . '?mode=viewprofile&amp;u=' . $user_id)
     . '" class="gensmall">' . $label . '</a>' : $label;
+}
+
+function arcade_tournament_champions($db, $limit, $start = 0)
+{
+  global $lang;
+  $sql = 'SELECT t.tour_name, t.champion, u.username
+    FROM ' . iNA_TOUR . ' t
+    LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id = t.champion
+    WHERE t.tour_active = 3 AND t.champion > 0
+    ORDER BY t.tour_id DESC
+    LIMIT ' . (int) $start . ', ' . (int) $limit;
+  $result = $db->sql_query($sql);
+  if (!$result)
+  {
+    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+  }
+  $rows = $db->sql_fetchrowset($result);
+  $db->sql_freeresult($result);
+  return $rows;
+}
+
+function arcade_tournament_champions_block($template, $champions, $links)
+{
+  global $lang;
+  $names = array();
+  $tournaments = array();
+  foreach ($champions as $champion)
+  {
+    $names[] = '<img src="images/crown.gif" alt="" /> ' .
+      arcade_tournament_player_html($champion['champion'], $champion['username']) .
+      ' <img src="images/crown.gif" alt="" />';
+    $tournaments[] = htmlspecialchars((string) $champion['tour_name'], ENT_QUOTES, 'UTF-8');
+  }
+  $template->assign_block_vars('champions', array(
+    'NAME' => implode('<br />', $names),
+    'OF' => $champions ? $lang['champion_of'] : '',
+    'LIST' => $champions ? implode('<br />', $tournaments) : $lang['None'],
+    'LINK' => $links,
+  ));
 }
 
 function arcade_public_tournament_require_token($userdata, $lang)
@@ -561,12 +601,26 @@ else if ($mode == 'game')
   exit;
 }
 //
-//  View the Chapions List
+//  View completed tournaments with a winner.
 //
 else if ($mode == 'champions')
 {
-  redirect(append_sid($filename));
-  exit;
+  $sql = 'SELECT COUNT(*) AS total FROM ' . iNA_TOUR . ' WHERE tour_active = 3 AND champion > 0';
+  $result = $db->sql_query($sql);
+  if (!$result)
+  {
+    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+  }
+  $count = $db->sql_fetchrow($result);
+  $db->sql_freeresult($result);
+  $total_champions = (int) $count['total'];
+  $per_page = 25;
+  $start = min(max(0, (int) $arcade->pass_var('start', 0, true)), max(0, $total_champions - 1));
+  $start -= $start % $per_page;
+  $pagination = generate_pagination(append_sid($filename . '?mode=champions'), $total_champions, $per_page, $start);
+  $champions_heading = $lang['tournament_champions'];
+  arcade_tournament_champions_block($template, arcade_tournament_champions($db, $per_page, $start), $pagination);
+  $s_options = '<a class="forumlink" href="' . append_sid($filename) . '">' . $lang['tournaments'] . '</a>';
 }
 //
 //
@@ -590,45 +644,19 @@ else if($mode == 'invite_players')
 //
 else
 {
-  $champ_count = 0;
-  
   $template->assign_block_vars('tour_head', array(
     'TOURNAMENT' => $lang['tournament'],
     'INFORMATION' => $lang['Information'],
     'ACTION' => $lang['Action'],
     ));
 //
-//  last 5 champions
+//  Fetch one extra result to determine whether to link to the complete list.
 //
-  $sql = "SELECT champion, tour_name from " . iNA_TOUR . "
-    WHERE tour_active = 3
-      ORDER BY tour_id DESC
-      LIMIT 0,5";
-  if( !$result = $db->sql_query($sql) )
-  {
-  	message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-  }
-  $tour_champs = $db->sql_fetchrowset($result);
-  $champ_count = count($tour_champs);
-  if(is_array($tour_champs))
-  {
-    $last_5_champ_name = '';
-    $last_5_champions = '';
-    for($i = 0; $i < $champ_count; $i++)
-    {
-      $champion_id = (int) $tour_champs[$i]['champion'];
-      $last_5_champ_name .= '<img src="images/crown.gif" alt="" /> ' . arcade_tournament_player_html($champion_id, $arcade->get_username($champion_id)) . ' <img src="images/crown.gif" alt="" /><br />';
-      $last_5_champions .= htmlspecialchars($tour_champs[$i]['tour_name'], ENT_QUOTES, 'UTF-8') . ' <br />';
-    }
-  }  
-  
-  $template->assign_block_vars('champions', array(
-    'NAME' => ($champ_count > 0) ? $last_5_champ_name : '',
-    'OF' => ($champ_count > 0) ? $lang['champion_of'] : '',
-    'LIST' => ($champ_count > 0) ? $last_5_champions : $lang['None'],
-    'LINK' => ($champ_count > 5) ? '<br /><a href="'. append_sid("$filename?mode=champions") .'" class="forumlink">'.$lang['view_champions'].'</a>' : '',
-    
-    ));
+  $tour_champs = arcade_tournament_champions($db, 6);
+  $champions_link = count($tour_champs) > 5
+    ? '<a class="forumlink" href="' . append_sid($filename . '?mode=champions') . '">' . $lang['view_champions'] . '</a>'
+    : '';
+  arcade_tournament_champions_block($template, array_slice($tour_champs, 0, 5), $champions_link);
 
   $sql = "SELECT * FROM " . iNA_TOUR . "
     WHERE tour_active <> 3
@@ -714,7 +742,7 @@ else
   
 $template->assign_vars(array(
 
-    'CHAMPIONS' => sprintf($lang['Champions'], 5),
+    'CHAMPIONS' => $champions_heading,
 
     'L_NAME' => $lang['tournament_name'],
     'L_NAME_INFO' => $lang['tournament_name_info'],

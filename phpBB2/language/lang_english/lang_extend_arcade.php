@@ -323,6 +323,7 @@ $lang['running'] = 'Running';
 $lang['champion'] = 'Champion';
 $lang['champion_of'] = '&laquo; The Champion was &raquo;';
 $lang['Champions'] = 'Last %d Champions';
+$lang['tournament_champions'] = 'Tournament champions';
 $lang['view_champions'] = 'View the Champions List';
 $lang['arcade_tournament_end_sure'] = 'Are you sure you want to End this Tournament?';
 $lang['arcade_tournament_end'] = 'Tournament <b>%s</b> has now ended';
