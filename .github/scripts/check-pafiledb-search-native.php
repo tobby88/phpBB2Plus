@@ -52,6 +52,11 @@ function se_cache($ids,$extra=array(),$sid=null){
  return array('search_id'=>'123');
 }
 function se_no_match($rendered){return$rendered['message']&&$rendered['message']->level===GENERAL_MESSAGE&&$rendered['message']->getMessage()===$GLOBALS['lang']['No_search_match']&&!se_ids($rendered);}
+function se_result_link_id($result)
+{
+ se_check(preg_match('/[?&;]search_id=([1-9][0-9]*)/', $result['pagination']['url'], $match) === 1, 'Fresh search has a paginated URL');
+ return (int) $match[1];
+}
 $port=getenv('PHPBB_PA_SEARCH_PORT')?:'3306';$password=getenv('PHPBB_PA_SEARCH_PASSWORD')?:'';if(!preg_match('/^[0-9]{1,5}$/D',$port)||(int)$port<1||(int)$port>65535){throw new RuntimeException('Own loopback fixture port required');}
 $host='127.0.0.1:'.$port;$fixture='codex_pa_search_'.bin2hex(phpbb_random_bytes(8));$control=new sql_db($host,'root',$password,'',false);$db=$peer=null;$created=false;$handler=false;$se_cases=0;
 try{
@@ -79,12 +84,35 @@ try{
  se_check(pafiledb_search_input('',500)==='','Empty input remains a string on PHP 5.6 where substr can return false');
  foreach(array('english','german')as$locale){se_language($locale);$result=se_render(array('search_keywords'=>'Alpha'));
   se_check(se_ids($result)===array(49,42),'Actual fresh keyword search works with ONLY_FULL_GROUP_BY ('.$locale.'): '.json_encode(array('ids'=>se_ids($result),'message'=>$result['message']?$result['message']->getMessage():null,'queries'=>$db->sqls)));
-  se_check(count($db->writes)===2,'Fresh results write only expiring/updating their own fixture cache');
-  $cached=se_rows("SELECT search_array FROM fixture_search_results WHERE session_id='".$peer->sql_escape($userdata['session_id'])."' ORDER BY search_time DESC LIMIT 1");
+  se_check(count($db->writes)===2,'Fresh results expire old entries and insert their own result');
+  $keyword_search_id=se_result_link_id($result);
+  $cached=se_rows("SELECT search_array FROM fixture_search_results WHERE search_id=".$keyword_search_id." AND session_id='".$peer->sql_escape($userdata['session_id'])."'");
   $stored=phpbb_safe_unserialize_array($cached[0]['search_array']);se_check(pafiledb_search_ids($stored['search_results'])===array(42,49),'Stored fresh candidates already exclude inaccessible records');
  }
  se_language('english');$result=se_render(array('search_author'=>'*Ü member*'));
  se_check(se_ids($result)===array(50,42),'Actual fresh author search applies readable scope before match limit');
+ $author_search_id=se_result_link_id($result);
+ $now = time();
+ $session_length = $board_config['session_length'];
+ $forum_data = array('search_results'=>'42','show_results'=>'posts','split_search'=>array(),'term'=>"Grüße '08");
+ mt_srand(24731);
+ $forum_search_id = phpbb_store_search_results($db, $userdata['session_id'], $now, $session_length, $forum_data);
+ mt_srand(24731);
+ $second_data = array('search_results'=>'49','show_results'=>'topics');
+ $second_id = phpbb_store_search_results($db, $userdata['session_id'], $now, $session_length, $second_data);
+ se_check(count(array_unique(array($author_search_id,$keyword_search_id,$forum_search_id,$second_id)))===4,
+  'Multiple searches in one session own distinct links');
+ se_check(phpbb_load_search_results($db, $userdata['session_id'], $forum_search_id, $now + $session_length, $session_length) === $forum_data
+  && phpbb_load_search_results($db, $userdata['session_id'], $second_id, $now, $session_length) === $second_data,
+  'A duplicate result key is retried while preserving both payloads including UTF-8 and apostrophes');
+ se_check(phpbb_load_search_results($db, $userdata['session_id'], $forum_search_id, $now + $session_length + 1, $session_length) === false,
+  'A result expires immediately after the configured cache lifetime');
+ se_check(se_ids(se_render(array('search_id'=>$keyword_search_id)))===array(49,42)
+  && se_ids(se_render(array('search_id'=>$author_search_id)))===array(50,42),
+  'Both download tabs still show their original results after a forum search');
+ se_check(se_no_match(se_render(array('search_id'=>$forum_search_id))),'Downloads recognize a forum result as a different search');
+ se_sql('UPDATE fixture_search_results SET search_time=1 WHERE search_id='.$keyword_search_id);
+ se_check(se_no_match(se_render(array('search_id'=>$keyword_search_id))),'Expired saved link stops working before a later cache cleanup');
  $result=se_render(array('search_keywords'=>'Alpha','search_author'=>'*Ü member*'));
  se_check(se_ids($result)===array(42),'Combined author/keyword search preserves intersection');
  $result=se_render(array('search_keywords'=>'visiblecommentneedle','comments_search'=>'YES'));se_check(se_ids($result)===array(42),'Allowed comment matches find the file once');
@@ -120,8 +148,12 @@ try{
   se_check($result['message']&&$result['message']->level===GENERAL_ERROR&&$result['message']->getMessage()===$lang['PA_search_unavailable']&&!$db->open,'Each cached read failure closes prior resources and returns translated failure');
  }
  // A cache read participates in, but never commits, the caller's transaction.
- $get=se_cache('42');$module=se_controller();$db->sql_query('START TRANSACTION READ ONLY');$result=se_render($get,array(),$module);$r=$db->sql_query('SELECT @@in_transaction active');$active=$db->sql_fetchrow($r);$db->sql_freeresult($r);
- se_check(se_ids($result)===array(42)&&(int)$active['active']===1&&!$db->writes,'Actual cached controller preserves caller read-only transaction');$db->sql_query('ROLLBACK');se_check(!$db->open,'No leaked native query resources');
+ $get=se_cache('42');$module=se_controller();
+ se_check($db->sql_query('START TRANSACTION READ ONLY') && $db->sql_query('SAVEPOINT search_reader'),'Caller opens a read-only transaction');
+ $result=se_render($get,array(),$module);
+ se_check(se_ids($result)===array(42) && $db->sql_query('RELEASE SAVEPOINT search_reader') && !$db->writes,
+  'Actual cached controller preserves the same caller transaction on MySQL and MariaDB');
+ $db->sql_query('ROLLBACK');se_check(!$db->open,'No leaked native query resources');
  // Literal SQL/wildcard characters in names retain their exact meaning.
  foreach(array(10=>"O'Reilly%_Tester",11=>"O'ReillyABTester")as$id=>$name){se_insert('fixture_users',array('user_id'=>$id,'username'=>$name,'user_active'=>1,'user_level'=>USER));se_insert('fixture_pa_files',array('file_id'=>$id+41,'file_catid'=>5,'file_name'=>$id===10?'exactauthorneedle':'otherauthorneedle','file_approved'=>1,'user_id'=>$id,'file_time'=>0,'file_pin'=>0,'file_posticon'=>'none','file_desc'=>'','real_name'=>'fixture.bin','file_dir'=>''));}
  se_check(se_ids(se_render(array('search_author'=>"O'Reilly%_Tester")))===array(51),'Author quote is SQL-escaped and literal percent/underscore are not wildcards');

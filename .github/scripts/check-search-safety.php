@@ -105,8 +105,13 @@ search_safety_assert(substr_count($search, "p.poster_id = \" . ANONYMOUS . \" AN
 search_safety_assert(strpos($search, 'phpbb_post_author_search_allowed($search_author,') !== false, 'invalid or oversized guest/account author filters must not silently become unrestricted keyword searches');
 search_safety_assert(strpos($search, '$match_word = $db->sql_escape(stripslashes(trim($split_search[$i])))') !== false, 'full-text terms must use database-driver escaping');
 search_safety_assert(strpos($search, "addslashes('%' . str_replace('*', '', \$split_search[\$i])") === false, 'multibyte terms must not use generic addslashes');
-search_safety_assert(strpos($search, '$result_array_sql = $db->sql_escape($result_array)') !== false, 'cached search data must use database-driver escaping');
-search_safety_assert(strpos($search, '$search_session_id_sql = $db->sql_escape($userdata[\'session_id\'])') !== false, 'search cache ownership must use database-driver escaping');
+$storage = file_get_contents($root . '/phpBB2/includes/functions_search.php');
+search_safety_assert(strpos($search, 'phpbb_store_search_results($db, $userdata[\'session_id\']') !== false
+	&& strpos($storage, '$db->sql_escape(serialize($data))') !== false && strpos($storage, '$db->sql_escape($session_id)') !== false,
+	'cached search data and its owner must use database-driver escaping');
+search_safety_assert(strpos($search, 'phpbb_load_search_results($db, $userdata[\'session_id\']') !== false
+	&& strpos($storage, "AND session_id = '\$owner' AND search_time >= \$oldest") !== false,
+	'search cache reads must match the current session and lifetime');
 search_safety_assert(strpos($search, "preg_match('/^[1-9][0-9]*\$/D', (string) \$cached_id)") !== false, 'cached result IDs must be validated before returning to SQL');
 search_safety_assert(strpos($search, "preg_quote((string) \$split_word, '#')") !== false, 'highlight terms must be quoted before becoming regular expressions');
 search_safety_assert(strpos($search, "is_dir(\$phpbb_root_path . 'language/lang_' . \$board_config['default_lang'])") !== false, 'search dictionaries must stay inside an installed language directory');

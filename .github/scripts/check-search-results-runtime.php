@@ -138,7 +138,8 @@ function get_auth_keys($where,$include){return $GLOBALS['search_special_keys'];}
 function append_sid($url,$html=true){return $url;}
 class SearchSpecialRedirect extends RuntimeException {}
 function redirect($url){throw new SearchSpecialRedirect($url);}
-$dispatch_begin=strpos($source,"\t\$store_vars = array(");$dispatch_end=strpos($source,'// Delete old data from the search result table',$dispatch_begin);
+$dispatch_begin=strpos($source,"\t\$store_vars = array(");
+$dispatch_end=strpos($source,'$validated_search_ids = array();',$dispatch_begin);
 search_runtime_assert($dispatch_begin!==false&&$dispatch_end>$dispatch_begin,'Complete special search dispatch found');
 $search_special_dispatch=substr($source,$dispatch_begin,$dispatch_end-$dispatch_begin)."\n}";
 function search_special_results($mode,$logged=true,$offset=0,$readable=true)

@@ -118,22 +118,6 @@ class pafiledb_search extends pafiledb_public
 				$total_match_count = count($search_ids);
 				if (!$total_match_count) { message_die(GENERAL_MESSAGE, $lang['No_search_match']); }
 			
-				//
-				// Finish building query (for all combinations)
-				// and run it ...
-				//
-				$current_time = time();
-				$session_length = max(60, intval($board_config['session_length']));
-				$sql = "DELETE FROM " . SEARCH_TABLE . "
-					WHERE search_time < " . ($current_time - $session_length);
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Could not delete old search id sessions', '', __LINE__, __FILE__, $sql);
-				}
-			
-				//
-				// Store new result data
-				//
 				$search_results = implode(', ', $search_ids);
 	
 				$store_search_data = array(
@@ -145,38 +129,31 @@ class pafiledb_search extends pafiledb_public
 					'sort_order' => $sort_order,
 				);
 
-				$result_array_sql = $db->sql_escape(serialize($store_search_data));
-				unset($store_search_data);
-				$search_session_id_sql = $db->sql_escape($userdata['session_id']);
-				$search_id = mt_rand(1, 2147483647);
-
-				$sql = "UPDATE " . SEARCH_TABLE . " 
-					SET search_id = $search_id, search_time = $current_time, search_array = '$result_array_sql'
-					WHERE session_id = '$search_session_id_sql'";
-				if ( !($result = $db->sql_query($sql)) || !$db->sql_affectedrows() )
+				try
 				{
-					$sql = "INSERT INTO " . SEARCH_TABLE . " (search_id, session_id, search_time, search_array)
-						VALUES ($search_id, '$search_session_id_sql', $current_time, '$result_array_sql')";
-					if ( !($result = $db->sql_query($sql)) )
-					{
-						message_die(GENERAL_ERROR, 'Could not insert search results', '', __LINE__, __FILE__, $sql);
-					}
+					$search_id = phpbb_store_search_results($db, $userdata['session_id'], time(), $board_config['session_length'], $store_search_data);
+				}
+				catch (RuntimeException $error)
+				{
+					message_die(GENERAL_ERROR, $lang['PA_search_unavailable']);
 				}
 			}
 			else
 			{
 				if ( $search_id )
 				{
-					$search_session_id_sql = $db->sql_escape($userdata['session_id']);
-					$sql = "SELECT search_array FROM " . SEARCH_TABLE . " WHERE search_id=" . intval($search_id) . " AND session_id='$search_session_id_sql'";
-					try { $cached = pafiledb_listing_rows($db, $sql); }
-					catch (Exception $error) { message_die(GENERAL_ERROR, $lang['PA_search_unavailable']); return; }
-
-					if (count($cached) === 1)
+					try
 					{
-						$row = $cached[0];
-						$search_data = phpbb_safe_unserialize_array($row['search_array']);
-						if (!is_array($search_data) || empty($search_data['pafiledb']))
+						$search_data = phpbb_load_search_results($db, $userdata['session_id'], $search_id, time(), $board_config['session_length']);
+					}
+					catch (RuntimeException $error)
+					{
+						message_die(GENERAL_ERROR, $lang['PA_search_unavailable']);
+					}
+
+					if (is_array($search_data))
+					{
+						if (empty($search_data['pafiledb']))
 						{
 							message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 						}

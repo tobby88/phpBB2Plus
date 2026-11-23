@@ -839,16 +839,6 @@ else if ($has_search)
 		}
 
 		//
-		// Delete old data from the search result table
-		//
-		$sql = 'DELETE FROM ' . SEARCH_TABLE . '
-			WHERE search_time < ' . ($current_time - (int) $board_config['session_length']);
-		if ( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not delete old search id sessions', '', __LINE__, __FILE__, $sql);
-		}
-
-		//
 		// Store new result data
 		//
 		$validated_search_ids = array();
@@ -871,45 +861,19 @@ else if ($has_search)
 		//
 		$store_search_data = array();
 
-		//
-		// Limit the character length (and with this the results displayed at all following pages) to prevent
-		// truncated result arrays. Normally, search results above 12000 are affected.
-		// - to include or not to include
-		/*
-		$max_result_length = 60000;
-		if (strlen($search_results) > $max_result_length)
-		{
-			$search_results = substr($search_results, 0, $max_result_length);
-			$search_results = substr($search_results, 0, strrpos($search_results, ','));
-			$total_match_count = count(explode(', ', $search_results));
-		}
-		*/
-
 		for($i = 0; $i < count($store_vars); $i++)
 		{
 			$store_search_data[$store_vars[$i]] = ${$store_vars[$i]};
 		}
 
 		$store_search_data['author_visibility'] = phpbb_author_search_cache_tag();
-		$result_array = serialize($store_search_data);
-		unset($store_search_data);
-		$result_array_sql = $db->sql_escape($result_array);
-		$search_session_id_sql = $db->sql_escape($userdata['session_id']);
-
-		mt_srand ((float) microtime() * 1000000);
-		$search_id = mt_rand();
-
-		$sql = "UPDATE " . SEARCH_TABLE . " 
-			SET search_id = " . intval($search_id) . ", search_time = " . intval($current_time) . ", search_array = '$result_array_sql'
-			WHERE session_id = '$search_session_id_sql'";
-		if ( !($result = $db->sql_query($sql)) || !$db->sql_affectedrows() )
+		try
 		{
-			$sql = "INSERT INTO " . SEARCH_TABLE . " (search_id, session_id, search_time, search_array) 
-				VALUES(" . intval($search_id) . ", '$search_session_id_sql', " . intval($current_time) . ", '$result_array_sql')";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not insert search results', '', __LINE__, __FILE__, $sql);
-			}
+			$search_id = phpbb_store_search_results($db, $userdata['session_id'], $current_time, $board_config['session_length'], $store_search_data);
+		}
+		catch (RuntimeException $error)
+		{
+			message_die(GENERAL_ERROR, $error->getMessage());
 		}
 	}
 	else
@@ -917,20 +881,17 @@ else if ($has_search)
 		$search_id = intval($search_id);
 		if ( $search_id )
 		{
-			$search_session_id_sql = $db->sql_escape($userdata['session_id']);
-			$sql = "SELECT search_array 
-				FROM " . SEARCH_TABLE . " 
-				WHERE search_id = $search_id  
-					AND session_id = '$search_session_id_sql'";
-			if ( !($result = $db->sql_query($sql)) )
+			try
 			{
-				message_die(GENERAL_ERROR, 'Could not obtain search results', '', __LINE__, __FILE__, $sql);
+				$search_data = phpbb_load_search_results($db, $userdata['session_id'], $search_id, $current_time, $board_config['session_length']);
 			}
-
-			if ( $row = $db->sql_fetchrow($result) )
+			catch (RuntimeException $error)
 			{
-				$search_data = phpbb_safe_unserialize_array($row['search_array']);
-				if (!is_array($search_data) || !phpbb_author_search_cache_allowed($search_data))
+				message_die(GENERAL_ERROR, 'Could not obtain search results');
+			}
+			if (is_array($search_data))
+			{
+				if (!empty($search_data['pafiledb']) || !phpbb_author_search_cache_allowed($search_data))
 				{
 					message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 				}
@@ -1051,7 +1012,7 @@ else if ($has_search)
 				break;
 		}
 		$sql .= " $sort_dir";
-		if ($show_results === 'bookmarks') { $sql .= ",t.topic_id $sort_dir"; }
+		$sql .= ($show_results === 'posts' ? ',p.post_id ' : ',t.topic_id ') . $sort_dir;
 		$sql .= " LIMIT $start, " . $per_page;
 
 		if ( !$result = $db->sql_query($sql) )

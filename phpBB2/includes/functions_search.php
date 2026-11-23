@@ -25,6 +25,63 @@ function phpbb_search_return_chars($value)
 	return ($value === -1) ? -1 : max(0, min(1000, $value));
 }
 
+function phpbb_search_cache_cutoff($now, $session_length)
+{
+	return (int) $now - max(1, (int) $session_length);
+}
+
+// Each search owns its pagination links until the existing session cache expires.
+// Forum and download searches share this table and can be open in different tabs.
+function phpbb_store_search_results($db, $session_id, $now, $session_length, $data)
+{
+	$now = (int) $now;
+	$oldest = phpbb_search_cache_cutoff($now, $session_length);
+	$sql = 'DELETE FROM ' . SEARCH_TABLE . ' WHERE search_time < ' . $oldest;
+	if (!$db->sql_query($sql))
+	{
+		throw new RuntimeException('Could not expire search results');
+	}
+	$owner = $db->sql_escape($session_id);
+	$payload = $db->sql_escape(serialize($data));
+	for ($attempt = 0; $attempt < 4; $attempt++)
+	{
+		$id = mt_rand(1, 2147483647);
+		$sql = 'INSERT INTO ' . SEARCH_TABLE . " (search_id, session_id, search_time, search_array)
+			VALUES ($id, '$owner', $now, '$payload')";
+		if ($db->sql_query($sql))
+		{
+			return $id;
+		}
+		$error = $db->sql_error();
+		if ((int) $error['code'] !== 1062)
+		{
+			break;
+		}
+	}
+	throw new RuntimeException('Could not store search results');
+}
+
+function phpbb_load_search_results($db, $session_id, $id, $now, $session_length)
+{
+	$owner = $db->sql_escape($session_id);
+	$oldest = phpbb_search_cache_cutoff($now, $session_length);
+	$sql = 'SELECT search_array FROM ' . SEARCH_TABLE . ' WHERE search_id = ' . (int) $id
+		. " AND session_id = '$owner' AND search_time >= $oldest";
+	if (!($result = $db->sql_query($sql)))
+	{
+		throw new RuntimeException('Could not obtain search results');
+	}
+	try
+	{
+		$row = $db->sql_fetchrow($result);
+	}
+	finally
+	{
+		$db->sql_freeresult($result);
+	}
+	return $row ? phpbb_safe_unserialize_array($row['search_array']) : false;
+}
+
 // Excerpts contain visible text only. Count Unicode characters, not UTF-8 bytes
 // or the bytes of their HTML entities, and escape again before rendering.
 function phpbb_search_excerpt($message, $uid, $length)
