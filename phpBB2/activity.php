@@ -1434,7 +1434,7 @@ if( $mode != '' )
         $player_points=phpbb_arcade_wallet_display($arcade->arcade_config,$userdata);
 		if((($mod_id && $mod_id == $user_id) || $userdata['user_level'] == ADMIN) && $arcade->arcade_config['games_moderators_mode'])
 		{
-			$moderate_label = isset($lang['Rules_moderate2']) ? $lang['Rules_moderate2'] : 'Moderieren';
+			$moderate_label = htmlspecialchars($lang['arcade_mod_menu'], ENT_QUOTES, 'UTF-8');
 			$moderate = '<a href="arcade_modcp.'.$phpEx.'?mode=mod&amp;cat_id='.$arcade->cat_id.'"><img src="images/moderate.gif" border="0" alt="'.$moderate_label.'"></a> ';
 		}
 		if ($arcade->arcade_config['games_show_stats'] == 1)

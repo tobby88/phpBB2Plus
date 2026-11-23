@@ -8,7 +8,7 @@
   <td class="catTop" colspan="2"><span class="gensmall">{L_TOUR_INFO}</span></td>
  </tr>
   <tr>
-   <th class="thHead" colspan="2" align="center">{ADD_TOURNAMENT}</td>
+   <th class="thHead" colspan="2" align="center">{ADD_TOURNAMENT}</th>
   </tr>
 
 
@@ -35,16 +35,14 @@
      <input type="radio" name="block_plays" value="0" {S_BLOCK_NO} /> {L_NO}</td>
  </tr>
  <tr>
-   <td class="row1">{L_ACTIVE}<span class="gensmall">{L_ACTIVE_INFO}</span></td>
-   <td class="row2" width="20%">{TOUR_ACTIVE} {S_SELECT_ACTIVE}</td>
- </tr>
-
+   <td class="row1"><label for="tour_active">{L_ACTIVE}</label><span class="gensmall">{L_ACTIVE_INFO}</span></td>
+   <td class="row2" width="20%">{S_SELECT_ACTIVE}</td>
  </tr>
   <tr>
    <td class="cat" colspan="2" align="center">{S_HIDDEN_ADD} 
     <input type="Submit" name="add_tour_submit" value="{L_SUBMIT}" class="mainoption" />&nbsp;
 <!-- BEGIN add -->
-{add.ADD_GAMES}{add_ADD_PLAYERS}
+{add.ADD_GAMES}
 <!-- END add -->
    </td>
   </tr>

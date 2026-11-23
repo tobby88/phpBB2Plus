@@ -59,7 +59,6 @@ $tour_name  = $tour_desc = '';
 $tour_players = 2;
 $tour_turns = 1;
 $block_plays = 0;
-$tour_active = 0;
 $tour_mode = '';
 $total_tour_players = '';
 $select_active = '';
@@ -209,9 +208,8 @@ else if ($mode == 'add_tour' || $mode == 'edit')
   $tour_players = intval($tour_info['tour_max_players']) < 2 || intval($tour_info['tour_max_players']) > $arcade->arcade_config['games_tournament_players'] ? 2 : intval($tour_info['tour_max_players']);
   $tour_turns = intval($tour_info['tour_player_turns']) < 1 ? 1 : intval($tour_info['tour_player_turns']);
   $block_plays = $tour_info['block_plays'];
-  $tour_active = $tour_info['tour_active'];
   $total_tour_players = $lang['Min'] . ' <b>2</b> - ' . $lang['Max'] . ' <b>' . $arcade->arcade_config['games_tournament_players'] . '</b>';
-  $select_active = '<select name="tour_active">';
+  $select_active = '<select name="tour_active" id="tour_active">';
   for($i = 0; $i < 4;$i++)
   {
   	$selected = ( $tour_info['tour_active'] == $i ) ? ' selected="selected"' : '';
@@ -438,7 +436,6 @@ $template->assign_vars(array(
     'DESC' => htmlspecialchars($tour_desc, ENT_QUOTES, 'UTF-8'),
     'PLAYERS' => $tour_players,
     'TURNS' => $tour_turns,
-    'TOUR_ACTIVE' => $tour_active,
     'TOUR_MODE' => $tour_mode,
     'TOTAL_PLAYERS' => $total_tour_players,
     'S_BLOCK_YES' => ($block_plays == 1) ? 'checked="checked"' : '',

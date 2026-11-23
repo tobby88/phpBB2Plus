@@ -745,7 +745,6 @@ $template->assign_vars(array(
 		'NAME' => $lang['Name'],
 		'DATA' => $lang['Data'],
 		'JOIN' => $lang['Join'],
-		'PLAYERS' => isset($lang['Players']) ? $lang['Players'] : 'Spieler',
 
 		'U_CAT' => $url,
 		
