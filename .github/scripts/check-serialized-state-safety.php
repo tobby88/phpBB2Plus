@@ -103,7 +103,9 @@ foreach ($iterator as $file)
 }
 
 $arcade = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
-serialized_state_assert(strpos($arcade, "is_array(\$GameData[\$count])") !== false, 'Arcade tournament rows lack nested type validation');
+serialized_state_assert(strpos($arcade, "array_filter(\$games, 'is_array')") !== false &&
+    strpos($arcade, "foreach (arcade_tournament_player_games(\$row['gamedata']) as \$entry)") !== false,
+    'Arcade tournament stats must consume normalized array rows');
 $fields = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
 serialized_state_assert(substr_count($fields, 'phpbb_safe_unserialize_scalar_array(') >= 7, 'paFileDB custom-field lists are not scalar-normalized');
 

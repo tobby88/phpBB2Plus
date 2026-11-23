@@ -8,7 +8,12 @@ require $al_app.'includes/php_compat.php';require $al_app.'includes/constants.ph
 $helpers=file_get_contents($al_app.'includes/functions.php');foreach(array('phpbb_profile_text','phpbb_stored_text')as$name){if(preg_match('/^function '.$name.'\(.*?^\}/ms',$helpers,$part)!==1){throw new RuntimeException('Actual text helper required');}eval($part[0]);}
 $activity=file_get_contents($al_app.'activity.php');$comment=file_get_contents($al_app.'arcade_comment.php');
 if(preg_match('/^function arcade_output_html\(.*?^\}/ms',$activity,$part)!==1){throw new RuntimeException('Actual raw metadata renderer required');}eval($part[0]);
+require_once $al_app.'includes/functions_author_visibility.php';
+$arcade_helpers=file_get_contents($al_app.'includes/functions_arcade.php');
+if(preg_match('/^function arcade_tournament_last_play_html\(.*?^\}/ms',$arcade_helpers,$part)!==1){throw new RuntimeException('Actual tournament summary renderer required');}eval($part[0]);
 function append_sid($url){return $url;}
+function create_date($format,$time,$timezone){return gmdate($format,$time+(int)($timezone*3600));}
+function game_get_last_tour(){return $GLOBALS['last_tour'];}
 function al_check($ok,$message){if(!$ok){throw new RuntimeException($message);}$GLOBALS['al_checks']++;}
 class ArcadeLabelPlayerFixture{var $name;function get_username($id){if((int)$id!==7){throw new RuntimeException('Unexpected synthetic account');}return $this->name;}}
 $bindings=array();
@@ -16,15 +21,18 @@ foreach(preg_split('/\r?\n/',$activity)as$line){
  if(preg_match('/^\s*\$profile =.*(?:username|get_username|arcade_output_html\(\$best_player\)|phpbb_stored_text\(\$best_player\)).*;$/',$line)){$bindings[]=array('link',trim($line));}
  elseif(preg_match('/^\s*[\'"](?:BEST_PLAYER|BEST_AT_PLAYER|NAME|ARCADE_USERNAME)[\'"]\s*=>\s*(?:arcade_output_html|phpbb_stored_text)\(.*\),?\s*$/',$line)&&strpos($line,'catrows')===false){$bindings[]=array('array',trim($line));}
  elseif(strpos($line,'$best_at_player = htmlspecialchars(')!==false||strpos($line,'$best_at_player = phpbb_stored_text(')!==false){$bindings[]=array('alltime',trim($line));}
- elseif(strpos($line,'$display_last_tour = \'<a ')!==false){$bindings[]=array('tournament',trim($line));}
 }
+if(preg_match('/^\s*\$display_last_tour\s*=\s*arcade_tournament_last_play_html\([^;]+;/m',$activity,$part)!==1){throw new RuntimeException('Actual tournament summary binding required');}
+$bindings[]=array('tournament',trim($part[0]));
 foreach(preg_split('/\r?\n/',$comment)as$line){if(preg_match('/^\s*\$poster =.*(?:first_commenter|commentrow).*;$/',$line)){$bindings[]=array('comment',trim($line));}}
 if(count($bindings)!==15){throw new RuntimeException('All fifteen actual account display bindings required, got '.count($bindings));}
-$arcade=new ArcadeLabelPlayerFixture();$cases=0;$al_checks=0;$board_config=array('sitename'=>'Synthetic board');
+$arcade=new ArcadeLabelPlayerFixture();$cases=0;$al_checks=0;
+$board_config=array('sitename'=>'Synthetic board','default_dateformat'=>'\\D\\A\\T\\E','board_timezone'=>0);
 foreach(array('A&B',"O'Reilly",'"Name"','&#39;','&amp;','<b>ü</b>','Grüße 😀','C:\\notes')as$raw){foreach(array(ENT_QUOTES,ENT_COMPAT)as$flags){
  $stored=phpbb_username_key($raw,$flags);if($stored===''){throw new RuntimeException('Valid canonical/historical account key required');}
  foreach($bindings as$index=>$binding){
-  $arcade->name=$stored;$i=0;$temp_url='profile.php?mode=viewprofile&amp;u=7';$best_player=$best_at_player=$user_name=$stored;$userdata=array('username'=>$stored);$score_at_info=array('username'=>$stored);$catrows=array(array('username'=>$stored,'mod_id'=>7));$first_commenter=array('user_id'=>7,'username'=>$stored);$commentrow=array(array('user_id'=>7,'username'=>$stored));$last_tour=array('tour_id'=>11,'tour_name'=>'Raw &amp; <caption>');$last_tour_user_id=7;$last_tour_date='DATE';
+  $arcade->name=$stored;$i=0;$temp_url='profile.php?mode=viewprofile&amp;u=7';$best_player=$best_at_player=$user_name=$stored;$userdata=array('username'=>$stored,'user_level'=>0);$score_at_info=array('username'=>$stored);$catrows=array(array('username'=>$stored,'mod_id'=>7));$first_commenter=array('user_id'=>7,'username'=>$stored);$commentrow=array(array('user_id'=>7,'username'=>$stored));
+  $last_tour=array('tour_id'=>11,'tour_name'=>'Raw &amp; <caption>','user_id'=>7,'username'=>$stored,'user_allow_viewonline'=>1,'last_played_time'=>123);
   if($binding[0]==='array'){$values=eval('return array('.$binding[1].');');$markup=reset($values);}
   else{eval($binding[1]);$markup=$binding[0]==='comment'?$poster:($binding[0]==='alltime'?$best_at_player:($binding[0]==='tournament'?$display_last_tour:$profile));}
   $visible=html_entity_decode(strip_tags($markup),ENT_QUOTES,'UTF-8');$expected=$binding[0]==='tournament'?'Raw &amp; <caption>DATE'.$raw:$raw;
@@ -55,7 +63,7 @@ class ArcadeLabelAliasFixture{
  function sql_query($sql){if(strpos($sql,'SELECT n.author_user_id FROM fixture_removed_author_names n WHERE ')!==0){throw new RuntimeException('Synthetic alias reads only');}return(object)array('rows'=>strpos($sql,"n.author_name='Legacy former'")!==false?array(array('author_user_id'=>0)):array());}
  function sql_fetchrowset($r){return $r->rows;}function sql_freeresult($r){}
 }
-require_once $al_app.'includes/functions_author_visibility.php';$keep=array();
+$keep=array();
 foreach($bindings as$binding){if($binding[0]==='comment'&&strpos($binding[1],'commentrow')!==false){$comment_binding=$binding[1];}}
 al_check(isset($comment_binding),'Actual comment row and fallback');
 $viewers=array(array('id'=>-1,'logged'=>false,'mask'=>true),array('id'=>3,'logged'=>true,'mask'=>false));if(isset($al_extra_viewers)){$viewers=array_merge($viewers,$al_extra_viewers);}

@@ -1603,20 +1603,14 @@ else
 		$total_tournaments = get_total_tour();
 		if($total_tournaments > 0)
 		{
-      $tour_link = sprintf($lang['Active_Tournaments_link'], $total_tournaments, "arcade_tournament.".$phpEx);
+      $tour_link = sprintf($lang['Active_Tournaments_link'], $total_tournaments, append_sid("arcade_tournament.".$phpEx));
     }
     else
     {
       $tour_link = sprintf($lang['Active_Tournaments'], $total_tournaments);
     }
-    $last_tour = game_get_last_tour();
-    $display_last_tour = '';
-    if(is_array($last_tour))
-    {
-      $last_tour_user_id  = $last_tour['user_id'];
-      $last_tour_date     = create_date($board_config['default_dateformat'], $last_tour['last_played_time'], $board_config['board_timezone']);
-		$display_last_tour = '<a href="arcade_tournament.'.$phpEx.'?mode=tour&amp;id='.(int) $last_tour['tour_id'].'" class="gensmall">'.arcade_output_html($last_tour['tour_name']).'</a><br>'.$last_tour_date.'<br><a href="'.append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . (int) $last_tour_user_id).'" class="gensmall">'. phpbb_stored_text($arcade->get_username($last_tour_user_id)) .'</a>';
-    }
+		$display_last_tour = arcade_tournament_last_play_html(game_get_last_tour(), $userdata['user_level'],
+			$board_config['default_dateformat'], $board_config['board_timezone']);
 //
 //  Turn Tournament Info ON
 //

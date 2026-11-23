@@ -6,7 +6,6 @@ as_function($as_app.'arcade_tournament.php','arcade_tournament_champions_block')
 as_function($as_app.'arcade_tournament.php','arcade_tournament_join_status');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_overview');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_detail_options');
-as_function($as_app.'arcade_tournament.php','arcade_tournament_player_games');
 $at_source=file_get_contents($as_app.'arcade_tournament.php');$at_bindings=array();
 foreach(preg_split('/\r?\n/',$at_source)as$line){
  if(strpos($line,'$message .= sprintf($lang[\'tour_msg_winner\']')!==false){$at_bindings[]=array('message',trim($line));}
@@ -22,7 +21,7 @@ class ArcadeTournamentChampionTemplate
  public $blocks=array();
  function assign_block_vars($name,$values)
  {
-  as_check(in_array($name,array('champions','tour','tournament_none','player_head','player','tournament_add'),true),'Actual tournament view block');
+  as_check(in_array($name,array('champions','tour','tournament_none','player_head','player','tournament_add','tournament_menu'),true),'Actual tournament view block');
   $this->blocks[$name][]=$values;
   if($name==='champions'){$this->record=$values;}
  }

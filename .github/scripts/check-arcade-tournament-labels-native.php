@@ -2,6 +2,7 @@
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ARCADE_TOUR_LABEL_NATIVE')!=='1'){echo "Tournament label checks require an explicitly enabled disposable database.\n";return;}
 require __DIR__.'/arcade-tournament-fixture.php';require $as_app.'db/mysqli.php';
 as_function($as_app.'includes/functions.php','generate_pagination');
+as_function($as_app.'includes/functions.php','create_date');
 class ArcadeTournamentChampionRequest
 {
  public $offset;
@@ -72,6 +73,30 @@ function tn_tournament_start($enabled,$limit)
  catch(ArcadeSummaryExit $error){return $error->getMessage();}
  as_check(isset($template->blocks['tournament_add'])&&strpos($s_options,'name="submit"')!==false,'Correctly available start form');
  return '';
+}
+function tn_tournament_summary($viewer)
+{
+ global $arcade,$as_app,$board_config,$lang,$phpEx,$userdata;
+ $board_config['default_dateformat']='Y-m-d H:i';
+ $board_config['board_timezone']=1;
+ $userdata=array('user_id'=>3,'user_level'=>$viewer,'session_logged_in'=>true);
+ $template=new ArcadeTournamentChampionTemplate();
+ $source=file_get_contents($as_app.'activity.php');
+ $start=strpos($source,'$tour_link = \'\';');
+ $end=$start===false?false:strpos($source,"\n//\n//  All Games Output",$start);
+ as_check($start!==false&&$end>$start,'Actual category-page tournament panel');
+ eval(substr($source,$start,$end-$start));
+ return $template->blocks['tournament_menu'][0];
+}
+function tn_query_links($html)
+{
+ $links=array();
+ preg_match_all('/href="([^"]+)"/',$html,$matches);
+ foreach($matches[1] as $url){
+  parse_str(parse_url(html_entity_decode($url,ENT_QUOTES,'UTF-8'),PHP_URL_QUERY),$params);
+  $links[]=$params;
+ }
+ return $links;
 }
 class ArcadeTournamentNativeDatabase extends sql_db
 {
@@ -147,7 +172,41 @@ try{
  as_check(strpos($detail[1],'name="end"')!==false&&strpos($detail[1],'name="join"')===false,'A participating administrator can end before all seats fill');
  $detail=tn_tournament_detail($detail_tour,array(),array('user_id'=>3,'user_level'=>ADMIN));
  as_check(strpos($detail[1],'name="end"')!==false&&strpos($detail[1],'name="join"')!==false,'An empty active tournament offers both relevant admin actions');$as_cases+=2;
+
+ $arcade->arcade_config['games_tournament_mode']=1;
+ as_check(game_get_last_tour()===false,'Joining without playing is not the last play');$as_cases++;
+ $state=serialize(array(3=>array('game_name'=>'Saved \\ game','played'=>3),4=>array('game_name'=>'Ignored','played'=>-2)));
+ $legacy=addslashes(serialize(array(array('game_name'=>'Legacy \\ game','played'=>4))));
+ tn_change("UPDATE fixture_users SET username='Hidden competitor',user_allow_viewonline=0 WHERE user_id=7");
+ tn_change("INSERT INTO fixture_ina_tour_play(tour_id,user_id,last_played_time,gamedata) VALUES
+  (40,7,1700000100,'".$db->sql_escape($state)."'),(999,7,1700000120,'".$db->sql_escape($state)."')");
+ tn_change("UPDATE fixture_ina_tour_play SET last_played_time=1700000100,gamedata='".$db->sql_escape($legacy)."' WHERE tour_id=41 AND user_id=7");
+ tn_change('UPDATE fixture_ina_tour_play SET last_played_time=1700000100 WHERE tour_id=40 AND user_id=8');
+ $before=tn_snapshot();
+ foreach(array('english','german') as $locale){
+  as_language($locale);
+  $last=game_get_last_tour();
+  as_check((int)$last['tour_id']===40&&(int)$last['user_id']===7,'An orphaned event never displaces a real play and timestamp ties are stable');
+  as_check(game_tour_played()===7,'Play totals decode both canonical and escaped historical data and omit orphaned turns');
+  $member=tn_tournament_summary(USER);
+  $links=tn_query_links($member['TOUR_LAST']);
+  as_check((int)$member['TOUR_TOTAL']===3&&$member['TOUR_PLAYED']===7&&count($links)===1&&
+   $links[0]===array('mode'=>'tour','id'=>'40','sid'=>'tournament_fixture'),'Tournament count and latest play route use existing events and the current SID');
+  as_check(strpos($member['TOUR_LAST'],'Hidden competitor')===false&&strpos($member['TOUR_LAST'],$lang['game_hidden'])!==false,'Ordinary visitors see the same invisible setting as for other Arcade play summaries');
+  foreach(array(ADMIN,MOD) as $staff){
+   $staff_summary=tn_tournament_summary($staff);
+   $links=tn_query_links($staff_summary['TOUR_LAST']);
+   as_check(strpos($staff_summary['TOUR_LAST'],'Hidden competitor')!==false&&
+    $links[1]===array('mode'=>'viewprofile','u'=>'7','sid'=>'tournament_fixture'),'Existing staff display and exact account target are preserved');
+  }
+  $sidebar=tn_query_links(game_list_tour());
+  as_check(array_column($sidebar,'id')===array('40','41','42')&&count(array_unique(array_column($sidebar,'sid')))===1&&$sidebar[0]['sid']==='tournament_fixture','The sidebar keeps each tournament ID and session separate');
+  as_check(tn_snapshot()===$before,'Tournament summary leaves database data untouched');$as_cases++;
+ }
  tn_change('DELETE FROM fixture_users WHERE user_id=7');$before=tn_snapshot();at_check_output(at_render(7,null),$lang['Former_member'],7,false);as_check(tn_snapshot()===$before,'Native account retirement cannot leak the last successful username or modify tournament history');$as_cases++;
+ $retired=tn_tournament_summary(USER);
+ as_check(strpos($retired['TOUR_LAST'],$lang['Former_member'])!==false&&count(tn_query_links($retired['TOUR_LAST']))===1,
+  'Retired participants keep the historical tournament link without a profile link');$as_cases++;
  $previous=$db;$db=new ArcadeTournamentNativeDatabase($host,'root',$password,$schema,false);as_check((bool)$db->db_connect_id,'Fresh viewer connection for alias failure');$db->setup=false;$previous->sql_close();$db->fail_alias=true;$userdata=array('user_id'=>-1,'session_logged_in'=>false);$board_config=array('hide_removed_author_names'=>1);$caught=false;try{at_render(9,'Legacy former');}catch(ArcadeSummaryExit$e){$caught=$e->getMessage()===$lang['Author_privacy_unavailable'];}as_check($caught,'Native privacy read failure never silently falls back to exposing a byline');$as_cases++;
  echo 'Arcade tournament labels native: ',$as_cases,' cases, ',$as_checks," assertions PASS; actual participant/top-player/champion JOINs, retained retired owners, current account names, safe links, raw tournament metadata and read-only history.\n";
 }finally{if($db){$db->sql_close();}if($created){as_check(preg_match('/^codex_arc_tourlabel_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Exact own tournament schema cleanup');}if($control){$control->sql_close();}restore_error_handler();}

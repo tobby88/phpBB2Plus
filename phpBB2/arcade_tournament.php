@@ -167,17 +167,6 @@ function arcade_tournament_detail_options($tour, $member, $players, $admin)
   return implode('&nbsp;&nbsp;', $options);
 }
 
-function arcade_tournament_player_games($stored)
-{
-  $games = phpbb_safe_unserialize_array($stored);
-  if (!$games && is_string($stored) && strpos($stored, '\\') !== false)
-  {
-    // Imported rows may still contain an extra layer of request escaping.
-    $games = phpbb_safe_unserialize_array(stripslashes($stored));
-  }
-  return array_values(array_filter($games, 'is_array'));
-}
-
 function arcade_public_tournament_require_token($userdata, $lang)
 {
   global $HTTP_POST_VARS;

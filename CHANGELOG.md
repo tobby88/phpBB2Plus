@@ -1396,6 +1396,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Show tournament creation, enrolment and completion controls when their event
   conditions permit them. Read the overview counts in one query and preserve
   backslashes in saved participant game data.
+- Base the Arcade tournament summary on recorded plays in existing tournaments.
+  Honor hidden players, preserve historical play counts and retain sessions in
+  tournament links.
 
 ### Consistent Arcade parent counters on catalogue edits
 
