@@ -120,5 +120,6 @@ try{
   if($kind==='success'){sn_check($reply['locked']===$desired&&strpos($reply['linkurl'],'mod_token=')!==false,'AJAX state and signed fallback match');}elseif($kind!=='ack'){sn_check(sn_snap()===$before,'AJAX failure fully rolls back');}else{sn_check(count(sn_rows('SELECT * FROM fixture_logs'))===1,'AJAX uncertain completion includes audit');}
  }
  }}
+ require __DIR__.'/moderator-topic-page-native-cases.php';
  echo 'Native topic state: '.$cases.' failure/boundary cases, '.$serialized." serialized changes; all five modes and both controllers passed.\n";
 }finally{$sn_hook=null;$sn_fail=0;$sn_prefix=$sn_commit='';$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}

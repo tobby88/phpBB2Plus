@@ -166,7 +166,7 @@ else
 //
 if ( !empty($topic_id) )
 {
-	$sql = "SELECT t.topic_title, f.forum_id, f.forum_name, f.forum_topics
+	$sql = "SELECT t.topic_title, f.forum_id
 		FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f
 		WHERE t.topic_id = " . $topic_id . "
 			AND f.forum_id = t.forum_id";
@@ -180,13 +180,12 @@ if ( !empty($topic_id) )
 		message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 	}
 	
-	$forum_topics = ( $topic_row['forum_topics'] == 0 ) ? 1 : $topic_row['forum_topics'];
 	$forum_id = $topic_row['forum_id'];
 	$db->sql_freeresult($result);
 }
 else if ( !empty($forum_id) )
 {
-	$sql = "SELECT forum_name, forum_topics
+	$sql = "SELECT forum_id
 		FROM " . FORUMS_TABLE . "
 		WHERE forum_id = " . $forum_id;
 	if ( !($result = $db->sql_query($sql)) )
@@ -199,7 +198,6 @@ else if ( !empty($forum_id) )
 		message_die(GENERAL_MESSAGE, 'Forum_not_exist');
 	}
 	
-	$forum_topics = ( $topic_row['forum_topics'] == 0 ) ? 1 : $topic_row['forum_topics'];
 	$db->sql_freeresult($result);
 }
 else
@@ -944,6 +942,9 @@ switch( $mode )
 
 	default:
 		$page_title = $lang['Mod_CP'];
+		try { $page = phpbb_moderator_topic_page($db, $userdata, $forum_id, $start, $board_config['topics_per_page']); }
+		catch (PhpbbForumReadFailure $error) { message_die(GENERAL_ERROR, $lang['Mod_topic_list_unavailable']); }
+		if ($page === null) { message_die(GENERAL_MESSAGE, $lang['Not_Moderator']); }
 		include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 		$template->assign_vars(array(
@@ -951,7 +952,10 @@ switch( $mode )
 
 			'L_MOD_CP' => $lang['Mod_CP'],
 			'L_MOD_CP_EXPLAIN' => $lang['Mod_CP_explain'],
-			'L_SELECT' => $lang['Select'],
+			'L_SAVE_CHANGES' => $lang['Save_changes'],
+			'L_CANCEL' => $lang['Cancel'],
+			'L_NO_TOPICS' => $lang['Recent_no_topics'],
+			'HAS_TOPICS' => $page['total'] > 0,
 			'L_DELETE' => $lang['Delete'],
 			'L_MOVE' => $lang['Move'],
 			'L_LOCK' => $lang['Lock'],
@@ -997,19 +1001,7 @@ switch( $mode )
 		$replacement_word = array();
 		obtain_word_list($orig_word, $replacement_word);
 
-		$sql = "SELECT t.*, u.username, u.user_id, p.post_time
-			FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p
-			WHERE t.forum_id = $forum_id
-				AND t.topic_poster = u.user_id
-				AND p.post_id = t.topic_last_post_id
-			ORDER BY t.topic_type DESC, p.post_time DESC
-			LIMIT $start, " . $board_config['topics_per_page'];
-		if ( !($result = $db->sql_query($sql)) )
-		{
-	   		message_die(GENERAL_ERROR, 'Could not obtain topic information', '', __LINE__, __FILE__, $sql);
-		}
-
-		while ( $row = $db->sql_fetchrow($result) )
+		foreach ($page['rows'] as $row)
 		{
 			$topic_title = '';
 
@@ -1020,15 +1012,20 @@ switch( $mode )
 			}
 			else
 			{
-				if ( $row['topic_type'] == POST_ANNOUNCE )
+				if ($row['topic_type'] == POST_GLOBAL_ANNOUNCE)
+				{
+					$folder_img = $images['folder_global_announce'];
+					$folder_alt = $lang['Post_Global_Announcement'];
+				}
+				else if ( $row['topic_type'] == POST_ANNOUNCE )
 				{
 					$folder_img = $images['folder_announce'];
-					$folder_alt = $lang['Topic_Announcement'];
+					$folder_alt = $lang['Post_Announcement'];
 				}
 				else if ( $row['topic_type'] == POST_STICKY )
 				{
 					$folder_img = $images['folder_sticky'];
-					$folder_alt = $lang['Topic_Sticky'];
+					$folder_alt = $lang['Post_Sticky'];
 				}
 				else 
 				{
@@ -1041,7 +1038,15 @@ switch( $mode )
 			$topic_type = $row['topic_type'];
 			$topic_status = $row['topic_status'];
 			
-			if ( $topic_type == POST_ANNOUNCE )
+			if ($topic_status == TOPIC_MOVED)
+			{
+				$topic_type = $lang['Topic_Moved'] . ' ';
+			}
+			else if ($topic_type == POST_GLOBAL_ANNOUNCE)
+			{
+				$topic_type = $lang['Topic_Global_Announcement'] . ' ';
+			}
+			else if ( $topic_type == POST_ANNOUNCE )
 			{
 				$topic_type = $lang['Topic_Announcement'] . ' ';
 			}
@@ -1049,9 +1054,9 @@ switch( $mode )
 			{
 				$topic_type = $lang['Topic_Sticky'] . ' ';
 			}
-			else if ( $topic_status == TOPIC_MOVED )
+			else if ($topic_type == POST_NEWS)
 			{
-				$topic_type = $lang['Topic_Moved'] . ' ';
+				$topic_type = $lang['News'] . ' ';
 			}
 			else
 			{
@@ -1069,7 +1074,9 @@ switch( $mode )
 				$topic_title = preg_replace($orig_word, $replacement_word, $topic_title);
 			}
 
-			$u_view_topic = "modcp.$phpEx?mode=split&amp;" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'];
+			$moved = $topic_status == TOPIC_MOVED;
+			$u_view_topic = $moved ? append_sid('viewtopic.' . $phpEx . '?' . POST_TOPIC_URL . '=' . (int)$row['topic_moved_id'])
+				: "modcp.$phpEx?mode=split&amp;" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'];
 			$topic_replies = $row['topic_replies'];
 
 			//-- mod : today at  yesterday at ------------------------------------------------------------------------ 
@@ -1082,7 +1089,8 @@ switch( $mode )
 
 				'TOPIC_FOLDER_IMG' => $folder_img, 
 				'TOPIC_TYPE' => $topic_type, 
-				'TOPIC_TITLE' => $topic_title,
+				'TOPIC_TITLE' => phpbb_stored_text($topic_title),
+				'EDITABLE' => !$moved,
 				'REPLIES' => $topic_replies,
 				'LAST_POST_TIME' => $last_post_time,
 				'TOPIC_ID' => $topic_id,
@@ -1095,8 +1103,8 @@ switch( $mode )
 		}
 
 		$template->assign_vars(array(
-			'PAGINATION' => generate_pagination("modcp.$phpEx?" . POST_FORUM_URL . "=$forum_id&amp;sid=" . $userdata['session_id'], $forum_topics, $board_config['topics_per_page'], $start),
-			'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $forum_topics / $board_config['topics_per_page'] )), 
+			'PAGINATION' => generate_pagination("modcp.$phpEx?" . POST_FORUM_URL . "=$forum_id&amp;sid=" . $userdata['session_id'], $page['total'], $page['per_page'], $page['start']),
+			'PAGE_NUMBER' => sprintf($lang['Page_of'], $page['page'], $page['pages']),
 			'L_GOTO_PAGE' => $lang['Goto_page'])
 		);
 

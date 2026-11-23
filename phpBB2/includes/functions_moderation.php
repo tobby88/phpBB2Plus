@@ -3,6 +3,35 @@ if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_moderator_identity.php';
 require_once dirname(__FILE__) . '/functions_topic_removal_storage.php';
 
+function phpbb_moderator_topic_page($database, $actor, $forum_id, $start, $per_page)
+{
+	require_once dirname(__FILE__) . '/functions_forum_read_snapshot.php';
+	$reader = new PhpbbForumReadSnapshot($database, array(USERS_TABLE, SESSIONS_TABLE, CONFIG_TABLE, BANLIST_TABLE,
+		FORUMS_TABLE, AUTH_ACCESS_TABLE, USER_GROUP_TABLE, TOPICS_TABLE, POSTS_TABLE));
+	try {
+		$viewer = $reader->authenticated_user($actor);
+		if (!$viewer) { return null; }
+		$forum_id = (int)$forum_id;
+		$rights = auth(AUTH_ALL, $forum_id, $viewer, '', $reader);
+		if (empty($rights['auth_mod'])) { return null; }
+		$per_page = (int)$per_page > 0 ? (int)$per_page : 50;
+		// A moved-topic link retains the last post of its destination.
+		$from = ' FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_last_post_id'
+			. ' AND ((t.topic_status=' . TOPIC_MOVED . ' AND p.topic_id=t.topic_moved_id)'
+			. ' OR (t.topic_status<>' . TOPIC_MOVED . ' AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id))'
+			. ' WHERE t.forum_id=' . $forum_id;
+		$count = $reader->rows('SELECT COUNT(*) AS total' . $from);
+		$total = (int)$count[0]['total'];
+		$last = (int)floor(max(0, $total - 1) / $per_page);
+		$page = min($last, (int)floor(max(0, (int)$start) / $per_page));
+		$start = $page * $per_page;
+		$rows = $total ? $reader->rows('SELECT t.topic_id,t.topic_type,t.topic_status,t.topic_title,t.topic_vote,'
+			. 't.topic_replies,t.topic_first_post_id,t.topic_moved_id,t.topic_attachment,p.post_time' . $from
+			. ' ORDER BY t.topic_type DESC,p.post_time DESC,t.topic_id DESC LIMIT ' . $start . ',' . $per_page) : array();
+		return array('rows'=>$rows, 'total'=>$total, 'start'=>$start, 'per_page'=>$per_page, 'page'=>$page+1, 'pages'=>$last+1);
+	} finally { $reader->release(); }
+}
+
 function phpbb_moderation_query($database, $sql)
 {
 	global $lang;

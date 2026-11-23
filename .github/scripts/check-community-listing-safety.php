@@ -42,4 +42,35 @@ community_listing_assert(strpos($viewtopic, "\$userdata['session_logged_in'] && 
 community_listing_assert(strpos($functions, "if (\$userdata['session_logged_in'])\n\t{\n\t\t\$nav_links['author']") !== false, 'guest metadata must not advertise the protected member list');
 community_listing_assert(strpos($profile_template, 'BEGIN switch_registered_profile_details') !== false, 'birthday and zodiac profile rows must require login');
 
+define('IN_PHPBB', true);
+$phpbb_root_path = $root . '/phpBB2/';
+$phpEx = 'php';
+require $phpbb_root_path . 'includes/functions.php';
+require $phpbb_root_path . 'includes/sessions.php';
+require $phpbb_root_path . 'includes/template.php';
+$theme = array('template_name'=>'fisubsilversh');
+$board_config = array('default_lang'=>'english','xs_use_cache'=>0,'xs_auto_compile'=>0,'xs_auto_recompile'=>0);
+foreach (array(false,true) as $populated) {
+    $template = (new ReflectionClass('Template'))->newInstanceWithoutConstructor();
+    $template->vars = &$template->_tpldata['.'][0];
+    $template->load_config($phpbb_root_path.'templates/fisubsilversh', false);
+    $template->set_filenames(array('body'=>'modcp_body.tpl'));
+    $template->assign_vars(array('HAS_TOPICS'=>$populated,'L_NO_TOPICS'=>'No topics here','L_SAVE_CHANGES'=>'Save','L_CANCEL'=>'Cancel'));
+    if ($populated) {
+        foreach (array(100=>true,200=>false) as $id=>$editable) {
+            $template->assign_block_vars('topicrow',array('TOPIC_FIRST_POST_ID'=>$id,'TOPIC_ID'=>$id,
+                'EDITABLE'=>$editable,'TOPIC_TITLE'=>phpbb_stored_text('Grüße &amp; "Hallo"'),'U_VIEW_TOPIC'=>'topic.php?t='.$id));
+        }
+    }
+    ob_start();
+    try { $template->pparse('body'); $html=ob_get_contents(); } finally { ob_end_clean(); }
+    community_listing_assert((strpos($html,'No topics here') === false) === $populated
+        && (strpos($html,'name="move"') !== false) === $populated,'Empty moderator lists explain the empty result');
+    if ($populated) {
+        community_listing_assert(strpos($html,'id="topictitle_100" value="Grüße &amp; &quot;Hallo&quot;"') !== false
+            && strpos($html,'id="topictitle_200"') === false && strpos($html,'href="topic.php?t=200"') !== false
+            && strpos($html,'value="Save"') !== false && strpos($html,'value="Cancel"') !== false,
+            'Ordinary titles retain their text in the editor and moved links open their destination');
+    }
+}
 echo "Community listing safety tests passed.\n";

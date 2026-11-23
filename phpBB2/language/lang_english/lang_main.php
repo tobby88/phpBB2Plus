@@ -1,5 +1,6 @@
 <?php
 $lang['Topic_export_unavailable'] = 'The topic export could not be created. Please try again.';
+$lang['Mod_topic_list_unavailable'] = 'The moderation topic list could not be loaded. Please try again.';
 $lang['Topic_export_too_large'] = 'This topic exceeds the text export size limit (64 MiB).';
 
 $lang['Login_changed'] = 'Your login could not be confirmed. Please submit the form again.';
