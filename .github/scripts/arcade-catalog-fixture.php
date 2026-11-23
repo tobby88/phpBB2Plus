@@ -1,8 +1,16 @@
 <?php
 
-function ae_catalog_read($db, $page_code, $filter, $sort, $start, $page_size)
+function ae_catalog_listing_code($activity)
 {
-	$arcade = (object) array('sort_order'=>'DESC', 'arcade_config'=>array('games_per_page'=>$page_size));
+	$start = strpos($activity, '$sql_order = " ');
+	$end = strpos($activity, 'if( !$result = $db->sql_query($sql) )', $start);
+	as_check($start !== false && $end > $start, 'Use actual public Arcade SQL assembly');
+	return substr($activity, $start, $end-$start);
+}
+
+function ae_catalog_read($db, $page_code, $filter, $sort, $start, $page_size, $sort_order = 'DESC')
+{
+	$arcade = (object) array('sort_order'=>$sort_order, 'arcade_config'=>array('games_per_page'=>$page_size));
 	$userdata = array('user_id'=>7);
 	$favorite_games = 'EXISTS (SELECT 1 FROM '.iNA_FAV.' f WHERE f.fav_game_name=g.game_name AND f.user_id=7)';
 	$sql_and = $filter;
@@ -40,11 +48,8 @@ function ae_catalog_test($db, $canonical, $activity)
 		"INSERT INTO fixture_ina_fav(user_id,fav_game_name) VALUES(7,'alpha'),(7,'alpha'),(7,'orphan'),(8,'beta')",
 	);
 	foreach ($fixtures as $fixture) { as_check((bool) $db->sql_query($fixture), 'Apply own Arcade catalogue fixture'); }
-	$start = strpos($activity, '$sql_order = " ');
-	$end = strpos($activity, 'if( !$result = $db->sql_query($sql) )', $start);
-	as_check($start !== false && $end > $start, 'Use actual public Arcade SQL assembly');
-	$page_code = substr($activity, $start, $end-$start);
-	$count_start = strpos($activity, '$sql = \'SELECT COUNT(*) AS total\'', $end);
+	$page_code = ae_catalog_listing_code($activity);
+	$count_start = strpos($activity, '$sql = \'SELECT COUNT(*) AS total\'');
 	$count_end = strpos($activity, ';', $count_start);
 	as_check($count_start !== false && $count_end > $count_start, 'Use actual total SQL assembly');
 	$count_code = substr($activity, $count_start, $count_end-$count_start+1);
