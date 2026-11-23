@@ -29,8 +29,6 @@ require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 
 	$article_id = (isset($_GET['k']) && is_scalar($_GET['k'])) ? intval($_GET['k']) : 0;
 	$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, min(1000000, intval($_GET['start']))) : 0;
-	$topic = array('topic_id' => 0, 'topic_replies' => 0);
-	$show_num_comments = max(1, min(1000, isset($kb_config['comments_pagination']) ? (int) $kb_config['comments_pagination'] : 10));
 	$pagination = '';
 	
 	$sql = "SELECT *
@@ -84,7 +82,7 @@ require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 	   $type = phpbb_stored_text($type_plain);
 	   $topic_id = (int) $row['topic_id'];
 	   
-	   $new_views = $row['views'] + 1;
+	   $new_views = (int) $row['views'] + ($page_num === 0 ? 1 : 0);
 	   $views = '<b>' . $lang['Views'] . '</b> ' . $new_views;
 
 		if ($row['article_rating'] == 0 || $row['article_totalvotes'] == 0 )
@@ -199,7 +197,7 @@ require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 		include ($phpbb_root_path ."includes/kb_header.".$phpEx);
 	}
 	//edit 
-	if ( ( $userdata['user_id'] == $author_id && $kb_config['allow_edit'] ) || ( $is_admin ) )
+	if ($is_admin || (!empty($userdata['session_logged_in']) && $author_id > 0 && (int) $userdata['user_id'] === $author_id && !empty($kb_config['allow_edit'])))
 	{
 		 $temp_url = append_sid(this_kb_mxurl("mode=edit&amp;k=" . $article_id));
 		 $edit_img = '<a href="' . $temp_url . '"><img src="' . $phpbb_root_path . $images['icon_edit'] . '" alt="' . $lang['Edit_delete_post'] . '" title="' . $lang['Edit_delete_post'] . '" border="0" /></a>';
@@ -249,14 +247,6 @@ require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 				$comments = '<b>' . $lang['Comments'] . '</b><a href="' . $temp_url . '" class="gen"> [' . (int) $topic['topic_replies'] . ' - ' . $lang['Post_comments'] . ']</a>';
 				$template->assign_block_vars('switch_comments', array());
 			}
-			else
-			{
-				$comments = '';
-			}
-		}
-		else
-		{
-	    	$comments = '';
 		}
 
 		if ( $kb_config['comments'] && $kb_config['comments_show'] && !empty($topic['topic_id']) && $topic['topic_replies'] != 0)
@@ -275,7 +265,10 @@ require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 
 			$show_num_comments = kb_stats_page_size($kb_config['comments_pagination']);
 			$start = kb_stats_page_start($start,$show_num_comments,$topic['topic_replies']);
-			$pagination = generate_pagination(this_kb_mxurl("mode=article&k=$article_id" . $page_numm . $highlight_param), $topic['topic_replies'], $show_num_comments, $start). '&nbsp;';
+			$pagination = generate_pagination(this_kb_mxurl("mode=article&k=$article_id" . $page_numm . (!empty($print_version) ? '&print=true' : '') . $highlight_param), $topic['topic_replies'], $show_num_comments, $start);
+			if (!empty($print_version) && $pagination !== '') {
+				$template->assign_block_vars('switch_print_comment_pages', array());
+			}
 			get_kb_comments($topic_id, $start, $show_num_comments);   
 		}
 	
@@ -297,11 +290,11 @@ require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 		$path_kb_array = array();
 		get_kb_nav($article_category_id);
 
-		$print_url = append_sid(this_kb_mxurl("mode=article&amp;k=" . $article_id . "&print=true" . $highlight_param, true));
+		$print_url = append_sid(this_kb_mxurl("mode=article&amp;k=" . $article_id . '&amp;page_num=' . ($page_num + 1) . '&amp;start=' . $start . '&amp;print=true' . $highlight_param, true));
 
 		$template->assign_vars(array(
 			'PAGINATION' => $pagination,
-			'PAGE_NUMBER' => ( $topic['topic_replies'] > $show_num_comments ) ? sprintf($lang['Page_of'], ( floor( $start / $show_num_comments ) + 1 ), ceil( $topic['topic_replies'] / $show_num_comments )) : '',
+			'PAGE_NUMBER' => $pagination !== '' ? sprintf($lang['Page_of'], (int) floor($start / $show_num_comments) + 1, (int) ceil($topic['topic_replies'] / $show_num_comments)) : '',
 			'L_GOTO_PAGE' => $lang['Goto_page'],
 
 			'L_ARTICLE_DESCRIPTION' => $lang['Article_description'],
@@ -337,143 +330,36 @@ require_once dirname(__FILE__) . '/functions_topic_highlight.php';
 
 
 	//
-	//article pages table of contents
-	//
-	if ( count($art_pages) > 1 )
+	// Both navigation controls lead to the same page of the same article.
+	$page_count = count($art_pages);
+	if ($page_count > 1)
 	{
 		$template->assign_block_vars('switch_toc', array());
-		
-		$i = 0;
-	    while($i < count($art_pages))
-	    {
-			$page_number = $i + 1;
-			
-	   		$art_split = explode('[toc]', $art_pages[$i]);
-	   		$article_toc = $art_split[0];
-//	   		$article_body = $art_split[1];
-
-		// Fix up the toc title
-		if ( !$board_config['allow_html'] ) 
-  	  	{ 
-  	      $article_toc = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $article_toc); 
-  	  	}
-		//
-		// Parse message
-		//
-//		$bbcode_uid = $row['bbcode_uid'];
-//		$article_toc = preg_replace('/\:[0-9a-z\:]+\]/si', ']', $article_toc);
-		$article_toc = preg_replace("/\[(\S+)\]/", "", $article_toc);
-
-//				$txt = preg_replace("/<a href=\"(.*)\">(.*)<\/a>/i", "\\2 (\\1)", $txt);		
-		$article_toc = make_clickable($article_toc);
-		//
-		// Parse smilies
-		//
-		if ( $board_config['allow_smilies'] )
-		{
-			$article_toc = smilies_pass($article_toc);		
-		}
-		//
-		// Replace naughty words
-		//
-		if ( count($orig_word) )
-		{
-			$article_toc = phpbb_preg_replace_outside_tags($article_toc, $orig_word, $replacement_word);
-		}
-		// Replace newlines (we use this rather than nl2br because
-		// till recently it wasn't XHTML compliant)
-//		$article_toc = str_replace("\n", "\n<br />\n", $article_toc);
-			
-			$page_toc = $art_pages[$i];
-
-		//
-		// Sync with comments pagination
-		//
-		if ( $start > -1 )
-		{
-			$start_pag = "&start=" . $start;
-		}
-		else
-		{
-			$start_pag = "";
-		}
-
-			if( $page_num != $i )
-			{
-				if ( !$print_version )
-				{
-					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number" . $start_pag . $highlight_param));
-				}
-				else
-				{
-					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number&print=true" . $start_pag . $highlight_param, true));
-				}
-				$page_link = '<a href="' . $temp_url . '" class="nav">' . $page_number . ' - ' . $article_toc . '</a>';
-			}
-			else
-			{
-				$page_link = $page_number . ' - ' . $article_toc ;
-			}
-			
-			if( $i < count($art_pages) - 1 )
-			{
-			    $page_link .= '<br />';
-			}
-			$template->assign_block_vars('switch_toc.pages', array(
-			    'TOC_ITEM' => $page_link)
-			);
-		    $i++;
-		}
-	}	
-	
-	//
-	//article pages
-	//
-	if ( count($art_pages) > 1 )
-	{
 		$template->assign_block_vars('switch_pages', array());
-		
-		if ( $start > -1 )
+		foreach ($art_pages as $index => $content)
 		{
-			$start_pag = "&start=" . $start;
-		}
-		else
-		{
-			$start_pag = "";
-		}
+			$page_number = $index + 1;
+			$label = (string) $page_number;
+			$parts = explode('[toc]', $content, 2);
+			if (count($parts) === 2) {
+				$title = trim(preg_replace('/\[\/?[a-z][a-z0-9]*(?:[=:\s][^\]\r\n]*)?\]/i', '', strip_tags($parts[0])));
+				if ($title !== '' && $orig_word) { $title = preg_replace($orig_word, $replacement_word, $title); }
+				if ($title !== '') { $label .= ' - ' . phpbb_stored_text($title); }
+			}
 
-		$i = 0;
-	    while($i < count($art_pages))
-	    {
-			$page_number = $i + 1;
-			if( $page_num != $i )
-			{
-				if ( !$print_version )
-				{
-					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number" . $start_pag . $highlight_param));
-				}
-				else
-				{
-					$temp_url = append_sid(this_kb_mxurl("mode=article&k=$article_id&page_num=$page_number&print=true" . $start_pag . $highlight_param, true));
-				}
-			    $page_link = '<a href="' . $temp_url . '" class="nav">' . $page_number . '</a>';
+			$toc_item = $label;
+			$page_link = (string) $page_number;
+			if ($index !== $page_num) {
+				$temp_url = append_sid(this_kb_mxurl("mode=article&amp;k=$article_id&amp;page_num=$page_number&amp;start=$start" . ($print_version ? '&amp;print=true' : '') . $highlight_param, (bool) $print_version));
+				$anchor = '<a href="' . $temp_url . '" class="nav">';
+				$toc_item = $anchor . $label . '</a>';
+				$page_link = $anchor . $page_number . '</a>';
 			}
-			else
-			{
-			    $page_link = $page_number;
-			}
-			
-			if( $i < count($art_pages) - 1 )
-			{
-			    $page_link .= ', ';
-			}
-			$template->assign_block_vars('switch_pages.pages', array(
-			    'PAGE_LINK' => $page_link)
-			);
-		    $i++;
+			$last = $page_number === $page_count;
+			$template->assign_block_vars('switch_toc.pages', array('TOC_ITEM' => $toc_item . ($last ? '' : '<br />')));
+			$template->assign_block_vars('switch_pages.pages', array('PAGE_LINK' => $page_link . ($last ? '' : ', ')));
 		}
 	}
-	
   }
   
 ?>

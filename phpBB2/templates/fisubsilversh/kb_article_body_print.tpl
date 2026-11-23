@@ -9,12 +9,12 @@
 <link rel="stylesheet" href="templates/print_version.css" type="text/css" >
 </head>
 
-<body bgcolor="{T_BODY_BGCOLOR}" text="{T_BODY_TEXT}" link="{T_BODY_LINK}" vlink="{T_BODY_VLINK}" />
+<body bgcolor="{T_BODY_BGCOLOR}" text="{T_BODY_TEXT}" link="{T_BODY_LINK}" vlink="{T_BODY_VLINK}">
 <a name="top"></a>
 
 <table align ="center" width="80%" cellpadding="4" cellspacing="1" border="0" class="forumline">
   <tr>
-  	  <td class="maintitle" nowrap="nowrap">{ARTICLE_TITLE}&nbsp;<br /><hr></td>
+    <td class="maintitle">{ARTICLE_TITLE}<br /><hr></td>
   </tr>
   <tr>
   	  <td class="row2">
@@ -32,6 +32,7 @@
   	  <span class="gen">{RATINGS}&nbsp;{RATE_IMG}</span><br />
   <!-- END switch_ratings -->
 		<hr></td>
+  </tr>
   <!-- BEGIN switch_toc -->
   <tr>
        <td class="row1" align="left"><span class="maintitle">{L_TOC}</span><br /><br />
@@ -46,7 +47,7 @@
   	  <td class="spacerow" height="1"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
   </tr>
   <tr> 
-  	   <td class="row1" wrap="wrap"><span class="postbody">{ARTICLE_TEXT}</span></td>
+    <td class="row1"><div class="postbody">{ARTICLE_TEXT}</div></td>
   </tr>
   <!-- BEGIN switch_pages -->
   <tr>
@@ -88,5 +89,8 @@
   <!-- BEGIN switch_comments_show -->
 	</table>
   <!-- END switch_comments_show -->
+  <!-- BEGIN switch_print_comment_pages -->
+	<p align="center" class="nav">{PAGE_NUMBER} {PAGINATION}</p>
+  <!-- END switch_print_comment_pages -->
 </body>
 </html>

@@ -116,7 +116,7 @@ kb_runtime_assert(strpos($functions, 'AND HEX(s.session_id)=HEX(') !== false && 
 kb_runtime_assert(strpos($functions, "sync('topic', \$topic_id)") === false, 'empty comment GETs must not resynchronize or delete forum data');
 kb_runtime_assert(strpos($article, '$article_title = phpbb_stored_text($article_title);') !== false, 'article titles must normalize and escape legacy stored text');
 kb_runtime_assert(strpos($article, '$kb_art_description  = phpbb_stored_text') !== false, 'article descriptions must normalize and escape legacy stored text');
-kb_runtime_assert(strpos($article, "\$topic = array('topic_id' => 0, 'topic_replies' => 0);") !== false, 'articles without comment topics need defined pagination state');
+kb_runtime_assert(strpos($article, "'PAGE_NUMBER' => \$pagination !== '' ?") !== false, 'comments need a visible page before counts are read');
 kb_runtime_assert(strpos($article, "\$pagination = '';") !== false, 'articles without displayed comments need an initialized pagination value');
 kb_runtime_assert(strpos($rate, "empty(\$kb_config['allow_rating'])") !== false, 'direct rating requests must respect the global rating switch');
 kb_runtime_assert(strpos($rate, "empty(\$kb_config['allow_anonymos_rating'])") !== false, 'direct guest ratings must respect the anonymous rating switch');

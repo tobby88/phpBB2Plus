@@ -39,11 +39,12 @@ function kh_query($html)
 $source = file_get_contents($app . 'includes/kb_article.php'); $functions = file_get_contents($app . 'includes/functions_kb.php'); $search = file_get_contents($app . 'kb_search.php');
 eval(kh_function($functions, 'this_kb_mxurl')); eval(kh_function(file_get_contents($app . 'includes/sessions.php'), 'append_sid'));
 eval(kh_function(file_get_contents($app . 'includes/functions.php'), 'generate_pagination'));
+eval(kh_function(file_get_contents($app . 'includes/functions.php'), 'phpbb_stored_text'));
 $lang = array('Previous' => 'Previous', 'Next' => 'Next', 'Goto_page' => 'Goto page');
 $input = kh_fragment($source, '$requested_highlight =', "if ( !\$board_config['allow_html']");
 $render = kh_fragment($source, 'if ($highlight_match)', '$article_title = phpbb_stored_text');
 kh_check(substr_count($source, 'if ($highlight_match)') === 1, 'Article has one final highlight pass');
-kh_check(preg_match_all('/^\s*\$(pagination|print_url|temp_url) = [^\r\n]*\$highlight_param[^\r\n]*;/m', $source, $navigation, PREG_SET_ORDER) === 6, 'Print/comments/TOC/page navigation boundaries');
+kh_check(preg_match_all('/^\s*\$(pagination|print_url|temp_url) = [^\r\n]*\$highlight_param[^\r\n]*;/m', $source, $navigation, PREG_SET_ORDER) === 3, 'Print link, comment pagination and shared article page navigation');
 $phpbb_root_path = './'; $phpEx = 'php'; $theme = array('fontcolor3' => 'ff0000');
 $samples = array(
 	array('hello', 'hello', 1), array('foo*', 'foobar', 1), array('*bar', 'foobar', 1), array('**foo**', 'foobar', 1), array('***', 'hello', 0),
@@ -67,8 +68,8 @@ foreach ($samples as $sample)
 	kh_check($requested_highlight === $canonical && urldecode($highlight) === $canonical, 'One raw UTF-8 query after request normalization');
 	foreach (array('', 'sid=' . str_repeat('a', 32)) as $SID)
 	{
-		$article_id = 17; $page_numm = '&page_num=2'; $topic = array('topic_replies' => 23); $show_num_comments = 10; $start = 10; $page_number = 3; $start_pag = '&start=10';
-		foreach ($navigation as $statement)
+		$article_id = 17; $page_num = 1; $page_numm = '&page_num=2'; $topic = array('topic_replies' => 23); $show_num_comments = 10; $start = 10; $page_number = 3;
+		foreach (array(false, true) as $print_version) { foreach ($navigation as $statement)
 		{
 			eval($statement[0]);
 			if ($statement[1] === 'pagination') { kh_check(preg_match('/href="([^"]+)"/', $pagination, $link) === 1, 'Actual pagination emits a reachable page link'); $url = $link[1]; }
@@ -77,11 +78,31 @@ foreach ($samples as $sample)
 			kh_check(isset($values['mode'], $values['k']) && $values['mode'] === 'article' && $values['k'] === '17', 'Navigation keeps the article target');
 			kh_check($canonical === '' ? !isset($values['highlight']) : (isset($values['highlight']) && $values['highlight'] === $canonical), 'Every print/comment/TOC/page link preserves the exact bounded query');
 			if ($statement[1] === 'temp_url') { kh_check($values['page_num'] === '3' && $values['start'] === '10', 'Article page and comment offset survive navigation'); }
-			if (strpos($statement[0], '&print=true') !== false) { kh_check(isset($values['print']) && $values['print'] === 'true', 'Print navigation remains print navigation'); }
-		}
+			if ($statement[1] === 'print_url') { kh_check($values['page_num'] === '2' && $values['start'] === '10', 'Print opens the current article page and comment offset'); }
+			kh_check(($statement[1] === 'print_url' || $print_version) ? (isset($values['print']) && $values['print'] === 'true') : !isset($values['print']), 'Comment and page navigation retain the selected display mode');
+		} }
 	}
 	$cases++;
 }
+class KhArticleNavigation {
+	public $blocks = array();
+	function assign_block_vars($key, $values) { $this->blocks[$key][] = $values; }
+}
+$template = new KhArticleNavigation();
+$art_pages = array('Body without a heading', '[b]Grüße[/b] &amp; mehr[toc]Second page', '<i>Link</i> https://example.invalid[toc]Third page');
+$orig_word = array(); $replacement_word = array(); $page_num = 1; $start = 10; $print_version = true;
+eval(kh_fragment($source, '$page_count = count($art_pages);', "\n  }"));
+$toc = $template->blocks['switch_toc.pages']; $pages = $template->blocks['switch_pages.pages'];
+kh_check(count($toc) === 3 && count($pages) === 3 && strpos($toc[0]['TOC_ITEM'], 'Body without') === false, 'A page without a TOC label uses its number, independent of article length');
+kh_check($toc[1]['TOC_ITEM'] === '2 - Grüße &amp; mehr<br />' && $pages[1]['PAGE_LINK'] === '2, ', 'Current page is plain text, with a readable localized heading');
+foreach (array(0,2) as $index) {
+	kh_check(preg_match('/href="([^"]+)"/', $toc[$index]['TOC_ITEM'], $a) && preg_match('/href="([^"]+)"/', $pages[$index]['PAGE_LINK'], $b) && $a[1] === $b[1] && substr_count($toc[$index]['TOC_ITEM'], '<a ') === 1, 'Number and heading navigate to exactly one shared link');
+}
+$pagination = '';
+unset($topic, $show_num_comments);
+kh_check(preg_match("/'PAGE_NUMBER' => (.*),$/m", $source, $page_number_code) === 1, 'Actual article pagination display');
+eval('$page_label = ' . $page_number_code[1] . ';');
+kh_check($page_label === '', 'Hidden, detached or disabled comments render without reading an undefined topic or count');
 // Real search/category/author URL statements must survive one HTML decode.
 $url_statements = array(); foreach (array($functions, $search) as $text) { preg_match_all('/^\s*\$(temp_url|article_url|author_url|category_temp) = htmlspecialchars\(append_sid[^\r\n]+;/m', $text, $found, PREG_SET_ORDER); $url_statements = array_merge($url_statements, $found); }
 kh_check(count($url_statements) === 11, 'All eleven KB list/search URL serialization sites');
@@ -107,4 +128,29 @@ $theme = array(); $article = 'hello'; eval($render); kh_check($article === '<b s
 $limit = ini_get('pcre.backtrack_limit'); $jit = ini_get('pcre.jit'); ini_set('pcre.jit', '0'); ini_set('pcre.backtrack_limit', '1');
 $highlight_match = phpbb_topic_highlight_pattern('a*a*a*a*b'); $article = str_repeat('a', 10000) . 'c'; $original = $article; eval($render); kh_check($article === $original && preg_last_error() !== PREG_NO_ERROR, 'Actual KB render retains whole article on PCRE resource failure');
 ini_set('pcre.backtrack_limit', $limit); if ($jit !== false) { ini_set('pcre.jit', $jit); }
+if ($argv[1] === 'raw') {
+	$phpbb_root_path = $app;
+	require_once $app.'includes/template.php';
+	$theme = array('template_name'=>'fisubsilversh');
+	$board_config = array('default_lang'=>'german', 'xs_use_cache'=>0, 'xs_auto_compile'=>0, 'xs_auto_recompile'=>0);
+	foreach (array(false, true) as $show_comments) {
+		$template = (new ReflectionClass('Template'))->newInstanceWithoutConstructor();
+		$template->vars = &$template->_tpldata['.'][0];
+		$template->load_config($app.'templates/fisubsilversh', false);
+		$template->set_filenames(array('body'=>'kb_article_body_print.tpl'));
+		$template->assign_vars(array('ARTICLE_TITLE'=>'Längerer Fachartikel', 'ARTICLE_TEXT'=>'<p>Grüße 😀</p>', 'PAGINATION'=>'Comment navigation'));
+		$template->assign_block_vars('switch_toc', array());
+		$template->assign_block_vars('switch_toc.pages', array('TOC_ITEM'=>'Second page'));
+		if ($show_comments) {
+			$template->assign_block_vars('switch_comments_show', array());
+			$template->assign_block_vars('postrow', array('MESSAGE'=>'Visible comment'));
+			$template->assign_block_vars('switch_print_comment_pages', array());
+		}
+		ob_start();
+		try { $template->pparse('body'); $html = ob_get_contents(); } finally { ob_end_clean(); }
+		kh_check(strpos($html, '<div class="postbody"><p>Grüße 😀</p></div>') !== false && strpos($html, 'Second page') !== false, 'Actual print template retains article blocks, Unicode and contents');
+		kh_check(substr_count($html, '<tr') === substr_count($html, '</tr>') && substr_count($html, '<table') === substr_count($html, '</table>'), 'Every printed table and row closes with and without comments');
+		kh_check((strpos($html,'Visible comment') !== false) === $show_comments && (strpos($html,'Comment navigation') !== false) === $show_comments, 'Visible print comments and their navigation use explicit template blocks');
+	}
+}
 restore_error_handler(); echo 'KB highlighting/links ', $argv[1], ': ', $cases, ' cases, ', $checks, " assertions PASS; UTF-8, wildcards, HTML boundaries, single-pass rendering, URL/session round trips and PCRE failure.\n";
