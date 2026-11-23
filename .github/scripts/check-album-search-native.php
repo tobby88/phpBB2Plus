@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/album-native-seed.php';
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_ALBUM_SEARCH_NATIVE') !== '1') { echo "Album search tests require explicit disposable storage.\n"; return; }
 define('IN_PHPBB', true);
 $table_prefix = 'fixture_'; $phpEx = 'php';
@@ -141,8 +142,7 @@ try
 	{
 		as_check(preg_match('/^CREATE TABLE phpbb_' . $table . '\s*\([\s\S]*?;/m', $ddl, $m) === 1, 'Canonical table ' . $table); as_sql(str_replace('phpbb_' . $table, 'fixture_' . $table, $m[0]));
 	}
-	preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m', file_get_contents($phpbb_root_path . 'install/schemas/mysql_basic.sql'), $seeds);
-	as_check(count($seeds[0]) > 40, 'Complete canonical Album defaults'); foreach ($seeds[0] as $seed) { as_sql(str_replace('phpbb_album_config', 'fixture_album_config', $seed)); }
+	as_sql(album_native_config_seed_sql());
 	$album_config = array(); $r = as_sql('SELECT * FROM fixture_album_config'); while ($setting = $control->sql_fetchrow($r)) { $album_config[$setting['config_name']] = $setting['config_value']; } $control->sql_freeresult($r); $defaults = $album_config;
 	foreach (array(-1=>'Anonymous', 7=>'Viewer', 8=>'Other owner') as $id=>$name) { as_insert('users', array('user_id'=>$id, 'username'=>$name, 'user_password'=>'', 'user_email'=>'', 'user_level'=>USER, 'user_active'=>1)); }
 	foreach (array(1=>ALBUM_GUEST, 2=>ALBUM_ADMIN, 3=>ALBUM_PRIVATE, 4=>ALBUM_MOD, 5=>ALBUM_USER, 6=>ALBUM_PRIVATE) as $id=>$level)

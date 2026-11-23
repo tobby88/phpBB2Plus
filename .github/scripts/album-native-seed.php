@@ -1,4 +1,32 @@
 <?php
+// Reuse the installer's literal value tuples, including their SQL quoting.
+function album_native_config_seed_sql($table = 'album_config')
+{
+    static $statements = array();
+    $minimum = array('album_config' => 41, 'album_sp_config' => 11);
+    if (!isset($minimum[$table])) {
+        throw new RuntimeException('Unknown Album settings fixture');
+    }
+    if (isset($statements[$table])) {
+        return $statements[$table];
+    }
+
+    $source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/install/schemas/mysql_basic.sql');
+    preg_match_all('/^INSERT INTO phpbb_' . $table . '\b[^\r\n]*/m', $source, $lines);
+    if (count($lines[0]) < $minimum[$table]) {
+        throw new RuntimeException('Incomplete Album defaults in installer');
+    }
+    $tuples = array();
+    foreach ($lines[0] as $line) {
+        if (preg_match('/^INSERT INTO phpbb_' . $table . '(?:\s+\(config_name,\s*config_value\))?\s+VALUES\s+(\(.*\));\s*$/D', $line, $match) !== 1) {
+            throw new RuntimeException('Unrecognized Album default in installer');
+        }
+        $tuples[] = $match[1];
+    }
+    $statements[$table] = 'INSERT INTO fixture_' . $table . ' (config_name, config_value) VALUES ' . implode(',', $tuples);
+    return $statements[$table];
+}
+
 // Only prepare owned loopback fixtures. Application connections and their
 // transaction, failure and concurrency boundaries remain unchanged.
 function album_native_seed_batch($database, $schema, $tables, $callback)

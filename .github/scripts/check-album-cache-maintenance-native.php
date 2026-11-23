@@ -37,7 +37,7 @@ function acm_frame($junior=false){
 	acm_sql('START TRANSACTION');try{
 	foreach(array('album','album_file_items','album_file_jobs','album_cat','album_config','config','sessions','user_group','jr_admin_users','users')as$suffix){acm_sql('DELETE FROM fixture_'.$suffix);}
 	acm_sql("INSERT INTO fixture_users(user_id,username,user_password,user_level,user_active) VALUES(-1,'Anonymous','',0,0),(7,'Current admin','',".($junior?0:1).",1)");
-	acm_sql("INSERT INTO fixture_config VALUES('session_length','3600'),('unrelated','preserve')");foreach($GLOBALS['seeds']as$sql){acm_sql($sql);}
+	acm_sql("INSERT INTO fixture_config VALUES('session_length','3600'),('unrelated','preserve')");acm_sql(album_native_config_seed_sql());
 	acm_sql("INSERT INTO fixture_sessions(session_id,session_user_id,session_logged_in,session_time,session_ip,session_admin) VALUES('".str_repeat('a',32)."',7,1,".time().",'7f000001',1)");
 	if($junior){acm_sql('INSERT INTO fixture_jr_admin_users(user_id,user_jr_admin,admin_notes) VALUES(7,'.acm_literal(md5('Photo_AlbumClear_Cacheadmin_album_clearcache.php')).",'')");}
 	acm_sql('COMMIT');}catch(Exception$error){$GLOBALS['control']->sql_query('ROLLBACK');throw$error;}catch(Error$error){$GLOBALS['control']->sql_query('ROLLBACK');throw$error;}
@@ -74,7 +74,6 @@ function acm_controller(){
 try{
 	acm_check($control->db_connect_id,'Own loopback cache control');acm_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;acm_sql('USE '.$schema);
 	$ddl=file_get_contents($source.'install/schemas/mysql_schema.sql');foreach(array('users','sessions','user_group','config','jr_admin_users','album','album_cat','album_comment','album_rate','album_config','album_file_jobs','album_file_items')as$suffix){acm_check(preg_match('/^CREATE TABLE `?phpbb_'.$suffix.'`?\s*\([\s\S]*?;/m',$ddl,$m)===1,'Canonical cache dependency schema');acm_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]));}
-	preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m',file_get_contents($source.'install/schemas/mysql_basic.sql'),$m);$seeds=array();foreach($m[0]as$sql){$seeds[]=str_replace('phpbb_album_config','fixture_album_config',$sql);}acm_check(count($seeds)>40,'Actual current Album defaults');
 	acm_check(mkdir($base,0700),'Own cache filesystem root');$created_dir=true;foreach(array('album_mod','album_mod/upload','album_mod/upload/cache','album_mod/upload/med_cache','album_mod/upload/cache/nested.jpg')as$directory){acm_check(mkdir($base.'/'.$directory,0700),'Own cache directory');}
 	$db=new AcmSource($host,'root',$password,$schema,false);$reporting=error_reporting(E_ALL);set_error_handler(function($level,$message){if(error_reporting()&$level){throw new RuntimeException($message);}});
 	foreach(array(false,true)as$junior){acm_frame($junior);$result=acm_apply();acm_check($result===array('removed'=>5)&&acm_existing_cache()===0,'Root/delegated current ACP clears both caches including Unicode/WebP, without requiring a category');acm_protected();acm_check(acm_apply()===array('removed'=>0),'Clearing empty caches succeeds');}

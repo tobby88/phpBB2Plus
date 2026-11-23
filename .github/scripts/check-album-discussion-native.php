@@ -37,7 +37,7 @@ function ad_snapshot(){return array(ad_rows('SELECT * FROM fixture_album ORDER B
 function ad_reset(){
  album_native_seed_batch($GLOBALS['control'],$GLOBALS['schema'],array_map(function($suffix){return'fixture_'.$suffix;},array('album_file_items','album_file_jobs','album_comment','album_rate','album','album_cat','album_config','album_sp_config','config','sessions','user_group','users')),function(){
  foreach(array('album_file_items','album_file_jobs','album_comment','album_rate','album','album_cat','album_config','album_sp_config','config','sessions','user_group','users')as$suffix){ad_sql('DELETE FROM fixture_'.$suffix);}
- ad_sql("INSERT INTO fixture_users(user_id,username,user_password,user_active,user_level) VALUES(-1,'Anonymous','',0,0),(7,".ad_literal("Fresh's \\ Größe 😀").",'',1,0),(8,'Other author','',1,0)");ad_sql("INSERT INTO fixture_config VALUES('session_length','3600')");foreach($GLOBALS['seeds']as$sql){ad_sql($sql);}
+ ad_sql("INSERT INTO fixture_users(user_id,username,user_password,user_active,user_level) VALUES(-1,'Anonymous','',0,0),(7,".ad_literal("Fresh's \\ Größe 😀").",'',1,0),(8,'Other author','',1,0)");ad_sql("INSERT INTO fixture_config VALUES('session_length','3600')");ad_sql(album_native_config_seed_sql());
  ad_sql("UPDATE fixture_album_config SET config_value='65535' WHERE config_name='desc_length'");
  ad_sql("INSERT INTO fixture_album_sp_config VALUES('hon_rate_users','1'),('hon_rate_times','0'),('hon_rate_sep','1'),('hon_rate_where','')");
  ad_sql("INSERT INTO fixture_sessions(session_id,session_user_id,session_logged_in,session_time,session_ip) VALUES('".$GLOBALS['sid']."',7,1,".time().",'7f000001')");
@@ -83,7 +83,6 @@ $reporting=error_reporting(E_ALL);set_error_handler(function($s,$m){if(error_rep
 try{
  ad_check($control->db_connect_id,'Own loopback discussion control');ad_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;ad_sql('USE '.$schema);
  $ddl=file_get_contents($root.'install/schemas/mysql_schema.sql');foreach(array('users','sessions','user_group','config','album','album_cat','album_comment','album_rate','album_config','album_sp_config','album_file_jobs','album_file_items')as$suffix){ad_check(preg_match('/^CREATE TABLE `?phpbb_'.$suffix.'`?\s*\([\s\S]*?;/m',$ddl,$m)===1,'Canonical discussion table');ad_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$m[0]));}
- preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m',file_get_contents($root.'install/schemas/mysql_basic.sql'),$m);$seeds=array();foreach($m[0]as$sql){$seeds[]=str_replace('phpbb_album_config','fixture_album_config',$sql);}ad_check(count($seeds)>40,'Actual Album defaults');
  $db=new AlbumDiscussionSource($host,'root',$password,$schema,false);
  require __DIR__.'/album-discussion-native-cases.php';
  require __DIR__.'/album-seed-native-cases.php';

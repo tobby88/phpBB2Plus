@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/album-native-seed.php';
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ALBUM_PAGES_NATIVE')!=='1'){echo "Album picture page tests require explicit disposable storage.\n";return;}
 define('IN_PHPBB',true);$table_prefix='fixture_';$phpEx='php';$phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';$album_root_path=$phpbb_root_path.'album_mod/';
 require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'db/mysqli.php';require$album_root_path.'album_functions.php';require$album_root_path.'album_hierarchy_functions.php';
@@ -34,8 +35,8 @@ try{
  apt_check($control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')!==false,'Own schema');$created=true;$peer=new sql_db($host,'root',$password,$schema,false);$db=new AlbumPageSource($host,'root',$password,$schema,false);
  $ddl=file_get_contents($phpbb_root_path.'install/schemas/mysql_schema.sql');foreach(array('album','album_cat','album_rate','album_comment','users','user_group','album_config','album_sp_config','sessions','config','banlist')as$table){apt_check(preg_match('/^CREATE TABLE phpbb_'.$table.'\s*\([\s\S]*?;/m',$ddl,$m)===1,'Canonical table '.$table);apt_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}
  if(getenv('PHPBB_ALBUM_PAGES_MYSQL')==='8.4'){$v=apt_rows('SELECT VERSION() version');apt_check(strpos($v[0]['version'],'8.4.')===0&&stripos($v[0]['version'],'MariaDB')===false,'Actual MySQL8.4');}
- preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m',file_get_contents($phpbb_root_path.'install/schemas/mysql_basic.sql'),$seeds);apt_check(count($seeds[0])>40,'Complete Album defaults');foreach($seeds[0]as$seed){apt_sql(str_replace('phpbb_album_config','fixture_album_config',$seed));}
- preg_match_all('/^INSERT INTO phpbb_album_sp_config\b[^\r\n]*;/m',file_get_contents($phpbb_root_path.'install/schemas/mysql_basic.sql'),$sp_seeds);apt_check(count($sp_seeds[0])>10,'Complete canonical SP defaults');foreach($sp_seeds[0]as$seed){apt_sql(str_replace('phpbb_album_sp_config','fixture_album_sp_config',$seed));}
+ apt_sql(album_native_config_seed_sql());
+ apt_sql(album_native_config_seed_sql('album_sp_config'));
  foreach(array('cols_per_page'=>'1','rows_per_page'=>'2','personal_gallery'=>(string)ALBUM_USER,'personal_allow_gallery_mod'=>'1')as$key=>$value){apt_sql("UPDATE fixture_album_config SET config_value='".$value."' WHERE config_name='".$key."'");}
  apt_insert('config',array('config_name'=>'session_length','config_value'=>'3600'));foreach(array(-1=>array('Anonymous',USER),7=>array('Viewer',USER),8=>array('Other',USER),9=>array('Admin',ADMIN))as$id=>$u){apt_insert('users',array('user_id'=>$id,'username'=>$u[0],'user_password'=>'','user_email'=>'','user_level'=>$u[1],'user_active'=>1));}
  apt_insert('sessions',array('session_id'=>str_repeat('a',32),'session_user_id'=>7,'session_logged_in'=>1,'session_time'=>time()));

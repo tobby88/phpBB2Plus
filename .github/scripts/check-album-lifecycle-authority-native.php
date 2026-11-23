@@ -33,7 +33,7 @@ function ala_reset($guest = false)
     foreach (array('album','album_file_items','album_file_jobs','album_cat','album_config','config','sessions','user_group','jr_admin_users','users') as $suffix) { ala_sql('DELETE FROM fixture_' . $suffix); }
     ala_sql("INSERT INTO fixture_users(user_id,username,user_password,user_level,user_active) VALUES(-1,'Anonymous','',0,0),(7," . ala_literal("O'Connor \ 😀") . ",'',0,1),(8,'Gallery owner','',0,1)");
     ala_sql("INSERT INTO fixture_config VALUES('session_length','3600'),('unrelated','preserve')");
-    foreach ($GLOBALS['album_seeds'] as $sql) { ala_sql($sql); }
+    ala_sql(album_native_config_seed_sql());
     ala_sql("INSERT INTO fixture_album_cat(cat_id,cat_title,cat_order,cat_user_id,cat_upload_level,cat_upload_groups,cat_moderator_groups) VALUES(1,'Public',1,0,0,'',''),(2,'Personal',2,8,3,'10',''),(3,'Private',3,0,3,'10',''),(4,'Moderated',4,0,2,'','10')");
     ala_sql('INSERT INTO fixture_user_group(group_id,user_id,user_pending) VALUES(10,7,0)');
     $GLOBALS['userdata'] = array('user_id'=>$guest ? -1 : 7,'username'=>'Stale name','user_level'=>ADMIN,'user_active'=>1,'session_id'=>str_repeat('a',32),'session_logged_in'=>!$guest,'session_ip'=>'ffffffff','marker'=>'preserve');
@@ -95,7 +95,6 @@ try {
     ala_check($control->db_connect_id, 'Own native control'); ala_sql('CREATE DATABASE ' . $schema . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); $created = true; ala_sql('USE ' . $schema);
     $ddl = file_get_contents($source_root . 'install/schemas/mysql_schema.sql');
     foreach (array('users','sessions','user_group','config','jr_admin_users','album','album_cat','album_comment','album_rate','album_config','album_file_jobs','album_file_items') as $suffix) { ala_check(preg_match('/^CREATE TABLE `?phpbb_' . $suffix . '`?\s*\([\s\S]*?;/m', $ddl, $match) === 1, 'Canonical authority table'); ala_sql(str_replace('phpbb_' . $suffix, 'fixture_' . $suffix, $match[0])); }
-    preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m', file_get_contents($source_root . 'install/schemas/mysql_basic.sql'), $seed_matches); $album_seeds = array(); foreach ($seed_matches[0] as $sql) { $album_seeds[] = str_replace('phpbb_album_config','fixture_album_config',$sql); } ala_check(count($album_seeds) > 40, 'Actual canonical Album config seeds');
     $db = new AlbumLifecycleAuthoritySource($host, 'root', $password, $schema, false); ala_check($db->db_connect_id, 'Own request source');
     if(getenv('PHPBB_ALBUM_AUTHORITY_PART')==='admin'){require __DIR__.'/album-admin-authority-native-cases.php';ala_admin_cases();return;}
     if(getenv('PHPBB_ALBUM_AUTHORITY_PART')==='category-write'){require __DIR__.'/album-admin-authority-native-cases.php';require __DIR__.'/album-admin-category-write-native-cases.php';aaw_cases();return;}
