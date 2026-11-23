@@ -16,20 +16,56 @@ class PmRepairRows {public $rows;function __construct($rows){$this->rows=$rows;}
 $dsn=getenv('PHPBB_PM_REPAIR_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
 if($native){pm_repair_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_pm_repair_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class PmRepairServer {
- public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
+ public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();public $native_schema_reused=false;
+
+ private function schema_signature($tables)
+ {
+  $signature=array();
+  $names=array();
+  foreach($tables as $table){
+   $ddl=$this->pdo->query('SHOW CREATE TABLE '.$table)->fetch(PDO::FETCH_NUM);
+   if(!is_array($ddl)||!isset($ddl[1])){throw new RuntimeException('Native repair fixture schema unavailable');}
+   $signature[$table]=hash('sha256',$ddl[1]);
+   $names[]=$this->pdo->quote($table);
+  }
+  $signature['triggers']=(bool)$this->pdo->query('SELECT 1 FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND EVENT_OBJECT_TABLE IN ('.implode(',',$names).') LIMIT 1')->fetchColumn();
+  return $signature;
+ }
+
  function __construct($engine){
+  static $native_schemas=array();
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_PM_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-  pm_journal_fixture_tables($this->pdo,$engine);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_blocktime INT NOT NULL DEFAULT 0,user_new_privmsg INTEGER,user_unread_privmsg INTEGER','pm'=>'privmsgs_id INTEGER PRIMARY KEY,privmsgs_to_userid INTEGER,privmsgs_from_userid INTEGER,privmsgs_type INTEGER,privmsgs_date INTEGER DEFAULT 0,privmsgs_attachment INTEGER DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)','text'=>'privmsgs_text_id INTEGER PRIMARY KEY,privmsgs_text VARCHAR(255)','links'=>'attach_id INTEGER,privmsgs_id INTEGER,post_id INTEGER','descriptions'=>'attach_id INTEGER PRIMARY KEY,physical_filename VARCHAR(255),thumbnail INTEGER');
   $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
-  foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
-  $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active,user_new_privmsg,user_unread_privmsg) VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
-  $this->pdo->exec("INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES (10,8,1,1),(11,8,1,1),(12,8,1,1),(14,8,999,0),(15,999,8,2),(16,8,-1,1),(17,-1,8,0),(18,8,1,3)");
-  $this->pdo->exec('UPDATE fixture_pm SET privmsgs_date='.time().' WHERE privmsgs_id=11');
-  $this->pdo->exec("INSERT INTO fixture_text VALUES (12,'Grüße'),(13,'orphan'),(14,'Received'),(15,'Sent copy'),(16,'Invalid'),(17,'Invalid'),(18,'Saved')");
-  foreach(array("privmsgs_read_token CHAR(32) NOT NULL DEFAULT ''",'privmsgs_read_copy_id INTEGER NOT NULL DEFAULT 0','privmsgs_copy_token CHAR(32) DEFAULT NULL','privmsgs_write_payload TEXT DEFAULT NULL') as $column){$this->pdo->exec('ALTER TABLE fixture_pm ADD COLUMN '.$column);}
+  $names=array(PM_REPAIR_ITEMS_TABLE,PM_REPAIR_JOBS_TABLE);
+  foreach(array_keys($definitions) as $name){$names[]='fixture_'.$name;}
+  $key=$GLOBALS['native']?$GLOBALS['dsn'].'|'.$engine:'';
+  if($GLOBALS['native']&&isset($native_schemas[$key])){
+   try{$this->native_schema_reused=$this->schema_signature($names)===$native_schemas[$key];}
+   catch(PDOException $error){$this->native_schema_reused=false;}
+  }
+  if(!$this->native_schema_reused){
+   pm_journal_fixture_tables($this->pdo,$engine);
+   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
+   foreach(array("privmsgs_read_token CHAR(32) NOT NULL DEFAULT ''",'privmsgs_read_copy_id INTEGER NOT NULL DEFAULT 0','privmsgs_copy_token CHAR(32) DEFAULT NULL','privmsgs_write_payload TEXT DEFAULT NULL') as $column){$this->pdo->exec('ALTER TABLE fixture_pm ADD COLUMN '.$column);}
+   if($GLOBALS['native']){$native_schemas[$key]=$this->schema_signature($names);}
+  }
 
-
+  // Batch only test data initialization. Actual repairs still open their own
+  // connections and exercise normal commit, failure and retry behavior.
+  $seed_transaction=$GLOBALS['native']&&$engine==='InnoDB';
+  if($seed_transaction){$this->pdo->beginTransaction();}
+  try{
+   if($this->native_schema_reused){foreach($names as $name){$this->pdo->exec('DELETE FROM '.$name);}}
+   $this->pdo->exec("INSERT INTO fixture_users (user_id,username,user_level,user_active,user_new_privmsg,user_unread_privmsg) VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
+   $this->pdo->exec("INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES (10,8,1,1),(11,8,1,1),(12,8,1,1),(14,8,999,0),(15,999,8,2),(16,8,-1,1),(17,-1,8,0),(18,8,1,3)");
+   $this->pdo->exec('UPDATE fixture_pm SET privmsgs_date='.time().' WHERE privmsgs_id=11');
+   $this->pdo->exec("INSERT INTO fixture_text VALUES (12,'Grüße'),(13,'orphan'),(14,'Received'),(15,'Sent copy'),(16,'Invalid'),(17,'Invalid'),(18,'Saved')");
+   if($seed_transaction){$this->pdo->commit();}
+  }catch(Exception $error){
+   if($seed_transaction&&$this->pdo->inTransaction()){$this->pdo->rollBack();}
+   throw $error;
+  }
  }
 }
 class PmRepairForum {
@@ -88,7 +124,16 @@ function pm_repair_run($expected='',$request=null,$mode=null,$ids=array()){
 }
 function pm_repair_many($count){
  $pdo=$GLOBALS['pm_repair_server']->pdo;$pdo->exec('DELETE FROM fixture_pm');$pdo->exec('DELETE FROM fixture_text');
- for($id=100;$id<100+$count;$id++){$pdo->exec('INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES ('.$id.',8,999,0)');$pdo->exec("INSERT INTO fixture_text VALUES (".$id.",'Keep body')");}
+ $messages=array();
+ $texts=array();
+ for($id=100;$id<100+$count;$id++){
+  $messages[]='('.$id.',8,999,0)';
+  $texts[]='('.$id.",'Keep body')";
+ }
+ if($messages){
+  $pdo->exec('INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES '.implode(',',$messages));
+  $pdo->exec('INSERT INTO fixture_text VALUES '.implode(',',$texts));
+ }
 }
 $controller=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($controller,"case 'check_pm':");$b=strpos($controller,"case 'check_config':",$a);
 pm_repair_check($a!==false&&$b>$a,'Actual complete PM controller found');$branch='switch($function){'.substr($controller,$a,$b-$a).'}';
@@ -160,6 +205,17 @@ try{
   foreach(array(PM_REPAIR_JOBS_TABLE,PM_REPAIR_ITEMS_TABLE) as $table){
    pm_repair_fixture($engine);$before=pm_repair_snapshot('fixture_pm');$pm_repair_server->pdo->exec('DROP TABLE '.$table);
    pm_repair_run($lang['Maintenance_pm_journal_unavailable']);pm_repair_check($before===pm_repair_snapshot('fixture_pm'),'Missing migration fails before source mutation');
+   if($native){
+    pm_repair_fixture($engine);
+    pm_repair_check(!$pm_repair_server->native_schema_reused&&pm_repair_value('SELECT COUNT(*) FROM '.$table)===0,'Missing journal fixture is rebuilt for the next case');
+   }
+  }
+  if($native){
+   pm_repair_fixture($engine);
+   pm_repair_check($pm_repair_server->native_schema_reused,'Identical native tables can be reused');
+   $pm_repair_server->pdo->exec('ALTER TABLE fixture_text ADD COLUMN stale_fixture_column INTEGER DEFAULT NULL');
+   pm_repair_fixture($engine);
+   pm_repair_check(!$pm_repair_server->native_schema_reused&&count(pm_repair_snapshot('fixture_text')[0])===2,'A changed fixture definition is rebuilt');
   }
   foreach(array('INSERT INTO fixture_pm_repair_jobs','INSERT INTO fixture_pm_repair_items','UPDATE fixture_pm_repair_jobs SET repair_state','DELETE FROM fixture_pm WHERE','DELETE FROM fixture_text','DELETE FROM fixture_pm_repair_jobs WHERE') as $failure){
    pm_repair_fixture($engine);
