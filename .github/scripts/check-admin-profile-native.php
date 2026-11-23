@@ -88,8 +88,28 @@ function ap_reset($actor='root',$scenario='edit'){
  ap_insert('fixture_quota_limits',array('quota_limit_id'=>1,'quota_desc'=>'fixture','quota_limit'=>1024));ap_insert('fixture_attach_quota',array('user_id'=>2,'group_id'=>0,'quota_type'=>1,'quota_limit_id'=>1));
  $userdata=array('user_id'=>$ap_actor,'username'=>'fixture-'.$ap_actor,'user_level'=>1,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-admin','session_key'=>'old-key-'.$ap_actor);
  $board_config=array('block_time'=>5,'max_user_bancard'=>10,'cookie_name'=>'fixture','cookie_path'=>'/','cookie_domain'=>'','cookie_secure'=>0);
- $basic=file_get_contents($GLOBALS['ats_source'].'install/schemas/mysql_basic.sql');
- foreach(PhpbbAdminProfileScope::policy_keys() as $key){if($key==='default_lang'){$m=array('','english');}else{ats_check(preg_match("/VALUES\\s*\\('".preg_quote($key,'/')."'\\s*,\\s*'([^']*)'\\)/",$basic,$m)===1,'Installer profile policy '.$key);}if(!isset($board_config[$key])){$board_config[$key]=$m[1];}ap_insert('fixture_config',array('config_name'=>$key,'config_value'=>$board_config[$key]));}
+ static $policy_defaults = null;
+ static $policy_insert = '';
+ if ($policy_defaults === null) {
+  $basic = file_get_contents($GLOBALS['ats_source'] . 'install/schemas/mysql_basic.sql');
+  $policy_defaults = array();
+  $values = array();
+  foreach (PhpbbAdminProfileScope::policy_keys() as $key) {
+   if ($key === 'default_lang') {
+    $value = 'english';
+   } else {
+    $found = preg_match("/VALUES\\s*\\('".preg_quote($key, '/')."'\\s*,\\s*'([^']*)'\\)/", $basic, $match);
+    ats_check($found === 1, 'Installer profile policy ' . $key);
+    $value = $match[1];
+   }
+   $policy_defaults[$key] = isset($board_config[$key]) ? $board_config[$key] : $value;
+   $values[] = "('" . $GLOBALS['peer']->sql_escape($key) . "','" .
+    $GLOBALS['peer']->sql_escape((string) $policy_defaults[$key]) . "')";
+  }
+  $policy_insert = 'INSERT INTO fixture_config (config_name, config_value) VALUES ' . implode(',', $values);
+ }
+ $board_config += $policy_defaults;
+ ap_sql($policy_insert);
  ap_insert('fixture_themes',array('themes_id'=>1,'template_name'=>'fisubsilversh'));
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-admin','id'=>'2','u'=>'999','new_user'=>$scenario==='new'?'1':'0','submit'=>'Save','user_status'=>'1','user_upload_quota'=>'1','user_pm_quota'=>'0');
  $_POST['user_ycard']=in_array($scenario,array('ban','mixed-ban'),true)?'11':($scenario==='equal-ban'||$scenario==='unchanged-ban'?'10':'0');
