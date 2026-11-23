@@ -9,6 +9,7 @@ require_once __DIR__ . '/album_file_storage.php';
 class AlbumCleanupReceipt
 {
 	const MAX_PICTURES_PER_JOB = 500;
+	const ITEMS_PER_INSERT = 100;
 	private $storage;
 	private $prefix;
 	private $root;
@@ -86,17 +87,37 @@ class AlbumCleanupReceipt
 			$operation = bin2hex(phpbb_random_bytes(16)); $capability = bin2hex(phpbb_random_bytes(32)); $picture = count($chunk) === 1 ? $chunk[0] : null;
 			$binding = $this->binding($actor, $owner, $category, $picture, count($chunk), $items);
 			$this->storage->sql_query('INSERT INTO '.$this->prefix.'album_file_jobs(operation_id,schema_version,operation_kind,operation_state,actor_id,owner_id,category_id,picture_id,binding_hash,capability_hash,item_count,picture_count,created_at,completed_at) VALUES('.self::literal($operation).",1,'delete','cleanup',".$actor.','.$owner.','.$category.','.($picture === null ? 'NULL' : $picture).','.self::literal($binding).','.self::literal($capability).','.count($items).','.count($chunk).','.time().',NULL)');
-			foreach ($items as $index => $item)
-			{
-				$metadata = $item['metadata'];
-				$this->storage->sql_query('INSERT INTO '.$this->prefix.'album_file_items(operation_id,item_index,item_hash,file_scope,filename,file_present,file_bytes,file_sha256,item_state) VALUES('.self::literal($operation).','.$index.','.self::literal(hash('sha256',$item['scope']."\0".$item['name'])).','.self::literal($item['scope']).','.self::literal($item['name']).','.($metadata['present'] ? '1' : '0').','.$metadata['bytes'].','.($metadata['sha256'] === null ? 'NULL' : self::literal($metadata['sha256'])).",'pending')");
-			}
+			$this->insert_items($operation, $items);
 			$descriptor = array('operation'=>$operation, 'binding'=>$binding, 'capability'=>$capability); $where = $this->where($operation);
 			$saved = $this->parse($this->rows('SELECT * FROM '.$this->prefix.'album_file_jobs WHERE '.$where.' FOR UPDATE'),$this->rows('SELECT * FROM '.$this->prefix.'album_file_items WHERE '.$where.' ORDER BY item_index FOR UPDATE'),$descriptor);
 			if ($saved['state'] !== 'cleanup' || array_unique($saved['states']) !== array('pending')) { throw new AlbumFileCoordinatorFailure('Album cleanup preparation readback differs'); }
 			$jobs[] = $descriptor;
 		}
 		return $jobs;
+	}
+
+	private function insert_items($operation, $items)
+	{
+		$insert = 'INSERT INTO '.$this->prefix.'album_file_items(operation_id,item_index,item_hash,file_scope,filename,file_present,file_bytes,file_sha256,item_state) VALUES';
+		$operation = self::literal($operation);
+		// Keep statements small even with the longest supported UTF-8 filenames.
+		foreach (array_chunk($items, self::ITEMS_PER_INSERT, true) as $batch)
+		{
+			$rows = array();
+			foreach ($batch as $index => $item)
+			{
+				$metadata = $item['metadata'];
+				$hash = hash('sha256', $item['scope']."\0".$item['name']);
+				$rows[] = '('.$operation.','.$index.','.self::literal($hash).','.self::literal($item['scope']).','.self::literal($item['name']).
+					','.($metadata['present'] ? '1' : '0').','.$metadata['bytes'].','.
+					($metadata['sha256'] === null ? 'NULL' : self::literal($metadata['sha256'])).",'pending')";
+			}
+			$this->storage->sql_query($insert.implode(',', $rows));
+			if ((int) $this->storage->sql_affectedrows() !== count($batch))
+			{
+				throw new AlbumFileCoordinatorFailure('Album cleanup item insert differs');
+			}
+		}
 	}
 
 	private function parse($headers, $rows, $descriptor)
