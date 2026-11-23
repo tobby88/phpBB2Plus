@@ -1439,7 +1439,7 @@ function generate_pagination($base_url, $num_items, $per_page, $start_item, $add
 
 	$total_pages = ceil($num_items/$per_page);
 
-	if ( $total_pages == 1 )
+	if ( $total_pages <= 1 )
 	{
 		return '';
 	}

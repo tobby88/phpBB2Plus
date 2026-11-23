@@ -382,36 +382,9 @@ if (!in_array($topic_days, $previous_days, true))
 {
 	$topic_days = 0;
 }
-if ($topic_days > 0)
+if (phpbb_request_scalar($_POST, 'topicdays') !== '')
 {
-	$min_topic_time = time() - ($topic_days * 86400);
-
-	$sql = "SELECT COUNT(t.topic_id) AS forum_topics
-		FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p
-		WHERE t.forum_id = $forum_id
-			AND p.post_id = t.topic_last_post_id
-			AND p.post_time >= $min_topic_time";
-
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain limited topics count information', '', __LINE__, __FILE__, $sql);
-	}
-	$row = $db->sql_fetchrow($result);
-
-	$topics_count = ( $row['forum_topics'] ) ? $row['forum_topics'] : 1;
-	$limit_topics_time = "AND p.post_time >= $min_topic_time";
-
-	if (phpbb_request_scalar($_POST, 'topicdays') !== '')
-	{
-		$start = 0;
-	}
-}
-else
-{
-	$topics_count = ( $forum_row['forum_topics'] ) ? $forum_row['forum_topics'] : 1;
-
-	$limit_topics_time = '';
-	$topic_days = 0;
+	$start = 0;
 }
 
 $select_topic_days = '<select name="topicdays">';
@@ -423,90 +396,12 @@ for($i = 0; $i < count($previous_days); $i++)
 $select_topic_days .= '</select>';
 
 
-//
-// All announcement data, this keeps announcements and news
-// on each viewforum page ...
-//
-//-- mod : announces -------------------------------------------------------------------------------
-// here we added
-//	( [../..]" . ( !intval($board_config['announcement_display_forum']) ? " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE : '' ) . ")
-// and
-//	( [../..] OR t.topic_type = " . POST_GLOBAL_ANNOUNCE . ")
-// and
-//	t.topic_type DESC,
-//-- modify
-
-$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_time, p0.post_username, p0.post_author_removed, p.post_username AS post_username2, p.post_author_removed AS post_author_removed2
-	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p0, " . USERS_TABLE . " u2
-	WHERE (t.forum_id = $forum_id" . ( (intval($board_config['announcement_display_forum']) == 0) ? " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE : '' ) . ")
-		AND t.topic_poster = u.user_id
-		AND p.post_id = t.topic_last_post_id
-		AND p0.post_id = t.topic_first_post_id
-		AND p.poster_id = u2.user_id
-		AND (t.topic_type = " . POST_NEWS . " OR t.topic_type = " . POST_ANNOUNCE . " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE . ")
-	ORDER BY t.topic_type <> " . POST_NEWS . " DESC, t.topic_type = " .POST_NEWS . ", t.topic_last_post_id DESC ";
-if ( !($result = $db->sql_query($sql)) )
-{
-   message_die(GENERAL_ERROR, 'Could not obtain topic information', '', __LINE__, __FILE__, $sql);
-}
-
-$topic_rowset = array();
-$total_announcements = 0;
-while( $row = $db->sql_fetchrow($result) )
-{
-	$topic_rowset[] = $row;
-	$total_announcements++;
-}
-
-$db->sql_freeresult($result);
-
-//
-// Grab all the basic data (all topics except announcements)
-// for this forum
-//
-//-- mod : announces -------------------------------------------------------------------------------
-// here we added
-//	AND t.topic_type <> " . POST_GLOBAL_ANNOUNCE . "
-//-- modify
-
-$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p.post_author_removed, p2.post_username AS post_username2, p2.post_author_removed AS post_author_removed2, p2.post_time
-	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
-	WHERE t.forum_id = $forum_id
-		AND t.topic_poster = u.user_id
-		AND p.post_id = t.topic_first_post_id
-		AND p2.post_id = t.topic_last_post_id
-		AND u2.user_id = p2.poster_id
-		AND t.topic_type <> " . POST_NEWS . "
-		AND t.topic_type <> " . POST_ANNOUNCE . "
-		AND t.topic_type <> " . POST_GLOBAL_ANNOUNCE . "
-		$limit_topics_time
-	ORDER BY t.topic_type DESC, t.topic_last_post_id DESC
-	LIMIT $start, ".$board_config['topics_per_page'];
-if ( !($result = $db->sql_query($sql)) )
-{
-   message_die(GENERAL_ERROR, 'Could not obtain topic information', '', __LINE__, __FILE__, $sql);
-}
-
-$total_topics = 0;
-while( $row = $db->sql_fetchrow($result) )
-{
-	$topic_rowset[] = $row;
-	$total_topics++;
-}
-
-$db->sql_freeresult($result);
-
-//
-// Total topics ...
-//
-$total_topics += $total_announcements;
-
-//
-// Define censored word matches
-//
-$orig_word = array();
-$replacement_word = array();
-obtain_word_list($orig_word, $replacement_word);
+$other_announce_forums = isset($board_config['announcement_display_forum']) && !intval($board_config['announcement_display_forum'])
+	? phpbb_announcement_forums($tree, POST_FORUM_URL . $forum_id) : array();
+$since = $topic_days > 0 ? time() - $topic_days * 86400 : 0;
+$topic_page = phpbb_forum_topics_page($db, $forum_id, $other_announce_forums, $since, $start, $board_config['topics_per_page']);
+$topic_rowset = $topic_page['rows'];
+$start = $topic_page['start'];
 
 //
 // Post URL generation for templating vars
@@ -517,7 +412,7 @@ $template->assign_vars(array(
 	'U_POST_NEW_TOPIC' => append_sid("posting.$phpEx?mode=newtopic&amp;" . POST_FORUM_URL . "=$forum_id"),
 
 	'S_SELECT_TOPIC_DAYS' => $select_topic_days,
-	'S_POST_DAYS_ACTION' => append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=" . $forum_id . "&amp;start=$start"))
+	'S_POST_DAYS_ACTION' => append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=" . $forum_id))
 );
 
 //
@@ -653,278 +548,13 @@ $footer = $lang['Display_topics'] . ':&nbsp;' . $select_topic_days . '&nbsp;' . 
 $allow_split_type = true;
 $display_nav_tree = false;
 topic_list('TOPICS_LIST_BOX', 'topics_list_box', $topic_rowset, '', $allow_split_type, $display_nav_tree, $footer);
-//-- delete
-/*
-//---------------------------------------
-//
-// Note : all the code that was standing there stands now in functions_topics_list.php, topic_list() func
-//
-//---------------------------------------
 
-if( $total_topics )
-{
-	for($i = 0; $i < $total_topics; $i++)
-	{
-		$topic_id = $topic_rowset[$i]['topic_id'];
-
-		$topic_title = ( count($orig_word) ) ? preg_replace($orig_word, $replacement_word, $topic_rowset[$i]['topic_title']) : $topic_rowset[$i]['topic_title'];
-
-		$replies = $topic_rowset[$i]['topic_replies'];
-
-		$topic_type = $topic_rowset[$i]['topic_type'];
-
-		if( $topic_type == POST_ANNOUNCE )
-		{
-			$topic_type = $lang['Topic_Announcement'] . ' ';
-		}
-		else if( $topic_type == POST_GLOBAL_ANNOUNCE )
-		{
-			$topic_type = $lang['Topic_Global_Announcement'] . ' ';
-		}
-		else if( $topic_type == POST_STICKY )
-		{
-			$topic_type = $lang['Topic_Sticky'] . ' ';
-		}
-		else
-		{
-			$topic_type = '';
-		}
-
-		if( $topic_rowset[$i]['topic_vote'] )
-		{
-			$topic_type .= $lang['Topic_Poll'] . ' ';
-		}
-
-		if( $topic_rowset[$i]['topic_status'] == TOPIC_MOVED )
-		{
-			$topic_type = $lang['Topic_Moved'] . ' ';
-			$topic_id = $topic_rowset[$i]['topic_moved_id'];
-
-			$folder_image =  $images['folder'];
-			$folder_alt = $lang['Topics_Moved'];
-			$newest_post_img = '';
-		}
-		else
-		{
-			if( $topic_rowset[$i]['topic_type'] == POST_ANNOUNCE )
-			{
-				$folder = $images['folder_announce'];
-				$folder_new = $images['folder_announce_new'];
-			}
-			//-- mod : announces -------------------------------------------------------------------------------
-//-- add
-			else if( $topic_rowset[$i]['topic_type'] == POST_GLOBAL_ANNOUNCE )
-			{
-				$folder			= $images['folder_global_announce'];
-				$folder_new		= $images['folder_global_announce_new'];
-			}
-//-- fin mod : announces ---------------------------------------------------------------------------
-
-			else if( $topic_rowset[$i]['topic_type'] == POST_STICKY )
-			{
-				$folder = $images['folder_sticky'];
-				$folder_new = $images['folder_sticky_new'];
-			}
-			else if( $topic_rowset[$i]['topic_status'] == TOPIC_LOCKED )
-			{
-				$folder = $images['folder_locked'];
-				$folder_new = $images['folder_locked_new'];
-			}
-			else
-			{
-				if($replies >= $board_config['hot_threshold'])
-				{
-					$folder = $images['folder_hot'];
-					$folder_new = $images['folder_hot_new'];
-				}
-				else
-				{
-					$folder = $images['folder'];
-					$folder_new = $images['folder_new'];
-				}
-			}
-
-			$newest_post_img = '';
-			if( $userdata['session_logged_in'] )
-			{
-				if( $topic_rowset[$i]['post_time'] > $userdata['user_lastvisit'] )
-				{
-					if( !empty($tracking_topics) || !empty($tracking_forums) || isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all']) )
-					{
-						$unread_topics = true;
-
-						if( !empty($tracking_topics[$topic_id]) )
-						{
-							if( $tracking_topics[$topic_id] >= $topic_rowset[$i]['post_time'] )
-							{
-								$unread_topics = false;
-							}
-						}
-
-						if( !empty($tracking_forums[$forum_id]) )
-						{
-							if( $tracking_forums[$forum_id] >= $topic_rowset[$i]['post_time'] )
-							{
-								$unread_topics = false;
-							}
-						}
-
-						if( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all']) )
-						{
-							if( $HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all'] >= $topic_rowset[$i]['post_time'] )
-							{
-								$unread_topics = false;
-							}
-						}
-
-						if( $unread_topics )
-						{
-							$folder_image = $folder_new;
-							$folder_alt = $lang['New_posts'];
-
-							$newest_post_img = '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;view=newest") . '"><img src="' . $images['icon_newest_reply'] . '" alt="' . $lang['View_newest_post'] . '" title="' . $lang['View_newest_post'] . '" border="0" /></a> ';
-						}
-						else
-						{
-							$folder_image = $folder;
-							$folder_alt = ( $topic_rowset[$i]['topic_status'] == TOPIC_LOCKED ) ? $lang['Topic_locked'] : $lang['No_new_posts'];
-
-							$newest_post_img = '';
-						}
-					}
-					else
-					{
-						$folder_image = $folder_new;
-						$folder_alt = ( $topic_rowset[$i]['topic_status'] == TOPIC_LOCKED ) ? $lang['Topic_locked'] : $lang['New_posts'];
-
-						$newest_post_img = '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;view=newest") . '"><img src="' . $images['icon_newest_reply'] . '" alt="' . $lang['View_newest_post'] . '" title="' . $lang['View_newest_post'] . '" border="0" /></a> ';
-					}
-				}
-				else
-				{
-					$folder_image = $folder;
-					$folder_alt = ( $topic_rowset[$i]['topic_status'] == TOPIC_LOCKED ) ? $lang['Topic_locked'] : $lang['No_new_posts'];
-
-					$newest_post_img = '';
-				}
-			}
-			else
-			{
-				$folder_image = $folder;
-				$folder_alt = ( $topic_rowset[$i]['topic_status'] == TOPIC_LOCKED ) ? $lang['Topic_locked'] : $lang['No_new_posts'];
-
-				$newest_post_img = '';
-			}
-		}
-
-		if( ( $replies + 1 ) > $board_config['posts_per_page'] )
-		{
-			$total_pages = ceil( ( $replies + 1 ) / $board_config['posts_per_page'] );
-			$goto_page = ' [ <img src="' . $images['icon_gotopost'] . '" alt="' . $lang['Goto_page'] . '" title="' . $lang['Goto_page'] . '" />' . $lang['Goto_page'] . ': ';
-
-			$times = 1;
-			for($j = 0; $j < $replies + 1; $j += $board_config['posts_per_page'])
-			{
-				$goto_page .= '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=" . $topic_id . "&amp;start=$j") . '">' . $times . '</a>';
-				if( $times == 1 && $total_pages > 4 )
-				{
-					$goto_page .= ' ... ';
-					$times = $total_pages - 3;
-					$j += ( $total_pages - 4 ) * $board_config['posts_per_page'];
-				}
-				else if ( $times < $total_pages )
-				{
-					$goto_page .= ', ';
-				}
-				$times++;
-			}
-			$goto_page .= ' ] ';
-		}
-		else
-		{
-			$goto_page = '';
-		}
-
-		$view_topic_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id");
-
-		$topic_author = ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $topic_rowset[$i]['user_id']) . '">' : '';
-		$topic_author .= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? $topic_rowset[$i]['username'] : phpbb_post_author_name($topic_rowset[$i],'post_username','user_id');
-
-		$topic_author .= ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
-
-		$first_post_time = create_date($board_config['default_dateformat'], $topic_rowset[$i]['topic_time'], $board_config['board_timezone']);
-
-		$last_post_time = create_date($board_config['default_dateformat'], $topic_rowset[$i]['post_time'], $board_config['board_timezone']);
-
-		$last_post_author = ( $topic_rowset[$i]['id2'] == ANONYMOUS ) ? phpbb_post_author_name($topic_rowset[$i],'post_username2','id2','post_author_removed2').' ' : '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '='  . $topic_rowset[$i]['id2']) . '">' . $topic_rowset[$i]['user2'] . '</a>';
-
-		$last_post_url = '<a href="' . append_sid("viewtopic.$phpEx?"  . POST_POST_URL . '=' . $topic_rowset[$i]['topic_last_post_id']) . '#' . $topic_rowset[$i]['topic_last_post_id'] . '"><img src="' . $images['icon_latest_reply'] . '" alt="' . $lang['View_latest_post'] . '" title="' . $lang['View_latest_post'] . '" border="0" /></a>';
-
-		$views = $topic_rowset[$i]['topic_views'];
-
-		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-		//-- mod : announces -------------------------------------------------------------------------------
-//-- add
-		if (function_exists('get_announces_title') && !empty($topic_rowset[$i]['topic_announce_duration']))
-		{
-			$topic_title .= '</a></span>&nbsp;&nbsp;<span class="gensmall"><a name="ann_' . $topic_id . '">' . get_announces_title( $topic_rowset[$i]['topic_time'], $topic_rowset[$i]['topic_announce_duration'] ) . '</span><span class="topictitle">';
-		}
-//-- fin mod : announces ---------------------------------------------------------------------------
-		$template->assign_block_vars('topicrow', array(
-			'ROW_COLOR' => $row_color,
-			'ROW_CLASS' => $row_class,
-			'FORUM_ID' => $forum_id,
-			'TOPIC_ID' => $topic_id,
-			'TOPIC_FOLDER_IMG' => $folder_image,
-			'TOPIC_AUTHOR' => $topic_author,
-			'GOTO_PAGE' => $goto_page,
-			'REPLIES' => $replies,
-			'NEWEST_POST_IMG' => $newest_post_img,
-			'TOPIC_TITLE' => $topic_title,
-			'TOPIC_TYPE' => $topic_type,
-			'VIEWS' => $views,
-			'FIRST_POST_TIME' => $first_post_time,
-			'LAST_POST_TIME' => $last_post_time,
-			'LAST_POST_AUTHOR' => $last_post_author,
-			'LAST_POST_IMG' => $last_post_url,
-
-			'L_TOPIC_FOLDER_ALT' => $folder_alt,
-
-			'U_VIEW_TOPIC' => $view_topic_url)
-		);
-	}
-	*/
-//-- fin mod : split topic type --------------------------------------------------------------------
-
-	$topics_count -= $total_announcements;
-
-	$template->assign_vars(array(
-		'PAGINATION' => generate_pagination("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id&amp;topicdays=$topic_days", $topics_count, $board_config['topics_per_page'], $start),
-		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $topics_count / $board_config['topics_per_page'] )),
-
-		'L_GOTO_PAGE' => $lang['Goto_page'])
-	);
-//-- mod : split topic type ------------------------------------------------------------------------
-//-- delete
-/*
-
-}
-else
-{
-	//
-	// No topics
-	//
-	$no_topics_msg = ( $forum_row['forum_status'] == FORUM_LOCKED ) ? $lang['Forum_locked'] : $lang['No_topics_post_one'];
-	$template->assign_vars(array(
-		'L_NO_TOPICS' => $no_topics_msg)
-	);
-
-	$template->assign_block_vars('switch_no_topics', array() );
-
-}
-*/
-//-- fin mod : split topic type --------------------------------------------------------------------
+$template->assign_vars(array(
+	'PAGINATION' => generate_pagination("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id&amp;topicdays=$topic_days",
+		$topic_page['total'], $topic_page['per_page'], $start),
+	'PAGE_NUMBER' => sprintf($lang['Page_of'], $topic_page['page'], $topic_page['pages']),
+	'L_GOTO_PAGE' => $lang['Goto_page'])
+);
 
 //
 // Parse the page and print

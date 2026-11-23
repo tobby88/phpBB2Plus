@@ -37,6 +37,71 @@ include_once($phpbb_root_path . './includes/bbcode.' . $phpEx);
 @include_once($phpbb_root_path . 'includes/functions_calendar.' . $phpEx);
 @include_once($phpbb_root_path . 'includes/functions_announces.' . $phpEx);
 
+// Announcements stay at the top of every page. Only the remaining topics
+// participate in the activity filter and the page count.
+function phpbb_forum_topics_page($db, $forum_id, $other_announce_forums, $since, $start, $per_page)
+{
+	$forum_id = (int) $forum_id;
+	$per_page = (int) $per_page > 0 ? (int) $per_page : 50;
+	$columns = 't.*, u.username, u.user_id, u2.username AS user2, u2.user_id AS id2,
+		p.post_username, p.post_author_removed, p2.post_username AS post_username2,
+		p2.post_author_removed AS post_author_removed2, p2.post_time';
+	$from = ' FROM ' . TOPICS_TABLE . ' t
+		JOIN ' . POSTS_TABLE . ' p ON p.post_id = t.topic_first_post_id
+		JOIN ' . POSTS_TABLE . ' p2 ON p2.post_id = t.topic_last_post_id
+		JOIN ' . USERS_TABLE . ' u ON u.user_id = t.topic_poster
+		JOIN ' . USERS_TABLE . ' u2 ON u2.user_id = p2.poster_id';
+	$pinned_types = POST_ANNOUNCE . ', ' . POST_GLOBAL_ANNOUNCE . ', ' . POST_NEWS;
+	$regular = $from . " WHERE t.forum_id = $forum_id AND t.topic_type NOT IN ($pinned_types)";
+	if ($since > 0)
+	{
+		$regular .= ' AND p2.post_time >= ' . (int) $since;
+	}
+	$sql = 'SELECT COUNT(*) AS total' . $regular;
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not count forum topics', '', __LINE__, __FILE__, $sql);
+	}
+	$count = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	$total = (int) $count['total'];
+	$last_page = (int) floor(max(0, $total - 1) / $per_page);
+	$page = min($last_page, (int) floor(max(0, (int) $start) / $per_page));
+	$start = $page * $per_page;
+
+	$scope = "t.forum_id = $forum_id";
+	if ($other_announce_forums)
+	{
+		$scope .= ' OR (t.topic_type = ' . POST_GLOBAL_ANNOUNCE . ' AND t.forum_id IN ('
+			. implode(', ', array_map('intval', $other_announce_forums)) . '))';
+	}
+	$sql = 'SELECT ' . $columns . $from . " WHERE ($scope) AND t.topic_type IN ($pinned_types)
+		ORDER BY t.topic_type = " . POST_NEWS . ', t.topic_last_post_id DESC, t.topic_id DESC';
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain forum announcements', '', __LINE__, __FILE__, $sql);
+	}
+	$rows = $db->sql_fetchrowset($result);
+	$db->sql_freeresult($result);
+	if ($total > 0)
+	{
+		$sql = 'SELECT ' . $columns . $regular . "
+			ORDER BY t.topic_type DESC, t.topic_last_post_id DESC, t.topic_id DESC
+			LIMIT $start, $per_page";
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Could not obtain forum topics', '', __LINE__, __FILE__, $sql);
+		}
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$rows[] = $row;
+		}
+		$db->sql_freeresult($result);
+	}
+	return array('rows' => $rows, 'total' => $total, 'start' => $start,
+		'per_page' => $per_page, 'page' => $page + 1, 'pages' => $last_page + 1);
+}
+
 //--------------------------------------------------
 // topic_list() : display a list of topic
 // ------------

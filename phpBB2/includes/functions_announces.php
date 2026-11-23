@@ -30,14 +30,13 @@ function get_announces_title($start, $duration)
 {
 	global $lang, $board_config;
 
-	$display_announce_dates = intval($board_config['announcement_date_display']);
-
-	if ( empty($start) || ($duration < 0) || ($display_announce_dates == 0) ) return $res;
+	if (empty($start) || $duration < 0 || empty($board_config['announcement_date_display']))
+	{
+		return '';
+	}
 
 	$end = mktime(0,0,0, date('m', $start), date('d', $start)+$duration, date('Y', $start));
-	$res = sprintf($lang['Announces_from_to'], date( $lang['DATE_FORMAT'], $start), date( $lang['DATE_FORMAT'], $end));
-
-	return $res;
+	return sprintf($lang['Announces_from_to'], date($lang['DATE_FORMAT'], $start), date($lang['DATE_FORMAT'], $end));
 }
 
 function announces_prune($force_prune=false)
@@ -93,6 +92,23 @@ function announces_prune($force_prune=false)
 	}
 }
 
+function phpbb_announcement_forums($tree, $current)
+{
+	$forums = array();
+	foreach ($tree['type'] as $index => $type)
+	{
+		if ($type != POST_FORUM_URL) continue;
+		$id = (int) $tree['id'][$index];
+		$key = $type . $id;
+		if ($id > 0 && $key !== $current && !empty($tree['auth'][$key]['auth_view'])
+			&& !empty($tree['auth'][$key]['auth_read']))
+		{
+			$forums[$id] = $id;
+		}
+	}
+	return $forums;
+}
+
 function announces_from_forums($cur='Root', $force_prune=false)
 {
 	global $db, $template, $board_config, $userdata, $phpEx, $lang, $images, $HTTP_COOKIE_VARS;
@@ -130,7 +146,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 		// get the list of authorized forums except the current one
 		foreach ($is_auth as $forum_id => $forum_auth)
 		{
-			if ( $forum_auth['auth_read'] && ($cur != POST_FORUM_URL . $forum_id) )
+			if (!empty($forum_auth['auth_view']) && !empty($forum_auth['auth_read']) && $cur != POST_FORUM_URL . $forum_id)
 			{
 				$auth_forum_ids[] = $forum_id;
 			}
@@ -150,6 +166,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 			{
 				$cat_id = $row['cat_id'];
 			}
+			$db->sql_freeresult($result);
 		}
 
 		// get the forums authed belonging to the category
@@ -164,6 +181,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 		{
 			$tree_forum_ids[] = $row['forum_id'];
 		}
+		$db->sql_freeresult($result);
 	}
 	else
 	{
@@ -171,14 +189,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 		$cid = $type . $id;
 
 		// get the list of authorized forums except the current one
-		for ($i=0; $i < count($tree['id']); $i++)
-		{
-			$fid = $tree['type'][$i] . $tree['id'][$i];
-			if ( ($fid != $cid) && ($tree['type'][$i] == POST_FORUM_URL) && $tree['auth'][$fid]['auth_read'] )
-			{
-				$auth_forum_ids[] = $tree['id'][$i];
-			}
-		}
+		$auth_forum_ids = phpbb_announcement_forums($tree, $cid);
 
 		// no forums authed, return an error
 		if (empty($auth_forum_ids)) return false;
@@ -190,8 +201,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 		for ($i=1; $i < count($keys['id']); $i++)
 		{
 			$idx = $keys['idx'][$i];
-			$fid = $keys['id'][$i];
-			if ( ($fid != $cid) && ($tree['type'][$idx] == POST_FORUM_URL) && $tree['auth'][$fid]['auth_read'] )
+			if ($tree['type'][$idx] == POST_FORUM_URL && isset($auth_forum_ids[$tree['id'][$idx]]))
 			{
 				$tree_forum_ids[] = $tree['id'][$idx];
 			}
@@ -205,7 +215,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 			while ($fid != 'Root')
 			{
 				$idx = $tree['keys'][$fid];
-				if ( ($fid != $cur) && ($tree['type'][$idx] == POST_FORUM_URL) && ($tree['auth'][$fid]['auth_read']) )
+				if ($tree['type'][$idx] == POST_FORUM_URL && isset($auth_forum_ids[$tree['id'][$idx]]))
 				{
 					$tree_forum_ids[] = $tree['id'][$idx];
 				}
