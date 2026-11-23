@@ -454,6 +454,7 @@ $lang['ctracker_lhistory_h2']	= 'Saved IP address';
 $lang['ctracker_lhistory_nav']	= 'CrackerTracker Login History';
 $lang['ctracker_lhistory_err']  = 'You must be logged in to use the features of CrackerTracker.';
 $lang['ctracker_lhistory_off']  = 'Login History was deactivated by Admin.';
+$lang['ctracker_lhistory_empty'] = 'There are no recorded sign-ins for this account.';
 
 
 /*

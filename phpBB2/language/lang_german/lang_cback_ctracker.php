@@ -453,6 +453,7 @@ $lang['ctracker_lhistory_h2']	= 'gespeicherte IP Adresse';
 $lang['ctracker_lhistory_nav']	= 'CrackerTracker Login History';
 $lang['ctracker_lhistory_err']  = 'Sie müssen eingeloggt sein, um diese Funktionen des CrackerTrackers nutzen zu können!';
 $lang['ctracker_lhistory_off']  = 'Login History wurde vom Admin deaktiviert.';
+$lang['ctracker_lhistory_empty'] = 'Für dieses Konto sind keine Anmeldungen protokolliert.';
 
 
 /*

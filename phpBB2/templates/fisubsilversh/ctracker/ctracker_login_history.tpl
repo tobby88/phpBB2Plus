@@ -13,11 +13,13 @@
 	<tr>
 		<td class="row2" align="center" colspan="3"><span class="gen">{L_DESCRIPTION}</span></td>
 	</tr>
+<!-- BEGIN login_columns -->
 	<tr>
 		<th>#</th>
 		<th>{L_TABLEHEAD_1}</th>
 		<th>{L_TABLEHEAD_2}</th>
 	</tr>
+<!-- END login_columns -->
 <!-- BEGIN login_output -->
 	<tr>
 		<td class="{login_output.ROW_CLASS}" align="center"><span class="gen"><b>{login_output.VALUE_1}</b></span></td>
@@ -25,6 +27,11 @@
 		<td class="{login_output.ROW_CLASS}"><span class="gen">{login_output.VALUE_3}</span></td>
 	</tr>
 <!-- END login_output -->
+<!-- BEGIN login_empty -->
+	<tr>
+		<td class="row1" align="center" colspan="3"><span class="gen">{login_empty.L_EMPTY}</span></td>
+	</tr>
+<!-- END login_empty -->
 	<tr>
 		<td class="catBottom" colspan="3">&nbsp;</td>
 	</tr>

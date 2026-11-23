@@ -3,8 +3,8 @@ define('IN_PHPBB',true);$app=dirname(dirname(__DIR__)).'/phpBB2/';
 require$app.'includes/php_compat.php';require$app.'includes/functions.php';
 $locale=isset($argv[1])?$argv[1]:'english';if(!in_array($locale,array('english','german'),true)){throw new RuntimeException('Known date locale required');}
 $lang=array();require$app.'language/lang_'.$locale.'/lang_main.php';$board_config=array('default_lang'=>$locale);
-class HistoryDateRows{private$seen=false;public$stamp;function __construct($stamp){$this->stamp=$stamp;}function sql_fetchrow($unused){if($this->seen){return false;}$this->seen=true;return array('ct_login_time'=>$this->stamp,'ct_login_ip'=>'192.0.2.1');}}
-class HistoryDateTemplate{public$rows=array();function assign_block_vars($name,$row){$this->rows[]=$row;}}
+class HistoryDateRows{private$seen=false;public$stamp;function __construct($stamp){$this->stamp=$stamp;}function sql_fetchrow($unused){if($this->seen){return false;}$this->seen=true;return array('ct_login_time'=>$this->stamp,'ct_login_ip'=>'192.0.2.1');}function sql_freeresult($unused){}}
+class HistoryDateTemplate{public$rows=array();function assign_block_vars($name,$row){if($name==='login_output'){$this->rows[]=$row;}}}
 $source=file_get_contents($app.'ct_login_history.php');$a=strpos($source,"\t\$count = 0;");$b=strpos($source,'// Output settings for Login Checker',$a);
 if($a===false||$b===false){throw new RuntimeException('Actual history date boundary unavailable');}$body='if(true){'.substr($source,$a,$b-$a);$cases=0;
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});

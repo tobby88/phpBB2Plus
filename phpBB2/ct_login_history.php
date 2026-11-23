@@ -56,9 +56,13 @@ $template->set_filenames(array(
 
 
 // Output Login History
-if ( $ctracker_config->settings['login_history'] )
+$history_enabled = (int) $ctracker_config->settings['login_history'] === 1;
+list($history_minimum, $history_maximum) = $ctracker_config->setting_ranges()['login_history_count'];
+$history_limit = max($history_minimum, min($history_maximum, (int) $ctracker_config->settings['login_history_count']));
+if ($history_enabled)
 {
-	$sql = 'SELECT * FROM ' . CTRACKER_LOGINHISTORY . ' WHERE ct_user_id=' . $userdata['user_id'] . ' ORDER BY ct_login_time DESC, ct_login_id DESC';
+	$sql = 'SELECT ct_login_time, ct_login_ip FROM ' . CTRACKER_LOGINHISTORY . ' WHERE ct_user_id=' . (int) $userdata['user_id']
+		. ' ORDER BY ct_login_time DESC, ct_login_id DESC LIMIT ' . $history_limit;
 		
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -66,17 +70,26 @@ if ( $ctracker_config->settings['login_history'] )
 	}
 
 	$count = 0;
-		
-	while ( $row = $db->sql_fetchrow($result) )
+	$template->assign_block_vars('login_columns', array());
+	try
 	{
-		$count++;
-	
-		$template->assign_block_vars('login_output', array(
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$count++;
+			$template->assign_block_vars('login_output', array(
 				'ROW_CLASS'		=> ($count % 2 == 0)? 'row1' : 'row2',
 				'VALUE_1'		=> $count,
 				'VALUE_2'		=> phpbb_profile_text(create_date($userdata['user_dateformat'], $row['ct_login_time'], $board_config['board_timezone'])),
-				'VALUE_3'		=> phpbb_profile_text($row['ct_login_ip']))
-		);
+				'VALUE_3'		=> phpbb_profile_text($row['ct_login_ip'])));
+		}
+	}
+	finally
+	{
+		$db->sql_freeresult($result);
+	}
+	if ($count === 0)
+	{
+		$template->assign_block_vars('login_empty', array('L_EMPTY' => $lang['ctracker_lhistory_empty']));
 	}
 }
 
@@ -108,7 +121,7 @@ if ( $ctracker_config->settings['login_ip_check'] == 1 )
 // Send some vars to the template
 $template->assign_vars(array(
 	'L_HEADER_TEXT'   => $lang['ctracker_lhistory_h'],
-	'L_DESCRIPTION'   => ($ctracker_config->settings['login_history'] == 1)? sprintf($lang['ctracker_lhistory_i'], $ctracker_config->settings['login_history_count']) : $lang['ctracker_lhistory_off'],
+	'L_DESCRIPTION'   => $history_enabled ? sprintf($lang['ctracker_lhistory_i'], $history_limit) : $lang['ctracker_lhistory_off'],
 	'L_TABLEHEAD_1'	  => $lang['ctracker_lhistory_h1'],
 	'L_TABLEHEAD_2'	  => $lang['ctracker_lhistory_h2'])
 );

@@ -4,6 +4,7 @@ $app = dirname(dirname(__DIR__)) . '/phpBB2/';
 require $app . 'includes/php_compat.php';
 require $app . 'includes/functions.php';
 require $app . 'ctracker/classes/class_user_actions.php';
+require_once $app . 'ctracker/classes/class_ct_database.php';
 date_default_timezone_set('UTC');
 $checks = 0;
 function uf_check($ok, $label) { if (!$ok) { throw new RuntimeException($label); } $GLOBALS['checks']++; }
@@ -17,12 +18,20 @@ class UserFormTemplate {
     function assign_block_vars($name, $values) { $this->blocks[$name][] = $values; }
 }
 class UserHistoryRows {
-    public $ips; private $position = 0;
-    function __construct($ips) { $this->ips = $ips; }
+    public $query = ''; public $closed = 0;
+    private $ips; private $position = 0; private $limit;
+    function __construct($ips) { $this->ips = $ips; $this->limit = count($ips); }
+    function sql_query($sql) {
+        uf_check(strpos($sql, ' WHERE ct_user_id=42 ORDER BY ct_login_time DESC, ct_login_id DESC') !== false, 'History remains scoped to the current user in stable newest-first order');
+        $this->query = $sql;
+        if (preg_match('/ LIMIT ([0-9]+)$/D', $sql, $match)) { $this->limit = min($this->limit, (int)$match[1]); }
+        return true;
+    }
     function sql_fetchrow($unused) {
-        if ($this->position >= count($this->ips)) { return false; }
+        if ($this->position >= $this->limit) { return false; }
         return array('ct_login_time' => 1700000000, 'ct_login_ip' => $this->ips[$this->position++]);
     }
+    function sql_freeresult($unused) { $this->closed++; }
 }
 $header = file_get_contents($app . 'includes/page_header.php');
 $ip_form = uf_fragment($header, "if ( \$ctracker_settings['login_ip_check'] == 1 &&", '/* CrackerTracker Global Message Function */');
@@ -64,17 +73,43 @@ foreach (array('english', 'german') as $locale) {
 uf_check(ctracker_user_notice_context('ipfeature', array('ct_last_ip'=>'ab', 'ct_last_used_ip'=>'c'), array())
     !== ctracker_user_notice_context('ipfeature', array('ct_last_ip'=>'a', 'ct_last_used_ip'=>'bc'), array()), 'Context framing is unambiguous');
 $source = file_get_contents($app . 'ct_login_history.php');
-$body = 'if (true) {' . uf_fragment($source, "\t\$count = 0;", '// Output settings for Login Checker');
+define('CTRACKER_LOGINHISTORY', 'fixture_ctracker_loginhistory');
+$body = uf_fragment($source, '// Output Login History', '// Output settings for Login Checker');
 $ips = array('192.0.2.1', '2001:db8::1', '::ffff:192.0.2.1', '<em data-fixture="history">text</em>', '&lt;em&gt;', "broken\xc3", null);
 $board_config = array('default_lang'=>'german', 'board_timezone'=>0);
+$ctracker_config = (new ReflectionClass('ct_database'))->newInstanceWithoutConstructor();
+$ctracker_config->settings = array('login_history'=>1, 'login_history_count'=>10);
 foreach (array('Y-m-d H:i', 'Y-m-d "<em>"') as $format) {
-    $userdata = array('user_dateformat'=>$format); $template = new UserFormTemplate(); $db = new UserHistoryRows($ips); $result = true;
+    $userdata = array('user_id'=>42, 'user_dateformat'=>$format); $template = new UserFormTemplate(); $db = new UserHistoryRows($ips);
     eval($body);
     foreach ($template->blocks['login_output'] as $i => $row) {
         uf_check($row['VALUE_3'] === htmlspecialchars((string)$ips[$i], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'Historical address text is escaped once, with invalid UTF8 replaced');
         uf_check($row['VALUE_2'] === htmlspecialchars(create_date($format, 1700000000, 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'Historical formatted date is text, including custom format markup');
     }
 }
+foreach (array('english', 'german') as $locale) {
+    require $app . 'language/lang_' . $locale . '/lang_cback_ctracker.php';
+    foreach (array(array(1, 2, $ips, 2), array(1, 500, array_fill(0, 65, '192.0.2.1'), 60),
+        array(1, 0, $ips, 1), array(1, 10, array(), 0), array(0, 10, $ips, 0)) as $case) {
+        list($enabled, $configured, $entries, $expected) = $case;
+        $ctracker_config->settings = array('login_history'=>$enabled, 'login_history_count'=>$configured);
+        $template = new UserFormTemplate(); $db = new UserHistoryRows($entries);
+        eval($body);
+        $rows = isset($template->blocks['login_output']) ? $template->blocks['login_output'] : array();
+        uf_check(count($rows) === $expected, 'History must reflect the current retention setting before the next sign-in');
+        uf_check($enabled ? (bool)$db->query && $db->closed === 1 && isset($template->blocks['login_columns'])
+            : $db->query === '' && $db->closed === 0 && $template->blocks === array(), 'Only enabled history opens its query and displays table headings');
+        if ($enabled && !$expected) {
+            uf_check($template->blocks['login_empty'][0]['L_EMPTY'] === $lang['ctracker_lhistory_empty'],
+                'An enabled history without events explains the empty list in the active language');
+        }
+    }
+}
+$history_tpl = file_get_contents($app . 'templates/fisubsilversh/ctracker/ctracker_login_history.tpl');
+uf_check(strpos(uf_fragment($history_tpl, '<!-- BEGIN login_columns -->', '<!-- END login_columns -->'), '{L_TABLEHEAD_1}') !== false,
+    'The real history template hides the column headings with the feature');
+uf_check(strpos(uf_fragment($history_tpl, '<!-- BEGIN login_empty -->', '<!-- END login_empty -->'), '{login_empty.L_EMPTY}') !== false,
+    'The real history template displays the localized empty state');
 $tpl = file_get_contents($app . 'templates/fisubsilversh/overall_header.tpl');
 uf_check(strpos($tpl, 'name="ct_context" value="{ctracker_message.switch_mark_action.S_MARK_CONTEXT}"') !== false, 'Real template submits notice context');
 uf_check(strpos($tpl, 'name="ct_token" value="{ctracker_message.switch_mark_action.S_MARK_TOKEN}"') !== false, 'Real template submits the context-bound token');
