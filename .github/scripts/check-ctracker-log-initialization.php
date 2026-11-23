@@ -43,8 +43,9 @@ try{
   cli_check(count($lines) === 2 && $manager->metadata_kind(explode('|||', $lines[0])) === 'rotated' &&
    strpos($lines[1], 'Synthetic next event') !== false, 'Automatic size-limit reset has its own marker: '.$id);
   $counted = in_array($id, array(2, 3, 5), true);
-  cli_check((int) file_get_contents($init_root.'ctracker/logfiles/'.$init_files[1]) === ($counted ? 8 : 7),
-   'Only counted log types transfer the deleted fixture entry');
+  cli_check($manager->check_log_size($id, true) === ($counted ? 2 : 1) &&
+   file_get_contents($init_root.'ctracker/logfiles/'.$init_files[1]) === '7',
+   'Only counted log types retain the previous event in their own marker');
   cli_check($manager->delete_logfile($id) &&
    $manager->metadata_kind(explode('|||', $manager->read_log_lines($id, 10)[0])) === 'cleared',
    'The explicit clear retains its existing marker');
@@ -59,8 +60,9 @@ try{
  $lines = $manager->read_log_lines(2, 10);
  cli_check(count($lines) === 2 && $manager->metadata_kind(explode('|||', $lines[0])) === 'rotated' &&
   strpos($lines[1], 'Synthetic next event') !== false &&
-  (int) file_get_contents($init_root.'ctracker/logfiles/'.$init_files[1]) === 107,
-  'The fixed-size log uses the automatic marker and transfers the same event count');
+  $manager->check_log_size(2, true) === 101 &&
+  file_get_contents($init_root.'ctracker/logfiles/'.$init_files[1]) === '7',
+  'The fixed-size log uses the automatic marker and keeps the previous event count in place');
  echo "CrackerTracker automatic rotation metadata: five real filesystem cases passed\n";
 }finally{
  restore_error_handler();foreach($init_files as$name){$path=$init_root.'ctracker/logfiles/'.$name;if(is_file($path)){unlink($path);}}

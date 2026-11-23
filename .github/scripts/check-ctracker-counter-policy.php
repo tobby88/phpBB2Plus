@@ -84,6 +84,32 @@ try {
     cp_check($before===10 && $manager->get_counter_value()===$before, 'Actual ACP clear-all preserves existing historical aggregate and current attack total'); $cases++;
     cp_admin('delete_all'); cp_check($manager->get_counter_value()===$before, 'Repeated clear-all is counter-idempotent'); $cases++;
 
+    foreach (array(2, 3, 5) as $id) {
+        cp_reset();
+        $manager = new log_manager();
+        $counter_path = $manager->create_ct_path(1);
+        $baseline = $counter_path . '.fixture-saved';
+        cp_check(rename($counter_path, $baseline), 'Preserve fixture counter while making its write target unavailable');
+        try {
+            cp_check(mkdir($counter_path, 0700), 'Make the legacy counter target unavailable');
+            $manager->write_general_logfile(1, $id);
+            $manager->write_general_logfile(1, $id);
+            $manager->write_general_logfile(1, $id);
+        } finally {
+            if (is_dir($counter_path)) { rmdir($counter_path); }
+            rename($baseline, $counter_path);
+        }
+        cp_check($manager->check_log_size($id)===1 && $manager->get_counter_value()===10,
+            'Rotation retains all counted events even when its separate legacy counter is unavailable');
+        cp_check(file_get_contents($counter_path)==='7', 'The historical baseline remains stored exactly once');
+        cp_admin('delete', $id);
+        cp_check($manager->check_log_size($id)===0 && $manager->get_counter_value()===10,
+            'A later manual reset retains the cumulative and current attack events');
+        cp_admin('delete', $id);
+        cp_check($manager->get_counter_value()===10, 'Repeated manual reset adds no archived events twice');
+        $cases++;
+    }
+
     foreach (array(2, 3, 4, 5) as $id) {
         foreach (array("\n", "\r\n", '') as $ending) {
             $entries = "0|||11|||First imported event|||referrer|||agent|||ip|||host\r\n" .

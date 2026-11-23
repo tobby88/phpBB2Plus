@@ -110,7 +110,7 @@ if ($manager->write_to_log(99, 'invalid') !== false)
 
 $manager->write_to_log(5, '0|||1|||first|||referrer|||agent|||ip|||host');
 $manager->write_to_log(5, '0|||2|||second|||referrer|||agent|||ip|||host');
-if (!$manager->delete_logfile(5) || $manager->last_deleted_entries !== 2 || $manager->check_log_size(5) !== 0)
+if (!$manager->delete_logfile(5) || $manager->check_log_size(5) !== 0 || $manager->check_log_size(5, true) !== 2)
 {
 	$errors[] = 'Log reset did not count and truncate entries under one lock.';
 }

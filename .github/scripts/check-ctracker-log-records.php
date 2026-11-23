@@ -32,7 +32,8 @@ function lr_test($bytes,$limit=10){
  file_put_contents($log_root.'logfile_spammer.txt',$bytes);$before=hash_file('sha256',$log_root.'logfile_spammer.txt');
  lr_check($manager->read_log_lines(5,$limit)===lr_expected($bytes,$limit),'Actual newest tail retains complete logical records, line endings and Unicode');
  $expected=max(0,count(lr_lines($bytes))-1);lr_check($manager->check_log_size(5)===$expected&&hash_file('sha256',$log_root.'logfile_spammer.txt')===$before,'Counting is read-only and excludes exactly one reserved header');
- lr_check($manager->delete_logfile(5)&&$manager->last_deleted_entries===$expected&&$manager->check_log_size(5)===0,'Reset transfers each logical event exactly once under its existing lock');
+ lr_check($manager->delete_logfile(5)&&$manager->last_deleted_entries===0&&$manager->check_log_size(5)===0&&
+  $manager->check_log_size(5,true)===$expected,'Reset retains each logical event exactly once under its existing lock');
 }
 $base=sys_get_temp_dir().'/codex_ct_records_'.bin2hex(phpbb_random_bytes(8));$created=false;$lr_checks=$lu_checks=$lu_cases=0;$manager=null;$header="1|||0|||null|||null|||null|||null|||null\n";
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});

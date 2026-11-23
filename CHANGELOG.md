@@ -1354,6 +1354,9 @@ changes consolidated after that baseline without implying active maintenance.
   creation or reset date visible after its header falls outside the event list.
 - Count the first event in imported logs without headers when displaying,
   rotating or clearing those logs.
+- Preserve the blocked-event total in each attack log's reset marker. An
+  automatic rotation or manual clear can carry its count forward even when
+  the historical shared counter cannot be written.
 - Mark automatic log resets at the entry limit separately from explicit
   clears and explain the reason in the admin panel in English and German.
 - Recognize the log writer's explicit creation and clearing markers with LF or

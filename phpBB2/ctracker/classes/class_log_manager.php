@@ -61,6 +61,7 @@ class log_manager
 	var $ct_remote_addr   = '';
 	var $ct_remote_host   = '';
 	var $ct_counter_value = 0;
+	// Older ACP code transfers this count if the log did not carry it forward.
 	var $last_deleted_entries = 0;
 
 
@@ -335,18 +336,29 @@ class log_manager
 			@fclose($logentry);
 			return $this->ct_file_error();
 		}
-		// Count while holding the same lock that protects truncation. Otherwise a
-		// concurrent security event could be deleted without being transferred to
-		// the persistent counter.
-		if (intval($file_id) !== 6)
+		try
 		{
-			$count = $this->count_event_records($logentry);
-			if ($count === false) { @flock($logentry, LOCK_UN); @fclose($logentry); return $this->ct_file_error(); }
-			$this->last_deleted_entries = $count;
+			$archived = 0;
+			if ((int) $file_id !== 6)
+			{
+				$count = $this->count_event_records($logentry, $metadata);
+				if ($count === false) { return $this->ct_file_error(); }
+				if ($this->is_counted_log($file_id))
+				{
+					$archived = $this->add_counts($this->archived_events($metadata), $count);
+				}
+				else
+				{
+					$this->last_deleted_entries = $count;
+				}
+			}
+			$success = $this->reset_locked_log($logentry, $file_id, $automatic ? 'rotated' : 'cleared', $archived);
 		}
-		$success = $this->reset_locked_log($logentry, $file_id, $automatic ? 'rotated' : 'cleared');
-		@flock($logentry, LOCK_UN);
-		@fclose($logentry);
+		finally
+		{
+			@flock($logentry, LOCK_UN);
+			@fclose($logentry);
+		}
 		if (!$success)
 		{
 			return $this->ct_file_error();
@@ -355,14 +367,35 @@ class log_manager
 		return true;
 	}
 
-	private function log_metadata($kind)
+	private function is_counted_log($file_id)
 	{
-		return '1|||' . time() . '|||null|||null|||null|||null|||null|||' . $kind . "\n";
+		return in_array((int) $file_id, array(2, 3, 5), true);
 	}
 
-	private function reset_locked_log($handle, $file_id, $kind)
+	private function archived_events($metadata)
 	{
-		$metadata = (int) $file_id === 6 ? '' : $this->log_metadata($kind);
+		if (!isset($metadata[8]) || !in_array($this->metadata_kind($metadata), array('cleared', 'rotated'), true))
+		{
+			return 0;
+		}
+		$value = rtrim($metadata[8], "\r\n");
+		return preg_match('/^[0-9]+$/D', $value) ? (int) $value : 0;
+	}
+
+	private function add_counts($first, $second)
+	{
+		return $first > PHP_INT_MAX - $second ? PHP_INT_MAX : $first + $second;
+	}
+
+	private function log_metadata($kind, $archived = 0)
+	{
+		return '1|||' . time() . '|||null|||null|||null|||null|||null|||' . $kind .
+			($archived > 0 ? '|||' . $archived : '') . "\n";
+	}
+
+	private function reset_locked_log($handle, $file_id, $kind, $archived)
+	{
+		$metadata = (int) $file_id === 6 ? '' : $this->log_metadata($kind, $archived);
 		return @rewind($handle) && @ftruncate($handle, 0) &&
 			@fwrite($handle, $metadata) === strlen($metadata) && @fflush($handle);
 	}
@@ -397,19 +430,22 @@ class log_manager
 			@fclose($logentry);
 			return $this->ct_file_error();
 		}
-		$rotated_entries = 0;
+		$rotated = false;
 		try
 		{
 			if ($limit !== null)
 			{
 				// Keep the size decision, reset and append within one lock.
-				$count = $this->count_log_records($logentry, (int) $file_id === 6);
+				$metadata = null;
+				$count = $this->count_log_records($logentry, (int) $file_id === 6, $metadata);
 				if ($count === false) { return $this->ct_file_error(); }
 				if ($count >= $limit)
 				{
-					if (!$this->reset_locked_log($logentry, $file_id, 'rotated')) { return $this->ct_file_error(); }
-					$this->last_deleted_entries = (int) $file_id === 6 ? 0 : $count;
-					$rotated_entries = $this->last_deleted_entries;
+					$counted = $this->is_counted_log($file_id);
+					$archived = $counted ? $this->add_counts($this->archived_events($metadata), $count) : 0;
+					if (!$this->reset_locked_log($logentry, $file_id, 'rotated', $archived)) { return $this->ct_file_error(); }
+					$this->last_deleted_entries = $counted || (int) $file_id === 6 ? 0 : $count;
+					$rotated = true;
 				}
 			}
 			$success = $this->append_locked_log($logentry, $file_id, $str_log . "\n");
@@ -420,12 +456,7 @@ class log_manager
 			@fclose($logentry);
 		}
 
-		// Only attack-class logs transfer removed records to the shared counter.
-		if ($rotated_entries > 0 && in_array((int) $file_id, array(2, 3, 5), true))
-		{
-			$this->increment_counter($rotated_entries);
-		}
-		if ($success || $rotated_entries > 0) { $this->invalidate_counter_cache(); }
+		if ($success || $rotated) { $this->invalidate_counter_cache(); }
 		if (!$success)
 		{
 			return $this->ct_file_error();
@@ -551,13 +582,15 @@ class log_manager
         return in_array($kind, array('created','cleared','rotated'), true) ? $kind : 'legacy';
     }
 
-    function check_log_size($file_id)
+	function check_log_size($file_id, $include_archived = false)
     {
         $path=$this->safe_log_path($file_id);if($path===false){return 0;}$handle=@fopen($path,'rb');if($handle===false){return 0;}
         try{
             if(!@flock($handle,LOCK_SH)){return 0;}
-            $count = $this->count_log_records($handle, intval($file_id) === 6);
-            return $count === false ? 0 : $count;
+            $metadata = null;
+            $count = $this->count_log_records($handle, intval($file_id) === 6, $metadata);
+            if ($count === false) { return 0; }
+            return $include_archived ? $this->add_counts($this->archived_events($metadata), $count) : $count;
         }finally{@flock($handle,LOCK_UN);@fclose($handle);}
     }
 
@@ -687,11 +720,8 @@ class log_manager
 
 	/**
 	 * This function creates a correct value for the counter
-	 * (Because of performance reasons we don't increment the counter each time
-	 * an attack occurs, we just write it into the logfile and increment the
-	 * counter value when we have to delete a full logfile. But when you want to
-	 * display the attack counter inside the footer we need to build our correct
-	 * counter value with this function)
+	 * Include the old shared counter and each attack log's archived and current
+	 * records. Each individual log is observed under its own shared lock.
 	 *
 	 * @return $this->ct_counter_value New counter Value
 	 */
@@ -717,16 +747,17 @@ class log_manager
 		$path                   = $this->safe_log_path(1);
 		if ($path !== false && ($counter_handle = @fopen($path, 'rb')) !== false)
 		{
-			$this->ct_counter_value = max(0, intval(@fgets($counter_handle, 64)));
+			if (@flock($counter_handle, LOCK_SH))
+			{
+				$this->ct_counter_value = max(0, intval(@fgets($counter_handle, 64)));
+				@flock($counter_handle, LOCK_UN);
+			}
 			@fclose($counter_handle);
 		}
 
-		// Current entries in the logfiles have to be added
-		for($i = 2; $i <= 5; $i++)
+		foreach (array(2, 3, 5) as $id)
 		{
-			// Ignore the wrong logins
-      if ($i == 4) continue;
-      $this->ct_counter_value += $this->check_log_size($i);
+			$this->ct_counter_value = $this->add_counts($this->ct_counter_value, $this->check_log_size($id, true));
 		}
 		if (function_exists('phpbb_data_cache_write'))
 		{
