@@ -95,6 +95,64 @@ function generate_user_info(&$row, $date_format, $group_mod, &$from, &$posts, &$
 	return;
 }
 
+function groupcp_roster_rows($db, $sql)
+{
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Error reading group membership', '', __LINE__, __FILE__, $sql);
+	}
+	$rows = $db->sql_fetchrowset($result);
+	$db->sql_freeresult($result);
+	return $rows;
+}
+
+function groupcp_roster($db, $group_id, $group_type, $moderator_id, $viewer, $start, $per_page)
+{
+	$group_id = (int) $group_id;
+	$moderator_id = (int) $moderator_id;
+	$viewer_id = !empty($viewer['session_logged_in']) ? (int) $viewer['user_id'] : 0;
+	$can_manage = $viewer_id > 0 && ($viewer_id === $moderator_id || (int) $viewer['user_level'] === ADMIN);
+	$per_page = (int) $per_page > 0 ? (int) $per_page : 15;
+	$status = null;
+	if ($viewer_id > 0)
+	{
+		// An approved membership takes precedence over a duplicate pending row.
+		$rows = groupcp_roster_rows($db, 'SELECT MIN(user_pending) AS pending FROM ' . USER_GROUP_TABLE
+			. " WHERE group_id = $group_id AND user_id = $viewer_id AND user_pending IN (0, 1)");
+		$status = $rows[0]['pending'] === null ? null : (int) $rows[0]['pending'];
+	}
+	$visible = $viewer_id > 0 && ((int) $group_type !== GROUP_HIDDEN || $status === 0 || $can_manage);
+	$roster = array('visible' => $visible, 'can_manage' => $can_manage, 'member' => $status === 0,
+		'pending_member' => $status === 1, 'members' => array(), 'requests' => array(),
+		'total' => 0, 'start' => 0, 'per_page' => $per_page, 'page' => 1, 'pages' => 1);
+	if (!$visible) { return $roster; }
+
+	$columns = 'u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_viewemail,
+		u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_fb,
+		u.user_ig, u.user_twr, u.user_tg, u.user_li, u.user_tt, u.user_dc';
+	$users = ' FROM ' . USERS_TABLE . " u WHERE u.user_id > 0 AND u.user_id <> $moderator_id";
+	$membership = 'SELECT 1 FROM ' . USER_GROUP_TABLE . " ug WHERE ug.group_id = $group_id AND ug.user_id = u.user_id";
+	$approved = "EXISTS ($membership AND ug.user_pending = 0)";
+	$order = ' ORDER BY u.username, u.user_id';
+	$counts = groupcp_roster_rows($db, 'SELECT COUNT(*) AS total' . $users . ' AND ' . $approved);
+	$roster['total'] = (int) $counts[0]['total'];
+	if ($roster['total'] > 0)
+	{
+		$roster['pages'] = (int) ceil($roster['total'] / $per_page);
+		$index = min($roster['pages'] - 1, (int) floor(max(0, (int) $start) / $per_page));
+		$roster['page'] = $index + 1;
+		$roster['start'] = $index * $per_page;
+		$roster['members'] = groupcp_roster_rows($db, 'SELECT ' . $columns . $users . ' AND ' . $approved
+			. $order . ' LIMIT ' . $roster['start'] . ', ' . $per_page);
+	}
+	if ($can_manage)
+	{
+		$roster['requests'] = groupcp_roster_rows($db, 'SELECT ' . $columns . $users
+			. " AND EXISTS ($membership AND ug.user_pending = 1) AND NOT " . $approved . $order);
+	}
+	return $roster;
+}
+
 function groupcp_require_post_session($sid, $userdata, $lang)
 {
 	$request_method = isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : '';
@@ -319,10 +377,12 @@ else if ( $group_id )
 		message_die(GENERAL_MESSAGE, $lang['Group_not_exist']); 
 	}
 
+	$db->sql_freeresult($result);
+
 	//
 	// Get moderator details for this group
 	//
-	$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_from, user_website, user_email, user_icq, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc
+	$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_from, user_website, user_email, user_fb, user_ig, user_twr, user_tg, user_li, user_tt, user_dc
 		FROM " . USERS_TABLE . " 
 		WHERE user_id = " . $group_info['group_moderator'];
 	if ( !($result = $db->sql_query($sql)) )
@@ -340,74 +400,16 @@ else if ( $group_id )
 		$group_moderator = array('user_id'=>0, 'username'=>$lang['Group_no_moderator'], 'user_absence'=>0);
 	}
 
-	//
-	// Get user information for this group
-	//
-	$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, ug.user_pending
-		FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug
-		WHERE ug.group_id = $group_id
-			AND u.user_id = ug.user_id
-			AND ug.user_pending = 0 
-			AND ug.user_id <> " . $group_moderator['user_id'] . " 
-		ORDER BY u.username"; 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Error getting user list for group', '', __LINE__, __FILE__, $sql);
-	}
-
-	$group_members = $db->sql_fetchrowset($result); 
-	$members_count = count($group_members);
-	$db->sql_freeresult($result);
-
-	$sql = "SELECT u.username, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc
-		FROM " . GROUPS_TABLE . " g, " . USER_GROUP_TABLE . " ug, " . USERS_TABLE . " u
-		WHERE ug.group_id = $group_id
-			AND g.group_id = ug.group_id
-			AND ug.user_pending = 1
-			AND u.user_id = ug.user_id
-		ORDER BY u.username"; 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Error getting user pending information', '', __LINE__, __FILE__, $sql);
-	}
-
-	$modgroup_pending_list = $db->sql_fetchrowset($result);
+	$roster = groupcp_roster($db, $group_id, $group_info['group_type'], $group_moderator['user_id'],
+		$userdata, $start, $board_config['topics_per_page']);
+	$is_moderator = $roster['can_manage'];
+	$is_group_member = $roster['member'];
+	$is_group_pending_member = $roster['pending_member'];
+	$modgroup_pending_list = $roster['requests'];
 	$modgroup_pending_count = count($modgroup_pending_list);
-	$db->sql_freeresult($result);
 
-	$is_group_member = 0;
-	if ( $members_count )
+	if ( $has_group_moderator && $userdata['user_id'] == $group_moderator['user_id'] )
 	{
-		for($i = 0; $i < $members_count; $i++)
-		{
-			if ( $group_members[$i]['user_id'] == $userdata['user_id'] && $userdata['session_logged_in'] )
-			{
-				$is_group_member = TRUE; 
-			}
-		}
-	}
-
-	$is_group_pending_member = 0;
-	if ( $modgroup_pending_count )
-	{
-		for($i = 0; $i < $modgroup_pending_count; $i++)
-		{
-			if ( $modgroup_pending_list[$i]['user_id'] == $userdata['user_id'] && $userdata['session_logged_in'] )
-			{
-				$is_group_pending_member = TRUE;
-			}
-		}
-	}
-
-	if ( $userdata['user_level'] == ADMIN )
-	{
-		$is_moderator = TRUE;
-	}
-
-	if ( $userdata['user_id'] == $group_info['group_moderator'] )
-	{
-		$is_moderator = TRUE;
-
 		$group_details =  $lang['Are_group_moderator'];
 
 		$s_hidden_fields = '<input type="hidden" name="' . POST_GROUPS_URL . '" value="' . $group_id . '" />';
@@ -574,80 +576,77 @@ else if ( $group_id )
 	//
 	// Dump out the remaining users
 	//
-	for($i = $start; $i < min($board_config['topics_per_page'] + $start, $members_count); $i++)
+	foreach ($roster['members'] as $i => $member)
 	{
-		$username = phpbb_stored_text($group_members[$i]['username']);
-		$user_id = $group_members[$i]['user_id'];
+		$username = phpbb_stored_text($member['username']);
+		$user_id = $member['user_id'];
 
-		generate_user_info($group_members[$i], $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
-		$social = phpbb_social_profile_links($group_members[$i]);
+		generate_user_info($member, $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
+		$social = phpbb_social_profile_links($member);
 
-		if ( $group_info['group_type'] != GROUP_HIDDEN || $is_group_member || $is_moderator )
+		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
+		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
+		if ( $member['user_absence'] == TRUE )
 		{
-			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-			if ( $group_members[$i]['user_absence'] == TRUE )
-			{
-				$absence_mode = create_absence_mode($group_members[$i]['user_absence_mode'], $pm_img, $pm, $email_img, $email, $username);
-			}
-			$template->assign_block_vars('member_row', array(
-				'ROW_COLOR' => '#' . $row_color,
-				'ROW_CLASS' => $row_class,
-				'USERNAME' => $username,
-				'FROM' => $from,
-				'JOINED' => $joined,
-				'POSTS' => $posts,
-				'USER_ID' => $user_id, 
-				'AVATAR_IMG' => $poster_avatar,
-				'PROFILE_IMG' => $profile_img, 
-				'PROFILE' => $profile, 
-				'SEARCH_IMG' => $search_img,
-				'SEARCH' => $search,
-				'PM_IMG' => $pm_img,
-				'PM' => $pm,
-				'EMAIL_IMG' => $email_img,
-				'EMAIL' => $email,
-				'WWW_IMG' => $www_img,
-				'WWW' => $www,
-				'ICQ_STATUS_IMG' => $icq_status_img,
-				'ICQ_IMG' => $icq_img, 
-				'ICQ' => $icq, 
-				'AIM_IMG' => $aim_img,
-				'AIM' => $aim,
-				'MSN_IMG' => $msn_img,
-				'MSN' => $msn,
-				'YIM_IMG' => $yim_img,
-				'YIM' => $yim,
-				'FB_IMG' => $social['FB_IMG'],
-				'FB' => $social['FB'],
-				'IG_IMG' => $social['IG_IMG'],
-				'IG' => $social['IG'],
-				'PT_IMG' => $social['PT_IMG'],
-				'PT' => $social['PT'],
-				'TWR_IMG' => $social['TWR_IMG'],
-				'TWR' => $social['TWR'],
-				'SKP_IMG' => $social['SKP_IMG'],
-				'SKP' => $social['SKP'],
-				'TG_IMG' => $social['TG_IMG'],
-				'TG' => $social['TG'],
-				'LI_IMG' => $social['LI_IMG'],
-				'LI' => $social['LI'],
-				'TT_IMG' => $social['TT_IMG'],
-				'TT' => $social['TT'],
-				'DC_IMG' => $social['DC_IMG'],
-				'DC' => $social['DC'],
-				
-				'U_VIEWPROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id"))
-			);
+			$absence_mode = create_absence_mode($member['user_absence_mode'], $pm_img, $pm, $email_img, $email, $username);
+		}
+		$template->assign_block_vars('member_row', array(
+			'ROW_COLOR' => '#' . $row_color,
+			'ROW_CLASS' => $row_class,
+			'USERNAME' => $username,
+			'FROM' => $from,
+			'JOINED' => $joined,
+			'POSTS' => $posts,
+			'USER_ID' => $user_id,
+			'AVATAR_IMG' => $poster_avatar,
+			'PROFILE_IMG' => $profile_img,
+			'PROFILE' => $profile,
+			'SEARCH_IMG' => $search_img,
+			'SEARCH' => $search,
+			'PM_IMG' => $pm_img,
+			'PM' => $pm,
+			'EMAIL_IMG' => $email_img,
+			'EMAIL' => $email,
+			'WWW_IMG' => $www_img,
+			'WWW' => $www,
+			'ICQ_STATUS_IMG' => $icq_status_img,
+			'ICQ_IMG' => $icq_img,
+			'ICQ' => $icq,
+			'AIM_IMG' => $aim_img,
+			'AIM' => $aim,
+			'MSN_IMG' => $msn_img,
+			'MSN' => $msn,
+			'YIM_IMG' => $yim_img,
+			'YIM' => $yim,
+			'FB_IMG' => $social['FB_IMG'],
+			'FB' => $social['FB'],
+			'IG_IMG' => $social['IG_IMG'],
+			'IG' => $social['IG'],
+			'PT_IMG' => $social['PT_IMG'],
+			'PT' => $social['PT'],
+			'TWR_IMG' => $social['TWR_IMG'],
+			'TWR' => $social['TWR'],
+			'SKP_IMG' => $social['SKP_IMG'],
+			'SKP' => $social['SKP'],
+			'TG_IMG' => $social['TG_IMG'],
+			'TG' => $social['TG'],
+			'LI_IMG' => $social['LI_IMG'],
+			'LI' => $social['LI'],
+			'TT_IMG' => $social['TT_IMG'],
+			'TT' => $social['TT'],
+			'DC_IMG' => $social['DC_IMG'],
+			'DC' => $social['DC'],
 
-			if ( $is_moderator )
-			{
-				$template->assign_block_vars('member_row.switch_mod_option', array());
-			}
+			'U_VIEWPROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id"))
+		);
+
+		if ( $is_moderator )
+		{
+			$template->assign_block_vars('member_row.switch_mod_option', array());
 		}
 	}
 
-	if ( !$members_count )
+	if ( $roster['visible'] && !$roster['total'] )
 	{
 		//
 		// No group members
@@ -658,19 +657,18 @@ else if ( $group_id )
 		);
 	}
 
-	$current_page = ( !$members_count ) ? 1 : ceil( $members_count / $board_config['topics_per_page'] );
-
-	$template->assign_vars(array(
-		'PAGINATION' => generate_pagination("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id", $members_count, $board_config['topics_per_page'], $start),
-		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), $current_page ), 
-
-		'L_GOTO_PAGE' => $lang['Goto_page'])
-	);
-
-	if ( $group_info['group_type'] == GROUP_HIDDEN && !$is_group_member && !$is_moderator )
+	if ($roster['visible'])
+	{
+		$template->assign_vars(array(
+			'PAGINATION' => generate_pagination("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id", $roster['total'], $roster['per_page'], $roster['start']),
+			'PAGE_NUMBER' => sprintf($lang['Page_of'], $roster['page'], $roster['pages']),
+			'L_GOTO_PAGE' => $lang['Goto_page'])
+		);
+	}
+	else
 	{
 		//
-		// No group members
+		// Membership is visible to the group's members and moderators.
 		//
 		$template->assign_block_vars('switch_hidden_group', array());
 		$template->assign_vars(array(
@@ -691,7 +689,7 @@ else if ( $group_id )
 		{
 			for($i = 0; $i < $modgroup_pending_count; $i++)
 			{
-			$username = phpbb_stored_text($modgroup_pending_list[$i]['username']);
+				$username = phpbb_stored_text($modgroup_pending_list[$i]['username']);
 				$user_id = $modgroup_pending_list[$i]['user_id'];
 
 				generate_user_info($modgroup_pending_list[$i], $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);

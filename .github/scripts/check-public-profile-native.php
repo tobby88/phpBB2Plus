@@ -174,6 +174,8 @@ for($fail=1;$fail<=$writes;$fail++){pp_reset($scenario);$before=pp_snap();$pp_fa
  }}
  require_once __DIR__.'/memberlist-native-cases.php';
  pp_memberlist_cases($peer);
+ require __DIR__.'/group-roster-native-cases.php';
+ pp_group_roster_cases($peer);
  echo 'Native public profile: '.$cases." failure/authority/transaction cases passed.\n";
 } finally {
  if($public_avatar_scope){$public_avatar_scope->release();}$pp_hook=$pp_after=null;$pp_main->sql_close();$peer->sql_close();ats_check($control->sql_query('DROP DATABASE '.$fixture),'Remove owned profile schema');$control->sql_close();

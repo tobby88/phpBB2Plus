@@ -5,6 +5,8 @@ foreach(array('ANONYMOUS'=>-1,'POST_USERS_URL'=>'u') as $k=>$v){if(!defined($k))
 $controller=file_get_contents($forum_root.'groupcp.php');$functions=file_get_contents($forum_root.'includes/functions.php');
 foreach(array('phpbb_profile_text','phpbb_stored_text','phpbb_profile_http_url','phpbb_profile_details_visible','phpbb_profile_email_uri','phpbb_social_profile_links','create_absence_mode','allow_send_to_absent') as $fn){if(!function_exists($fn)){eval(group_test_function($functions,$fn));}}
 eval(group_test_function($controller,'generate_user_info'));
+eval(group_test_function($controller,'groupcp_roster_rows'));
+eval(group_test_function($controller,'groupcp_roster'));
 function create_date($format,$time,$zone){return 'fixture-date';}
 require $forum_root.'includes/template.php';
 class GroupDisplayDatabase extends GroupControllerReadDatabase
@@ -14,7 +16,7 @@ class GroupDisplayDatabase extends GroupControllerReadDatabase
 // Execute the actual moderator lookup, missing-row handling, member-list SQL,
 // template assignments and shipped Extreme Styles template, without common.php.
 $read_start=strpos($controller,'$sql = "SELECT username, user_absence');
-$read_end=strpos($controller,'$sql = "SELECT u.username, u.user_id',$read_start);
+$read_end=strpos($controller,'if ( $has_group_moderator &&',$read_start);
 $render_start=strpos($controller,'$username = phpbb_stored_text($group_moderator');
 $render_end=strpos($controller,"\n\t//\n\t// Dump out the remaining users",$render_start);
 mutation_check($read_start!==false&&$read_end>$read_start&&$render_start!==false&&$render_end>$render_start,'Exact controller display branches');
@@ -35,8 +37,8 @@ try{
   preg_match('/SELECT (.*?)\s+FROM/s',$read,$m);foreach(explode(',',$m[1]) as $name){$name=trim($name);if(!isset($existing[$name])){$p->exec('ALTER TABLE fixture_users ADD '.$name." TEXT DEFAULT ''");}}
   $p->exec("UPDATE fixture_users SET username='".str_replace("'","''",$payload)."',user_email='' WHERE user_id=8");
   if($case==='absent'){$p->exec('UPDATE fixture_users SET user_absence=1,user_absence_mode=1 WHERE user_id=8');}
-  $db=new GroupDisplayDatabase();eval($read);
-  mutation_check(count($group_members)===($case==='missing'?2:1),'Actual member query remains valid and never excludes arbitrary member');
+  $start=0;$board_config['topics_per_page']=10;$db=new GroupDisplayDatabase();eval($read);
+  mutation_check(count($roster['members'])===($case==='missing'?2:1),'Actual member query remains valid and never excludes arbitrary member');
   $template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];$template->load_config($forum_root.'templates/fisubsilversh',false);
   $s_hidden_fields='';$is_moderator=false;$group_details='details';$select_sort_mode=$select_sort_order='';eval($render);
   $template->set_filenames(array('group'=>'groupcp_info_body.tpl'));ob_start();$template->pparse('group');$html=ob_get_clean();
