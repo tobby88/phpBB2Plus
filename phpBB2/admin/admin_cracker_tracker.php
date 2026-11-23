@@ -32,7 +32,7 @@ define('CTRACKER_ACP', true);
  *  9:	acp_module_settings.php	 <br>
  * 10:	acp_module_systemrestore.php	<br>
  * 11:  acp_module_footer.php <br>
- * 99: acp_module_logmanager.php (including Download of Debug Log) <br>
+ * 99: Debug log download, handled before rendering the admin page. <br>
  */
 
 
@@ -109,8 +109,7 @@ switch ( $module_number )
 	case 5:		include($phpbb_root_path . 'ctracker/admin/acp_module_ipblocker.' . $phpEx);
 				break;
 			
-	case 6:
-	case 99:	include($phpbb_root_path . 'ctracker/admin/acp_module_logmanager.' . $phpEx);
+	case 6:		include($phpbb_root_path . 'ctracker/admin/acp_module_logmanager.' . $phpEx);
 				break;
 			
 	case 7:		include($phpbb_root_path . 'ctracker/admin/acp_module_maintenance.' . $phpEx);
