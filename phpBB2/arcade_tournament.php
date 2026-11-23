@@ -129,6 +129,34 @@ function arcade_tournament_join_status($tour, $member, $players)
   return (int) $players >= (int) $tour['tour_max_players'] ? 'arcade_tournament_full' : null;
 }
 
+function arcade_tournament_games($db, $tour_id)
+{
+  global $lang;
+  $sql = 'SELECT g.game_id, g.game_name, g.game_path, g.game_desc, g.game_avail, g.game_control,
+      g.win_width, g.win_height, g.image_path, td.top_score, td.top_player, u.username AS top_username
+    FROM ' . iNA_TOUR_DATA . ' AS td
+    INNER JOIN ' . iNA_GAMES . ' AS g ON g.game_id = (
+      SELECT MIN(candidate.game_id) FROM ' . iNA_GAMES . ' AS candidate
+      WHERE candidate.game_name = td.game_name
+    )
+    LEFT JOIN ' . USERS_TABLE . ' AS u ON u.user_id = td.top_player
+    WHERE td.tour_id = ' . (int) $tour_id . '
+    ORDER BY td.game_name';
+  $result = $db->sql_query($sql);
+  if (!$result)
+  {
+    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+  }
+  try
+  {
+    return $db->sql_fetchrowset($result);
+  }
+  finally
+  {
+    $db->sql_freeresult($result);
+  }
+}
+
 function arcade_tournament_overview($db, $user_id)
 {
   global $lang;
@@ -398,14 +426,7 @@ else if ($mode == 'tour')
 //
 //  Get Tournament Games
 //
-	$sql = "SELECT * FROM " . iNA_TOUR_DATA . "
-    WHERE tour_id = " . $tour_id;
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-	}
-	$tour_games = $db->sql_fetchrowset($result);
-	$db->sql_freeresult($result);
+	$tour_games = arcade_tournament_games($db, $tour_id);
 	$total_games = count($tour_games);
 //
 //  Get Tournament Players
@@ -423,9 +444,11 @@ else if ($mode == 'tour')
 	$total_players = count($tour_players);
 
   $template->assign_block_vars('player_head', array());
+  $player_names = array();
 
   for($i = 0; $i < $total_players; $i++)
   {
+    $player_names[(int) $tour_players[$i]['user_id']] = $tour_players[$i]['username'];
     $temp_gamedata = arcade_tournament_player_games($tour_players[$i]['gamedata']);
 //
 //  Get Game Info for This user.
@@ -457,11 +480,7 @@ else if ($mode == 'tour')
       $played_count = isset($temp_gamedata[$count]['played']) ? (int) $temp_gamedata[$count]['played'] : 0;
       $played_score = isset($temp_gamedata[$count]['score']) ? (int) $temp_gamedata[$count]['score'] : 0;
       $played_games_list .= htmlspecialchars($played_name, ENT_QUOTES, 'UTF-8') . '(P:<b>' . $played_count . '</b>:S:<b>' . $played_score . '</b>)';
-      if (!isset($games_played_list[$played_name]))
-      {
-        $games_played_list[$played_name] = '';
-      }
-      $games_played_list[$played_name] .= (int) $tour_players[$i]['user_id'] . '|';
+      $games_played_list[$played_name][] = (int) $tour_players[$i]['user_id'];
     }
     $played_games_list .= '</i>]';
 
@@ -482,24 +501,24 @@ else if ($mode == 'tour')
 
   for($i = 0; $i < $total_games; $i++)
   {
+    $game_info = $tour_games[$i];
     $played = 0;
     $played_text = $lang['has'];
 //
 //  Build a list of those that have played this game
 //
-    $tour_game_name = (string) $tour_games[$i]['game_name'];
-    $temp_games_players = explode('|', isset($games_played_list[$tour_game_name]) ? $games_played_list[$tour_game_name] : '');
-    $played_players = (count($temp_games_players) > 1) ? '' : $lang['No-One'];
+    $tour_game_name = (string) $game_info['game_name'];
+    $game_players = isset($games_played_list[$tour_game_name]) ? $games_played_list[$tour_game_name] : array();
+    $played_players = $game_players ? '' : $lang['No-One'];
 
-    for($count = 0; $count < (count($temp_games_players)-1); $count++)
+    foreach($game_players as $count => $player_id)
     {
       if($count > 0)
       {
         $played_players .= ', ';
         $played_text = $lang['have'];
       }
-      $player_id = (int) $temp_games_players[$count];
-      $played_players .= arcade_tournament_player_html($player_id, $arcade->get_username($player_id));
+      $played_players .= arcade_tournament_player_html($player_id, $player_names[$player_id]);
     }
 //
 //  Check to see what THIS user has played
@@ -511,46 +530,7 @@ else if ($mode == 'tour')
         $played = isset($GameData[$count]['played']) ? (int) $GameData[$count]['played'] : 0;
       }
     }
-//
-//  Get the Game Info
-//  
-    $sql = "SELECT * FROM " . iNA_GAMES . "
-      WHERE game_name = '" . $db->sql_escape($tour_game_name) . "'";
-		if( !$result = $db->sql_query($sql) )
- 		{
- 			message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
- 		}
-		$game_info = $db->sql_fetchrow($result);
-		if (!$game_info)
-		{
-			continue;
-		}
- 		$game_id = $game_info['game_id'];
-
-  	$image_path = $game_info['image_path'];
-		if ( $image_path == "" )
-		{
-			if( @file_exists("./". $game_info['game_path'] . $game_info['game_name'] .".gif") )
-			{
-				$image_path = './' . $game_info['game_path'] . $game_info['game_name'] . '.gif';
-			}
-			else
-			{
-				$image_path = $arcade->arcade_config['games_default_img'];
-			}
-		}
-		else if ( strlen( $image_path ) < 5 )
-		{
-			$image_path = './' . $game_info['game_path'] . $game_info['game_name'] . $game_info['image_path'];
-			if( @file_exists($image_path) )
-			{
-  			$image_path = './' . $game_info['game_path'] . $game_info['game_name'] . $game_info['image_path'];
-			}
-			else
-			{
-				$image_path = $arcade->arcade_config['games_default_img'];
-			}
-		}
+    $image_path = ina_find_image($game_info['game_path'], $tour_game_name, $game_info['image_path'], $phpbb_root_path);
     if($game_info['game_control'] == 1)
     {
       $game_control = '&nbsp;<img src="images/mouse.gif" alt="'. $lang['arcade_mouse'] .'">&nbsp;';
@@ -567,7 +547,8 @@ else if ($mode == 'tour')
     {
       $game_control = '';
     }
-    if($in_tour == true && (((int) $tour['tour_player_turns']-$played) > 0) && (int) $tour['tour_active'] === 2)
+    if($in_tour && (int) $game_info['game_avail'] === 1
+      && (int) $tour['tour_player_turns'] > $played && (int) $tour['tour_active'] === 2)
     { 
 		  $tour_token = arcade_public_tournament_game_token($tour_id, $game_info['game_id'], $userdata['session_id']);
 		  $game_url = append_sid($filename . '?mode=game&amp;id=' . (int) $tour_id . '&amp;game_id=' . (int) $game_info['game_id'] . '&amp;tour_token=' . rawurlencode($tour_token));
@@ -580,28 +561,17 @@ else if ($mode == 'tour')
 
     $highest_scorer = $lang['No-One'];
 
-    $sql = "SELECT top_score, top_player FROM " . iNA_TOUR_DATA . "
-      WHERE top_score IS NOT NULL
-        AND tour_id = $tour_id 
-        AND game_name = '" . $db->sql_escape($game_info['game_name']) . "'";
-   	if( !$result = $db->sql_query($sql) )
-   	{
-   		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-   	}
-    $row_count = $db->sql_numrows($result);
-    if($row_count > 0)
+    if($game_info['top_score'] !== null)
     {
-   	  $tour_data = $db->sql_fetchrow($result);
-	  $top_player_id = (int) $tour_data['top_player'];
-	  $highest_scorer = arcade_tournament_player_html($top_player_id, $arcade->get_username($top_player_id));
-   	}
+      $highest_scorer = arcade_tournament_player_html($game_info['top_player'], $game_info['top_username']);
+    }
     
         
     $template->assign_block_vars('game', array(
         'ID' => (int) $game_info['game_id'],
         'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
         'DESC' => $game_link,
-        'IMAGE' => '<img src="'.htmlspecialchars($image_path, ENT_QUOTES, 'UTF-8').'" width="'.(int) $arcade->arcade_config['games_image_width'].'" height="'.(int) $arcade->arcade_config['games_image_height'].'" alt="" />',
+        'IMAGE' => $image_path ? '<img src="'.phpbb_profile_text($image_path).'" width="'.(int) $arcade->arcade_config['games_image_width'].'" height="'.(int) $arcade->arcade_config['games_image_height'].'" alt="" />' : '',
         'CONTROL' => $game_control,
         'INFO' => ($in_tour == true) ? sprintf($lang['tour_play_stats'], $tour['tour_player_turns']-$played, $highest_scorer, $played_players, $played_text) : sprintf($lang['tour_not_part'], $highest_scorer, $played_players)
       ));
@@ -639,6 +609,7 @@ else if ($mode == 'game')
  		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
  	}
 	$game_info = $db->sql_fetchrow($result);
+  $db->sql_freeresult($result);
   if (!$game_info)
   {
     message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);

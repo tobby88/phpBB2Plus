@@ -1399,6 +1399,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Base the Arcade tournament summary on recorded plays in existing tournaments.
   Honor hidden players, preserve historical play counts and retain sessions in
   tournament links.
+- Read tournament games, leaders and participants in batches. Keep results
+  visible for disabled games and only show their launch link while enabled.
+  Resolve tournament artwork through the same local lookup as the Arcade.
 
 ### Consistent Arcade parent counters on catalogue edits
 

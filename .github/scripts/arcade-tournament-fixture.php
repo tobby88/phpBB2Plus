@@ -4,6 +4,8 @@ as_function($as_app.'arcade_tournament.php','arcade_tournament_player_html');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_champions');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_champions_block');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_join_status');
+as_function($as_app.'arcade_tournament.php','arcade_tournament_games');
+as_function($as_app.'arcade_tournament.php','arcade_public_tournament_game_token');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_overview');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_detail_options');
 $at_source=file_get_contents($as_app.'arcade_tournament.php');$at_bindings=array();
@@ -21,14 +23,17 @@ class ArcadeTournamentChampionTemplate
  public $blocks=array();
  function assign_block_vars($name,$values)
  {
-  as_check(in_array($name,array('champions','tour','tournament_none','player_head','player','tournament_add','tournament_menu'),true),'Actual tournament view block');
+  as_check(in_array($name,array('champions','tour','tournament_none','player_head','player','tournament_add','tournament_menu','game_head','game'),true),'Actual tournament view block');
   $this->blocks[$name][]=$values;
   if($name==='champions'){$this->record=$values;}
  }
 }
 
 function at_render($id,$name){
- global $arcade,$at_bindings,$lang,$phpEx;$out=array();$winner_id=$player_id=$top_player_id=$id;$i=0;$tour_players=array(array('user_id'=>$id,'username'=>$name));
+ global $arcade,$at_bindings,$lang,$phpEx;$out=array();$winner_id=$player_id=$id;$i=0;
+ $tour_players=array(array('user_id'=>$id,'username'=>$name));
+ $player_names=array($id=>$name);
+ $game_info=array('top_player'=>$id,'top_username'=>$name);
  foreach($at_bindings as$binding){$message=$played_players=$highest_scorer='';if($binding[0]==='array'){$values=eval('return array('.$binding[1].');');$html=$values['NAME'];}else{eval($binding[1]);$html=${$binding[0]};}$out[$binding[0]]=$html;}
  $template = new ArcadeTournamentChampionTemplate();
  arcade_tournament_champions_block($template,array(array('champion'=>$id,'username'=>$name,'tour_name'=>'Fixture tour')),'');
