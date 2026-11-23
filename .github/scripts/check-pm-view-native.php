@@ -13,12 +13,15 @@ function pv_prepare($kind,$role=0,$locale='english'){
  $types=array('sentbox'=>PRIVMSGS_SENT_MAIL,'savebox-in'=>PRIVMSGS_SAVED_IN_MAIL,'savebox-out'=>PRIVMSGS_SAVED_OUT_MAIL);
  if(isset($types[$kind])){kp_sql('UPDATE fixture_privmsgs SET privmsgs_type='.$types[$kind].' WHERE privmsgs_id='.$pn_id);}
 }
-function pv_load($kind,$start=0,$days=0){
+function pv_load($kind,$start=0,$days=0,$submit_filter=false){
  global$db,$userdata,$board_config,$lang,$phpEx,$pn_id,$pv_code,$pv_folder,$pv_last_revision;
- $privmsg_id=$privmsgs_id=$pn_id;$user_id=3;$folder=$pv_folder;$submit_msgdays=$days!==0;$_POST=$days?array('msgdays'=>$days):array();$_GET=array();$pm_write_revision='previous-form-token';$privmsg=false;
- if($kind==='page'||$kind==='count'){
-  eval($pv_code['list-sql']);if($kind==='count'){eval($pv_code['count']);return array('total'=>(int)$pm_total,'all'=>(int)$pm_all_total);}
-  eval($pv_code['page']);return$pm_rows;
+ $privmsg_id=$privmsgs_id=$pn_id;$user_id=3;$folder=$pv_folder;$submit_msgdays=$submit_filter;
+ $_POST=$submit_filter?array('msgdays'=>$days):array();$_GET=$submit_filter?array():array('msgdays'=>$days);$pm_write_revision='previous-form-token';$privmsg=false;
+ if(in_array($kind,array('page','count','folder'),true)){
+  eval($pv_code['folder']);
+  if($kind==='count'){return array('total'=>$pm_page['total'],'all'=>$pm_page['occupied']);}
+  if($kind==='folder'){$pm_page['url']=$folder_url;return $pm_page;}
+  return $pm_page['rows'];
  }
  eval($pv_code[$kind]);$pv_last_revision=$pm_write_revision;
  if(in_array($kind,array('preview','recipient','flood'),true)){return$pm_rows?$pm_rows[0]:false;}
@@ -49,9 +52,7 @@ function pv_suite(){
  $pv_code['recipient']=pv_extract($source,'$sql = "SELECT username, user_absence',"\t\t\tif ( \$row =");
  $pv_code['flood']=pv_extract($source,'$sql = "SELECT MAX(privmsgs_date)',"\t\tif ( \$pm_rows )");
  $pv_code['edit-submit']=pv_extract($source,"\$sql = 'SELECT privmsgs_from_userid","\t\tunset(\$row);");
- $pv_code['list-sql']=pv_extract($source,'$sql_tot = "SELECT COUNT(privmsgs_id)',"//\n// Get messages");
- $pv_code['count']=pv_extract($source,'$pm_counts = phpbb_pm_display($sql_tot);',"//\n// Build select box");
- kp_check(preg_match('/^\$pm_rows = phpbb_pm_display\(\$sql, false, true\);$/m',$source,$m)===1,'Actual ordered mailbox controller call');$pv_code['page']=$m[0];
+ $pv_code['folder']=pv_extract($source,'$previous_days = array(', '$previous_days_text =');
  $kinds=$pv_mode==='body'?array('read','edit','quote','reply','preview','recipient','flood','edit-submit'):array('page','count');
  foreach(array('english','german')as$locale){foreach(array(0,2,1)as$role){foreach($kinds as$kind){
   pv_prepare($kind,$role,$locale);$before=kp_snapshot();$r=pv_result($kind);kp_check($r['ok']&&$r['value']!==false&&$pn_open===0,'Ordinary actual controller query: '.$kind.'/'.$role.'/'.$locale);
@@ -77,13 +78,40 @@ function pv_suite(){
   foreach(array('read','edit','quote','reply','preview','edit-submit')as$kind){foreach(array('foreign-parent','parent','pending','staging')as$change){pv_prepare($kind);pv_change($change);$before=kp_snapshot();$r=pv_result($kind);kp_check((!$r['ok']||$r['value']===false)&&kp_snapshot()===$before&&$pn_open===0,'Absent/foreign/partial/staging source is never displayed: '.$kind.'/'.$change);$cases++;}}
   foreach(array('edit','quote','reply')as$kind){foreach(array(PRIVMSGS_NEW_MAIL,PRIVMSGS_UNREAD_MAIL,PRIVMSGS_READ_MAIL,PRIVMSGS_SENT_MAIL,PRIVMSGS_SAVED_IN_MAIL,PRIVMSGS_SAVED_OUT_MAIL,6)as$type){pv_prepare($kind);kp_sql('UPDATE fixture_privmsgs SET privmsgs_type='.$type.' WHERE privmsgs_id='.$pn_id);$r=pv_result($kind);$allowed=in_array($type,$kind==='edit'?array(PRIVMSGS_NEW_MAIL,PRIVMSGS_UNREAD_MAIL):array(PRIVMSGS_NEW_MAIL,PRIVMSGS_UNREAD_MAIL,PRIVMSGS_READ_MAIL,PRIVMSGS_SAVED_IN_MAIL),true);kp_check(($r['ok']&&$r['value']!==false)===$allowed&&$pn_open===0,'Exact compose parent type: '.$kind.'/'.$type);$cases++;}}
  }else{
-  foreach(array('inbox','outbox','sentbox','savebox-in','savebox-out')as$folder){pv_prepare($folder);$before=kp_snapshot();$rows=pv_load('page');$count=pv_load('count');kp_check(count($rows)===1&&$rows[0]['privmsgs_id']===(string)$pn_id&&$count===array('total'=>1,'all'=>1)&&kp_snapshot()===$before&&$pn_open===0,'Count/page scope for every mailbox: '.$folder);$cases++;}
+  foreach(array('inbox','outbox','sentbox','savebox-in','savebox-out')as$folder){pv_prepare($folder);$before=kp_snapshot();$rows=pv_load('page');$count=pv_load('count');kp_check(count($rows)===1&&$rows[0]['privmsgs_id']===(string)$pn_id&&(int)$rows[0]['user_id']===($folder==='inbox'||$folder==='savebox-in'?4:3)&&$count===array('total'=>1,'all'=>1)&&kp_snapshot()===$before&&$pn_open===0,'Correct correspondent and count for every mailbox: '.$folder);$cases++;}
   foreach(array('foreign-parent','parent','pending','staging')as$change){pv_prepare('outbox');pv_change($change);$before=kp_snapshot();kp_check(pv_load('page')===array()&&pv_load('count')===array('total'=>0,'all'=>0)&&kp_snapshot()===$before&&$pn_open===0,'Valid empty mailbox is distinct from denied authority: '.$change);$cases++;}
-  pv_prepare('outbox');$seed=kp_rows('SELECT * FROM fixture_privmsgs WHERE privmsgs_id='.$pn_id)[0];unset($seed['privmsgs_id']);$seed['privmsgs_date']=time();$values=array();for($i=0;$i<7;$i++){$seed['privmsgs_write_token']=sprintf('%032x',$i+1);$seed['privmsgs_subject']='Tied Grüße 😀 '.$i;$fields=array();foreach($seed as$value){$fields[]=$value===null?'NULL':"'".$GLOBALS['peer']->sql_escape($value)."'";}$values[]='('.implode(',',$fields).')';}kp_sql('INSERT INTO fixture_privmsgs('.implode(',',array_keys($seed)).') VALUES'.implode(',',$values));kp_sql('UPDATE fixture_privmsgs SET privmsgs_date='.(time()-10*86400).' WHERE privmsgs_id='.$pn_id);$before=kp_snapshot();$seen=array();for($offset=0;$offset<8;$offset+=2){$rows=pv_load('page',$offset);foreach($rows as$row){$seen[]=(int)$row['privmsgs_id'];}}$expected=kp_rows('SELECT privmsgs_id FROM fixture_privmsgs ORDER BY privmsgs_date DESC,privmsgs_id DESC');$ids=array();foreach($expected as$row){$ids[]=(int)$row['privmsgs_id'];}kp_check($seen===$ids&&count(array_unique($seen))===8&&pv_load('page',100)===array()&&pv_load('count')===array('total'=>8,'all'=>8)&&pv_load('count',0,1)===array('total'=>7,'all'=>8)&&count(pv_load('page',0,1))===2&&kp_snapshot()===$before&&$pn_open===0,'Actual page ordering, limits, ties, empty offset and date-filter/all counts');$cases++;
+  pv_prepare('outbox');$seed=kp_rows('SELECT * FROM fixture_privmsgs WHERE privmsgs_id='.$pn_id)[0];unset($seed['privmsgs_id']);$seed['privmsgs_date']=time();$values=array();for($i=0;$i<7;$i++){$seed['privmsgs_write_token']=sprintf('%032x',$i+1);$seed['privmsgs_subject']='Tied Grüße 😀 '.$i;$fields=array();foreach($seed as$value){$fields[]=$value===null?'NULL':"'".$GLOBALS['peer']->sql_escape($value)."'";}$values[]='('.implode(',',$fields).')';}kp_sql('INSERT INTO fixture_privmsgs('.implode(',',array_keys($seed)).') VALUES'.implode(',',$values));kp_sql('UPDATE fixture_privmsgs SET privmsgs_date='.(time()-10*86400).' WHERE privmsgs_id='.$pn_id);
+  $before=kp_snapshot();
+  $expected=array_map('intval',array_column(kp_rows('SELECT privmsgs_id FROM fixture_privmsgs ORDER BY privmsgs_date DESC,privmsgs_id DESC'),'privmsgs_id'));
+  $seen=array();
+  for($offset=0;$offset<8;$offset+=2){foreach(pv_load('page',$offset)as$row){$seen[]=(int)$row['privmsgs_id'];}}
+  kp_check($seen===$expected&&count(array_unique($seen))===8,'Dated and tied messages occur on exactly one page');
+  $last=pv_load('folder',100);
+  kp_check($last['start']===6&&array_map('intval',array_column($last['rows'],'privmsgs_id'))===array_slice($expected,6),'A stale mailbox bookmark opens the real last page');
+  $page=pv_load('folder',2,1);
+  kp_check($page['url']==='privmsg.php?folder=outbox&amp;msgdays=1'&&$page['total']===7&&$page['occupied']===8&&$page['start']===2&&array_map('intval',array_column($page['rows'],'privmsgs_id'))===array_slice($expected,2,2),'Second page retains the GET date filter and counts all occupied slots separately');
+  kp_check(pv_load('folder',6,1,true)['start']===0&&pv_load('folder',6,0,true)['start']===0,'Submitting or clearing the period starts at the first page');
+  kp_check(pv_load('count',0,'unknown')===array('total'=>8,'all'=>8)&&kp_snapshot()===$before&&$pn_open===0,'An unknown period uses the unfiltered folder without writes');
+  $cases+=5;
+  pv_prepare('outbox');
+  $original_subject=kp_rows('SELECT privmsgs_subject FROM fixture_privmsgs WHERE privmsgs_id='.$pn_id)[0]['privmsgs_subject'];
+  $changed=false;
+  $kp_hook=function($event,$sql)use(&$changed,$pn_id){
+   if($event==='after'&&strpos($sql,'SELECT pm_viewer.user_id')===0){
+    $GLOBALS['kp_hook']=null;
+    kp_sql("UPDATE fixture_privmsgs SET privmsgs_subject='Revised between page queries' WHERE privmsgs_id=".$pn_id);
+    $changed=true;
+   }
+  };
+  try{$page=pv_load('folder');}finally{$kp_hook=null;}
+  $fresh=pv_load('folder');
+  kp_check($changed&&$page['total']===1&&$page['rows'][0]['privmsgs_subject']===$original_subject
+   &&$fresh['rows'][0]['privmsgs_subject']==='Revised between page queries'&&$pn_open===0,'Count and rows share a consistent read; reopening sees the committed edit');
+  $cases++;
   pv_prepare('outbox');$db->sql_query('START TRANSACTION');$q=$db->sql_query('SELECT * FROM fixture_privmsgs');$db->sql_freeresult($q);try{kp_sql('DELETE FROM fixture_privmsgs');kp_check(pv_load('page')===array()&&pv_load('count')===array('total'=>0,'all'=>0)&&$pn_open===0,'Completed deletion reflected despite caller RR');}finally{$db->sql_query('ROLLBACK');}$cases++;
  }
  foreach($kinds as$kind){foreach(array('alias','throw','busy','busy-autocommit')as$factory){pv_prepare($kind);$busy=in_array($factory,array('busy','busy-autocommit'),true);if($busy){$pd_busy=$db->sql_dedicated_connection();$pd_busy->sql_query($factory==='busy'?'START TRANSACTION':'SET autocommit=0');$pd_busy->sql_query("UPDATE fixture_users SET username='Pending view fixture' WHERE user_id=2");}$pd_factory=$factory;$before=kp_snapshot();try{$r=pv_result($kind);kp_check(!$r['ok']&&$r['error']===$GLOBALS['lang']['PM_cleanup_failed']&&kp_snapshot()===$before&&$db->db_connect_id,'Unsafe factory fails without data: '.$kind.'/'.$factory);if($busy){$q=$pd_busy->sql_query('SELECT username FROM fixture_users WHERE user_id=2');$row=$pd_busy->sql_fetchrow($q);$pd_busy->sql_freeresult($q);kp_check($row['username']==='Pending view fixture'&&kp_rows('SELECT username FROM fixture_users WHERE user_id=2')[0]['username']!=='Pending view fixture','Borrowed work remains private and open');}}finally{$pd_factory='normal';if($busy){$pd_busy->sql_query('ROLLBACK');$pd_busy->sql_close();}}kp_check($pn_open===0,'Release only owned connections');$cases++;}}
- foreach($kinds as$kind){foreach(array('SELECT @@SESSION.autocommit','SET TRANSACTION READ ONLY','SELECT pm_view.*')as$needle){foreach(array('before','after')as$phase){pv_prepare($kind);$before=kp_snapshot();$reached=false;$kp_hook=function($event,$sql)use($needle,$phase,&$reached){if($event===$phase&&strpos($sql,$needle)===0){$reached=true;return false;}};try{$r=pv_result($kind);kp_check($reached&&!$r['ok']&&$r['error']===$GLOBALS['lang']['PM_cleanup_failed']&&kp_snapshot()===$before&&$pn_open===0,'SQL failure sanitized, no persistent mutation: '.$kind.'/'.$needle.'/'.$phase);}finally{$kp_hook=null;}$faults++;}}}
+ foreach($kinds as$kind){foreach(array_merge(array('SELECT @@SESSION.autocommit','SET TRANSACTION READ ONLY'), $pv_mode==='mailbox' ? array('SET SESSION TRANSACTION ISOLATION','START TRANSACTION WITH CONSISTENT SNAPSHOT','SELECT pm_viewer.user_id','SELECT pm.privmsgs_type') : array('SELECT pm_view.*'))as$needle){foreach(array('before','after')as$phase){pv_prepare($kind);$before=kp_snapshot();$reached=false;$kp_hook=function($event,$sql)use($needle,$phase,&$reached){if($event===$phase&&strpos($sql,$needle)===0){$reached=true;return false;}};try{$r=pv_result($kind);kp_check($reached&&!$r['ok']&&$r['error']===$GLOBALS['lang']['PM_cleanup_failed']&&kp_snapshot()===$before&&$pn_open===0,'SQL failure sanitized, no persistent mutation: '.$kind.'/'.$needle.'/'.$phase);}finally{$kp_hook=null;}$faults++;}}}
  foreach($kinds as$kind){pv_prepare($kind);$before=kp_snapshot();$pd_root_queries=array();$pd_root_fault='SELECT ';try{$r=pv_result($kind);kp_check($r['ok']&&$pd_root_queries===array()&&kp_snapshot()===$before&&$pn_open===0,'Actual display never queries caller: '.$kind);}finally{$pd_root_fault='';}$cases++;}
  foreach(array('anonymous','actor-array','sid-empty','sid-array','sid-long')as$bad){pv_prepare('outbox');if($bad==='anonymous'){$userdata['session_logged_in']=false;}elseif($bad==='actor-array'){$userdata['user_id']=array(4);}elseif($bad==='sid-empty'){$userdata['session_id']='';}elseif($bad==='sid-array'){$userdata['session_id']=array('a');}else{$userdata['session_id']=str_repeat('a',33);}$pd_factory='throw';try{$denied=false;try{phpbb_pm_display_rows($db,'SELECT privmsgs_id FROM fixture_privmsgs',true);}catch(PhpbbAclException$error){$denied=$error->getMessage()===$GLOBALS['lang']['Not_Authorised'];}kp_check($denied&&$pn_open===0,'Malformed actor denied before factory');}finally{$pd_factory='normal';}$cases++;}
  echo 'Native PM views '.$pv_mode.': '.$cases.' cases, '.$faults." SQL faults PASS; actual controller queries, current session/account/parent, real edits, isolated callers, safe readers and EN/DE roles.\n";

@@ -1506,113 +1506,15 @@ $orig_word = array();
 $replacement_word = array();
 obtain_word_list($orig_word, $replacement_word);
 
-//
-// New message
-//
-$post_new_mesg_url = '<a href="' . append_sid("privmsg.$phpEx?mode=post") . '"><img src="' . $images['post_new'] . '" alt="' . $lang['Send_a_new_message'] . '" border="0" /></a>';
-
-//
-// General SQL to obtain messages
-//
-$sql_tot = "SELECT COUNT(privmsgs_id) AS total 
-	FROM " . PRIVMSGS_TABLE . " ";
-$sql = "SELECT pm.privmsgs_type, pm.privmsgs_id, pm.privmsgs_date, pm.privmsgs_subject, u.user_id, u.username 
-	FROM " . PRIVMSGS_TABLE . " pm, " . USERS_TABLE . " u ";
-switch( $folder )
-{
-	case 'inbox':
-		$sql_tot .= "WHERE privmsgs_to_userid = " . $userdata['user_id'] . "
-			AND ( privmsgs_type =  " . PRIVMSGS_NEW_MAIL . "
-				OR privmsgs_type = " . PRIVMSGS_READ_MAIL . " 
-				OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-
-		$sql .= "WHERE pm.privmsgs_to_userid = " . $userdata['user_id'] . "
-			AND u.user_id = pm.privmsgs_from_userid
-			AND ( pm.privmsgs_type =  " . PRIVMSGS_NEW_MAIL . "
-				OR pm.privmsgs_type = " . PRIVMSGS_READ_MAIL . " 
-				OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-		break;
-
-	case 'outbox':
-		$sql_tot .= "WHERE privmsgs_from_userid = " . $userdata['user_id'] . "
-			AND ( privmsgs_type =  " . PRIVMSGS_NEW_MAIL . "
-				OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-
-		$sql .= "WHERE pm.privmsgs_from_userid = " . $userdata['user_id'] . "
-			AND u.user_id = pm.privmsgs_to_userid
-			AND ( pm.privmsgs_type =  " . PRIVMSGS_NEW_MAIL . "
-				OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-		break;
-
-	case 'sentbox':
-		$sql_tot .= "WHERE privmsgs_from_userid = " . $userdata['user_id'] . "
-			AND privmsgs_type =  " . PRIVMSGS_SENT_MAIL;
-
-		$sql .= "WHERE pm.privmsgs_from_userid = " . $userdata['user_id'] . "
-			AND u.user_id = pm.privmsgs_to_userid
-			AND pm.privmsgs_type =  " . PRIVMSGS_SENT_MAIL;
-		break;
-
-	case 'savebox':
-		$sql_tot .= "WHERE ( ( privmsgs_to_userid = " . $userdata['user_id'] . " 
-				AND privmsgs_type = " . PRIVMSGS_SAVED_IN_MAIL . " )
-			OR ( privmsgs_from_userid = " . $userdata['user_id'] . " 
-				AND privmsgs_type = " . PRIVMSGS_SAVED_OUT_MAIL . ") )";
-
-		$sql .= "WHERE u.user_id = pm.privmsgs_from_userid 
-			AND ( ( pm.privmsgs_to_userid = " . $userdata['user_id'] . " 
-				AND pm.privmsgs_type = " . PRIVMSGS_SAVED_IN_MAIL . " ) 
-			OR ( pm.privmsgs_from_userid = " . $userdata['user_id'] . " 
-				AND pm.privmsgs_type = " . PRIVMSGS_SAVED_OUT_MAIL . " ) )";
-		break;
-
-	default:
-		message_die(GENERAL_MESSAGE, $lang['No_such_folder']);
-		break;
-}
-
-//
-// Show messages over previous x days/months
-//
-$sql_tot .= ' AND privmsgs_write_payload IS NULL';
-$sql .= ' AND pm.privmsgs_write_payload IS NULL';
-$post_msg_days = (isset($_POST['msgdays']) && is_scalar($_POST['msgdays'])) ? intval($_POST['msgdays']) : 0;
-$get_msg_days = (isset($_GET['msgdays']) && is_scalar($_GET['msgdays'])) ? intval($_GET['msgdays']) : 0;
-if ( $submit_msgdays && ( $post_msg_days || $get_msg_days ) )
-{
-	$msg_days = $post_msg_days ? $post_msg_days : $get_msg_days;
-	$min_msg_time = time() - ($msg_days * 86400);
-
-	$limit_msg_time_total = " AND privmsgs_date > $min_msg_time";
-	$limit_msg_time = " AND pm.privmsgs_date > $min_msg_time ";
-
-	if ( $post_msg_days )
-	{
-		$start = 0;
-	}
-}
-else
-{
-	$limit_msg_time = $limit_msg_time_total = '';
-	$msg_days = 0;
-}
-
-$sql .= $limit_msg_time . " ORDER BY pm.privmsgs_date DESC,pm.privmsgs_id DESC LIMIT $start, " . $board_config['topics_per_page'];
-$sql_all_tot = $sql_tot;
-$sql_tot .= $limit_msg_time_total;
-
-//
-// Get messages
-//
-$pm_counts = phpbb_pm_display($sql_tot);
-$pm_total = $pm_counts ? $pm_counts[0]['total'] : 0;
-$pm_counts = phpbb_pm_display($sql_all_tot);
-$pm_all_total = $pm_counts ? $pm_counts[0]['total'] : 0;
-
-//
-// Build select box
-//
 $previous_days = array(0, 1, 7, 14, 30, 90, 180, 364);
+$requested_days = $submit_msgdays ? phpbb_request_scalar($_POST, 'msgdays', '0') : phpbb_request_scalar($_GET, 'msgdays', '0');
+$msg_days = in_array((string)$requested_days, array_map('strval', $previous_days), true) ? (int)$requested_days : 0;
+if ($submit_msgdays) { $start = 0; }
+try { $pm_page = phpbb_pm_folder_page($db, $folder, $msg_days, $start, $board_config['topics_per_page']); }
+catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+$pm_total = $pm_page['total'];
+$start = $pm_page['start'];
+$folder_url = 'privmsg.' . $phpEx . '?folder=' . $folder . ($msg_days ? '&amp;msgdays=' . $msg_days : '');
 $previous_days_text = array($lang['All_Posts'], $lang['1_Day'], $lang['7_Days'], $lang['2_Weeks'], $lang['1_Month'], $lang['3_Months'], $lang['6_Months'], $lang['1_Year']);
 
 $select_msg_days = '';
@@ -1647,11 +1549,10 @@ $post_pm = '<a href="' . $post_pm . '">' . $lang['Post_new_pm'] . '</a>';
 //
 // Output data for inbox status
 //
-if ( $folder != 'outbox' )
+$l_box_size_status = '';
+if ($folder !== 'outbox' && (int)$board_config['max_' . $folder . '_privmsgs'] > 0)
 {
-	$inbox_limit_pct = ( $board_config['max_' . $folder . '_privmsgs'] > 0 ) ? round(( $pm_all_total / $board_config['max_' . $folder . '_privmsgs'] ) * 100) : 100;
-	$inbox_limit_img_length = ( $board_config['max_' . $folder . '_privmsgs'] > 0 ) ? round(( $pm_all_total / $board_config['max_' . $folder . '_privmsgs'] ) * $board_config['privmsg_graphic_length']) : $board_config['privmsg_graphic_length'];
-	$inbox_limit_remain = ( $board_config['max_' . $folder . '_privmsgs'] > 0 ) ? $board_config['max_' . $folder . '_privmsgs'] - $pm_all_total : 0;
+	$inbox_limit_pct = round(100 * $pm_page['occupied'] / (int)$board_config['max_' . $folder . '_privmsgs']);
 
 	$template->assign_block_vars('switch_box_size_notice', array());
 
@@ -1671,10 +1572,6 @@ if ( $folder != 'outbox' )
 			break;
 	}
 }
-else
-{
-	$inbox_limit_img_length = $inbox_limit_pct = $l_box_size_status = '';
-}
 //
 // Dump vars to template
 //
@@ -1692,9 +1589,6 @@ $template->assign_vars(array(
 	'POST_PM_IMG' => $post_pm_img, 
 	'POST_PM' => $post_pm, 
 
-	'INBOX_LIMIT_IMG_WIDTH' => $inbox_limit_img_length, 
-	'INBOX_LIMIT_PERCENT' => $inbox_limit_pct, 
-
 	'BOX_SIZE_STATUS' => $l_box_size_status, 
 
 	'L_INBOX' => $lang['Inbox'],
@@ -1706,17 +1600,16 @@ $template->assign_vars(array(
 	'L_SUBJECT' => $lang['Subject'],
 	'L_DATE' => $lang['Date'],
 	'L_DISPLAY_MESSAGES' => $lang['Display_messages'],
-	'L_FROM_OR_TO' => ( $folder == 'inbox' || $folder == 'savebox' ) ? $lang['From'] : $lang['To'], 
+	'L_FROM_OR_TO' => $folder === 'savebox' ? $lang['From'] . ' / ' . $lang['To'] : ($folder === 'inbox' ? $lang['From'] : $lang['To']),
 	'L_MARK_ALL' => $lang['Mark_all'], 
 	'L_UNMARK_ALL' => $lang['Unmark_all'], 
 	'L_DELETE_MARKED' => $lang['Delete_marked'], 
 	'L_DELETE_ALL' => $lang['Delete_all'], 
 	'L_SAVE_MARKED' => $lang['Save_marked'], 
 
-	'S_PRIVMSGS_ACTION' => append_sid("privmsg.$phpEx?folder=$folder"),
+	'S_PRIVMSGS_ACTION' => append_sid($folder_url),
 	'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />',
 	'PM_WRITE_RECOVERY' => phpbb_pm_pending_writes_html(),
-	'S_POST_NEW_MSG' => $post_new_mesg_url,
 	'S_SELECT_MSG_DAYS' => $select_msg_days,
 
 	'U_POST_NEW_TOPIC' => append_sid("privmsg.$phpEx?mode=post"))
@@ -1725,11 +1618,10 @@ $template->assign_vars(array(
 //
 // Okay, let's build the correct folder
 //
-$pm_rows = phpbb_pm_display($sql, false, true);
-if ( $row = ($pm_rows ? array_shift($pm_rows) : false) )
+if ($pm_page['rows'])
 {
 	$i = 0;
-	do
+	foreach ($pm_page['rows'] as $row)
 	{
 		$privmsg_id = $row['privmsgs_id'];
 
@@ -1738,17 +1630,19 @@ if ( $row = ($pm_rows ? array_shift($pm_rows) : false) )
 		$icon_flag = ( $flag == PRIVMSGS_NEW_MAIL || $flag == PRIVMSGS_UNREAD_MAIL ) ? $images['pm_unreadmsg'] : $images['pm_readmsg'];
 		$icon_flag_alt = ( $flag == PRIVMSGS_NEW_MAIL || $flag == PRIVMSGS_UNREAD_MAIL ) ? $lang['Unread_message'] : $lang['Read_message'];
 
-		$msg_userid = $row['user_id'];
-		$msg_username = $row['username'];
-
-		$u_from_user_profile = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$msg_userid");
-
+		$msg_userid = (int)$row['user_id'];
+		$correspondent = color_group_colorize_name($msg_userid, false, $row['username']);
+		if ($folder === 'savebox') {
+			$direction = $flag == PRIVMSGS_SAVED_IN_MAIL ? $lang['From'] : $lang['To'];
+			$correspondent = $direction . ' ' . $correspondent;
+		}
 		$msg_subject = $row['privmsgs_subject'];
 
 		if ( count($orig_word) )
 		{
 			$msg_subject = preg_replace($orig_word, $replacement_word, $msg_subject);
 		}
+		$msg_subject = phpbb_stored_text($msg_subject);
 		
 		$u_subject = append_sid("privmsg.$phpEx?folder=$folder&amp;mode=read&amp;" . POST_POST_URL . "=$privmsg_id");
 
@@ -1758,7 +1652,6 @@ if ( $row = ($pm_rows ? array_shift($pm_rows) : false) )
 		{
 			$msg_subject = '<b>' . $msg_subject . '</b>';
 			$msg_date = '<b>' . $msg_date . '</b>';
-			$msg_username = '<b>' . $msg_username . '</b>';
 		}
 
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
@@ -1768,7 +1661,7 @@ if ( $row = ($pm_rows ? array_shift($pm_rows) : false) )
 		$template->assign_block_vars('listrow', array(
 			'ROW_COLOR' => '#' . $row_color,
 			'ROW_CLASS' => $row_class,
-			'FROM' =>  color_group_colorize_name($msg_userid, true),
+			'FROM' => $correspondent,
 			'SUBJECT' => $msg_subject,
 			'DATE' => $msg_date,
 			'PRIVMSG_ATTACHMENTS_IMG' => privmsgs_attachment_image($privmsg_id),
@@ -1779,15 +1672,13 @@ if ( $row = ($pm_rows ? array_shift($pm_rows) : false) )
 
 			'S_MARK_ID' => $privmsg_id, 
 
-			'U_READ' => $u_subject,
-			'U_FROM_USER_PROFILE' => $u_from_user_profile)
+			'U_READ' => $u_subject)
 		);
 	}
-	while( $row = ($pm_rows ? array_shift($pm_rows) : false) );
 
 	$template->assign_vars(array(
-		'PAGINATION' => generate_pagination("privmsg.$phpEx?folder=$folder", $pm_total, $board_config['topics_per_page'], $start),
-		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $pm_total / $board_config['topics_per_page'] )), 
+		'PAGINATION' => generate_pagination($folder_url, $pm_total, $pm_page['size'], $start),
+		'PAGE_NUMBER' => sprintf($lang['Page_of'], floor($start / $pm_page['size']) + 1, ceil($pm_total / $pm_page['size'])),
 
 		'L_GOTO_PAGE' => $lang['Goto_page'])
 	);
@@ -1796,7 +1687,7 @@ if ( $row = ($pm_rows ? array_shift($pm_rows) : false) )
 else
 {
 	$template->assign_vars(array(
-		'L_NO_MESSAGES' => $lang['No_messages_folder'])
+		'L_NO_MESSAGES' => $msg_days && $pm_page['occupied'] ? $lang['PM_no_messages_period'] : $lang['No_messages_folder'])
 	);
 
 	$template->assign_block_vars("switch_no_messages", array() );

@@ -3,11 +3,12 @@ if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
 require_once dirname(__FILE__) . '/functions_connection_ownership.php';
 
-// A single autocommit SELECT gets a current authorization snapshot without
-// joining a caller transaction or holding the attachment writer's mutex.
+// A dedicated reader keeps the caller's transaction independent. Individual
+// reads use autocommit; folder counts and their rows share a read-only snapshot.
 class PhpbbPmAttachmentReader
 {
 	var $connection = null;
+	private $snapshot = false;
 	function __construct($database)
 	{
 		if (!is_object($database) || !method_exists($database, 'sql_dedicated_connection')) { phpbb_acl_error('PM_cleanup_failed'); }
@@ -52,10 +53,23 @@ class PhpbbPmAttachmentReader
 		try { return $this->connection->sql_fetchrowset($result); }
 		finally { $this->connection->sql_freeresult($result); }
 	}
+	function begin_snapshot()
+	{
+		if (!$this->connection || $this->snapshot ||
+			!$this->connection->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ') ||
+			!$this->connection->sql_query('START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY')) {
+			phpbb_acl_error('PM_cleanup_failed');
+		}
+		$this->snapshot = true;
+	}
 	function release()
 	{
 		$connection = $this->connection; $this->connection = null;
 		if ($connection !== null) {
+			if ($this->snapshot) {
+				$this->snapshot = false;
+				try { $connection->sql_query('ROLLBACK'); } catch (Exception $ignored) {} catch (Error $ignored) {}
+			}
 			try { $connection->sql_close(); } catch (Exception $ignored) {} catch (Error $ignored) {}
 		}
 	}

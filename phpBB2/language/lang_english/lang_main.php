@@ -544,6 +544,7 @@ $lang['Display_messages'] = 'Display messages from previous'; // Followed by num
 $lang['All_Messages'] = 'All Messages';
 
 $lang['No_messages_folder'] = 'You have no messages in this folder';
+$lang['PM_no_messages_period'] = 'There are no messages in this folder for the selected period.';
 
 $lang['PM_disabled'] = 'Private messaging has been disabled on this board.';
 $lang['Cannot_send_privmsg'] = 'Sorry, but the administrator has prevented you from sending private messages.';

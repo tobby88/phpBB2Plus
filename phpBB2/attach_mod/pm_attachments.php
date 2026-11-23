@@ -331,19 +331,17 @@ class attach_pm extends attach_parent
 		$this->get_quota_limits($userdata);
 
 		$pm_filesize_limit = (!$attach_config['pm_filesize_limit']) ? $attach_config['attachment_quota'] : $attach_config['pm_filesize_limit'];
+		if ($pm_filesize_limit <= 0) { return; }
 
 		$pm_filesize_total = get_total_attach_pm_filesize('to_user', (int) $userdata['user_id']);
 
-		$attach_limit_pct = ( $pm_filesize_limit > 0 ) ? round(( $pm_filesize_total / $pm_filesize_limit ) * 100) : 0;
-		$attach_limit_img_length = ( $pm_filesize_limit > 0 ) ? round(( $pm_filesize_total / $pm_filesize_limit ) * $board_config['privmsg_graphic_length']) : 0;
-		if ($attach_limit_pct > 100)
-		{
-			$attach_limit_img_length = $board_config['privmsg_graphic_length'];
-		}
-		$attach_limit_remain = ( $pm_filesize_limit > 0 ) ? $pm_filesize_limit - $pm_filesize_total : 100;
+		$usage = $pm_filesize_total / $pm_filesize_limit;
+		$attach_limit_pct = round($usage * 100);
+		$attach_limit_img_length = round(min(1, $usage) * $board_config['privmsg_graphic_length']);
 
 		$l_box_size_status = sprintf($lang['Attachbox_limit'], $attach_limit_pct);
 
+		$template->assign_block_vars('switch_pm_attachment_quota', array());
 		$template->assign_vars(array(
 			'ATTACHBOX_LIMIT_IMG_WIDTH'	=> $attach_limit_img_length, 
 			'ATTACHBOX_LIMIT_PERCENT'	=> $attach_limit_pct, 
@@ -360,7 +358,7 @@ class attach_pm extends attach_parent
 		global $attach_config, $template, $lang, $userdata, $_POST, $phpbb_root_path, $phpEx, $db;
 		global $confirm, $delete, $delete_all, $post_id, $privmsgs_id, $privmsg_id, $submit, $refresh, $mark_list, $folder;
 
-		if ($folder != 'outbox')
+		if ($mode === '' && $folder !== 'outbox')
 		{
 			$this->display_attach_box_limits();
 		}

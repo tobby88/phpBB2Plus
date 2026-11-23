@@ -1,20 +1,18 @@
 {PM_WRITE_RECOVERY}
-<script language="javascript" type="text/javascript">
-	//
-	// Should really check the browser to stop this whining ...
-	//
-	function select_switch(status)
+<script type="text/javascript">
+	function select_switch(checked)
 	{
-		for (i = 0; i < document.privmsg_list.length; i++)
+		var fields = document.forms.privmsg_list.elements;
+		for (var i = 0; i < fields.length; i++)
 		{
-			document.privmsg_list.elements[i].checked = status;
+			if (fields[i].type === 'checkbox' && fields[i].name === 'mark[]') { fields[i].checked = checked; }
 		}
 	}
 </script>
 <table cellspacing="2" cellpadding="2" border="0" align="center">
 <tr>
 <td align="right"> 
-	  <!-- BEGIN switch_box_size_notice -->
+	  <!-- BEGIN switch_pm_attachment_quota -->
 	  <table width="175" cellspacing="1" cellpadding="2" border="0" class="bodyline">
 		<tr> 
 		  <td colspan="3" width="175" class="row1" nowrap="nowrap"><span class="gensmall">{ATTACH_BOX_SIZE_STATUS}</span></td>
@@ -23,7 +21,7 @@
 		  <td colspan="3" width="175" class="row2">
 			<table cellspacing="0" cellpadding="1" border="0">
 			  <tr> 
-				<td bgcolor="{T_TD_COLOR2}"><img src="templates/fisubsilversh/images/spacer.gif" width="{ATTACHBOX_LIMIT_IMG_WIDTH}" height="8" alt="{ATTACH_LIMIT_PERCENT}" /></td>
+				<td bgcolor="{T_TD_COLOR2}"><img src="templates/fisubsilversh/images/spacer.gif" width="{ATTACHBOX_LIMIT_IMG_WIDTH}" height="8" alt="{ATTACHBOX_LIMIT_PERCENT}%" /></td>
 			  </tr>
 			</table>
 		  </td>
@@ -34,7 +32,7 @@
 		  <td width="33%" align="right" class="row1"><span class="gensmall">100%</span></td>
 		</tr>
 	  </table>
-	  <!-- END switch_box_size_notice -->
+	  <!-- END switch_pm_attachment_quota -->
 	</td>
 <td>{INBOX_IMG}</td>
 <td class="nav">{INBOX} &nbsp;</td>
@@ -70,10 +68,10 @@
 <tr>
 <td class="{listrow.ROW_CLASS}" align="center" height="30"><a href="{listrow.U_READ}"><img src="{listrow.PRIVMSG_FOLDER_IMG}" alt="{listrow.L_PRIVMSG_FOLDER_ALT}" title="{listrow.L_PRIVMSG_FOLDER_ALT}" /></a></td>
 <td width="100%" class="{listrow.ROW_CLASS}">{listrow.PRIVMSG_ATTACHMENTS_IMG}<a href="{listrow.U_READ}" class="topictitle">{listrow.SUBJECT}</a></td>
-<td align="center" class="{listrow.ROW_CLASS}">&nbsp;<a href="{listrow.U_FROM_USER_PROFILE}" class="genmed">{listrow.FROM}</a>&nbsp;</td>
+<td align="center" class="{listrow.ROW_CLASS}"><span class="genmed">{listrow.FROM}</span></td>
 <td nowrap="nowrap" width="15%" align="center" class="{listrow.ROW_CLASS}"><span class="gensmall">&nbsp;{listrow.DATE}&nbsp;</span></td>
 <td width="5%" align="center" class="{listrow.ROW_CLASS}">
-<input type="checkbox" name="mark[]2" value="{listrow.S_MARK_ID}" /></td>
+<input type="checkbox" name="mark[]" value="{listrow.S_MARK_ID}" /></td>
 </tr>
 <!-- END listrow -->
 <!-- BEGIN switch_no_messages -->

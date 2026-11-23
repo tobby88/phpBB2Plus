@@ -535,6 +535,7 @@ $lang['Display_messages'] = 'Nachrichten anzeigen der letzten'; // Followed by n
 $lang['All_Messages'] = 'Alle Nachrichten';
 
 $lang['No_messages_folder'] = 'Es sind keine weiteren Nachrichten in diesem Ordner.';
+$lang['PM_no_messages_period'] = 'In diesem Ordner gibt es keine Nachrichten für den gewählten Zeitraum.';
 
 $lang['PM_disabled'] = 'Private Nachrichten wurden in diesem Board deaktiviert.';
 $lang['Cannot_send_privmsg'] = 'Der Administrator hat private Nachrichten für dich gesperrt.';

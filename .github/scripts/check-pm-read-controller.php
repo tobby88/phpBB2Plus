@@ -196,3 +196,29 @@ finally
     if (isset($pm_repair_server) && $pm_repair_server->owner !== null) { $pm_repair_server->owner->sql_close(); }
     restore_error_handler();
 }
+
+$phpbb_root_path = $root;
+$phpEx = 'php';
+require_once $root . 'includes/template.php';
+$theme = array('template_name'=>'fisubsilversh');
+$board_config = array('default_lang'=>'english', 'xs_use_cache'=>0, 'xs_auto_compile'=>0, 'xs_auto_recompile'=>0);
+foreach (array(false, true) as $attachments) {
+    $template = (new ReflectionClass('Template'))->newInstanceWithoutConstructor();
+    $template->vars = &$template->_tpldata['.'][0];
+    $template->load_config($root . 'templates/fisubsilversh', false);
+    $template->set_filenames(array('body'=>'privmsgs_body.tpl'));
+    $template->assign_vars(array('BOX_SIZE_STATUS'=>'Mailbox 20%', 'ATTACH_BOX_SIZE_STATUS'=>'Attachment quota 45%',
+        'ATTACHBOX_LIMIT_IMG_WIDTH'=>90, 'ATTACHBOX_LIMIT_PERCENT'=>45));
+    $template->assign_block_vars('switch_box_size_notice', array());
+    if ($attachments) { $template->assign_block_vars('switch_pm_attachment_quota', array()); }
+    $template->assign_block_vars('listrow', array('S_MARK_ID'=>42, 'U_READ'=>'privmsg.php?p=42',
+        'FROM'=>'<a href="profile.php?u=7">Grüße &amp; mehr</a>', 'SUBJECT'=>'O&#039;Brien'));
+    ob_start();
+    try { $template->pparse('body'); $html = ob_get_contents(); } finally { ob_end_clean(); }
+    pm_repair_check(strpos($html, 'type="checkbox" name="mark[]" value="42"') !== false
+        && substr_count($html, '<a href="profile.php?u=7">Grüße &amp; mehr</a>') === 1
+        && strpos($html, 'O&#039;Brien') !== false, 'Actual folder form contains the marking field, subject and one correspondent link');
+    pm_repair_check(strpos($html, 'Mailbox 20%') !== false && (strpos($html, 'Attachment quota 45%') !== false) === $attachments
+        && (strpos($html, 'alt="45%"') !== false) === $attachments, 'The attachment quota and mailbox usage render independently');
+}
+echo "PM folder template and quotas passed.\n";

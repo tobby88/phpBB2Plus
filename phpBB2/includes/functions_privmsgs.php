@@ -140,24 +140,34 @@ function phpbb_pm_compose_attachment_source($database, $mode, $message_id)
 	finally { if ($reader !== null) { $reader->release(); } }
 }
 
-// Internal controller SELECTs retain their mailbox/parent scope. The account,
-// exact session and projected data are read in one fresh read-only statement.
-// A left-joined marker distinguishes an empty mailbox from revoked authority.
-function phpbb_pm_display_rows($database, $sql, $compose = false, $ordered_mailbox = false)
+function phpbb_pm_display_actor()
 {
 	global $userdata;
 	$actor = isset($userdata['user_id']) ? attach_delete_id_array(array($userdata['user_id'])) : false;
 	if (!$actor || empty($userdata['session_logged_in']) || !isset($userdata['session_id']) || !is_string($userdata['session_id'])
 		|| $userdata['session_id'] === '' || strlen($userdata['session_id']) > 32) { phpbb_acl_error('Not_Authorised'); }
+	return $actor[0];
+}
+
+function phpbb_pm_display_guard($connection, $actor, $compose = false)
+{
+	global $userdata;
+	return 'pm_viewer.user_id=' . $actor . ' AND pm_viewer.user_active<>0 AND pm_viewer.user_blocktime<' . time()
+		. ($compose ? ' AND pm_viewer.user_allow_pm<>0' : '')
+		. ' AND ' . phpbb_pm_current_session_guard($connection, $actor, $userdata['session_id']);
+}
+
+// A left-joined marker distinguishes an empty result from an invalid session.
+function phpbb_pm_display_rows($database, $sql, $compose = false, $ordered_mailbox = false)
+{
+	$actor = phpbb_pm_display_actor();
 	if (!is_string($sql) || strpos($sql, 'SELECT ') !== 0) { phpbb_acl_error('PM_cleanup_failed'); }
-	$sid = $userdata['session_id']; $reader = null;
+	$reader = null;
 	try {
 		$reader = new PhpbbPmAttachmentReader($database);
 		$rows = $reader->rows('SELECT pm_view.* FROM ' . USERS_TABLE . ' pm_viewer LEFT JOIN'
 			. ' (SELECT 1 AS pm_view_present,pm_source.* FROM (' . $sql . ') pm_source) pm_view ON 1=1'
-			. ' WHERE pm_viewer.user_id=' . $actor[0] . ' AND pm_viewer.user_active<>0 AND pm_viewer.user_blocktime<' . time()
-			. ($compose ? ' AND pm_viewer.user_allow_pm<>0' : '')
-			. ' AND ' . phpbb_pm_current_session_guard($reader->connection, $actor[0], $sid)
+			. ' WHERE ' . phpbb_pm_display_guard($reader->connection, $actor, $compose)
 			. ($ordered_mailbox ? ' ORDER BY pm_view.privmsgs_date DESC,pm_view.privmsgs_id DESC' : ''));
 		if (!$rows) { phpbb_acl_error('Not_Authorised'); }
 		if ($rows[0]['pm_view_present'] === null) { return array(); }
@@ -174,6 +184,46 @@ function phpbb_pm_display($sql, $compose = false, $ordered_mailbox = false)
 	global $db;
 	try { return phpbb_pm_display_rows($db, $sql, $compose, $ordered_mailbox); }
 	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+}
+
+function phpbb_pm_folder_page($database, $folder, $days, $start, $size)
+{
+	$actor = phpbb_pm_display_actor();
+	$condition = phpbb_pm_mailbox_condition($actor, $folder);
+	if ($condition === false) { phpbb_acl_error('No_such_folder'); }
+	$scope = '(' . $condition . ') AND pm.privmsgs_write_payload IS NULL';
+	$date_filter = $days ? ' AND pm.privmsgs_date>' . (int)(time() - (int)$days * 86400) : '';
+	$size = (int)$size > 0 ? (int)$size : 50;
+	$correspondent = $folder === 'inbox' ? 'pm.privmsgs_from_userid' : 'pm.privmsgs_to_userid';
+	if ($folder === 'savebox') {
+		$correspondent = 'CASE WHEN pm.privmsgs_type=' . PRIVMSGS_SAVED_IN_MAIL . ' THEN pm.privmsgs_from_userid ELSE pm.privmsgs_to_userid END';
+	}
+	$peer_join = USERS_TABLE . ' u ON u.user_id=' . $correspondent;
+	$reader = null;
+	try {
+		$reader = new PhpbbPmAttachmentReader($database);
+		$reader->begin_snapshot();
+		$counts = $reader->rows('SELECT pm_viewer.user_id,COUNT(pm.privmsgs_id) AS occupied,'
+			. 'COUNT(CASE WHEN u.user_id IS NOT NULL' . $date_filter . ' THEN 1 END) AS matched'
+			. ' FROM ' . USERS_TABLE . ' pm_viewer LEFT JOIN ' . PRIVMSGS_TABLE . ' pm ON ' . $scope
+			. ' LEFT JOIN ' . $peer_join . ' WHERE ' . phpbb_pm_display_guard($reader->connection, $actor)
+			. ' GROUP BY pm_viewer.user_id');
+		if (!$counts) { phpbb_acl_error('Not_Authorised'); }
+		$total = (int)$counts[0]['matched'];
+		$last_page = (int)floor(max(0, $total - 1) / $size);
+		$start = min($last_page, (int)floor(max(0, (int)$start) / $size)) * $size;
+		$rows = array();
+		if ($total) {
+			$rows = $reader->rows('SELECT pm.privmsgs_type,pm.privmsgs_id,pm.privmsgs_date,pm.privmsgs_subject,u.user_id,u.username'
+				. ' FROM ' . PRIVMSGS_TABLE . ' pm JOIN ' . $peer_join . ' WHERE ' . $scope . $date_filter
+				. ' ORDER BY pm.privmsgs_date DESC,pm.privmsgs_id DESC LIMIT ' . $start . ',' . $size);
+			if (count($rows) !== min($size, $total - $start)) { phpbb_acl_error('PM_cleanup_failed'); }
+		}
+		return array('rows'=>$rows, 'total'=>$total, 'occupied'=>(int)$counts[0]['occupied'], 'start'=>$start, 'size'=>$size);
+	} catch (PhpbbAclException $error) { throw $error; }
+	catch (Exception $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	catch (Error $error) { phpbb_acl_error('PM_cleanup_failed'); }
+	finally { if ($reader !== null) { $reader->release(); } }
 }
 
 function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
