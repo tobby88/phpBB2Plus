@@ -60,7 +60,9 @@ jobs:
 
       - name: Lint PHP sources
         shell: bash
-        run: find phpBB2 update -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: |
+          files_per_process=$(php -r 'echo PHP_VERSION_ID >= 80300 ? 64 : 1;')
+          find phpBB2 update -type f -name '*.php' -print0 | xargs -0 -n "$files_per_process" php -l
       - name: Render UTF-8 shield PNGs and release GD resources across PHP versions
         run: php .github/scripts/check-schild-rendering.php
       - name: Render bounded album watermarks and complete CAPTCHA glyphs with native GD
