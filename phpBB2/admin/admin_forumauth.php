@@ -182,7 +182,7 @@ else
 {
 	if (!isset($tree['keys'][POST_FORUM_URL . $forum_id]))
 	{
-		message_die(GENERAL_MESSAGE, isset($lang['No_forum']) ? $lang['No_forum'] : 'Invalid forum.');
+		message_die(GENERAL_MESSAGE, $lang['Forum_not_exist']);
 	}
 	//
 	// Output the authorisation details if an id was

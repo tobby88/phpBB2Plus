@@ -563,7 +563,7 @@ function jr_admin_get_user_info($user_id)
 	'SELECT * FROM ' . JR_ADMIN_TABLE . "
 	WHERE user_id = $user_id",
 	
-	sprintf(isset($lang['Error_Table']) ? $lang['Error_Table'] : 'Could not query table %s', JR_ADMIN_TABLE),
+	$lang['Jr_admin_permissions_unavailable'],
 	false,
 	1
 	)

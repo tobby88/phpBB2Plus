@@ -645,7 +645,7 @@ $template->assign_vars(array(
 
 	'POST_IMG' => $post_img,
 	'REPLY_IMG' => $reply_img,
-	'L_PRINT' => !empty($lang['Print_View']) ? $lang['Print_View'] : 'Printable version', 
+	'L_PRINT' => $lang['News_Print'],
 		'U_PRINT' => append_sid("printview.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;postdays=$post_days&amp;postorder=$post_order"),
 	'L_AUTHOR' => $lang['Author'],
 	'L_MESSAGE' => $lang['Message'],

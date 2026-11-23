@@ -90,8 +90,7 @@ $module_action = isset($action_mod[1]) ? $action_mod[1] : false;
 
 if (!isset($actions[$action_mod[0]]))
 {
-	$message = isset($lang['No_such_file']) ? $lang['No_such_file'] : $lang['Information'];
-	message_die(GENERAL_MESSAGE, $message);
+	message_die(GENERAL_MESSAGE, $lang['PA_page_not_found']);
 }
 
 $module_name = $actions[$action_mod[0]];

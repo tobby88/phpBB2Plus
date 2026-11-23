@@ -1,6 +1,7 @@
 <?php
 $lang['Topic_export_unavailable'] = 'Der Themen-Export konnte nicht erstellt werden. Bitte versuche es erneut.';
 $lang['Mod_topic_list_unavailable'] = 'Die Themenliste für die Moderation konnte nicht geladen werden. Bitte versuche es erneut.';
+$lang['Jr_admin_permissions_unavailable'] = 'Die zugewiesenen Verwaltungsrechte konnten nicht geladen werden. Bitte versuche es später erneut.';
 $lang['Topic_export_too_large'] = 'Dieses Thema überschreitet die Größenbegrenzung für einen Text-Export (64 MiB).';
 
 $lang['Login_changed'] = 'Die Anmeldung konnte nicht bestätigt werden. Bitte sende das Formular erneut ab.';

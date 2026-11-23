@@ -1,5 +1,6 @@
 <?php
 
+$lang['PA_page_not_found'] = 'Die angeforderte Seite im Downloadbereich existiert nicht.';
 $lang['PA_file_invalid'] = 'Die Datei oder die eingegebenen Dateidaten sind ungültig. Bitte überprüfe das Formular.';
 $lang['PA_file_upgrade'] = 'Die Download-Verwaltung muss zuerst vollständig aktualisiert werden.';
 $lang['PA_file_failed'] = 'Das Speichern konnte nicht bestätigt werden. Bitte lade die Dateiliste neu, bevor du es erneut versuchst.';
