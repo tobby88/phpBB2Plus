@@ -43,7 +43,26 @@ function pp_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Fixture
 function pp_rows($sql){$r=pp_sql($sql);$rows=$GLOBALS['peer']->sql_fetchrowset($r);$GLOBALS['peer']->sql_freeresult($r);foreach($rows as &$row){foreach(array_keys($row) as $key){if(is_int($key)){unset($row[$key]);}}}unset($row);return $rows;}
 function pp_snap(){ $out=array();foreach($GLOBALS['pp_tables'] as $s){$rows=pp_rows('SELECT * FROM fixture_'.$s);usort($rows,function($a,$b){return strcmp(json_encode($a),json_encode($b));});$out[$s]=$rows;}return $out; }
 function pp_normal($snap){foreach($snap['users'] as &$r){foreach(array('ct_last_pw_change','user_passwd_change') as $key){if((int)$r[$key]>0){$r[$key]='fresh';}}if($r['user_actkey']!==''){$r['user_actkey']='fresh';}}unset($r);foreach($snap['sessions_keys'] as &$r){if($r['key_id']!==md5('old-key')){$r['key_id']='fresh';$r['last_login']='fresh';}}unset($r);foreach($snap as &$rows){usort($rows,function($a,$b){return strcmp(json_encode($a),json_encode($b));});}unset($rows);return $snap;}
-function pp_insert($table,$values){foreach(pp_rows('SHOW COLUMNS FROM '.$table) as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}$encoded=array();foreach($values as $v){$encoded[]="'".$GLOBALS['peer']->sql_escape((string)$v)."'";}pp_sql('INSERT INTO '.$table.' ('.implode(',',array_keys($values)).') VALUES ('.implode(',',$encoded).')');}
+function pp_insert($table, $values)
+{
+ // All seed writes target the canonical schema after fixture setup. Engine
+ // checks temporarily swap tables and restore them before the next reset.
+ static $required = array();
+ if (!isset($required[$table])) {
+  $required[$table] = array();
+  foreach (pp_rows('SHOW COLUMNS FROM '.$table) as $column) {
+   if ($column['Null'] === 'NO' && $column['Default'] === null && strpos($column['Extra'], 'auto_increment') === false) {
+    $required[$table][$column['Field']] = preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/', $column['Type']) ? 0 : '';
+   }
+  }
+ }
+ $values += $required[$table];
+ $encoded = array();
+ foreach ($values as $value) {
+  $encoded[] = "'".$GLOBALS['peer']->sql_escape((string) $value)."'";
+ }
+ pp_sql('INSERT INTO '.$table.' ('.implode(',', array_keys($values)).') VALUES ('.implode(',', $encoded).')');
+}
 function pp_reset($scenario='edit'){
  global $db,$userdata,$board_config,$ctracker_config,$public_avatar_scope,$pp_hook,$pp_after,$pp_write,$pp_fail,$pp_commit,$pp_queries,$pp_cookies,$phpbb_root_path;
  $db=$GLOBALS['pp_main'];$pp_hook=$pp_after=null;$pp_write=$pp_fail=0;$pp_commit='';$pp_queries=$pp_cookies=array();$GLOBALS['pp_sql_error']=null;
@@ -112,7 +131,22 @@ for($fail=1;$fail<=$writes;$fail++){pp_reset($scenario);$before=pp_snap();$pp_fa
   if($kind==='ban'){pp_insert('fixture_banlist',array('ban_userid'=>2));}else{pp_sql($changes[$kind]);}$before=pp_snap();ats_check(pp_run('password')==='error'&&pp_snap()===$before&&!$pp_cookies,'Reject stale authority/credentials '.$kind);$cases++;
  }
  foreach(array('inactive','session','password') as $kind){pp_reset();$blocked=false;$pp_hook=function($sql)use($kind,&$blocked){if(strpos($sql,'UPDATE fixture_users')===0){$GLOBALS['pp_hook']=null;$sql=$kind==='inactive'?'UPDATE fixture_users SET user_active=0 WHERE user_id=2':($kind==='session'?"DELETE FROM fixture_sessions WHERE session_id='exact-session'":"UPDATE fixture_users SET user_password='later-reset' WHERE user_id=2");$r=$GLOBALS['peer']->sql_query($sql);$blocked=!$r&&(int)$GLOBALS['peer']->sql_error()['code']===1205;}};ats_check(pp_run('password')===true&&$blocked,'Concurrent '.$kind.' waits for profile transaction');$cases++;}
- foreach($pp_tables as $s){pp_reset();pp_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=pp_snap();ats_check(pp_run('edit')==='error'&&pp_snap()===$before,'Reject nontransactional participant '.$s);pp_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
+ foreach($pp_tables as $s){
+  pp_reset();
+  $table = 'fixture_'.$s;
+  // Some canonical utf8mb4 indexes exceed MySQL MyISAM's key limit.
+  // Keep the original table intact and exercise the engine check with the same rows.
+  pp_sql('CREATE TABLE fixture_legacy ENGINE=MyISAM AS SELECT * FROM '.$table);
+  pp_sql('RENAME TABLE '.$table.' TO fixture_original, fixture_legacy TO '.$table);
+  try {
+   $before=pp_snap();
+   ats_check(pp_run('edit')==='error'&&pp_snap()===$before,'Reject nontransactional participant '.$s);
+  } finally {
+   pp_sql('RENAME TABLE '.$table.' TO fixture_legacy, fixture_original TO '.$table);
+   pp_sql('DROP TABLE fixture_legacy');
+  }
+  $cases++;
+ }
  foreach(array('START TRANSACTION','COMMIT','SET autocommit=1','TRUNCATE fixture_users') as $sql){pp_reset();$before=pp_snap();$scope=new PhpbbPublicProfileScope($db,2,'exact-session',$public_avatar_scope);$db=$scope;$rejected=false;try{$scope->sql_query($sql);}catch(PhpbbPublicProfileException $e){$rejected=true;}finally{$scope->release();}ats_check($rejected&&pp_snap()===$before,'Reject helper transaction escape');$cases++;}
  foreach(array('edit','password','reactivate','reactivate-password') as $scenario){
   pp_reset($scenario);pp_sql("UPDATE fixture_users SET user_newpasswd='reset-pending',user_actkey='pending-token' WHERE user_id=2");
@@ -138,6 +172,8 @@ for($fail=1;$fail<=$writes;$fail++){pp_reset($scenario);$before=pp_snap();$pp_fa
   ats_check(pp_rows('SELECT user_custom_fixture FROM fixture_users WHERE user_id=2')[0]['user_custom_fixture']===$encoded,'Exact custom value/clear persisted '.$type);
   unset($GLOBALS['pp_custom_input']);$cases++;
  }}
+ require_once __DIR__.'/memberlist-native-cases.php';
+ pp_memberlist_cases($peer);
  echo 'Native public profile: '.$cases." failure/authority/transaction cases passed.\n";
 } finally {
  if($public_avatar_scope){$public_avatar_scope->release();}$pp_hook=$pp_after=null;$pp_main->sql_close();$peer->sql_close();ats_check($control->sql_query('DROP DATABASE '.$fixture),'Remove owned profile schema');$control->sql_close();

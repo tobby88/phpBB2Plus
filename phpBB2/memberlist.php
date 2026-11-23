@@ -28,6 +28,7 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
+require_once $phpbb_root_path . 'includes/functions_memberlist.' . $phpEx;
 
 //
 // Start session management
@@ -43,34 +44,22 @@ if ( !$userdata['session_logged_in'] )
 	redirect(append_sid("login.$phpEx?redirect=memberlist.$phpEx", true));
 }
 
-$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
+$start = intval(phpbb_request_scalar($_GET, 'start', 0));
 
-$mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined')));
-
-if(phpbb_request_scalar($_POST, 'order') !== '')
-{
-	$sort_order = (phpbb_request_scalar($_POST, 'order') == 'ASC') ? 'ASC' : 'DESC';
-}
-else if(phpbb_request_scalar($_GET, 'order') !== '')
-{
-	$sort_order = (phpbb_request_scalar($_GET, 'order') == 'ASC') ? 'ASC' : 'DESC';
-}
-else
-{
-	$sort_order = 'ASC';
-}
-
-//
-// Memberlist sorting
-//
-$mode_types_text = array($lang['Sort_Joined'], $lang['Last_logon'], $lang['Sort_Username'], $lang['Sort_Location'], $lang['Sort_Posts'], $lang['Sort_Email'],  $lang['Sort_Website'], $lang['Sort_Top_Ten']);
-$mode_types = array('joined', 'lastlogon', 'username', 'location', 'posts', 'email', 'website', 'topten');
+$requested_mode = phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined'));
+$requested_order = phpbb_request_scalar($_POST, 'order', phpbb_request_scalar($_GET, 'order'));
+$profile_data = get_fields('WHERE view_in_memberlist = ' . VIEW_IN_MEMBERLIST . ' AND users_can_view = ' . ALLOW_VIEW);
+$member_page = phpbb_memberlist_page($db, (int) $userdata['user_level'] === ADMIN, $requested_mode, $requested_order,
+	$start, $board_config['topics_per_page'], $profile_data);
+$start = $member_page['start'];
+$mode = $member_page['mode'];
+$sort_order = $member_page['order'];
 
 $select_sort_mode = '<select name="mode">';
-for($i = ($userdata['user_level'] == ADMIN ) ? 0:1; $i < count($mode_types_text); $i++)
+foreach ($member_page['modes'] as $key => $option)
 {
-	$selected = ( $mode == $mode_types[$i] ) ? ' selected="selected"' : '';
-	$select_sort_mode .= '<option value="' . $mode_types[$i] . '"' . $selected . '>' . $mode_types_text[$i] . '</option>';
+	$selected = $mode === $key ? ' selected="selected"' : '';
+	$select_sort_mode .= '<option value="' . $key . '"' . $selected . '>' . $lang[$option[0]] . '</option>';
 }
 $select_sort_mode .= '</select>';
 
@@ -121,68 +110,15 @@ $template->assign_vars(array(
 	'S_MODE_ACTION' => append_sid("memberlist.$phpEx"))
 );
 
-switch( $mode )
+foreach ($profile_data as $field)
 {
-	case 'joined':
-		$order_by = "user_regdate $sort_order LIMIT $start, " . $board_config['topics_per_page'];
-		break;
-	// Start add - Last visit MOD
-	case 'lastlogon': 
-   		$order_by = ($userdata['user_level'] == ADMIN ) ? "user_lastlogon $sort_order LIMIT $start, " . $board_config['topics_per_page'] : "username $sort_order LIMIT $start, " . $board_config['topics_per_page']; 
-   		break; 
-	// End add - Last visit MOD	
-	case 'username':
-		$order_by = "username $sort_order LIMIT $start, " . $board_config['topics_per_page'];
-		break;
-	case 'location':
-		$order_by = "user_from $sort_order LIMIT $start, " . $board_config['topics_per_page'];
-		break;
-	case 'posts':
-		$order_by = "user_posts $sort_order LIMIT $start, " . $board_config['topics_per_page'];
-		break;
-	case 'email':
-		$order_by = "user_email $sort_order LIMIT $start, " . $board_config['topics_per_page'];
-		break;
-	case 'website':
-		$order_by = "user_website $sort_order LIMIT $start, " . $board_config['topics_per_page'];
-		break;
-	case 'topten':
-		$order_by = "user_posts $sort_order LIMIT 10";
-		break;
-	default:
-		$order_by = "user_regdate $sort_order LIMIT $start, " . $board_config['topics_per_page'];
-		break;
+	$template->assign_block_vars('custom_field_names', array('FIELD_NAME' => phpbb_profile_display_text($field['field_name'])));
 }
-// Custom Profile Fields MOD
-$profile_data = get_fields('WHERE view_in_memberlist = ' . VIEW_IN_MEMBERLIST . ' AND users_can_view = ' . ALLOW_VIEW);
-$profile_data_sql = get_udata_txt($profile_data);
-// END Custom Profile Fields MOD
+$template->assign_vars(array('NUMCOLS' => count($profile_data) + 11));
 
-$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_lastlogon, user_allow_viewonline, user_from, user_from_flag, user_website, user_email, user_icq, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_avatar, user_avatar_type, user_allowavatar, user_allow_viewonline, user_session_time".$profile_data_sql."
-	FROM " . USERS_TABLE . "
-	WHERE user_id <> " . ANONYMOUS . "
-	ORDER BY $order_by";
-if( !($result = $db->sql_query($sql)) )
+foreach ($member_page['rows'] as $i => $row)
 {
-	message_die(GENERAL_ERROR, 'Could not query users', '', __LINE__, __FILE__, $sql);
-}
-
-if ( $row = $db->sql_fetchrow($result) )
-{
-	//
-	// Custom Profile Fields MOD
-	//
-	foreach($profile_data as $field)
-		$template->assign_block_vars('custom_field_names',array('FIELD_NAME' => phpbb_profile_display_text($field['field_name'])));
-	
-	$template->assign_vars(array('NUMCOLS' => count($profile_data)+11));
-	//
-	// END Custom Profile Fields MOD
-	//
-	$i = 0;
-	do
-	{
-		$username = $row['username'];
+		$username = phpbb_stored_text($row['username']);
 		$user_id = $row['user_id'];
 
 		$from = ( !empty($row['user_from']) ) ? phpbb_profile_text($row['user_from']) : '&nbsp;';
@@ -268,7 +204,7 @@ if ( $row = $db->sql_fetchrow($result) )
 			'ROW_NUMBER' => $i + ( $start + 1 ) . (($userdata['user_level']==ADMIN)?'<a href="' . append_sid("delete_users.$phpEx?mode=user_id&amp;del_user=$user_id") . '"><img src="' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . ' '.$username.'" title="' . $lang['Delete'] . ' '.$username.'" border="0" /></a>&nbsp;':''),
 			'ROW_COLOR' => '#' . $row_color,
 			'ROW_CLASS' => $row_class,
-			'USERNAME' => color_group_colorize_name($user_id, true),
+			'USERNAME' => color_group_colorize_name($user_id, true, $row['username']),
 			'FROM' => $from,
 			// FLAGHACK-start
 			'FLAG' => $flag,
@@ -337,41 +273,12 @@ if ( $row = $db->sql_fetchrow($result) )
 		// END Custom Profile Fields MOD
 		//
 
-		$i++;
-	}
-	while ( $row = $db->sql_fetchrow($result) );
-	$db->sql_freeresult($result);
 }
 
-if ( $mode != 'topten' || $board_config['topics_per_page'] < 10 )
-{
-	$sql = "SELECT count(*) AS total
-		FROM " . USERS_TABLE . "
-		WHERE user_id <> " . ANONYMOUS;
-
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Error getting total users', '', __LINE__, __FILE__, $sql);
-	}
-
-	if ( $total = $db->sql_fetchrow($result) )
-	{
-		$total_members = $total['total'];
-
-		$pagination = generate_pagination("memberlist.$phpEx?mode=$mode&amp;order=$sort_order", $total_members, $board_config['topics_per_page'], $start). '&nbsp;';
-	}
-	$db->sql_freeresult($result);
-}
-else
-{
-	$pagination = '&nbsp;';
-	$total_members = 10;
-}
-
+$pagination = generate_pagination("memberlist.$phpEx?mode=$mode&amp;order=$sort_order", $member_page['total'], $member_page['per_page'], $start);
 $template->assign_vars(array(
 	'PAGINATION' => $pagination,
-	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $total_members / $board_config['topics_per_page'] )), 
-
+	'PAGE_NUMBER' => sprintf($lang['Page_of'], $member_page['page'], $member_page['pages']),
 	'L_GOTO_PAGE' => $lang['Goto_page'])
 );
 
