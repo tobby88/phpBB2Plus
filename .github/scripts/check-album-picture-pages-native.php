@@ -10,7 +10,11 @@ apt_check(preg_match('/^function append_sid\([\s\S]*?^\}/m', $sessions, $match) 
 eval($match[0]);
 $functions=file_get_contents($phpbb_root_path.'includes/functions.php');foreach(array('phpbb_stored_text','phpbb_sql_id_list','phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text','create_date','generate_pagination','checkFlag','decode_ip')as$name){apt_check(preg_match('/^function '.$name.'\([\s\S]*?^\}/m',$functions,$m)===1,'Actual core helper '.$name);eval($m[0]);}
 $common=file_get_contents($album_root_path.'album_common.php');foreach(array('album_html_text','album_sql_id_list')as$name){apt_check(preg_match('/^function '.$name.'\([\s\S]*?^\}/m',$common,$m)===1,'Actual Album helper');eval($m[0]);}
-apt_check(preg_match('/^function ImageRating\([\s\S]*?^\}/m',file_get_contents($album_root_path.'clown_album_functions.php'),$m)===1,'Actual rating helper');eval($m[0]);
+$rating_source = file_get_contents($album_root_path.'clown_album_functions.php');
+foreach (array('ImageRating', 'CanRated') as $name) {
+    apt_check(preg_match('/^function '.$name.'\([\s\S]*?^\}/m', $rating_source, $m) === 1, 'Actual rating helper '.$name);
+    eval($m[0]);
+}
 class AlbumPageTemplate{var$vars=array();var$rows=array();var$files=array();function set_filenames($v){$this->files=$v;}function assign_vars($v){$this->vars=array_merge($this->vars,$v);}function assign_block_vars($n,$v){if(!isset($this->rows[$n])){$this->rows[$n]=array();}$this->rows[$n][]=$v;}function pparse($handle){}}
 class AlbumPageOwner{
  var$inner,$db_connect_id,$closed=false;function __construct($inner){$this->inner=$inner;$this->db_connect_id=$inner->db_connect_id;}function __call($name,$args){return call_user_func_array(array($this->inner,$name),$args);}
@@ -45,6 +49,7 @@ try{
  apt_insert('sessions',array('session_id'=>str_repeat('a',32),'session_user_id'=>7,'session_logged_in'=>1,'session_time'=>time()));
  foreach(array(1=>array(0,ALBUM_GUEST,ALBUM_ADMIN,0),2=>array(0,ALBUM_GUEST,ALBUM_MOD,0),3=>array(0,ALBUM_PRIVATE,ALBUM_ADMIN,0),4=>array(7,ALBUM_PRIVATE,ALBUM_ADMIN,0),5=>array(7,ALBUM_PRIVATE,ALBUM_MOD,4),6=>array(8,ALBUM_GUEST,ALBUM_ADMIN,0),7=>array(0,ALBUM_GUEST,ALBUM_USER,0))as$id=>$c){apt_insert('album_cat',array('cat_id'=>$id,'cat_title'=>'Category '.$id,'cat_desc'=>'','cat_order'=>$id,'cat_user_id'=>$c[0],'cat_view_level'=>$c[1],'cat_upload_level'=>ALBUM_PRIVATE,'cat_view_groups'=>'9','cat_moderator_groups'=>'10','cat_approval'=>$c[2],'cat_parent'=>$c[3]));}
  $album_config=array();foreach(apt_rows('SELECT * FROM fixture_album_config')as$v){$album_config[$v['config_name']]=$v['config_value'];}$defaults=$album_config;$album_sp_config=array();foreach(apt_rows('SELECT * FROM fixture_album_sp_config')as$v){$album_sp_config[$v['config_name']]=$v['config_value'];}$images=array('all_pic_view_mode'=>'all.png','normal_pic_view_mode'=>'normal.png','upload_pic'=>'upload.png','show_all_pics'=>'pics.png','show_all_ratings'=>'ratings.png','show_all_comments'=>'comments.png');
+ require __DIR__.'/album-hotornot-native-cases.php';
  foreach(array('english','german')as$locale){$lang=array();require$phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';require$phpbb_root_path.'language/lang_'.$locale.'/lang_main_album.php';$board_config=array('hide_removed_author_names'=>0,'default_lang'=>$locale,'default_dateformat'=>'Y-m-d H:i','board_timezone'=>0);apt_actor();$album_config=$defaults;$album_data=array();apt_sql('DELETE FROM fixture_album');for($id=1;$id<=5;$id++){apt_picture($id,1,$id===1?1:0);}
   $tree=apt_tree();apt_check((int)$tree['data'][$tree['keys'][1]]['count']===1&&album_get_total_pics(array(1,2))===1,'Actual category and index totals exclude pending pictures');$cases++;
   $out=apt_expect(apt_request(),array('1'),1);$html=apt_render(0,array(1),0,$out);apt_check($html->vars['PAGINATION']===''&&$html->vars['PAGE_NUMBER']===sprintf($lang['Page_of'],1,1)&&count($html->rows['index_pics_block.picrow.piccol'])===1,'Original5-count/3-page regression now one real page');$views++;

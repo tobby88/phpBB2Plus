@@ -122,6 +122,9 @@ $lang['Click_return_album_index'] = 'Click %shere%s to return to the Album Index
 
 // View Pic
 $lang['Pic_not_exist'] = 'This pic does not exist';
+$lang['Album_hon_empty'] = 'There are currently no pictures available to view here.';
+$lang['Album_hon_load_failed'] = 'The album picture could not be loaded. Please try again.';
+$lang['Album_hon_rating_unavailable'] = 'Voting is unavailable for this picture.';
 
 // Edit Pic
 $lang['Edit_Pic_Info'] = 'Edit Pic Information';

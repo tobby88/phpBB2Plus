@@ -38,60 +38,13 @@ require_once $album_root_path . 'album_picture_discussion.php';
 $rating_submitted = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hon_rating']) && is_scalar($_POST['hon_rating']));
 $rate_point = $rating_submitted ? intval($_POST['hon_rating']) : 0;
 
-//if user havent rated a picture, show page, else update database
 if (!$rating_submitted)
 {
-	// ------------------------------------
-	// get a random pic from album
-	// ------------------------------------
-	$hotornot_categories = array();
-	foreach (preg_split('/[^0-9]+/', (string) $album_sp_config['hon_rate_where'], -1, PREG_SPLIT_NO_EMPTY) as $hotornot_category)
-	{
-		$hotornot_category = intval($hotornot_category);
-		if ($hotornot_category > 0)
-		{
-			$hotornot_categories[] = $hotornot_category;
-		}
-	}
-
-	if (!count($hotornot_categories))
-	{
-		$sql = "SELECT `pic_id`  FROM " . ALBUM_TABLE . " ORDER BY RAND() LIMIT 1";
-	}
-	else
-	{
-		$sql = "SELECT `pic_id`  FROM " . ALBUM_TABLE . " WHERE pic_cat_id IN (" . implode(',', array_unique($hotornot_categories)) . ") ORDER BY RAND() LIMIT 1";
-	}
-
-	if( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
-	}
-	$pic_id_temp = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if (!$pic_id_temp || empty($pic_id_temp['pic_id']))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Pic_not_exist']);
-	}
-	$pic_id = album_read_id($pic_id_temp['pic_id']);
-
-
-	// ------------------------------------
-	// Get this pic info and current category info
-	// ------------------------------------
-	$sql = album_picture_details_sql($pic_id, !empty($album_sp_config['hon_rate_sep']));
-
-	if( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
-	}
-	$thispic = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-
-	if (empty($thispic))
-	{
-		message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
-	}
+	try { $selection = album_hotornot_picture($db); }
+	catch (PhpbbForumReadFailure $error) { message_die(GENERAL_ERROR, $lang['Album_hon_load_failed']); }
+	if (!$selection) { message_die(GENERAL_MESSAGE, $lang['Album_hon_empty']); }
+	$thispic = $selection['picture'];
+	$pic_id = album_read_id($thispic['pic_id']);
 	$pic_filename = str_replace('\\', '/', (string) $thispic['pic_filename']);
 	if ($pic_filename === '' || basename($pic_filename) !== $pic_filename || !is_file(ALBUM_UPLOAD_PATH . $pic_filename))
 	{
@@ -101,50 +54,6 @@ if (!$rating_submitted)
 	$cat_id = intval($thispic['pic_cat_id']);
 	$album_user_id = intval($thispic['cat_user_id']);
 
-	// ------------------------------------
-	// Check the permissions
-	// ------------------------------------
-	$album_user_access = album_permissions($album_user_id, $cat_id, ALBUM_AUTH_ALL, $thispic);
-
-	if (empty($album_user_access['view']))
-	{
-		if (!$userdata['session_logged_in'])
-		{
-			redirect(append_sid("login.$phpEx?redirect=album_hotornot.$phpEx"));
-		}
-		else
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
-	}
-
-
-
-	// ------------------------------------
-	// Check Pic Approval
-	// ------------------------------------
-
-	if ($userdata['user_level'] != ADMIN)
-	{
-		if (($thispic['cat_approval'] == ADMIN) || (($thispic['cat_approval'] == MOD) && empty($album_user_access['moderator'])))
-		{
-			if ($thispic['pic_approval'] != 1)
-			{
-				message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-			}
-		}
-	}
-
-
-	/*
-	+----------------------------------------------------------
-	| Main work here...
-	+----------------------------------------------------------
-	*/
-
-	//
-	// Start output of page
-	//
 	$page_title = $lang['Album'];
 	include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
@@ -161,16 +70,13 @@ if (!$rating_submitted)
 		$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $thispic['user_id']) .'">'. album_html_text($thispic['username']) .'</a>';
 	}
 
-	//deside how user wants to show their rating
 	$image_rating = ImageRating($thispic['rating']);
 
-	//hot or not rating
-	$guest_may_rate = $userdata['session_logged_in'] || !empty($album_sp_config['hon_rate_users']);
-	if (!empty($album_config['rate']) && !empty($album_user_access['rate']) && $guest_may_rate && CanRated($pic_id, $userdata['user_id']))
+	if ($selection['can_rate'])
 	{
 		$template->assign_block_vars('hon_rating', array());
 
-		for ($i = 0; $i < $album_config['rate_scale']; $i++)
+		for ($i = 0; $i < $selection['scale']; $i++)
 		{
 			$template->assign_block_vars('hon_rating.hon_row', array(
 				'VALUE' => ($i + 1)));
@@ -203,12 +109,13 @@ if (!$rating_submitted)
 		'U_COMMENT' => append_sid("album_showpage.$phpEx?pic_id=$pic_id"),
 
 		'PICTURE_ID' => $pic_id,
+		'S_RATE_ACTION' => append_sid("album_hotornot.$phpEx"),
 		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		'L_RATE_ME' => $lang['Rating'],
-		'L_ALREADY_RATED' => $lang['Already_rated'],
+		'L_RATING_STATUS' => $selection['already_rated'] ? $lang['Already_rated'] : $lang['Album_hon_rating_unavailable'],
 
 		'L_RATING' => $lang['Rating'],
-		'L_PIC_TITLE' => $lang['Pic_Title'] . (isset($album_config['clown_rateType']) ? $album_config['clown_rateType'] : ''),
+		'L_PIC_TITLE' => $lang['Pic_Title'],
 		'L_PIC_DESC' => $lang['Pic_Desc'],
 		'L_POSTER' => $lang['Poster'],
 		'L_POSTED' => $lang['Posted'],
@@ -216,12 +123,12 @@ if (!$rating_submitted)
 		'L_COMMENTS' => $lang['Comments'])
 	);
 
-	if ($album_config['rate'])
+	if ($selection['rating_enabled'])
 	{
 		$template->assign_block_vars('rate_switch', array());
 	}
 
-	if ($album_config['comment'])
+	if ($selection['comment_enabled'])
 	{
 		$template->assign_block_vars('comment_switch', array());
 	}
@@ -240,9 +147,6 @@ else
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
 
-	$rate_user_id = $userdata['user_id'];
-	$rate_user_ip = $userdata['session_ip'];
-	$rate_user_ip_sql = $db->sql_escape($rate_user_ip);
 	$pic_id = isset($_POST['pic_id']) ? album_read_id($_POST['pic_id']) : 0;
 	$max_rate = max(1, intval($album_config['rate_scale']));
 

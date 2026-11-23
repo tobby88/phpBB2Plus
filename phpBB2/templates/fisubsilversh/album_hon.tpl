@@ -1,4 +1,4 @@
-<form action="album_hotornot.php" method="post">
+<form action="{S_RATE_ACTION}" method="post">
 <input type="hidden" name="pic_id" value="{PICTURE_ID}" />
 {S_FORM_TOKEN}
 <table width="100%" cellpadding="2" cellspacing="1" border="0" class="forumline">
@@ -9,6 +9,7 @@
 			<!-- BEGIN hon_row -->
 			<INPUT type="radio" name="hon_rating" value="{hon_rating.hon_row.VALUE}" onclick="this.form.submit()">&nbsp;{hon_rating.hon_row.VALUE}&nbsp;&nbsp;
 			<!-- END hon_row -->
+			<noscript><button type="submit">{L_RATE_ME}</button></noscript>
 			</span>
 		
     </td>
@@ -17,7 +18,7 @@
 
   <!-- BEGIN hon_rating_cant -->
   <tr>
-	<td align="center" class="row2"><span class="genmed">{L_ALREADY_RATED}</span></td>
+	<td align="center" class="row2"><span class="genmed">{L_RATING_STATUS}</span></td>
   </tr>
   <!-- END hon_rating_cant -->
 </table>

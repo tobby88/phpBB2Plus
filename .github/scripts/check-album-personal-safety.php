@@ -68,6 +68,6 @@ album_test_assert(strpos($personal_admin, 'album_personal_category_order((int) $
 album_test_assert(strpos($personal_admin, "in_array(\$action, array('', 'edit', 'delete'), true)") !== false && strpos($personal_admin, "\$_SERVER['REQUEST_METHOD'] !== 'POST'") !== false, 'legacy GET ordering must not mutate personal categories');
 $personal_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/album_personal_cat_body.tpl');
 album_test_assert(strpos($personal_template, '{S_FORM_TOKEN}') !== false && strpos($personal_template, '{catrow.cathead.CAT_ORDER_CONTROLS}') !== false && strpos($personal_template, 'U_CAT_MOVE_UP') === false, 'personal ordering must submit through the tokenized outer form, not GET links');
-album_test_assert(strpos($hotornot, '$rate_user_ip_sql = $db->sql_escape($rate_user_ip)') !== false, 'Hot-or-Not rating IPs must use database-driver escaping');
+album_test_assert(strpos($hotornot, "album_discussion_request('hotornot'") !== false, 'Hot-or-Not votes must use the session-bound rating writer');
 
 echo "Personal-album safety tests passed.\n";
