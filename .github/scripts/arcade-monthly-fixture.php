@@ -15,8 +15,8 @@ function am_language($locale){global $lang,$board_config,$phpEx;$lang=array();$b
 function am_row($id,$name,$score='0.0000'){
  return array('highscore_game'=>'fixture_game','highscore_user_id'=>$id,'highscore_player'=>$name,'highscore_score'=>$score,'game_path'=>'','image_path'=>'','game_desc'=>'Raw &amp; <game>','game_id'=>9,'win_width'=>640,'win_height'=>480,'allow_guest'=>1,'level_required'=>0,'rank_required'=>0,'group_required'=>0);
 }
-function am_render($result){
+function am_render($result,$group_list=array(0)){
  global $db,$am_render,$arcade,$userdata,$lang,$phpEx;
- $group_list=array(0);$level_required=isset($userdata['user_level'])?$userdata['user_level']:0;$rank_required=0;$i='0';$bgcounter=0;$highscore_temp='';eval($am_render);return $highscore_temp;
+ $level_required=isset($userdata['user_level'])?$userdata['user_level']:0;$rank_required=isset($userdata['user_rank'])?$userdata['user_rank']:0;$i='0';$bgcounter=0;$highscore_temp='';eval($am_render);return $highscore_temp;
 }
 function am_name($html){am_check(preg_match_all('#<b><span class="gen">(.*?) : ([^<]*)</span></b>#s',$html,$m)!==false,'Actual player/score cells');return array($m[1],$m[2]);}

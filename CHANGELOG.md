@@ -1388,6 +1388,7 @@ changes consolidated after that baseline without implying active maintenance.
 - Use portable Arcade list queries with independent rating, comment and score
   lookups. Match pagination totals to visible games and retain the search term
   when switching pages or sorting results.
+- Select the 60 visible monthly high scores after applying game access settings.
 
 ### Consistent Arcade parent counters on catalogue edits
 

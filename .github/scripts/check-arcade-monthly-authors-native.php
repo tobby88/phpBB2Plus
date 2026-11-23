@@ -12,7 +12,7 @@ function message_die($level,$message){throw new ArcadeMonthlyNativeFailure($mess
 function mn_sql($sql){$r=$GLOBALS['db']->sql_query($sql);am_check($r!==false,'Own canonical monthly fixture SQL');return $r;}
 function mn_change($sql){$GLOBALS['db']->setup=true;try{return mn_sql($sql);}finally{$GLOBALS['db']->setup=false;}}
 function mn_alias($id,$raw){$db=$GLOBALS['db'];$hash=hash('sha256',$raw);mn_change("INSERT INTO fixture_removed_author_names(author_user_id,author_name_hash,author_name,recorded_at) VALUES(".(int)$id.",'$hash','".$db->sql_escape($raw)."',1)");}
-function mn_render(){global $am_query,$db;$highscore_date_y=2026;$highscore_date_m=11;eval($am_query);$r=mn_sql($sql);try{return am_render($r);}finally{$db->sql_freeresult($r);}}
+function mn_render($group_list=array(0)){global $am_query,$db,$userdata;$highscore_date_y=2026;$highscore_date_m=11;$level_required=isset($userdata['user_level'])?$userdata['user_level']:0;$rank_required=isset($userdata['user_rank'])?$userdata['user_rank']:0;eval($am_query);$r=mn_sql($sql);try{return am_render($r,$group_list);}finally{$db->sql_freeresult($r);}}
 function mn_snapshot(){global $db;$snapshot=array();foreach(array('users','ina_highscore','ina_games','removed_author_names')as$table){$r=mn_sql('SELECT * FROM fixture_'.$table);$rows=$db->sql_fetchrowset($r);$db->sql_freeresult($r);$rows=array_map('json_encode',$rows);sort($rows);$snapshot[$table]=$rows;}return $snapshot;}
 $db=$control=null;$created=false;$schema='codex_arc_monthly_'.bin2hex(phpbb_random_bytes(8));
 try{
@@ -28,5 +28,16 @@ try{
   }
  }}}
  $userdata=array('user_id'=>-1,'session_logged_in'=>false,'user_level'=>0);$board_config=array('hide_removed_author_names'=>1);$previous=$db;$db=new ArcadeMonthlyNativeDatabase($host,'root',$password,$schema,false);am_check((bool)$db->db_connect_id,'Fresh synthetic viewer connection');$db->setup=false;$previous->sql_close();$db->fail_alias=true;$caught=false;try{mn_render();}catch(ArcadeMonthlyNativeFailure$e){$caught=$e->getMessage()===$lang['Author_privacy_unavailable'];}am_check($caught&&$db->opened===0,'Native alias failure cannot expose a protected byline and closes outer/inner results');$db->fail_alias=false;$am_cases++;
+
+ $competition=array();
+ for($n=0;$n<65;$n++){ $competition[]="(2026,11,'fixture_game',7,'Fixture',".(300+$n).",1)";$competition[]="(2026,11,'group_game',7,'Fixture',".(1000+$n).",1)"; }
+ mn_change("INSERT INTO fixture_ina_highscore(highscore_year,highscore_mon,highscore_game,highscore_user_id,highscore_player,highscore_score,highscore_date) VALUES ".implode(',',$competition));
+ foreach(array(array(-1,array(0),364),array(3,array(0),364),array(3,array(0,5),1064))as$case){
+  $userdata=array('user_id'=>$case[0],'session_logged_in'=>$case[0]>0,'user_level'=>0,'user_rank'=>0);
+  $before=mn_snapshot();$html=mn_render($case[1]);$scores=am_name($html)[1];
+  am_check(array_map(function($score){return (int)str_replace(',','',$score);},$scores)===range($case[2],$case[2]-59),'Monthly cap keeps the top 60 scores visible to this viewer even when 65 restricted scores are higher');
+  am_check((strpos($html,'DENIED GROUP')!==false)===($case[2]===1064),'Actual group membership determines which game is displayed');
+  am_check(mn_snapshot()===$before&&$db->opened===0,'Ranking and access limits preserve all score history');$am_cases++;
+ }
  echo 'Arcade monthly authors native: ',$am_cases,' cases, ',$am_checks," assertions PASS; actual period/account/game JOINs, removed aliases, live/reused accounts, current names, full rendering, permissions, zero scores and read-only history.\n";
 }finally{if($db){$db->sql_close();}if($created){am_check(preg_match('/^codex_arc_monthly_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Exact own monthly schema cleanup');}if($control){$control->sql_close();}restore_error_handler();}

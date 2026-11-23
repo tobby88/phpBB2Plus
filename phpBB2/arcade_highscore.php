@@ -73,7 +73,6 @@ $cat_id = 0;
 $start = 0;
 $sort_mode = '';
 $order = '';
-$highscore_id = 0;
 
 if (preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/D', (string) $requested_month, $month_match))
 {
@@ -106,6 +105,7 @@ if ( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, 'Error getting group information', '', __LINE__, __FILE__, $sql);
 }
 $group_ids = $db->sql_fetchrowset($result);
+$db->sql_freeresult($result);
 //
 //  Build a list of Groups that this user is a member of (add Group Zero)
 //
@@ -131,7 +131,11 @@ $sql = "SELECT h.highscore_game, h.highscore_user_id,
 		AND h.highscore_mon = " . (int) $highscore_date_m . "
 		AND h.highscore_game != ''
 		AND g.game_avail = 1
-	ORDER BY h.highscore_score DESC LIMIT 0,60";
+		AND COALESCE(g.level_required, 0) <= " . (int) $level_required . "
+		AND COALESCE(g.rank_required, 0) <= " . (int) $rank_required . "
+		AND COALESCE(g.group_required, 0) IN (" . implode(',', $group_list) . ")"
+		. ((int) $userdata['user_id'] === ANONYMOUS ? " AND g.allow_guest <> 0" : "") . "
+	ORDER BY h.highscore_score DESC, h.highscore_id ASC LIMIT 60";
 if( !$result = $db->sql_query($sql) )
 {
 	message_die(GENERAL_ERROR, $lang['highscore_table_error'], "", __LINE__, __FILE__, $sql);
@@ -216,6 +220,7 @@ if(!empty($HTTP_POST_VARS['cat_id']) && !is_array($HTTP_POST_VARS['cat_id']))
 	 	message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
 	}
 	$cat_info = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
 	$catagory_name = $cat_info ? phpbb_profile_text($cat_info['cat_name']) : $lang['all_games'];
 }
 else
@@ -225,21 +230,6 @@ else
 
 // Display Board Index and Games Category navigation at the bottom of the Monthly Highscore page
 $url = ' &raquo; <a href="activity.' . $phpEx . '" class="nav">' . $lang['games_catagories'] . '</a> &raquo; <a href="activity.' . $phpEx . '?mode=cat&amp;cat_id=' . $cat_id . '&amp;start=' . $start . '&amp;sort_mode=' . $sort_mode . '&amp;order=' . $order . '" class="nav">'.$catagory_name.'</a>';
-
-if($arcade->arcade_config['games_per_page'] > 0)
-{
-		$sql = "SELECT count(*) AS total FROM " . iNA_HIGHSCORES;
-		if($highscore_id > 0)
-		{
-			$sql .= " WHERE highscore_id = " . (int) $highscore_id;
-		}
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, $lang['no_game_total'], '', __LINE__, __FILE__, $sql);
-		}
-		$total = $db->sql_fetchrow($result);
-		$total_highscores = $total['total'];
-}
 
 $template->assign_vars(array(
 		'HIGHSCORE_INPUT' => highscore_jump_box(),
