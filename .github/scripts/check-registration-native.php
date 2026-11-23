@@ -53,6 +53,15 @@ function rgn_insert_sql($table,$values){
  foreach(rgn_rows('SHOW COLUMNS FROM '.$table) as $c){if(!array_key_exists($c['Field'],$values)&&$c['Null']==='NO'&&$c['Default']===null&&strpos($c['Extra'],'auto_increment')===false){$values[$c['Field']]=preg_match('/^(tinyint|smallint|mediumint|int|bigint|float|double|decimal)/',$c['Type'])?0:'';}}
  $encoded=array();foreach($values as $v){$encoded[]="'".$GLOBALS['peer']->sql_escape((string)$v)."'";}return 'INSERT INTO '.$table.' ('.implode(',',array_keys($values)).') VALUES ('.implode(',',$encoded).')';
 }
+function rgn_settings_sql($table, $settings)
+{
+ $columns = array('fixture_config'=>'config_name,config_value', 'fixture_ctracker_config'=>'ct_config_name,ct_config_value');
+ $values = array();
+ foreach ($settings as $key => $value) {
+  $values[] = "(CONVERT(X'".bin2hex((string)$key)."' USING utf8mb4),CONVERT(X'".bin2hex((string)$value)."' USING utf8mb4))";
+ }
+ return 'INSERT INTO '.$table.' ('.$columns[$table].') VALUES '.implode(',', $values);
+}
 function rgn_snap(){
  $snap=array();foreach($GLOBALS['rgn_tables'] as $s){$rows=rgn_rows('SELECT * FROM fixture_'.$s);foreach($rows as &$row){foreach(array('user_regdate','ct_last_pw_change','user_passwd_change','updated_at','window_start') as $k){if(isset($row[$k])&&(int)$row[$k]>1){$row[$k]='fresh';}}}unset($row);usort($rows,function($a,$b){return strcmp(json_encode($a),json_encode($b));});$snap[$s]=$rows;}return $snap;
 }
@@ -64,13 +73,13 @@ function rgn_reset($activation=0,$challenge='confirm'){
  rgn_sql(rgn_insert_sql('fixture_groups',array('group_id'=>10,'group_name'=>'Existing group','group_single_user'=>0)));
  rgn_sql(rgn_insert_sql('fixture_sessions',array('session_id'=>'fixture-sid','session_user_id'=>-1,'session_logged_in'=>0)));
  rgn_sql('INSERT INTO fixture_user_id_sequence VALUES (1,7)');
- $board_config=array();foreach(PhpbbRegistrationScope::policy_keys() as $key){ats_check(preg_match("/VALUES\\s*\\('".preg_quote($key,'/')."'\\s*,\\s*'([^']*)'\\)/",$GLOBALS['rgn_basic'],$m)===1,'Installer policy '.$key);$board_config[$key]=$m[1];}
+ $board_config=$GLOBALS['rgn_policy_defaults'];
  $board_config['require_activation']=$activation===3?0:$activation;$board_config['registration_status']=0;$board_config['enable_confirm']=$challenge==='confirm'?1:0;$board_config['sfs_enable']=0;
- foreach($board_config as $k=>$v){rgn_sql(rgn_insert_sql('fixture_config',array('config_name'=>$k,'config_value'=>$v)));}
+ rgn_sql(rgn_settings_sql('fixture_config',$board_config));
  $board_config+=array('smtp_delivery'=>0,'board_email'=>'forum@example.invalid','board_email_sig'=>'Fixture','sitename'=>'Fixture','coppa_fax'=>'','coppa_mail'=>'');
  $plus_config=array('enable_antirobot'=>$challenge==='robot'?1:0);rgn_sql(rgn_insert_sql('fixture_plus',array('config_name'=>'enable_antirobot','config_value'=>$plus_config['enable_antirobot'])));
  $ctracker_config=(object)array('settings'=>array('reg_protection'=>1,'reg_blocktime'=>30,'autoban_mails'=>0,'spam_keyword_det'=>0,'pw_complex'=>0,'pw_complex_min'=>4,'pw_complex_mode'=>1),'user_ip_value'=>'127.0.0.1');
- foreach($ctracker_config->settings as $k=>$v){rgn_sql(rgn_insert_sql('fixture_ctracker_config',array('ct_config_name'=>$k,'ct_config_value'=>$v)));}
+ rgn_sql(rgn_settings_sql('fixture_ctracker_config',$ctracker_config->settings));
  rgn_sql(rgn_insert_sql('fixture_profile_fields',array('field_id'=>1,'field_name'=>'Fixture profile','is_required'=>1,'users_can_view'=>1)));
  rgn_sql(rgn_insert_sql('fixture_confirm',array('session_id'=>'fixture-sid','confirm_id'=>str_repeat('a',32),'code'=>'AbC123')));
  $robot_id='r'.sprintf('%07x',(int)floor(time()/16)).str_repeat('b',24);rgn_sql(rgn_insert_sql('fixture_confirm',array('session_id'=>'fixture-sid','confirm_id'=>$robot_id,'code'=>'abcde')));
@@ -97,6 +106,11 @@ function rgn_boundary($sql){return strpos($sql,' LOCK IN SHARE MODE')!==false||s
 try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');$rgn_basic=file_get_contents($ats_source.'install/schemas/mysql_basic.sql');
+ $rgn_policy_defaults=array();
+ foreach(PhpbbRegistrationScope::policy_keys() as $key){
+  ats_check(preg_match("/VALUES\\s*\\('".preg_quote($key,'/')."'\\s*,\\s*'([^']*)'\\)/",$rgn_basic,$m)===1,'Installer policy '.$key);
+  $rgn_policy_defaults[$key]=$m[1];
+ }
  foreach(array_merge($rgn_tables,array('user_id_sequence')) as $s){ats_check(preg_match('/CREATE TABLE `?phpbb_'.$s.'`?\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical registration participant '.$s);rgn_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$m[0]));}
  ats_check(preg_match('/ALTER TABLE phpbb_users\s+[\s\S]*?ADD games_block_pm[\s\S]*?;/',$schema,$m)===1,'Canonical Arcade fields');rgn_sql(str_replace('phpbb_users','fixture_users',$m[0]));
  rgn_sql("ALTER TABLE fixture_users ADD fixture_profile MEDIUMTEXT NOT NULL DEFAULT ('')");require_once __DIR__.'/native-fixture-locks.php';native_fixture_peer_nowait($peer);$cases=$serialized=0;
