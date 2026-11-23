@@ -197,6 +197,18 @@ try {
  }
  $template=pl_render($controller,array('start'=>999));
  pl_check($pl_pagination['start']===1 && pl_ids($template)===array(44,42),'Stale out-of-range page clamps to last ordinary page');
+ $pafiledb_config['settings_file_page']=2;
+ $template=pl_render($controller,array('start'=>1));
+ pl_check($pl_pagination['start']===0 && pl_ids($template)===array(44,45,42),'A partial offset opens the start of the displayed page');
+ foreach(array('pa_viewall_body.tpl','pa_category_body.tpl') as $file){
+  $markup=file_get_contents($phpbb_root_path.'templates/fisubsilversh/'.$file);
+  $a=strpos($markup,'<!-- IF FILELIST -->');$form=strpos($markup,'<form action="{S_ACTION_SORT}"',$a);
+  $table=strpos($markup,'<table',$a);$end=strpos($markup,'</form>',$table);
+  pl_check($a!==false && $form!==false && $form<$table && $end>$table && strpos(substr($markup,$form,$end-$form),'name="start"')===false
+   && strpos(substr($markup,$form,$end-$form),'name="sort_method"')!==false && !empty($template->data['S_ACTION_SORT']),
+   'The sort form surrounds the table, has the current route and starts a new sort on its first page');
+ }
+ $pafiledb_config['settings_file_page']=1;
  $pafiledb_config['sort_method']='file_rating';
  pl_check(pl_ids(pl_render($controller))===array(44,42),'Legacy configured rating alias is normalized');
  $pafiledb_config['sort_method']='invalid'; $pafiledb_config['sort_order']='invalid'; $pafiledb_config['settings_file_page']=0;
@@ -215,8 +227,8 @@ try {
   pl_check($caught && $caught->level===GENERAL_ERROR && $caught->getMessage()===$lang['PA_list_unavailable'] && !$db->open,'Each failed read gives a translated error and frees previous results');
  }
  $db->sql_query('START TRANSACTION READ ONLY'); pl_render($controller);
- $result=$db->sql_query('SELECT @@in_transaction active'); $row=$db->sql_fetchrow($result); $db->sql_freeresult($result);
- pl_check((int)$row['active']===1,'Actual list preserves caller-owned read-only transaction'); $db->sql_query('ROLLBACK');
+ $changed=$db->sql_query('SET TRANSACTION READ ONLY');$transaction_error=$db->sql_error();
+ pl_check($changed===false && (int)$transaction_error['code']===1568,'Actual list preserves the caller transaction on both MySQL and MariaDB'); $db->sql_query('ROLLBACK');
  pl_check(!$db->open,'Caller/source remains open without leaked results');
  foreach (array('english','german') as $locale) {
   pl_language($locale);

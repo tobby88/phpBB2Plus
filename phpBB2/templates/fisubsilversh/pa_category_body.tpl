@@ -39,6 +39,9 @@
 <!-- ENDIF -->
 
 <!-- IF FILELIST -->
+<form action="{S_ACTION_SORT}" method="post">
+<input type="hidden" name="action" value="category" />
+<input type="hidden" name="cat_id" value="{ID}" />
 <table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr> 
 	<th class="thCornerL" width="5%">&nbsp;</th>
@@ -70,10 +73,6 @@
   </tr>
 <!-- END file_rows -->
 
-<form action="{S_ACTION_SORT}" method="post">
-<input type="hidden" name="action" value="category">
-<input type="hidden" name="cat_id" value="{ID}">
-<input type="hidden" name="start" value="{START}">
   <tr> 
 	<td class="cat" align="center" colspan="6"><span class="genmed">{L_SELECT_SORT_METHOD}:&nbsp;
 	<select name="sort_method">

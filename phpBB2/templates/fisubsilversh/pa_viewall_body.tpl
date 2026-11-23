@@ -8,6 +8,8 @@
 </table>
 
 <!-- IF FILELIST -->
+<form action="{S_ACTION_SORT}" method="post">
+<input type="hidden" name="action" value="viewall" />
 <table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr> 
 	<th class="thCornerL" width="5%">&nbsp;</th>
@@ -41,9 +43,6 @@
   </tr>
 <!-- END file_rows -->
 
-<form action="{S_VIEWALL_ACTION}" method="post">
-<input type="hidden" name="action" value="viewall">
-<input type="hidden" name="start" value="{START}">
   <tr> 
 	<td class="cat" align="center" colspan="7"><span class="genmed">{L_SELECT_SORT_METHOD}:&nbsp;
 	<select name="sort_method">

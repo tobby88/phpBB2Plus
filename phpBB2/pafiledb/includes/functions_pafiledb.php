@@ -906,7 +906,6 @@ class pafiledb
 				'PAGE_NUMBER' => sprintf($lang['Page_of'], floor($start / $per_page) + 1, max(1, ceil($total_file / $per_page))),
 				'FILELIST' => $filelist,
 				'ID' => $cat_id,
-				'START' => $start,
 
 				'S_ACTION_SORT' => append_sid("dload.$phpEx?action=$action")) 
 			);

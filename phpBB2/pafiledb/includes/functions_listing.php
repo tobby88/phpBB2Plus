@@ -57,7 +57,8 @@ function pafiledb_listing_read($database, $categories, $category, $sort, $direct
 	if (count($count) !== 1 || !preg_match('/^[0-9]+$/D', (string)$count[0]['total_file']) || (float)$count[0]['total_file'] > 2147483647)
 	{ throw new RuntimeException('Download list unavailable'); }
 	$total = (int)$count[0]['total_file'];
-	if ($options['start'] >= $total) { $options['start'] = $total ? (int)(floor(($total - 1) / $options['per_page']) * $options['per_page']) : 0; }
+	$last_page = (int)floor(max(0, $total - 1) / $options['per_page']);
+	$options['start'] = min($last_page, (int)floor($options['start'] / $options['per_page'])) * $options['per_page'];
 	return array('options'=>$options, 'category'=>$category, 'total'=>$total,
 		'pinned'=>pafiledb_listing_rows($database, pafiledb_listing_files_sql($categories, true, $options)),
 		'files'=>pafiledb_listing_rows($database, pafiledb_listing_files_sql($categories, false, $options)));
