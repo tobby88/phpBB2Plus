@@ -179,8 +179,8 @@ define ('IN_MINI_CAL', 1);
         )
     );
     
-    // check for birthdays mod
-    if ( isset($template->_tpldata['.'][0]['L_WHOSBIRTHDAY_TODAY']) || isset($template->vars['L_WHOSBIRTHDAY_TODAY']) )
+    if (!empty($userdata['session_logged_in']) && !empty($userdata['user_id']) && (int) $userdata['user_id'] > 0
+        && (!empty($template->_tpldata['.'][0]['L_WHOSBIRTHDAY_TODAY']) || !empty($template->vars['L_WHOSBIRTHDAY_TODAY'])))
     {
         $template->assign_block_vars( 'switch_mini_cal_birthdays', array());
     }

@@ -98,3 +98,82 @@ function phpbb_daily_registrations($db, $now, $timezone)
 	$db->sql_freeresult($result);
 	return array('today' => (int) $row['today'], 'yesterday' => (int) $row['yesterday']);
 }
+
+function phpbb_daily_birthdays($db, $viewer, $now, $timezone, $days)
+{
+	// Profiles and the calendar show birthdays to signed-in members only.
+	if (empty($viewer['session_logged_in']) || empty($viewer['user_id']) || (int) $viewer['user_id'] <= 0 || $days < 1)
+	{
+		return false;
+	}
+	$local = phpbb_date_timestamp($now, $timezone);
+	if ($local === null) { return false; }
+	$today = (new DateTimeImmutable('@' . $local))->setTime(0, 0);
+	$dates = array();
+	// The next occurrence of each birthday is at most one calendar year away.
+	$end = $today->modify('+' . min(366, (int) $days) . ' days');
+	for ($date = $today; $date <= $end; $date = $date->modify('+1 day'))
+	{
+		$key = $date->format('md');
+		if (!isset($dates[$key])) { $dates[$key] = $date; }
+		// The calendar celebrates February 29 on March 1 in ordinary years.
+		if ($key === '0301' && $date->format('L') === '0' && !isset($dates['0229']))
+		{
+			$dates['0229'] = $date;
+		}
+	}
+	// The Birthday MOD stores signed whole days since 1970. Ignore its
+	// unspecified-date sentinel and only return members in the requested window.
+	$sql = "SELECT user_id, username, YEAR(born) AS birth_year, DATE_FORMAT(born, '%m%d') AS birthday
+		FROM (SELECT user_id, username, DATE_ADD('1970-01-01', INTERVAL user_birthday DAY) AS born
+			FROM " . USERS_TABLE . " WHERE user_id > 0
+			AND user_birthday BETWEEN DATEDIFF('1901-01-01', '1970-01-01') AND DATEDIFF('2099-12-31', '1970-01-01')) members
+		WHERE DATE_FORMAT(born, '%m%d') IN ('" . implode("','", array_keys($dates)) . "')
+		ORDER BY username, user_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not read user birthdays', '', __LINE__, __FILE__, $sql);
+	}
+	$birthdays = array('today' => array(), 'upcoming' => array());
+	try
+	{
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$occurrence = $dates[$row['birthday']];
+			$age = (int) $occurrence->format('Y') - (int) $row['birth_year'];
+			if ($age < 0) { continue; }
+			$period = $occurrence == $today ? 'today' : 'upcoming';
+			$birthdays[$period][] = array('id' => (int) $row['user_id'], 'username' => $row['username'], 'age' => $age);
+		}
+	}
+	finally
+	{
+		$db->sql_freeresult($result);
+	}
+	return $birthdays;
+}
+
+function phpbb_display_daily_birthdays($db, $template, $viewer, $now, $timezone, $days)
+{
+	global $lang, $phpEx;
+	$birthdays = phpbb_daily_birthdays($db, $viewer, $now, $timezone, $days);
+	if ($birthdays === false) { return; }
+	$lists = array();
+	foreach ($birthdays as $period => $members)
+	{
+		$links = array();
+		foreach ($members as $member)
+		{
+			$url = append_sid('profile.' . $phpEx . '?mode=viewprofile&amp;' . POST_USERS_URL . '=' . $member['id']);
+			$name = color_group_colorize_name($member['id'], true, $member['username']);
+			$links[] = '<a href="' . $url . '" class="gensmall">' . $name . ' (' . $member['age'] . ')</a>';
+		}
+		$lists[$period] = implode(', ', $links);
+	}
+	$template->assign_vars(array(
+		'L_WHOSBIRTHDAY_TODAY' => $lists['today'] === '' ? $lang['Nobirthday_today'] : $lang['Birthday_today'] . $lists['today'],
+		'L_WHOSBIRTHDAY_WEEK' => $days > 1
+			? sprintf($lists['upcoming'] === '' ? $lang['Nobirthday_week'] : $lang['Birthday_week'], $days) . $lists['upcoming'] : ''
+	));
+	$template->assign_block_vars('switch_show_birthday', array());
+}

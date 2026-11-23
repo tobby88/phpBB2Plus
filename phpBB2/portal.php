@@ -51,8 +51,6 @@ $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
 $logged_visible_online = 0;
 $logged_hidden_online = 0;
-$birthday_today_list = '';
-$birthday_week_list = '';
 $show_lastvbox = false;
 $users_today_list = '';
 $l_today_text = '';
@@ -338,77 +336,7 @@ if ( $CFG['number_recent_files'] > 0 )
 //
 
 
-// Birthday Mod, Show users with birthday
-if ($board_config['birthday_check_day'] > 0 )
-{
-	$cache_data_file = $phpbb_root_path . 'cache/birthday_data_' . md5((string) $board_config['board_timezone']) . '.cache';
-	if (@is_file($cache_data_file)  && empty($SID))
-	{
-		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false;
-	} else
-	{
-	   $valid = false;
-	}
-	
-	if ($valid )
-	{
-	   $birthday_cache = phpbb_data_cache_read($cache_data_file);
-	   if (is_array($birthday_cache) && isset($birthday_cache['today'], $birthday_cache['week']))
-	   {
-		  $birthday_today_list = (string) $birthday_cache['today'];
-		  $birthday_week_list = (string) $birthday_cache['week'];
-	   }
-	   else
-	   {
-		  $valid = false;
-	   }
-	}
-	if (!$valid)
-	{
-	   $sql = ($board_config['birthday_check_day']) ? "SELECT user_id, username, user_birthday,user_level FROM " . USERS_TABLE. " WHERE user_birthday!=999999 ORDER BY username" :"";
-	   if($result = $db->sql_query($sql))
-	   {
-		  if (!empty($result))
-		  {
-			 $time_now = time();
-			 $this_year = create_date('Y', $time_now, $board_config['board_timezone']);
-			 $date_today = create_date('Ymd', $time_now, $board_config['board_timezone']);
-			 $date_forward = create_date('Ymd', $time_now+($board_config['birthday_check_day']*86400), $board_config['board_timezone']);
-				while ($birthdayrow = $db->sql_fetchrow($result))
-			 {
-				   $user_birthday2 = $this_year.($user_birthday = realdate("md",$birthdayrow['user_birthday'] ));
-				   if ( $user_birthday2 < $date_today ) $user_birthday2 += 10000;
-				if ( $user_birthday2 > $date_today  && $user_birthday2 <= $date_forward )
-				{
-				   // user are having birthday within the next days
-				   $user_age = ( $this_year.$user_birthday < $date_today ) ? $this_year - realdate ('Y',$birthdayrow['user_birthday'])+1 : $this_year- realdate ('Y',$birthdayrow['user_birthday']);
-				   $style_color = color_group_colorize_name($birthdayrow['user_id'],true);
-								 $birthday_week_list .= ' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $birthdayrow['user_id']) . '" class="gensmall">' . $style_color . ' ('.$user_age.')</a>,'; 
-				} else if ( $user_birthday2 == $date_today )
-				   {
-				   //user have birthday today
-				   $user_age = $this_year - realdate ( 'Y',$birthdayrow['user_birthday'] );
-				   $style_color = color_group_colorize_name($birthdayrow['user_id'],true);
-				   $birthday_today_list .= ' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $birthdayrow['user_id']) . '" class="gensmall">' . $style_color . ' ('.$user_age.')</a>,';
-				   }
-			 }
-			 if ($birthday_today_list) $birthday_today_list[ strlen( $birthday_today_list)-1] = ' ';
-			 if ($birthday_week_list) $birthday_week_list[ strlen( $birthday_week_list)-1] = ' ';
-		  }
-		  $db->sql_freeresult($result);
-		  if (empty($SID))
-		  {
-			 // stores the data set in a cache file
-			 phpbb_data_cache_write($cache_data_file, array(
-				'today' => $birthday_today_list,
-				'week' => $birthday_week_list,
-			 ));
-		  }
-	   }
-	}
-}
-$birthday_today_list = stripslashes($birthday_today_list);
-$birthday_week_list = stripslashes($birthday_week_list);
+phpbb_display_daily_birthdays($db, $template, $userdata, time(), $board_config['board_timezone'], (int) $board_config['birthday_check_day']);
 
 if ((int) $plus_config['show_last_visit'] !== 0 && in_array((int) $board_config['display_viewonline'], array(1, 2), true))
 {
@@ -615,10 +543,6 @@ $template->assign_vars(array(
 	'TOTAL_TOPICS' => sprintf($lang['total_topics'], $total_topics),
 	'NEWEST_USER' => sprintf($lang['Newest_user'], '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$newest_uid") . '">', $newest_user, '</a>'),
 	'L_FORUM' => $lang['Forum'],
-	// Start add - Birthday MOD
-	'L_WHOSBIRTHDAY_WEEK' => ($board_config['birthday_check_day'] > 1) ? sprintf( (($birthday_week_list) ? $lang['Birthday_week'] : $lang['Nobirthday_week']), $board_config['birthday_check_day']).$birthday_week_list : '',
-	'L_WHOSBIRTHDAY_TODAY' => ($board_config['birthday_check_day']) ? ($birthday_today_list) ? $lang['Birthday_today'].$birthday_today_list : $lang['Nobirthday_today'] : '',
-	// End add - Birthday MOD
 	'L_BOARD_NAVIGATION' => $lang['Board_navigation'],
 	'L_STATISTICS' => $lang['Statistics'],	
 	'L_ANNOUNCEMENT' => $lang['Post_Announcement'],

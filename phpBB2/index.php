@@ -230,84 +230,13 @@ if (!empty($plus_config['show_links']))
 $l_today_text = '';
 $l_today_users = '';
 $users_today_list = '';
-$birthday_today_list = '';
-$birthday_week_list = '';
 
-// Birthday Mod, Show users with birthday
 $show_online_stats = (int) $board_config['display_viewonline'] === 2
 	|| ($viewcat < 0 && (int) $board_config['display_viewonline'] === 1);
-if ($show_online_stats && $board_config['birthday_check_day'] > 0)
+if ($show_online_stats)
 {
-	$cache_data_file = $phpbb_root_path . 'cache/birthday_data_' . md5((string) $board_config['board_timezone']) . '.cache';
-	if (@is_file($cache_data_file)  && empty($SID))
-	{
-		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false;
-	} else
-	{
-	   $valid = false;
-	}
-	
-	if ($valid )
-	{
-	   $birthday_cache = phpbb_data_cache_read($cache_data_file);
-	   if (is_array($birthday_cache) && isset($birthday_cache['today'], $birthday_cache['week']))
-	   {
-		  $birthday_today_list = (string) $birthday_cache['today'];
-		  $birthday_week_list = (string) $birthday_cache['week'];
-	   }
-	   else
-	   {
-		  $valid = false;
-	   }
-	}
-	if (!$valid)
-	{
-	   $sql = ($board_config['birthday_check_day']) ? "SELECT user_id, username, user_birthday,user_level FROM " . USERS_TABLE. " WHERE user_birthday!=999999 ORDER BY username" :"";
-	   if($result = $db->sql_query($sql))
-	   {
-		  if (!empty($result))
-		  {
-			 $time_now = time();
-			 $this_year = create_date('Y', $time_now, $board_config['board_timezone']);
-			 $date_today = create_date('Ymd', $time_now, $board_config['board_timezone']);
-			 $date_forward = create_date('Ymd', $time_now+($board_config['birthday_check_day']*86400), $board_config['board_timezone']);
-				while ($birthdayrow = $db->sql_fetchrow($result))
-			 {
-				   $user_birthday2 = $this_year.($user_birthday = realdate("md",$birthdayrow['user_birthday'] ));
-				   if ( $user_birthday2 < $date_today ) $user_birthday2 += 10000;
-				if ( $user_birthday2 > $date_today  && $user_birthday2 <= $date_forward )
-				{
-				   // user are having birthday within the next days
-				   $user_age = ( $this_year.$user_birthday < $date_today ) ? $this_year - realdate ('Y',$birthdayrow['user_birthday'])+1 : $this_year- realdate ('Y',$birthdayrow['user_birthday']);
-				   $style_color = color_group_colorize_name($birthdayrow['user_id'],true);
-								 $birthday_week_list .= ' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $birthdayrow['user_id']) . '" class="gensmall">' . $style_color . ' ('.$user_age.')</a>,'; 
-				} else if ( $user_birthday2 == $date_today )
-				   {
-				   //user have birthday today
-				   $user_age = $this_year - realdate ( 'Y',$birthdayrow['user_birthday'] );
-				   $style_color = color_group_colorize_name($birthdayrow['user_id'],true);
-				   $birthday_today_list .= ' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $birthdayrow['user_id']) . '" class="gensmall">' . $style_color . ' ('.$user_age.')</a>,';
-				   }
-			 }
-			 if ($birthday_today_list) $birthday_today_list[ strlen( $birthday_today_list)-1] = ' ';
-			 if ($birthday_week_list) $birthday_week_list[ strlen( $birthday_week_list)-1] = ' ';
-		  }
-		  $db->sql_freeresult($result);
-		  if (empty($SID))
-		  {
-			 // stores the data set in a cache file
-			 phpbb_data_cache_write($cache_data_file, array(
-				'today' => $birthday_today_list,
-				'week' => $birthday_week_list,
-			 ));
-		  }
-	   }
-	}
-	$template->assign_block_vars('switch_show_birthday', array());
-} 
-
-$birthday_today_list = stripslashes($birthday_today_list);
-$birthday_week_list = stripslashes($birthday_week_list);
+	phpbb_display_daily_birthdays($db, $template, $userdata, time(), $board_config['board_timezone'], (int) $board_config['birthday_check_day']);
+}
 
 if ($show_online_stats && (int) $plus_config['show_last_visit'] !== 0)
 {
@@ -378,8 +307,6 @@ if (($board_config['display_viewonline'] == 2) || (($viewcat < 0) && ($board_con
 				'FORUM_IMG' => $images['forum'],
 				'FORUM_NEW_IMG' => $images['forum_new'],
 				'FORUM_LOCKED_IMG' => $images['forum_locked'],
-				'L_WHOSBIRTHDAY_WEEK' => ($board_config['birthday_check_day'] > 1) ? sprintf( (($birthday_week_list) ? $lang['Birthday_week'] : $lang['Nobirthday_week']), $board_config['birthday_check_day']).$birthday_week_list : '',
-				'L_WHOSBIRTHDAY_TODAY' => ($board_config['birthday_check_day']) ? ($birthday_today_list) ? $lang['Birthday_today'].$birthday_today_list : $lang['Nobirthday_today'] : '',
 				'L_USERS_LASTHOUR' => $l_today_text,
 				'L_USERS_TODAY' =>$l_today_users,
 				'L_LINKS' => $lang['Site_links'],
@@ -428,11 +355,6 @@ if (($board_config['display_viewonline'] == 2) || (($viewcat < 0) && ($board_con
 		
 		'L_USERS_TODAY' =>$l_today_users,
 		// End add - Last visit MOD
-		
-		// Start add - Birthday MOD
-		'L_WHOSBIRTHDAY_WEEK' => ($board_config['birthday_check_day'] > 1) ? sprintf( (($birthday_week_list) ? $lang['Birthday_week'] : $lang['Nobirthday_week']), $board_config['birthday_check_day']).$birthday_week_list : '',
-		'L_WHOSBIRTHDAY_TODAY' => ($board_config['birthday_check_day']) ? ($birthday_today_list) ? $lang['Birthday_today'].$birthday_today_list : $lang['Nobirthday_today'] : '',
-		// End add - Birthday MOD
 		
 		'L_FORUM' => $lang['Forum'],
 		'L_TOPICS' => $lang['Topics'],
