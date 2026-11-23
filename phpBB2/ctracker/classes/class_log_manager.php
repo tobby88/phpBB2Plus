@@ -503,10 +503,61 @@ class log_manager
         $path=$this->safe_log_path($file_id);if($path===false){return 0;}$handle=@fopen($path,'rb');if($handle===false){return 0;}
         try{
             if(!@flock($handle,LOCK_SH)){return 0;}
-            if(intval($file_id)!==6){$count=$this->count_event_records($handle);return$count===false?0:$count;}
-            $first=$this->read_record_fingerprint($handle);if($first===false){return 0;}$count=1;
-            while(($next=$this->read_record_fingerprint($handle))!==false){if($next===$first){$count++;}}return$count;
+            $count = $this->count_log_records($handle, intval($file_id) === 6);
+            return $count === false ? 0 : $count;
         }finally{@flock($handle,LOCK_UN);@fclose($handle);}
+    }
+
+    private function count_log_records($handle, $debug)
+    {
+        if (!$debug) { return $this->count_event_records($handle); }
+        $first = $this->read_record_fingerprint($handle);
+        if ($first === false) { return 0; }
+        $count = 1;
+        while (($next = $this->read_record_fingerprint($handle)) !== false)
+        {
+            if ($next === $first) { $count++; }
+        }
+        return $count;
+    }
+
+    function read_log_snapshot($file_id, $max_lines = 1000)
+    {
+        $empty = array('count'=>0, 'metadata'=>null, 'lines'=>array());
+        $path = $this->safe_log_path($file_id);
+        if ($path === false || !is_file($path) || ($handle = @fopen($path, 'rb')) === false) { return $empty; }
+        try
+        {
+            if (!@flock($handle, LOCK_SH)) { return $empty; }
+            $debug = intval($file_id) === 6;
+            $count = $this->count_log_records($handle, $debug);
+            if ($count === false) { return $empty; }
+
+            // Event logs reserve their physical first line for metadata, even
+            // when it is older than both read limits.
+            $metadata = null;
+            if (!$debug && @rewind($handle))
+            {
+                $first = @fgets($handle, 16385);
+                if ($first !== false && (substr($first, -1) === "\n" || feof($handle)))
+                {
+                    $fields = explode('|||', $first);
+                    if (count($fields) >= 7 && $this->metadata_kind($fields) &&
+                        preg_match('/^[0-9]+$/D', $fields[1]) && (int) $fields[1] > 0)
+                    {
+                        $metadata = $fields;
+                    }
+                    elseif (count($fields) >= 7 && $fields[0] === '0')
+                    {
+                        // Imported event logs can predate the metadata line.
+                        $count++;
+                    }
+                }
+            }
+            return array('count'=>$count, 'metadata'=>$metadata,
+                'lines'=>$this->read_log_tail($handle, $max_lines, $metadata !== null));
+        }
+        finally { @flock($handle, LOCK_UN); @fclose($handle); }
     }
 
     /**
@@ -515,10 +566,17 @@ class log_manager
      */
     function read_log_lines($file_id,$max_lines=1000)
     {
-        $path=$this->safe_log_path($file_id);$max_lines=max(1,min(5000,intval($max_lines)));
+        $path=$this->safe_log_path($file_id);
         if($path===false||!is_file($path)||!is_readable($path)){return array();}$handle=@fopen($path,'rb');if($handle===false){return array();}
         try{
-            if(!@flock($handle,LOCK_SH)){return array();}$stat=@fstat($handle);
+            if(!@flock($handle,LOCK_SH)){return array();}
+            return $this->read_log_tail($handle, $max_lines);
+        }finally{@flock($handle,LOCK_UN);@fclose($handle);}
+    }
+
+    private function read_log_tail($handle, $max_lines, $omit_first = false)
+    {
+            $max_lines=max(1,min(5000,intval($max_lines)));$stat=@fstat($handle);
             if(!is_array($stat)||!isset($stat['size'])||!is_int($stat['size'])||$stat['size']<1){return array();}
             $position=$stat['size'];$budget=min($position,8388608);$lines=array();$carry='';$oversized=false;$suffix='';$at_end=true;
             while($position>0&&$budget>0&&count($lines)<$max_lines){
@@ -532,9 +590,8 @@ class log_manager
                     if($i>0){if(!$oversized){$lines[]=$carry.$suffix;}$carry='';$oversized=false;$suffix="\n";if(count($lines)>=$max_lines){return array_reverse($lines);}}
                 }
             }
-            if($position===0&&!$oversized&&count($lines)<$max_lines){$lines[]=$carry.$suffix;}
+            if(!$omit_first&&$position===0&&!$oversized&&count($lines)<$max_lines){$lines[]=$carry.$suffix;}
             return array_reverse($lines);
-        }finally{@flock($handle,LOCK_UN);@fclose($handle);}
     }
 
 	/**

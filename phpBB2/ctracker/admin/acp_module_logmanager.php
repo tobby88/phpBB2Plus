@@ -88,7 +88,8 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 
 	// cell 3 has another description if it is the malformed login log
 	( $logid == 4 || $logid == 5 )? $description_cell_2 = $lang['ctracker_log_manager_cell_2b'] : $description_cell_2 = $lang['ctracker_log_manager_cell_2a'];
-	$log_size = $logmanager->check_log_size($logid);
+	$log = $logmanager->read_log_snapshot($logid);
+	$log_size = $log['count'];
 
 	$template->assign_block_vars('show_log_header', array(
 			'L_MESSAGE_TEXT'	=> (($log_size == 1)? sprintf($lang['ctracker_log_manager_showheader1'], append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6')) : sprintf($lang['ctracker_log_manager_showheader'], $log_size, append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6'))) . '<br />' . $lang['ctracker_log_manager_tail_info'],
@@ -101,54 +102,46 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 			'L_LOGCELL6'		=> $lang['ctracker_log_manager_cell_6'])
 	);
 
-	// Template Loop for Logfile output and naturally logfile output itself
-	$filename  = $logmanager->read_log_lines($logid, 1000);
-	$a		   = 0;
-	$lastclean = 0;
-	$split_token = '|||';
+	$a = 0;
 	$metadata_captions = array(
 		'cleared' => 'ctracker_log_manager_sysmsg',
 		'created' => 'ctracker_log_manager_initialized',
 		'rotated' => 'ctracker_log_manager_rotated',
 	);
 
-	for ( $i = count($filename) - 1; $i >= 0; $i-- )
+	if ($log['metadata'] !== null)
 	{
-		$line = explode($split_token, $filename[$i]);
-		if (count($line) < 7)
+		$metadata_kind = $logmanager->metadata_kind($log['metadata']);
+		$metadata_caption = isset($metadata_captions[$metadata_kind], $lang[$metadata_captions[$metadata_kind]])
+			? $metadata_captions[$metadata_kind] : 'ctracker_log_manager_legacy_marker';
+		$lastclean = (int) $log['metadata'][1];
+		$template->assign_block_vars('show_system_message', array(
+			'L_SYS_MSG' => sprintf($lang[$metadata_caption], phpbb_admin_html(create_date($board_config['default_dateformat'], $lastclean, $board_config['board_timezone']))),
+			'L_DELETE' => $lang['ctracker_log_manager_delete'],
+			'LOG_ID' => $logid
+		));
+	}
+
+	for ($i = count($log['lines']) - 1; $i >= 0; $i--)
+	{
+		$line = explode('|||', $log['lines'][$i]);
+		if (count($line) < 7 || $line[0] === '1')
 		{
 			continue;
 		}
+		$a++;
+		$entrytime = (int) $line[1];
 
-		if ( $line[0] == 1 )
-		{
-			$lastclean = intval($line[1]);
-			$metadata_kind = $logmanager->metadata_kind($line);
-			$metadata_caption = isset($metadata_captions[$metadata_kind], $lang[$metadata_captions[$metadata_kind]])
-				? $metadata_captions[$metadata_kind] : 'ctracker_log_manager_legacy_marker';
-
-			$template->assign_block_vars('show_system_message', array(
-					'L_SYS_MSG'		=>	sprintf($lang[$metadata_caption], phpbb_admin_html(create_date($board_config['default_dateformat'], $lastclean, $board_config['board_timezone']))),
-					'L_DELETE'		=> $lang['ctracker_log_manager_delete'],
-					'LOG_ID'		=> $logid)
-				);
-		}
-		else
-		{
-			$a++;								// Counter-Value
-			$entrytime = intval($line[1]);		// Entry Timestamp
-
-			$template->assign_block_vars('show_log', array(
-					'TABLE_CLASS'	=> ( $i % 2 == 0)? 'row1' : 'row2',
-					'L_OUTPUT_1'	=> phpbb_admin_html(create_date($board_config['default_dateformat'], $entrytime, $board_config['board_timezone'])),
-					'L_OUTPUT_2'	=> phpbb_admin_html($line[2]),
-					'L_OUTPUT_3'	=> phpbb_admin_html($line[3]),
-					'L_OUTPUT_4'	=> phpbb_admin_html($line[4]),
-					'L_OUTPUT_5'	=> phpbb_admin_html($line[5]),
-					'L_OUTPUT_6'	=> phpbb_admin_html($line[6]),
-					'L_NUMBER'		=> $a)
-				);
-		}
+		$template->assign_block_vars('show_log', array(
+			'TABLE_CLASS' => $a % 2 === 0 ? 'row1' : 'row2',
+			'L_OUTPUT_1' => phpbb_admin_html(create_date($board_config['default_dateformat'], $entrytime, $board_config['board_timezone'])),
+			'L_OUTPUT_2' => phpbb_admin_html($line[2]),
+			'L_OUTPUT_3' => phpbb_admin_html($line[3]),
+			'L_OUTPUT_4' => phpbb_admin_html($line[4]),
+			'L_OUTPUT_5' => phpbb_admin_html($line[5]),
+			'L_OUTPUT_6' => phpbb_admin_html($line[6]),
+			'L_NUMBER' => $a
+		));
 	}
 
 	// Footer for logfile output

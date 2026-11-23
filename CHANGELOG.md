@@ -1348,6 +1348,8 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Accurate CrackerTracker log metadata and dates
 
+- Read the event count, metadata and bounded event list together. Keep the
+  creation or reset date visible after its header falls outside the event list.
 - Mark automatic log resets at the entry limit separately from explicit
   clears and explain the reason in the admin panel in English and German.
 - Recognize the log writer's explicit creation and clearing markers with LF or

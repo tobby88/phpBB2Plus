@@ -174,7 +174,7 @@ if (strpos($htaccess, 'Require all denied') === false || strpos($htaccess, 'Allo
 
 $logmanager_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/admin/acp_module_logmanager.php');
 $download_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/admin/admin_cracker_tracker.php');
-if (strpos($logmanager_source, 'read_log_lines(') === false || strpos($logmanager_source, '@file(') !== false)
+if (strpos($logmanager_source, 'read_log_snapshot(') === false || strpos($logmanager_source, '@file(') !== false)
 {
 	fwrite(STDERR, "The ACP still performs an unbounded direct logfile read.\n");
 	exit(1);

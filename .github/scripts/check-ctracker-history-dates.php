@@ -30,20 +30,32 @@ class AcpLogDateTemplate {
  public$blocks=array();function set_filenames($files){}function assign_vars($vars){}function assign_block_vars($name,$row){$this->blocks[$name][]=$row;}function pparse($name){}
 }
 function acp_log_date_expected($format,$stamp,$offset){global$lang;$seconds=(int)round(3600*($offset+(int)date('I')));$text=(new DateTimeImmutable('@'.$stamp))->modify(($seconds>=0?'+':'').$seconds.' seconds')->format($format);return htmlspecialchars(strtr($text,$lang['datetime']),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
-function acp_log_date_case($server,$offset,$stamp,$format,$kind,$ending){
+function acp_log_date_case($server,$offset,$stamp,$format,$kind,$ending,$older_count=0,$large_record=false){
  global$path,$board_config,$template,$app,$lang,$images,$phpEx,$phpbb_root_path,$locale,$log_cases;
  date_default_timezone_set($server);$board_config['board_timezone']=$offset;$board_config['default_dateformat']=$format;$event=$stamp+86401;
  $header='1|||'.$stamp.'|||null|||null|||null|||null|||null'.($kind==='legacy'?'':'|||'.$kind);
  // An empty ending exercises an unterminated event; metadata still needs LF.
- $bytes=$header.($ending===''?"\n":$ending).'0|||'.$event.'|||Grüße & <event>|||referrer|||agent|||address|||host'.$ending;
+ $record_ending=$ending===''?"\n":$ending;
+ $older='0|||'.$stamp.'|||Older entry|||referrer|||agent|||address|||host'.$record_ending;
+ $padding=$large_record?str_repeat('X',8388608).$record_ending:'';
+ $bytes=($kind==='none'?'':$header.$record_ending).$padding.str_repeat($older,$older_count).'0|||'.$event.'|||Grüße & <event>|||referrer|||agent|||address|||host'.$ending;
  if(file_put_contents($path,$bytes)!==strlen($bytes)){throw new RuntimeException('Own complete date log unavailable');}$before=hash_file('sha256',$path);$_GET=array('mode'=>'view','logid'=>'5');$_POST=array();$template=new AcpLogDateTemplate();
  // Preserve the successful rendering path; rethrow controller failures so
  // this isolated view test reports their cause without a full error page.
  $controller=ctracker_log_fixture_source($app);$failure='message_die(GENERAL_ERROR, ctracker_log_error_message($error));';if(substr_count($controller,$failure)!==2){throw new RuntimeException('Actual ACP error boundary unavailable');}eval(str_replace($failure,'throw $error;',$controller));
  $captions=array('legacy'=>'ctracker_log_manager_legacy_marker','created'=>'ctracker_log_manager_initialized','cleared'=>'ctracker_log_manager_sysmsg','rotated'=>'ctracker_log_manager_rotated');
- $want=sprintf($lang[$captions[$kind]],acp_log_date_expected($format,$stamp,$offset));
- if(count($template->blocks['show_system_message'])!==1||$template->blocks['show_system_message'][0]['L_SYS_MSG']!==$want){throw new RuntimeException('Actual ACP metadata caption/date differs for '.$locale.'/'.$kind.'/'.$server);}
- if(count($template->blocks['show_log'])!==1||$template->blocks['show_log'][0]['L_OUTPUT_1']!==acp_log_date_expected($format,$event,$offset)||$template->blocks['show_log'][0]['L_OUTPUT_2']!=='Grüße &amp; &lt;event&gt;'){throw new RuntimeException('Actual ACP event date/escaping differs from the independent calendar');}
+ $metadata=isset($template->blocks['show_system_message'])?$template->blocks['show_system_message']:array();
+ $expected_count=$older_count+($large_record?2:1);
+ $overview='admin_cracker_tracker.php?modu=6';
+ $summary=($expected_count===1?sprintf($lang['ctracker_log_manager_showheader1'],$overview):sprintf($lang['ctracker_log_manager_showheader'],$expected_count,$overview)).'<br />'.$lang['ctracker_log_manager_tail_info'];
+ if($template->blocks['show_log_header'][0]['L_MESSAGE_TEXT']!==$summary){throw new RuntimeException('Actual ACP record count differs');}
+ if($kind==='none'){
+  if($metadata){throw new RuntimeException('Heading invented for a headerless log');}
+ }else{
+  $want=sprintf($lang[$captions[$kind]],acp_log_date_expected($format,$stamp,$offset));
+  if(count($metadata)!==1||$metadata[0]['L_SYS_MSG']!==$want){throw new RuntimeException('Actual ACP metadata caption/date differs for '.$locale.'/'.$kind.'/'.$server);}
+ }
+ if(count($template->blocks['show_log'])!==min(1000,1+$older_count)||$template->blocks['show_log'][0]['L_OUTPUT_1']!==acp_log_date_expected($format,$event,$offset)||$template->blocks['show_log'][0]['L_OUTPUT_2']!=='Grüße &amp; &lt;event&gt;'){throw new RuntimeException('Actual ACP event date/escaping differs from the independent calendar');}
  if(hash_file('sha256',$path)!==$before){throw new RuntimeException('ACP date rendering changed original log bytes');}$log_cases++;
 }
 $base=sys_get_temp_dir().'/codex_ct_log_dates_'.bin2hex(phpbb_random_bytes(8));$made=false;$log_cases=0;$HTTP_SERVER_VARS=$HTTP_ENV_VARS=array();$phpEx='php';$images=array('ctracker_log_manager'=>'fixture.gif');$userdata['session_id']='log-date-fixture';
@@ -55,6 +67,9 @@ try{
  foreach(array('UTC','Europe/Berlin','Pacific/Auckland')as$server){foreach(array(-12,-3.5,0,1,5.75,12,14)as$offset){foreach(array('Y-m-d H:i','l j F Y H:i','Y-m-d < H:i > "')as$format){acp_log_date_case($server,$offset,$stamps[$index%4],$format,$kinds[$index%3],$endings[$index%3]);$index++;}}}
  foreach($kinds as$kind){foreach($endings as$ending){acp_log_date_case('Europe/Berlin',5.75,1735689599,'l j F Y H:i',$kind,$ending);}}
  foreach($endings as$ending){acp_log_date_case('Europe/Berlin',5.75,1735689599,'l j F Y H:i','rotated',$ending);}
+ acp_log_date_case('Europe/Berlin',5.75,1735689599,'l j F Y H:i','cleared',"\n",1001);
+ acp_log_date_case('Europe/Berlin',5.75,1735689599,'l j F Y H:i','rotated',"\r\n",0,true);
+ acp_log_date_case('Europe/Berlin',5.75,1735689599,'l j F Y H:i','none','');
  echo 'CrackerTracker ACP log dates: ',$locale,' ',$log_cases," actual-controller/metadata-kind/LF/CRLF/unterminated/timezone/translation/escaping/read-only cases PASS.\n";
 }finally{restore_error_handler();if($made){$real=realpath($base);if(!$real||is_link($base)||dirname($real)!==realpath(sys_get_temp_dir())||!preg_match('/^codex_ct_log_dates_[a-f0-9]{16}$/D',basename($real))){throw new RuntimeException('Exact own date fixture cleanup required');}if(is_file($path)){unlink($path);}rmdir($base.'/cache');rmdir($base.'/ctracker/logfiles');rmdir($base.'/ctracker');rmdir($base);}}
 
