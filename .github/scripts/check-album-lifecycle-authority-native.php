@@ -45,7 +45,9 @@ function ala_reset($guest = false)
 }
 function ala_authorize($owner = 0, $category = 1, $checks = ALBUM_AUTH_VIEW_AND_UPLOAD, $clock = null)
 {
-    $GLOBALS['storage'] = new AlbumFileCoordinator($GLOBALS['db'], 'fixture_', 0); $GLOBALS['storage']->begin();
+    // Closing the previous fixture connection can precede the server releasing
+    // its named lock. Use the same bounded wait as a normal Album request.
+    $GLOBALS['storage'] = new AlbumFileCoordinator($GLOBALS['db'], 'fixture_'); $GLOBALS['storage']->begin();
     $authority = new AlbumLifecycleAuthority($GLOBALS['storage'], 'fixture_', $clock); $before = ala_globals();
     try { $context = $authority->lock($GLOBALS['userdata'], $owner, $category, $checks); }
     finally { ala_check(ala_globals() === $before, 'Exact global request DB/config/userdata/authcache restored'); }

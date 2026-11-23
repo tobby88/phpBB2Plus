@@ -129,8 +129,8 @@ function ad_rating_display_cases(){
   $source=file_get_contents($root.$file);
   if($file==='album_showpage.php'||$file==='album_hotornot.php'){
    $detail=$file==='album_showpage.php';
-   $call=$detail?'album_picture_details_sql($pic_id)':'album_picture_details_sql($pic_id, !empty($album_sp_config[\'hon_rate_sep\']))';
-   ad_check(strpos($source,$call)!==false,'Actual picture and random rating pages select their configured channel');
+   $call=$detail?'album_picture_details_sql($pic_id)':'album_hotornot_picture($db)';
+   ad_check(strpos($source,$call)!==false,'Actual picture pages use their respective readers');
    foreach($detail?array(false):array(false,true) as $separate){
     $row=ad_rows(album_picture_details_sql(1,$separate))[0];
     ad_check((float)$row['rating']===($separate?8.0:4.0)&&(int)$row['comments_count']===1,'Actual detail query preserves selected rating and exact comment count');
