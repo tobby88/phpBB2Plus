@@ -308,7 +308,7 @@ jobs:
           PHPBB_CONTENT_NATIVE: '1'
           PHPBB_CONTENT_PASSWORD: fixture-only
       - name: Check current administrator mass mail without real transport
-        if: matrix.part == 2
+        if: matrix.part == 1
         run: |
           php -d disable_functions=mail .github/scripts/check-mass-mail-native.php
           PHPBB_MASS_MAIL_RAW=1 php -d disable_functions=mail .github/scripts/check-mass-mail-native.php
@@ -1266,7 +1266,7 @@ jobs:
           PHPBB_ATTACH_SEARCH_NATIVE: '1'
           PHPBB_ATTACH_SEARCH_PASSWORD: fixture-only
       - name: Check personal attachment deletion and deferred file cleanup
-        if: matrix.part == 6
+        if: matrix.part == 5
         run: php -d disable_functions=mail .github/scripts/check-uacp-delete-native.php
         env:
           PHPBB_UACP_DELETE_NATIVE: '1'
@@ -1394,7 +1394,7 @@ jobs:
         env:
           PHPBB_ACCOUNT_BLOCK_NATIVE: '1'
           PHPBB_ACCOUNT_BLOCK_PASSWORD: fixture-only
-      - if: matrix.part == 3
+      - if: matrix.part == 4
         run: php .github/scripts/check-post-delete-native.php
         env:
           PHPBB_POST_DELETE_NATIVE: '1'
