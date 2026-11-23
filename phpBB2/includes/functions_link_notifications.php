@@ -1,6 +1,12 @@
 <?php
 if(!defined('IN_PHPBB')){die('Hacking attempt');}
 require_once dirname(__FILE__).'/functions_link_submission.php';
+require_once __DIR__ . '/functions_optional_pm.php';
+
+class PhpbbLinkNoticeMailbox extends PhpbbLinkScope
+{
+	use PhpbbOptionalPm;
+}
 
 function phpbb_link_language($language,$fallback='english')
 {
@@ -32,36 +38,22 @@ function phpbb_link_notification_tables($pm=false)
 // Never evict an existing inbox item, publish an orphan body or lose counters.
 function phpbb_link_notice_pm($database,$outcome,$recipient)
 {
-	$scope=new PhpbbLinkScope($database,phpbb_link_notification_tables(true));
+	$scope=new PhpbbLinkNoticeMailbox($database,phpbb_link_notification_tables(true));
 	try{
 		$ready=phpbb_link_notice_context($scope,$outcome,$recipient);
 		if($ready===false||!$ready['config']['pm_notify']||!empty($ready['settings']['privmsg_disable'])||empty($ready['users'][0]['user_allow_pm'])){return;}
-		$user=$ready['users'][0];$id=(int)$user['user_id'];
-		$counts=$scope->rows('SELECT COUNT(*) AS items FROM '.PRIVMSGS_TABLE.' WHERE privmsgs_to_userid='.$id.' AND privmsgs_type IN ('.(int)PRIVMSGS_NEW_MAIL.','.(int)PRIVMSGS_READ_MAIL.','.(int)PRIVMSGS_UNREAD_MAIL.') FOR UPDATE');
-		$maximum=isset($ready['settings']['max_inbox_privmsgs'])?$ready['settings']['max_inbox_privmsgs']:'50';
-		if(!is_string($maximum)||preg_match('/^[0-9]{1,10}$/D',$maximum)!==1){phpbb_link_fail();}
-		if(count($counts)!==1){phpbb_link_fail();}if((int)$counts[0]['items']>=max(1,(int)$maximum)){return;}
+		$user = $ready['users'][0];
+		$maximum = isset($ready['settings']['max_inbox_privmsgs']) ? $ready['settings']['max_inbox_privmsgs'] : '50';
 		$language=phpbb_link_language($user['user_lang'],isset($ready['settings']['default_lang'])?$ready['settings']['default_lang']:'english');
 		$lang=array();require dirname(__DIR__).'/language/lang_'.$language.'/lang_main_link.php';
-		$subject=$lang['Link_pm_notify_subject'];$text=htmlspecialchars(sprintf($lang['Link_pm_notify_message'],$ready['url']),ENT_QUOTES,'UTF-8');
-		$now=time();global$user_ip;$ip=is_string($user_ip)&&preg_match('/^[a-f0-9]{8}$/iD',$user_ip)?$user_ip:'00000000';
-		$scope->query('INSERT INTO '.PRIVMSGS_TABLE.' (privmsgs_type,privmsgs_subject,privmsgs_from_userid,privmsgs_to_userid,privmsgs_date,privmsgs_ip,privmsgs_enable_html,privmsgs_enable_bbcode,privmsgs_enable_smilies,privmsgs_attach_sig) VALUES ('
-			.(int)PRIVMSGS_NEW_MAIL.",'".$scope->escape($subject)."',".(int)$outcome['user_id'].','.$id.','.$now.",'".$scope->escape($ip)."',0,0,0,0)");
-		$message=(int)$scope->connection->sql_nextid();if($message<1){phpbb_link_fail();}
-		$scope->query('INSERT INTO '.PRIVMSGS_TEXT_TABLE." (privmsgs_text_id,privmsgs_bbcode_uid,privmsgs_text) VALUES (".$message.",'','".$scope->escape($text)."')");
-		$scope->query('UPDATE '.USERS_TABLE.' SET user_new_privmsg=(SELECT COUNT(*) FROM '.PRIVMSGS_TABLE.' WHERE privmsgs_to_userid='.$id.' AND privmsgs_type='.(int)PRIVMSGS_NEW_MAIL.' AND privmsgs_write_payload IS NULL),'
-			.'user_unread_privmsg=(SELECT COUNT(*) FROM '.PRIVMSGS_TABLE.' WHERE privmsgs_to_userid='.$id.' AND privmsgs_type='.(int)PRIVMSGS_UNREAD_MAIL.' AND privmsgs_write_payload IS NULL),'
-			.'user_last_privmsg=CASE WHEN user_last_privmsg IS NULL OR user_last_privmsg<'.$now.' THEN '.$now.' ELSE user_last_privmsg END WHERE user_id='.$id);
-		$stored=$scope->rows('SELECT p.privmsgs_from_userid,p.privmsgs_to_userid,p.privmsgs_subject,p.privmsgs_type,p.privmsgs_date,p.privmsgs_ip,p.privmsgs_enable_html,p.privmsgs_enable_bbcode,p.privmsgs_enable_smilies,p.privmsgs_attach_sig,p.privmsgs_write_payload,t.privmsgs_bbcode_uid,t.privmsgs_text FROM '.PRIVMSGS_TABLE.' p JOIN '.PRIVMSGS_TEXT_TABLE.' t ON t.privmsgs_text_id=p.privmsgs_id WHERE p.privmsgs_id='.$message.' LOCK IN SHARE MODE');
-		if(count($stored)!==1||(int)$stored[0]['privmsgs_from_userid']!==(int)$outcome['user_id']||(int)$stored[0]['privmsgs_to_userid']!==$id||(int)$stored[0]['privmsgs_type']!==(int)PRIVMSGS_NEW_MAIL||$stored[0]['privmsgs_subject']!==$subject||$stored[0]['privmsgs_text']!==$text
-			||(int)$stored[0]['privmsgs_date']!==$now||$stored[0]['privmsgs_ip']!==$ip||$stored[0]['privmsgs_bbcode_uid']!==''||$stored[0]['privmsgs_write_payload']!==null){phpbb_link_fail();}
-		foreach(array('privmsgs_enable_html','privmsgs_enable_bbcode','privmsgs_enable_smilies','privmsgs_attach_sig')as$key){if((int)$stored[0][$key]!==0){phpbb_link_fail();}}
-		$counters=$scope->rows('SELECT u.user_new_privmsg,u.user_unread_privmsg,u.user_last_privmsg,'
-			.'(SELECT COUNT(*) FROM '.PRIVMSGS_TABLE.' WHERE privmsgs_to_userid='.$id.' AND privmsgs_type='.(int)PRIVMSGS_NEW_MAIL.' AND privmsgs_write_payload IS NULL) expected_new,'
-			.'(SELECT COUNT(*) FROM '.PRIVMSGS_TABLE.' WHERE privmsgs_to_userid='.$id.' AND privmsgs_type='.(int)PRIVMSGS_UNREAD_MAIL.' AND privmsgs_write_payload IS NULL) expected_unread FROM '.USERS_TABLE.' u WHERE u.user_id='.$id.' LOCK IN SHARE MODE');
-		if(count($counters)!==1||(int)$counters[0]['user_new_privmsg']!==(int)$counters[0]['expected_new']||(int)$counters[0]['user_unread_privmsg']!==(int)$counters[0]['expected_unread']||(int)$counters[0]['user_last_privmsg']<$now){phpbb_link_fail();}
-		$scope->commit();
-	}finally{$scope->release();}
+		$text=htmlspecialchars(sprintf($lang['Link_pm_notify_message'],$ready['url']),ENT_QUOTES,'UTF-8');
+		global $user_ip;
+		$ip = is_string($user_ip) && preg_match('/^[a-f0-9]{8}$/iD',$user_ip) ? $user_ip : '00000000';
+		if ($scope->insert_optional_pm((int)$outcome['user_id'], (int)$user['user_id'], $maximum, $lang['Link_pm_notify_subject'], $text, $ip)) {
+			$scope->commit();
+		}
+	} catch (PhpbbOptionalPmFailure $error) { phpbb_link_fail(); }
+	finally { $scope->release(); }
 }
 
 // Recheck current recipients/settings outside the author's completed save. No

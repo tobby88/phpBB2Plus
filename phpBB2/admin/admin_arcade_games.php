@@ -60,20 +60,22 @@ function arcade_admin_post_int($name, $default = 0)
 
 function arcade_admin_notify_new_game($description)
 {
-	global $db, $lang, $arcade, $userdata, $phpbb_root_path;
+	global $db, $lang, $arcade, $userdata;
 	if (empty($arcade->arcade_config['games_pm_new'])) { return; }
 	$message = sprintf($lang['games_new_game_added'], $description);
-	$result = $db->sql_query('SELECT user_id FROM ' . USERS_TABLE);
-	if ($result)
+	$sender = (int) $userdata['user_id'];
+	$result = $db->sql_query('SELECT user_id FROM ' . USERS_TABLE .
+		' WHERE user_id>0 AND user_id<>' . $sender . ' AND user_active=1 AND games_block_pm=0 ORDER BY user_id');
+	if (!$result) { return; }
+	try
 	{
-		$rows = $db->sql_fetchrowset($result);
-		$db->sql_freeresult($result);
-		foreach ($rows as $row)
+		while ($row = $db->sql_fetchrow($result))
 		{
-			@ina_send_user_pm((int) $row['user_id'], $lang['games_new_game_added_info'], $message, (int) $userdata['user_id'], 'YES');
+			try { ina_send_user_pm((int) $row['user_id'], $lang['games_new_game_added_info'], $message, $sender, 'YES', true); }
+			catch (Exception $ignored) {} catch (Error $ignored) {}
 		}
-		$arcade->write_cache('user_id', $rows, $phpbb_root_path);
 	}
+	finally { $db->sql_freeresult($result); }
 }
 
 $version = $arcade->version('./../');

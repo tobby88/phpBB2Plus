@@ -4,6 +4,7 @@ $root = dirname(dirname(__DIR__));
 $submission = file_get_contents($root . '/phpBB2/link_register.php');
 $storage = file_get_contents($root . '/phpBB2/includes/functions_link_submission.php');
 $notices = file_get_contents($root . '/phpBB2/includes/functions_link_notifications.php');
+$pm_writer = file_get_contents($root . '/phpBB2/includes/functions_optional_pm.php');
 $listing = file_get_contents($root . '/phpBB2/links.php');
 $list_store = file_get_contents($root . '/phpBB2/includes/functions_link_listing.php');
 
@@ -17,7 +18,7 @@ $checks = array(
     'notices run only after confirmed storage' => strpos($submission, 'if (isset($outcome))') !== false && strpos($submission, 'Link_notification_failed') !== false,
     'writer enforces POST and exact token' => strpos($storage, "$"."method!=='POST'") !== false && strpos($storage, 'hash_equals($sid,phpbb_request_raw_value($post[\'sid\']))') !== false,
     'writer checks actual session and current active role' => strpos($storage, 's.session_logged_in=1') !== false && strpos($storage, 'u.user_active<>0') !== false && strpos($storage, "HEX(s.session_id)=HEX('") !== false,
-    'notice PMs have an owned transaction and cannot evict mail' => strpos($notices, 'new PhpbbLinkScope($database,phpbb_link_notification_tables(true))') !== false && strpos($notices, 'DELETE FROM') === false,
+    'notice PMs have an owned transaction and cannot evict mail' => strpos($notices, 'new PhpbbLinkNoticeMailbox($database,phpbb_link_notification_tables(true))') !== false && strpos($notices, 'insert_optional_pm(') !== false && strpos($notices . $pm_writer, 'DELETE FROM') === false,
     'notice mail opts into recoverable delivery' => strpos($notices, "new emailer($"."board_config['smtp_delivery'],true)") !== false,
     'link form carries the SID' => strpos($listing, "'S_LINK_TOKEN'=>'<input type=\"hidden\" name=\"sid\"") !== false,
 	'link listing result batches use shared validated settings' => strpos($list_store, 'phpbb_link_setting_value($key,$value)') !== false,

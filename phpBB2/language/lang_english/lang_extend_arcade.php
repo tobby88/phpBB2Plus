@@ -158,8 +158,8 @@ $lang['Game'] = 'Game';
 //
 //  Updated for 2.0.8.2
 //
-$lang['games_pm_info_lost'] = "Your Highscore for '<b>[url=http://%sactivity.".$phpEx."?mode=game&amp;id=%d&win=self]%s[/url]</b>' has been lost to the player that this message is from.\n\n\nYours {The phpBB Arcade Mod}\n\n(You can disable messages from the arcade in your user profile)";
-$lang['games_pm_info_lost_at'] = "Your All Time Highscore for '<b>[url=http://%sactivity.".$phpEx."?mode=game&amp;id=%d&win=self]%s[/url]</b>' has been lost to the player that this message is from.\n\n\nYours {The phpBB Arcade Mod}\n\n(You can disable messages from the arcade in your user profile)";
+$lang['games_pm_info_lost'] = "The player who sent this message has beaten your high score in [url=%s]%s[/url].\n\nYou can turn off arcade notifications in your profile.";
+$lang['games_pm_info_lost_at'] = "The player who sent this message has beaten your all-time high score in [url=%s]%s[/url].\n\nYou can turn off arcade notifications in your profile.";
 //
 // 2.0.8
 //
@@ -328,7 +328,7 @@ $lang['view_champions'] = 'View the Champions List';
 $lang['arcade_tournament_end_sure'] = 'Are you sure you want to End this Tournament?';
 $lang['arcade_tournament_end'] = 'Tournament <b>%s</b> has now ended';
 $lang['tour_msg_subject'] = 'phpBB Arcade - Tournament Information';
-$lang['tour_msg_message'] = "\n\n\nTo view the Results click [url=http://%sarcade_tournament.".$phpEx."]HERE[/url]\n\n\nYours {The phpBB Arcade Mod}\n\n(You can disable messages from the arcade in your user profile)";
+$lang['tour_msg_message'] = "[url=%s]View the tournament result[/url]\n\nYou can turn off arcade notifications in your profile.";
 $lang['tour_msg_winner'] = " with <b>%s</b> being the champion.";
 $lang['tour_msg_draw'] = ' has been drawn, and has been re-started ';
 $lang['arcade_admin_only'] = 'Admin ONLY Feature.';
@@ -519,6 +519,7 @@ $lang['arcade_mod_delete_score'] = 'Delete score';
 $lang['arcade_points_generated'] = 'List generated in %.4f seconds.';
 //
 $lang['arcade_launch_failed'] = 'The game launch could not be saved completely. Please open the Arcade again.';
+$lang['Arcade_notification_failed'] = 'The Arcade notification could not be delivered.';
 $lang['arcade_submission_failed'] = 'The game result could not be saved completely. Please check the scoreboard before trying again.';
 $lang['arcade_launch_funds'] = 'Your balance is too low to start this game.';
 $lang['arcade_tournament_changed'] = 'The tournament has changed. Please reopen it before saving your changes.';

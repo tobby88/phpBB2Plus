@@ -8,8 +8,13 @@ as_check(preg_match('/^function arcade_admin_notify_new_game\(.*?^\}/ms',file_ge
 as_check(substr_count($ag_notify[0],'ina_send_user_pm(')===1,'One delivery endpoint');
 eval(str_replace('ina_send_user_pm(','ag_capture_pm(',$ag_notify[0]));
 $ag_notifications=array();
-function ag_capture_pm($to,$subject,$message,$from,$enabled)
-{ $GLOBALS['ag_notifications'][]=array($to,$subject,$message,$from,$enabled); }
+function ag_capture_pm($to,$subject,$message,$from,$quiet,$optional)
+{
+    $GLOBALS['ag_notifications'][]=func_get_args();
+    if (isset($GLOBALS['ag_notice_fail_recipient']) && $GLOBALS['ag_notice_fail_recipient'] === $to) {
+        throw new RuntimeException('Unavailable fixture inbox');
+    }
+}
 function ag_values($name='old_game')
 {
  $out=array_fill_keys(phpbb_arcade_game_fields(),0);

@@ -13,10 +13,11 @@ function su_complete()
 class ArcadeNotificationFailureFixture
 {
     var $queries=array();
+    function sql_dedicated_connection(){throw new RuntimeException('Unavailable disposable notification connection');}
     function sql_query($sql){$this->queries[]=$sql;if(strpos($sql,'SELECT config_value FROM ')===0){return 'config';}if(strpos($sql,'SELECT * FROM fixture_ina_data')===0){return 'settings';}return strpos($sql,'SELECT user_id, username, user_notify_pm')===0;}
     function sql_fetchrow($result){if($result==='config'){return array('config_value'=>0);}return array('user_id'=>8,'username'=>'Fixture recipient','games_block_pm'=>0,'user_notify_pm'=>0,'user_email'=>'','user_lang'=>'german','user_active'=>1);}
     function sql_fetchrowset($result){$rows=array();foreach(su_config(array('games_use_pms'=>1))as$key=>$value){$rows[]=array('config_name'=>$key,'config_value'=>$value);}return $rows;}
-    function failures(){return count(array_filter($this->queries,function($sql){return strpos($sql,'SELECT COUNT(privmsgs_id)')===0;}));}
+    function failures(){return count(array_filter($this->queries,function($sql){return strpos($sql,'SELECT CONNECTION_ID() id,DATABASE() schema_name')===0;}));}
 }
 function su_tour()
 {
@@ -200,5 +201,7 @@ try{
         ag_sql('ALTER TABLE '.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');
         $cases++;
     }
+    require __DIR__.'/arcade-notification-native-cases.php';
+    su_notification_cases();
     echo 'Native Arcade submissions: '.$cases.' cases, '.$serialized.' serialized access changes, '.$as_checks." assertions PASS; actual EN/DE protocols, atomic capability/scores/rankings/month/tour/rewards/audit, no replay and no caller commit.\n";
 }finally{ag_reap();if($db){$db->sql_close();}if($ag_peer){$ag_peer->sql_close();}if($su_observer){$su_observer->sql_close();}if($created){as_check(preg_match('/^codex_arc_submit_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Drop only own submission schema');}if($control){$control->sql_close();}su_close();}

@@ -394,9 +394,10 @@ else if(!empty($HTTP_POST_VARS['end']))
   }
   // Notifications are optional delivery after a confirmed commit. A failed
   // delivery must not turn a completed end operation into an error/replay.
+  $notice = $message . "\n\n" . sprintf($lang['tour_msg_message'], phpbb_board_url('arcade_tournament.' . $phpEx . '?mode=tour&id=' . (int) $tour_id));
   foreach ($ended['players'] as $recipient)
   {
-    try { ina_send_user_pm($recipient,$lang['tour_msg_subject'],$message,(int)$userdata['user_id'],'NO',true); }
+    try { ina_send_user_pm($recipient,$lang['tour_msg_subject'],$notice,(int)$userdata['user_id'],'NO',true); }
     catch (Exception $ignored) {} catch (Error $ignored) {}
   }
   message_die(GENERAL_MESSAGE, $message.$lang['tour_return']);

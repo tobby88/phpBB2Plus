@@ -169,8 +169,8 @@ $lang['Game'] = 'Spiel';
 //
 //  Updated for 2.0.8.2
 //
-$lang['games_pm_info_lost'] = "Du hast Dein bestes Ergebnis für '<b>[url=http://%sactivity.".$phpEx."?mode=game&amp;id=%d&win=self]%s[/url]</b>' an den Spieler verloren, von dem diese Nachricht stammt.\n\n\nGruß - Der Spielhallenchef\n\n(Du kannst die Benachrichtigung in Deinem Profil deaktivieren)";
-$lang['games_pm_info_lost_at'] = "Du hast Dein insgesamt bestes Ergebnis für '<b>[url=http://%sactivity.".$phpEx."?mode=game&amp;id=%d&win=self]%s[/url]</b>' an den Spieler verloren, von dem diese Nachricht stammt.\n\n\nGruß - Der Spielhallenchef\n\n(Du kannst die Benachrichtigung in Deinem Profil deaktivieren)";
+$lang['games_pm_info_lost'] = "Der Absender dieser Nachricht hat Deinen Rekord in [url=%s]%s[/url] übertroffen.\n\nDu kannst die Benachrichtigungen der Spielhalle in Deinem Profil ausschalten.";
+$lang['games_pm_info_lost_at'] = "Der Absender dieser Nachricht hat Deinen Allzeitrekord in [url=%s]%s[/url] übertroffen.\n\nDu kannst die Benachrichtigungen der Spielhalle in Deinem Profil ausschalten.";
 //
 // 2.0.8
 //
@@ -337,7 +337,7 @@ $lang['view_champions'] = 'Zeige die Siegerliste';
 $lang['arcade_tournament_end_sure'] = 'Bist Du sicher, daß Du diesen Wettbewerb ändern willst?';
 $lang['arcade_tournament_end'] = 'Wettbewerb <b>%s</b> ist nun beendet.';
 $lang['tour_msg_subject'] = 'phpBB Arcade - Wettbewerbsinformation';
-$lang['tour_msg_message'] = "\n\n\nUm die Ergbisse anzusehen, klicke [url=http://%sarcade_tournament.".$phpEx."]HIER[/url]\n\n\nGruß - Der Spielhallenchef\n\n(Du kannst die Benachrichtigung in Deinem Profil deaktiviern)";
+$lang['tour_msg_message'] = "[url=%s]Turnierergebnis ansehen[/url]\n\nDu kannst die Benachrichtigungen der Spielhalle in Deinem Profil ausschalten.";
 $lang['tour_msg_winner'] = " mit <b>%s</b> lautet der Sieger.";
 $lang['tour_msg_draw'] = ' wurde gezogen und neu gestartet ';
 $lang['arcade_admin_only'] = 'Dieses Feature ist nur für den Admin verfügbar.';
@@ -525,6 +525,7 @@ $lang['arcade_points_generated'] = 'Liste in %.4f Sekunden erstellt.';
 
 //
 $lang['arcade_launch_failed'] = 'Der Spielstart konnte nicht vollständig gespeichert werden. Bitte öffne die Spielhalle erneut.';
+$lang['Arcade_notification_failed'] = 'Die Benachrichtigung der Spielhalle konnte nicht zugestellt werden.';
 $lang['arcade_submission_failed'] = 'Das Spielergebnis konnte nicht vollständig gespeichert werden. Bitte prüfe die Bestenliste, bevor du es erneut versuchst.';
 $lang['arcade_launch_funds'] = 'Dein Guthaben reicht für dieses Spiel nicht aus.';
 $lang['arcade_tournament_changed'] = 'Das Turnier wurde inzwischen geändert. Bitte öffne es erneut, bevor du deine Änderungen speicherst.';

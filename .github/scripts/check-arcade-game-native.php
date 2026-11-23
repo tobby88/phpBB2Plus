@@ -5,6 +5,7 @@ $db=$control=null;$created=false;$schema='codex_arc_game_'.bin2hex(phpbb_random_
 try{
  $port=getenv('PHPBB_ARCADE_GAME_PORT')?:'3306';as_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Own loopback port');$host='127.0.0.1:'.$port;$password=getenv('PHPBB_ARCADE_GAME_PASSWORD')?:'';$control=new sql_db($host,'root',$password,'',false);as_check($control->db_connect_id&&$control->sql_query('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'),'Own disposable schema');$created=true;$db=new ArcadeGameNativeDatabase($host,'root',$password,$schema,false);$ag_peer=new sql_db($host,'root',$password,$schema,false);as_check($db->db_connect_id&&$ag_peer->db_connect_id,'Independent own connections');
  $ag_tables=array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,RANKS_TABLE,iNA_GAMES,iNA_CAT);$ag_tables[]=iNA_GAME_SAVES;foreach(phpbb_arcade_game_references()as$ref){$ag_tables[]=$ref[0];}$ag_tables=array_values(array_unique($ag_tables));$canonical=file_get_contents($as_app.'install/schemas/mysql_schema.sql');foreach($ag_tables as$table){$suffix=substr($table,strlen('fixture_'));as_check(preg_match('/CREATE TABLE phpbb_'.preg_quote($suffix,'/').' \(.*?\) ENGINE=InnoDB[^;]*;/s',$canonical,$m)===1,'Canonical game table '.$suffix);ag_sql(str_replace('phpbb_'.$suffix,$table,$m[0]));}as_open();$ag_routes=aif_routes();
+ ag_sql('ALTER TABLE fixture_users ADD games_block_pm tinyint(1) NOT NULL DEFAULT 1');
  foreach(array('root','edit_games')as$role){ag_reset($role);ag_sql("INSERT INTO fixture_ina_game_saves(user_id,game_id,game_data) VALUES(2,41,'private progress')");$progress=ag_rows('SELECT * FROM fixture_ina_game_saves');$r=ag_call();as_check(ag_rows('SELECT * FROM fixture_ina_game_saves')===$progress,'Actual rename retains stable game-ID checkpoint');as_check(!$r['error'],'Actual rename succeeds '.json_encode($r));foreach(phpbb_arcade_game_references()as$ref){as_check(count(ag_rows('SELECT * FROM '.$ref[0].' WHERE '.$ref[1]."='old_game'"))===0&&count(ag_rows('SELECT * FROM '.$ref[0].' WHERE '.$ref[1]."='new_game'"))>0,'Every actual rename reference moved '.$ref[0].'.'.$ref[1]);}as_check(ag_rows('SELECT game_name FROM fixture_ina_games WHERE game_id=41')[0]['game_name']==='new_game','Game renamed with all references');ag_evicted();$count++;}
  for($i=1;$i<=13;$i++){ag_reset();$before=ag_snapshot();$db->fault='rename-'.$i;$r=ag_call();as_check($r['error']&&ag_snapshot()===$before,'Each reference failure rolls back complete rename '.$i);$count++;}
  foreach(array('write-1','write-15','write-16','commit')as$fault){ag_reset();$before=ag_snapshot();$v=ag_values('new_game');$v['cat_id']=9;$db->fault=$fault;$r=ag_call($v);as_check($r['error']&&ag_snapshot()===$before,'Main/counter/commit failure rolls back '.$fault);$count++;}
@@ -45,7 +46,38 @@ try{
  ag_reset();ag_sql('ALTER TABLE fixture_ina_banned MODIFY game VARCHAR(25) NULL DEFAULT NULL');$before=ag_snapshot();$r=ag_call(ag_values());as_check($r['error']&&$r['key']==='Owned_storage_upgrade'&&ag_snapshot()===$before,'Runtime rejects incomplete reference migration before writes');ag_sql('ALTER TABLE fixture_ina_banned MODIFY game VARCHAR(50) NULL DEFAULT NULL');$count++;
  ag_reset();$v=ag_values();$v['reverse_list']=1;$v['game_avail']=0;$message=ag_controller(41,ag_revision(),$v);as_check(strpos($message,$lang['admin_game_saved'])===0&&(int)ag_rows('SELECT highscore_id FROM fixture_ina_games')[0]['highscore_id']===2&&count($ag_notifications)===0,'Actual controller applies new direction without notifications');$count++;
  // Execute the complete actual HTTP save body, instrumenting only PM delivery.
- foreach(array('edit','add','failure','unknown','stale','bad-id')as$case){ag_reset();$arcade->arcade_config['games_pm_new']=1;$v=ag_values('new_game');$v['game_avail']=0;$id=$case==='add'?0:41;$revision=$id?ag_revision():'';if($case==='failure'){$db->fault='rename-3';}if($case==='unknown'){$db->fault='commit-after';}if($case==='stale'){ag_sql("UPDATE fixture_ina_games SET game_desc='changed' WHERE game_id=41");}if($case==='bad-id'){$id='bad';}$before=ag_snapshot();$message=ag_controller($id,$revision,$v);$ok=in_array($case,array('edit','add'),true);as_check($ok?strpos($message,$lang['admin_game_saved'])===0:strpos($message,$lang['admin_game_saved'])!==0,'Actual controller result '.$case);as_check(count($ag_notifications)===($case==='add'?2:0),'Notifications only for confirmed new game '.$case);if(in_array($case,array('failure','stale','bad-id'),true)){as_check(ag_snapshot()===$before,'Actual rejected controller leaves state unchanged');}if($case==='add'){as_check(strpos($ag_notifications[0][2],$v['game_desc'])!==false,'Notification preserves raw Unicode caption');}$count++;}
+ foreach (array('edit','add','failure','unknown','stale','bad-id') as $case) {
+     ag_reset();
+     $arcade->arcade_config['games_pm_new'] = 1;
+     $v = ag_values('new_game');
+     $v['game_avail'] = 0;
+     $id = $case === 'add' ? 0 : 41;
+     $revision = $id ? ag_revision() : '';
+     if ($case === 'add') {
+         ag_sql("UPDATE fixture_users SET games_block_pm=0 WHERE user_id IN (2,8)");
+         ag_sql("INSERT INTO fixture_users(user_id,username,user_password,user_active,games_block_pm) VALUES (9,'Subscribed','',1,0),(10,'Inactive','',0,0),(11,'Opt-out','',1,1)");
+         $ag_notice_fail_recipient = 8;
+     }
+     if ($case === 'failure') { $db->fault = 'rename-3'; }
+     if ($case === 'unknown') { $db->fault = 'commit-after'; }
+     if ($case === 'stale') { ag_sql("UPDATE fixture_ina_games SET game_desc='changed' WHERE game_id=41"); }
+     if ($case === 'bad-id') { $id = 'bad'; }
+     $before = ag_snapshot();
+     $message = ag_controller($id, $revision, $v);
+     unset($ag_notice_fail_recipient);
+     $ok = in_array($case, array('edit','add'), true);
+     as_check((strpos($message, $lang['admin_game_saved']) === 0) === $ok, 'Actual controller result '.$case);
+     as_check(count($ag_notifications) === ($case === 'add' ? 2 : 0), 'Notifications only for confirmed new game '.$case);
+     if (in_array($case, array('failure','stale','bad-id'), true)) {
+         as_check(ag_snapshot() === $before, 'Actual rejected controller leaves state unchanged');
+     }
+     if ($case === 'add') {
+         as_check(array_column($ag_notifications, 0) === array(8,9) && $ag_notifications[0][5] === true && $ag_notifications[1][5] === true, 'An unavailable inbox allows delivery to the next subscribed player');
+         as_check(strpos($ag_notifications[0][2], $v['game_desc']) !== false, 'Notification preserves raw Unicode caption');
+         as_check(!file_exists($as_root.'/cache/arcade_user_id.cache'), 'A single announcement creates no unused recipient cache');
+     }
+     $count++;
+ }
  as_check(mkdir($as_root.'/games',0700)&&file_put_contents($as_root.'/games/online_game.swf','Synthetic asset')===15,'Own existing game asset');
  try{foreach(array('existing','missing')as$asset){ag_reset();$v=ag_values($asset==='existing'?'online_game':'missing_game');$v['game_flash']=1;$message=ag_controller(0,'',$v);as_check($asset==='existing'?strpos($message,$lang['admin_game_saved'])===0:strpos($message,$lang['admin_game_saved'])!==0,'Actual online asset existence '.$asset);$count++;}}
  finally{as_check(unlink($as_root.'/games/online_game.swf')&&rmdir($as_root.'/games'),'Remove only own game asset');}

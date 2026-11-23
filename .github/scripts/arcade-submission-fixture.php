@@ -48,7 +48,12 @@ function su_config($values=array())
 function su_settings($values)
 {
     global $arcade;$arcade->arcade_config=su_config($values);
-    ag_sql('DELETE FROM fixture_ina_data');foreach($arcade->arcade_config as$key=>$value){ag_sql("INSERT INTO fixture_ina_data(config_name,config_value) VALUES('$key','".$GLOBALS['ag_peer']->sql_escape($value)."')");}
+    $rows = array();
+    foreach ($arcade->arcade_config as $key => $value) {
+        $rows[] = "(CONVERT(X'".bin2hex($key)."' USING utf8mb4),CONVERT(X'".bin2hex((string)$value)."' USING utf8mb4))";
+    }
+    ag_sql('DELETE FROM fixture_ina_data');
+    ag_sql('INSERT INTO fixture_ina_data(config_name,config_value) VALUES '.implode(',', $rows));
 }
 function su_reset($config=array())
 {

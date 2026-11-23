@@ -695,187 +695,87 @@ function game_tour_played()
 //
 // Code from ADR
 //
+function phpbb_arcade_highscore_notice($all_time, $game)
+{
+	global $lang, $phpEx;
+	$url = phpbb_board_url('activity.' . $phpEx . '?mode=game&id=' . (int) $game['game_id'] . '&win=self');
+	return sprintf($lang[$all_time ? 'games_pm_info_lost_at' : 'games_pm_info_lost'], $url, $game['game_desc']);
+}
+
 function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet = 'NO', $optional_delivery = false)
 {
-  $notification_error = function($level, $message, $title = '', $line = 0, $file = '', $sql = '') use ($optional_delivery) {
-    if ($optional_delivery) { throw new RuntimeException('Arcade notification unavailable'); }
-    message_die($level, $message, $title, $line, $file, $sql);
-  };
-  if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
-  {
-    global $db, $phpbb_root_path, $phpEx, $lang, $user_ip, $board_config, $userdata, $arcade, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
-  }
-  else
-  {
-  	global $db, $phpbb_root_path, $phpEx, $lang, $user_ip, $board_config, $userdata, $arcade;
-  }
-	if(!($arcade->arcade_config('games_use_pms')) || !empty($userdata['games_block_pm']) || !$dest_user)
-	{
+	global $db, $phpbb_root_path, $phpEx, $lang, $user_ip, $board_config, $userdata, $arcade;
+	$recipient = (int) $dest_user;
+	$sender = $from_id === false || $from_id === null || (int) $from_id === 0 ? (int) $userdata['user_id'] : (int) $from_id;
+	if ($recipient < 1 || $sender === $recipient || ($sender < 1 && $sender !== -1) ||
+		!empty($board_config['privmsg_disable']) || !$arcade->arcade_config('games_use_pms')) {
+		return;
+	}
+	$subject = trim(strip_tags((string) $subject));
+	$message = trim(strip_tags((string) $message));
+	if (defined('PRIVMSGA_TABLE')) {
+		// Installations using Advanced Private Messages own their delivery backend.
+		if (defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6') {
+			global $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
+		}
+		$result = $db->sql_query('SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . $recipient .
+			' AND user_active<>0 AND games_block_pm=0');
+		if (!$result) { return; }
+		$subscribed = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if (!$subscribed) { return; }
+		include_once($phpbb_root_path . 'includes/functions_post.' . $phpEx);
+		include_once($phpbb_root_path . 'includes/bbcode.' . $phpEx);
+		include_once($phpbb_root_path . 'includes/functions_messages.' . $phpEx);
+		send_pm(0, '', $recipient, $subject, $message, '');
 		return;
 	}
 
-	$dest_user 	= intval($dest_user);
-  if($dest_user < 1)
-  {
-    return;
-  }
-
-	$msg_time 	= time();
-	if($from_id == FALSE || !isset($from_id))
-	{
-		$from_id 	= $userdata['user_id'];
+	require_once $phpbb_root_path . 'includes/bbcode.' . $phpEx;
+	require_once __DIR__ . '/functions_arcade_notifications.php';
+	$writer = null;
+	$failure = null;
+	try {
+		$writer = new PhpbbArcadeNoticeMailbox($db, $sender);
+		$to_userdata = $writer->deliver($sender, $recipient, $subject, $message, $user_ip);
+	} catch (Exception $error) {
+		$failure = $error;
+	} catch (Error $error) {
+		$failure = $error;
+	} finally {
+		if ($writer !== null) { $writer->release(); }
 	}
-	
-	if($dest_user != $from_id)
-	{
-		$html_on 	= 1;
-		$bbcode_on 	= 1;
-	    $smilies_on = 1;
-
-		include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
-		include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
-   
-		$privmsg_subject 	= trim(strip_tags($subject));
-		$bbcode_uid 		= make_bbcode_uid();
-		$privmsg_message 	= trim(strip_tags($message));
-
-// APM compliance
-		if ( defined('PRIVMSGA_TABLE'))
-		{
-			include_once($phpbb_root_path . 'includes/functions_messages.'.$phpEx);
-			send_pm( 0 , '' , $dest_user , $privmsg_subject, $privmsg_message, '' );
-		}
-		else
-		{
-			$sql = "SELECT user_id, username, user_notify_pm, user_email, user_lang, user_active, games_block_pm
-			 	FROM ". USERS_TABLE ."
-				WHERE user_id = ". $dest_user;
-			if (!($result = $db->sql_query($sql)))
-			{
-				$error = TRUE;
-				$error_msg = $lang['No_such_user'];
-				return;
-			}
-			$to_userdata = $db->sql_fetchrow($result);
-
-			if(!$to_userdata || $to_userdata['games_block_pm'])
-			{
-				return;
-			}
-
-			$sql = "SELECT COUNT(privmsgs_id) AS inbox_items, MIN(privmsgs_date) AS oldest_post_time
-				FROM ". PRIVMSGS_TABLE ."
-				WHERE ( privmsgs_type = ". PRIVMSGS_NEW_MAIL ."
-			  	OR privmsgs_type = ". PRIVMSGS_READ_MAIL ." 
-				OR privmsgs_type = ". PRIVMSGS_UNREAD_MAIL ." )
-				AND privmsgs_to_userid = ". $dest_user;
-			if (!($result = $db->sql_query($sql)))
-			{
-				$notification_error(GENERAL_MESSAGE, $lang['No_such_user']);
-			}
-
-			$sql_priority = (SQL_LAYER == 'mysql') ? 'LOW_PRIORITY' : '';
-
-			if($inbox_info = $db->sql_fetchrow($result))
-			{
-				$max_inbox_privmsgs = max(1, intval($board_config['max_inbox_privmsgs']));
-				if ((int) $inbox_info['inbox_items'] >= $max_inbox_privmsgs)
-				{
-					$sql = "SELECT privmsgs_id 
-						FROM ". PRIVMSGS_TABLE ."
-						WHERE ( privmsgs_type = ". PRIVMSGS_NEW_MAIL ."
-						OR privmsgs_type = ". PRIVMSGS_READ_MAIL ."
-						OR privmsgs_type = ". PRIVMSGS_UNREAD_MAIL ."  )
-						AND privmsgs_date = ". $inbox_info['oldest_post_time'] . "
-						AND privmsgs_to_userid = ". $dest_user;
-					if (!$result = $db->sql_query($sql))
-					{	
-						$notification_error(GENERAL_ERROR, 'Could not find oldest privmsgs (inbox)', '', __LINE__, __FILE__, $sql);
-					}
-					$old_privmsgs_id = $db->sql_fetchrow($result);
-					$old_privmsgs_id = $old_privmsgs_id ? intval($old_privmsgs_id['privmsgs_id']) : 0;
-					if ($old_privmsgs_id < 1)
-					{
-						return;
-					}
-           
-					$sql = "DELETE $sql_priority 
-						FROM ". PRIVMSGS_TABLE ."
-						WHERE privmsgs_id = ". $old_privmsgs_id;
-					if(!$db->sql_query($sql))
-					{
-						$notification_error(GENERAL_ERROR, 'Could not delete oldest privmsgs (inbox)'.$sql, '', __LINE__, __FILE__, $sql);
-					}
-
-					$sql = "DELETE $sql_priority 
-						FROM " . PRIVMSGS_TEXT_TABLE . "
-						WHERE privmsgs_text_id = ". $old_privmsgs_id;
-					if (!$db->sql_query($sql))
-					{
-						$notification_error(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql);
-					}
-				}
-			}
-			$privmsg_subject_sql = $db->sql_escape($privmsg_subject);
-			$privmsg_message_sql = $db->sql_escape($privmsg_message);
-			$bbcode_uid_sql = $db->sql_escape($bbcode_uid);
-			$user_ip_sql = $db->sql_escape($user_ip);
-			$from_id = intval($from_id);
-			$to_user_id = intval($to_userdata['user_id']);
-			$sql_info = "INSERT INTO ". PRIVMSGS_TABLE ." 
-					(privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies)
-					VALUES (1, '$privmsg_subject_sql', $from_id, $to_user_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on)";
-			if(!$db->sql_query($sql_info))
-			{
-				$notification_error(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql_info);
-			}
-
-			$privmsg_sent_id = $db->sql_nextid();
-
-			$sql = "INSERT INTO ". PRIVMSGS_TEXT_TABLE ." (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
-				VALUES (" . intval($privmsg_sent_id) . ", '$bbcode_uid_sql', '$privmsg_message_sql')";
-			if (!$db->sql_query($sql, END_TRANSACTION))
-			{
-				$notification_error(GENERAL_ERROR, "Could not insert/update private message sent text.", "", __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "UPDATE ". USERS_TABLE ."
-				SET user_new_privmsg = user_new_privmsg + 1, user_last_privmsg = " . time() . " 
-				WHERE user_id = ". $to_user_id;
-			if(!$status = $db->sql_query($sql))
-			{
-				$notification_error(GENERAL_ERROR, 'Could not update private message new/read status for user', '', __LINE__, __FILE__, $sql);
-			}
-
-			if($to_userdata['user_notify_pm'] && !empty($to_userdata['user_email']) && $to_userdata['user_active'] && $quiet == 'NO')
-			{
-			include_once($phpbb_root_path . 'includes/emailer.'.$phpEx);
-			$emailer = new emailer($board_config['smtp_delivery'], $optional_delivery);
-			$emailer->from($board_config['board_email']);
-			$emailer->replyto($board_config['board_email']);
-			$default_mail_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&
-				is_dir($phpbb_root_path . 'language/lang_' . $board_config['default_lang'])
-				? (string) $board_config['default_lang']
-				: 'english';
-			$mail_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $to_userdata['user_lang']) &&
-				is_dir($phpbb_root_path . 'language/lang_' . $to_userdata['user_lang'])
-				? (string) $to_userdata['user_lang']
-				: $default_mail_language;
-			$emailer->use_template('privmsg_notify', $mail_language);
-			$emailer->email_address($to_userdata['user_email']);
-			$emailer->set_subject($lang['Notification_subject']);
-			$emailer->assign_vars(array(
-				'USERNAME' => $to_userdata['username'],
-				'SITENAME' => $board_config['sitename'],
-				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
-				'U_INBOX' => phpbb_board_url('privmsg.'.$phpEx.'?folder=inbox'))
-			);
-			$emailer->send();
-			$emailer->reset();
-			}
-		}
+	if ($failure !== null) {
+		if ($optional_delivery) { throw new RuntimeException('Arcade notification unavailable', 0, $failure); }
+		message_die(GENERAL_ERROR, $lang['Arcade_notification_failed']);
+		return;
 	}
-	return;
+
+	if (!$to_userdata || $quiet !== 'NO' || empty($to_userdata['user_notify_pm']) ||
+		!filter_var($to_userdata['user_email'], FILTER_VALIDATE_EMAIL)) { return; }
+	include_once($phpbb_root_path . 'includes/emailer.'.$phpEx);
+	$emailer = new emailer($board_config['smtp_delivery'], $optional_delivery);
+	$emailer->from($board_config['board_email']);
+	$emailer->replyto($board_config['board_email']);
+	$default_mail_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&
+		is_dir($phpbb_root_path . 'language/lang_' . $board_config['default_lang'])
+		? (string) $board_config['default_lang']
+		: 'english';
+	$mail_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $to_userdata['user_lang']) &&
+		is_dir($phpbb_root_path . 'language/lang_' . $to_userdata['user_lang'])
+		? (string) $to_userdata['user_lang']
+		: $default_mail_language;
+	$emailer->use_template('privmsg_notify', $mail_language);
+	$emailer->email_address($to_userdata['user_email']);
+	$emailer->set_subject($lang['Notification_subject']);
+	$emailer->assign_vars(array(
+		'USERNAME' => $to_userdata['username'],
+		'SITENAME' => $board_config['sitename'],
+		'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
+		'U_INBOX' => phpbb_board_url('privmsg.'.$phpEx.'?folder=inbox'))
+	);
+	$emailer->send();
+	$emailer->reset();
 }
 
 function swap_place($old_id, $new_id, $type, $game_info = NULL)
@@ -911,12 +811,12 @@ function swap_place($old_id, $new_id, $type, $game_info = NULL)
 
 	if($type == 'first_places' && $arcade->arcade_config['games_pm_highscore'])
    	{
-     	$message = sprintf($lang['games_pm_info_lost'], $board_config['server_name'] . $board_config['script_path'], $game_info['game_id'] , $game_info['game_desc'] );
+		$message = phpbb_arcade_highscore_notice(false, $game_info);
       ina_send_user_pm($old_id, $lang['games_important_info'], $message, $new_id);
    	}
    	else if ($arcade->arcade_config['games_pm_at_highscore'])
    	{
-       $message = sprintf($lang['games_pm_info_lost_at'], $board_config['server_name'] . $board_config['script_path'], $game_info['game_id'] , $game_info['game_desc'] );
+		$message = phpbb_arcade_highscore_notice(true, $game_info);
        ina_send_user_pm($old_id, $lang['games_important_info'], $message, $new_id);
     }
   }

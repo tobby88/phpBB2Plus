@@ -242,11 +242,10 @@ function phpbb_arcade_current_access($store,$settings,$actor,$game)
 
 function phpbb_arcade_submission_notify($result)
 {
-    global $board_config,$lang;
+    global $lang;
     foreach($result['notifications']as$event){
         try{
-            $key=$event['alltime']?'games_pm_info_lost_at':'games_pm_info_lost';
-            $message=sprintf($lang[$key],$board_config['server_name'].$board_config['script_path'],$result['game']['game_id'],$result['game']['game_desc']);
+            $message=phpbb_arcade_highscore_notice($event['alltime'],$result['game']);
             ina_send_user_pm($event['to'],$lang['games_important_info'],$message,$result['user_id'],'NO',true);
         }catch(Exception$ignored){}catch(Error$ignored){}
     }
