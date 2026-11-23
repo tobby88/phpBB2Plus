@@ -790,7 +790,7 @@ jobs:
           PHPBB_TOPIC_PREF_NATIVE: '1'
           PHPBB_TOPIC_PREF_PASSWORD: fixture-only
       - name: Check actual topic preference confirmation and AJAX
-        if: matrix.part == 5
+        if: matrix.part == 6
         run: php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php controllers
         env:
           PHPBB_TOPIC_PREF_NATIVE: '1'
