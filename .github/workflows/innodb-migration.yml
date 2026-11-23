@@ -778,7 +778,7 @@ jobs:
           PHPBB_PM_VIEW_NATIVE: '1'
           PHPBB_PM_VIEW_PASSWORD: fixture-only
       - name: Check atomic current topic subscriptions
-        if: matrix.part == 4
+        if: matrix.part == 5
         run: php -d disable_functions=mail .github/scripts/check-topic-preferences-native.php watch
         env:
           PHPBB_TOPIC_PREF_NATIVE: '1'
