@@ -13,6 +13,57 @@ $root = dirname(dirname(__DIR__));
 $search = file_get_contents($root . '/phpBB2/search.php');
 require $root . '/phpBB2/includes/functions_search.php';
 
+define('IN_PHPBB', true);
+define('ANONYMOUS', -1);
+require_once $root . '/phpBB2/includes/php_compat.php';
+require_once $root . '/phpBB2/includes/functions_author_visibility.php';
+require_once $root . '/phpBB2/includes/functions_post_author.php';
+
+function ctracker_rate_limit_increment($bucket, $identity, $window, $limit)
+{
+	$GLOBALS['search_quota_calls'][] = array($bucket, $identity, $window, $limit);
+	return 0;
+}
+
+$start = strpos($search, "// End session management");
+$start = $start === false ? false : strpos($search, "\n", $start);
+$end = strpos($search, '$show_results =');
+search_safety_assert($start !== false && $end > $start, 'the real request and quota setup must be available');
+$search_setup = substr($search, $start, $end - $start);
+$phpbb_root_path = $root . '/phpBB2/';
+$phpEx = 'php';
+$board_config = array('search_min_chars' => 2);
+$ctracker_config = (object) array(
+	'user_ip_value' => '192.0.2.34',
+	'settings' => array('search_feature_enabled' => 1, 'search_count_guest' => 1, 'search_time_guest' => 30,
+		'search_count_user' => 4, 'search_time_user' => 20)
+);
+$member_quota = array(array('search', 'user:42', 20, 4));
+$guest_quota = array(array('search', 'ip:192.0.2.34', 30, 1));
+$cases = array(
+	array('author-only GET', array('search_author' => 'Example'), array(), 42, $member_quota),
+	array('author-only POST', array(), array('search_author' => 'Example'), 42, $member_quota),
+	array('keyword-only POST', array(), array('search_keywords' => 'example'), ANONYMOUS, $guest_quota),
+	array('keyword-only GET', array('search_keywords' => 'example'), array(), ANONYMOUS, $guest_quota),
+	array('new posts', array('search_id' => 'newposts'), array(), 42, $member_quota),
+	array('cached result page', array('search_id' => '12345', 'start' => '20'), array(), 42, $member_quota),
+	array('username selector', array('mode' => 'searchuser', 'search_username' => 'Example'), array(), 42, $member_quota),
+	array('bookmark removal', array('mode' => 'removebm'), array('delete' => '1'), 42, $member_quota),
+	array('search form', array(), array(), 42, array()),
+	array('empty results form', array('mode' => 'results', 'search_keywords' => ''), array('show_results' => 'posts'), 42, array()),
+	array('normal blank author field', array(), array('search_author' => '  '), 42, array())
+);
+foreach ($cases as $case)
+{
+	list($label, $_GET, $_POST, $user_id, $expected_quota) = $case;
+	$HTTP_GET_VARS = $_GET;
+	$HTTP_POST_VARS = $_POST;
+	$userdata = array('user_id' => $user_id, 'session_logged_in' => $user_id !== ANONYMOUS);
+	$search_quota_calls = array();
+	eval($search_setup);
+	search_safety_assert($search_quota_calls === $expected_quota, 'wrong query quota for ' . $label);
+}
+
 search_safety_assert(phpbb_search_return_chars(-1) === -1, 'all available characters must remain a distinct option');
 search_safety_assert(phpbb_search_return_chars('-1') === -1, 'request and cached string values must retain full-text mode');
 search_safety_assert(phpbb_search_return_chars(-2) === 0 && phpbb_search_return_chars(99999) === 1000, 'other excerpt lengths must remain bounded');

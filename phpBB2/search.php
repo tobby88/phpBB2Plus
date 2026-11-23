@@ -51,15 +51,6 @@ init_userprefs($userdata);
 // End session management
 //
 
-// CrackerTracker v5.x
-if ( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) || !empty($HTTP_GET_VARS['search_id']) || isset($HTTP_POST_VARS['search_id']) || isset($HTTP_GET_VARS['search_keywords']) || isset($HTTP_POST_VARS['show_results']) )
-{
-	include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
-	$search_system = new ct_userfunctions();
-	$search_system->search_handler();
-	unset($search_system);
-}
-
 $is_ajax = intval(phpbb_request_scalar($_POST, 'is_ajax', phpbb_request_scalar($_GET, 'is_ajax', 0)));
 
 //
@@ -71,21 +62,28 @@ if (!in_array($mode, array('', 'results', 'searchuser', 'removebm'), true))
 	$mode = '';
 }
 $only_bluecards = intval(phpbb_request_scalar($_POST, 'only_bluecards', 0)) ? TRUE : 0;
-$search_keywords = substr(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords')), 0, 500);
+$search_keywords = (string) substr(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords')), 0, 500);
 $search_author_value = isset($_POST['search_author']) ? $_POST['search_author'] : (isset($_GET['search_author']) ? $_GET['search_author'] : '');
 if (!is_string($search_author_value)) { message_die(GENERAL_MESSAGE, $lang['No_search_match']); }
 $search_author = trim(phpbb_request_raw_value($search_author_value));
+$search_id = phpbb_request_scalar($_GET, 'search_id', phpbb_request_scalar($_POST, 'search_id'));
+$has_search = $search_keywords !== '' || $search_author !== '' || $search_id;
+
+// Charge the search quota for the normalized routes that perform search work.
+if ($has_search || $mode === 'searchuser' || $mode === 'removebm')
+{
+	include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+	$search_system = new ct_userfunctions();
+	$search_system->search_handler();
+}
+
 if (phpbb_removed_author_keyword_search(phpbb_request_raw_value($search_keywords))) { message_die(GENERAL_MESSAGE,$lang['No_search_match']); }
 if ($search_author !== '' && !phpbb_post_author_search_allowed($search_author, $board_config['search_min_chars']))
 {
 	message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 }
-$search_id = phpbb_request_scalar($_GET, 'search_id', phpbb_request_scalar($_POST, 'search_id'));
-
 $show_results = phpbb_request_scalar($_POST, 'show_results', phpbb_request_scalar($_GET, 'show_results', 'posts'));
 $show_results = ($show_results == 'topics') ? 'topics' : 'posts';
-
-// $is_ajax is moved before CrackerTracker Search Flood Protection 
 
 $search_terms = phpbb_request_scalar($_POST, 'search_terms', phpbb_request_scalar($_GET, 'search_terms', 'any'));
 $search_terms = ($search_terms == 'all') ? 1 : 0;
@@ -187,7 +185,7 @@ if ( $mode == 'searchuser' )
 
 	exit;
 }
-else if ( $search_keywords != '' || $search_author != '' || $search_id )
+else if ($has_search)
 {
 	$store_vars = array('search_results', 'total_match_count', 'split_search', 'sort_by', 'sort_dir', 'show_results', 'return_chars');
 	$search_results = '';
