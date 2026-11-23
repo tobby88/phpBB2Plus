@@ -109,7 +109,9 @@ class PhpbbArcadeLaunchWriter extends PhpbbOwnedStore
         $games=$this->rows('SELECT game_name FROM '.iNA_TOUR_DATA.' WHERE tour_id='.$tour." AND game_name='".$this->escape($game['game_name'])."' LOCK IN SHARE MODE");
         $members=$this->rows('SELECT gamedata FROM '.iNA_TOUR_PLAY.' WHERE tour_id='.$tour.' AND user_id='.$user.' FOR UPDATE');
         if(count($events)!==1||(int)$events[0]['tour_active']!==2||count($games)!==1||count($members)!==1){$this->storage_fail('arcade_launch_failed');}
-        $data=phpbb_safe_unserialize_array($members[0]['gamedata']);$found=0;
+        $data = phpbb_arcade_tournament_gamedata($members[0]['gamedata']);
+        if ($data === null) { $this->storage_fail('arcade_launch_failed'); }
+        $found = 0;
         foreach($data as&$entry){if(!is_array($entry)||!isset($entry['game_name'])||$entry['game_name']!==$game['game_name']){continue;}$found++;$played=isset($entry['played'])?(int)$entry['played']:0;if($played<0||$played>=(int)$events[0]['tour_player_turns']){$this->storage_fail('arcade_launch_failed');}$entry['played']=$played+1;}
         unset($entry);
         if($found===0){if((int)$events[0]['tour_player_turns']<1){$this->storage_fail('arcade_launch_failed');}$data[]=array('game_name'=>$game['game_name'],'score'=>0,'played'=>1,'score_recorded'=>false);}

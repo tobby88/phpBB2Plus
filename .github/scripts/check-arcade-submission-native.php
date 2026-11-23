@@ -96,6 +96,57 @@ try{
         if($kind==='success'){$data=phpbb_safe_unserialize_array(ag_rows('SELECT gamedata FROM fixture_ina_tour_play WHERE tour_id=9 AND user_id=2')[0]['gamedata']);as_check(!$failed&&$data[0]['played']===2&&$data[1]['played']===2,'Tournament launch spends precisely one owned turn');$su_cap=ag_rows('SELECT * FROM fixture_ina_sessions')[0];as_check(!su_call()['error'],'Activated tournament capability submits result');$data=phpbb_safe_unserialize_array(ag_rows('SELECT gamedata FROM fixture_ina_tour_play WHERE tour_id=9 AND user_id=2')[0]['gamedata']);as_check($data[0]['played']===2,'Score submission does not spend another turn');}
         else{as_check($failed&&su_snapshot()===$before,'Failed tournament launch spends no turn and retains pending/previous capabilities');}$cases++;
     }
+    $old_games = array(
+        5 => array('game_name'=>'old_game','score'=>3.0,'played'=>1),
+        9 => array('game_name'=>'Unrelated \\ game','score'=>13.75,'played'=>2,'caption'=>'Grüße 😀'),
+    );
+    foreach (array('launch','submit') as $operation) {
+        su_reset();
+        su_tour();
+        $legacy = $ag_peer->sql_escape(addslashes(serialize($old_games)));
+        ag_sql("UPDATE fixture_ina_tour_play SET gamedata='$legacy' WHERE tour_id=9 AND user_id=2");
+        if ($operation === 'launch') {
+            ag_sql('UPDATE fixture_ina_sessions SET page='.PAGE_ARCADE_LAUNCH_PENDING);
+            $launched = phpbb_arcade_record_launch($db,$su_game,$su_cap['arcade_hash']);
+            as_check($launched['recorded'],'Launch accepts a recoverable historical turn record');
+        } else {
+            as_check(!su_call()['error'],'A previously launched game accepts a score for a recoverable historical turn record');
+        }
+        $data = phpbb_safe_unserialize_array(ag_rows('SELECT gamedata FROM fixture_ina_tour_play WHERE tour_id=9 AND user_id=2')[0]['gamedata']);
+        as_check(array_keys($data)===array(5,9)&&$data[9]===$old_games[9],'Writing a tournament turn must preserve keyed unrelated history');
+        as_check($data[5]['played']===($operation==='launch'?2:1)&&
+            (float)$data[5]['score']===($operation==='submit'?7.0:3.0),'Only the current game turn or score is updated');
+        $cases++;
+    }
+    foreach (array('launch','submit') as $operation) {
+        su_reset();
+        su_tour();
+        ag_sql("UPDATE fixture_ina_tour_play SET gamedata='incomplete old import' WHERE tour_id=9 AND user_id=2");
+        if ($operation === 'launch') {
+            ag_sql('UPDATE fixture_ina_sessions SET page='.PAGE_ARCADE_LAUNCH_PENDING);
+        }
+        $before = su_snapshot();
+        if ($operation === 'launch') {
+            $failed = false;
+            try { phpbb_arcade_record_launch($db,$su_game,$su_cap['arcade_hash']); }
+            catch (PhpbbOwnedStorageFailure $error) { $failed = true; }
+        } else {
+            $failed = su_call()['error'];
+        }
+        as_check($failed&&su_snapshot()===$before,'Unreadable tournament records must survive a rejected '.$operation.' unchanged');
+        $cases++;
+    }
+    foreach (array('NULL',"''","'a:0:{}'") as $empty) {
+        su_reset();
+        su_tour();
+        ag_sql("UPDATE fixture_ina_tour_play SET gamedata=$empty WHERE tour_id=9 AND user_id=2");
+        ag_sql('UPDATE fixture_ina_sessions SET page='.PAGE_ARCADE_LAUNCH_PENDING);
+        $launched = phpbb_arcade_record_launch($db,$su_game,$su_cap['arcade_hash']);
+        $data = phpbb_safe_unserialize_array(ag_rows('SELECT gamedata FROM fixture_ina_tour_play WHERE tour_id=9 AND user_id=2')[0]['gamedata']);
+        as_check($launched['recorded']&&count($data)===1&&$data[0]['game_name']==='old_game'&&$data[0]['played']===1,
+            'Each known empty representation still accepts the first turn');
+        $cases++;
+    }
     foreach(array(ARCADE_GET,ARCADE_POST,ARCADE_NEW,ARCADE_IBPRO,ARCADE_IBPROv3,ARCADE_MIXED,ARCADE_pnFlashGames,ARCADE_vBULLETIN,0)as$type){
         su_reset(array('games_cheat_mode'=>$type===ARCADE_GET?0:1));ag_sql('UPDATE fixture_ina_games SET score_type='.(int)$type);
         $post=array('mode'=>'submit','score'=>'7','game_name'=>'old_game','gamename'=>'old_game','gscore'=>'7','gname'=>'old_game','arcade_hash'=>str_repeat('a',32));
@@ -139,6 +190,15 @@ try{
         $result=$accepted['result'];$result['notifications']=array(array('to'=>8,'alltime'=>false));phpbb_arcade_submission_notify($result);
         as_check($db->failures()===3&&su_snapshot()===$before,'Actual deferred notification failure preserves a committed game and its response');as_check(!array_filter($db->queries,function($sql){return preg_match('/^(INSERT|UPDATE|DELETE) /',$sql);}), 'Notification error fixture sends/writes nothing');$cases++;
     }finally{$db=$original;$phpbb_root_path=$original_root;}
-    foreach(array(USERS_TABLE,SESSIONS_TABLE,iNA,iNA_GAMES,iNA_SESSIONS,iNA_SCORES,iNA_AT_SCORES,iNA_HIGHSCORES,iNA_USER_DATA,iNA_TOUR,iNA_TOUR_DATA,iNA_TOUR_PLAY,iNA_LOG,GROUPS_TABLE,USER_GROUP_TABLE,iNA_CAT)as$table){su_reset();ag_sql('ALTER TABLE '.$table.' ENGINE=MyISAM');$before=su_snapshot();as_check(su_call()['error']&&su_snapshot()===$before,'Refuse nontransactional ingestion table '.$table);ag_sql('ALTER TABLE '.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
+    foreach(array(USERS_TABLE,SESSIONS_TABLE,iNA,iNA_GAMES,iNA_SESSIONS,iNA_SCORES,iNA_AT_SCORES,iNA_HIGHSCORES,iNA_USER_DATA,iNA_TOUR,iNA_TOUR_DATA,iNA_TOUR_PLAY,iNA_LOG,GROUPS_TABLE,USER_GROUP_TABLE,iNA_CAT)as$table){
+        su_reset();
+        // MyISAM cannot retain the full 255-character utf8mb4 setting key.
+        $engine = $table === iNA ? 'MEMORY' : 'MyISAM';
+        ag_sql('ALTER TABLE '.$table.' ENGINE='.$engine);
+        $before=su_snapshot();
+        as_check(su_call()['error']&&su_snapshot()===$before,'Refuse nontransactional ingestion table '.$table);
+        ag_sql('ALTER TABLE '.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');
+        $cases++;
+    }
     echo 'Native Arcade submissions: '.$cases.' cases, '.$serialized.' serialized access changes, '.$as_checks." assertions PASS; actual EN/DE protocols, atomic capability/scores/rankings/month/tour/rewards/audit, no replay and no caller commit.\n";
 }finally{ag_reap();if($db){$db->sql_close();}if($ag_peer){$ag_peer->sql_close();}if($su_observer){$su_observer->sql_close();}if($created){as_check(preg_match('/^codex_arc_submit_[a-f0-9]{16}$/D',$schema)&&$control->sql_query('DROP DATABASE '.$schema),'Drop only own submission schema');}if($control){$control->sql_close();}su_close();}

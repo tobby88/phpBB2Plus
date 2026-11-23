@@ -41,6 +41,7 @@ if ( defined('ARCADE_FUNCTIONS') )
 
 define('ARCADE_FUNCTIONS',217);
 
+require_once dirname(__FILE__) . '/functions_arcade_tournament_gamedata.php';
 include_once($phpbb_root_path . 'includes/constants_arcade.' . $phpEx);
 $language = phpbb_ltrim(basename(phpbb_rtrim((string) $board_config['default_lang'])), "'");
 if( !file_exists($phpbb_root_path . 'language/lang_' . $language . '/lang_extend_arcade.'.$phpEx) )
@@ -657,13 +658,8 @@ function arcade_tournament_last_play_html($last_tour, $viewer_level, $date_forma
 
 function arcade_tournament_player_games($stored)
 {
-	$games = phpbb_safe_unserialize_array($stored);
-	if (!$games && is_string($stored) && strpos($stored, '\\') !== false)
-	{
-		// Imported rows may still contain an extra layer of request escaping.
-		$games = phpbb_safe_unserialize_array(stripslashes($stored));
-	}
-	return array_values(array_filter($games, 'is_array'));
+	$games = phpbb_arcade_tournament_gamedata($stored);
+	return $games === null ? array() : array_values(array_filter($games, 'is_array'));
 }
 
 function game_tour_played()

@@ -7,10 +7,16 @@ function native_fixture_wait_for_lock($observer,$requester,$blocker,$check)
         throw new RuntimeException('Explicit local fixture lock identities required');
     }
     $end=microtime(true)+5.0;
-    $sql='SELECT DISTINCT r.trx_mysql_thread_id requester,b.trx_mysql_thread_id blocker FROM information_schema.INNODB_LOCK_WAITS w '.
-        'INNER JOIN information_schema.INNODB_TRX r ON r.trx_id=w.requesting_trx_id '.
-        'INNER JOIN information_schema.INNODB_TRX b ON b.trx_id=w.blocking_trx_id '.
-        'WHERE r.trx_mysql_thread_id='.(int)$requester.' AND b.trx_mysql_thread_id='.(int)$blocker;
+    $mariadb=stripos(mysqli_get_server_info($observer->db_connect_id),'MariaDB')!==false;
+    if ($mariadb) {
+        $sql='SELECT DISTINCT r.trx_mysql_thread_id requester,b.trx_mysql_thread_id blocker FROM information_schema.INNODB_LOCK_WAITS w '.
+            'INNER JOIN information_schema.INNODB_TRX r ON r.trx_id=w.requesting_trx_id '.
+            'INNER JOIN information_schema.INNODB_TRX b ON b.trx_id=w.blocking_trx_id '.
+            'WHERE r.trx_mysql_thread_id='.(int)$requester.' AND b.trx_mysql_thread_id='.(int)$blocker;
+    } else {
+        $sql='SELECT DISTINCT waiting_pid requester,blocking_pid blocker FROM sys.innodb_lock_waits '.
+            'WHERE waiting_pid='.(int)$requester.' AND blocking_pid='.(int)$blocker;
+    }
     do{
         $result=$observer->sql_query($sql);call_user_func($check,$result!==false,'Observe real native lock wait');
         try{$rows=$observer->sql_fetchrowset($result);}finally{$observer->sql_freeresult($result);}
@@ -24,7 +30,7 @@ function native_fixture_wait_for_lock($observer,$requester,$blocker,$check)
     if($result!==false){try{$state=$observer->sql_fetchrowset($result);}finally{$observer->sql_freeresult($result);}}
     $result=$observer->sql_query('SELECT trx_id,trx_state,trx_mysql_thread_id,trx_requested_lock_id FROM information_schema.INNODB_TRX WHERE trx_mysql_thread_id IN ('.(int)$requester.','.(int)$blocker.')');$transactions=array();
     if($result!==false){try{$transactions=$observer->sql_fetchrowset($result);}finally{$observer->sql_freeresult($result);}}
-    $result=$observer->sql_query('SELECT requesting_trx_id,blocking_trx_id FROM information_schema.INNODB_LOCK_WAITS');$waits=array();
+    $result=$observer->sql_query($sql);$waits=array();
     if($result!==false){try{$waits=$observer->sql_fetchrowset($result);}finally{$observer->sql_freeresult($result);}}
     throw new RuntimeException('Expected independent native lock wait was not observed: '.json_encode(array('processes'=>$state,'transactions'=>$transactions,'waits'=>$waits)));
 }

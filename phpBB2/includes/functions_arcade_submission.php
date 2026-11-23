@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_arcade_score_storage.php';
+require_once dirname(__FILE__) . '/functions_arcade_tournament_gamedata.php';
 
 function phpbb_arcade_submission_better($score, $previous, $reverse)
 {
@@ -89,7 +90,9 @@ class PhpbbArcadeSubmissionWriter extends PhpbbOwnedStore
         $games = $this->rows('SELECT top_score,top_player FROM '.iNA_TOUR_DATA." WHERE tour_id=$tour AND game_name='$name' FOR UPDATE");
         $members = $this->rows('SELECT gamedata FROM '.iNA_TOUR_PLAY." WHERE tour_id=$tour AND user_id=$user FOR UPDATE");
         if (count($events)!==1 || (int)$events[0]['tour_active']!==2 || count($games)!==1 || count($members)!==1) { $this->storage_fail('arcade_submission_failed'); }
-        $data = phpbb_safe_unserialize_array($members[0]['gamedata']); $found = 0;
+        $data = phpbb_arcade_tournament_gamedata($members[0]['gamedata']);
+        if ($data === null) { $this->storage_fail('arcade_submission_failed'); }
+        $found = 0;
         foreach ($data as &$entry) {
             if (!is_array($entry) || !isset($entry['game_name']) || $entry['game_name'] !== $game['game_name']) { continue; }
             $found++;
