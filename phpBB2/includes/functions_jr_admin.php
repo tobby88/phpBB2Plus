@@ -563,7 +563,7 @@ function jr_admin_get_user_info($user_id)
 	'SELECT * FROM ' . JR_ADMIN_TABLE . "
 	WHERE user_id = $user_id",
 	
-	$lang['Jr_admin_permissions_unavailable'],
+	isset($lang['Jr_admin_permissions_unavailable']) ? $lang['Jr_admin_permissions_unavailable'] : 'Delegated administration permissions could not be loaded.',
 	false,
 	1
 	)
