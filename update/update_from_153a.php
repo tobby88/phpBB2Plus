@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-icons-only', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--post-icons-only', '--post-tombstones-only', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--album-legacy-personal-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0 && strpos($argument, '--icon-source-root=') !== 0))
@@ -45,6 +45,7 @@ require_once __DIR__ . '/pafiledb_file_journal_migration.php';
 require_once __DIR__ . '/pafiledb_download_storage_migration.php';
 require_once __DIR__ . '/album_rating_storage_migration.php';
 require_once __DIR__ . '/album_comment_parent_migration.php';
+require_once __DIR__ . '/album_legacy_personal_migration.php';
 require_once __DIR__ . '/banner_id_migration.php';
 require_once __DIR__ . '/banner_counter_migration.php';
 require_once __DIR__ . '/profile_text_storage_migration.php';
@@ -80,6 +81,7 @@ function update_usage()
 	echo "  --pafiledb-download-storage-only Widen download/category grant references and counters; index lookups\n";
 	echo "  --album-rating-storage-only  Widen legacy HotOrNot scores without rewriting votes\n";
 	echo "  --album-comment-parents-only  Reconcile comment categories to current existing parents\n";
+	echo "  --album-legacy-personal-only  Move eligible pre-hierarchy personal photos into Album categories\n";
 	echo "  --banner-ids-only      Make existing banner IDs unique and automatically allocated\n";
 	echo "  --banner-counters-only Widen banner click and view counters without changing their values\n";
 	echo "  --profile-text-storage-only Widen custom-profile values and defaults without rewriting them\n";
@@ -203,7 +205,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--post-icons-only', '--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only'), $argv)) > 1)
+if (count(array_intersect(array('--post-icons-only', '--post-tombstones-only', '--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--pafiledb-file-journal-only', '--pafiledb-download-storage-only', '--album-rating-storage-only', '--album-comment-parents-only', '--album-legacy-personal-only', '--banner-ids-only', '--banner-counters-only', '--profile-text-storage-only', '--arcade-name-storage-only', '--arcade-log-privacy-only', '--arcade-progress-only', '--arcade-counters-only', '--arcade-last-play-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -818,6 +820,18 @@ try
 		} else { echo "Dry run only. No database changes made.\n"; }
 		mysqli_close($connection); exit(0);
 	}
+	if (in_array('--album-legacy-personal-only', $argv, true))
+	{
+		if ($apply) {
+			$legacy = plus_legacy_album_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Legacy personal Album migration complete: {$legacy['pictures']} pictures, {$legacy['updated_comments']} comment category snapshots.\n";
+			plus_legacy_album_print_plan($legacy, true);
+		} else {
+			plus_legacy_album_print_plan(plus_legacy_album_plan($connection, $table_prefix));
+			echo "Dry run only. No database changes made.\n";
+		}
+		mysqli_close($connection); exit(0);
+	}
 	if (in_array('--album-comment-parents-only', $argv, true))
 	{
 		$comment_parent_plan = plus_album_comment_parent_plan($connection, $table_prefix);
@@ -996,7 +1010,14 @@ try { $discussion_text_plan = plus_album_discussion_text_plan($connection, $tabl
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 try { $album_rating_plan = plus_album_rating_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
-try { $comment_parent_plan = plus_album_comment_parent_plan($connection, $table_prefix); }
+try
+{
+	$comment_parent_plan = plus_album_comment_parent_plan($connection, $table_prefix);
+	$legacy_album_table = $table_prefix . 'album';
+	$legacy_album_pictures = update_table_exists($connection, $dbname, $legacy_album_table) &&
+		update_column_exists($connection, $dbname, $legacy_album_table, 'pic_cat_id') &&
+		plus_storage_rows($connection, 'SELECT pic_id FROM '.plus_storage_identifier($legacy_album_table).' WHERE pic_cat_id=0 LIMIT 1');
+}
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 try { $download_journal_plan = plus_pa_file_journal_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
@@ -1471,6 +1492,10 @@ echo 'Operations: ' . (count($operations) + count($icon_storage_plan['references
 if ($legacy_cleanup_count > 0)
 {
 	echo "WARNING: $legacy_cleanup_count incompatible CrackerTracker 4.x database objects will be removed. Their old settings and logs cannot be migrated.\n\n";
+}
+if ($legacy_album_pictures)
+{
+	echo "Pre-hierarchy personal photos remain. Preview their separate conversion with --album-legacy-personal-only.\n\n";
 }
 
 if ($apply)

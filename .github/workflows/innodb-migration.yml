@@ -200,13 +200,17 @@ jobs:
         env:
           PHPBB_ALBUM_RATING_STORAGE_NATIVE: '1'
           PHPBB_ALBUM_RATING_STORAGE_PASSWORD: fixture-only
-      - name: Reconcile Album comment categories without changing content
+      - name: Reconcile Album comment categories and migrate legacy personal photos
         if: matrix.part == 3
-        run: php -d memory_limit=64M .github/scripts/check-album-comment-parents-native.php
+        run: |
+          php -d memory_limit=64M .github/scripts/check-album-comment-parents-native.php
+          php -d memory_limit=64M .github/scripts/check-legacy-personal-album-migration.php
         env:
           PHPBB_ALBUM_COMMENT_PARENTS_NATIVE: '1'
           PHPBB_ALBUM_COMMENT_PARENTS_CLI: '1'
           PHPBB_ALBUM_COMMENT_PARENTS_PASSWORD: fixture-only
+          PHPBB_LEGACY_ALBUM_NATIVE: '1'
+          PHPBB_LEGACY_ALBUM_PASSWORD: fixture-only
       - name: Check Album file journal schema and real updater preservation
         if: matrix.part == 5
         run: |

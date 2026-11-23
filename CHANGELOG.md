@@ -21,6 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album gallery counts and pages
 
+- Add a CLI migration for personal photos still using pre-hierarchy category
+  zero. Preserve picture IDs and legacy viewing rules and report collections
+  that need an administrator's decision.
 - Keep photo previews, album uploads and moderation lists usable under
   strict SQL modes. Count only the pictures shown on the moderation page
   and report each comment once, regardless of the number of ratings.

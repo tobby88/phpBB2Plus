@@ -149,6 +149,22 @@ text, edit history and custom data are preserved. The repair is transactional,
 idempotent and uses the shared Album writer lease. Custom triggers and incompatible
 storage require review. This mode cannot be combined with another scoped mode.
 
+Installations with personal photos from before the category hierarchy can preview
+`php update/update_from_153a.php --album-legacy-personal-only`. After upgrading
+storage, apply this mode with `--apply --backup-confirmed --maintenance-confirmed`.
+The full updater reports remaining category-zero photos so their conversion can
+be reviewed separately.
+
+Eligible pictures are moved into a dedicated **Legacy photos** subcategory of
+their owner's personal gallery. The subcategory keeps the legacy guest, member
+or private-group viewing policy. If a compatible root is missing and the owner
+has no other categories, the updater creates one. The import adds no upload or
+moderation privileges. It keeps picture and owner IDs, files, rating records,
+approval flags and comment text. The only existing row changes are the picture
+category and the attached comments' category snapshots. Guest or missing and
+inactive accounts, ambiguous trees and roots with different visibility are
+reported separately and left in place. The move is transactional and repeatable.
+
 The full updater also widens legacy signed HotOrNot score storage to SMALLINT,
 so configured scores through 255 fit. Preview this change separately with
 `php update/update_from_153a.php --album-rating-storage-only`; applying requires
