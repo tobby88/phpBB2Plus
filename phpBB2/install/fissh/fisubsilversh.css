@@ -134,9 +134,6 @@ img{border:0 solid}
 
 /* Background images for tables */
 .tbl{border-collapse:collapse;height:4px;width:100%}
-.tbll{background: url(images/tb4_l.gif) no-repeat;width:8px}
-.tblbot{background: url(images/tb4_m.gif) repeat-x;width:100%}
-.tblr{background: url(images/tb4_r.gif) no-repeat;width:8px}
 
 /* Code blocks */ 
 .codetitle{background: #cdd6de;border:1px solid #9ca9b4;padding:5px;width:90%;font-weight:bold; text-align:left; 

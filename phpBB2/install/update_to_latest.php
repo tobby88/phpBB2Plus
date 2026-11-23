@@ -107,7 +107,7 @@ hr	{ height: 0px; border: solid #D1D7DC 0px; border-top-width: 1px;}
 	<tr>
 		<td><table width="100%" border="0" cellspacing="0" cellpadding="0">
 			<tr>
-				<td><img src="../templates/fisubsilversh/images/logo_phpBB_med.gif" border="0" alt="Forum Home" vspace="1" /></td>
+				<td><img src="../templates/fisubsilversh/images/logo_phpbb_med.gif" border="0" alt="phpBB" vspace="1" /></td>
 				<td align="center" width="100%" valign="middle"><span class="maintitle">Updating to latest stable release</span></td>
 			</tr>
 		</table></td>
