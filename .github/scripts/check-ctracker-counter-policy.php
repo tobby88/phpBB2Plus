@@ -24,6 +24,20 @@ class CounterPolicyTemplate {
 function append_sid($url) { return $url; }
 function message_die($level, $message) { throw new RuntimeException($message); }
 function cp_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
+$manager_source = file_get_contents($counter_source.'ctracker/classes/class_log_manager.php');
+$manager_end = strrpos($manager_source, '?>');
+cp_check(substr($manager_source, 0, 5) === '<?php' && $manager_end !== false, 'Actual log manager source');
+// Interleave a real second writer before the first writer acquires its file
+// lock. All locking and file writes still use the real filesystem.
+eval('namespace CounterPolicyOrdering;
+    function flock($stream, $operation) {
+        if ($operation === LOCK_EX && isset($GLOBALS["cp_log_before_write"])) {
+            $peer = $GLOBALS["cp_log_before_write"];
+            unset($GLOBALS["cp_log_before_write"]);
+            $peer();
+        }
+        return \flock($stream, $operation);
+    }'.substr($manager_source, 5, $manager_end-5));
 $counter_root = sys_get_temp_dir() . '/phpbb-ct-counter-' . getmypid() . '-' . bin2hex(phpbb_random_bytes(6)) . '/';
 $counter_files = array(1=>'logfile_attempt_counter.txt', 2=>'logfile_worms.txt', 3=>'logfile_blocklist.txt',
     4=>'logfile_malformed_logins.txt', 5=>'logfile_spammer.txt', 6=>'logfile_debug_mode.txt');
@@ -69,6 +83,51 @@ try {
     foreach (array(2,3,4,5,6) as $id) { cp_check($manager->check_log_size($id)===0, 'Actual ACP clears every log'); }
     cp_check($before===10 && $manager->get_counter_value()===$before, 'Actual ACP clear-all preserves existing historical aggregate and current attack total'); $cases++;
     cp_admin('delete_all'); cp_check($manager->get_counter_value()===$before, 'Repeated clear-all is counter-idempotent'); $cases++;
+
+    foreach (array(2,3,4,5) as $id) {
+        $limit = $id === 2 ? 100 : 3;
+        foreach (array($limit, $limit-1) as $start) {
+            cp_reset();
+            $manager = new log_manager();
+            for ($i=0; $i<$start; $i++) {
+                cp_check($manager->write_to_log($id, '0|||'.$i.'|||older|||referrer|||agent|||ip|||host'), 'Seed actual log near its limit');
+            }
+            $GLOBALS['cp_log_before_write'] = function () use ($manager, $id, $limit) {
+                $manager->prepare_log('Peer entry');
+                $manager->write_general_logfile($limit, $id);
+            };
+            $writer = new \CounterPolicyOrdering\log_manager();
+            $writer->prepare_log('First writer entry');
+            if ($id === 2) { $writer->write_worm(); }
+            else { $writer->write_general_logfile($limit, $id); }
+            cp_check(!isset($GLOBALS['cp_log_before_write']), 'The peer was scheduled at the real write boundary');
+            $lines = $manager->read_log_lines($id, 4);
+            if ($start === $limit) {
+                cp_check(count($lines) === 3 && strpos($lines[1], 'Peer entry') !== false,
+                    'A stale size reading must not clear a newer event: '.$id);
+            } else {
+                cp_check(count($lines) === 2, 'A changed record count must not exceed the configured threshold: '.$id);
+            }
+            cp_check(strpos(end($lines), 'First writer entry') !== false, 'The current event is written');
+            cp_check($manager->metadata_kind(explode('|||', $lines[0])) === 'rotated', 'Only the real installed reset is recorded');
+            $counted = $id !== 4;
+            cp_check($manager->get_counter_value() === 7 + ($counted ? $start+2 : 0), 'The counter includes each valid event once');
+            $cases++;
+        }
+    }
+
+    foreach (array(2,3,4,5,6) as $id) {
+        cp_reset();
+        $manager = new log_manager();
+        $path = $manager->create_ct_path($id);
+        $old = '0|||17|||Old unterminated entry|||referrer|||agent|||ip|||host';
+        cp_check(file_put_contents($path, $old, FILE_APPEND) === strlen($old), 'Write last record without line terminator');
+        $entry = '0|||19|||New separate entry|||referrer|||agent|||ip|||host';
+        cp_check($manager->write_to_log($id, $entry), 'Append real distinct record');
+        $lines = $manager->read_log_lines($id, 3);
+        cp_check(array_slice($lines, -2) === array($old."\n",$entry."\n"), 'Appending preserves the preceding complete record: '.$id);
+        $cases++;
+    }
     echo 'CrackerTracker counter policy: ', $cases, " actual rotation/ACP cases passed\n";
 } finally {
     restore_error_handler();

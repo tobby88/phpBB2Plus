@@ -1348,6 +1348,8 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Accurate CrackerTracker log metadata and dates
 
+- Count, rotate and append each log under the same file lock. Keep consecutive
+  entries separate when an older log ends without a line terminator.
 - Read the event count, metadata and bounded event list together. Keep the
   creation or reset date visible after its header falls outside the event list.
 - Mark automatic log resets at the entry limit separately from explicit

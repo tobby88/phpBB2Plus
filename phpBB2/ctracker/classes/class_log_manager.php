@@ -324,9 +324,6 @@ class log_manager
 		{
 			return $this->ct_file_error();
 		}
-		$kind = $automatic ? 'rotated' : 'cleared';
-		$resetstring = ($file_id != 6) ? '1|||' . time() . '|||null|||null|||null|||null|||null|||' . $kind . "\n" : '';
-
 		// Delete now
 		$logentry = @fopen($path, 'c+b');
 		if ($logentry === false)
@@ -347,8 +344,7 @@ class log_manager
 			if ($count === false) { @flock($logentry, LOCK_UN); @fclose($logentry); return $this->ct_file_error(); }
 			$this->last_deleted_entries = $count;
 		}
-		$success = @ftruncate($logentry, 0) && @rewind($logentry) &&
-			@fwrite($logentry, $resetstring) === strlen($resetstring) && @fflush($logentry);
+		$success = $this->reset_locked_log($logentry, $file_id, $automatic ? 'rotated' : 'cleared');
 		@flock($logentry, LOCK_UN);
 		@fclose($logentry);
 		if (!$success)
@@ -359,6 +355,17 @@ class log_manager
 		return true;
 	}
 
+	private function log_metadata($kind)
+	{
+		return '1|||' . time() . '|||null|||null|||null|||null|||null|||' . $kind . "\n";
+	}
+
+	private function reset_locked_log($handle, $file_id, $kind)
+	{
+		$metadata = (int) $file_id === 6 ? '' : $this->log_metadata($kind);
+		return @rewind($handle) && @ftruncate($handle, 0) &&
+			@fwrite($handle, $metadata) === strlen($metadata) && @fflush($handle);
+	}
 
 	/**
 	 * This function writes the log entry into a logfile
@@ -368,7 +375,11 @@ class log_manager
 	 */
 	function write_to_log($file_id, $str_log)
 	{
-		// Set Vars
+		return $this->write_log_entry($file_id, $str_log, null);
+	}
+
+	private function write_log_entry($file_id, $str_log, $limit)
+	{
 		$path = $this->safe_log_path($file_id);
 		if ($path === false)
 		{
@@ -376,8 +387,7 @@ class log_manager
 		}
 		$str_log = $this->log_text_prefix(is_scalar($str_log) ? str_replace(array("\r", "\n", "\0"), '', (string) $str_log) : '', 8192);
 
-		// Write down new log entry
-		$logentry = @fopen($path, 'ab');
+		$logentry = @fopen($path, 'c+b');
 		if ($logentry === false)
 		{
 			return $this->ct_file_error();
@@ -387,32 +397,60 @@ class log_manager
 			@fclose($logentry);
 			return $this->ct_file_error();
 		}
-		$line = $str_log . "\n";
-		if (in_array(intval($file_id), array(2, 3, 4, 5), true))
+		$rotated_entries = 0;
+		try
 		{
-			// Readers reserve the first line for metadata. Initialize new or
-			// empty event logs under this same lock, before their first event.
-			$status = @fstat($logentry);
-			if (!is_array($status) || !isset($status['size']))
+			if ($limit !== null)
 			{
-				@flock($logentry, LOCK_UN);
-				@fclose($logentry);
-				return $this->ct_file_error();
+				// Keep the size decision, reset and append within one lock.
+				$count = $this->count_log_records($logentry, (int) $file_id === 6);
+				if ($count === false) { return $this->ct_file_error(); }
+				if ($count >= $limit)
+				{
+					if (!$this->reset_locked_log($logentry, $file_id, 'rotated')) { return $this->ct_file_error(); }
+					$this->last_deleted_entries = (int) $file_id === 6 ? 0 : $count;
+					$rotated_entries = $this->last_deleted_entries;
+				}
 			}
-			if ($status['size'] === 0)
-			{
-				$line = '1|||' . time() . "|||null|||null|||null|||null|||null|||created\n" . $line;
-			}
+			$success = $this->append_locked_log($logentry, $file_id, $str_log . "\n");
 		}
-		$success = @fwrite($logentry, $line) === strlen($line) && @fflush($logentry);
-		@flock($logentry, LOCK_UN);
-		@fclose($logentry);
+		finally
+		{
+			@flock($logentry, LOCK_UN);
+			@fclose($logentry);
+		}
+
+		// Only attack-class logs transfer removed records to the shared counter.
+		if ($rotated_entries > 0 && in_array((int) $file_id, array(2, 3, 5), true))
+		{
+			$this->increment_counter($rotated_entries);
+		}
+		if ($success || $rotated_entries > 0) { $this->invalidate_counter_cache(); }
 		if (!$success)
 		{
 			return $this->ct_file_error();
 		}
-		$this->invalidate_counter_cache();
 		return true;
+	}
+
+	private function append_locked_log($handle, $file_id, $line)
+	{
+		$status = @fstat($handle);
+		if (!is_array($status) || !isset($status['size'])) { return false; }
+		if ($status['size'] > 0)
+		{
+			if (@fseek($handle, -1, SEEK_END) !== 0) { return false; }
+			$last = @fread($handle, 1);
+			if ($last === false || strlen($last) !== 1) { return false; }
+			// Preserve an existing final record left without a line ending.
+			if ($last !== "\n") { $line = "\n" . $line; }
+		}
+		elseif (in_array((int) $file_id, array(2, 3, 4, 5), true))
+		{
+			$line = $this->log_metadata('created') . $line;
+		}
+		return @fseek($handle, 0, SEEK_END) === 0 &&
+			@fwrite($handle, $line) === strlen($line) && @fflush($handle);
 	}
 
 
@@ -621,17 +659,7 @@ class log_manager
 		 * have to use a fixed logfile size value here for this logfile. The
 		 * default value is set to 100 lines. Feel free to change it!
 		 */
-		$max_log_size = 100;
-		$current_size = $this->check_log_size(2);
-		if ($current_size >= $max_log_size)
-		{
-			if ($this->delete_logfile(2, true))
-			{
-				$this->increment_counter($this->last_deleted_entries);
-			}
-		}
-
-		$this->write_to_log(2, $this->to_string());
+		$this->write_general_logfile(100, 2);
 	}
 
 
@@ -643,18 +671,7 @@ class log_manager
 	function write_general_logfile($logsize, $file_id)
 	{
 		$logsize = max(1, min(10000, intval($logsize)));
-		$current_size = $this->check_log_size($file_id);
-		if ($current_size >= $logsize)
-		{
-			// Match get_counter_value(): failed logins and debug records are
-			// not attacks merely because their bounded logs are being rotated.
-			if ($this->delete_logfile($file_id, true) && in_array(intval($file_id), array(2, 3, 5), true))
-			{
-				$this->increment_counter($this->last_deleted_entries);
-			}
-		}
-
-		$this->write_to_log($file_id, $this->to_string());
+		$this->write_log_entry($file_id, $this->to_string(), $logsize);
 	}
 
 
