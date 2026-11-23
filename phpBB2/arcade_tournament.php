@@ -63,8 +63,7 @@ $mode       = $arcade->pass_var('mode', '');
 $tour_id    = (int) $arcade->pass_var('id', 0);
 $game_id    = (int) $arcade->pass_var('game_id', 0);
 $join_tour  = $arcade->pass_var('join_tour', array());
-$s_options  = '<input type="Submit" name="start" value="'. $lang['Start'] . '">&nbsp;&nbsp;<input type="Submit" name="join" value="'. $lang['Join'] . '">';
-$GameData   = array("game_name" => '', "played" => 1, "score" => 0, "time_taken" => 0);
+$s_options  = '';
 $in_tour = false;
 $games_played_list = array();
 $tour = array('tour_name' => '', 'tour_desc' => '', 'tour_max_players' => 2, 'tour_player_turns' => 1);
@@ -121,6 +120,62 @@ function arcade_tournament_champions_block($template, $champions, $links)
     'LIST' => $champions ? implode('<br />', $tournaments) : $lang['None'],
     'LINK' => $links,
   ));
+}
+
+function arcade_tournament_join_status($tour, $member, $players)
+{
+  if ((int) $tour['tour_active'] !== 2) { return 'inactive'; }
+  if ($member) { return 'arcade_tournament_already_joined'; }
+  return (int) $players >= (int) $tour['tour_max_players'] ? 'arcade_tournament_full' : null;
+}
+
+function arcade_tournament_overview($db, $user_id)
+{
+  global $lang;
+  $sql = 'SELECT t.tour_id, t.tour_name, t.tour_desc, t.tour_active, t.tour_max_players,
+      (SELECT COUNT(*) FROM ' . iNA_TOUR_DATA . ' g WHERE g.tour_id = t.tour_id) AS games,
+      (SELECT COUNT(*) FROM ' . iNA_TOUR_PLAY . ' p WHERE p.tour_id = t.tour_id) AS players,
+      EXISTS (SELECT 1 FROM ' . iNA_TOUR_PLAY . ' m WHERE m.tour_id = t.tour_id AND m.user_id = ' . (int) $user_id . ') AS is_member
+    FROM ' . iNA_TOUR . ' t
+    WHERE t.tour_active <> 3
+    ORDER BY t.tour_active DESC, t.tour_id ASC';
+  $result = $db->sql_query($sql);
+  if (!$result)
+  {
+    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+  }
+  $rows = $db->sql_fetchrowset($result);
+  $db->sql_freeresult($result);
+  return $rows;
+}
+
+function arcade_tournament_detail_options($tour, $member, $players, $admin)
+{
+  global $lang;
+  $id = (int) $tour['tour_id'];
+  $options = array();
+  if (arcade_tournament_join_status($tour, $member, $players) === null)
+  {
+    $options[] = '<input type="submit" name="join" value="' . $lang['Join'] .
+      '"><input type="hidden" name="join_tour[]" value="' . $id . '">';
+  }
+  if ($admin && (int) $tour['tour_active'] !== 3)
+  {
+    $options[] = '<input type="submit" name="end" value="' . $lang['End'] .
+      '"><input type="hidden" name="id" value="' . $id . '">';
+  }
+  return implode('&nbsp;&nbsp;', $options);
+}
+
+function arcade_tournament_player_games($stored)
+{
+  $games = phpbb_safe_unserialize_array($stored);
+  if (!$games && is_string($stored) && strpos($stored, '\\') !== false)
+  {
+    // Imported rows may still contain an extra layer of request escaping.
+    $games = phpbb_safe_unserialize_array(stripslashes($stored));
+  }
+  return array_values(array_filter($games, 'is_array'));
 }
 
 function arcade_public_tournament_require_token($userdata, $lang)
@@ -216,9 +271,21 @@ else if(!empty($HTTP_POST_VARS['start']))
 //
 //  Can USERS start a Tournament???
 //
-  if($arcade->arcade_config['games_tournament_user'] == 0)
+  if (empty($arcade->arcade_config['games_tournament_user']))
   {
     message_die(GENERAL_MESSAGE, $lang['arcade_admin_only'].$lang['tour_return']);
+  }
+  $sql = 'SELECT COUNT(*) AS total FROM ' . iNA_TOUR . ' WHERE tour_active <> 3';
+  $result = $db->sql_query($sql);
+  if (!$result)
+  {
+    message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+  }
+  $count = $db->sql_fetchrow($result);
+  $db->sql_freeresult($result);
+  if ((int) $count['total'] >= (int) $arcade->arcade_config['games_tournament_max'])
+  {
+    message_die(GENERAL_MESSAGE, $lang['arcade_tournament_limit'].$lang['tour_return']);
   }
 
   $s_options = '<input type="Submit" name="submit" value="'. $lang['Submit'] . '">';
@@ -324,8 +391,6 @@ else if ($mode == 'tour')
 {
   $played_games = 0;
   $GameData = array();
-  
-  $s_options = '<input type="Submit" name="join" value="'. $lang['Join'] . '"><input type="hidden" name="join_tour[]" value="'.(int) $tour_id.'">';
 //
 //  Get Tournament details
 //
@@ -336,6 +401,7 @@ else if ($mode == 'tour')
 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
 	}
 	$tour = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
   if (!$tour)
   {
     message_die(GENERAL_MESSAGE, $lang['no_tour_data'] . $lang['tour_return']);
@@ -350,6 +416,7 @@ else if ($mode == 'tour')
 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
 	}
 	$tour_games = $db->sql_fetchrowset($result);
+	$db->sql_freeresult($result);
 	$total_games = count($tour_games);
 //
 //  Get Tournament Players
@@ -363,30 +430,27 @@ else if ($mode == 'tour')
 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
 	}
 	$tour_players = $db->sql_fetchrowset($result);
+	$db->sql_freeresult($result);
 	$total_players = count($tour_players);
 
   $template->assign_block_vars('player_head', array());
 
   for($i = 0; $i < $total_players; $i++)
   {
+    $temp_gamedata = arcade_tournament_player_games($tour_players[$i]['gamedata']);
 //
 //  Get Game Info for This user.
 //
     if($tour_players[$i]['user_id'] == $userdata['user_id'])
     {
       $in_tour = true;
-      $GameData = phpbb_safe_unserialize_array(stripslashes($tour_players[$i]['gamedata']));
-      if (!is_array($GameData))
-      {
-        $GameData = array();
-      }
+      $GameData = $temp_gamedata;
       $played_games = count($GameData);
     }
 //
 //  Now we have that, let's build a list of what games each person has played for some stats
 // 
-    $temp_gamedata = phpbb_safe_unserialize_array(stripslashes($tour_players[$i]['gamedata']));
-    $played_games_count = is_array($temp_gamedata) ? count($temp_gamedata) : 0;
+    $played_games_count = count($temp_gamedata);
 
     $played_games_list = ' [<i>';
     for($count = 0; $count < $played_games_count; $count++)
@@ -395,7 +459,8 @@ else if ($mode == 'tour')
       {
         $played_games_list .= ', ';
       }
-      $played_name = isset($temp_gamedata[$count]['game_name']) ? (string) $temp_gamedata[$count]['game_name'] : '';
+      $played_name = isset($temp_gamedata[$count]['game_name']) && is_string($temp_gamedata[$count]['game_name'])
+        ? $temp_gamedata[$count]['game_name'] : '';
       if ($played_name === '')
       {
         continue;
@@ -419,11 +484,8 @@ else if ($mode == 'tour')
 
        ));
 
-    if($userdata['user_level'] == ADMIN)
-    {
-      $s_options = '<input type="Submit" name="end" value="'. $lang['End'] . '"><input type="Hidden" name="id" value="'.$tour_id.'">';
-    }
   }
+  $s_options = arcade_tournament_detail_options($tour, $in_tour, $total_players, (int) $userdata['user_level'] === ADMIN);
 //
 //  Thats the Player Info sorted, now get the Games Info
 //
@@ -658,86 +720,44 @@ else
     : '';
   arcade_tournament_champions_block($template, array_slice($tour_champs, 0, 5), $champions_link);
 
-  $sql = "SELECT * FROM " . iNA_TOUR . "
-    WHERE tour_active <> 3
-    ORDER BY tour_active DESC, tour_id ASC";
-  if( !$result = $db->sql_query($sql) )
-  {
-  	message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-  }
-  $tours = $db->sql_fetchrowset($result);
-  $total_tournaments = count($tours);
-
-  if($total_tournaments == 0 || !is_array($tours))
+  $tours = arcade_tournament_overview($db, $userdata['user_id']);
+  $can_join = false;
+  if (!$tours)
   {
     $template->assign_block_vars('tournament_none', array(
       'NONE' => $lang['None'],
       ));
-    $s_options = '<input type="Submit" name="start" value="'. $lang['Start'] . '">';
   }
-  else for($i = 0; $i < $total_tournaments; $i++)
+  foreach ($tours as $i => $entry)
   {
-    $sql = "SELECT count(game_name) as total FROM " . iNA_TOUR_DATA . "
-      WHERE tour_id = " . $tours[$i]['tour_id'];
-    if( !$result = $db->sql_query($sql) )
+    $join_status = arcade_tournament_join_status($entry, (bool) $entry['is_member'], $entry['players']);
+    if ($join_status === null)
     {
-    	message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
+      $can_join = true;
     }
-    $tour_data_total = $db->sql_fetchrow($result);
-    $total_games = $tour_data_total['total'];
-     
-    $sql = "SELECT count(user_id) as total FROM " . iNA_TOUR_PLAY . "
-      WHERE tour_id = " . $tours[$i]['tour_id'];
-    if( !$result = $db->sql_query($sql) )
-    {
-    	message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-    }
-    $tour_play_total = $db->sql_fetchrow($result);
-    $total_players = $tour_play_total['total']; 
-    
-    $sql = "SELECT user_id FROM " . iNA_TOUR_PLAY . "
-      WHERE tour_id = " . $tours[$i]['tour_id'] . "
-      AND user_id = " . $userdata['user_id'];
-    if( !$result = $db->sql_query($sql) )
-    {
-		message_die(GENERAL_ERROR, $lang['no_tour_player_data'], "", __LINE__, __FILE__, $sql);
-    }
-    $tour_play = $db->sql_fetchrow($result);
-    
-    $join_text = '<input type="checkbox" name="join_tour[]" value="'.(int) $tours[$i]['tour_id'].'">';
-    if((int) $tours[$i]['tour_active'] !== 2)
-    {
-      $join_text = $lang['inactive'];
-    }
-    else if($tour_play && (int) $tour_play['user_id'] === (int) $userdata['user_id'])
-    {
-      $join_text = $lang['None'];
-    }
-    else if($total_players >= $tours[$i]['tour_max_players'])
-    {
-      $join_text = $lang['Full'];
-    }
-    
     $template->assign_block_vars('tour', array(
-        'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
-        'NAME' => '<a href="'.append_sid($filename.'?mode=tour&amp;id='.(int) $tours[$i]['tour_id']).'" class="forumlink">'.htmlspecialchars($tours[$i]['tour_name'], ENT_QUOTES, 'UTF-8').'</a>',
-        'DESC' => htmlspecialchars($tours[$i]['tour_desc'], ENT_QUOTES, 'UTF-8'),
-
-        'TOTAL_GAMES' => sprintf($lang['tournament_games'], $total_games),
-        'TOTAL_PLAYERS' => sprintf($lang['tournament_players'], $total_players),
-
-        'JOIN' => $join_text,
+        'ROW_CLASS' => ($i % 2) ? 'row2' : 'row1',
+        'NAME' => '<a href="'.append_sid($filename.'?mode=tour&amp;id='.(int) $entry['tour_id']).'" class="forumlink">'.htmlspecialchars((string) $entry['tour_name'], ENT_QUOTES, 'UTF-8').'</a>',
+        'DESC' => htmlspecialchars((string) $entry['tour_desc'], ENT_QUOTES, 'UTF-8'),
+        'TOTAL_GAMES' => sprintf($lang['tournament_games'], $entry['games']),
+        'TOTAL_PLAYERS' => sprintf($lang['tournament_players'], $entry['players']),
+        'JOIN' => $join_status === null ? '<input type="checkbox" name="join_tour[]" value="'.(int) $entry['tour_id'].'">' : $lang[$join_status],
         'EDIT' => '',
         'DELETE' => '',
 
       ));
   }
-  if($total_tournaments >= $arcade->arcade_config['games_tournament_max'])
+  $options = array();
+  if (!empty($arcade->arcade_config['games_tournament_user']) &&
+      count($tours) < (int) $arcade->arcade_config['games_tournament_max'])
   {
-
-    $s_options = '<input type="Submit" name="join" value="'. $lang['Join'] . '">';
+    $options[] = '<input type="submit" name="start" value="' . $lang['Start'] . '">';
   }
-
+  if ($can_join)
+  {
+    $options[] = '<input type="submit" name="join" value="' . $lang['Join'] . '">';
+  }
+  $s_options = implode('&nbsp;&nbsp;', $options);
 }
   
 $template->assign_vars(array(

@@ -1393,6 +1393,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Select the 60 visible monthly high scores after applying game access settings.
 - Award Arcade points once per eligible game and month, using consistent tie breakers for monthly and all-time winners.
 - Link the five latest Arcade tournament winners to the complete paginated history.
+- Show tournament creation, enrolment and completion controls when their event
+  conditions permit them. Read the overview counts in one query and preserve
+  backslashes in saved participant game data.
 
 ### Consistent Arcade parent counters on catalogue edits
 

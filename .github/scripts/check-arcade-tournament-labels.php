@@ -17,4 +17,33 @@ foreach(array('english','german')as$locale){as_language($locale);foreach($viewer
  $db->users=array(7=>phpbb_username_key('Renamed & Current'));at_check_output(at_render(7,$db->users[7]),'Renamed & Current',7);$as_cases++;
 }}
 $userdata=array('user_id'=>-1,'session_logged_in'=>false);$board_config=array('hide_removed_author_names'=>1);$db=new ArcadeTournamentLabelDatabase();$keep[]=$db;$db->users=array(7=>'Current');$db->fail_alias=true;$caught=false;try{at_render(7,'Current');}catch(ArcadeSummaryExit$e){$caught=$e->getMessage()===$lang['Author_privacy_unavailable'];}as_check($caught,'Privacy lookup failure cannot silently disclose a byline');$as_cases++;
+
+$tour=array('tour_id'=>7,'tour_active'=>2,'tour_max_players'=>2);
+foreach(array(
+ array(2,false,1,false,true,false),
+ array(2,false,2,false,false,false),
+ array(2,true,1,false,false,false),
+ array(0,false,0,false,false,false),
+ array(2,false,0,true,true,true),
+ array(2,true,1,true,false,true),
+ array(3,false,0,true,false,false),
+ array(0,false,0,true,false,true),
+)as$case){
+ $tour['tour_active']=$case[0];
+ $html=arcade_tournament_detail_options($tour,$case[1],$case[2],$case[3]);
+ as_check((strpos($html,'name="join"')!==false)===$case[4]&&(strpos($html,'name="end"')!==false)===$case[5],
+  'Detail actions follow event state, seat availability, membership and admin role');
+ as_check((strpos($html,'name="join_tour[]" value="7"')!==false)===$case[4]&&(strpos($html,'name="id" value="7"')!==false)===$case[5],
+  'Only displayed actions carry the matching tournament ID');
+ $as_cases++;
+}
+$record=array('game_name'=>'Old \\ Arcade','played'=>2,'score'=>13.75);
+foreach(array(serialize(array(4=>$record)),addslashes(serialize(array(4=>$record))),serialize(array(4=>$record,5=>true)))as$value){
+ as_check(arcade_tournament_player_games($value)===array($record),'Canonical backslashes and recoverable legacy escaping preserve game history');
+ $as_cases++;
+}
+foreach(array(null,'','broken',serialize(false))as$value){
+ as_check(arcade_tournament_player_games($value)===array(),'Unplayed or malformed tournament records render as empty');
+ $as_cases++;
+}
 restore_error_handler();echo 'Arcade tournament labels: ',$as_cases,' cases, ',$as_checks," assertions PASS; five actual current-account/winner/player/champion bindings, safe profile targets, guest/former placeholders, literal entities and shared privacy; synthetic reads only.\n";

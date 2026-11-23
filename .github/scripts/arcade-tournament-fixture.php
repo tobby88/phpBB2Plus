@@ -3,6 +3,10 @@ require __DIR__.'/arcade-summary-fixture.php';
 as_function($as_app.'arcade_tournament.php','arcade_tournament_player_html');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_champions');
 as_function($as_app.'arcade_tournament.php','arcade_tournament_champions_block');
+as_function($as_app.'arcade_tournament.php','arcade_tournament_join_status');
+as_function($as_app.'arcade_tournament.php','arcade_tournament_overview');
+as_function($as_app.'arcade_tournament.php','arcade_tournament_detail_options');
+as_function($as_app.'arcade_tournament.php','arcade_tournament_player_games');
 $at_source=file_get_contents($as_app.'arcade_tournament.php');$at_bindings=array();
 foreach(preg_split('/\r?\n/',$at_source)as$line){
  if(strpos($line,'$message .= sprintf($lang[\'tour_msg_winner\']')!==false){$at_bindings[]=array('message',trim($line));}
@@ -15,7 +19,13 @@ preg_match_all('/\$sql = "SELECT p\.\*, u\.username FROM " \. iNA_TOUR_PLAY \. "
 class ArcadeTournamentChampionTemplate
 {
  public $record=array();
- function assign_block_vars($name,$values){as_check($name==='champions','Actual champions block');$this->record=$values;}
+ public $blocks=array();
+ function assign_block_vars($name,$values)
+ {
+  as_check(in_array($name,array('champions','tour','tournament_none','player_head','player','tournament_add'),true),'Actual tournament view block');
+  $this->blocks[$name][]=$values;
+  if($name==='champions'){$this->record=$values;}
+ }
 }
 
 function at_render($id,$name){

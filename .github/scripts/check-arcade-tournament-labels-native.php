@@ -18,7 +18,7 @@ function tn_champion_page($overview,$offset=0)
  $s_options='';
  if($overview){
   $start=strpos($at_source,'$tour_champs = arcade_tournament_champions');
-  $end=strpos($at_source,'$sql = "SELECT * FROM " . iNA_TOUR', $start);
+  $end=strpos($at_source,'$tours = arcade_tournament_overview', $start);
  }else{
   $start=strpos($at_source,"else if (\$mode == 'champions')");
   $start=$start===false?false:strpos($at_source,'{',$start)+1;
@@ -28,10 +28,55 @@ function tn_champion_page($overview,$offset=0)
  eval(substr($at_source,$start,$end-$start));
  return array($template->record,$champions_heading,$s_options);
 }
+function tn_tournament_overview($user, $start_enabled, $limit)
+{
+ global $db,$lang,$at_source;
+ $arcade=(object)array('arcade_config'=>array('games_tournament_user'=>$start_enabled,'games_tournament_max'=>$limit));
+ $userdata=array('user_id'=>$user);
+ $filename='arcade_tournament.php';
+ $template=new ArcadeTournamentChampionTemplate();
+ $start=strpos($at_source,'$tours = arcade_tournament_overview');
+ $end=$start===false?false:strpos($at_source,"\n}",$start);
+ as_check($start!==false&&$end>$start,'Actual tournament overview action branch');
+ $before=$db->read_queries;
+ eval(substr($at_source,$start,$end-$start));
+ as_check($db->read_queries===$before+1,'Tournament rows, counts and membership come from one query');
+ return array($template->blocks,$s_options);
+}
+function tn_tournament_detail($tour, $tour_players, $userdata)
+{
+ global $at_source,$lang;
+ $template=new ArcadeTournamentChampionTemplate();
+ $total_players=count($tour_players);
+ $in_tour=false;
+ $GameData=array();
+ $played_games=0;
+ $games_played_list=array();
+ $start=strpos($at_source,'$template->assign_block_vars(\'player_head\'');
+ $end=$start===false?false:strpos($at_source,'$template->assign_block_vars(\'game_head\'',$start);
+ as_check($start!==false&&$end>$start,'Actual tournament player display and action branch');
+ eval(substr($at_source,$start,$end-$start));
+ return array($template->blocks,$s_options,$GameData,$games_played_list);
+}
+function tn_tournament_start($enabled,$limit)
+{
+ global $db,$lang,$at_source;
+ $arcade=(object)array('arcade_config'=>array('games_tournament_user'=>$enabled,'games_tournament_max'=>$limit));
+ $template=new ArcadeTournamentChampionTemplate();
+ $tour=array('tour_name'=>'','tour_desc'=>'','tour_max_players'=>2,'tour_player_turns'=>1);
+ $start=strpos($at_source,"else if(!empty(\$HTTP_POST_VARS['start']))");
+ $start=$start===false?false:strpos($at_source,'{',$start)+1;
+ $end=$start===false?false:strpos($at_source,"\n}",$start);
+ as_check($start!==false&&$end>$start,'Actual tournament start form branch');
+ try{eval(substr($at_source,$start,$end-$start));}
+ catch(ArcadeSummaryExit $error){return $error->getMessage();}
+ as_check(isset($template->blocks['tournament_add'])&&strpos($s_options,'name="submit"')!==false,'Correctly available start form');
+ return '';
+}
 class ArcadeTournamentNativeDatabase extends sql_db
 {
- var $setup=true;var $fail_alias=false;
- function sql_query($sql='',$transaction=false){if(!$this->setup&&!preg_match('/^SELECT\b/i',ltrim($sql))){throw new RuntimeException('Tournament label rendering must remain read-only');}if($this->fail_alias&&strpos($sql,'SELECT n.author_user_id FROM ')===0){return false;}return parent::sql_query($sql,$transaction);}
+ var $setup=true;var $fail_alias=false;var $read_queries=0;
+ function sql_query($sql='',$transaction=false){if(!$this->setup){if(!preg_match('/^SELECT\b/i',ltrim($sql))){throw new RuntimeException('Tournament label rendering must remain read-only');}$this->read_queries++;}if($this->fail_alias&&strpos($sql,'SELECT n.author_user_id FROM ')===0){return false;}return parent::sql_query($sql,$transaction);}
 }
 function tn_sql($sql){$r=$GLOBALS['db']->sql_query($sql);as_check($r!==false,'Own canonical tournament fixture SQL');return $r;}
 function tn_change($sql){$GLOBALS['db']->setup=true;try{return tn_sql($sql);}finally{$GLOBALS['db']->setup=false;}}
@@ -68,6 +113,40 @@ try{
   as_check(tn_snapshot()===$before,'Both tournament pages are read-only');
   $as_cases++;
  }
+ tn_change('UPDATE fixture_ina_tour SET tour_active=3, champion=NULL WHERE tour_id=29');
+ tn_change("INSERT INTO fixture_ina_tour(tour_id,tour_name,tour_desc,tour_active,tour_max_players) VALUES
+  (40,'Open & <fixture>','<description>',2,3),(41,'Full','Two members',2,2),(42,'Joined','Two members',2,2),(43,NULL,NULL,0,4)");
+ tn_change("INSERT INTO fixture_ina_tour_data(tour_id,game_name) VALUES(40,'Alpha'),(40,'Beta'),(41,'One'),(42,'One')");
+ tn_change("INSERT INTO fixture_ina_tour_play(tour_id,user_id) VALUES(40,8),(40,9),(41,7),(41,8),(42,3),(42,7)");
+ $before=tn_snapshot();
+ foreach(array('english','german') as $locale){
+  as_language($locale);
+  foreach(array(array(0,10,false),array(1,5,false),array(1,6,true)) as $settings){
+   list($blocks,$actions)=tn_tournament_overview(3,$settings[0],$settings[1]);
+   $rows=$blocks['tour'];
+   as_check(count($rows)===5&&strpos($rows[0]['NAME'],'id=40')!==false&&strpos($rows[0]['NAME'],'Open &amp; &lt;fixture&gt;')!==false,'Visible active and inactive tournaments are ordered and safely rendered');
+   as_check($rows[0]['DESC']==='&lt;description&gt;'&&$rows[0]['TOTAL_GAMES']===sprintf($lang['tournament_games'],2)&&$rows[0]['TOTAL_PLAYERS']===sprintf($lang['tournament_players'],2),'Two independent counts are not multiplied by the other table');
+   as_check(strpos($rows[0]['JOIN'],'join_tour[]')!==false&&$rows[1]['JOIN']===$lang['arcade_tournament_full']&&$rows[2]['JOIN']===$lang['arcade_tournament_already_joined']&&$rows[4]['JOIN']===$lang['inactive'],'Open, full, joined and inactive rows show the right action');
+   as_check((strpos($actions,'name="start"')!==false)===$settings[2]&&strpos($actions,'name="join"')!==false,'Join remains available regardless of tournament creation settings or count');
+   as_check(tn_snapshot()===$before,'The overview leaves every stored tournament row alone');
+   $as_cases++;
+  }
+  as_check(tn_tournament_start(0,6)===$lang['arcade_admin_only'].$lang['tour_return']&&
+   tn_tournament_start(1,5)===$lang['arcade_tournament_limit'].$lang['tour_return']&&tn_tournament_start(1,6)==='',
+   'The start form and overview share creation settings and current event capacity');
+  $as_cases++;
+ }
+ list($occupied,$occupied_actions)=tn_tournament_overview(8,1,8);
+ as_check(strpos($occupied_actions,'name="join"')===false&&strpos($occupied_actions,'name="start"')!==false,'Join is hidden when all available games are full or already joined');$as_cases++;
+ $detail_tour=array('tour_id'=>40,'tour_active'=>2,'tour_max_players'=>3);
+ $saved_game=array('game_name'=>'Original \\ game','played'=>2,'score'=>13.75);
+ $detail_players=array(array('user_id'=>3,'username'=>'Member','gamedata'=>serialize(array($saved_game))),
+  array('user_id'=>7,'username'=>'Unplayed','gamedata'=>null));
+ $detail=tn_tournament_detail($detail_tour,$detail_players,array('user_id'=>3,'user_level'=>ADMIN));
+ as_check($detail[2]===array($saved_game)&&isset($detail[3][$saved_game['game_name']])&&$detail[0]['player'][1]['PLAYED_GAMES']==='','Detail reads canonical backslashes and nullable new memberships through the real controller');
+ as_check(strpos($detail[1],'name="end"')!==false&&strpos($detail[1],'name="join"')===false,'A participating administrator can end before all seats fill');
+ $detail=tn_tournament_detail($detail_tour,array(),array('user_id'=>3,'user_level'=>ADMIN));
+ as_check(strpos($detail[1],'name="end"')!==false&&strpos($detail[1],'name="join"')!==false,'An empty active tournament offers both relevant admin actions');$as_cases+=2;
  tn_change('DELETE FROM fixture_users WHERE user_id=7');$before=tn_snapshot();at_check_output(at_render(7,null),$lang['Former_member'],7,false);as_check(tn_snapshot()===$before,'Native account retirement cannot leak the last successful username or modify tournament history');$as_cases++;
  $previous=$db;$db=new ArcadeTournamentNativeDatabase($host,'root',$password,$schema,false);as_check((bool)$db->db_connect_id,'Fresh viewer connection for alias failure');$db->setup=false;$previous->sql_close();$db->fail_alias=true;$userdata=array('user_id'=>-1,'session_logged_in'=>false);$board_config=array('hide_removed_author_names'=>1);$caught=false;try{at_render(9,'Legacy former');}catch(ArcadeSummaryExit$e){$caught=$e->getMessage()===$lang['Author_privacy_unavailable'];}as_check($caught,'Native privacy read failure never silently falls back to exposing a byline');$as_cases++;
  echo 'Arcade tournament labels native: ',$as_cases,' cases, ',$as_checks," assertions PASS; actual participant/top-player/champion JOINs, retained retired owners, current account names, safe links, raw tournament metadata and read-only history.\n";
