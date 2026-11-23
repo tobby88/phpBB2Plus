@@ -4,7 +4,10 @@ if(PHP_SAPI!=='cli'||getenv('PHPBB_ALBUM_PAGES_NATIVE')!=='1'){echo "Album pictu
 define('IN_PHPBB',true);$table_prefix='fixture_';$phpEx='php';$phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';$album_root_path=$phpbb_root_path.'album_mod/';
 require$phpbb_root_path.'includes/php_compat.php';require$phpbb_root_path.'includes/constants.php';require$phpbb_root_path.'db/mysqli.php';require$album_root_path.'album_functions.php';require$album_root_path.'album_hierarchy_functions.php';
 function apt_check($ok,$why){if(!$ok){throw new RuntimeException($why);}}
-class AlbumPageExit extends RuntimeException{}function message_die($level,$message){throw new AlbumPageExit($message);}function append_sid($url){return$url;}
+class AlbumPageExit extends RuntimeException{}function message_die($level,$message){throw new AlbumPageExit($message);}
+$sessions = file_get_contents($phpbb_root_path.'includes/sessions.php');
+apt_check(preg_match('/^function append_sid\([\s\S]*?^\}/m', $sessions, $match) === 1, 'Actual session URL builder');
+eval($match[0]);
 $functions=file_get_contents($phpbb_root_path.'includes/functions.php');foreach(array('phpbb_stored_text','phpbb_sql_id_list','phpbb_date_number','phpbb_date_integer_sum','phpbb_date_timestamp','phpbb_date_text','create_date','generate_pagination','checkFlag','decode_ip')as$name){apt_check(preg_match('/^function '.$name.'\([\s\S]*?^\}/m',$functions,$m)===1,'Actual core helper '.$name);eval($m[0]);}
 $common=file_get_contents($album_root_path.'album_common.php');foreach(array('album_html_text','album_sql_id_list')as$name){apt_check(preg_match('/^function '.$name.'\([\s\S]*?^\}/m',$common,$m)===1,'Actual Album helper');eval($m[0]);}
 apt_check(preg_match('/^function ImageRating\([\s\S]*?^\}/m',file_get_contents($album_root_path.'clown_album_functions.php'),$m)===1,'Actual rating helper');eval($m[0]);

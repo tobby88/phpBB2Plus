@@ -1,14 +1,12 @@
 <script language="javascript" type="text/javascript">
 <!--
 function emoticon(text) {
-	text = ' ' + text + ' ';
-	if (opener.document.commentform.comment.createTextRange && opener.document.commentform.comment.caretPos) {
-		var caretPos = opener.document.commentform.comment.caretPos;
-		caretPos.text = caretPos.text.charAt(caretPos.text.length - 1) == ' ' ? text + ' ' : text;
-		opener.document.commentform.comment.focus();
-	} else {
-	opener.document.commentform.comment.value  += text;
-	opener.document.commentform.comment.focus();
+	try {
+		if (window.opener && !window.opener.closed && typeof window.opener.emotions === 'function') {
+			window.opener.emotions(' ' + text + ' ');
+		}
+	} catch (error) {
+		// The originating page may have navigated to a different site.
 	}
 }
 //-->
@@ -27,7 +25,7 @@ function emoticon(text) {
 <tr align="center">
 <!-- BEGIN smilies_col -->
 <td>
-<a href="javascript:emoticon('{smilies_row.smilies_col.SMILEY_CODE}')"><img src="{smilies_row.smilies_col.SMILEY_IMG}" alt="{smilies_row.smilies_col.SMILEY_DESC}" border="0" title="{smilies_row.smilies_col.SMILEY_DESC}" /></a></td>
+<a href="#" data-code="{smilies_row.smilies_col.SMILEY_CODE}" onclick="emoticon(this.getAttribute('data-code')); return false;"><img src="{smilies_row.smilies_col.SMILEY_IMG}" alt="{smilies_row.smilies_col.SMILEY_DESC}" border="0" title="{smilies_row.smilies_col.SMILEY_DESC}" /></a></td>
 <!-- END smilies_col -->
 </tr>
 <!-- END smilies_row -->

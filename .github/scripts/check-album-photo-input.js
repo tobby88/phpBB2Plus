@@ -52,4 +52,47 @@ for (const kind of ['upload', 'edit']) {
     check(vm.runInContext('checkAlbumForm()', context) === true, 'Registered upload has no guest input'); cases++;
   }
 }
-console.log(`Album picture client input: ${cases} actual upload/edit Unicode/title-zero/boundary cases PASS; no network.`);
+const commentClient = fs.readFileSync(path.join(base, '../../album_mod/album_comment_form.js'), 'utf8');
+const detail = fs.readFileSync(path.join(base, 'album_showpage_body.tpl'), 'utf8');
+const editor = fs.readFileSync(path.join(base, 'album_comment_body.tpl'), 'utf8');
+const context = { window: {}, document: { forms: {} } };
+let warning;
+context.window.alert = value => { warning = value; };
+vm.runInNewContext(commentClient, context);
+for (const html of [detail, editor]) {
+  check(html.includes('src="album_mod/album_comment_form.js"'), 'Both album forms load their shared validation');
+  check(!html.includes('onsubmit="return checkForm();'), 'Both album forms use their own field set');
+}
+const commentForms = [...detail.matchAll(/<form name="commentform"[^>]+>/g), ...editor.matchAll(/<form name="commentform"[^>]+>/g)];
+check(commentForms.length === 3, 'Actual rating-only, combined and editing forms');
+for (const [index, match] of commentForms.entries()) {
+  const attrs = Object.fromEntries(Array.from(match[0].matchAll(/(data-[\w-]+)="([^"]+)"/g), item => [item[1], item[2]]));
+  check(match[0].includes('onsubmit="return checkAlbumComment(this);"'), 'Actual submit handler');
+  const elements = {};
+  const form = { elements, getAttribute: key => key === 'data-limit' ? '3' : attrs[key] };
+  for (const [comment, rating, guest, error] of [
+    [null, '-1', null, 'data-empty'], [null, '2', null, null], ['', null, null, 'data-empty'],
+    ['0', null, null, null], ['😀😀😀', null, null, null], ['😀😀😀😀', null, null, 'data-long'],
+    [' \t', '-1', null, 'data-empty'], ['a\nb', null, null, 'data-long'], ['', '2', null, null],
+    ['Hi', '-1', '😀'.repeat(32), null], ['Hi', '1', '😀'.repeat(33), 'data-name-long']
+  ]) {
+    if ((index === 0 && comment !== null) || (index === 2 && (rating !== null || guest !== null)) ||
+        (index === 1 && comment === null)) continue;
+    for (const [name, value] of [['comment', comment], ['rate', rating], ['comment_username', guest]]) {
+      if (value === null) delete elements[name]; else elements[name] = { value };
+    }
+    warning = null;
+    check(context.checkAlbumComment(form) === !error && warning === (error ? attrs[error] : null),
+      'Actual rendered form handles present controls, one-character posts, Unicode, ratings and translated validation');
+    cases++;
+  }
+}
+check(detail.includes('{switch_comment_post.rate_comment.rate_row.POINT}'), 'Combined rating options use their full template block path');
+const field = { value: 'abcd', selectionStart: 1, selectionEnd: 3,
+  setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; }, focus() {} };
+context.document.forms.commentform = { elements: { comment: field } };
+context.emotions(':)');
+check(field.value === 'a:)d' && field.selectionStart === 3 && field.selectionEnd === 3, 'Insert smiley at the selection');
+context.window.open = () => null;
+context.openAllSmiles('album_showpage.php?mode=smilies');
+console.log('Album photo and comment forms: ' + cases + ' input cases PASS.');

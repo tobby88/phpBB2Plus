@@ -90,6 +90,6 @@ try{
  if($part==='seed'){ad_seed_batch_cases();return;}
  if($part==='score-capacity'){ad_score_capacity_cases();echo 'Native Album configured score capacity: '.$cases." cases PASS; actual HotOrNot controller128/255 and independent normal255.\n";return;}
  if($part==='cache'){require __DIR__.'/album-cache-publication-native-cases.php';ad_cache_cases();return;}
- if($part==='rating'){ad_hotornot_cases();ad_parallel_vote_cases();ad_rating_display_cases();}else{ad_seed_batch_cases();ad_discussion_cases();}
+ if($part==='rating'){ad_hotornot_cases();ad_parallel_vote_cases();ad_rating_display_cases();}else{ad_seed_batch_cases();ad_discussion_cases();ad_large_picture_and_comment();}
  echo 'Native Album discussion: '.$cases.' cases PASS; '.($part==='rating'?'targeted ratings, parallel workers and display SQL':(getenv('PHPBB_ALBUM_DISCUSSION_QUICK')==='1'?'quick comment/normal-vote functional checks only':'actual controllers, Unicode, current authority, atomic combined submission, separate channels and all SQL failure boundaries'))."; no live data.\n";
 }finally{if($db){$db->sql_close();}if($created){ad_check(preg_match('/^codex_album_discussion_[a-f0-9]{16}$/D',$schema)===1,'Own discussion schema cleanup');$control->sql_query('DROP DATABASE '.$schema);}$control->sql_close();restore_error_handler();error_reporting($reporting);}

@@ -105,21 +105,23 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 		ORDER BY smilies_id";
 	if ($result = $db->sql_query($sql))
 	{
+		$smilies_path = phpbb_profile_asset_path($board_config['smilies_path']);
 		$num_smilies = 0;
 		$rowset = array();
 		while ($row = $db->sql_fetchrow($result))
 		{
-			if (empty($rowset[$row['smile_url']]))
+			if ($smilies_path !== '' && phpbb_profile_image_name($row['smile_url']) !== '' && !isset($rowset[$row['smile_url']]))
 			{
-				$rowset[$row['smile_url']]['code'] = str_replace("'", "\\'", str_replace('\\', '\\\\', $row['code']));
+				$rowset[$row['smile_url']]['code'] = $row['code'];
 				$rowset[$row['smile_url']]['emoticon'] = $row['emoticon'];
 				$num_smilies++;
 			}
 		}
 
+		$db->sql_freeresult($result);
+
 		if ($num_smilies)
 		{
-			$smilies_count = ($mode == 'inline') ? min(19, $num_smilies) : $num_smilies;
 			$smilies_split_row = ($mode == 'inline') ? $inline_columns - 1 : $window_columns - 1;
 
 			$s_colspan = 0;
@@ -134,9 +136,9 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 				}
 
 				$template->assign_block_vars('smilies_row.smilies_col', array(
-					'SMILEY_CODE' => $data['code'],
-					'SMILEY_IMG' => $board_config['smilies_path'] . '/' . $smile_url,
-					'SMILEY_DESC' => $data['emoticon'])
+					'SMILEY_CODE' => phpbb_stored_text($data['code']),
+					'SMILEY_IMG' => $smilies_path . '/' . rawurlencode($smile_url),
+					'SMILEY_DESC' => phpbb_stored_text($data['emoticon']))
 				);
 
 				$s_colspan = max($s_colspan, $col + 1);
@@ -162,7 +164,7 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 
 				$template->assign_vars(array(
 					'L_MORE_SMILIES' => $lang['More_emoticons'],
-					'U_MORE_SMILIES' => append_sid("posting.$phpEx?mode=smilies"))
+					'U_MORE_SMILIES' => append_sid("album_showpage.$phpEx?mode=smilies"))
 				);
 			}
 
@@ -185,7 +187,7 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 function CanRated($picID, $userID)
 {
 	global $db, $album_sp_config, $userdata;
-	$picID = intval($picID); $userID = intval($userID);
+	$picID = album_read_id($picID); $userID = intval($userID);
 	if ($picID < 1) { return false; }
 	if (!$userdata['session_logged_in']) { return !empty($album_sp_config['hon_rate_users']); }
 	if (!empty($album_sp_config['hon_rate_times'])) { return true; }

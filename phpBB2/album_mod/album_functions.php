@@ -33,24 +33,57 @@ if ( !defined('IN_PHPBB') )
 	die('Hacking attempt');
 }
 
-function album_picture_details_sql($picture_id)
+function album_read_id($value)
+{
+	$value = is_int($value) || is_string($value) ? (string) $value : '';
+	if (!preg_match('/^[0-9]{1,10}$/D', $value) || (float) $value > 4294967295) { return 0; }
+	return (float) $value > PHP_INT_MAX ? ltrim($value, '0') : (int) $value;
+}
+
+function album_picture_details_sql($picture_id, $separate_rating = false)
 {
 	// Keep unsigned IDs readable on 32-bit PHP and keep the category join
 	// mandatory. Missing categories must not be treated as public pictures.
-	$picture_id = (string) $picture_id;
-	if (!preg_match('/^[0-9]{1,10}$/D', $picture_id))
-	{
-		$picture_id = '0';
-	}
+	$picture_id = album_read_id($picture_id);
+	$rating = $separate_rating ? 'AVG(NULLIF(r.rate_hon_point, 0))' : 'AVG(NULLIF(r.rate_point, 0))';
 
 	return 'SELECT p.*, ac.*, u.user_id, u.username, u.user_rank,
-				(SELECT AVG(NULLIF(r.rate_point, 0)) FROM '.ALBUM_RATE_TABLE.' r WHERE r.rate_pic_id = p.pic_id) AS rating,
+				(SELECT '.$rating.' FROM '.ALBUM_RATE_TABLE.' r WHERE r.rate_pic_id = p.pic_id) AS rating,
 				(SELECT COUNT(*) FROM '.ALBUM_COMMENT_TABLE.' c WHERE c.comment_pic_id = p.pic_id) AS comments_count
 			FROM '.ALBUM_TABLE.' p
 				INNER JOIN '.ALBUM_CAT_TABLE.' ac ON ac.cat_id = p.pic_cat_id
 				LEFT JOIN '.USERS_TABLE.' u ON u.user_id = p.pic_user_id
 			WHERE p.pic_id = '.$picture_id.'
 			LIMIT 1';
+}
+
+function album_comment_link($comment_id, $order = 'ASC', $non_html_amp = false)
+{
+	global $phpEx;
+	$id = album_read_id($comment_id);
+	$url = 'album_showpage.' . $phpEx . '?comment_id=' . $id;
+	if ($order === 'DESC') { $url .= ($non_html_amp ? '&' : '&amp;') . 'sort_order=DESC'; }
+	return append_sid($url, $non_html_amp) . '#comment-' . $id;
+}
+
+function album_comment_page_start($db, $pic_id, $comment_id, $order, $requested, $total, $per_page)
+{
+	$per_page = max(1, (int) $per_page);
+	$offset = max(0, min(1000000, (int) $requested));
+	if ($comment_id !== null)
+	{
+		$before = $order === 'DESC' ? '>' : '<';
+		$sql = 'SELECT COUNT(*) AS prior_comments FROM ' . ALBUM_COMMENT_TABLE . ' WHERE comment_pic_id = ' . album_read_id($pic_id)
+			. ' AND comment_id ' . $before . ' ' . album_read_id($comment_id);
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Could not locate this album comment', '', __LINE__, __FILE__, $sql);
+		}
+		$row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		$offset = (int) $row['prior_comments'];
+	}
+	return (int) floor(min($offset, max(0, (int) $total - 1)) / $per_page) * $per_page;
 }
 
 function album_inline_smilies_sql($limit)

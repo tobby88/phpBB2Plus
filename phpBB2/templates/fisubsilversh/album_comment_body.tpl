@@ -1,21 +1,16 @@
-<form action="{S_ALBUM_ACTION}" method="post">
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
   <tr>
 	<td class="nav"><span class="nav"><a href="{U_INDEX}" class="nav">{L_INDEX}</a> {ALBUM_NAVIGATION_ARROW} <a href="{U_ALBUM}" class="nav">{L_ALBUM}</a>{NAV_CAT_DESC}</span></td>
     <td align="right">
-  		<form action="album_search.php" method="get">
-			<span class="gensmall">Search for: &nbsp;
-
-			<select name="search_type">
-				<option>User Name</option>
-				<option>Picture Name</option>
-				<option>Description</option>
+		<form action="{U_ALBUM_SEARCH}" method="get">
+			<span class="gensmall">{L_SEARCH_FOR}:
+			<select name="mode">
+				<option value="user">{L_USERNAME}</option>
+				<option value="name">{L_NAME}</option>
+				<option value="desc">{L_DESCRIPTION}</option>
 			</select>
-
-			&nbsp;that contains:&nbsp; <input type="text" name="search" maxlength="20">&nbsp;
-
-
-			<input type="submit" class="liteoption" value="Go"></span>
+			{L_THAT_CONTAINS}: <input type="text" name="search" maxlength="20" />
+			<input type="submit" value="{L_GO}" /></span>
 		</form>
   </td>
  </tr>
@@ -57,122 +52,13 @@
 		<td valign="top" align="right"><span class="genmed">{L_PIC_DESC}:</span></td>
 		<td valign="top"><b><span class="genmed">{PIC_DESC}</span></b></td>
 	  </tr>
-	</td>
-  </tr>
-	</table>
-<!-- BEGIN coment_switcharo_top -->	
-<br>
-<table border="0" class="forumline" width="100%">
-  <tr> 
-  	<th class="thTop" nowrap="nowrap" width="15%">Poster</th>
-	<th class="thTop" nowrap="nowrap" width="85%">Message</th>
-  </tr>
-<!-- END coment_switcharo_top -->	
-  
-<!-- BEGIN commentrow -->
-
-<tr> 
-	<td  class="row1" align="center" valign="top">
-		<span class="genmed"><b>{commentrow.POSTER}</span></b>
-	</td>
-	
-	<td class="row1">		
-		<table width="100%">
-			<tr>
-				<td><span class="genmed">Posted at: {commentrow.TIME}</span></td>
-				<td align="right"><span class="genmed">{commentrow.EDIT}&nbsp;{commentrow.DELETE}&nbsp;{commentrow.IP}</span></td>
-			</tr>
-			<tr> 
-				<td colspan="2"><hr></td>
-			</tr>
-			<tr>
-				<td><span class="postbody">{commentrow.TEXT}</span></td>
-			</tr>
-		</table>
-	</td>
-</tr>
-	
-
-<!-- END commentrow -->
-
-<!-- BEGIN coment_switcharo_bottom -->	
-  <tr> 
-	<td class="cat" colspan="2" height="28">&nbsp; </td>
+	</table></td>
   </tr>
 </table>
-<!-- END coment_switcharo_bottom -->
-
-
-<!-- BEGIN switch_comment -->
-  <tr>
-	<td class="cat" align="center" height="28" colspan="2"><span class="gensmall">{L_ORDER}:</span>
-	<select name="sort_order"><option {SORT_ASC} value='ASC'>{L_ASC}</option><option {SORT_DESC} value='DESC'>{L_DESC}</option></select>&nbsp;<input type="submit" name="submit" value="{L_SORT}" class="liteoption" /></td>
-  </tr>
-<!-- END switch_comment -->
-</table>
-<!-- BEGIN switch_comment -->
-<table width="100%" cellspacing="2" border="0" cellpadding="2">
-  <tr>
-	<td width="100%"><span class="nav">{PAGE_NUMBER}</span></td>
-	<td align="right" nowrap="nowrap"><span class="gensmall">{S_TIMEZONE}</span><br /><span class="nav">{PAGINATION}</span></td>
-  </tr>
-</table>
-<!-- END switch_comment -->
-</form>
-
-<script language="JavaScript" type="text/javascript">
-<!--
-function checkForm() {
-	formErrors = false;
-
-	if ((document.commentform.comment.value.length < 2) && (document.commentform.rate.value == -1))
-	{
-		formErrors = "{L_COMMENT_NO_TEXT}";
-	}
-	else if (document.commentform.comment.value.length > {S_MAX_LENGTH})
-	{
-		formErrors = "{L_COMMENT_TOO_LONG}";
-	}
-
-	if (formErrors) {
-		alert(formErrors);
-		return false;
-	} else {
-		return true;
-	}
-}
-
- function storeCaret(textEl) {
-                if (textEl.createTextRange) textEl.caretPos = document.selection.createRange().duplicate();
- }
-
-//how to add smilies
-function emotions(text) 
-{
-	if (document.commentform.comment.createTextRange && document.commentform.comment.caretPos) 
-	{
-		var caretPos = document.commentform.comment.caretPos;
-		caretPos.text = caretPos.text.charAt(caretPos.text.length - 1) == ' ' ? text + ' ' : text;
-		document.commentform.comment.focus();
-	} 
-	else 
-	{
-		document.commentform.comment.value  += text;
-		document.commentform.comment.focus();
-	}
-}
-//pops up a window with all smilies
-function openAllSmiles()
-{
-		smiles = window.open('album_showpage.php?mode=smilies', '_phpbbsmilies', 'HEIGHT=600,resizable=yes,scrollbars=yes,WIDTH=470');
-	    smiles.focus();
-	    return false;
-}
-// -->
-</script>
+<script type="text/javascript" src="album_mod/album_comment_form.js"></script>
 
 <!-- BEGIN switch_comment_post -->
-<form name="commentform" action="{S_ALBUM_ACTION}" method="post" onsubmit="return checkForm();">
+<form name="commentform" action="{S_ALBUM_ACTION}" method="post" onsubmit="return checkAlbumComment(this);" data-limit="{S_MAX_LENGTH}" data-empty="{L_COMMENT_NO_TEXT}" data-long="{L_COMMENT_TOO_LONG}">
 {S_FORM_TOKEN}
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
   <tr>
@@ -183,7 +69,7 @@ function openAllSmiles()
 		{L_MAX_LENGTH}: <b>{S_MAX_LENGTH}</b></span></td>
 	<td class="row2" valign="top">
 			
-	<textarea name="comment" class="post" cols="60" rows="9" wrap='virtual' class='post' onselect='storeCaret(this);' onclick='storeCaret(this);' onkeyup='storeCaret(this);'>{S_MESSAGE}</textarea></td>
+	<textarea name="comment" class="post" cols="60" rows="9">{S_MESSAGE}</textarea></td>
 	
 	<td class="row2" valign="middle" width="40%">  
 	   <table border="0" cellspacing="0" cellpadding="5">
@@ -198,7 +84,7 @@ function openAllSmiles()
 	      </tr>
 	   </table>
 	   
-	   <INPUT TYPE='button' CLASS=BUTTON NAME="SmilesButt" VALUE="Show All Smilies" ONCLICK="openAllSmiles();">
+	   <INPUT TYPE='button' CLASS=BUTTON NAME="SmilesButt" VALUE="{L_MORE_SMILIES}" data-url="{U_ALBUM_SMILIES}" onclick="openAllSmiles(this.getAttribute('data-url'));">
 	       
 	 </td>
   </tr>

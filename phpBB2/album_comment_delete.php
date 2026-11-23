@@ -72,11 +72,11 @@ if( $album_config['comment'] == 0 )
 
 if (isset($_GET['comment_id']) && is_scalar($_GET['comment_id']))
 {
-	$comment_id = intval($_GET['comment_id']);
+	$comment_id = album_read_id($_GET['comment_id']);
 }
 else if (isset($_POST['comment_id']) && is_scalar($_POST['comment_id']))
 {
-	$comment_id = intval($_POST['comment_id']);
+	$comment_id = album_read_id($_POST['comment_id']);
 }
 else
 {
@@ -87,7 +87,7 @@ else
 // ------------------------------------
 // Get the comment info
 // ------------------------------------
-$sql = "SELECT *
+$sql = "SELECT comment_id, comment_pic_id, comment_user_id
 		FROM ". ALBUM_COMMENT_TABLE ."
 		WHERE comment_id = '$comment_id'";
 
@@ -97,6 +97,7 @@ if( !($result = $db->sql_query($sql)) )
 }
 
 $thiscomment = $db->sql_fetchrow($result);
+$db->sql_freeresult($result);
 
 if( empty($thiscomment) )
 {
@@ -104,28 +105,7 @@ if( empty($thiscomment) )
 }
 
 
-// ------------------------------------
-// Get $pic_id from $comment_id
-// ------------------------------------
-
-$sql = "SELECT comment_id, comment_pic_id
-		FROM ". ALBUM_COMMENT_TABLE ."
-		WHERE comment_id = '$comment_id'";
-
-if( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query comment and pic information', '', __LINE__, __FILE__, $sql);
-}
-
-$row = $db->sql_fetchrow($result);
-
-if( empty($row) )
-{
-	message_die(GENERAL_ERROR, 'This comment does not exist');
-}
-
-$pic_id = $row['comment_pic_id'];
-
+$pic_id = $thiscomment['comment_pic_id'];
 
 // ------------------------------------
 //--- Album Category Hierarchy : begin
@@ -144,17 +124,6 @@ $db->sql_freeresult($result);
 if (empty($thispic)) { message_die(GENERAL_ERROR, $lang['Pic_not_exist']); }
 $cat_id = $thispic['pic_cat_id'];
 $album_user_id = $thispic['cat_user_id'];
-
-$total_comments = $thispic['comments_count'];
-$comments_per_page = $board_config['posts_per_page'];
-
-$pic_filename = $thispic['pic_filename'];
-$pic_thumbnail = $thispic['pic_thumbnail'];
-
-if( empty($thispic) )
-{
-	message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
-}
 
 // ------------------------------------
 // Check the permissions
@@ -209,10 +178,7 @@ if( !$confirmed )
 	// --------------------------------
 	if( isset($_POST['cancel']) )
 	{
-		if 	(defined('ALBUM_SP_CONFIG_TABLE'))
-			redirect(append_sid("album_showpage.$phpEx?comment_id=$comment_id"));
-		else
-			redirect(append_sid("album_comment.$phpEx?comment_id=$comment_id"));
+		redirect(album_comment_link($comment_id, 'ASC', true));
 		exit;
 	}
 
@@ -253,7 +219,7 @@ else
 	   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 	album_discussion_request('change', array(
-		$userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id, (int) $comment_id));
+		$userdata, (int) $album_user_id, (int) $cat_id, $pic_id, $comment_id));
 
 	// --------------------------------
 	// Complete... now send a message to user

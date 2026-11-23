@@ -82,6 +82,27 @@ function ad_hotornot_cases(){
  ad_reset();ad_action('hotornot','',5);$baseline=$db->queries;foreach($baseline as$i=>$sql){ad_reset();$db->reset_case($i+1);try{ad_action('hotornot','',5);}catch(Exception$error){}$rows=ad_rows('SELECT rate_point,rate_hon_point FROM fixture_album_rate');ad_check(!$rows||count($rows)===1&&(int)$rows[0]['rate_point']===0&&(int)$rows[0]['rate_hon_point']===5,'Every HotOrNot SQL failure leaves no partial/invalid rating');$cases++;}
 }
 
+function ad_large_picture_and_comment()
+{
+ global $db,$userdata,$cases;
+ ad_reset();
+ ad_sql("INSERT INTO fixture_album(pic_id,pic_filename,pic_title,pic_user_id,pic_time,pic_cat_id,pic_approval) VALUES(3500000011,'large.png','Large ID',8,1,1,1)");
+ ad_sql("INSERT INTO fixture_album_comment(comment_id,comment_pic_id,comment_cat_id,comment_user_id,comment_user_ip,comment_time,comment_text) VALUES(3500000000,3500000011,1,7,'7f000001',1,'Earlier comment')");
+ $writer = new AlbumPictureDiscussion($db,'fixture_');
+ $saved = $writer->publish($userdata,0,1,'3500000011','New comment','',4);
+ $id = (string) $saved['comment'];
+ ad_check((float)$id>3500000000 && $saved['rated'], 'Publication returns its full unsigned comment identity');
+ $writer->change($userdata,0,1,'3500000011',$id,'Edited comment');
+ $row = ad_rows('SELECT comment_text,comment_edit_count FROM fixture_album_comment WHERE comment_id='.$id.' AND comment_pic_id=3500000011');
+ ad_check(count($row)===1 && $row[0]['comment_text']==='Edited comment' && (int)$row[0]['comment_edit_count']===1,'Edit retains the exact high picture and comment identities');
+ $writer->change($userdata,0,1,'3500000011',$id);
+ ad_check(!ad_rows('SELECT comment_id FROM fixture_album_comment WHERE comment_id='.$id) &&
+  count(ad_rows('SELECT comment_id FROM fixture_album_comment WHERE comment_id IN (1,2,3500000000)'))===3 &&
+  count(ad_rows('SELECT rate_point FROM fixture_album_rate WHERE rate_pic_id=3500000011 AND rate_point=4'))===1,
+  'Only the selected synthetic comment is removed and the exact vote remains');
+ $cases+=3;
+}
+
 function ad_parallel_vote_cases(){
  global $schema,$cases;
  $directory=sys_get_temp_dir().'/'.$schema;ad_check(!file_exists($directory)&&mkdir($directory,0700),'Own parallel vote directory');$nonce=bin2hex(phpbb_random_bytes(16));ad_check(file_put_contents($directory.'/owner',$nonce)===32,'Own worker identity');$workers=array();
@@ -106,11 +127,16 @@ function ad_rating_display_cases(){
  ad_reset();ad_sql("INSERT INTO fixture_album_rate VALUES(1,7,'7f000001',4,0),(1,8,'7f000002',0,8)");
  foreach(array('album.php','album_cat.php','album_modcp.php','album_personal.php','album_showpage.php','album_hotornot.php','portal.php')as$file){
   $source=file_get_contents($root.$file);
-  if($file==='album_showpage.php'){
-   ad_check(strpos($source,'album_picture_details_sql($pic_id)')!==false,'Photo detail uses the shared query');
-   $helpers=file_get_contents($root.'album_mod/album_functions.php');
-   ad_check(preg_match('/^function album_picture_details_sql\([\s\S]*?^\}/m',$helpers,$body)===1,'Actual shared detail query extracted');
-   $source=$body[0];
+  if($file==='album_showpage.php'||$file==='album_hotornot.php'){
+   $detail=$file==='album_showpage.php';
+   $call=$detail?'album_picture_details_sql($pic_id)':'album_picture_details_sql($pic_id, !empty($album_sp_config[\'hon_rate_sep\']))';
+   ad_check(strpos($source,$call)!==false,'Actual picture and random rating pages select their configured channel');
+   foreach($detail?array(false):array(false,true) as $separate){
+    $row=ad_rows(album_picture_details_sql(1,$separate))[0];
+    ad_check((float)$row['rating']===($separate?8.0:4.0)&&(int)$row['comments_count']===1,'Actual detail query preserves selected rating and exact comment count');
+    $cases++;
+   }
+   continue;
   }
   ad_check(!preg_match('/AVG\(r\.rate_(?:hon_)?point\)/',$source),'Every Album/portal reader excludes unused zero channel placeholders');
   ad_check(preg_match_all('/AVG\(NULLIF\(r\.(rate_(?:hon_)?point), 0\)\)/',$source,$matches,PREG_SET_ORDER)>0,'Actual rating expression extracted');

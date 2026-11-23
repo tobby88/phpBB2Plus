@@ -15,7 +15,6 @@ $bounded_public_pages = array(
 	'album.php' => "max(0, min(1000000, intval(phpbb_request_scalar(\$_GET, 'start', 0))))",
 	'album_cat.php' => "max(0, min(1000000, intval(phpbb_request_scalar(\$_GET, 'start', 0))))",
 	'album_personal.php' => "max(0, min(1000000, intval(phpbb_request_scalar(\$_GET, 'start', 0))))",
-	'album_showpage.php' => "max(0, min(1000000, intval(phpbb_request_scalar(\$_GET, 'start', 0))))",
 	'album_modcp.php' => "max(0, min(1000000, intval(phpbb_request_scalar(\$_GET, 'start', 0))))",
 	'merge.php' => "max(0, min(1000000, intval(phpbb_request_scalar(\$_POST, 'start', 0))))",
 	'admin/admin_attach_cp.php' => "max(0, min(1000000, get_var('start', 0)))",
@@ -27,5 +26,15 @@ foreach ($bounded_public_pages as $relative => $marker)
 	$source = file_get_contents($root . '/phpBB2/' . $relative);
 	pagination_boundary_assert(strpos($source, $marker) !== false, $relative . ' must bound pagination before composing SQL LIMIT');
 }
+
+define('IN_PHPBB', true);
+require_once $root . '/phpBB2/album_mod/album_functions.php';
+foreach (array(-8 => 0, 7 => 5, 2000000 => 1000000) as $start => $expected)
+{
+	pagination_boundary_assert(album_comment_page_start(null, 1, null, 'ASC', $start, 2000005, 5) === $expected,
+		'Album comment offsets must stay within the request limit and start at a page boundary');
+}
+pagination_boundary_assert(album_comment_page_start(null, 1, null, 'ASC', 99, 7, 5) === 5,
+	'A shortened list must return its last populated comment page');
 
 echo "Pagination boundary tests passed.\n";

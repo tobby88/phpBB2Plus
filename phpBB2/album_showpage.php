@@ -86,21 +86,21 @@ include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 
 if( isset($_GET['pic_id']) && is_scalar($_GET['pic_id']) )
 {
-	$pic_id = intval($_GET['pic_id']);
+	$pic_id = album_read_id($_GET['pic_id']);
 }
 else if( isset($_POST['pic_id']) && is_scalar($_POST['pic_id']) )
 {
-	$pic_id = intval($_POST['pic_id']);
+	$pic_id = album_read_id($_POST['pic_id']);
 }
 else
 {
 	if( isset($_GET['comment_id']) && is_scalar($_GET['comment_id']) )
 	{
-		$comment_id = intval($_GET['comment_id']);
+		$comment_id = album_read_id($_GET['comment_id']);
 	}
 	else if( isset($_POST['comment_id']) && is_scalar($_POST['comment_id']) )
 	{
-		$comment_id = intval($_POST['comment_id']);
+		$comment_id = album_read_id($_POST['comment_id']);
 	}
 	else
 	{
@@ -223,6 +223,7 @@ if( isset($comment_id) )
 	}
 
 	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
 
 	if( empty($row) )
 	{
@@ -329,72 +330,11 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 	// Beware: when this script was called with comment_id (without start)
 	// ------------------------------------
 
-	if( !isset($comment_id) )
-	{
-		if( isset($_GET['start']) )
-		{
-			$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
-		}
-		else if( isset($_POST['start']) )
-		{
-			$start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', 0))));
-		}
-		else
-		{
-			$start = 0;
-		}
-	}
-	else
-	{
-		// We must do a query to co-ordinate this comment
-		$sql = "SELECT COUNT(comment_id) AS count
-				FROM ". ALBUM_COMMENT_TABLE ."
-				WHERE comment_pic_id = $pic_id
-					AND comment_id < $comment_id";
-
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain comments information from the database', '', __LINE__, __FILE__, $sql);
-		}
-
-		$row = $db->sql_fetchrow($result);
-
-		if( !empty($row) )
-		{
-			$start = floor( $row['count'] / $comments_per_page ) * $comments_per_page;
-		}
-		else
-		{
-			$start = 0;
-		}
-	}
-
-	if( isset($_GET['sort_order']) )
-	{
-		switch ($_GET['sort_order'])
-		{
-			case 'ASC':
-				$sort_order = 'ASC';
-				break;
-			default:
-				$sort_order = 'DESC';
-		}
-	}
-	else if( isset($_POST['sort_order']) )
-	{
-		switch ($_POST['sort_order'])
-		{
-			case 'ASC':
-				$sort_order = 'ASC';
-				break;
-			default:
-				$sort_order = 'DESC';
-		}
-	}
-	else
-	{
-		$sort_order = 'ASC';
-	}
+	$order = phpbb_request_scalar($_GET, 'sort_order', phpbb_request_scalar($_POST, 'sort_order', 'ASC'));
+	$sort_order = $order === 'ASC' ? 'ASC' : 'DESC';
+	$requested = phpbb_request_scalar($_GET, 'start', phpbb_request_scalar($_POST, 'start', 0));
+	$start = album_comment_page_start($db, $pic_id, isset($comment_id) ? $comment_id : null,
+		$sort_order, $requested, $total_comments, $comments_per_page);
 
 	if ($total_comments > 0)
 	{
@@ -402,9 +342,10 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 		$limit_sql = ($start == 0) ? $comments_per_page : $start .','. $comments_per_page;
 
-		$sql = "SELECT c.*, u.user_id, u.username, u.user_regdate, u.user_posts, u.user_allowavatar, u.user_rank, u.user_avatar, u.user_avatar_type, u.user_email, u.user_icq, u.user_website, u.user_from, u.user_aim, u.user_yim, u.user_msnm
+		$sql = "SELECT c.*, COALESCE(u.user_id, " . ANONYMOUS . ") AS user_id, u.username, u.user_regdate, u.user_posts, u.user_allowavatar, u.user_rank, u.user_avatar, u.user_avatar_type, u.user_email, u.user_website, u.user_from, editor.username AS editor_name
 				FROM ". ALBUM_COMMENT_TABLE ." AS c
 					LEFT JOIN ". USERS_TABLE ." AS u ON c.comment_user_id = u.user_id
+					LEFT JOIN ". USERS_TABLE ." AS editor ON c.comment_edit_user_id = editor.user_id
 				WHERE c.comment_pic_id = '$pic_id'
 				ORDER BY c.comment_id $sort_order
 				LIMIT $limit_sql";
@@ -421,12 +362,27 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			$commentrow[] = $row;
 		}
 
+		$db->sql_freeresult($result);
+
+		// Ranks are shared by every comment on this page.
+		$sql = "SELECT *
+			FROM " . RANKS_TABLE . "
+			ORDER BY rank_special, rank_min, rank_id";
+		if ( !($result = $db->sql_query($sql)) )
+		{
+			message_die(GENERAL_ERROR, "Could not obtain ranks information.", '', __LINE__, __FILE__, $sql);
+		}
+
+		$ranksrow = array();
+		while ( $row = $db->sql_fetchrow($result) )
+		{
+			$ranksrow[] = $row;
+		}
+		$db->sql_freeresult($result);
+
 		for ($i = 0; $i < count($commentrow); $i++)
 		{
-			$commentrow[$i]['user_icq'] = phpbb_profile_contact($commentrow[$i]['user_icq']);
-			$commentrow[$i]['user_aim'] = phpbb_profile_contact($commentrow[$i]['user_aim']);
-			$commentrow[$i]['user_yim'] = phpbb_profile_contact($commentrow[$i]['user_yim']);
-			$comment_website_url = phpbb_profile_http_url($commentrow[$i]['user_website']);
+			$comment_website_url = phpbb_profile_details_visible() ? phpbb_profile_http_url($commentrow[$i]['user_website']) : '';
 			if( ($commentrow[$i]['user_id'] == ALBUM_GUEST) or ($commentrow[$i]['username'] == '') )
 			{
 				$poster = phpbb_author_name($commentrow[$i]['comment_user_id'],($commentrow[$i]['comment_username']===''?$lang['Guest']:$commentrow[$i]['comment_username']));
@@ -438,22 +394,10 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 			if ($commentrow[$i]['comment_edit_count'] > 0)
 			{
-				$sql = "SELECT c.comment_id, c.comment_edit_user_id, u.user_id, u.username
-						FROM ". ALBUM_COMMENT_TABLE ." AS c
-							LEFT JOIN ". USERS_TABLE ." AS u ON c.comment_edit_user_id = u.user_id
-						WHERE c.comment_id = '".$commentrow[$i]['comment_id']."'
-						LIMIT 1";
-
-				if( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not obtain last edit information from the database', '', __LINE__, __FILE__, $sql);
-				}
-
-				$lastedit_row = $db->sql_fetchrow($result);
-
+				$editor_name = isset($commentrow[$i]['editor_name']) ? $commentrow[$i]['editor_name'] : $lang['Guest'];
 				$edit_info = ($commentrow[$i]['comment_edit_count'] == 1) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
 
-				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, phpbb_author_name((int)$commentrow[$i]['comment_edit_user_id'],$lastedit_row['username']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
+				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, phpbb_author_name((int)$commentrow[$i]['comment_edit_user_id'],$editor_name), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
 			}
 			else
 			{
@@ -479,21 +423,6 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				$poster_avatar = phpbb_avatar_image($commentrow[$i]['user_avatar'], $commentrow[$i]['user_avatar_type']);
 			}
 
-			//rank & rank image
-			$sql = "SELECT *
-				FROM " . RANKS_TABLE . "
-				ORDER BY rank_special, rank_min";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Could not obtain ranks information.", '', __LINE__, __FILE__, $sql);
-			}
-
-			$ranksrow = array();
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$ranksrow[] = $row;
-			}
-			$db->sql_freeresult($result);
 
 			$poster_rank = '';
 			$rank_image = '';
@@ -535,8 +464,8 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				$poster_rank = phpbb_author_privacy_guest() && phpbb_removed_author_known((int)$commentrow[$i]['comment_user_id'],$commentrow[$i]['comment_username']) ? phpbb_former_author_label() : $lang['Guest'];
 			}
 
-			$comment_id = (int) $commentrow[$i]['comment_id'];
-			$mini_post_url = append_sid("album_showpage.$phpEx?pic_id=" . (int) $pic_id) . '#comment-' . $comment_id;
+			$comment_id = album_read_id($commentrow[$i]['comment_id']);
+			$mini_post_url = album_comment_link($comment_id, $sort_order);
 
 			$template->assign_block_vars('commentrow', array(
 				'ID' => $comment_id,
@@ -550,10 +479,6 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				//users mesangers, website, email
 				'PROFILE_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_profile'] . '" alt="' . $lang['Read_profile'] . '" title="' . $lang['Read_profile'] . '" border="0" /></a>' : '',
 				'PM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $pm_url . '"><img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" /></a>' : '',
-				'AIM_IMG' => '',
-				'YIM_IMG' => '',
-				'MSNM_IMG' => '',
-				'ICQ_IMG' => '',
 				'EMAIL_IMG' => ( $comment_user_id != ANONYMOUS && $email_uri !== '' ) ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '',
 				'WWW_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS && $comment_website_url ) ? '<a href="' . $comment_website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '',
 
@@ -610,7 +535,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 	$image_rating = ImageRating($thispic['rating']);
 
-	if ($album_config['comment'] == 1 && !$auth_data['comment'] == 0)
+	if (!empty($album_config['comment']) && !empty($auth_data['comment']))
 	{
 		$template->assign_block_vars('switch_comment_post', array());
 
@@ -657,7 +582,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
     // Rate Scale
     // --------------------------------
 
-    if ($album_config['rate'] && !$auth_data['rate'] == 0)
+    if (!empty($album_config['rate']) && !empty($auth_data['rate']))
     {
 		$template->assign_block_vars('rate_switch', array());
 
@@ -670,7 +595,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 		  $template->assign_block_vars('switch_comment_post.rate_comment', array());
 		}
 
-		if (!$already_rated && ($album_config['comment'] == 1 && !$auth_data['comment'] == 0))
+		if (!$already_rated && (!empty($album_config['comment']) && !empty($auth_data['comment'])))
 		{
 			for ($i = 0; $i < $album_config['rate_scale']; $i++)
 			{
@@ -736,10 +661,16 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 		'L_POST_YOUR_COMMENT' => $lang['Post_your_comment'],
 		'L_MESSAGE' => $lang['Message'],
 		'L_USERNAME' => $lang['Username'],
-		'L_COMMENT_NO_TEXT' => $lang['Comment_no_text'],
-		'L_COMMENT_TOO_LONG' => $lang['Comment_too_long'],
+		'L_COMMENT_NO_TEXT' => album_html_text($lang['Comment_no_text']),
+		'L_COMMENT_TOO_LONG' => album_html_text($lang['Comment_too_long']),
 		'L_MAX_LENGTH' => $lang['Max_length'],
-		'S_MAX_LENGTH' => $album_config['desc_length'],
+		'S_MAX_LENGTH' => max(1, album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 255)),
+		'L_GO' => $lang['Go'],
+		'L_DESCRIPTION' => $lang['Pic_Desc'],
+		'U_ALBUM_SEARCH' => append_sid("album_search.$phpEx"),
+		'U_ALBUM_SMILIES' => append_sid("album_showpage.$phpEx?mode=smilies"),
+		'L_BACK_TO_TOP' => $lang['Back_to_top'],
+		'L_GUEST_NAME_TOO_LONG' => album_html_text($lang['Pic_username_too_long']),
 
 		'L_ORDER' => $lang['Order'],
 		'L_SORT' => $lang['Sort'],
@@ -758,9 +689,9 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		'L_MORE_SMILIES' => $lang['More_emoticons'],
 		//rating
-		'S_RATE_MSG' => (  !$userdata['session_logged_in'] && $auth_data['rate'] == 0 ) ? 'Login to vote!' : ( ($already_rated) ? $lang['Already_rated'] : $lang['Rating'] ),
+		'S_RATE_MSG' => (  !$userdata['session_logged_in'] && $auth_data['rate'] == 0 ) ? $lang['Login_to_vote'] : ( ($already_rated) ? $lang['Already_rated'] : $lang['Rating'] ),
 		'L_CURRENT_RATING' => $lang['Current_Rating'],
-		'L_PLEASE_RATE_IT' => $lang['Please_Rate_It']
+		'L_PLEASE_RATE_IT' => album_html_text($lang['Please_Rate_It'])
 	));
 
 	//
@@ -816,7 +747,7 @@ else
 
 	// Fresh permissions, parent-picture locking and both writes share one commit.
 	$discussion_result = album_discussion_request('publish', array(
-		$userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id,
+		$userdata, (int) $album_user_id, (int) $cat_id, $pic_id,
 		$comment_text, $comment_username, $has_rating ? (int) $rate_point : null));
 	$comment_id = $discussion_result['comment'];
 
@@ -824,11 +755,11 @@ else
 	// Complete... now send a message to user
 	// --------------------------------
 
+	$return_url = $comment_id ? album_comment_link($comment_id) : append_sid("album_showpage.$phpEx?pic_id=$pic_id");
 	$template->assign_vars(array(
-		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("album_showpage.$phpEx?pic_id=$pic_id") . '">')
+		'META' => '<meta http-equiv="refresh" content="3;url=' . $return_url . '">')
 	);
-
-	$message = $lang['Stored'] . "<br /><br />" . sprintf($lang['Click_view_message'], "<a href=\"" . append_sid("album_showpage.$phpEx?pic_id=$pic_id ") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid(album_append_uid("album.$phpEx")) . "\">", "</a>");
+	$message = $lang['Stored'] . "<br /><br />" . sprintf($lang['Click_view_message'], '<a href="' . $return_url . '">', '</a>') . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid(album_append_uid("album.$phpEx")) . "\">", "</a>");
 
 	message_die(GENERAL_MESSAGE, $message);
 }

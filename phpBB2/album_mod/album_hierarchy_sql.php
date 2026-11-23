@@ -879,19 +879,10 @@ function album_get_last_comment_info($cats)
 		return '';
 	}
 	
-    if (defined('ALBUM_SP_CONFIG_TABLE'))
-    {
-	    $album_pic_url = 'album_showpage.'.$phpEx;
-    }
-	else
-    {
-		$album_pic_url = 'album_page.'.$phpEx;
-    }
-
 	$categories = implode(",", $cats);
 
 	// get last comment information, and user, comment and pic informations
-    $sql = "SELECT c.comment_pic_id, c.comment_user_id, c.comment_username, c.comment_time, u.user_id, u.username, a.pic_id, a.pic_cat_id, a.pic_title
+    $sql = "SELECT c.comment_id, c.comment_user_id, c.comment_username, c.comment_time, u.user_id, u.username, a.pic_title
 			FROM " . ALBUM_COMMENT_TABLE . " AS c
 				LEFT JOIN " . USERS_TABLE . " AS u ON c.comment_user_id = u.user_id
 				LEFT JOIN " . ALBUM_TABLE . " AS a ON c.comment_pic_id = a.pic_id
@@ -928,7 +919,7 @@ function album_get_last_comment_info($cats)
 		$info .= '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . (int) $row['user_id']) . '">' . album_html_text($row['username']) . '</a>';
     }
 
-	$info .= '<br />' . $lang['Pic_Title'] . ': <a href="' . append_sid($album_pic_url . '?pic_id=' . (int) $row['pic_id']) . '">' . album_html_text($row['pic_title']) . '</a>';
+	$info .= '<br />' . $lang['Pic_Title'] . ': <a href="' . album_comment_link($row['comment_id']) . '">' . album_html_text($row['pic_title']) . '</a>';
 
 	return $info;
 }

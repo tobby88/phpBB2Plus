@@ -72,11 +72,11 @@ if( $album_config['comment'] == 0 )
 
 if( isset($_GET['comment_id']) && is_scalar($_GET['comment_id']) )
 {
-	$comment_id = intval($_GET['comment_id']);
+	$comment_id = album_read_id($_GET['comment_id']);
 }
 else if( isset($_POST['comment_id']) && is_scalar($_POST['comment_id']) )
 {
-	$comment_id = intval($_POST['comment_id']);
+	$comment_id = album_read_id($_POST['comment_id']);
 }
 else
 {
@@ -109,7 +109,7 @@ if( empty($thiscomment) )
 }
 
 
-$pic_id = intval($thiscomment['comment_pic_id']);
+$pic_id = album_read_id($thiscomment['comment_pic_id']);
 
 
 //--- Album Category Hierarchy : begin
@@ -134,7 +134,6 @@ if( empty($thispic) )
 $cat_id = intval($thispic['pic_cat_id']);
 $album_user_id = intval($thispic['cat_user_id']);
 $total_comments = intval($thispic['comments_count']);
-$comments_per_page = intval($board_config['posts_per_page']);
 
 
 // ------------------------------------
@@ -203,7 +202,6 @@ if( !isset($_POST['comment']) )
 	//--- version : 1.1.0
 	if (defined('ALBUM_SP_CONFIG_TABLE'))
 	{
-	$image_rating = ImageRating($thispic['rating']);
 
     //begin shows smilies
     $max_smilies = 20;
@@ -247,7 +245,6 @@ if( !isset($_POST['comment']) )
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
 	//--- Album Category Hierarchy : end
 
-		'U_THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=$pic_id"),
 		'U_PIC' => append_sid("album_pic.$phpEx?pic_id=$pic_id"),
 
 		'PIC_TITLE' => album_html_text($thispic['pic_title']),
@@ -265,13 +262,18 @@ if( !isset($_POST['comment']) )
 		'L_VIEW' => $lang['View'],
 		'L_COMMENTS' => $lang['Comments'],
 
-		'L_POST_YOUR_COMMENT' => $lang['Post_your_comment'],
+		'L_POST_YOUR_COMMENT' => $lang['Edit'],
 		'L_MESSAGE' => $lang['Message'],
 		'L_USERNAME' => $lang['Username'],
-		'L_COMMENT_NO_TEXT' => $lang['Comment_no_text'],
-		'L_COMMENT_TOO_LONG' => $lang['Comment_too_long'],
+		'L_COMMENT_NO_TEXT' => album_html_text($lang['Comment_no_text']),
+		'L_COMMENT_TOO_LONG' => album_html_text($lang['Comment_too_long']),
 		'L_MAX_LENGTH' => $lang['Max_length'],
-		'S_MAX_LENGTH' => $album_config['desc_length'],
+		'S_MAX_LENGTH' => max(1, album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 255)),
+		'L_GO' => $lang['Go'],
+		'L_DESCRIPTION' => $lang['Pic_Desc'],
+		'U_ALBUM_SEARCH' => append_sid("album_search.$phpEx"),
+		'U_ALBUM_SMILIES' => append_sid("album_showpage.$phpEx?mode=smilies"),
+		'L_MORE_SMILIES' => $lang['More_emoticons'],
 
 		'L_SUBMIT' => $lang['Submit'],
 
@@ -301,22 +303,17 @@ else
 	$comment_limit = max(1, album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 255));
 	$comment_text = AlbumPictureDiscussion::input_text($_POST['comment'], $comment_limit);
 	album_discussion_request('change', array(
-		$userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id, (int) $comment_id, $comment_text));
+		$userdata, (int) $album_user_id, (int) $cat_id, $pic_id, $comment_id, $comment_text));
 
 	// --------------------------------
 	// Complete... now send a message to user
 	// --------------------------------
 
-	if 	(defined('ALBUM_SP_CONFIG_TABLE'))
-		$return_url = "album_showpage";
-	else
-		$return_url = "album_comment";
-
+	$comment_url = album_comment_link($comment_id);
 	$template->assign_vars(array(
-		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid($return_url.".$phpEx?comment_id=$comment_id") . '#'.$comment_id.'">')
+		'META' => '<meta http-equiv="refresh" content="3;url=' . $comment_url . '">')
 	);
-
-	$message = $lang['Stored'] . "<br /><br />" . sprintf($lang['Click_view_message'], "<a href=\"" . append_sid($return_url.".$phpEx?comment_id=$comment_id") . "#$comment_id\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid(album_append_uid("album.$phpEx")) . "\">", "</a>");
+	$message = $lang['Stored'] . "<br /><br />" . sprintf($lang['Click_view_message'], '<a href="' . $comment_url . '">', '</a>') . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid(album_append_uid("album.$phpEx")) . "\">", "</a>");
 
 	message_die(GENERAL_MESSAGE, $message);
 }

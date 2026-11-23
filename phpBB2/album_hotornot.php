@@ -73,25 +73,13 @@ if (!$rating_submitted)
 	{
 		message_die(GENERAL_MESSAGE, $lang['Pic_not_exist']);
 	}
-	$pic_id = intval($pic_id_temp['pic_id']);
+	$pic_id = album_read_id($pic_id_temp['pic_id']);
 
 
 	// ------------------------------------
 	// Get this pic info and current category info
 	// ------------------------------------
-	$rating_from = ($album_sp_config['hon_rate_sep'] == 1) ? 'AVG(NULLIF(r.rate_hon_point, 0)) AS rating' : 'AVG(NULLIF(r.rate_point, 0)) AS rating';
-
-	//--- Album Category Hierarchy : begin
-	//--- version : <= 1.1.0
-	$sql = "SELECT p.*, cat.*,  u.user_id, u.username, r.rate_pic_id, " . $rating_from . ", COUNT(DISTINCT c.comment_id) AS comments
-			FROM ". ALBUM_CAT_TABLE ."  AS cat, ". ALBUM_TABLE ." AS p
-				LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
-				LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
-				LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-			WHERE pic_id = '$pic_id'
-				AND cat.cat_id = p.pic_cat_id
-			GROUP BY p.pic_id";
-	//--- Album Category Hierarchy : end
+	$sql = album_picture_details_sql($pic_id, !empty($album_sp_config['hon_rate_sep']));
 
 	if( !($result = $db->sql_query($sql)) )
 	{
@@ -210,7 +198,7 @@ if (!$rating_submitted)
 
 		'PIC_RATING' => $image_rating,
 
-		'PIC_COMMENTS' => $thispic['comments'],
+		'PIC_COMMENTS' => $thispic['comments_count'],
 
 		'U_COMMENT' => append_sid("album_showpage.$phpEx?pic_id=$pic_id"),
 
@@ -255,7 +243,7 @@ else
 	$rate_user_id = $userdata['user_id'];
 	$rate_user_ip = $userdata['session_ip'];
 	$rate_user_ip_sql = $db->sql_escape($rate_user_ip);
-	$pic_id = (isset($_POST['pic_id']) && is_scalar($_POST['pic_id'])) ? intval($_POST['pic_id']) : 0;
+	$pic_id = isset($_POST['pic_id']) ? album_read_id($_POST['pic_id']) : 0;
 	$max_rate = max(1, intval($album_config['rate_scale']));
 
 	if ($pic_id <= 0 || $rate_point < 1 || $rate_point > $max_rate || empty($album_config['rate']))
@@ -265,7 +253,7 @@ else
 
 	$sql = "SELECT p.*, cat.*
 		FROM " . ALBUM_TABLE . " p, " . ALBUM_CAT_TABLE . " cat
-		WHERE p.pic_id = " . intval($pic_id) . "
+		WHERE p.pic_id = " . $pic_id . "
 			AND cat.cat_id = p.pic_cat_id";
 	if (!($result = $db->sql_query($sql)) || !($rated_pic = $db->sql_fetchrow($result)))
 	{
@@ -290,7 +278,7 @@ else
 	// current authority while holding the same namespace as picture deletion.
 	album_discussion_request('hotornot', array(
 		$userdata, (int) $rated_pic['cat_user_id'], (int) $rated_pic['pic_cat_id'],
-		(int) $pic_id, (int) $rate_point));
+		$pic_id, (int) $rate_point));
 
 	// --------------------------------
 	// Complete... now send a message to user

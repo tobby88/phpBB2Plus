@@ -18,9 +18,11 @@ class AlbumPictureDiscussion
 	function __construct($database,$prefix){$this->database=$database;$this->prefix=$prefix;}
 	static function input_text($value,$limit){return album_photo_text($value,$limit);}
 	static function input_guest_name($value){return album_photo_text($value,32);}
-	private static function integer($value,$minimum,$maximum)
+	private static function integer($value,$minimum,$maximum,$failure='Album_discussion_failed')
 	{
-		if((!is_int($value)&&!is_string($value))||!preg_match('/^(?:0|[1-9][0-9]*|-1)$/D',(string)$value)||(float)$value<$minimum||(float)$value>$maximum){throw new AlbumDiscussionFailure('Album_discussion_failed');}return (int)$value;
+		if ((!is_int($value) && !is_string($value)) || !preg_match('/^(?:0|[1-9][0-9]*|-1)$/D', (string) $value) ||
+			(float) $value < $minimum || (float) $value > $maximum) { throw new AlbumDiscussionFailure($failure); }
+		return (float) $value > PHP_INT_MAX ? (string) $value : (int) $value;
 	}
 	private static function literal($value){return $value===''?"''":'CONVERT(0x'.bin2hex($value).' USING utf8mb4) COLLATE utf8mb4_unicode_ci';}
 	private static function named($row){$result=array();foreach($row as$key=>$value){if(!is_int($key)){$result[$key]=$value;}}return $result;}
@@ -38,7 +40,7 @@ class AlbumPictureDiscussion
 	}
 	private function context(&$storage,$snapshot,$owner,$category,$picture,$checks)
 	{
-		if(!is_int($picture)||$picture<1||$picture>4294967295){throw new AlbumDiscussionFailure('Pic_not_exist');}
+		$picture=self::integer($picture,1,4294967295,'Pic_not_exist');
 		$storage=new AlbumFileCoordinator($this->database,$this->prefix);$storage->begin();$authority=new AlbumLifecycleAuthority($storage,$this->prefix);
 		$context=$authority->lock($snapshot,$owner,$category,$checks);
 		if($context===false){throw new AlbumDiscussionFailure('Not_Authorised');}
@@ -70,7 +72,7 @@ class AlbumPictureDiscussion
 	private function vote($storage,$context,$point,$field='rate_point',$repeat=false)
 	{
 		if(!is_int($point)||$point<1||$point>255||!in_array($field,array('rate_point','rate_hon_point'),true)||!is_bool($repeat)||!isset($context['settings']['rate_scale'])||$point>self::integer($context['settings']['rate_scale'],1,255)){throw new AlbumDiscussionFailure('Not_Authorised');}
-		$actor=$context['userdata'];$picture=(int)$context['picture']['pic_id'];$identity='rate_user_id='.$actor['user_id'];
+		$actor=$context['userdata'];$picture=self::integer($context['picture']['pic_id'],1,4294967295);$identity='rate_user_id='.$actor['user_id'];
 		if(!$actor['session_logged_in']){$identity.=' AND rate_user_ip='.self::literal($actor['session_ip']);}
 		$where='rate_pic_id='.$picture.' AND '.$identity;
 		$order=' ORDER BY rate_point DESC,rate_hon_point DESC,HEX(rate_user_ip) FOR UPDATE';
@@ -103,6 +105,7 @@ class AlbumPictureDiscussion
 		{
 			$checks=ALBUM_AUTH_VIEW;if($text!==''){$checks|=ALBUM_AUTH_COMMENT;}if($point!==null){$checks|=ALBUM_AUTH_RATE;}
 			$context=$this->context($storage,$snapshot,$owner,$category,$picture,$checks);$actor=$context['userdata'];
+			$picture=self::integer($context['picture']['pic_id'],1,4294967295);
 			if(self::integer($context['picture']['pic_lock'],0,1)===1&&empty($context['access']['moderator'])){throw new AlbumDiscussionFailure('Pic_Locked');}
 			if($point!==null){$this->vote($storage,$context,$point);}
 			if($text!=='')
@@ -120,7 +123,8 @@ class AlbumPictureDiscussion
 	}
 	function change($snapshot,$owner,$category,$picture,$comment,$text=null)
 	{
-		if(!is_int($comment)||$comment<1||$comment>4294967295||($text!==null&&!is_string($text))){throw new AlbumDiscussionFailure('Album_discussion_failed');}$storage=null;
+		$comment=self::integer($comment,1,4294967295);
+		if($text!==null&&!is_string($text)){throw new AlbumDiscussionFailure('Album_discussion_failed');}$storage=null;
 		try
 		{
 			$checks=ALBUM_AUTH_VIEW|ALBUM_AUTH_COMMENT|($text===null?ALBUM_AUTH_DELETE:ALBUM_AUTH_EDIT);$context=$this->context($storage,$snapshot,$owner,$category,$picture,$checks);$actor=$context['userdata'];
