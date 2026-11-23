@@ -32,13 +32,13 @@ function su_notification_cases()
                 as_check(strpos($formatted, '[url=https://forum.invalid:8443/jahrgang/forum/activity.php?mode=game&id=41&win=self]Spiel 😀[/url]') !== false, 'Localized record notices link to the configured HTTPS board and exact game');
             }
         }
-        $subject = 'Grüße aus der Spielhalle 😀';
-        ina_send_user_pm(8, $subject, '[b]Grüße[/b] & mehr 😀', 2, 'YES', true);
+        $subject = "Grüße aus O'Briens Spielhalle \\ Archiv 😀";
+        ina_send_user_pm(8, $subject, "[b]Grüße[/b] aus O'Briens Spielhalle & mehr 😀", 2, 'YES', true);
         $rows = su_rows($messages);
         as_check(count($rows) === 2 && $rows[0] === $original[0], 'Opted-in recipient gets a notice while existing personal mail survives');
         $notice = $rows[1];
         $uid = $notice['privmsgs_bbcode_uid'];
-        as_check($notice['privmsgs_subject'] === $subject && $uid !== '' && $notice['privmsgs_text'] === '[b:'.$uid.']Grüße[/b:'.$uid.'] &amp; mehr 😀', 'Unicode and formatted notification body round-trip');
+        as_check($notice['privmsgs_subject'] === $subject && $uid !== '' && $notice['privmsgs_text'] === '[b:'.$uid.']Grüße[/b:'.$uid.'] aus O&#039;Briens Spielhalle &amp; mehr 😀', 'Quotes, backslashes, Unicode and formatted notification text round-trip');
         as_check((int)$notice['privmsgs_from_userid'] === 2 && (int)$notice['privmsgs_to_userid'] === 8 && (int)$notice['privmsgs_type'] === PRIVMSGS_NEW_MAIL && (int)$notice['privmsgs_enable_bbcode'] === 1 && (int)$notice['privmsgs_enable_html'] === 0 && (int)$notice['privmsgs_enable_smilies'] === 1, 'Stored delivery options match current board policy');
         $counts = su_rows($counters);
         as_check((int)$counts[0]['user_new_privmsg'] === 1 && (int)$counts[0]['user_unread_privmsg'] === 1 && (int)$counts[0]['user_last_privmsg'] === (int)$notice['privmsgs_date'], 'Both inbox counters and last delivery agree with durable mail');
