@@ -12,7 +12,13 @@ function AJAX_message_die($response){throw new UsernameSearchExit($response);}
 ats_check(phpbb_username_search_allowed('ä*',1)&&!phpbb_username_search_allowed('ä*',2),'Wildcard minimum counts Unicode characters, not bytes');
 ats_check(phpbb_username_search_allowed('0',3)&&phpbb_username_search_allowed('%',3),'Literal short names remain searchable');
 foreach(array('',array('bad'),str_repeat('ä',26),str_repeat('😀',26),"bad\xc3","bad\0name")as$bad){ats_check(!phpbb_username_search_allowed($bad,1),'Malformed/oversized search denied');}
-$source=file_get_contents($ats_source.'search.php');$a=strpos($source,'$search_author_value =');$b=strpos($source,'$search_id =',$a);ats_check($a!==false&&$b>$a,'Actual author request parser');$request_parser=substr($source,$a,$b-$a);$search_keywords='';
+$source = file_get_contents($ats_source . 'search.php');
+$a = strpos($source, '$is_ajax =');
+$b = $a === false ? false : strpos($source, '$show_results =', $a);
+ats_check($a !== false && $b > $a, 'Actual author request parser and validation');
+$request_parser = substr($source, $a, $b - $a);
+// The search controller's quota is exercised separately in check-search-safety.
+$ctracker_config = (object) array('settings' => array('search_feature_enabled' => 0));
 foreach(array('C@ro','0','A&B',"O'Reilly",'C:\\notes','A_*',str_repeat('ä',26),str_repeat('😀',255))as$raw){profile_fixture_request(array('search_author'=>$raw));$board_config=array('search_min_chars'=>1);eval($request_parser);ats_check($search_author===$raw,'Actual author parser decodes request once and permits complete guest bylines');}
 foreach(array(array('bad'),str_repeat('ä',256),"bad\xc3","bad\0name",'ä*','*')as$bad){profile_fixture_request(array('search_author'=>$bad));$board_config=array('search_min_chars'=>2);$denied=false;try{eval($request_parser);}catch(AttachSettingsExit$e){$denied=true;}ats_check($denied,'Invalid author never falls through to unrestricted keyword search');}
 // Run the actual rendered-link expressions, not a reimplementation of them.
