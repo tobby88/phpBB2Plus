@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_PM_CLEANUP_FIXTURE_ONLY', true);
 require __DIR__.'/check-private-message-cleanup.php';
 foreach(array('SQL_LAYER'=>'mysqli','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2) as $name=>$value){if(!defined($name)){define($name,$value);}}
 class PmPublicationFixtureDb extends MutationForum

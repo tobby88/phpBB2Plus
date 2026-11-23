@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_PM_CLEANUP_FIXTURE_ONLY', true);
 require __DIR__ . '/check-private-message-cleanup.php';
 require_once $forum_root . 'includes/functions_pm_repair_journal.php';
 mutation_check(!is_dir($upload_dir) && mkdir($upload_dir,0700),'Owned PM recovery directory');

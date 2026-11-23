@@ -63,6 +63,14 @@ function pm_fixture_trim(){return pm_fixture_owner_call('phpbb_pm_trim_oldest',f
 function pm_fixture_save(){return pm_fixture_owner_call('phpbb_pm_save_messages',func_get_args(),1);}
 
 function pm_scalar($sql) { return (int)$GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
+if (defined('PHPBB_PM_CLEANUP_FIXTURE_ONLY') && PHPBB_PM_CLEANUP_FIXTURE_ONLY) {
+    define('ADMIN', 1);
+    define('IN_ADMIN', true);
+    define('DELETED', -1);
+    $lang['PM_save_limit_exceeded'] = 'save limit';
+    require_once $forum_root . 'includes/functions_jr_admin.php';
+    return;
+}
 set_error_handler(function ($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try
 {

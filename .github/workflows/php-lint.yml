@@ -226,11 +226,6 @@ jobs:
         run: php .github/scripts/check-rebuild-session-authority.php
       - name: Poll maintenance live-session authorization and recovery
         run: php .github/scripts/check-poll-session-authority.php
-      - name: PM maintenance live-session authorization and recovery
-        run: |
-          php .github/scripts/check-pm-counter-session.php
-          php .github/scripts/check-pm-repair-session.php
-          php .github/scripts/check-pm-recovery-session.php
       - name: Current ACP session for user group and forum permissions
         run: php .github/scripts/check-acl-session-authority.php
 
@@ -927,14 +922,15 @@ jobs:
       - name: Test coordinated poll maintenance and preserved vote history
         run: php .github/scripts/check-maintenance-polls.php
 
-      - name: Test current PM counter maintenance and interrupted batches
-        run: php .github/scripts/check-maintenance-pm-counters.php
+      # Each session script first runs its complete underlying maintenance suite.
+      - name: Test PM counter maintenance, interrupted batches and current sessions
+        run: php .github/scripts/check-pm-counter-session.php
 
-      - name: Test current-authority PM repairs and full ACP failure handling
-        run: php .github/scripts/check-maintenance-pm-repair.php
+      - name: Test PM repairs, ACP failure handling and current sessions
+        run: php .github/scripts/check-pm-repair-session.php
 
-      - name: Test durable PM repair and interrupted file cleanup recovery
-        run: php .github/scripts/check-maintenance-pm-recovery.php
+      - name: Test durable PM repairs, file cleanup recovery and current sessions
+        run: php .github/scripts/check-pm-recovery-session.php
 
       - name: Test additive PM repair journal migration
         run: php .github/scripts/check-pm-repair-migration.php

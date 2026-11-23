@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_PM_CLEANUP_FIXTURE_ONLY', true);
 require __DIR__ . '/check-private-message-cleanup.php';
 mutation_check(!is_dir($upload_dir) && mkdir($upload_dir,0700),'Owned mailbox recovery fixture');
 function mailbox_fixture($single = true)
