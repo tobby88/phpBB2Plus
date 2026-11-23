@@ -66,6 +66,30 @@ foreach (array('english', 'german') as $locale) {
     }
     uf_check(strpos($template->blocks['ctracker_message'][1]['L_MESSAGE_TEXT'], '<em>') === false
         && strpos($template->blocks['ctracker_message'][1]['L_MESSAGE_TEXT'], 'Grüße 😀 &amp; &lt;em&gt;literal&lt;/em&gt;') !== false, 'Actual announcement text remains escaped Unicode');
+    foreach (array("\n", "\r\n", "\r") as $newline) {
+        $ctracker_settings['global_message'] = 'Grüße 😀 & <em>literal</em>' . $newline . $newline . 'Zweite Zeile';
+        $context = ctracker_user_notice_context('globmsg', $userdata, $ctracker_settings);
+        $template = new UserFormTemplate();
+        eval($global_form);
+        uf_check($template->blocks['ctracker_message'][0]['L_MESSAGE_TEXT'] ===
+            'Grüße 😀 &amp; &lt;em&gt;literal&lt;/em&gt;<br />' . $newline . '<br />' . $newline . 'Zweite Zeile',
+            'Actual announcement preserves line breaks and an empty line after escaping');
+        uf_check($template->blocks['ctracker_message.switch_mark_action'][0]['S_MARK_CONTEXT'] === $context &&
+            $template->blocks['ctracker_message.switch_mark_action'][0]['S_MARK_TOKEN'] === ctracker_user_notice_token('globmsg', $context, $userdata),
+            'Acknowledgement remains bound to the original notice bytes');
+    }
+    $ctracker_settings['global_message_type'] = '0';
+    $ctracker_settings['global_message'] = 'https://example.invalid/notice?a=1&b=2';
+    $template = new UserFormTemplate();
+    eval($global_form);
+    uf_check($template->blocks['ctracker_message'][0]['L_MESSAGE_TEXT'] === sprintf($lang['ctracker_gmb_link'],
+        'https://example.invalid/notice?a=1&amp;b=2', 'https://example.invalid/notice?a=1&amp;b=2'),
+        'Link notices retain their escaped URL and label');
+    $ctracker_settings['global_message'] = "Old text notice\ncontinuation";
+    $template = new UserFormTemplate();
+    eval($global_form);
+    uf_check($template->blocks['ctracker_message'][0]['L_MESSAGE_TEXT'] === "Old text notice<br />\ncontinuation",
+        'An old link-mode value without a URL is displayed as multiline text');
     $userdata['session_logged_in'] = false; $template = new UserFormTemplate(); eval($ip_form); eval($global_form);
     uf_check(!$template->blocks, 'Guests see no member acknowledgement forms');
 }

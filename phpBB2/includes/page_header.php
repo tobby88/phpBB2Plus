@@ -541,7 +541,7 @@ if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $
 	$global_message_text = phpbb_stored_text($ctracker_settings['global_message']);
 	$global_message_url = phpbb_profile_http_url($ctracker_settings['global_message']);
 	$global_message_output = ($ctracker_settings['global_message_type'] == 1 || $global_message_url === '')
-		? $global_message_text
+		? nl2br($global_message_text)
 		: sprintf($lang['ctracker_gmb_link'], $global_message_url, $global_message_text);
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'E1FFDF', 'ICON_GLOB' => $images['ctracker_note'],
