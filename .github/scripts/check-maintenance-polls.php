@@ -13,7 +13,7 @@ $dsn=getenv('PHPBB_POLL_MAINTENANCE_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
 if($native){poll_mtnc_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_poll_mtnc_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 require_once __DIR__.'/poll-peer-timeout-fixture.php';
 class PollMaintenanceServer {
- public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();public $actor_blocked=false;public $native_schema_reused=false;
+ public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();public $actor_blocked=false;public $native_schema_reused=false;public $native_interrupted_owner=null;
  function schema_signature($names){
   $signature=array();$tables=array();foreach($names as$name){$row=$this->pdo->query('SHOW CREATE TABLE fixture_'.$name)->fetch(PDO::FETCH_NUM);if(!is_array($row)||!isset($row[1])){throw new RuntimeException('Native poll fixture schema unavailable');}$signature[$name]=hash('sha256',$row[1]);$tables[]=$this->pdo->quote('fixture_'.$name);}
   $signature['__triggers']=(bool)$this->pdo->query('SELECT 1 FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND EVENT_OBJECT_TABLE IN ('.implode(',',$tables).') LIMIT 1')->fetchColumn();return $signature;
@@ -95,11 +95,22 @@ function poll_mtnc_run($expected='',$request=null){
  if(is_callable($expected)){$expected=call_user_func($expected);}
  poll_mtnc_check($caught===$expected,'Expected maintenance outcome: '.$caught.' / '.$expected);poll_mtnc_check($GLOBALS['poll_mtnc_server']->owner===null,'Owner released');
  if($GLOBALS['native']){
-  // PDO close sends COM_QUIT asynchronously. Finish the real server-side
-  // disconnect before the fixture resets rows with its zero-wait peer. This
-  // retains actual connection-loss rollback and every application contention
-  // check, while a genuinely leaked lease still fails the bounded acquisition.
-  $forum=new PollMaintenanceForum();$name='attachment:'.md5($forum->dbname."\0".ATTACHMENTS_TABLE);$peer=$GLOBALS['poll_mtnc_server']->pdo;
+  // PDO can finish closing before the server has rolled back the interrupted
+  // transaction. Wait for its exact connection before the fixture resets rows.
+  $server=$GLOBALS['poll_mtnc_server'];$peer=$server->pdo;
+  if($server->native_interrupted_owner!==null){
+   $id=$server->native_interrupted_owner;
+   poll_mtnc_check(preg_match('/^[1-9][0-9]{0,19}$/D',$id)===1,'Native maintenance owner has a valid server connection ID');
+   $deadline=microtime(true)+5;
+   do{
+    $present=$peer->query('SELECT 1 FROM information_schema.PROCESSLIST WHERE ID='.$id)->fetchColumn()!==false;
+    if(!$present){break;}
+    usleep(10000);
+   }while(microtime(true)<$deadline);
+   poll_mtnc_check(!$present,'Interrupted native maintenance connection left the server');
+   $server->native_interrupted_owner=null;
+  }
+  $forum=new PollMaintenanceForum();$name='attachment:'.md5($forum->dbname."\0".ATTACHMENTS_TABLE);
   $released=(int)$peer->query('SELECT GET_LOCK('.$peer->quote($name).',1)')->fetchColumn()===1;
   $probe_released=$released&&(int)$peer->query('SELECT RELEASE_LOCK('.$peer->quote($name).')')->fetchColumn()===1;
   poll_mtnc_check($released&&$probe_released,'Native maintenance disconnect releases the actual owned lease before fixture reset');
@@ -154,7 +165,10 @@ try{
     poll_mtnc_fixture($engine);$before=array();foreach(array('topics','polls','options','voters') as $table){$before[$table]=$poll_mtnc_server->pdo->query('SELECT * FROM fixture_'.$table)->fetchAll(PDO::FETCH_ASSOC);}
     $poll_mtnc_server->hook=function($sql,$connection) use($prefix,$race){
      if(strpos($sql,$prefix)!==0){return;}$s=$GLOBALS['poll_mtnc_server'];$s->hook=null;
-     if($race==='actor'){try{$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}catch(PDOException $e){if(!$GLOBALS['native']||!isset($e->errorInfo[1])||(int)$e->errorInfo[1]!==1205){throw $e;}$s->actor_blocked=true;}}elseif($race==='owner'){$connection->sql_close();}else{$s->failure=$prefix;}
+     if($race==='actor'){try{$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}catch(PDOException $e){if(!$GLOBALS['native']||!isset($e->errorInfo[1])||(int)$e->errorInfo[1]!==1205){throw $e;}$s->actor_blocked=true;}}elseif($race==='owner'){
+      if($GLOBALS['native']){$s->native_interrupted_owner=(string)$connection->pdo->query('SELECT CONNECTION_ID()')->fetchColumn();}
+      $connection->sql_close();
+     }else{$s->failure=$prefix;}
     };
     $attempt=poll_mtnc_run(function()use($race,$lang){return $GLOBALS['poll_mtnc_server']->actor_blocked?'':$lang[$race==='actor'?'Not_Authorised':'Maintenance_poll_unconfirmed'];});
     if($poll_mtnc_server->actor_blocked){foreach(array('polls_removed'=>1,'options_removed'=>2,'voters_removed'=>2,'voters_anonymized'=>1,'topics_updated'=>3) as $key=>$count){poll_mtnc_check($attempt[$key]===$count,'Blocked independent revocation serializes with complete maintenance');}}
