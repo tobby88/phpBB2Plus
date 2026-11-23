@@ -825,6 +825,7 @@ if( $mode != '' )
 		$top_games_list = '';
 		$bottom_games_list = '';
 		$bottom_games_header = '';
+		$search_scope = '';
 		$sort_mode_link_info = append_sid("$filename?mode=cat&amp;cat_id=$arcade->cat_id&amp;");
 		
 		$template->set_filenames(array('body' => 'arcade_body.tpl') );
@@ -916,6 +917,8 @@ if( $mode != '' )
 			$search_term = isset($search_word) ? html_entity_decode($search_word, ENT_QUOTES, 'UTF-8') : '';
 			$search_word = ($search_term !== '') ? htmlspecialchars($search_term, ENT_QUOTES, 'UTF-8') : $lang['None'];
 			$search_sql = $db->sql_escape($search_term);
+			$search_scope = '&amp;search_word='.rawurlencode($search_term);
+			$sort_mode_link_info = append_sid("$filename?mode=search&amp;cat_id=$arcade->cat_id".$search_scope);
   
       $sql_and = "AND game_desc LIKE '%$search_sql%'";
   
@@ -1422,8 +1425,7 @@ if( $mode != '' )
 			if ( $total['total'] >= $arcade->arcade_config['games_per_page'] )
 			{
 				$total_games = $total['total'];
-				$page_url = "$filename?mode=$mode&amp;sort_mode=$arcade->sort_mode&amp;order=$arcade->sort_order&amp;cat_id=$arcade->cat_id";
-				if ($mode === 'search') { $page_url .= '&amp;search_word='.rawurlencode($search_term); }
+				$page_url = "$filename?mode=$mode&amp;sort_mode=$arcade->sort_mode&amp;order=$arcade->sort_order&amp;cat_id=$arcade->cat_id".$search_scope;
 				$pagination = generate_pagination($page_url, $total_games, $arcade->arcade_config['games_per_page'], $start). '&nbsp;';
 				$page_number = sprintf($lang['Page_of'], ( floor( $start / $arcade->arcade_config['games_per_page'] ) + 1 ), ceil( $total_games / $arcade->arcade_config['games_per_page'] ));
 			}

@@ -57,6 +57,8 @@ function ae_catalog_test($db, $canonical, $activity)
 	$search_end = strpos($activity, '$page_title = ', $search_start);
 	as_check($search_start !== false && $search_end > $search_start, 'Use actual Arcade search compilation');
 	$search_code = substr($activity, $search_start, $search_end-$search_start);
+	$filename = 'activity.php';
+	$arcade = (object) array('cat_id'=>7);
 	$cases = 0;
 	foreach (array('STRICT_ALL_TABLES,ONLY_FULL_GROUP_BY,NO_BACKSLASH_ESCAPES','STRICT_ALL_TABLES') as $mode)
 	{
@@ -103,19 +105,29 @@ function ae_catalog_test($db, $canonical, $activity)
 	as_check($page_start !== false && $page_end > $page_start, 'Use actual Arcade search pagination');
 	$page_code = substr($activity, $page_start, $page_end-$page_start);
 	as_function($GLOBALS['as_app'].'includes/functions.php', 'generate_pagination');
-	$filename = 'activity.php';
 	$start = 0;
 	$total_games = 2;
 	$arcade = (object) array('cat_id'=>7, 'sort_order'=>'ASC', 'sort_mode'=>'alphabetical', 'arcade_config'=>array('games_per_page'=>1));
 	foreach (array('search','fav') as $mode)
 	{
-		$search_term = 'Grüße & Spiele';
+		$term = 'Grüße & Spiele';
+		$search_scope = '';
+		$sort_mode_link_info = append_sid($filename.'?mode=cat&amp;cat_id=7');
+		if ($mode === 'search')
+		{
+			$search_word = htmlspecialchars($term, ENT_QUOTES, 'UTF-8');
+			eval($search_code);
+			parse_str(parse_url(html_entity_decode($sort_mode_link_info, ENT_QUOTES, 'UTF-8'), PHP_URL_QUERY), $sort_query);
+			as_check(isset($sort_query['search_word']) && $sort_query['search_word'] === $term &&
+				$sort_query['mode'] === 'search' && $sort_query['cat_id'] === '7',
+				'Actual sorting form retains this Arcade search and category');
+		}
 		eval($page_code);
 		as_check(preg_match('/href="([^"]+)"/', $pagination, $link) === 1, 'Next Arcade page link');
 		parse_str(parse_url(html_entity_decode($link[1], ENT_QUOTES, 'UTF-8'), PHP_URL_QUERY), $query);
 		as_check($query['mode'] === $mode && $query['start'] === '1' && $query['cat_id'] === '7' && $query['order'] === 'ASC',
 			'Saved Arcade page retains mode, category and order');
-		as_check($mode === 'search' ? $query['search_word'] === $search_term : !isset($query['search_word']), 'Only search links carry the exact term');
+		as_check($mode === 'search' ? $query['search_word'] === $term : !isset($query['search_word']), 'Only search links carry the exact term');
 		$cases++;
 	}
 	echo 'Native Arcade catalogue: '.$cases." strict/ordinary SQL mode and link cases passed; counts, scores, favorite scopes and pagination.\n";
