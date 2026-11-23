@@ -316,6 +316,7 @@ $lang['Full_edit_poll_ambiguous'] = 'This poll contains duplicate or invalid opt
 $lang['Ajax_edit_storage_upgrade'] = 'Editing requires the current InnoDB/utf8mb4 database format. Please ask an administrator to complete the database updates.';
 $lang['Ajax_edit_too_large'] = 'The text is too large for an inline edit. Please shorten it or use the full editor.';
 $lang['No_posts_topic'] = 'No posts exist for this topic';
+$lang['No_posts_in_period'] = 'No posts in this topic fall within the selected period.';
 
 $lang['Display_posts'] = 'Display posts from previous';
 $lang['All_Posts'] = 'All Posts';

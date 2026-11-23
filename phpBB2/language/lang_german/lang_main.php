@@ -307,6 +307,7 @@ $lang['No_newer_topics'] = 'Es gibt keine neueren Themen in diesem Forum.';
 $lang['No_older_topics'] = 'Es gibt keine älteren Themen in diesem Forum.';
 $lang['Topic_post_not_exist'] = 'Das gewählte Thema oder der Beitrag existiert nicht.';
 $lang['No_posts_topic'] = 'Es existieren keine Beiträge zu diesem Thema.';
+$lang['No_posts_in_period'] = 'Im gewählten Zeitraum gibt es keine Beiträge zu diesem Thema.';
 
 $lang['Display_posts'] = 'Beiträge der letzten Zeit anzeigen';
 $lang['All_Posts'] = 'Alle Beiträge';

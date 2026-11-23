@@ -84,3 +84,68 @@ function check_forum_topic_pages($db)
 	check(\get_announces_title($rn_now, 7) === '2026-03-01 to 2026-03-08', 'Dated announcement includes its interval');
 	echo "Forum topic lists: activity cutoff, pagination, announcements and dates passed.\n";
 }
+
+function check_topic_post_pages($db)
+{
+	global $phpbb_root_path, $rn_now, $lang;
+	require_once $phpbb_root_path . 'includes/functions_topic_views.php';
+	require_once $phpbb_root_path . 'includes/functions_profile_fields.php';
+	$before = $rn_now - 86400;
+	$topic = array('topic_id' => 1, 'forum_id' => 3);
+	// The higher ID 503 is older than 501 and 502, as can happen after an import.
+	foreach (array(501 => $rn_now, 502 => $rn_now, 503 => $before + 5, 504 => $rn_now + 1) as $id => $time)
+	{
+		seed('fixture_posts', array('post_id' => $id, 'topic_id' => 1, 'forum_id' => 3,
+			'poster_id' => 7, 'post_time' => $time, 'post_deleted' => $id === 502 ? 1 : 0));
+	}
+	// 504 has no post text. It must not consume a slot or count towards the page number.
+	foreach (array(101, 201, 501, 502, 503) as $id)
+	{
+		seed('fixture_posts_text', array('post_id' => $id, 'post_subject' => 'Post ' . $id, 'post_text' => 'Body'));
+	}
+	$ids = function ($page) {
+		return array_map('intval', array_column($page['rows'], 'post_id'));
+	};
+	$page = \phpbb_topic_posts_page($db, $topic, $before, 'asc', 100, 2, array());
+	check($page['total'] === 4 && $page['start'] === 2 && $page['pages'] === 2
+		&& $ids($page) === array(501, 502) && (int) $page['rows'][1]['post_deleted'] === 1,
+		'Filtered counts, timestamps, ties and deleted-post placeholders agree on the last page');
+	$topic['requested_post_id'] = 501;
+	$topic['requested_post_time'] = $rn_now;
+	foreach (array('asc' => array(501, 502), 'desc' => array(502, 501)) as $order => $expected)
+	{
+		$page = \phpbb_topic_posts_page($db, $topic, $before, $order, 100, 2, array());
+		check($ids($page) === $expected && $page['page'] === ($order === 'asc' ? 2 : 1),
+			'Permalink resolves to the same post in either order, including equal timestamps');
+	}
+	$page = \phpbb_topic_posts_page($db, $topic, 0, 'desc', 20, 0, array());
+	check($ids($page) === array(502, 501, 503, 201, 101) && $page['per_page'] === 15 && $page['total'] === 5,
+		'Unfiltered list tolerates an empty legacy page-size setting');
+	$page = \phpbb_topic_posts_page($db, $topic, $rn_now + 1, 'asc', 999, 2, array());
+	check($page['total'] === 0 && $page['rows'] === array() && $page['start'] === 0
+		&& $page['page'] === 1 && $page['pages'] === 1, 'An empty filtered page has a valid position');
+	foreach (array('german', 'english') as $locale)
+	{
+		require $phpbb_root_path . 'language/lang_' . $locale . '/lang_main.php';
+		$template = (new \ReflectionClass('Template'))->newInstanceWithoutConstructor();
+		$template->vars =& $template->_tpldata['.'][0];
+		$template->load_config($phpbb_root_path . 'templates/fisubsilversh', false);
+		$template->set_filenames(array('body' => 'viewtopic_body.tpl'));
+		$template->assign_vars(array('S_POST_DAYS_ACTION' => 'viewtopic.php?t=1'));
+		$template->assign_block_vars('switch_no_matching_posts', array('MESSAGE' => $lang['No_posts_in_period']));
+		ob_start();
+		try
+		{
+			$template->pparse('body');
+			$html = ob_get_contents();
+		}
+		finally
+		{
+			ob_end_clean();
+		}
+		check(substr_count($html, $lang['No_posts_in_period']) === 1
+			&& strpos($html, '<form method="post" action="viewtopic.php?t=1">') !== false,
+			'Empty results explain the active filter and retain its form in ' . $locale);
+	}
+	echo "Topic post lists: filters, post links in both orders, tied timestamps and placeholders passed.\n";
+}

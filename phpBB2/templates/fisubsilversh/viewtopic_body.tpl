@@ -38,6 +38,9 @@ highlight = '{HIGHLIGHT}';
 <th width="150" height="28">{L_AUTHOR}</th>
 <th width="100%">{L_MESSAGE}</th>
 </tr>
+<!-- BEGIN switch_no_matching_posts -->
+<tr><td class="row1" colspan="2" align="center"><span class="gen">{switch_no_matching_posts.MESSAGE}</span></td></tr>
+<!-- END switch_no_matching_posts -->
 <!-- BEGIN postrow -->
 <!-- IF !empty(postrow.IS_DELETED) -->
 <tr><td class="{postrow.ROW_CLASS}" colspan="2"><a name="{postrow.U_POST_ID}" id="{postrow.U_POST_ID}"></a><span class="genmed"><em>{postrow.DELETED_MESSAGE}</em></span></td></tr>
