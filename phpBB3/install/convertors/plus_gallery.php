@@ -35,24 +35,6 @@ function plus_gallery_preflight()
 	}
 }
 
-function plus_gallery_removed($id, $name)
-{
-	global $src_db, $convert;
-	if ((int) $id > 0) { return plus_existing_author($id) === ANONYMOUS ? 1 : 0; }
-	$raw = plus_gallery_text($name);
-	if ($raw === '') { return 0; }
-	static $found = array();
-	if (!isset($found[$raw]))
-	{
-		$p = $convert->src_table_prefix;
-		$result = $src_db->sql_query_limit("SELECT n.author_name_hash FROM {$p}removed_author_names n LEFT JOIN {$p}users u
-			ON u.user_id=n.author_user_id WHERE (n.author_user_id=0 OR u.user_id IS NULL) AND n.author_name='" . $src_db->sql_escape($raw) . "'", 1);
-		$found[$raw] = $src_db->sql_fetchfield('author_name_hash') !== false ? 1 : 0;
-		$src_db->sql_freeresult($result);
-	}
-	return $found[$raw];
-}
-
 function plus_gallery_grants($category, $policies)
 {
 	global $src_db, $db, $convert, $table_prefix;
@@ -204,7 +186,7 @@ function plus_gallery_schema($prefix, $truncate)
 		'query_first' => array('target', $truncate . $t . 'pics'),
 		array('pic_id','album.pic_id','intval'), array('cat_id',array('album.pic_cat_id','album.pic_user_id'),'plus_gallery_category'),
 		array('author_id','album.pic_user_id','plus_existing_author'), array('author_name','album.pic_username','plus_gallery_text'),
-		array('author_removed',array('album.pic_user_id','album.pic_username'),'plus_gallery_removed'),
+		array('author_removed',array('album.pic_user_id','album.pic_username'),'plus_removed_author'),
 		array('author_ip','album.pic_user_ip','plus_registration_ip'), array('title','album.pic_title','plus_gallery_text'),
 		array('description','album.pic_desc','plus_gallery_text'), array('created_at','album.pic_time','intval'),
 		array('views','album.pic_view_count','intval'), array('locked','album.pic_lock','intval'), array('approved','album.pic_approval','intval'),
@@ -219,7 +201,7 @@ function plus_gallery_schema($prefix, $truncate)
 		array('comment_id','album_comment.comment_id','intval'), array('pic_id','album_comment.comment_pic_id','intval'),
 		array('cat_id',array('album.pic_cat_id','album.pic_user_id'),'plus_gallery_category'),
 		array('author_id','album_comment.comment_user_id','plus_existing_author'), array('author_name','album_comment.comment_username','plus_gallery_text'),
-		array('author_removed',array('album_comment.comment_user_id','album_comment.comment_username'),'plus_gallery_removed'),
+		array('author_removed',array('album_comment.comment_user_id','album_comment.comment_username'),'plus_removed_author'),
 		array('author_ip','album_comment.comment_user_ip','plus_registration_ip'), array('body','album_comment.comment_text','plus_gallery_text'),
 		array('created_at','album_comment.comment_time','intval'), array('edited_at','album_comment.comment_edit_time','intval'),
 		array('edit_count','album_comment.comment_edit_count','intval'), array('editor_id','album_comment.comment_edit_user_id','plus_gallery_owner'),

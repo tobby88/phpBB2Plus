@@ -1,0 +1,19 @@
+phpbb2plus_kb_index:
+    path: /knowledge
+    defaults: { _controller: phpbb2plus.knowledgebase.board:index, category: 0 }
+    methods: [GET, HEAD]
+phpbb2plus_kb_category:
+    path: /knowledge/category/{category}
+    defaults: { _controller: phpbb2plus.knowledgebase.board:index }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_kb_article:
+    path: /knowledge/article/{article}
+    defaults: { _controller: phpbb2plus.knowledgebase.board:article }
+    requirements: { article: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_kb_rate:
+    path: /knowledge/article/{article}/rate
+    defaults: { _controller: phpbb2plus.knowledgebase.board:rate }
+    requirements: { article: '[1-9][0-9]*' }
+    methods: [POST]

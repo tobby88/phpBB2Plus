@@ -1,0 +1,12 @@
+services:
+    phpbb2plus.knowledgebase.articles:
+        class: phpbb2plus\knowledgebase\service\articles
+        arguments: ['@dbal.conn', '@auth', '@user', '@content.visibility', '%core.table_prefix%plus_kb_']
+    phpbb2plus.knowledgebase.board:
+        class: phpbb2plus\knowledgebase\controller\board
+        arguments: ['@phpbb2plus.knowledgebase.articles', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_kb_', '%core.root_path%', '%core.php_ext%', '@?phpbb2plus.community.former_members']
+    phpbb2plus.knowledgebase.events:
+        class: phpbb2plus\knowledgebase\event\listener
+        arguments: ['@controller.helper', '@template', '@language', '@dbal.conn', '%core.table_prefix%plus_kb_']
+        tags:
+            - { name: event.listener }

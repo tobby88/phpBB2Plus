@@ -6,6 +6,7 @@ require_once __DIR__ . '/plus_forums.php';
 require_once __DIR__ . '/plus_native.php';
 require_once __DIR__ . '/plus_attachments.php';
 require_once __DIR__ . '/plus_gallery.php';
+require_once __DIR__ . '/plus_knowledgebase.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/password/legacy.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/profile/contacts.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/former_members.php';
@@ -27,6 +28,24 @@ function plus_registration_ip($ip)
 	$ip = trim((string) $ip);
 	if (filter_var($ip, FILTER_VALIDATE_IP) !== false) { return $ip; }
 	return preg_match('/^[0-9a-f]{8}$/iD', $ip) ? decode_ip($ip) : '';
+}
+
+function plus_removed_author($id, $name)
+{
+	global $src_db, $convert;
+	if ((int) $id > 0) { return plus_existing_author($id) === ANONYMOUS ? 1 : 0; }
+	$raw = html_entity_decode((string) $name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	if ($raw === '') { return 0; }
+	static $found = array();
+	if (!isset($found[$raw]))
+	{
+		$p = $convert->src_table_prefix;
+		$result = $src_db->sql_query_limit("SELECT n.author_name_hash FROM {$p}removed_author_names n LEFT JOIN {$p}users u
+			ON u.user_id=n.author_user_id WHERE (n.author_user_id=0 OR u.user_id IS NULL) AND n.author_name='" . $src_db->sql_escape($raw) . "'", 1);
+		$found[$raw] = $src_db->sql_fetchfield('author_name_hash') !== false ? 1 : 0;
+		$src_db->sql_freeresult($result);
+	}
+	return $found[$raw];
 }
 
 function plus_configure_native_contacts()

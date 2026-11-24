@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery') as $extension)
+	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery', 'phpbb2plus/knowledgebase') as $extension)
 	{
 		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
 		$enabled = $db->sql_fetchfield('ext_active');
@@ -38,6 +38,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
+	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 	if (defined('MOD_ATTACHMENT'))
@@ -199,5 +200,6 @@ if (!$get_info)
 		array('', 'users.user_id AS existing_user', ''),
 		'where' => 'bookmarks.user_id > 0 AND bookmarks.topic_id = topics.topic_id AND bookmarks.user_id = users.user_id',
 	);
-	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement));
+	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement),
+		plus_kb_schema($table_prefix, $convert->truncate_statement));
 }

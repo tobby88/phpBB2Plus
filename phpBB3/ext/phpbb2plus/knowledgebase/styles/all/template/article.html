@@ -1,0 +1,11 @@
+{% if KB_PRINT %}<!-- INCLUDE simple_header.html -->{% else %}<!-- INCLUDE overall_header.html -->{% endif %}
+<h2>{{ KB_TITLE|e }}</h2>
+<article class="post bg1"><div class="inner"><p class="author">{KB_AUTHOR} &middot; {KB_DATE}{% if KB_TYPE %} &middot; {{ KB_TYPE|e }}{% endif %}{% if KB_PENDING %} &middot; {L_PLUS_KB_PENDING}{% endif %}</p>
+{% if KB_SUMMARY %}<p>{{ KB_SUMMARY|e }}</p>{% endif %}
+{% if loops.kb_pages|length > 1 %}<nav aria-label="{L_PLUS_KB_CONTENTS}"><strong>{L_PLUS_KB_CONTENTS}</strong><ol>{% for page in loops.kb_pages %}<li>{% if page.CURRENT %}<strong>{% else %}<a href="{{ page.URL }}">{% endif %}{% if page.HEADING %}{{ page.HEADING|e }}{% else %}{{ page.NUMBER }}{% endif %}{% if page.CURRENT %}</strong>{% else %}</a>{% endif %}</li>{% endfor %}</ol></nav>{% endif %}
+<div class="content">{KB_BODY}</div></div></article>
+<div class="panel"><p>{{ lang('PLUS_KB_VIEWS', KB_VIEWS) }}{% if KB_SCORE %} &middot; {KB_SCORE}{% endif %}</p>
+{% if U_KB_RATE %}<form id="kb-rate" action="{U_KB_RATE}" method="post"><label for="kb-rating">{L_PLUS_KB_RATE}</label> <select id="kb-rating" name="rating">{% for value in 1..10 %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select> {S_FORM_TOKEN}<input class="button2" type="submit" value="{L_SUBMIT}"></form>{% endif %}
+{% if U_KB_DISCUSSION %}<p>{L_PLUS_KB_DISCUSSION} &middot; <a href="{U_KB_DISCUSSION}">{KB_DISCUSSION}</a></p>{% endif %}
+{% if not KB_PRINT %}<a href="{U_KB_PRINT}">{L_PLUS_KB_PRINT}</a>{% endif %}</div>
+{% if KB_PRINT %}<!-- INCLUDE simple_footer.html -->{% else %}<!-- INCLUDE overall_footer.html -->{% endif %}
