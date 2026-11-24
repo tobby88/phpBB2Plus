@@ -4,6 +4,11 @@ require __DIR__.'/shoutbox-text-fixture.php';require $sx_app.'db/mysqli.php';
 class SxDatabase extends sql_db
 {
 	var $writes=array();
+	var $history_reader;
+	function sql_dedicated_connection()
+	{
+		return $this->history_reader ? call_user_func($this->history_reader) : parent::sql_dedicated_connection();
+	}
 	function sql_query($sql='',$transaction=false){if(preg_match('/^(?:INSERT|UPDATE|DELETE)\b/i',ltrim($sql))){$this->writes[]=$sql;}return parent::sql_query($sql,$transaction);}
 }
 function sn_sql($sql){$r=$GLOBALS['db']->sql_query($sql);sx_check($r!==false,'Own canonical fixture SQL');return$r;}
@@ -31,5 +36,6 @@ try{
    foreach(array('new valid shout',str_repeat('&',16000))as$raw){sn_seed();$before=sn_rows();$r=sx_run($route,$raw,'post',array(0,0,0),array('prune'=>1));$rows=sn_rows();sx_check($r['error']?($rows===$before&&!$db->writes):(count($rows)===2&&$rows[0]===$before[1]),'Auto-prune runs only after successful insertion');$sx_cases++;}
   }
  }
+ if (!PHPBB_LEGACY_REQUEST_ESCAPED) { require __DIR__ . '/shoutbox-history-native-fixture.php'; }
  echo 'Shoutbox text native ',PHPBB_LEGACY_REQUEST_ESCAPED?'legacy':'raw',': ',$sx_cases,' cases, ',$sx_checks," assertions PASS; canonical UTF-8/TEXT storage, both real controllers, preview parity, names, zero, limits, session/flood guards and scoped pruning.\n";
 }finally{if($db){$db->sql_close();}if($created){sx_check(preg_match('/^codex_shout_text_[a-f0-9]{16}$/D',$fixture)&&$control->sql_query('DROP DATABASE '.$fixture),'Exact own schema cleanup');}$control->sql_close();restore_error_handler();}

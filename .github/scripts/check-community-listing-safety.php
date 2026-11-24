@@ -73,4 +73,26 @@ foreach (array(false,true) as $populated) {
             'Ordinary titles retain their text in the editor and moved links open their destination');
     }
 }
+foreach (array('shoutbox_view_body.tpl','shoutbox_max_guest_body.tpl','shoutbox_max_body.tpl') as $file)
+{
+    $tpl = (new ReflectionClass('Template'))->newInstanceWithoutConstructor();
+    $tpl->vars = &$tpl->_tpldata['.'][0];
+    $tpl->load_config($phpbb_root_path.'templates/fisubsilversh', false);
+    $tpl->set_filenames(array('body'=>$file));
+    $url = 'shoutbox_view.php?start=20&amp;sid=' . str_repeat('a', 32);
+    $tpl->assign_vars(array('U_SHOUTBOX_VIEW'=>$url, 'U_SHOUTBOX'=>$url, 'L_SHOUT_REFRESH'=>'Refresh'));
+    $tpl->assign_block_vars('empty_shoutbox', array('MESSAGE'=>'No entries here'));
+    ob_start();
+    try { $tpl->pparse('body'); $html = ob_get_contents(); } finally { ob_end_clean(); }
+    community_listing_assert(strpos($html, 'No entries here') !== false, 'Each empty history explains the result');
+    if ($file === 'shoutbox_view_body.tpl') {
+        community_listing_assert(strpos($html, 'content="120;url='.$url.'"') !== false, 'Automatic refresh retains offset and session');
+    } elseif ($file === 'shoutbox_max_guest_body.tpl') {
+        community_listing_assert(strpos($html, 'href="'.$url.'"') !== false && strpos($html, '<form') === false,
+            'Guest refresh navigates directly without a write form');
+    } else {
+        community_listing_assert(substr_count($html, '<form ') === 1 && substr_count($html, '</form>') === 1
+            && strpos($html, 'name="message"') < strpos($html, '</form>'), 'One member form contains the text and its controls');
+    }
+}
 echo "Community listing safety tests passed.\n";

@@ -84,19 +84,8 @@ if (isset($_POST['start']) || isset($_GET['start']))
 $template->set_filenames(array( 
       'body' => 'shoutbox_view_body.tpl')); 
 
-//
-// Define censored word matches
-//
-$orig_word = array();
-$replacement_word = array();
-obtain_word_list($orig_word, $replacement_word);
-
-//
-// display the shoutbox
-//
-	$i = 0;
-	$sql = "SELECT s.*, u.user_allowsmile, u.username FROM " . SHOUTBOX_TABLE . " s, ".USERS_TABLE." u
-			WHERE s.shout_user_id=u.user_id ORDER BY s.shout_session_time DESC LIMIT $start, ".NUM_SHOUT;
+$i = 0;
+	$sql = phpbb_shoutbox_rows_sql($start, NUM_SHOUT, true);
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not get shoutbox information', '', __LINE__, __FILE__, $sql);
@@ -119,6 +108,11 @@ obtain_word_list($orig_word, $replacement_word);
 			'TIME' => create_date($lang['Shoutbox_date'], $shout_row['shout_session_time'], $board_config['board_timezone']),
 			'USERNAME' => $username
 		));
+}
+$db->sql_freeresult($result);
+if (!$i)
+{
+	$template->assign_block_vars('empty_shoutbox', array('MESSAGE' => $lang['Shoutbox_empty']));
 }
 $template->assign_vars(array( 
 	'U_SHOUTBOX_VIEW' => append_sid("shoutbox_view.$phpEx?start=$start"),

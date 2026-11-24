@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="refresh" content="120;url={U_SHOUTBOX_VIEW}?auto_refresh=1" />
+	<meta http-equiv="refresh" content="120;url={U_SHOUTBOX_VIEW}" />
 	<meta http-equiv="Content-Type" content="text/html; charset={S_CONTENT_ENCODING}" />
 	<link rel="stylesheet" href="{T_URL}/{T_HEAD_STYLESHEET}" type="text/css" />
 	<style type="text/css">
@@ -14,6 +14,9 @@
 </head>
 <body>
 	<table class="forumline shoutRows" cellpadding="0" cellspacing="0">
+		<!-- BEGIN empty_shoutbox -->
+		<tr><td class="row1 gensmall">{empty_shoutbox.MESSAGE}</td></tr>
+		<!-- END empty_shoutbox -->
 		<!-- BEGIN shoutrow -->
 		<tr>
 			<td class="{shoutrow.ROW_CLASS}">

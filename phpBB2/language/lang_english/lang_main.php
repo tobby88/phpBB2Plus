@@ -1374,6 +1374,7 @@ $lang['Found_bookmarks'] = 'You have set %d bookmarks.'; // eg. Search found 24 
 $lang['More_bookmarks'] = 'More bookmarks...'; // For mozilla navigation bar
 
 // Start add - Fully integrated shoutbox MOD
+$lang['Shoutbox_empty'] = 'There are no shouts here yet.';
 $lang['Shoutbox'] = 'Shoutbox';
 $lang['Shoutbox_date'] = ' d m Y h:i:s';
 $lang['Shout_censor'] = 'shout removed !';

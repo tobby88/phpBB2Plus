@@ -1357,6 +1357,7 @@ $lang['Found_bookmarks'] = 'Du hast %d Lesezeichen gesetzt.'; // eg. Search foun
 $lang['More_bookmarks'] = 'Mehr Lesezeichen...'; // For mozilla navigation bar
 
 // Start add - Fully integrated shoutbox MOD
+$lang['Shoutbox_empty'] = 'Hier gibt es noch keine Einträge.';
 $lang['Shoutbox'] = 'Shoutbox';
 $lang['Shoutbox_date'] = ' d m Y h:i:s';
 $lang['Shout_censor'] = 'shout entfernt !';

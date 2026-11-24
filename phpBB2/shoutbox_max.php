@@ -46,7 +46,6 @@ require_once($phpbb_root_path . 'common.'.$phpEx);
 require_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_shoutbox.' . $phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
-define ('NUM_SHOUT', 20);
 //
 // Start session management
 //
@@ -519,21 +518,19 @@ while ( $row = $db->sql_fetchrow($result) )
 }
 $db->sql_freeresult($result);
 
-//
-// Define censored word matches
-//
-$orig_word = array();
-$replacement_word = array();
-obtain_word_list($orig_word, $replacement_word);
+$shout_id = $submit ? 0 : (int)phpbb_request_scalar($_GET, 'shout_id', 0);
+try
+{
+	$history = phpbb_shoutbox_history_page($db, $start, $shouts_per_page, $shout_id);
+}
+catch (PhpbbForumReadFailure $e)
+{
+	message_die(GENERAL_ERROR, 'Could not read shoutbox history.');
+}
+if ($history === false) { message_die(GENERAL_MESSAGE, $lang['No_such_post']); }
+$start = $history['start'];
+$total_shouts = $history['total'];
 
-	// get statistics
-	$sql = "SELECT COUNT(*) as total FROM " . SHOUTBOX_TABLE; 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not get shoutbox stat information', '', __LINE__, __FILE__, $sql);
-	}
-	$total_shouts = $db->sql_fetchrow($result);
-	$total_shouts = $total_shouts['total'];
 	// parse post permission 
 	if ($is_auth['auth_post'])
 	{
@@ -545,8 +542,11 @@ obtain_word_list($orig_word, $replacement_word);
 	// Generate pagination for shoutbox view
 	$pagination = ( $highlight_match ) ? generate_pagination("shoutbox_max.$phpEx?highlight=".$highlight, $total_shouts, $shouts_per_page, $start) : generate_pagination("shoutbox_max.$phpEx?dummy=1", $total_shouts, $shouts_per_page, $start);
 
-	// Generate smilies listing for page output
-	generate_smilies('inline', PAGE_SHOUTBOX_MAX);
+	if ($is_auth['auth_post']) { generate_smilies('inline', PAGE_SHOUTBOX_MAX); }
+	if (!$total_shouts)
+	{
+		$template->assign_block_vars('empty_shoutbox', array('MESSAGE' => $lang['Shoutbox_empty']));
+	}
 
 	//
 	// Smilies toggle selection
@@ -588,15 +588,9 @@ obtain_word_list($orig_word, $replacement_word);
 	//
 	// display the shoutbox
 	//
-	$sql = "SELECT s.*, u.* FROM " . SHOUTBOX_TABLE . " s, ".USERS_TABLE." u
-		WHERE s.shout_user_id=u.user_id ORDER BY s.shout_session_time DESC LIMIT $start, $shouts_per_page";
-	if ( !($result = $db->sql_query($sql)) )
+	$i = 0;
+	foreach ($history['rows'] as $shout_row)
 	{
-		message_die(GENERAL_ERROR, 'Could not get shoutbox information', '', __LINE__, __FILE__, $sql);
-	}
-		$i = 0;
-		while ($shout_row = $db->sql_fetchrow($result))
-		{
 			$i++;
 			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
@@ -703,7 +697,8 @@ obtain_word_list($orig_word, $replacement_word);
 			'USER_FROM' => $user_from,
 			'USER_AVATAR' => $user_avatar,
 			'U_SHOUT_ID' => intval($shout_row['shout_id']),
-			'U_MINI_POST' => append_sid("shoutbox_max.$phpEx?start=$start") . '#shout-' . intval($shout_row['shout_id']),
+			'U_MINI_POST' => append_sid("shoutbox_max.$phpEx?shout_id=" . (int)$shout_row['shout_id']
+				. ($highlight_match ? '&amp;highlight=' . $highlight : '')) . '#shout-' . intval($shout_row['shout_id']),
 			'MINI_POST_IMG' => $images['icon_minipost'],
 			'L_MINI_POST_ALT' => $lang['Post']
 			));
@@ -730,7 +725,7 @@ obtain_word_list($orig_word, $replacement_word);
 			'L_POSTED' => $lang['Posted'], 
 			'L_AUTHOR' => $lang['Author'],
 			'L_MESSAGE' => $lang['Message'],
-			'U_SHOUTBOX' => append_sid("shoutbox_max.$phpEx?start=$start"),
+			'U_SHOUTBOX' => append_sid("shoutbox_max.$phpEx?start=$start" . ($highlight_match ? '&amp;highlight=' . $highlight : '')),
 			'T_NAME' => $theme['template_name'],
 			'T_URL' => "templates/".$theme['template_name'],
 			'L_SHOUTBOX' => $lang['Shoutbox'],

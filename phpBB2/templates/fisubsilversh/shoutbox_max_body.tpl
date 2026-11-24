@@ -28,8 +28,8 @@ f_help = "{L_BBCODE_F_HELP}";
 
 {POST_PREVIEW_BOX}
 {ERROR_BOX}
-<table width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" class="forumline">
 <form action="{U_SHOUTBOX}" method="post" name="post" onsubmit="return checkForm(this)">
+<table width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" class="forumline">
 	<tr> 
 		<th class="thHead" colspan="2" height="25"><b>{L_SHOUT_TEXT}</b></th>
 	</tr>
@@ -187,13 +187,16 @@ f_help = "{L_BBCODE_F_HELP}";
 </table>
 <table border="0" cellpadding="4" cellspacing="1" width="100%" class="forumline">
 	<tr align="right">
-		<td class="catHead" colspan="2" height="28" align="center"><b>&nbsp;{L_SHOUTBOX}&nbsp;<b/></td>
+		<td class="catHead" colspan="2" height="28" align="center"><b>&nbsp;{L_SHOUTBOX}&nbsp;</b></td>
 	</tr>
 	<tr>
 		<th class="thLeft" width="160" height="26" nowrap="nowrap">{L_AUTHOR}</th>
 		<th class="thRight" nowrap="nowrap">{L_MESSAGE}</th>
 	</tr>
 
+	<!-- BEGIN empty_shoutbox -->
+	<tr><td class="row1 gen" colspan="2">{empty_shoutbox.MESSAGE}</td></tr>
+	<!-- END empty_shoutbox -->
 	<!-- BEGIN shoutrow -->
 	<tr id="shout-{shoutrow.U_SHOUT_ID}">
 		<td width="160" align="left" valign="top" class="{shoutrow.ROW_CLASS}">
@@ -205,13 +208,13 @@ f_help = "{L_BBCODE_F_HELP}";
 			<table width="100%" border="0" cellspacing="0" cellpadding="0">
 			<tr>
 				<td width="100%"><a href="{shoutrow.U_MINI_POST}"><img src="{shoutrow.MINI_POST_IMG}" width="12" height="9" alt="{shoutrow.L_MINI_POST_ALT}" title="{shoutrow.L_MINI_POST_ALT}" border="0" /></a><span class="postdetails">{L_POSTED}: {shoutrow.TIME}</span></td>
-				<td valign="top" align="right" nowrap="nowrap">{shoutrow.QUOTE_IMG}{shoutrow.EDIT_IMG}{shoutrow.CENSOR_IMG}{shoutrow.DELETE_IMG}{shoutrow.IP_IMG}</td></form>
+				<td valign="top" align="right" nowrap="nowrap">{shoutrow.CENSOR_IMG}{shoutrow.DELETE_IMG}{shoutrow.IP_IMG}</td>
 			</tr>
 			<tr> 
 				<td colspan="2"><hr/></td>
 			</tr>
 			<tr>
-				<td colspan="2"><span class="postbody">{shoutrow.SHOUT}{shoutrow.SIGNATURE}</span></td>
+				<td colspan="2"><span class="postbody">{shoutrow.SHOUT}</span></td>
 			</tr>
 			</table>
 		</td>
