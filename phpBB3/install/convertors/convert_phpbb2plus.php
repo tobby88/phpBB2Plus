@@ -148,12 +148,26 @@ if (!$get_info)
 	);
 	$shouts_table = $table_prefix . 'plus_shouts';
 	$convertor['schema'][] = array(
+		'target' => $table_prefix . 'plus_former_names',
+		'order_by' => 'removed_author_names.author_user_id, removed_author_names.author_name_hash',
+		'query_first' => array('target', $convert->truncate_statement . $table_prefix . 'plus_former_names'),
+		array('source_id', 'removed_author_names.author_user_id', 'intval'),
+		array('native_id', 0, ''),
+		array('name_hash', 'removed_author_names.author_name_hash', ''),
+		array('name_key', 'removed_author_names.author_name', 'plus_name_lookup_key'),
+		array('name_clean', 'removed_author_names.author_name', array('\phpbb2plus\community\service\former_members', 'clean')),
+		array('author_name', 'removed_author_names.author_name', ''),
+		array('recorded_at', 'removed_author_names.recorded_at', 'intval'),
+		'left_join' => 'removed_author_names LEFT JOIN users ON users.user_id=removed_author_names.author_user_id',
+		'where' => 'removed_author_names.author_user_id=0 OR users.user_id IS NULL',
+	);
+	$convertor['schema'][] = array(
 		'target' => $shouts_table, 'primary' => 'shout.shout_id', 'autoincrement' => 'shout_id',
 		'query_first' => array('target', $convert->truncate_statement . $shouts_table),
 		array('shout_id', 'shout.shout_id', 'intval'),
-		array('author_id', 'shout.shout_user_id', 'phpbb_user_id'),
+		array('author_id', 'shout.shout_user_id', 'plus_existing_author'),
 		array('author_name', 'shout.shout_username', 'plus_convert_byline'),
-		array('author_removed', 'shout.shout_author_removed', 'intval'),
+		array('author_removed', array('shout.shout_author_removed', 'shout.shout_user_id'), 'plus_shout_removed'),
 		array('shout_time', 'shout.shout_session_time', 'intval'),
 		array('hidden_by', 'shout.shout_active', 'plus_shout_moderator'),
 		array('author_ip', 'shout.shout_ip', 'decode_ip'),

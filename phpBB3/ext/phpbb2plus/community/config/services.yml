@@ -14,7 +14,7 @@ services:
             - { name: event.listener }
     phpbb2plus.community.bylines:
         class: phpbb2plus\community\event\bylines
-        arguments: ['@dbal.conn', '@config', '@user', '%core.table_prefix%plus_bylines']
+        arguments: ['@dbal.conn', '@user', '%core.table_prefix%plus_bylines', '@phpbb2plus.community.former_members']
         tags:
             - { name: event.listener }
     phpbb2plus.community.shoutbox:
@@ -26,5 +26,13 @@ services:
     phpbb2plus.community.profile:
         class: phpbb2plus\community\event\profile
         arguments: ['@user', '@config', '%core.root_path%', '%core.php_ext%']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.former_members:
+        class: phpbb2plus\community\service\former_members
+        arguments: ['@dbal.conn', '@config', '@user', '@language', '%core.table_prefix%plus_former_names']
+    phpbb2plus.community.former_names:
+        class: phpbb2plus\community\event\former_names
+        arguments: ['@phpbb2plus.community.former_members', '@dbal.conn', '%core.table_prefix%']
         tags:
             - { name: event.listener }

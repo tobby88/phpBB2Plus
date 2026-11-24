@@ -7,6 +7,7 @@ require_once __DIR__ . '/plus_native.php';
 require_once __DIR__ . '/plus_attachments.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/password/legacy.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/profile/contacts.php';
+require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/former_members.php';
 
 function plus_convert_birthday($days)
 {
@@ -74,8 +75,28 @@ function plus_retained_byline($name, $removed)
 function plus_convert_editor($id, $count, $poster)
 {
 	if (!(int) $count) { return 0; }
-	if ((int) $id > 0) { return phpbb_user_id($id); }
-	return $id === null && (int) $poster > 0 ? phpbb_user_id($poster) : ANONYMOUS;
+	return plus_existing_author($id === null ? $poster : $id);
+}
+
+function plus_existing_author($id)
+{
+	global $src_db, $convert;
+	static $users = array();
+	$id = (int) $id;
+	if ($id <= 0) { return ANONYMOUS; }
+	if (!isset($users[$id]))
+	{
+		$result = $src_db->sql_query('SELECT user_id FROM ' . $convert->src_table_prefix . 'users WHERE user_id=' . $id);
+		$exists = $src_db->sql_fetchfield('user_id') !== false;
+		$src_db->sql_freeresult($result);
+		$users[$id] = $exists ? phpbb_user_id($id) : ANONYMOUS;
+	}
+	return $users[$id];
+}
+
+function plus_name_lookup_key($name)
+{
+	return hash('sha256', \phpbb2plus\community\service\former_members::clean($name));
 }
 
 function plus_convert_visibility($deleted)
@@ -86,6 +107,11 @@ function plus_convert_visibility($deleted)
 function plus_shout_flags($bbcode, $smilies)
 {
 	return OPTION_FLAG_LINKS | ($bbcode ? OPTION_FLAG_BBCODE : 0) | ($smilies ? OPTION_FLAG_SMILIES : 0);
+}
+
+function plus_shout_removed($marked, $id)
+{
+	return (int) $marked || ((int) $id > 0 && plus_existing_author($id) === ANONYMOUS) ? 1 : 0;
 }
 
 function plus_shout_moderator($id)

@@ -62,6 +62,15 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 	seed_native_content($db);
+	$db->query("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email,user_posts)
+		VALUES (87,'DepartingFixture','disabled','german','departing@example.invalid',1)");
+	$db->query("INSERT INTO phpbb_removed_author_names (author_user_id,author_name_hash,author_name,recorded_at)
+		VALUES (88,SHA2('EditorFixture',256),'EditorFixture',10000),(2,SHA2('ModernMember',256),'ModernMember',10000)");
+	$db->query("UPDATE phpbb_posts SET post_edit_user_id=88,post_edit_username='EditorFixture',post_edit_count=2,post_edit_time=1234500000 WHERE post_id=32");
+	$db->query("UPDATE phpbb_posts_text SET post_text=CONCAT(post_text,' [quote=\"EditorFixture\":testuid]Zitatprobe[/quote:testuid] [quote=\"GuestQuoter\":testuid]Gastzitat[/quote:testuid]') WHERE post_id=1");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time)
+		VALUES (42,1,1,87,'7f000001',1234501000)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (42,'Account fixture','Account removal fixture')");
 	$db->query("INSERT INTO phpbb_attachments_desc (attach_id,physical_filename,real_filename,download_count,extension,mimetype,filesize,filetime,thumbnail)
 		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
 		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");

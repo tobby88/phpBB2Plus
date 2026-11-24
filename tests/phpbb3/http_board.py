@@ -224,3 +224,19 @@ def native_content(base, moderator, member):
     private = member.fetch("ucp.php?i=pm&mode=view&p=111")
     if "Vertraulich 111" not in private or "Grüße" not in private:
         raise RuntimeError("Unable to read a converted private message")
+
+
+def former_names(base, member, removed=False):
+    guest = Browser(base)
+    path = "viewtopic.php?t=1"
+    public = guest.fetch(path)
+    signed_in = member.fetch(path)
+    if ("EditorFixture" in public or signed_in.count("EditorFixture") < 2
+            or "GuestQuoter" not in public or "Zitatprobe" not in public):
+        raise RuntimeError("A historical quote or editor has the wrong public/member attribution")
+    if ("DepartingFixture" in public) == removed or "DepartingFixture" not in signed_in:
+        raise RuntimeError("Native account removal lost the member-only byline or exposed it publicly")
+    for term in ("EditorFixture", "EditorFix*"):
+        result = guest.fetch("search.php?" + urlencode({"keywords": term, "sr": "posts"}))
+        if "keine passenden Ergebnisse gefunden" not in result or "Zitatprobe" in result or "Retained post" in result:
+            raise RuntimeError("A public search matched a retained quote identity")

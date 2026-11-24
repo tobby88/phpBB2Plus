@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 import attachments
-from http_board import convert, login, native_content, public_pages, profiles, server, source_files
+from http_board import convert, former_names, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
 
 
@@ -132,6 +132,9 @@ def main():
                 profiles(base, ordinary, member)
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
+                former_names(base, ordinary)
+                php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
+                former_names(base, ordinary, removed=True)
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 
