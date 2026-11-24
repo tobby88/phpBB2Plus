@@ -113,7 +113,7 @@ def assemble(output, cache, offline=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "build/phpBB3")
-    parser.add_argument("--cache", type=Path, default=ROOT / "build/packages")
+    parser.add_argument("--cache", type=Path, default=ROOT / "vendor/phpbb")
     parser.add_argument("--offline", action="store_true")
     args = parser.parse_args()
     try:

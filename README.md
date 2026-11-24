@@ -7,15 +7,15 @@ board in `phpBB2/` supplies the conversion reference and the historical style
 assets. Build a separate test installation with Python 3:
 
 ```sh
-python3 tools/build_phpbb3.py --output build/phpBB3
+python3 tools/build_phpbb3.py --output build/phpBB3 --offline
 ```
 
 Use the generated `build/phpBB3/` as the test site's document root. The build
 authenticates the official core and the German “Du” translation against their
 published SHA-256 digests. Plus additions live in `phpBB3/`. The builder
 refuses collisions with upstream files. English and German are included.
-For offline builds, pass `--cache /path/to/packages --offline` with both
-original ZIP files. Install FI Subsilver Shadow through the Styles tab in the
+Both unmodified distribution archives are included in `vendor/phpbb/` so the
+build and integration tests work offline. Install FI Subsilver Shadow through the Styles tab in the
 new board's ACP. Full Plus feature and conversion parity is in progress.
 
 This repository is a historical archive of **phpBB2 Plus 1.53a**, a pre-modded
