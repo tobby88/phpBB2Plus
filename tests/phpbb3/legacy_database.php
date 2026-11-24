@@ -55,6 +55,8 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time)
 		VALUES (40,7,7,2,'7f000001',1234567891)");
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (40,'Restricted topic fixture','Private fixture text')");
+	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
+		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 }
 elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 {
@@ -87,5 +89,8 @@ elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 	check_fixture($nested && (int) $nested['parent_id'] === 1 && $nested['cat_left'] < $nested['left_id']
 		&& $nested['cat_right'] > $nested['right_id'] && (int) $nested['forum_type'] === 2
 		&& $nested['forum_link'] === 'https://example.invalid/archive', 'Lost nested category, linked forum or tree bounds');
+	$shout = $db->query('SELECT author_id,hidden_by FROM p3_plus_shouts WHERE shout_id=7')->fetch_assoc();
+	check_fixture($shout && (int) $shout['author_id'] === (int) $users[0]['user_id']
+		&& (int) $shout['hidden_by'] === 2, 'Shout author or moderation state was not converted');
 }
 else { exit(2); }

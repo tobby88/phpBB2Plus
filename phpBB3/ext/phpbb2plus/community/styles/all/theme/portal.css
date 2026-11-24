@@ -1,0 +1,8 @@
+.plus-portal { display: grid; grid-template-columns: minmax(10em, 1fr) minmax(0, 3fr) minmax(14em, 1.4fr); gap: 8px; align-items: start; }
+.plus-portal .panel { margin: 0 0 8px; }
+.plus-portal .panel h3 { margin-top: 0; }
+.plus-portal ul.menu { list-style: none; padding: 0; }
+.plus-portal .menu li { margin-bottom: .45em; }
+.plus-portal .content { overflow-wrap: anywhere; }
+.plus-portal .plus-shout { padding: .5em 0; border-bottom: 1px solid #bcc9d5; }
+@media (max-width: 850px) { .plus-portal { grid-template-columns: 1fr; } .plus-portal > section { grid-row: 1; } }

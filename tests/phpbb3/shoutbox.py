@@ -1,0 +1,51 @@
+"""Follow the public Shoutbox, member composer and native moderation confirmation."""
+import re
+from time import sleep, time
+from urllib.parse import urljoin
+from http_board import Browser, Page
+
+
+def submit(browser, page, form_id, values):
+    url, fields = Page(page).forms[form_id]
+    fields.update(values)
+    if "creation_time" in fields:
+        sleep(max(0, int(fields["creation_time"]) + 1.05 - time()))
+    return browser.fetch(urljoin(browser.base, url), fields)
+
+
+def exercise(base, moderator, member):
+    path = "app.php/shoutbox"
+    guest = Browser(base)
+    public = guest.fetch(path)
+    if ("Grüße aus dem Archiv" not in public or "Masked shout fixture" in public or
+            "FormerShouter" in public or "plus-shout-compose" in public):
+        raise RuntimeError("Unexpected public Shoutbox history or composer")
+    if "FormerShouter" not in member.fetch(path):
+        raise RuntimeError("The retained shoutbox byline should be visible to members")
+    public_home = guest.fetch("")
+    if "Grüße aus dem Archiv" not in public_home or "Masked shout fixture" in public_home:
+        raise RuntimeError("Portal and full Shoutbox disagree on visible messages")
+    page = member.fetch(path)
+    posted = submit(member, page, "plus-shout-compose", {"message": "[b]Neue Nachricht[/b] ä 😀"})
+    matches = re.findall(r'id="shout-(\d+)"', posted)
+    if not matches or "Neue Nachricht" not in posted:
+        raise RuntimeError("Member shout was not added")
+    shout_id = matches[0]
+    edited = submit(member, member.fetch(path + "?edit=" + shout_id), "plus-shout-compose",
+                    {"message": "Überarbeitete Nachricht"})
+    if "Überarbeitete Nachricht" not in edited:
+        raise RuntimeError("The author's edit was not saved")
+    row = "plus-shout-actions-" + shout_id
+    submit(moderator, moderator.fetch(path), row, {"action": "hide"})
+    if "Überarbeitete Nachricht" in guest.fetch(path) or row in member.fetch(path):
+        raise RuntimeError("A moderated shout must be hidden from guests and its author")
+    submit(moderator, moderator.fetch(path), row, {"action": "restore"})
+    if "Überarbeitete Nachricht" not in guest.fetch(path):
+        raise RuntimeError("A restored shout is missing")
+    confirmation = submit(member, member.fetch(path), row, {"action": "delete"})
+    if "confirm" not in Page(confirmation).forms or "Überarbeitete Nachricht" not in guest.fetch(path):
+        raise RuntimeError("Delete must first show phpBB's confirmation")
+    # This member uses the English locale.
+    submit(member, confirmation, "confirm", {"confirm": "Yes"})
+    if "Überarbeitete Nachricht" in guest.fetch(path):
+        raise RuntimeError("The confirmed deletion left a message behind")

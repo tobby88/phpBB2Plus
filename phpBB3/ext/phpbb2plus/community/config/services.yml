@@ -6,7 +6,7 @@ services:
             - { name: passwords.driver }
     phpbb2plus.community.portal:
         class: phpbb2plus\community\controller\portal
-        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%']
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox']
     phpbb2plus.community.navigation:
         class: phpbb2plus\community\event\navigation
         arguments: ['@controller.helper', '@template', '@language', '@request']
@@ -17,3 +17,9 @@ services:
         arguments: ['@dbal.conn', '@config', '@user', '%core.table_prefix%plus_bylines']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.shoutbox:
+        class: phpbb2plus\community\service\shoutbox
+        arguments: ['@dbal.conn', '@config', '@user', '@auth', '@language', '%core.table_prefix%plus_shouts']
+    phpbb2plus.community.shouts:
+        class: phpbb2plus\community\controller\shouts
+        arguments: ['@phpbb2plus.community.shoutbox', '@controller.helper', '@template', '@language', '@request', '@pagination']

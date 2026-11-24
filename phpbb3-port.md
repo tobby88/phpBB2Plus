@@ -12,7 +12,7 @@ The source for this conversion is the current UTF-8 Plus distribution in `phpBB2
 | Profile fields, contact services, member colours, ranks, flags and delegated administration | Native profile fields, groups and permission roles where equivalent | Preserve member-only fields, values and visibility. Review special grants individually. |
 | FI Subsilver Shadow, German and English | Inherited phpBB3 style using the original generic Plus graphics | Check the portal, board and topic pages and both language stylesheets. Additional visual comparison is pending. |
 | Portal, news, navigation, banners, links, calendar, birthdays and statistics | Community extension using native topics, permissions and profile data | The root portal lists recent readable topics. Remaining portal blocks, ordering and their settings need conversion. |
-| Shoutbox and moderation | Community extension | Preserve history, censored messages, posting, paging and moderation. |
+| Shoutbox and moderation | Community extension, native text formatter and ACLs | Fixture covers imported history, hidden messages, former authors, the portal block, member posting/editing, moderator hide/restore and confirmed deletion. History has 20 messages per page. |
 | Smartor Album, special processing and Nuffload | Gallery extension using phpBB storage and permissions | Categories, personal albums, originals, previews, comments, votes, approvals and uploads require end-to-end fixtures. |
 | paFileDB download area | Downloads extension | Categories, files, licences, mirrors, per-group access, custom fields, votes, comments and download metadata. |
 | Knowledge Base | Knowledge Base extension | Article and category hierarchy, types, approval, ratings and permitted search. Rebuild derived search data. |

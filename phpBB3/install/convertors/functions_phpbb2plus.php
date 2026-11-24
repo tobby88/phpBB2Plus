@@ -44,6 +44,16 @@ function plus_convert_visibility($deleted)
 	return (int) $deleted ? ITEM_DELETED : ITEM_APPROVED;
 }
 
+function plus_shout_flags($bbcode, $smilies)
+{
+	return OPTION_FLAG_LINKS | ($bbcode ? OPTION_FLAG_BBCODE : 0) | ($smilies ? OPTION_FLAG_SMILIES : 0);
+}
+
+function plus_shout_moderator($id)
+{
+	return (int) $id < 0 ? ANONYMOUS : plus_convert_optional_user($id);
+}
+
 function plus_convert_optional_user($id)
 {
 	return (int) $id > 0 ? phpbb_user_id($id) : 0;

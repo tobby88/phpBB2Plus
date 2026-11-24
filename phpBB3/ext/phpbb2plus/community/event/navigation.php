@@ -20,7 +20,16 @@ class navigation implements EventSubscriberInterface
 
 	static public function getSubscribedEvents()
 	{
-		return array('core.page_header' => 'header', 'core.index_modify_page_title' => 'home');
+		return array('core.page_header' => 'header', 'core.index_modify_page_title' => 'home', 'core.permissions' => 'permissions');
+	}
+
+	public function permissions($event)
+	{
+		$this->language->add_lang('community', 'phpbb2plus/community');
+		$permissions = $event['permissions'];
+		$permissions['u_plus_shout'] = array('lang' => 'ACL_U_PLUS_SHOUT', 'cat' => 'post');
+		$permissions['m_plus_shout'] = array('lang' => 'ACL_M_PLUS_SHOUT', 'cat' => 'misc');
+		$event['permissions'] = $permissions;
 	}
 
 	public function header()

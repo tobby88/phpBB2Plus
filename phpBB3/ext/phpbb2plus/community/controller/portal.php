@@ -12,8 +12,9 @@ class portal
 	private $template;
 	private $root;
 	private $extension;
+	private $shouts;
 
-	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension)
+	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension, $shouts)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -24,6 +25,7 @@ class portal
 		$this->template = $template;
 		$this->root = $root;
 		$this->extension = $extension;
+		$this->shouts = $shouts;
 	}
 
 	public function handle()
@@ -51,6 +53,11 @@ class portal
 			}
 			$this->db->sql_freeresult($result);
 		}
+		foreach ($this->shouts->listing(5) as $shout)
+		{
+			$this->template->assign_block_vars('plus_shouts', $shout);
+		}
+		$this->template->assign_var('U_PLUS_SHOUTBOX', $this->helper->route('phpbb2plus_community_shouts'));
 		return $this->helper->render('@phpbb2plus_community/portal.html', $this->language->lang('PLUS_PORTAL'));
 	}
 }

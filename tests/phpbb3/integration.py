@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 from http_board import convert, login, public_pages, server, source_files
+from shoutbox import exercise as exercise_shoutbox
 
 
 def php(*args, cwd=None, capture=False):
@@ -120,9 +121,10 @@ def main():
                 login(base, "ModernMember", "incorrect", expect_success=False)
                 php(fixture, "converted", target)
                 member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
-                login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+                ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
                 php(fixture, "signed-in", target)
                 public_pages(base, member)
+                exercise_shoutbox(base, member, ordinary)
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 

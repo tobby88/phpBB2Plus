@@ -25,6 +25,15 @@ if (!$get_info)
 {
 	$lang_enc_array = array('english' => 'UTF-8', 'german' => 'UTF-8', 'en' => 'UTF-8', 'de' => 'UTF-8');
 	$GLOBALS['lang_enc_array'] = $lang_enc_array;
+	// All source data in this converter is UTF-8, irrespective of an old
+	// account's language preference. Avoid loading PHP from legacy locales.
+	$GLOBALS['lang_enc_array'][trim((string) get_config_value('default_lang'))] = 'UTF-8';
+	$result = $src_db->sql_query('SELECT DISTINCT user_lang FROM ' . $convert->src_table_prefix . 'users');
+	while ($source_language = $src_db->sql_fetchrow($result))
+	{
+		$GLOBALS['lang_enc_array'][trim((string) $source_language['user_lang'])] = 'UTF-8';
+	}
+	$src_db->sql_freeresult($result);
 	$convertor['test_file'] = $test_file;
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
@@ -66,6 +75,25 @@ if (!$get_info)
 		}
 	}
 	unset($section);
+	$shouts_table = $table_prefix . 'plus_shouts';
+	$convertor['schema'][] = array(
+		'target' => $shouts_table, 'primary' => 'shout.shout_id', 'autoincrement' => 'shout_id',
+		'query_first' => array('target', $convert->truncate_statement . $shouts_table),
+		array('shout_id', 'shout.shout_id', 'intval'),
+		array('author_id', 'shout.shout_user_id', 'phpbb_user_id'),
+		array('author_name', 'shout.shout_username', 'plus_convert_byline'),
+		array('author_removed', 'shout.shout_author_removed', 'intval'),
+		array('shout_time', 'shout.shout_session_time', 'intval'),
+		array('hidden_by', 'shout.shout_active', 'plus_shout_moderator'),
+		array('author_ip', 'shout.shout_ip', 'decode_ip'),
+		array('bbcode_uid', 'shout.shout_session_time', 'make_uid'),
+		array('message', 'shout.shout_text', 'plus_convert_message'),
+		array('bbcode_bitfield', '', 'get_bbcode_bitfield'),
+		array('bbcode_options', array('shout.enable_bbcode', 'shout.enable_smilies'), 'plus_shout_flags'),
+		array('', 'shout.shout_session_time AS post_time', ''),
+		array('', 'shout.shout_id AS post_id', ''),
+		array('', 'shout.shout_bbcode_uid AS old_bbcode_uid', ''),
+	);
 	$convertor['schema'][] = array(
 		'target' => $table_prefix . 'plus_bylines',
 		'primary' => 'posts.post_id',

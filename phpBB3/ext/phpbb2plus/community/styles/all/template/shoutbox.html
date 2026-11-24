@@ -1,0 +1,30 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_SHOUTBOX}</h2>
+<!-- IF S_PLUS_SHOUT_POST -->
+<form method="post" action="{U_PLUS_SHOUT_WRITE}" id="plus-shout-compose">
+<div class="panel"><div class="inner">
+	<label for="plus-shout-message"><strong><!-- IF PLUS_EDIT_ID -->{L_EDIT_POST}<!-- ELSE -->{L_MESSAGE}<!-- ENDIF --></strong></label>
+	<textarea id="plus-shout-message" class="inputbox" name="message" rows="3" maxlength="16000" required>{PLUS_SHOUT_TEXT}</textarea>
+	<input type="hidden" name="id" value="{PLUS_EDIT_ID}">
+	<input type="hidden" name="action" value="<!-- IF PLUS_EDIT_ID -->edit<!-- ELSE -->post<!-- ENDIF -->">
+	{S_FORM_TOKEN}<input class="button1" type="submit" value="{L_SUBMIT}">
+</div></div>
+</form>
+<!-- ENDIF -->
+<!-- BEGIN shouts -->
+<div class="post <!-- IF shouts.S_ROW_COUNT is even -->bg1<!-- ELSE -->bg2<!-- ENDIF -->" id="shout-{shouts.ID}"><div class="inner">
+	<p class="author">{shouts.AUTHOR} &raquo; {shouts.TIME}</p>
+	<div class="content">{shouts.MESSAGE}</div>
+	<!-- IF shouts.S_CHANGE -->
+	<form id="plus-shout-actions-{shouts.ID}" method="post" action="{U_PLUS_SHOUT_WRITE}">
+		<input type="hidden" name="id" value="{shouts.ID}">{S_FORM_TOKEN}
+		<a href="{shouts.U_EDIT}" class="button2">{L_EDIT}</a>
+		<button type="submit" class="button2" name="action" value="delete">{L_DELETE}</button>
+		<!-- IF S_PLUS_SHOUT_MOD --><!-- IF shouts.S_HIDDEN -->
+		<button type="submit" class="button2" name="action" value="restore">{L_PLUS_SHOUT_RESTORE}</button>
+		<!-- ELSE --><button type="submit" class="button2" name="action" value="hide">{L_PLUS_SHOUT_HIDE}</button><!-- ENDIF --><!-- ENDIF -->
+	</form><!-- ENDIF -->
+</div></div>
+<!-- BEGINELSE --><div class="panel">{L_PLUS_SHOUT_EMPTY}</div><!-- END shouts -->
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->

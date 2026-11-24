@@ -1,5 +1,14 @@
+<!-- INCLUDECSS @phpbb2plus_community/portal.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{L_PLUS_PORTAL}</h2>
+<div class="plus-portal">
+<nav class="panel" aria-label="{L_QUICK_LINKS}"><div class="inner"><h3>{L_QUICK_LINKS}</h3><ul class="menu">
+	<li><a href="{U_INDEX}">{L_INDEX}</a></li>
+	<!-- IF S_DISPLAY_SEARCH --><li><a href="{U_SEARCH}">{L_SEARCH}</a></li><!-- ENDIF -->
+	<!-- IF U_MEMBERLIST --><li><a href="{U_MEMBERLIST}">{L_MEMBERLIST}</a></li><!-- ENDIF -->
+	<li><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></li>
+</ul></div></nav>
+<section aria-label="{L_PLUS_RECENT_TOPICS}">
 <div class="forabg"><div class="inner">
 	<ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_RECENT_TOPICS}</div></dt><dd class="lastpost">{L_LAST_POST}</dd></dl></li></ul>
 	<ul class="topiclist topics">
@@ -8,5 +17,10 @@
 		<!-- BEGINELSE --><li class="row"><p class="responsive-center">{L_NO_TOPICS}</p></li><!-- END plus_topics -->
 	</ul>
 </div></div>
-<p><a href="{U_INDEX}">{L_INDEX}</a></p>
+</section>
+<aside class="panel"><div class="inner"><h3><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></h3>
+	<!-- BEGIN plus_shouts --><div class="plus-shout"><strong>{plus_shouts.AUTHOR}</strong> &middot; {plus_shouts.TIME}
+		<div class="content">{plus_shouts.MESSAGE}</div></div>
+	<!-- BEGINELSE --><p>{L_PLUS_SHOUT_EMPTY}</p><!-- END plus_shouts -->
+</div></aside></div>
 <!-- INCLUDE overall_footer.html -->
