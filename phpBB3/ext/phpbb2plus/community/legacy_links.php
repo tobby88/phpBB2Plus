@@ -34,6 +34,32 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 				if ($comment = $positive('comment_id')) { $anchor = '#comment-' . $comment; }
 			}
 			break;
+		case 'dload':
+			$action = $query['action'] ?? 'main';
+			if (!is_string($action)) { break; }
+			$parts = explode('?', $action, 2);
+			$nested = isset($parts[1]) && preg_match('/^(?:cat_id|file_id)=([1-9][0-9]{0,9})$/D',$parts[1],$m) ? (int) $m[1] : 0;
+			$id = $positive('file_id') ?: $nested;
+			switch ($parts[0])
+			{
+				case 'main': case 'viewall': $path = 'downloads'; break;
+				case 'search':
+					$path = 'downloads';
+					if (isset($query['search_keywords']) && is_string($query['search_keywords'])) { $extra['q'] = $query['search_keywords']; }
+					break;
+				case 'category':
+					if ($cat = $positive('cat_id') ?: $nested) { $path = 'downloads/category/' . $cat; }
+					break;
+				case 'file': case 'rate': case 'post_comment':
+					if ($id) { $path = 'downloads/file/' . $id; }
+					break;
+				case 'download': case 'license':
+					if (!$id) { break; }
+					$m = $query['mirror_id'] ?? '';
+					$path = 'downloads/file/' . $id . ($parts[0] === 'license' || $m === '-1' ? '/get/0' : ($positive('mirror_id') ? '/get/' . $positive('mirror_id') : '/download'));
+					break;
+			}
+			break;
 		case 'kb': case 'kb_search':
 			$mode = $entry === 'kb_search' ? 'search' : ($query['mode'] ?? '');
 			if ($mode === '' || $mode === 'search')

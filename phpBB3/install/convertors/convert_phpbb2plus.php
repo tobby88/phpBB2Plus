@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery', 'phpbb2plus/knowledgebase', 'phpbb2plus/arcade') as $extension)
+	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery', 'phpbb2plus/knowledgebase', 'phpbb2plus/arcade', 'phpbb2plus/downloads') as $extension)
 	{
 		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
 		$enabled = $db->sql_fetchfield('ext_active');
@@ -202,5 +202,6 @@ if (!$get_info)
 		'where' => 'bookmarks.user_id > 0 AND bookmarks.topic_id = topics.topic_id AND bookmarks.user_id = users.user_id',
 	);
 	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement),
-		plus_kb_schema($table_prefix, $convert->truncate_statement), plus_arcade_schema($table_prefix, $convert->truncate_statement));
+		plus_kb_schema($table_prefix, $convert->truncate_statement), plus_arcade_schema($table_prefix, $convert->truncate_statement),
+		plus_dl_schema($table_prefix, $convert->truncate_statement));
 }

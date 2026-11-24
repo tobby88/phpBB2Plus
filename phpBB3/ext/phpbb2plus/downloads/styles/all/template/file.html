@@ -1,0 +1,16 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{{ DL_TITLE|e }}</h2>
+<div class="panel"><div class="inner">
+{% if DL_PENDING %}<p class="notice">{L_PLUS_DL_PENDING}</p>{% endif %}{% if DL_BROKEN %}<p class="notice">{L_PLUS_DL_BROKEN}</p>{% endif %}
+{% if DL_SUMMARY %}<p>{{ DL_SUMMARY|e }}</p>{% endif %}{% if DL_DETAIL %}<div class="content">{{ DL_DETAIL|e|nl2br }}</div>{% endif %}
+{% if U_DL_PREVIEW %}<p><a href="{U_DL_PREVIEW}"><img class="postimage" src="{U_DL_PREVIEW}" alt="{L_PLUS_DL_PREVIEW}"></a></p>{% elseif U_DL_REMOTE_PREVIEW %}<p><a href="{U_DL_REMOTE_PREVIEW}" rel="noreferrer">{L_PLUS_DL_PREVIEW}</a></p>{% endif %}
+<dl class="details">{% if DL_CREATOR %}<dt>{L_AUTHOR}</dt><dd>{{ DL_CREATOR|e }}</dd>{% endif %}{% if DL_VERSION %}<dt>{L_PLUS_DL_VERSION}</dt><dd>{{ DL_VERSION|e }}</dd>{% endif %}
+<dt>{L_DATE}</dt><dd>{DL_DATE}</dd><dt>{L_PLUS_DL_COUNT}</dt><dd>{{ DL_COUNT }}</dd>{% if DL_BYTES %}<dt>{L_FILESIZE}</dt><dd>{{ DL_BYTES }} B</dd>{% endif %}
+{% if DL_VOTES %}<dt>{L_PLUS_DL_RATING}</dt><dd>{{ DL_AVERAGE }} ({{ DL_VOTES }})</dd>{% endif %}{% for field in loops.dl_fields %}<dt>{{ field.TITLE|e }}</dt><dd>{{ field.VALUE|e }}</dd>{% endfor %}</dl>
+{% if U_DL_DOCS %}<p><a href="{U_DL_DOCS}" rel="noreferrer">{L_PLUS_DL_DOCS}</a></p>{% endif %}
+<div id="downloads">{% if U_DL_MAIN %}<a class="button1" href="{U_DL_MAIN}">{L_PLUS_DL_GET}</a>{% elseif DL_UNAVAILABLE %}<p>{L_PLUS_DL_MISSING}</p>{% endif %}
+{% for m in loops.dl_mirrors %}<a class="button2" href="{{ m.URL }}">{{ m.LABEL|e }}</a> {% endfor %}</div>
+</div></div>
+{% for c in loops.dl_comments %}<div class="post bg{{ loop.index is odd ? '1' : '2' }}"><div class="inner"><h3>{{ c.TITLE|e }}</h3><p class="author">{{ c.AUTHOR }} · {{ c.DATE }}</p><div class="content">{{ c.BODY }}</div></div></div>{% endfor %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

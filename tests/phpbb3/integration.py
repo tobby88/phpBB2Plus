@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 import arcade
 import attachments
+import downloads
 import gallery
 import knowledgebase
 from ruffle_browser import playback
@@ -79,7 +80,7 @@ def install(web, settings_dir, name):
     report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
     if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
         raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
-    for extension in ("community", "gallery", "knowledgebase", "arcade"):
+    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads"):
         if "Successfully enabled extension phpbb2plus/" + extension not in report:
             raise RuntimeError(f"The installer did not activate {extension}: " + report[-3500:])
     php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
@@ -123,6 +124,7 @@ def main():
             attachments.source_media(root / "legacy")
             gallery.source_media(root / "legacy")
             arcade.source_media(root / "legacy")
+            downloads.source_media(root / "legacy")
             with server(web, root) as base:
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
@@ -144,6 +146,8 @@ def main():
                 arcade.protocols(base, ordinary, game_source)
                 arcade.wallets(base, ordinary, member)
                 php(fixture, "scored", target)
+                downloads.browse(base, member, ordinary)
+                php(fixture, "downloaded", target)
                 playback(web, base, root)
                 knowledgebase.browse(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)

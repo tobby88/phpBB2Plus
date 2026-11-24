@@ -1,0 +1,29 @@
+phpbb2plus_downloads_index:
+    path: /downloads
+    defaults: { _controller: phpbb2plus.downloads.library:index, category: 0 }
+    methods: [GET, HEAD]
+phpbb2plus_downloads_category:
+    path: /downloads/category/{category}
+    defaults: { _controller: phpbb2plus.downloads.library:index }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_downloads_file:
+    path: /downloads/file/{file}
+    defaults: { _controller: phpbb2plus.downloads.library:file }
+    requirements: { file: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_downloads_choose:
+    path: /downloads/file/{file}/download
+    defaults: { _controller: phpbb2plus.downloads.delivery:choose }
+    requirements: { file: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_downloads_media:
+    path: /downloads/file/{file}/get/{mirror}
+    defaults: { _controller: phpbb2plus.downloads.delivery:download, mirror: 0 }
+    requirements: { file: '[1-9][0-9]*', mirror: '0|[1-9][0-9]*' }
+    methods: [GET, HEAD, POST]
+phpbb2plus_downloads_preview:
+    path: /downloads/file/{file}/preview
+    defaults: { _controller: phpbb2plus.downloads.delivery:preview }
+    requirements: { file: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
