@@ -15,4 +15,6 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_KB_BAD_NAME' => 'Bitte wähle einen zulässigen Gastnamen.', 'PLUS_KB_SUBMITTED' => 'Der Artikel wurde eingereicht und wartet auf Freigabe.',
 	'PLUS_KB_MARKUP' => 'BBCode ist möglich. [page] beginnt eine neue Seite. Mit [toc] hinter der Überschrift erscheint sie im Inhaltsverzeichnis.',
 	'PLUS_KB_CONFIRM_DELETE' => 'Den Artikel „%s“ mit seinen Bewertungen endgültig löschen?',
+	'PLUS_KB_REVIEW_PM' => 'Ein Artikel der Wissensdatenbank wartet auf Freigabe', 'PLUS_KB_DISCUSSION_POST' => 'Hier kannst du den folgenden Artikel der Wissensdatenbank diskutieren.',
+	'PLUS_KB_UPDATED_POST' => 'Eine überarbeitete Fassung des Artikels ist verfügbar.',
 ));

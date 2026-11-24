@@ -137,6 +137,7 @@ def main():
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
                 knowledgebase.browse(base, member, ordinary)
+                php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                 gallery.browse(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
                 former_names(base, ordinary)

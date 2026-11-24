@@ -128,19 +128,22 @@ class articles
 		$topic = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
 		if (!$topic || $topic['topic_moved_id'] || !$this->auth->acl_get('f_list', $topic['forum_id']) || !$this->auth->acl_get('f_read', $topic['forum_id'])) { return false; }
-		if ($topic['forum_password'] !== '')
-		{
-			$result = $this->db->sql_query_limit('SELECT forum_id FROM ' . FORUMS_ACCESS_TABLE . ' WHERE forum_id=' . (int) $topic['forum_id'] .
-				' AND user_id=' . (int) $this->user->data['user_id'] . " AND session_id='" . $this->db->sql_escape($this->user->session_id) . "'", 1);
-			$open = $this->db->sql_fetchfield('forum_id') !== false;
-			$this->db->sql_freeresult($result);
-			if (!$open) { return false; }
-		}
+		if (!$this->forum_open($topic['forum_id'], $topic['forum_password'])) { return false; }
 		$result = $this->db->sql_query_limit('SELECT topic_id FROM ' . TOPICS_TABLE . ' t WHERE t.topic_id=' . (int) $id .
 			' AND ' . $this->visibility->get_visibility_sql('topic', $topic['forum_id'], 't.'), 1);
 		$visible = $this->db->sql_fetchfield('topic_id') !== false;
 		$this->db->sql_freeresult($result);
 		return $visible ? $topic : false;
+	}
+
+	public function forum_open($forum, $password)
+	{
+		if ($password === '') { return true; }
+		$result = $this->db->sql_query_limit('SELECT forum_id FROM ' . FORUMS_ACCESS_TABLE . ' WHERE forum_id=' . (int) $forum .
+			' AND user_id=' . (int) $this->user->data['user_id'] . " AND session_id='" . $this->db->sql_escape($this->user->session_id) . "'", 1);
+		$open = $this->db->sql_fetchfield('forum_id') !== false;
+		$this->db->sql_freeresult($result);
+		return $open;
 	}
 
 	public function scores($article)

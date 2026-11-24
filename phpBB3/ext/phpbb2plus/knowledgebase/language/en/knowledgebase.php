@@ -14,4 +14,6 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_KB_BAD_NAME' => 'Choose an available guest name.', 'PLUS_KB_SUBMITTED' => 'Your article has been submitted for approval.',
 	'PLUS_KB_MARKUP' => 'You can use BBCode. [page] starts a new page. Add [toc] after a heading to include it in the contents.',
 	'PLUS_KB_CONFIRM_DELETE' => 'Permanently delete “%s” and its ratings?',
+	'PLUS_KB_REVIEW_PM' => 'A Knowledge Base article is awaiting review', 'PLUS_KB_DISCUSSION_POST' => 'Discuss this Knowledge Base article here.',
+	'PLUS_KB_UPDATED_POST' => 'An updated version of the article is available.',
 ));

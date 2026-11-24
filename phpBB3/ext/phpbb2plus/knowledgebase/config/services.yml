@@ -12,7 +12,17 @@ services:
             - { name: event.listener }
     phpbb2plus.knowledgebase.editor:
         class: phpbb2plus\knowledgebase\service\editor
-        arguments: ['@phpbb2plus.knowledgebase.articles', '@dbal.conn', '@config', '@user', '@auth', '%core.table_prefix%plus_kb_', '%core.root_path%', '%core.php_ext%']
+        arguments: ['@phpbb2plus.knowledgebase.articles', '@dbal.conn', '@config', '@user', '@auth', '%core.table_prefix%plus_kb_', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.knowledgebase.publication']
     phpbb2plus.knowledgebase.compose:
         class: phpbb2plus\knowledgebase\controller\editor
         arguments: ['@phpbb2plus.knowledgebase.editor', '@phpbb2plus.knowledgebase.articles', '@request', '@user', '@language', '@controller.helper', '@template']
+    phpbb2plus.knowledgebase.publication:
+        class: phpbb2plus\knowledgebase\service\publication
+        arguments: ['@phpbb2plus.knowledgebase.articles', '@dbal.conn', '@auth', '@user', '@config', '@language', '%core.table_prefix%plus_kb_', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.knowledgebase.notices:
+        class: phpbb2plus\knowledgebase\cron\notices
+        arguments: ['@dbal.conn', '@config', '@phpbb2plus.knowledgebase.articles', '%core.table_prefix%plus_kb_', '%core.root_path%', '%core.php_ext%']
+        calls:
+            - [set_name, [phpbb2plus.knowledgebase.notices]]
+        tags:
+            - { name: cron.task }

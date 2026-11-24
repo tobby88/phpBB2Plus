@@ -13,8 +13,9 @@ class editor
 	private $prefix;
 	private $root;
 	private $php_ext;
+	private $publication;
 
-	public function __construct($articles, $db, $config, $user, $auth, $prefix, $root, $php_ext)
+	public function __construct($articles, $db, $config, $user, $auth, $prefix, $root, $php_ext, $publication)
 	{
 		$this->articles = $articles;
 		$this->db = $db;
@@ -24,6 +25,7 @@ class editor
 		$this->prefix = $prefix;
 		$this->root = $root;
 		$this->php_ext = $php_ext;
+		$this->publication = $publication;
 	}
 
 	public function allowed($action, $a = null)
@@ -70,11 +72,13 @@ class editor
 		return $pages;
 	}
 
-	public function locked(callable $operation)
+	public function locked(callable $operation, $publish = false)
 	{
-		$this->db->sql_transaction('begin');
+		$lock = new \phpbb\lock\db('plus_kb_editor_lock', $this->config, $this->db);
+		if (!$lock->acquire()) { throw new \DomainException('PLUS_KB_CONFLICT'); }
 		try
 		{
+			$this->db->sql_transaction('begin');
 			$table = $this->prefix . 'state';
 			$this->db->sql_query("UPDATE $table SET state_id=1 WHERE state_id=1");
 			$result = $this->db->sql_query("SELECT state_id FROM $table WHERE state_id=1");
@@ -83,10 +87,14 @@ class editor
 			if (!$exists) { throw new \RuntimeException('Knowledge Base coordinator missing.'); }
 			$this->articles->refresh();
 			$out = $operation();
-			$this->db->sql_transaction('commit');
+			if (!$this->db->sql_transaction('commit')) { throw new \RuntimeException('Article transaction did not commit.'); }
+			// Native posting commits before it indexes and updates read tracking. Keep
+			// its complete workflow outside the article transaction, under the same writer lock.
+			if ($publish) { $this->publication->discuss($out); }
 			return $out;
 		}
-		catch (\Throwable $e) { $this->db->sql_transaction('rollback'); throw $e; }
+		catch (\Throwable $e) { if ($this->db->get_transaction()) { $this->db->sql_transaction('rollback'); } throw $e; }
+		finally { $lock->release(); }
 	}
 
 	public function save($mode, $id, $form, $nonce, $revision)
@@ -136,8 +144,9 @@ class editor
 			}
 			$this->db->sql_query('INSERT INTO ' . $this->prefix . 'submissions ' . $this->db->sql_build_array('INSERT',
 				array('form_key' => $key, 'payload' => $digest, 'article_id' => $id, 'created_at' => time())));
+			if ($approval !== 1) { $this->publication->pending($row + array('article_id' => $id)); }
 			return $id;
-		});
+		}, true);
 	}
 
 	public function moderate($mode, $id, $expected)
@@ -149,12 +158,14 @@ class editor
 			$where = ' WHERE article_id=' . (int) $id;
 			if ($mode === 'delete')
 			{
-				foreach (array('votes','pages','articles') as $name) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $name . $where); }
+				$this->publication->remove($a);
+				foreach (array('mail','votes','pages','articles') as $name) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $name . $where); }
 			}
 			else
 			{
 				$this->db->sql_query('UPDATE ' . $this->prefix . 'articles SET revision=revision+1,approval=' . ($mode === 'approve' ? 1 : 0) . $where);
 			}
-		});
+			return (int) $id;
+		}, $mode === 'approve');
 	}
 }

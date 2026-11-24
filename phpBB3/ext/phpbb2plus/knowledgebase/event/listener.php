@@ -23,7 +23,17 @@ class listener implements EventSubscriberInterface
 	static public function getSubscribedEvents()
 	{
 		return array('core.page_header' => 'header', 'core.permissions' => 'permissions', 'core.delete_user_before' => array('depart', 10),
-			'core.delete_topics_before_query' => 'unlink_topics');
+			'core.delete_topics_before_query' => 'unlink_topics', 'core.submit_post_modify_sql_data' => 'record_article');
+	}
+
+	public function record_article($event)
+	{
+		$data = $event['data'];
+		if (empty($data['plus_kb_article']) || empty($data['plus_kb_digest']) || !in_array($event['post_mode'], array('post','reply'), true)) { return; }
+		$sql = $event['sql_data'];
+		$sql[POSTS_TABLE]['sql']['plus_kb_article'] = (int) $data['plus_kb_article'];
+		$sql[POSTS_TABLE]['sql']['plus_kb_digest'] = $data['plus_kb_digest'];
+		$event['sql_data'] = $sql;
 	}
 
 	public function header()
@@ -56,6 +66,6 @@ class listener implements EventSubscriberInterface
 	public function unlink_topics($event)
 	{
 		$ids = array_map('intval', $event['topic_ids']);
-		if ($ids) { $this->db->sql_query('UPDATE ' . $this->prefix . 'articles SET topic_id=0 WHERE ' . $this->db->sql_in_set('topic_id', $ids)); }
+		if ($ids) { $this->db->sql_query('UPDATE ' . $this->prefix . "articles SET topic_id=0,managed_topic=0,intro_post=0,discussion_hash='' WHERE " . $this->db->sql_in_set('topic_id', $ids)); }
 	}
 }

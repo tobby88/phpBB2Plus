@@ -1,0 +1,8 @@
+Subject: Neuer Artikel zur Freigabe auf {SITENAME}
+
+Der folgende Artikel in der Wissensdatenbank wartet auf Prüfung.
+
+{ARTICLE_TITLE}
+{U_ARTICLE}
+
+{EMAIL_SIG}

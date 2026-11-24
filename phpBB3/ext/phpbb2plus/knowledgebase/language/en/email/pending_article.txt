@@ -1,0 +1,8 @@
+Subject: Article awaiting review on {SITENAME}
+
+The following Knowledge Base article is awaiting review.
+
+{ARTICLE_TITLE}
+{U_ARTICLE}
+
+{EMAIL_SIG}

@@ -2,6 +2,7 @@
 import os
 import re
 import time
+from html import unescape
 from urllib.parse import urlencode, urljoin
 from http_board import Browser, Page, login
 from gallery import submit
@@ -42,10 +43,10 @@ def browse(base, administrator, editor):
     new_rating = submit(reader, article + "201", "kb-rate", {"rating": 7})
     if "7,83 von 10 (3 Stimmen)" not in new_rating:
         raise RuntimeError("Historical and new Knowledge Base ratings do not add up")
-    publication(base, guest, reader, editor)
+    publication(base, guest, reader, editor, administrator)
 
 
-def publication(base, guest, author, reviewer):
+def publication(base, guest, author, reviewer, administrator):
     new = "app.php/knowledge/new"
     guest.fetch(new, expected_status=404)
     target, fields = Page(author.fetch(new)).forms["kb-editor"]
@@ -69,9 +70,19 @@ def publication(base, guest, author, reviewer):
         raise RuntimeError("A retried submission did not produce exactly one article")
     item = urljoin(base, paths[0]).split("?", 1)[0]
     guest.fetch(item, expected_status=404)
-    submit(reviewer, item + "/approve", "kb-editor", {})
-    if "Öffentlicher Text" not in guest.fetch(item) or "Nachtrag" not in guest.fetch(item + "?page=2"):
+    inbox = administrator.fetch("ucp.php?i=pm&folder=inbox")
+    notices = re.findall(r'href="([^"]+)"[^>]*>Ein Artikel der Wissensdatenbank wartet auf Freigabe</a>', inbox)
+    if len(notices) != 1 or "Neuer Wissensbeitrag" not in administrator.fetch(unescape(notices[0])):
+        raise RuntimeError("The review mailbox did not receive exactly one native notification after retry")
+    approved = submit(reviewer, item + "/approve", "kb-editor", {})
+    if "Withdraw approval" not in approved or "Öffentlicher Text" not in guest.fetch(item) or "Nachtrag" not in guest.fetch(item + "?page=2"):
         raise RuntimeError("Approved article pages did not become public")
+    topic = re.search(r'href="([^"]*viewtopic\.php[^"]*)">\[KB\] Neuer Wissensbeitrag</a>', guest.fetch(item))
+    if not topic:
+        raise RuntimeError("Approval did not link the native forum discussion")
+    topic = urljoin(item, unescape(topic.group(1)))
+    if "Discuss this Knowledge Base article" not in guest.fetch(topic):
+        raise RuntimeError("The public discussion does not contain the initial announcement")
     _, old = Page(author.fetch(item + "/edit")).forms["kb-editor"]
     fields.update(title="Bearbeiteter Wissensbeitrag", body="Änderung zur Prüfung")
     changes = {key: fields[key] for key in ("title", "description", "body", "category", "type")}
@@ -81,10 +92,15 @@ def publication(base, guest, author, reviewer):
     stale = author.fetch(item + "/edit", dict(old, **changes), expected_status=422)
     if "inzwischen geändert" not in stale:
         raise RuntimeError("A stale editor could overwrite the newer version")
-    submit(reviewer, item + "/approve", "kb-editor", {})
+    approved = submit(reviewer, item + "/approve", "kb-editor", {})
+    if "Withdraw approval" not in approved or "updated" not in guest.fetch(topic).lower():
+        raise RuntimeError("A revised article did not publish its update to the existing native topic")
     submit(reviewer, item + "/unapprove", "kb-editor", {})
     guest.fetch(item, expected_status=404)
     if "Bearbeiteter Wissensbeitrag" not in reviewer.fetch(item + "/delete"):
         raise RuntimeError("Missing article deletion confirmation")
-    submit(reviewer, item + "/delete", "kb-editor", {})
+    submit(administrator, item + "/delete", "kb-editor", {})
     reviewer.fetch(item, expected_status=404)
+    guest.fetch(topic, expected_status=404)
+    if "Welche Jahreszeit?" not in guest.fetch("viewtopic.php?t=1"):
+        raise RuntimeError("Article deletion did not remove just the managed discussion")
