@@ -7,6 +7,7 @@ require_once __DIR__ . '/plus_native.php';
 require_once __DIR__ . '/plus_attachments.php';
 require_once __DIR__ . '/plus_gallery.php';
 require_once __DIR__ . '/plus_knowledgebase.php';
+require_once __DIR__ . '/plus_arcade.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/password/legacy.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/profile/contacts.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/former_members.php';

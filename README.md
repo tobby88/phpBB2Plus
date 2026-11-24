@@ -16,7 +16,7 @@ published SHA-256 digests. Plus additions live in `phpBB3/`. The builder
 refuses collisions with upstream files. English and German are included.
 Both unmodified distribution archives are included in `vendor/phpbb/` so the
 build and integration tests work offline. Enable **phpBB2 Plus Community**,
-**phpBB2 Plus Photo Album** and **phpBB2 Plus Knowledge Base** on the fresh target. Community installs FI Subsilver
+**phpBB2 Plus Photo Album**, **phpBB2 Plus Knowledge Base** and **phpBB2 Plus Arcade** on the fresh target. Community installs FI Subsilver
 Shadow as a child of prosilver and selects it for a new board. The installer’s
 Convert tab then offers **phpBB2
 Plus (UTF-8)**. The [conversion coverage](phpbb3-port.md) lists verified

@@ -16,6 +16,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
+import arcade
 import attachments
 import gallery
 import knowledgebase
@@ -77,7 +78,7 @@ def install(web, settings_dir, name):
     report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
     if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
         raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
-    for extension in ("community", "gallery", "knowledgebase"):
+    for extension in ("community", "gallery", "knowledgebase", "arcade"):
         if "Successfully enabled extension phpbb2plus/" + extension not in report:
             raise RuntimeError(f"The installer did not activate {extension}: " + report[-3500:])
     php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
@@ -136,6 +137,7 @@ def main():
                 profiles(base, ordinary, member)
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
+                arcade.browse(base, member, ordinary)
                 knowledgebase.browse(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                 gallery.browse(base, member, ordinary)

@@ -1,0 +1,19 @@
+phpbb2plus_arcade_index:
+    path: /arcade
+    defaults: { _controller: phpbb2plus.arcade.board:index, category: 0 }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_category:
+    path: /arcade/category/{category}
+    defaults: { _controller: phpbb2plus.arcade.board:index }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_game:
+    path: /arcade/game/{game}
+    defaults: { _controller: phpbb2plus.arcade.board:game, board: '' }
+    requirements: { game: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_scores:
+    path: /arcade/game/{game}/scores/{board}
+    defaults: { _controller: phpbb2plus.arcade.board:game }
+    requirements: { game: '[1-9][0-9]*', board: 'current|all|month' }
+    methods: [GET, HEAD]

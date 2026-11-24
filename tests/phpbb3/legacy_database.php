@@ -15,6 +15,7 @@ function check_fixture($ok, $message)
 require __DIR__ . '/native_data.php';
 require __DIR__ . '/gallery.php';
 require __DIR__ . '/knowledgebase.php';
+require __DIR__ . '/arcade.php';
 
 if ($argv[1] === 'seed')
 {
@@ -75,6 +76,7 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (42,'Account fixture','Account removal fixture')");
 	seed_gallery($db);
 	seed_knowledgebase($db);
+	seed_arcade($db);
 	$db->query("INSERT INTO phpbb_attachments_desc (attach_id,physical_filename,real_filename,download_count,extension,mimetype,filesize,filetime,thumbnail)
 		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
 		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");
@@ -95,6 +97,7 @@ elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 	if ($argv[1] === 'converted') { verify_native_content($db, (int) $users[0]['user_id']); }
 	verify_gallery($db, (int) $users[0]['user_id']);
 	verify_knowledgebase($db, (int) $users[0]['user_id']);
+	verify_arcade($db, (int) $users[0]['user_id']);
 	$byline = $db->query('SELECT * FROM p3_posts WHERE post_id=31')->fetch_assoc();
 	check_fixture($byline && (int) $byline['post_visibility'] === 2 && (int) $byline['post_delete_time'] === 10200
 		&& (int) $byline['post_delete_user'] === 2 && (int) $byline['post_edit_user'] === (int) $users[0]['user_id']

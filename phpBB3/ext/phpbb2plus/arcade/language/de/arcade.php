@@ -1,0 +1,22 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'PLUS_ARC' => 'Spielhalle',
+	'PLUS_ARC_CLOSED' => 'Die Spielhalle ist momentan geschlossen.',
+	'PLUS_ARC_CATEGORIES' => 'Kategorien',
+	'PLUS_ARC_GAMES' => 'Spiele',
+	'PLUS_ARC_EMPTY' => 'In diesem Bereich sind keine Spiele verfügbar.',
+	'PLUS_ARC_DISABLED' => 'deaktiviert',
+	'PLUS_ARC_PLAYS' => 'Gespielt: %d',
+	'PLUS_ARC_BOARD' => 'Bestenliste',
+	'PLUS_ARC_CURRENT' => 'Aktuelle Bestenliste',
+	'PLUS_ARC_ALL' => 'Ewige Bestenliste',
+	'PLUS_ARC_MONTH' => 'Monatsbeste',
+	'PLUS_ARC_PLACE' => 'Platz',
+	'PLUS_ARC_POINTS' => 'Punkte',
+	'PLUS_ARC_NO_SCORES' => 'Bisher sind keine Ergebnisse eingetragen.',
+	'PLUS_ARC_FORMER' => 'Ehemaliger Nutzer',
+	'PLUS_ARC_DECIMAL' => ',',
+	'ACL_A_PLUS_ARCADE' => 'Kann die Spielhalle verwalten',
+	'ACL_M_PLUS_ARCADE' => 'Kann die Spielhalle moderieren',
+));
