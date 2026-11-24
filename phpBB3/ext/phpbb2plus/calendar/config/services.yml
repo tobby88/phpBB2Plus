@@ -13,3 +13,8 @@ services:
         arguments: ['@language', '@controller.helper', '@template']
         tags:
             - { name: event.listener }
+    phpbb2plus.calendar.posting:
+        class: phpbb2plus\calendar\event\posting
+        arguments: ['@dbal.conn', '@request', '@auth', '@user', '@language', '@template']
+        tags:
+            - { name: event.listener }

@@ -6,6 +6,7 @@ require_once __DIR__ . '/plus_forums.php';
 require_once __DIR__ . '/plus_native.php';
 require_once __DIR__ . '/plus_profile_media.php';
 require_once __DIR__ . '/plus_flags.php';
+require_once __DIR__ . '/plus_calendar.php';
 require_once __DIR__ . '/plus_attachments.php';
 require_once __DIR__ . '/plus_gallery.php';
 require_once __DIR__ . '/plus_knowledgebase.php';

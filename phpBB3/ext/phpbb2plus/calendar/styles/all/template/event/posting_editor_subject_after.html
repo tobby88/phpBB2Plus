@@ -1,0 +1,14 @@
+<!-- IF S_PLUS_CAL_EDITOR -->
+<details class="panel"<!-- IF S_PLUS_CAL_EXISTING or PLUS_CAL_START_DATE or PLUS_CAL_END_DATE --> open<!-- ENDIF -->>
+	<summary>{L_PLUS_CAL_EVENT}</summary>
+	<input type="hidden" name="plus_cal_present" value="1"><input type="hidden" name="plus_cal_revision" value="{PLUS_CAL_REVISION}">
+	<dl><dt><label for="plus-cal-start">{L_PLUS_CAL_START}</label></dt><dd>
+		<input type="date" id="plus-cal-start" name="plus_cal_start_date" value="{PLUS_CAL_START_DATE}">
+		<input type="time" step="1" name="plus_cal_start_time" value="{PLUS_CAL_START_TIME}" aria-label="{L_PLUS_CAL_START_TIME}"></dd></dl>
+	<dl><dt><label for="plus-cal-end">{L_PLUS_CAL_END}</label></dt><dd>
+		<input type="date" id="plus-cal-end" name="plus_cal_end_date" value="{PLUS_CAL_END_DATE}">
+		<input type="time" step="1" name="plus_cal_end_time" value="{PLUS_CAL_END_TIME}" aria-label="{L_PLUS_CAL_END_TIME}"></dd></dl>
+	<p>{L_PLUS_CAL_TIMES_HELP}</p>
+	<!-- IF S_PLUS_CAL_EXISTING --><label><input type="checkbox" name="plus_cal_remove" value="1"<!-- IF S_PLUS_CAL_REMOVE --> checked<!-- ENDIF -->> {L_PLUS_CAL_REMOVE}</label><!-- ENDIF -->
+</details>
+<!-- ENDIF -->

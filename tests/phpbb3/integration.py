@@ -110,6 +110,7 @@ def main():
     if os.environ.get("PLUS_TEST_DATABASE") != "1":
         parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
     start = monotonic()
+    php(ROOT / "tests/phpbb3/calendar_periods.php")
     with tempfile.TemporaryDirectory(prefix="plus3-integration-") as directory:
         root = Path(directory)
         web = root / "board"

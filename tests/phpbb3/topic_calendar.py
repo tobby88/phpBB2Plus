@@ -1,6 +1,10 @@
 """Read multi-day events, restricted topics and private birthdays through the calendar."""
-from http_board import Browser
+from http_board import Browser, Page, login
+from html import unescape
+import os
 import re
+import time
+from urllib.parse import urljoin
 
 
 def browse(base, founder, member):
@@ -25,3 +29,50 @@ def browse(base, founder, member):
         raise RuntimeError("The calendar lost the historical leap-day rule or guest birthday privacy")
     if "/calendar" not in guest.fetch("app.php/portal"):
         raise RuntimeError("The portal lacks calendar navigation")
+    edit_event(base, founder, member)
+
+
+def edit_event(base, owner, member):
+    new = "posting.php?mode=post&f=1"
+    pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+    if "plus_cal_present" in pending.fetch(new) or "plus_cal_present" not in member.fetch(new):
+        raise RuntimeError("The native post editor did not respect the imported calendar grant")
+    title = "Fiktiver Kalendertermin"
+    subject = dict(subject=title, message="Lokaler Test des Kalendereditors.", post="1")
+
+    def form(path):
+        action, fields = Page(owner.fetch(path)).forms["postform"]
+        fields.update(subject, plus_cal_start_date="2008-04-07", plus_cal_start_time="", plus_cal_end_date="2008-04-08", plus_cal_end_time="")
+        return urljoin(urljoin(base, path), unescape(action)), fields
+
+    def submit(action, fields):
+        time.sleep(max(0, int(fields["creation_time"]) + 2.05 - time.time()))
+        return owner.fetch(action, fields)
+
+    action, fields = form(new)
+    invalid = submit(action, dict(fields, plus_cal_end_date="2008-04-06"))
+    if "Prüfe Datum und Uhrzeit" not in invalid:
+        raise RuntimeError("Calendar validation did not return the first-post editor")
+    submit(action, fields)
+    agenda = "app.php/calendar?view=day&date=2008-04-"
+    first = owner.fetch(agenda + "08")
+    topic = re.search(r'href="([^"]*viewtopic\.php\?t=\d+[^"]*)"[^>]*>' + title + '<', first)
+    if not topic or title in owner.fetch(agenda + "09"):
+        raise RuntimeError("The native new-topic form did not store the inclusive all-day interval")
+    topic_page = owner.fetch(unescape(topic.group(1)))
+    edit = re.search(r'href="([^"]*posting\.php\?[^"]*mode=edit[^"]*)"', topic_page)
+    if not edit or 'class="plus-cal-topic"' not in topic_page:
+        raise RuntimeError("The calendar event is missing from its native topic")
+    editor = unescape(edit.group(1))
+    action, old = form(editor)
+    change = dict(old, plus_cal_start_date="2008-04-10", plus_cal_start_time="12:15:22", plus_cal_end_date="")
+    submit(action, change)
+    if title in owner.fetch(agenda + "08") or title not in owner.fetch(agenda + "10"):
+        raise RuntimeError("Editing the first post did not move the event")
+    stale = submit(action, old)
+    if "Termin wurde inzwischen geändert" not in stale:
+        raise RuntimeError("A second editor could overwrite a later calendar edit")
+    action, current = form(editor)
+    submit(action, dict(current, plus_cal_remove="1"))
+    if title in owner.fetch(agenda + "10") or title not in owner.fetch(unescape(topic.group(1))):
+        raise RuntimeError("Removing the date did not preserve the forum topic")
