@@ -20,6 +20,7 @@ import arcade
 import attachments
 import downloads
 import profile_media
+import topic_calendar
 import gallery
 import knowledgebase
 from ruffle_browser import playback
@@ -81,7 +82,7 @@ def install(web, settings_dir, name):
     report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
     if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
         raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
-    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads"):
+    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads", "calendar"):
         if "Successfully enabled extension phpbb2plus/" + extension not in report:
             raise RuntimeError(f"The installer did not activate {extension}: " + report[-3500:])
     php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
@@ -143,6 +144,7 @@ def main():
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
                 profile_media.browse(ordinary, member, json.loads(php(fixture, "profile-media", target, capture=True)))
+                topic_calendar.browse(base, member, ordinary)
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
                 game_source = arcade.browse(base, member, ordinary)

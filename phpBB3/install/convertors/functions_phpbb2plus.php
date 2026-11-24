@@ -36,6 +36,16 @@ function plus_registration_ip($ip)
 	return preg_match('/^[0-9a-f]{8}$/iD', $ip) ? decode_ip($ip) : '';
 }
 
+function plus_calendar_end($start, $duration)
+{
+	$start = (int) $start; $duration = (int) $duration;
+	if ($start < 0 || $duration < 0 || (!$start && $duration))
+	{
+		throw new \RuntimeException('A source topic has an invalid calendar interval. Review its date and duration.');
+	}
+	return $start + $duration;
+}
+
 function plus_removed_author($id, $name)
 {
 	global $src_db, $convert;

@@ -1,0 +1,4 @@
+phpbb2plus_calendar_home:
+    path: /calendar
+    defaults: { _controller: phpbb2plus.calendar.board:show }
+    methods: [GET, HEAD]

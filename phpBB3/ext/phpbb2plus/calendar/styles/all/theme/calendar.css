@@ -1,0 +1,12 @@
+.plus-cal-select, .plus-cal-period { display: flex; align-items: center; gap: .8em; flex-wrap: wrap; }
+.plus-cal-period { justify-content: space-between; }
+.plus-cal-period h3 { margin: 0; }
+table.plus-cal-grid { width: 100%; table-layout: fixed; border-collapse: collapse; }
+table.plus-cal-grid th, table.plus-cal-grid td { padding: .4em; border: 1px solid #a9b7c5; vertical-align: top; }
+table.plus-cal-grid th { background: #48647d; color: white; }
+.plus-cal-grid td { height: 4.8em; }
+.plus-cal-outside { background: #f4f4f4; }
+.plus-cal-entry { display: block; overflow-wrap: anywhere; }
+.plus-cal-grid [aria-current], .plus-cal-hours [aria-current] { font-weight: bold; text-decoration: underline; }
+.plus-cal-hours a { display: inline-block; padding: .3em; }
+@media (max-width: 700px) { table.plus-cal-grid td { padding: .2em; } .plus-cal-entry { font-size: .9em; } }

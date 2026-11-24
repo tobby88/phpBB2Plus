@@ -92,7 +92,7 @@ function plus_restore_forum_tree()
 			$row = $node['row'];
 			if ($node['type'] === 'c')
 			{
-				$fields += array('forum_id' => $node['id'], 'forum_type' => FORUM_CAT, 'forum_rules' => '',
+				$fields += array('forum_id' => $node['id'], 'forum_type' => FORUM_CAT, 'plus_cal_src_cat' => (int) $row['cat_id'], 'forum_rules' => '',
 					'forum_name' => plus_convert_byline($row['cat_title']), 'forum_desc' => plus_convert_byline($row['cat_desc']));
 				$db->sql_query('INSERT INTO ' . FORUMS_TABLE . ' ' . $db->sql_build_array('INSERT', $fields));
 				continue;

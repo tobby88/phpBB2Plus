@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery', 'phpbb2plus/knowledgebase', 'phpbb2plus/arcade', 'phpbb2plus/downloads') as $extension)
+	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery', 'phpbb2plus/knowledgebase', 'phpbb2plus/arcade', 'phpbb2plus/downloads', 'phpbb2plus/calendar') as $extension)
 	{
 		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
 		$enabled = $db->sql_fetchfield('ext_active');
@@ -44,6 +44,11 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
+	foreach (\phpbb2plus\calendar\service\settings::MEMBER + \phpbb2plus\calendar\service\settings::BOARD as $name=>$default)
+	{
+		$config_schema['settings']['plus_cal_' . $name] = 'calendar_' . $name;
+		if (isset(\phpbb2plus\calendar\service\settings::MEMBER[$name])) { $config_schema['settings']['plus_cal_' . $name . '_over'] = 'calendar_' . $name . '_over'; }
+	}
 	if (defined('MOD_ATTACHMENT'))
 	{
 		$convertor['schema'] = array_values(array_filter($convertor['schema'], static function ($section) {
@@ -130,6 +135,15 @@ if (!$get_info)
 		if ($section['target'] === USERS_TABLE)
 		{
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
+			foreach (\phpbb2plus\calendar\service\settings::MEMBER as $name=>$default)
+			{
+				$section[] = array('plus_cal_' . $name, 'users.user_calendar_' . $name, 'intval');
+			}
+		}
+		if ($section['target'] === TOPICS_TABLE)
+		{
+			$section[] = array('plus_cal_start','topics.topic_calendar_time','intval');
+			$section[] = array('plus_cal_end',array('topics.topic_calendar_time','topics.topic_calendar_duration'),'plus_calendar_end');
 		}
 		if ($section['target'] === PROFILE_FIELDS_DATA_TABLE)
 		{

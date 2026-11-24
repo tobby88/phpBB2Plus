@@ -1,0 +1,15 @@
+services:
+    phpbb2plus.calendar.settings:
+        class: phpbb2plus\calendar\service\settings
+        arguments: ['@config', '@user']
+    phpbb2plus.calendar.schedule:
+        class: phpbb2plus\calendar\service\schedule
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@config', '@phpbb2plus.calendar.settings', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.calendar.board:
+        class: phpbb2plus\calendar\controller\board
+        arguments: ['@phpbb2plus.calendar.schedule', '@phpbb2plus.calendar.settings', '@request', '@user', '@language', '@controller.helper', '@template', '@pagination']
+    phpbb2plus.calendar.navigation:
+        class: phpbb2plus\calendar\event\navigation
+        arguments: ['@language', '@controller.helper', '@template']
+        tags:
+            - { name: event.listener }

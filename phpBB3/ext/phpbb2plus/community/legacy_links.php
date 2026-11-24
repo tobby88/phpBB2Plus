@@ -19,6 +19,24 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	switch ($entry)
 	{
 		case 'portal': $path = 'portal'; break;
+		case 'calendar': case 'calendar_scheduler':
+			$path = 'calendar';
+			$fid = $query['fid'] ?? 'Root';
+			if ($fid !== '' && $fid !== 'Root')
+			{
+				if (!is_string($fid) || !preg_match('/^([cf])([1-9][0-9]{0,8})$/D',$fid,$m)) { $path = ''; break; }
+				$extra[$m[1] === 'c' ? 'old_cat' : 'forum'] = (int) $m[2];
+			}
+			if ($entry === 'calendar_scheduler')
+			{
+				$extra['view'] = ($query['mode'] ?? '') === 'hour' ? 'hour' : 'day';
+				if ($d = $positive('d')) { $extra['moment'] = $d; }
+			}
+			elseif (isset($query['start']) && is_string($query['start']) && preg_match('/^([0-9]{4})([0-9]{2})([0-9]{2})$/D',$query['start'],$m))
+			{
+				$extra['date'] = $m[1] . '-' . $m[2] . '-' . $m[3];
+			}
+			break;
 		case 'shoutbox': case 'shoutbox_view': case 'shoutbox_max': $path = 'shoutbox'; break;
 		case 'album': $path = 'album'; break;
 		case 'album_cat': case 'album_upload':
@@ -79,7 +97,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 	}
 	if ($path === '') { http_response_code(404); return; }
-	if ($start = $positive('start')) { $extra['start'] = $start; }
+	if ($entry !== 'calendar' && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	header('Location: ./app.php/' . $path . $search . $anchor, true, 302);
 }

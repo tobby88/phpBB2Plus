@@ -1,0 +1,35 @@
+<!-- INCLUDECSS @phpbb2plus_calendar/calendar.css -->
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_CALENDAR}</h2>
+<form method="get" action="{U_CAL_HOME}" class="panel plus-cal-select">
+	<label>{L_PLUS_CAL_DATE} <input name="date" type="date" min="1971-01-01" max="2069-12-31" value="{CAL_DATE}" required></label>
+	<label>{L_FORUM} <select name="forum"><option value="0">{L_PLUS_CAL_ALL}</option><!-- BEGIN cal_forums --><option value="{cal_forums.ID}"<!-- IF cal_forums.SELECTED --> selected<!-- ENDIF -->>{cal_forums.NAME}</option><!-- END cal_forums --></select></label>
+	<button class="button" type="submit" name="view" value="month">{L_PLUS_CAL_MONTH}</button>
+	<button class="button" type="submit" name="view" value="day">{L_PLUS_CAL_DAY}</button>
+</form>
+<nav class="action-bar plus-cal-period" aria-label="{L_PLUS_CALENDAR}">
+	<!-- IF U_CAL_PREV --><a href="{U_CAL_PREV}" rel="prev">{L_PREVIOUS}</a><!-- ENDIF -->
+	<h3>{CAL_TITLE}</h3>
+	<!-- IF U_CAL_NEXT --><a href="{U_CAL_NEXT}" rel="next">{L_NEXT}</a><!-- ENDIF -->
+</nav>
+<!-- IF CAL_MONTH -->
+<table class="table1 plus-cal-grid">
+	<thead><tr><!-- BEGIN cal_head --><th scope="col">{cal_head.LABEL}</th><!-- END cal_head --></tr></thead>
+	<tbody><!-- BEGIN cal_week --><tr><!-- BEGIN day -->
+	<td class="<!-- IF cal_week.day.IN_MONTH -->bg1<!-- ELSE -->plus-cal-outside<!-- ENDIF -->">
+		<a href="{cal_week.day.URL}"<!-- IF cal_week.day.CURRENT --> aria-current="date"<!-- ENDIF -->><time datetime="{cal_week.day.DATE}">{cal_week.day.NUM}</time></a>
+		<!-- BEGIN event --><a class="plus-cal-entry" href="{cal_week.day.event.URL}"><!-- IF cal_week.day.event.BIRTHDAY -->{L_PLUS_CAL_BIRTHDAY} · <!-- ENDIF -->{cal_week.day.event.TITLE}</a><!-- END event -->
+		<!-- IF cal_week.day.MORE --><a href="{cal_week.day.URL}" class="plus-cal-entry">+{cal_week.day.MORE}</a><!-- ENDIF -->
+	</td><!-- END day --></tr><!-- END cal_week --></tbody>
+</table>
+<!-- ELSE -->
+<p><a href="{U_CAL_MONTH}">{L_PLUS_CAL_MONTH}</a> · <a href="{U_CAL_DAY}">{L_PLUS_CAL_DAY}</a></p>
+<details class="panel plus-cal-hours"><summary>{L_PLUS_CAL_HOURS}</summary><p><!-- BEGIN cal_hours --><a href="{cal_hours.URL}"<!-- IF cal_hours.SELECTED --> aria-current="time"<!-- ENDIF -->>{cal_hours.LABEL}</a> <!-- END cal_hours --></p></details>
+<div class="forumbg"><div class="inner"><ul class="topiclist topics">
+	<!-- BEGIN cal_events --><li class="row"<!-- IF cal_events.BIRTHDAY --> data-cal-birthday<!-- ENDIF -->><div class="list-inner"><a class="topictitle" href="{cal_events.URL}">{cal_events.TITLE}</a>
+		<br>{cal_events.WHEN}<!-- IF cal_events.FORUM --> · {cal_events.FORUM}<!-- ENDIF --></div></li>
+	<!-- BEGINELSE --><li class="row"><p>{L_PLUS_CAL_EMPTY}</p></li><!-- END cal_events -->
+</ul></div></div>
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+<!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->
