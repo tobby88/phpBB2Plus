@@ -35,6 +35,8 @@ if (!$get_info)
 	}
 	$src_db->sql_freeresult($result);
 	$convertor['test_file'] = $test_file;
+	$convertor['execute_first'] = str_replace('import_avatar_gallery();', 'plus_import_avatar_gallery();', $convertor['execute_first']);
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_media_issues');
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
@@ -64,6 +66,14 @@ if (!$get_info)
 			if ($section['target'] === USERS_TABLE && $field[0] === 'user_password')
 			{
 				$field[2] = array('\phpbb2plus\community\password\legacy', 'import');
+			}
+			if ($section['target'] === USERS_TABLE && in_array($field[0], array('user_avatar','user_avatar_type','user_avatar_width','user_avatar_height'), true))
+			{
+				$field = array($field[0], array('users.user_id','users.user_allowavatar','users.user_avatar_type','users.user_avatar',$field[0]), 'plus_profile_avatar_field');
+			}
+			if ($section['target'] === RANKS_TABLE && $field[0] === 'rank_image')
+			{
+				$field = array('rank_image', array('ranks.rank_id','ranks.rank_image'), 'plus_profile_rank');
 			}
 			if ($section['target'] === USERS_TABLE && $field[0] === 'user_lang')
 			{
@@ -99,6 +109,12 @@ if (!$get_info)
 			}
 		}
 		unset($field);
+		if ($section['target'] === SMILIES_TABLE)
+		{
+			$section = array('target' => SMILIES_TABLE, 'primary' => 'smilies.smilies_id', 'autoincrement' => 'smiley_id',
+				'query_first' => array('target', $convert->truncate_statement . SMILIES_TABLE),
+				array('', array('smilies.smilies_id', 'smilies.smile_url','smilies.code','smilies.emoticon'), 'plus_profile_smiley'));
+		}
 		if ($section['target'] === TOPICS_WATCH_TABLE)
 		{
 			$section = array(

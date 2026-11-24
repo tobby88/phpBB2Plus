@@ -24,7 +24,23 @@ class profile implements EventSubscriberInterface
 		return array('core.generate_profile_fields_template_data_before' => 'privacy',
 			'core.generate_profile_fields_template_headlines' => 'headlines',
 			'core.generate_profile_fields_template_data' => 'contact_links',
-			'core.memberlist_modify_view_profile_template_vars' => 'profile_page');
+			'core.memberlist_modify_view_profile_template_vars' => 'profile_page',
+			'core.get_user_rank_after' => 'user_rank', 'core.get_group_rank_after' => 'group_rank');
+	}
+
+	public function user_rank($event) { $event['user_rank_data'] = $this->localized_rank($event['user_rank_data']); }
+	public function group_rank($event) { $event['group_rank_data'] = $this->localized_rank($event['group_rank_data']); }
+
+	private function localized_rank($rank)
+	{
+		$src = $rank['img_src'];
+		if ($src && preg_match('~(/plus-rank-[0-9]+-[a-f0-9]{16}-)(de|en)(\.(?:gif|png|jpe?g))$~D', $src, $parts))
+		{
+			$lang = strpos($this->user->lang_name, 'de') === 0 ? 'de' : 'en';
+			$rank['img_src'] = substr($src, 0, -strlen($parts[0])) . $parts[1] . $lang . $parts[3];
+			$rank['img'] = str_replace('src="' . $src . '"', 'src="' . $rank['img_src'] . '"', $rank['img']);
+		}
+		return $rank;
 	}
 
 	private function private_field($ident, $data)

@@ -19,6 +19,7 @@ from build_phpbb3 import assemble, PACKAGES
 import arcade
 import attachments
 import downloads
+import profile_media
 import gallery
 import knowledgebase
 from ruffle_browser import playback
@@ -125,6 +126,7 @@ def main():
             gallery.source_media(root / "legacy")
             arcade.source_media(root / "legacy")
             downloads.source_media(root / "legacy")
+            profile_media.source_media(root / "legacy")
             with server(web, root) as base:
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
@@ -139,6 +141,7 @@ def main():
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
+                profile_media.browse(ordinary, member, json.loads(php(fixture, "profile-media", target, capture=True)))
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
                 game_source = arcade.browse(base, member, ordinary)

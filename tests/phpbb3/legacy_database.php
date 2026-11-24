@@ -13,6 +13,7 @@ function check_fixture($ok, $message)
 	if (!$ok) { throw new RuntimeException($message); }
 }
 require __DIR__ . '/native_data.php';
+require __DIR__ . '/profile_media.php';
 require __DIR__ . '/gallery.php';
 require __DIR__ . '/knowledgebase.php';
 require __DIR__ . '/arcade.php';
@@ -79,11 +80,17 @@ if ($argv[1] === 'seed')
 	seed_knowledgebase($db);
 	seed_arcade($db);
 	seed_downloads($db);
+	seed_profile_media($db);
 	$db->query("INSERT INTO phpbb_attachments_desc (attach_id,physical_filename,real_filename,download_count,extension,mimetype,filesize,filetime,thumbnail)
 		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
 		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");
 	$db->query("INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2)
 		VALUES (50,32,0,-1,0),(50,32,0,-1,0),(50,40,0,2,0),(63,0,111,2,1),(63,0,112,2,1)");
+}
+elseif ($argv[1] === 'profile-media')
+{
+	$id = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
+	echo json_encode(verify_profile_media($db, $id));
 }
 elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 {
