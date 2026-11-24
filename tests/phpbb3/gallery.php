@@ -2,6 +2,7 @@
 function seed_gallery($db)
 {
 	$db->query("UPDATE phpbb_album_config SET config_value='16' WHERE config_name='thumbnail_size'");
+	$db->query("UPDATE phpbb_album_config SET config_value='3' WHERE config_name='user_pics_limit'");
 	$db->query("UPDATE phpbb_album_sp_config SET config_value='1' WHERE config_name='use_watermark'");
 	$db->query("UPDATE phpbb_album_sp_config SET config_value='30' WHERE config_name='midthumb_width'");
 	$db->query("UPDATE phpbb_album_sp_config SET config_value='18' WHERE config_name='midthumb_height'");

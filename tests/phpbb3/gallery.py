@@ -1,5 +1,8 @@
 """Public, restricted, personal and pending albums from an offline snapshot."""
 import struct
+import json
+import time
+from urllib.parse import urljoin
 import zlib
 
 
@@ -52,3 +55,36 @@ def browse(base, moderator, member):
         data = guest.fetch(media + size, raw=True)
         if data[:8] != ORIGINAL[:8] or struct.unpack(">II", data[16:24]) != dimensions or guest.fetch(media + size, raw=True) != data:
             raise RuntimeError("Incorrect gallery preview dimensions or cached content")
+    uploads(base, guest, moderator, member)
+
+
+def uploads(base, guest, moderator, member):
+    from http_board import Page
+    form = "app.php/album/category/1/upload"
+    guest.fetch(form, expected_status=404)
+
+    def fields():
+        action, hidden = Page(member.fetch(form)).forms["album-upload"]
+        time.sleep(max(0, int(hidden["creation_time"]) + 1.05 - time.time()))
+        return urljoin(urljoin(base, form), action), dict(hidden, description="Zwölf Grüße", file_count="2")
+
+    action, params = fields()
+    pictures = [("photos[]", name + ".png", "image/png", ORIGINAL) for name in ("Mehrfachprobe A", "Mehrfachprobe B")]
+    for _ in range(2):
+        response = json.loads(member.fetch(action, params, ajax=True, files=pictures))
+        if "awaiting approval" not in response.get("message", "") or "/album/category/1" not in response.get("location", ""):
+            raise RuntimeError("An approved-only album must acknowledge a pending multi-image upload")
+    category = "app.php/album/category/1"
+    public, staff = guest.fetch(category), moderator.fetch(category)
+    for name in ("Mehrfachprobe A", "Mehrfachprobe B"):
+        if name in public or staff.count(name) != 1:
+            raise RuntimeError("Retried album publication changed data or visibility")
+    action, params = fields()
+    response = member.fetch(action, params, expected_status=422, files=pictures)
+    if "remaining album quota" not in response:
+        raise RuntimeError("The legacy per-user quota must apply to the entire batch")
+    action, hidden = Page(moderator.fetch(form)).forms["album-upload"]
+    hidden.update(title="Einzelbild ohne JavaScript", description="Grüße")
+    time.sleep(max(0, int(hidden["creation_time"]) + 1.05 - time.time()))
+    if "Freigabe" not in moderator.fetch(urljoin(urljoin(base, form), action), hidden, files=pictures[:1]):
+        raise RuntimeError("The ordinary multipart form must work without JavaScript")

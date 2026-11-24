@@ -1,0 +1,23 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_ALBUM_UPLOAD} &bull; <a href="{U_CATEGORY}">{{ ALBUM_CATEGORY|e }}</a></h2>
+{% if S_ALBUM_SAVED %}
+<div class="panel"><div class="inner"><p>{% if S_ALBUM_PENDING %}{L_PLUS_ALBUM_PENDING}{% else %}{L_PLUS_ALBUM_SAVED}{% endif %}</p>
+<a href="{U_CATEGORY}">{L_PLUS_ALBUM_BACK}</a></div></div>
+{% else %}
+<form id="album-upload" method="post" action="{U_ALBUM_UPLOAD}" enctype="multipart/form-data" data-sending="{{ lang('PLUS_ALBUM_SENDING')|e('html_attr') }}" data-processing="{{ lang('PLUS_ALBUM_PROCESSING')|e('html_attr') }}" data-error="{{ lang('PLUS_ALBUM_RETRY')|e('html_attr') }}">
+<div class="panel"><div class="inner"><fieldset class="fields2">
+{% if ALBUM_ERROR %}<p class="error">{{ ALBUM_ERROR|e }}</p>{% endif %}
+<dl><dt><label for="album-files">{L_PLUS_ALBUM_FILES}</label><br><span>{{ lang('PLUS_ALBUM_COUNT', ALBUM_COUNT) }}</span></dt>
+<dd><input type="file" id="album-files" name="photos[]" accept="image/jpeg,image/png,image/gif" required{% if ALBUM_COUNT > 1 %} multiple{% endif %}></dd></dl>
+<dl><dt><label for="album-title">{L_SUBJECT}</label><br><span>{L_PLUS_ALBUM_FILENAME_TITLE}</span></dt><dd><input class="inputbox" id="album-title" name="title" maxlength="255" value="{{ ALBUM_TITLE|e('html_attr') }}"></dd></dl>
+<dl><dt><label for="album-description">{L_DESCRIPTION}</label></dt><dd><textarea class="inputbox" id="album-description" name="description" maxlength="{{ ALBUM_DESC_LIMIT }}" rows="3">{{ ALBUM_DESCRIPTION|e }}</textarea></dd></dl>
+{% if S_ALBUM_GUEST %}<dl><dt><label for="album-guest">{L_USERNAME}</label></dt><dd><input class="inputbox" id="album-guest" name="guest_name" maxlength="32" value="{{ ALBUM_GUEST|e('html_attr') }}"></dd></dl>{% endif %}
+</fieldset></div></div>
+<fieldset class="submit-buttons"><input type="hidden" name="batch" value="{ALBUM_BATCH}">{S_FORM_TOKEN}
+<input type="submit" class="button1" value="{L_PLUS_ALBUM_UPLOAD}"></fieldset>
+<div class="panel" id="album-upload-status" hidden><progress max="100" value="0"></progress> <span role="status" aria-live="polite"></span> <a href="{U_CATEGORY}" hidden>{L_PLUS_ALBUM_BACK}</a></div>
+</form>
+<!-- INCLUDEJS @phpbb2plus_gallery/upload.js -->
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

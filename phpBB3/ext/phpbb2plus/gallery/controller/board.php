@@ -91,6 +91,10 @@ class board
 			$this->db->sql_freeresult($result);
 		}
 		$title = $cat ? $cat['title'] : $this->language->lang('PLUS_ALBUM');
+		if ($cat && empty($this->user->data['is_bot']) && $this->access->allows($cat, 'upload'))
+		{
+			$this->template->assign_var('U_ALBUM_UPLOAD', $this->helper->route('phpbb2plus_gallery_upload', array('category' => $id)));
+		}
 		$this->template->assign_vars(array('ALBUM_TITLE' => $title, 'ALBUM_DESCRIPTION' => $cat ? $cat['description'] : '', 'ALBUM_CATEGORY_ID' => $id));
 		return $this->helper->render('@phpbb2plus_gallery/index.html', utf8_htmlspecialchars($title));
 	}

@@ -12,6 +12,11 @@ phpbb2plus_gallery_picture:
     defaults: { _controller: phpbb2plus.gallery.board:picture }
     requirements: { picture: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_gallery_upload:
+    path: /album/category/{category}/upload
+    defaults: { _controller: phpbb2plus.gallery.upload:form }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET, POST]
 phpbb2plus_gallery_media:
     path: /album/picture/{picture}/{size}
     defaults: { _controller: phpbb2plus.gallery.media:show }

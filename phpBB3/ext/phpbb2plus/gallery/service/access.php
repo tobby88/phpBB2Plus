@@ -33,6 +33,12 @@ class access
 		return $this->settings[$scope][$name] ?? $default;
 	}
 
+	public function refresh()
+	{
+		$this->settings = $this->grants = null;
+		$this->categories = array();
+	}
+
 	public function administrator()
 	{
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_gallery');

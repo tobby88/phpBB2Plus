@@ -10,6 +10,7 @@ import shutil
 import socket
 import subprocess
 import time
+import uuid
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin, urlsplit
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPRedirectHandler, Request
@@ -53,12 +54,23 @@ class Browser:
         self.base = base
         self.opener = build_opener(HTTPCookieProcessor(CookieJar()), LoopbackRedirect(urlsplit(base).netloc))
 
-    def fetch(self, path, data=None, ajax=False, raw=False, expected_status=200):
+    def fetch(self, path, data=None, ajax=False, raw=False, expected_status=200, files=None):
         address = urljoin(self.base, path)
         if urlsplit(address).netloc != urlsplit(self.base).netloc:
             raise ValueError("Unexpected link away from the disposable board")
         headers = {"X-Requested-With": "XMLHttpRequest"} if ajax else {}
-        req = Request(address, data=urlencode(data).encode() if data is not None else None, headers=headers)
+        body = urlencode(data).encode() if data is not None else None
+        if files is not None:
+            boundary = "plus-test-" + uuid.uuid4().hex
+            pieces = []
+            for name, value in (data or {}).items():
+                pieces += [("--" + boundary).encode(), f'Content-Disposition: form-data; name="{name}"'.encode(), b"", str(value).encode()]
+            for name, filename, content_type, content in files:
+                pieces += [("--" + boundary).encode(), f'Content-Disposition: form-data; name="{name}"; filename="{filename}"'.encode(),
+                           ("Content-Type: " + content_type).encode(), b"", content]
+            body = b"\r\n".join(pieces + [("--" + boundary + "--").encode(), b""])
+            headers["Content-Type"] = "multipart/form-data; boundary=" + boundary
+        req = Request(address, data=body, headers=headers)
         try:
             with self.opener.open(req, timeout=90) as response:
                 if response.status != expected_status:

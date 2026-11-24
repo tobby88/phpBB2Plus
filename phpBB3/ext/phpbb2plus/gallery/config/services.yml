@@ -13,3 +13,9 @@ services:
         arguments: ['@controller.helper', '@template', '@language']
         tags:
             - { name: event.listener }
+    phpbb2plus.gallery.uploads:
+        class: phpbb2plus\gallery\service\uploads
+        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@config', '@php_ini', '%core.root_path%', '%core.table_prefix%plus_album_']
+    phpbb2plus.gallery.upload:
+        class: phpbb2plus\gallery\controller\upload
+        arguments: ['@phpbb2plus.gallery.uploads', '@request', '@template', '@controller.helper', '@language', '@user']

@@ -4,3 +4,5 @@
 .plus-album-grid time { display: block; margin-top: .3em; }
 .plus-album-photo { margin: .8em 0; }
 .plus-album-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
+#album-upload-status[hidden], #album-upload-status [hidden] { display: none; }
+#album-upload-status progress { max-width: 100%; vertical-align: middle; }

@@ -1,6 +1,7 @@
 <!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ ALBUM_TITLE|e }}</h2>
+{% if U_ALBUM_UPLOAD %}<div class="action-bar"><a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a></div>{% endif %}
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
 {% if loops.album_categories %}
 <div class="forabg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_ALBUM_CATEGORIES}</div></dt></dl></li></ul>
