@@ -1,4 +1,14 @@
 services:
+    profilefields.type.plus_multi:
+        class: phpbb2plus\community\profile\multiple
+        arguments: ['@profilefields.lang_helper', '@request', '@template', '@user']
+        tags:
+            - { name: profilefield.type }
+    phpbb2plus.community.profile_settings:
+        class: phpbb2plus\community\event\profile_settings
+        arguments: ['@template', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.password:
         class: phpbb2plus\community\password\legacy
         arguments: ['@request']

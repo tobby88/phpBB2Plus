@@ -1,5 +1,5 @@
 """Read multi-day events, restricted topics and private birthdays through the calendar."""
-from http_board import Browser, Page
+from http_board import Browser, Page, admin_url
 from html import unescape
 import os
 import re
@@ -63,17 +63,12 @@ def preferences(base, owner, member, guest):
     if "data-cal-birthday" in member.fetch("app.php/calendar?view=day&date=2009-03-01"):
         raise RuntimeError("The personal birthday preference was ignored")
     # Native ACP re-authentication changes the administrator's session ID.
-    def admin_link():
-        link = re.search(r'href="([^"]*adm/index\.php\?[^"]+)"', owner.fetch("index.php"))
-        if not link:
-            raise RuntimeError("The migrated founder cannot reach native ACP settings")
-        return unescape(link.group(1))
-    entry = admin_link()
+    entry = admin_url(owner)
     form = owner.fetch(entry)
     credentials = Page(form).forms["login"][1]
     password_field = "password_" + credentials["credential"]
     submit(owner, entry, form, "login", {"login": "1", "username": "ModernMember", password_field: os.environ["PLUS_TEST_MODERN_PASSWORD"]})
-    entry = admin_link() + "&i=acp_board&mode=features"
+    entry = admin_url(owner) + "&i=acp_board&mode=features"
     page = owner.fetch(entry)
     if 'name="config[plus_cal_text_length]"' not in page or 'name="config[plus_cal_header_cells_over]"' not in page:
         raise RuntimeError("Board features lacks the calendar settings or overrides")

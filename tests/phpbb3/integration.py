@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 import arcade
 import attachments
+import custom_profiles
 import downloads
 import profile_media
 import topic_calendar
@@ -150,8 +151,15 @@ def main():
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
+                custom_profiles.exercise(base, pending)
                 profile_media.browse(ordinary, member, json.loads(php(fixture, "profile-media", target, capture=True)))
                 topic_calendar.browse(base, member, ordinary, pending)
+                custom_profiles.administration(member)
+                for action in ("disable", "enable"):
+                    php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)
+                    php("bin/phpbbcli.php", "cache:purge", "--no-interaction", cwd=web)
+                    php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
+                    custom_profiles.visibility_after_toggle(base, action == "enable")
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
                 game_source = arcade.browse(base, member, ordinary, pending)

@@ -22,6 +22,8 @@ Shadow as a child of prosilver and selects it for a new board. The installer’s
 Convert tab then offers **phpBB2
 Plus (UTF-8)**. The assembled board includes the self-hosted Ruffle player.
 The Arcade converter imports game files from the separate source board.
+After changing extensions through the CLI, run `php bin/phpbbcli.php cache:purge`
+in the assembled board so its compiled templates use the current extension list.
 The [conversion coverage](phpbb3-port.md) lists verified
 behaviour and the modules still being ported. Use the branch with test data.
 

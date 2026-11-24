@@ -1,0 +1,8 @@
+{% for field in loops.plus_multi %}
+<div class="plus-profile-choices" id="{{ field.KEY }}">
+	<input type="hidden" name="{{ field.KEY }}_present" value="1">
+	{% for choice in field.choice %}
+	<label><input type="checkbox" name="{{ field.KEY }}[]" value="{{ choice.ID }}"{% if choice.CHECKED %} checked{% endif %}> {{ choice.LABEL }}</label>
+	{% endfor %}
+</div>
+{% endfor %}

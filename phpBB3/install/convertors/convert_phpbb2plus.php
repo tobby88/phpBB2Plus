@@ -148,8 +148,12 @@ if (!$get_info)
 		}
 		if ($section['target'] === PROFILE_FIELDS_DATA_TABLE)
 		{
-			$section['execute_first'] = ($section['execute_first'] ?? '') . ' plus_import_flags();';
+			$section['execute_first'] = ($section['execute_first'] ?? '') . ' plus_import_flags(); plus_define_custom_profiles();';
 			$section[] = array('pf_plus_country', 'users.user_from_flag', 'plus_country_value');
+			foreach (plus_custom_profile_fields() as $id=>$custom)
+			{
+				$section[] = array('pf_' . $custom['ident'], array('users.' . $custom['source_column'], $id), 'plus_custom_account_value');
+			}
 			foreach (\phpbb2plus\community\profile\contacts::FIELDS as $ident => $definition)
 			{
 				$section[] = array('pf_' . $ident, 'users.' . $definition[0], 'plus_convert_byline');

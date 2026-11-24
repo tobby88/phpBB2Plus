@@ -14,6 +14,7 @@ function check_fixture($ok, $message)
 }
 require __DIR__ . '/native_data.php';
 require __DIR__ . '/profile_media.php';
+require __DIR__ . '/custom_profiles.php';
 require __DIR__ . '/gallery.php';
 require __DIR__ . '/knowledgebase.php';
 require __DIR__ . '/arcade.php';
@@ -81,6 +82,7 @@ if ($argv[1] === 'seed')
 	seed_arcade($db);
 	seed_downloads($db);
 	seed_profile_media($db);
+	seed_custom_profiles($db);
 	$db->query("UPDATE phpbb_topics SET topic_calendar_time=1206917100,topic_calendar_duration=91799 WHERE topic_id=1");
 	$db->query("UPDATE phpbb_topics SET topic_calendar_time=1206964800,topic_calendar_duration=0 WHERE topic_id=7");
 	$db->query("UPDATE phpbb_users SET user_birthday=DATEDIFF('1980-02-29','1970-01-01'),user_calendar_forum=0 WHERE user_id=1");
@@ -116,6 +118,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
 	if ($argv[1] !== 'converted') { return; }
 	verify_native_content($db, (int) $users[0]['user_id']);
+	verify_custom_profiles($db);
 	verify_gallery($db, (int) $users[0]['user_id']);
 	verify_knowledgebase($db, (int) $users[0]['user_id']);
 	verify_arcade($db, (int) $users[0]['user_id']);

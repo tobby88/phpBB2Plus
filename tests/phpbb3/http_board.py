@@ -17,11 +17,12 @@ from urllib.request import build_opener, HTTPCookieProcessor, HTTPRedirectHandle
 
 
 class Page(HTMLParser):
-    def __init__(self, body):
+    def __init__(self, body, checked=False):
         super().__init__(convert_charrefs=True)
         self.actions = []
         self.forms = {}
         self.form = None
+        self.checked = checked
         self.feed(body)
 
     def handle_starttag(self, tag, pairs):
@@ -33,6 +34,13 @@ class Page(HTMLParser):
             self.forms[attrs.get("id")] = self.form
         if tag == "input" and self.form and attrs.get("type") == "hidden" and attrs.get("name"):
             self.form[1][attrs["name"]] = attrs.get("value", "")
+        if (self.checked and tag == "input" and self.form and attrs.get("name") and "checked" in attrs
+                and attrs.get("type") in ("checkbox", "radio")):
+            key, value = attrs["name"], attrs.get("value", "on")
+            if key.endswith("[]"):
+                self.form[1].setdefault(key, []).append(value)
+            else:
+                self.form[1][key] = value
 
     def handle_endtag(self, tag):
         if tag == "form":
@@ -59,7 +67,7 @@ class Browser:
         if urlsplit(address).netloc != urlsplit(self.base).netloc:
             raise ValueError("Unexpected link away from the disposable board")
         headers = {"X-Requested-With": "XMLHttpRequest"} if ajax else {}
-        body = urlencode(data).encode() if data is not None else None
+        body = urlencode(data, doseq=True).encode() if data is not None else None
         if files is not None:
             boundary = "plus-test-" + uuid.uuid4().hex
             pieces = []
@@ -201,6 +209,13 @@ def public_pages(base, member):
         raise RuntimeError("Migrated post formatting or guest/member byline differs from the source policy")
 
 
+def admin_url(actor):
+    link = re.search(r'href="([^"]*adm/index\.php\?[^"]+)"', actor.fetch("index.php"))
+    if not link:
+        raise RuntimeError("The migrated administrator cannot reach the native ACP")
+    return urljoin(actor.base, unescape(link.group(1)))
+
+
 def profiles(base, member, owner):
     path = "memberlist.php?mode=viewprofile&u=2"
     public = Browser(base).fetch(path)
@@ -225,7 +240,7 @@ def profiles(base, member, owner):
     option = re.search(r'<option value="([0-9]+)"[^>]*>\s*Abendrot\s*</option>', flags.group(1)) if flags else None
     if not option or "Nordlicht" not in private or "images/plusflags/" not in private or "Nordlicht" in public or "images/plusflags/" in public:
         raise RuntimeError("Imported native flag options or guest visibility differ from the source")
-    action, fields = Page(form).forms["ucp"]
+    action, fields = Page(form, checked=True).forms["ucp"]
     fields["pf_plus_country"] = option.group(1)
     fields.update(submit="1", pf_phpbb_location="Fixture Town", pf_phpbb_facebook="https://www.facebook.com/example.fixture",
                   pf_phpbb_twitter="examplefixture", pf_plus_telegram="updatedfixture", pf_plus_signal="Example.42",

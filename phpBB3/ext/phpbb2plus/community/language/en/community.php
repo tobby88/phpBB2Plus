@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL' => 'Portal',
+	'FIELD_PLUS_MULTI' => 'Multiple choice (checkboxes)',
+	'PLUS_SHOW_ON_MEMBER_PROFILE' => 'Display on the member’s profile page',
 	'PLUS_RECENT_TOPICS' => 'Recent topics',
 	'PLUS_FORMER_MEMBER' => 'Former member',
 	'PLUS_SHOUTBOX' => 'Shoutbox',

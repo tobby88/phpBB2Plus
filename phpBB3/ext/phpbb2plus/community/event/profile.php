@@ -12,6 +12,7 @@ class profile implements EventSubscriberInterface
 	private $extension;
 	private $flags;
 	private $paths;
+	private $hide_on_profile = array();
 
 	public function __construct($user, $config, $root, $extension, $flags, $paths)
 	{
@@ -29,6 +30,7 @@ class profile implements EventSubscriberInterface
 			'core.generate_profile_fields_template_headlines' => 'headlines',
 			'core.generate_profile_fields_template_data' => 'contact_links',
 			'core.memberlist_modify_view_profile_template_vars' => 'profile_page',
+			'core.memberlist_view_profile' => 'custom_profile_visibility',
 			'core.user_setup_after' => 'birthday_list', 'core.memberlist_prepare_profile_data' => 'profile_age',
 			'core.viewtopic_post_rowset_data' => 'poster_birthday',
 			'core.get_user_rank_after' => 'user_rank', 'core.get_group_rank_after' => 'group_rank');
@@ -79,13 +81,35 @@ class profile implements EventSubscriberInterface
 
 	public function privacy($event)
 	{
-		if (!empty($this->user->data['is_registered'])) { return; }
 		$profile = $event['profile_row'];
 		foreach ($profile as $ident => $field)
 		{
-			if ($this->private_field($ident, $field['data'])) { unset($profile[$ident]); }
+			if (!empty($field['data']['plus_source_id']) && empty($field['data']['plus_view_profile'])) { $this->hide_on_profile[$ident] = true; }
+			if (empty($this->user->data['is_registered']) && $this->private_field($ident, $field['data'])) { unset($profile[$ident]); }
 		}
 		$event['profile_row'] = $profile;
+	}
+
+	public function custom_profile_visibility($event)
+	{
+		$fields = $event['profile_fields'];
+		if (!$this->hide_on_profile || empty($fields['blockrow'])) { return; }
+		foreach ($fields['blockrow'] as $key=>$field)
+		{
+			$ident = $field['PROFILE_FIELD_IDENT'];
+			if (!isset($this->hide_on_profile[$ident])) { continue; }
+			unset($fields['blockrow'][$key]);
+			$prefix = 'PROFILE_' . strtoupper($ident);
+			foreach (array_keys($fields['row']) as $name)
+			{
+				if (strpos($name,$prefix . '_') === 0 || $name === 'S_' . $prefix || $name === 'S_' . $prefix . '_CONTACT')
+				{
+					unset($fields['row'][$name]);
+				}
+			}
+		}
+		$fields['blockrow'] = array_values($fields['blockrow']);
+		$event['profile_fields'] = $fields;
 	}
 
 	public function headlines($event)

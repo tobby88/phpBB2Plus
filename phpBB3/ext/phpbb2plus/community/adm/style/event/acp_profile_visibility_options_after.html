@@ -1,0 +1,6 @@
+{% if S_PLUS_PROFILE_DISPLAY_SETTING %}
+<fieldset>
+	<dl><dt><label for="plus_view_profile">{{ lang('PLUS_SHOW_ON_MEMBER_PROFILE') }}</label></dt>
+	<dd><input type="hidden" name="plus_view_profile" value="0"><input type="checkbox" id="plus_view_profile" name="plus_view_profile" value="1"{% if S_PLUS_PROFILE_DISPLAY %} checked{% endif %}></dd></dl>
+</fieldset>
+{% endif %}

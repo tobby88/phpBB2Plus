@@ -1,0 +1,42 @@
+<?php
+namespace phpbb2plus\community;
+
+class ext extends \phpbb\extension\base
+{
+	public function enable_step($old_state)
+	{
+		if (parent::enable_step($old_state)) { return true; }
+		$db = $this->container->get('dbal.conn');
+		$db->sql_transaction('begin');
+		try
+		{
+			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . " SET field_type='profilefields.type.plus_multi',plus_paused_type=0
+				WHERE plus_paused_type=1 AND field_type='profilefields.type.text'");
+			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . ' SET field_no_view=0,plus_paused_view=0 WHERE plus_paused_view=1');
+			$this->container->get('profilefields.manager')->enable_profilefields('profilefields.type.plus_multi');
+			$db->sql_transaction('commit');
+		}
+		catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
+		return false;
+	}
+
+	public function disable_step($old_state)
+	{
+		$db = $this->container->get('dbal.conn');
+		if (!$this->container->get('dbal.tools')->sql_column_exists(PROFILE_FIELDS_TABLE,'plus_paused_type')) { return false; }
+		$db->sql_transaction('begin');
+		try
+		{
+			$this->container->get('profilefields.manager')->disable_profilefields('profilefields.type.plus_multi');
+			// The native new-account default builder also visits inactive fields and needs a registered type.
+			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . " SET field_type='profilefields.type.text',plus_paused_type=1
+				WHERE field_type='profilefields.type.plus_multi'");
+			// Native profile pages have no separate visibility flag for fields which only belong in topics.
+			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . ' SET field_no_view=1,plus_paused_view=1
+				WHERE plus_source_id>0 AND plus_view_profile=0 AND field_no_view=0');
+			$db->sql_transaction('commit');
+		}
+		catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
+		return false;
+	}
+}
