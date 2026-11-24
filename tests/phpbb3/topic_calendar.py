@@ -1,13 +1,12 @@
 """Read multi-day events, restricted topics and private birthdays through the calendar."""
-from http_board import Browser, Page, login
+from http_board import Browser, Page
 from html import unescape
-import os
 import re
 import time
 from urllib.parse import urljoin
 
 
-def browse(base, founder, member):
+def browse(base, founder, member, pending):
     guest = Browser(base)
     day = "app.php/calendar?view=day&date=2008-03-31"
     month = "app.php/calendar?date=2008-03-01"
@@ -29,12 +28,11 @@ def browse(base, founder, member):
         raise RuntimeError("The calendar lost the historical leap-day rule or guest birthday privacy")
     if "/calendar" not in guest.fetch("app.php/portal"):
         raise RuntimeError("The portal lacks calendar navigation")
-    edit_event(base, founder, member)
+    edit_event(base, founder, member, pending)
 
 
-def edit_event(base, owner, member):
+def edit_event(base, owner, member, pending):
     new = "posting.php?mode=post&f=1"
-    pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
     if "plus_cal_present" in pending.fetch(new) or "plus_cal_present" not in member.fetch(new):
         raise RuntimeError("The native post editor did not respect the imported calendar grant")
     title = "Fiktiver Kalendertermin"

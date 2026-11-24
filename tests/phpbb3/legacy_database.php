@@ -103,7 +103,7 @@ elseif ($argv[1] === 'profile-media')
 	$id = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
 	echo json_encode(verify_profile_media($db, $id));
 }
-elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
+elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), true))
 {
 	$users = $db->query("SELECT user_id,username,user_password,user_lang FROM p3_users
 		WHERE username IN ('ModernMember','HistoricMember') ORDER BY username")->fetch_all(MYSQLI_ASSOC);
@@ -111,10 +111,11 @@ elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 	foreach ($users as $user)
 	{
 		$is_bridge = strpos($user['user_password'], '$PLUS2$') === 0;
-		check_fixture($is_bridge === ($argv[1] === 'converted'), 'Unexpected credential upgrade state for ' . $user['username']);
+		check_fixture($is_bridge === ($argv[1] !== 'signed-in'), 'Unexpected credential upgrade state for ' . $user['username']);
 	}
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
-	if ($argv[1] === 'converted') { verify_native_content($db, (int) $users[0]['user_id']); }
+	if ($argv[1] !== 'converted') { return; }
+	verify_native_content($db, (int) $users[0]['user_id']);
 	verify_gallery($db, (int) $users[0]['user_id']);
 	verify_knowledgebase($db, (int) $users[0]['user_id']);
 	verify_arcade($db, (int) $users[0]['user_id']);

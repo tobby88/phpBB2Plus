@@ -1,7 +1,6 @@
 """Install the built distribution in a fresh, disposable MySQL/MariaDB database."""
 import argparse
 from contextlib import contextmanager
-from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -96,7 +95,7 @@ def verify_upstream(web, cache):
                 if info.is_dir():
                     continue
                 relative = Path(info.filename).relative_to(prefix or ".")
-                if sha256(source.read(info)).digest() != sha256((web / relative).read_bytes()).digest():
+                if source.read(info) != (web / relative).read_bytes():
                     raise ValueError(f"Modified upstream file: {relative}")
                 count += 1
     return count
@@ -116,6 +115,8 @@ def main():
         web = root / "board"
         assemble(web, args.cache.resolve(), args.offline)
         count = verify_upstream(web, args.cache.resolve())
+        built = monotonic()
+        print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
         with database() as target, database() as source:
             install(web, root, target)
             php("bin/phpbbcli.php", "--version", cwd=web)
@@ -130,41 +131,47 @@ def main():
             arcade.source_media(root / "legacy")
             downloads.source_media(root / "legacy")
             profile_media.source_media(root / "legacy")
+            seeded = monotonic()
+            print(f"Installation and source fixtures: {seeded-built:.1f}s", flush=True)
             with server(web, root) as base:
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
                 php(fixture, "converted", target)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True))
+                converted = monotonic()
+                print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
                 login(base, "ModernMember", "incorrect", expect_success=False)
-                php(fixture, "converted", target)
+                php(fixture, "hashes-unchanged", target)
                 member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+                pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
                 public_pages(base, member)
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
                 profile_media.browse(ordinary, member, json.loads(php(fixture, "profile-media", target, capture=True)))
-                topic_calendar.browse(base, member, ordinary)
+                topic_calendar.browse(base, member, ordinary, pending)
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
-                game_source = arcade.browse(base, member, ordinary)
+                game_source = arcade.browse(base, member, ordinary, pending)
                 php(fixture, "played", target)
                 arcade.protocols(base, ordinary, game_source)
                 arcade.wallets(base, ordinary, member)
                 php(fixture, "scored", target)
-                downloads.browse(base, member, ordinary)
+                downloads.browse(base, member, ordinary, pending)
                 php(fixture, "downloaded", target)
                 playback(web, base, root)
-                knowledgebase.browse(base, member, ordinary)
+                knowledgebase.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
-                gallery.browse(base, member, ordinary)
+                gallery.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
                 former_names(base, ordinary)
                 php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                 former_names(base, ordinary, removed=True)
                 gallery.departed(base, ordinary)
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+                print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 
 

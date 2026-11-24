@@ -1,16 +1,14 @@
 """Browse migrated multi-page articles, moderation, search, topics and historical voting receipts."""
-import os
 import re
 import time
 from html import unescape
 from urllib.parse import urlencode, urljoin
-from http_board import Browser, Page, login
+from http_board import Browser, Page
 from gallery import submit
 
 
-def browse(base, administrator, editor):
+def browse(base, administrator, editor, reader):
     guest = Browser(base)
-    reader = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
     index = "app.php/knowledge"
     article = index + "/article/"
     if "Wissensdatenbank" not in guest.fetch("app.php/portal") or "Wissensarchiv" not in guest.fetch(index + "/category/1"):

@@ -92,9 +92,16 @@ def server(web, root):
         port = sock.getsockname()[1]
     base = f"http://127.0.0.1:{port}/"
     log_file = root / "http-test.log"
+    binary = os.environ.get("PLUS_TEST_PHP", "php")
+    options = ["-d", "opcache.enable=1", "-d", "opcache.enable_cli=1", "-d", "opcache.file_update_protection=0",
+               "-d", "opcache.validate_timestamps=1", "-d", "opcache.revalidate_freq=0"]
+    if os.name == "nt":
+        dll = Path(shutil.which(binary) or binary).parent / "ext/php_opcache.dll"
+        if dll.is_file() and subprocess.check_output([binary, "-r", "echo (int) extension_loaded('Zend OPcache');"]).strip() == b"0":
+            options.extend(["-d", "zend_extension=" + str(dll)])
     with log_file.open("wb") as log:
-        proc = subprocess.Popen([os.environ.get("PLUS_TEST_PHP", "php"), "-d", "disable_functions=mail",
-                                 "-d", "display_errors=0", "-S", f"127.0.0.1:{port}", "-t", str(web)],
+        proc = subprocess.Popen([binary, *options, "-d", "disable_functions=mail", "-d", "display_errors=0",
+                                 "-S", f"127.0.0.1:{port}", "-t", str(web)],
                                 cwd=web, stdout=log, stderr=log,
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         try:

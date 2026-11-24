@@ -1,9 +1,8 @@
 """Follow paFileDB category permissions, licence forms and protected downloads."""
-import os
 import re
 import time
 from urllib.parse import urljoin
-from http_board import Browser, Page, login
+from http_board import Browser, Page
 from gallery import ORIGINAL
 
 PAYLOAD = "Fixture-Datei mit Grüßen 🎨\n".encode()
@@ -20,9 +19,8 @@ def source_media(legacy):
     (previews / "vorschau.png").write_bytes(ORIGINAL)
 
 
-def browse(base, founder, member):
+def browse(base, founder, member, pending):
     guest = Browser(base)
-    pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
     root = "app.php/downloads"
     if "/downloads" not in guest.fetch("app.php/portal"):
         raise RuntimeError("The portal does not link to the download library")

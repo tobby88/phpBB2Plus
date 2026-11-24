@@ -1,11 +1,10 @@
 """Verify the visible games and native rankings for different viewers."""
-import os
 import re
 import struct
 import time
 from html import unescape
 from urllib.parse import parse_qs, urljoin, urlsplit
-from http_board import Browser, Page, login
+from http_board import Browser, Page
 
 
 def movie():
@@ -26,9 +25,8 @@ def source_media(legacy):
     (folder / "club/private.swf").write_bytes(movie())
 
 
-def browse(base, administrator, member):
+def browse(base, administrator, member, pending):
     guest = Browser(base)
-    pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
     root = "app.php/arcade"
     if "Spielhalle" not in guest.fetch("app.php/portal"):
         raise RuntimeError("Arcade is missing from the portal")

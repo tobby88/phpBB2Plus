@@ -1,7 +1,6 @@
 """Public, restricted, personal and pending albums from an offline snapshot."""
 import struct
 import json
-import os
 import re
 import time
 from urllib.parse import urljoin
@@ -25,8 +24,8 @@ def source_media(legacy):
     (uploads.parent / "mark.png").write_bytes(png(8, 6, b"\xee\x20\x10"))
 
 
-def browse(base, moderator, member):
-    from http_board import Browser, login
+def browse(base, moderator, member, applicant):
+    from http_board import Browser
     guest = Browser(base)
     album = "app.php/album"
     if "Test category" not in guest.fetch(album) or "/album" not in guest.fetch("app.php/portal"):
@@ -43,7 +42,6 @@ def browse(base, moderator, member):
     for hidden in ("/category/9", "/picture/101", "/picture/101/small", "/picture/102/medium", "/picture/103/full"):
         guest.fetch(album + hidden, expected_status=404)
     member.fetch(album + "/picture/102/full", expected_status=404)
-    applicant = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
     applicant.fetch(album + "/picture/101/full", expected_status=404)
     details = guest.fetch(album + "/picture/100")
     if ("Historischer Bildkommentar" not in details or "7,0 von 10" not in details or "EditorFixture" in details
