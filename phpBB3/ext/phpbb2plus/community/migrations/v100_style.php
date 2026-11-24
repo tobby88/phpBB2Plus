@@ -36,7 +36,12 @@ class v100_style extends \phpbb\db\migration\migration
 			)));
 			$id = (int) $this->db->sql_nextid();
 		}
-		if ((int) $this->config['default_style'] === (int) $parent['style_id'])
+		// During a fresh CLI installation the container may have loaded config
+		// before the default data was inserted. Read the persisted setting.
+		$result = $this->db->sql_query("SELECT config_value FROM " . $this->table_prefix . "config WHERE config_name='default_style'");
+		$current = (int) $this->db->sql_fetchfield('config_value');
+		$this->db->sql_freeresult($result);
+		if ($current === (int) $parent['style_id'])
 		{
 			$this->config->set('default_style', $id);
 			$this->db->sql_query('UPDATE ' . $this->table_prefix . 'users SET user_style = ' . $id

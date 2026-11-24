@@ -162,8 +162,9 @@ def login(base, username, password, expect_success=True):
 def public_pages(base, member):
     guest = Browser(base)
     home = guest.fetch("")
-    if "Aktuelle Themen" not in home or "/fisubsilversh/theme/" not in home or "Welcome to phpBB" not in home:
-        raise RuntimeError("The board root must show the German Plus portal with visible topics and its inherited style")
+    for marker in ("Aktuelle Themen", "/fisubsilversh/theme/", "Welcome to phpBB"):
+        if marker not in home:
+            raise RuntimeError(f"Missing portal marker {marker!r} on the guest home page")
     if "Restricted topic fixture" in home or "Restricted topic fixture" not in member.fetch("app.php/portal"):
         raise RuntimeError("The portal must respect the migrated forum access of each viewer")
     for name in ("stylesheet.css", "de/stylesheet.css", "en/stylesheet.css", "plupload.css"):
