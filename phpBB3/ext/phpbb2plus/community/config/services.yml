@@ -23,3 +23,8 @@ services:
     phpbb2plus.community.shouts:
         class: phpbb2plus\community\controller\shouts
         arguments: ['@phpbb2plus.community.shoutbox', '@controller.helper', '@template', '@language', '@request', '@pagination']
+    phpbb2plus.community.profile:
+        class: phpbb2plus\community\event\profile
+        arguments: ['@user', '@config', '%core.root_path%', '%core.php_ext%']
+        tags:
+            - { name: event.listener }

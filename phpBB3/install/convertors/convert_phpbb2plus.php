@@ -36,6 +36,7 @@ if (!$get_info)
 	$src_db->sql_freeresult($result);
 	$convertor['test_file'] = $test_file;
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
+	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 
@@ -54,6 +55,10 @@ if (!$get_info)
 			{
 				$field = array('user_lang', 'users.user_lang', 'plus_convert_locale');
 			}
+			if ($section['target'] === USERS_TABLE && $field[0] === 'user_birthday')
+			{
+				$field = array('user_birthday', 'users.user_birthday', 'plus_convert_birthday');
+			}
 			if ($section['target'] === POSTS_TABLE && $field[0] === 'post_username')
 			{
 				$field = array('post_username', array('posts.post_username', 'posts.post_author_removed'), 'plus_convert_author');
@@ -68,6 +73,17 @@ if (!$get_info)
 			}
 		}
 		unset($field);
+		if ($section['target'] === USERS_TABLE)
+		{
+			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
+		}
+		if ($section['target'] === PROFILE_FIELDS_DATA_TABLE)
+		{
+			foreach (\phpbb2plus\community\profile\contacts::FIELDS as $ident => $definition)
+			{
+				$section[] = array('pf_' . $ident, 'users.' . $definition[0], 'plus_convert_byline');
+			}
+		}
 		if ($section['target'] === POSTS_TABLE)
 		{
 			$section[] = array('post_delete_time', 'posts.post_deleted_time', 'intval');

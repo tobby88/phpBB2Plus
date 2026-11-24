@@ -30,6 +30,9 @@ if ($argv[1] === 'seed')
 	$modern = password_hash(addslashes(getenv('PLUS_TEST_MODERN_PASSWORD')), PASSWORD_BCRYPT);
 	$statement->bind_param('s', $modern);
 	$statement->execute();
+	$db->query("UPDATE phpbb_users SET user_birthday=0,user_reg_ip='2001:db8::7',
+		user_from='Fixture Town',user_signal='Example.42',user_threema='ABCD0123',user_tg='examplefixture',
+		user_fb='https://www.facebook.com/example.fixture',user_twr='examplefixture' WHERE user_id=2");
 	$statement = $db->prepare("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email)
 		VALUES (1,'HistoricMember',?,'english','historic@example.invalid')");
 	$historic = md5(addslashes(getenv('PLUS_TEST_HISTORIC_PASSWORD')));
@@ -92,5 +95,9 @@ elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 	$shout = $db->query('SELECT author_id,hidden_by FROM p3_plus_shouts WHERE shout_id=7')->fetch_assoc();
 	check_fixture($shout && (int) $shout['author_id'] === (int) $users[0]['user_id']
 		&& (int) $shout['hidden_by'] === 2, 'Shout author or moderation state was not converted');
+	$profile = $db->query('SELECT u.user_ip,u.user_birthday,p.* FROM p3_users u JOIN p3_profile_fields_data p ON p.user_id=u.user_id WHERE u.user_id=2')->fetch_assoc();
+	check_fixture($profile && $profile['user_birthday'] === ' 1- 1-1970' && $profile['user_ip'] === '2001:db8::7'
+		&& $profile['pf_phpbb_facebook'] === 'https://www.facebook.com/example.fixture' && $profile['pf_plus_signal'] === 'Example.42'
+		&& $profile['pf_plus_threema'] === 'ABCD0123', 'Missing native birthday, registration IP or contact field');
 }
 else { exit(2); }

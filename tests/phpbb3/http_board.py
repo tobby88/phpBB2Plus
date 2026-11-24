@@ -174,3 +174,33 @@ def public_pages(base, member):
     if ("Ehemaliger Nutzer" not in guest_post or "RetiredFixture" in guest_post or
             "RetiredFixture" not in member_post or "Grüße" not in guest_post):
         raise RuntimeError("Migrated post formatting or guest/member byline differs from the source policy")
+
+
+def profiles(base, member, owner):
+    path = "memberlist.php?mode=viewprofile&u=2"
+    public = Browser(base).fetch(path)
+    private = member.fetch(path)
+    if "ModernMember" not in public or "mode=compose" not in public:
+        raise RuntimeError("Guest profile must be reachable with a PM login link")
+    for marker in ("Fixture Town", "Example.42", "ABCD0123", "examplefixture", "example.fixture"):
+        if marker in public or marker not in private:
+            raise RuntimeError(f"Incorrect contact or location visibility for {marker}")
+    for url in ("https://threema.id/ABCD0123", "https://t.me/examplefixture", "https://www.facebook.com/example.fixture"):
+        if url not in private:
+            raise RuntimeError("An imported contact URL was not rendered correctly")
+    edit = "ucp.php?i=ucp_profile&mode=profile_info"
+    form = owner.fetch(edit)
+    if 'name="pf_plus_telegram"' not in form or "ABCD0123" not in form:
+        raise RuntimeError("The native UCP is missing the converted contacts")
+    action, fields = Page(form).forms["ucp"]
+    fields.update(submit="1", pf_phpbb_location="Fixture Town", pf_phpbb_facebook="https://www.facebook.com/example.fixture",
+                  pf_phpbb_twitter="examplefixture", pf_plus_telegram="updatedfixture", pf_plus_signal="Example.42",
+                  pf_plus_threema="ABCD0123", bday_year="1970", bday_month="1", bday_day="1")
+    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+    response = owner.fetch(urljoin(urljoin(base, edit), action), fields)
+    updated = member.fetch(path)
+    if "https://t.me/updatedfixture" not in updated or "https://www.facebook.com/example.fixture" not in updated:
+        error = re.search(r'class="error">(.+?)</', response, re.S)
+        raise RuntimeError("Native UCP contact edit failed: " + (error.group(1) if error else "no update"))
+    if "updatedfixture" in Browser(base).fetch(path):
+        raise RuntimeError("The edited contact became public")

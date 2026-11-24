@@ -4,6 +4,43 @@ if (!defined('IN_PHPBB')) { exit; }
 require_once __DIR__ . '/functions_phpbb20.php';
 require_once __DIR__ . '/plus_forums.php';
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/password/legacy.php';
+require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/profile/contacts.php';
+
+function plus_convert_birthday($days)
+{
+	if ($days === null || $days === '' || (int) $days === 999999) { return ' 0- 0-   0'; }
+	// Niels' Birthday MOD stores signed days since the Unix epoch (zero is a real birthday).
+	$date = (new \DateTimeImmutable('1970-01-01', new \DateTimeZone('UTC')))->modify(sprintf('%+d days', (int) $days));
+	if (!$date || (int) $date->format('Y') < 1901 || (int) $date->format('Y') > 2099)
+	{
+		throw new \RuntimeException('A Plus birthday lies outside the source calendar range.');
+	}
+	return sprintf('%2d-%2d-%4d', $date->format('j'), $date->format('n'), $date->format('Y'));
+}
+
+function plus_registration_ip($ip)
+{
+	$ip = trim((string) $ip);
+	if (filter_var($ip, FILTER_VALIDATE_IP) !== false) { return $ip; }
+	return preg_match('/^[0-9a-f]{8}$/iD', $ip) ? decode_ip($ip) : '';
+}
+
+function plus_configure_native_contacts()
+{
+	global $db;
+	// The Plus profile accepts either an account name or a pasted service URL.
+	// Keep both editable in the same two native fields after conversion.
+	$patterns = array('phpbb_facebook' => '(?:@?[\w.-]+|(?:https?://)?(?:[\w-]+\.)*facebook\.com/[^\s]+)',
+		'phpbb_twitter' => '(?:@?[\w]+|(?:https?://)?(?:[\w-]+\.)*(?:x|twitter)\.com/[^\s]+)');
+	foreach ($patterns as $ident => $pattern)
+	{
+		$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . ' SET ' . $db->sql_build_array('UPDATE',
+			array('field_minlen' => '0', 'field_maxlen' => '255', 'field_validation' => $pattern))
+			. " WHERE field_ident='" . $db->sql_escape($ident) . "'");
+	}
+	$inactive = array('phpbb_icq', 'phpbb_yahoo', 'phpbb_skype', 'phpbb_wlm', 'phpbb_aol');
+	$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . ' SET field_active=0 WHERE ' . $db->sql_in_set('field_ident', $inactive));
+}
 
 function plus_convert_locale($name)
 {
