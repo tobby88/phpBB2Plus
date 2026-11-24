@@ -1,0 +1,13 @@
+{% if loops.plus_cal_pref %}
+<hr><h3>{{ lang('PLUS_CALENDAR') }}</h3>
+{% for pref in loops.plus_cal_pref %}
+<dl>
+	<dt><label for="{{ pref.KEY }}">{{ pref.LABEL }}</label></dt>
+	<dd>{% if pref.MAX == 1 %}
+		<select name="{{ pref.KEY }}" id="{{ pref.KEY }}"><option value="1"{% if pref.VALUE %} selected{% endif %}>{{ lang('YES') }}</option><option value="0"{% if not pref.VALUE %} selected{% endif %}>{{ lang('NO') }}</option></select>
+	{% else %}
+		<input type="number" class="inputbox autowidth" min="0" max="{{ pref.MAX }}" name="{{ pref.KEY }}" id="{{ pref.KEY }}" value="{{ pref.VALUE }}">
+	{% endif %}</dd>
+</dl>
+{% endfor %}
+{% endif %}

@@ -2,6 +2,15 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_CALENDAR' => 'Kalender',
+	'PLUS_CAL_DISPLAY_OPEN' => 'Kalender in der Kopfzeile aufgeklappt anzeigen',
+	'PLUS_CAL_HEADER_CELLS' => 'Tage in der Kopfzeile (0 blendet den Kalender aus)',
+	'PLUS_CAL_WEEK_START' => 'Woche am Montag beginnen',
+	'PLUS_CAL_NB_ROW' => 'Sichtbare Einträge pro Tag in der Kalenderübersicht',
+	'PLUS_CAL_SHOW_BIRTHDAY' => 'Geburtstage im Kalender anzeigen',
+	'PLUS_CAL_FORUM' => 'Forennamen in der Tagesansicht anzeigen',
+	'PLUS_CAL_TITLE_LENGTH' => 'Zeichen pro Thementitel in der Kalenderübersicht',
+	'PLUS_CAL_TEXT_LENGTH' => 'Zeichen pro Beitragsvorschau (0 blendet die Vorschau aus)',
+	'PLUS_CAL_OVERRIDE' => 'Diese Einstellung für alle Mitglieder vorgeben',
 	'PLUS_CAL_DATE' => 'Datum',
 	'PLUS_CAL_ALL' => 'Alle Foren',
 	'PLUS_CAL_MONTH' => 'Monatsansicht',

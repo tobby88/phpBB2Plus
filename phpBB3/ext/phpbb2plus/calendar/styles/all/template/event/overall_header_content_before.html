@@ -1,0 +1,9 @@
+{% if U_PLUS_CAL_HEADER and not S_PLUS_CALENDAR_PAGE %}
+	{% INCLUDECSS '@phpbb2plus_calendar/calendar.css' %}
+	{% INCLUDEJS '@phpbb2plus_calendar/calendar_header.js' %}
+	<details class="panel plus-cal-strip" id="plus-calendar-header" data-src="{{ U_PLUS_CAL_HEADER }}"{% if S_PLUS_CAL_OPEN %} open{% endif %}>
+		<summary>{{ lang('PLUS_CALENDAR') }}</summary>
+		<div class="plus-cal-days"></div>
+		<a href="{{ U_PLUS_CALENDAR }}">{{ lang('PLUS_CAL_MONTH') }}</a>
+	</details>
+{% endif %}

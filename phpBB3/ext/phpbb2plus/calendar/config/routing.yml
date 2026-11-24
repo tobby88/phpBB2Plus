@@ -2,3 +2,7 @@ phpbb2plus_calendar_home:
     path: /calendar
     defaults: { _controller: phpbb2plus.calendar.board:show }
     methods: [GET, HEAD]
+phpbb2plus_calendar_header:
+    path: /calendar/header
+    defaults: { _controller: phpbb2plus.calendar.board:strip }
+    methods: [GET, HEAD]

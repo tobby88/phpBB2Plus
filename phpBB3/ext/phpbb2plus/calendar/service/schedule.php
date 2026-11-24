@@ -22,6 +22,7 @@ class schedule
 
 	public function scope($filter, $old_cat)
 	{
+		if ($old_cat) { $filter = 0; }
 		$list = array_keys($this->auth->acl_getf('f_list', true));
 		$read = array_diff(array_intersect($list, array_keys($this->auth->acl_getf('f_read',true))),$this->user->get_passworded_forums());
 		$posts = $choices = array();
@@ -69,7 +70,7 @@ class schedule
 		{
 			while ($r = $this->db->sql_fetchrow($result))
 			{
-				yield array('TITLE'=>censor_text($r['topic_title']), 'FORUM'=>$this->settings->get('forum') ? $r['forum_name'] : '',
+				yield array('TOPIC_ID'=>(int) $r['topic_id'], 'TITLE'=>censor_text($r['topic_title']), 'FORUM'=>$this->settings->get('forum') ? $r['forum_name'] : '',
 					'FROM'=>(int) $r['plus_cal_start'],'UNTIL'=>(int) $r['plus_cal_end'], 'BIRTHDAY'=>false,
 					'URL'=>append_sid($this->root . 'viewtopic.' . $this->ext, 't=' . (int) $r['topic_id']));
 			}
@@ -109,5 +110,38 @@ class schedule
 			}
 		}
 		finally { $this->db->sql_freeresult($result); }
+	}
+
+	/** Only fetch first posts whose entries are actually visible in the compact grid. */
+	public function previews($topics, $forums)
+	{
+		$length = $this->settings->get('text_length');
+		$previews = array();
+		if (!$length || !$topics || !$forums) { return $previews; }
+		foreach (array_chunk($topics,200) as $chunk)
+		{
+			$sql = 'SELECT t.topic_id,p.post_text,p.bbcode_uid,p.bbcode_bitfield,p.enable_bbcode,p.enable_smilies,p.enable_magic_url
+				FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_first_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id
+				WHERE ' . $this->db->sql_in_set('t.topic_id',$chunk) . ' AND ' . $this->db->sql_in_set('t.forum_id',$forums) . ' AND ' .
+				$this->visibility->get_forums_visibility_sql('topic',$forums,'t.') . ' AND ' . $this->visibility->get_forums_visibility_sql('post',$forums,'p.');
+			$result = $this->db->sql_query($sql);
+			while ($row = $this->db->sql_fetchrow($result))
+			{
+				$flags = ($row['enable_bbcode'] ? OPTION_FLAG_BBCODE : 0) | ($row['enable_smilies'] ? OPTION_FLAG_SMILIES : 0) |
+					($row['enable_magic_url'] ? OPTION_FLAG_LINKS : 0);
+				$html = generate_text_for_display($row['post_text'],$row['bbcode_uid'],$row['bbcode_bitfield'],$flags);
+				$plain = strip_tags(str_ireplace(array('<br>','<br/>','<br />','</p>','</div>'),' ',$html));
+				$previews[(int) $row['topic_id']] = $this->excerpt($plain,$length);
+			}
+			$this->db->sql_freeresult($result);
+		}
+		return $previews;
+	}
+
+	public function excerpt($text, $length)
+	{
+		$plain = trim(preg_replace('/\s+/u',' ',html_entity_decode($text,ENT_QUOTES | ENT_HTML5,'UTF-8')));
+		if (utf8_strlen($plain) > $length) { $plain = utf8_substr($plain,0,$length) . '…'; }
+		return htmlspecialchars($plain,ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8');
 	}
 }

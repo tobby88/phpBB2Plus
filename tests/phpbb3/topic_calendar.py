@@ -1,6 +1,7 @@
 """Read multi-day events, restricted topics and private birthdays through the calendar."""
 from http_board import Browser, Page
 from html import unescape
+import os
 import re
 import time
 from urllib.parse import urljoin
@@ -28,7 +29,62 @@ def browse(base, founder, member, pending):
         raise RuntimeError("The calendar lost the historical leap-day rule or guest birthday privacy")
     if "/calendar" not in guest.fetch("app.php/portal"):
         raise RuntimeError("The portal lacks calendar navigation")
+    guest.fetch(day + "&forum=1&old_cat=99999", expected_status=404)
+    if 'date=1970-' in guest.fetch("app.php/calendar?date=1971-01-01") or 'date=2070-' in guest.fetch("app.php/calendar?date=2069-12-01"):
+        raise RuntimeError("The month grid links to a date outside the supported year range")
+    preferences(base, founder, member, guest)
     edit_event(base, founder, member, pending)
+
+
+def preferences(base, owner, member, guest):
+    strip = "app.php/calendar/header?date=2008-03-31"
+    public, private = guest.fetch(strip), owner.fetch(strip)
+    if (public.count('class="plus-cal-cell"') != 7 or "2008-03-30" not in public or 'title="Grüße' not in public or
+            "EditorFixture" in public or "Private fixture text" in public or "Private fixture text" not in private):
+        raise RuntimeError("Calendar header lost its start date, preview or audience")
+    if 'id="plus-calendar-header"' in guest.fetch("app.php/calendar") or 'id="plus-calendar-header"' not in guest.fetch("index.php"):
+        raise RuntimeError("The calendar header appeared on the wrong page")
+    path = "ucp.php?i=ucp_prefs&mode=view"
+    page = member.fetch(path)
+    names = ("display_open", "header_cells", "nb_row", "week_start", "birthday", "forum")
+    if any('name="plus_cal_' + key + '"' not in page for key in names):
+        raise RuntimeError("The UCP lacks an editable calendar preference")
+    def submit(actor, url, html, form, values):
+        action, fields = Page(html).forms[form]
+        fields.update(values)
+        time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+        return actor.fetch(urljoin(urljoin(base, url), unescape(action)), fields)
+    submit(member, path, page, "ucp", dict(submit="1", plus_cal_display_open="1", plus_cal_header_cells="2",
+           plus_cal_nb_row="0", plus_cal_week_start="0", plus_cal_birthday="0", plus_cal_forum="1"))
+    own = member.fetch(strip)
+    if own.count('class="plus-cal-cell"') != 2 or "viewtopic.php" in own or '>+1<' not in own or not re.search(
+            r'<details[^>]+id="plus-calendar-header"[^>]*\bopen', member.fetch("index.php")):
+        raise RuntimeError("The native UCP failed to apply the member's calendar header preferences")
+    if "data-cal-birthday" in member.fetch("app.php/calendar?view=day&date=2009-03-01"):
+        raise RuntimeError("The personal birthday preference was ignored")
+    # Native ACP re-authentication changes the administrator's session ID.
+    def admin_link():
+        link = re.search(r'href="([^"]*adm/index\.php\?[^"]+)"', owner.fetch("index.php"))
+        if not link:
+            raise RuntimeError("The migrated founder cannot reach native ACP settings")
+        return unescape(link.group(1))
+    entry = admin_link()
+    form = owner.fetch(entry)
+    credentials = Page(form).forms["login"][1]
+    password_field = "password_" + credentials["credential"]
+    submit(owner, entry, form, "login", {"login": "1", "username": "ModernMember", password_field: os.environ["PLUS_TEST_MODERN_PASSWORD"]})
+    entry = admin_link() + "&i=acp_board&mode=features"
+    page = owner.fetch(entry)
+    if 'name="config[plus_cal_text_length]"' not in page or 'name="config[plus_cal_header_cells_over]"' not in page:
+        raise RuntimeError("Board features lacks the calendar settings or overrides")
+    submit(owner, entry, page, "acp_board", {"submit": "1", "config[plus_cal_header_cells]": "0", "config[plus_cal_header_cells_over]": "1"})
+    if 'name="plus_cal_header_cells"' in member.fetch(path) or 'id="plus-calendar-header"' in member.fetch("index.php"):
+        raise RuntimeError("The administrator's calendar override did not apply")
+    member.fetch(strip, expected_status=404)
+    guest.fetch(strip, expected_status=404)
+    submit(owner, entry, owner.fetch(entry), "acp_board", {"submit": "1", "config[plus_cal_header_cells]": "7", "config[plus_cal_header_cells_over]": "0"})
+    if member.fetch(strip).count('class="plus-cal-cell"') != 2 or guest.fetch(strip).count('class="plus-cal-cell"') != 7:
+        raise RuntimeError("Lifting the board override did not restore the member's own preference")
 
 
 def edit_event(base, owner, member, pending):

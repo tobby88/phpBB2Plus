@@ -17,8 +17,8 @@
 	<thead><tr><!-- BEGIN cal_head --><th scope="col">{cal_head.LABEL}</th><!-- END cal_head --></tr></thead>
 	<tbody><!-- BEGIN cal_week --><tr><!-- BEGIN day -->
 	<td class="<!-- IF cal_week.day.IN_MONTH -->bg1<!-- ELSE -->plus-cal-outside<!-- ENDIF -->">
-		<a href="{cal_week.day.URL}"<!-- IF cal_week.day.CURRENT --> aria-current="date"<!-- ENDIF -->><time datetime="{cal_week.day.DATE}">{cal_week.day.NUM}</time></a>
-		<!-- BEGIN event --><a class="plus-cal-entry" href="{cal_week.day.event.URL}"><!-- IF cal_week.day.event.BIRTHDAY -->{L_PLUS_CAL_BIRTHDAY} · <!-- ENDIF -->{cal_week.day.event.TITLE}</a><!-- END event -->
+		<!-- IF cal_week.day.URL --><a href="{cal_week.day.URL}"<!-- IF cal_week.day.CURRENT --> aria-current="date"<!-- ENDIF -->><time datetime="{cal_week.day.DATE}">{cal_week.day.NUM}</time></a><!-- ELSE -->{cal_week.day.NUM}<!-- ENDIF -->
+		<!-- BEGIN event --><a class="plus-cal-entry" href="{cal_week.day.event.URL}"<!-- IF cal_week.day.event.PREVIEW --> title="{cal_week.day.event.PREVIEW}"<!-- ENDIF -->><!-- IF cal_week.day.event.BIRTHDAY -->{L_PLUS_CAL_BIRTHDAY} · <!-- ENDIF -->{cal_week.day.event.SHORT_TITLE}</a><!-- END event -->
 		<!-- IF cal_week.day.MORE --><a href="{cal_week.day.URL}" class="plus-cal-entry">+{cal_week.day.MORE}</a><!-- ENDIF -->
 	</td><!-- END day --></tr><!-- END cal_week --></tbody>
 </table>

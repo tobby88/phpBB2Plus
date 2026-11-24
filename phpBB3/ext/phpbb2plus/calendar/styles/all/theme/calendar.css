@@ -9,4 +9,8 @@ table.plus-cal-grid th { background: #48647d; color: white; }
 .plus-cal-entry { display: block; overflow-wrap: anywhere; }
 .plus-cal-grid [aria-current], .plus-cal-hours [aria-current] { font-weight: bold; text-decoration: underline; }
 .plus-cal-hours a { display: inline-block; padding: .3em; }
+.plus-cal-strip summary { cursor: pointer; font-weight: bold; }
+.plus-cal-days { display: flex; flex-wrap: wrap; }
+.plus-cal-cell { flex: 1 1 7em; min-width: 0; padding: .4em; border-inline-start: 1px solid #a9b7c5; }
+.plus-cal-cell h4 { margin: 0 0 .25em; }
 @media (max-width: 700px) { table.plus-cal-grid td { padding: .2em; } .plus-cal-entry { font-size: .9em; } }

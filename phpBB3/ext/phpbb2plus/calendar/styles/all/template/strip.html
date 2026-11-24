@@ -1,0 +1,9 @@
+{% for day in loops.cal_strip %}
+<section class="plus-cal-cell">
+	<h4><a href="{{ day.URL }}"><time datetime="{{ day.DATE }}"{% if day.CURRENT %} aria-current="date"{% endif %}>{{ day.LABEL }}</time></a></h4>
+	{% for event in day.event %}
+	<a class="plus-cal-entry" href="{{ event.URL }}"{% if event.PREVIEW %} title="{{ event.PREVIEW }}"{% endif %}>{% if event.BIRTHDAY %}{{ lang('PLUS_CAL_BIRTHDAY') }} · {% endif %}{{ event.SHORT_TITLE }}</a>
+	{% endfor %}
+	{% if day.MORE %}<a class="plus-cal-entry" href="{{ day.URL }}">+{{ day.MORE }}</a>{% endif %}
+</section>
+{% endfor %}

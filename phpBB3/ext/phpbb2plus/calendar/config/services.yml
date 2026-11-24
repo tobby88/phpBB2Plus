@@ -10,7 +10,12 @@ services:
         arguments: ['@phpbb2plus.calendar.schedule', '@phpbb2plus.calendar.settings', '@request', '@user', '@language', '@controller.helper', '@template', '@pagination']
     phpbb2plus.calendar.navigation:
         class: phpbb2plus\calendar\event\navigation
-        arguments: ['@language', '@controller.helper', '@template']
+        arguments: ['@language', '@controller.helper', '@template', '@phpbb2plus.calendar.settings']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.calendar.preferences:
+        class: phpbb2plus\calendar\event\preferences
+        arguments: ['@phpbb2plus.calendar.settings', '@request', '@language', '@template']
         tags:
             - { name: event.listener }
     phpbb2plus.calendar.posting:

@@ -1,6 +1,7 @@
 <?php
 namespace phpbb2plus\calendar\controller;
 
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class board
@@ -74,17 +75,8 @@ class board
 			$key = $date->format('Y-m-d');
 			$cells[$key] = array('date'=>$date,'count'=>0,'items'=>array());
 		}
-		$limit = 3;
-		foreach ($this->records($first,$next,$forums) as $record)
-		{
-			$start = max($record['FROM'],$first->getTimestamp());
-			$date = $first->setTimestamp($start)->setTime(0,0);
-			for (; $date < $next && $date->getTimestamp() <= $record['UNTIL']; $date=$date->modify('+1 day'))
-			{
-				$key = $date->format('Y-m-d');
-				if (++$cells[$key]['count'] <= $limit) { $cells[$key]['items'][] = $record; }
-			}
-		}
+		$limit = $this->settings->get('nb_row');
+		$this->fill($cells,$first,$next,$forums,$limit);
 		$today = $this->user->create_datetime()->format('Y-m-d');
 		$i = 0;
 		foreach ($cells as $key => $cell)
@@ -92,14 +84,71 @@ class board
 			$d = $cell['date'];
 			if ($i < 7) { $this->template->assign_block_vars('cal_head',array('LABEL'=>$this->user->format_date($d->getTimestamp(),'D',true))); }
 			if (($i++ % 7) === 0) { $this->template->assign_block_vars('cal_week',array()); }
-			$url = $this->link('day',$d,$filter);
+			$url = (int) $d->format('Y') >= 1971 && (int) $d->format('Y') <= 2069 ? $this->link('day',$d,$filter) : '';
 			$this->template->assign_block_vars('cal_week.day',array('DATE'=>$key,'NUM'=>(int)$d->format('j'),'URL'=>$url,
 				'CURRENT'=>$key === $today,'IN_MONTH'=>$d >= $first && $d < $next, 'MORE'=>max(0,$cell['count']-$limit)));
-			foreach ($cell['items'] as $entry)
+			foreach ($cell['items'] as $entry) { $this->template->assign_block_vars('cal_week.day.event',$entry); }
+		}
+	}
+
+	private function fill(&$cells, $first, $next, $forums, $limit)
+	{
+		$topics = array();
+		foreach ($this->records($first,$next,$forums) as $record)
+		{
+			$start = max($record['FROM'],$first->getTimestamp());
+			$date = $first->setTimestamp($start)->setTime(0,0);
+			for (; $date < $next && $date->getTimestamp() <= $record['UNTIL']; $date=$date->modify('+1 day'))
 			{
-				$this->template->assign_block_vars('cal_week.day.event',$entry);
+				$key = $date->format('Y-m-d');
+				if (++$cells[$key]['count'] <= $limit)
+				{
+					$cells[$key]['items'][] = $record;
+					if (!$record['BIRTHDAY']) { $topics[$record['TOPIC_ID']] = true; }
+				}
 			}
 		}
+		$previews = $this->schedule->previews(array_keys($topics),$forums);
+		foreach ($cells as &$cell)
+		{
+			foreach ($cell['items'] as &$entry)
+			{
+				$id = $entry['TOPIC_ID'] ?? 0;
+				$entry['PREVIEW'] = $previews[$id] ?? '';
+				$entry['SHORT_TITLE'] = $id ? $this->schedule->excerpt($entry['TITLE'],$this->settings->get('title_length')) : $entry['TITLE'];
+			}
+			unset($entry);
+		}
+		unset($cell);
+	}
+
+	public function strip()
+	{
+		$days = $this->settings->get('header_cells');
+		if (!$days) { throw new NotFoundHttpException(); }
+		$this->language->add_lang('calendar','phpbb2plus/calendar');
+		list($day) = $this->selected($this->user->create_datetime()->getTimezone());
+		$first = $day->modify('-1 day');
+		if ((int) $first->format('Y') < 1971) { $first = $day; }
+		$next = min($first->modify('+' . $days . ' days'),$first->setDate(2070,1,1));
+		list(,$forums) = $this->schedule->scope(0,0);
+		$cells = array();
+		for ($date=$first; $date < $next; $date=$date->modify('+1 day'))
+		{
+			$cells[$date->format('Y-m-d')] = array('date'=>$date,'count'=>0,'items'=>array());
+		}
+		$limit = $this->settings->get('nb_row');
+		$this->fill($cells,$first,$next,$forums,$limit);
+		$today = $this->user->create_datetime()->format('Y-m-d');
+		foreach ($cells as $key=>$cell)
+		{
+			$date = $cell['date'];
+			$this->template->assign_block_vars('cal_strip',array('URL'=>$this->link('day',$date,0),'DATE'=>$key,
+				'CURRENT'=>$key === $today,'LABEL'=>$this->user->format_date($date->getTimestamp(),'D, j M',true),'MORE'=>max(0,$cell['count']-$limit)));
+			foreach ($cell['items'] as $entry) { $this->template->assign_block_vars('cal_strip.event',$entry); }
+		}
+		$this->template->set_filenames(array('plus_cal_header'=>'@phpbb2plus_calendar/strip.html'));
+		return new Response($this->template->assign_display('plus_cal_header'),200,array('Cache-Control'=>'private, no-store'));
 	}
 
 	private function agenda($day, $moment, $view, $filter, $forums)
@@ -152,7 +201,7 @@ class board
 		$previous = $view === 'month' ? $day->modify('first day of previous month') : $day->modify('-1 day');
 		$next = $view === 'month' ? $day->modify('first day of next month') : $day->modify('+1 day');
 		$heading = $this->user->format_date($day->getTimestamp(),$view==='month' ? 'F Y' : 'l, j F Y',true);
-		$this->template->assign_vars(array('CAL_MONTH'=>$view==='month','CAL_DATE'=>$day->format('Y-m-d'),
+		$this->template->assign_vars(array('S_PLUS_CALENDAR_PAGE'=>true,'CAL_MONTH'=>$view==='month','CAL_DATE'=>$day->format('Y-m-d'),
 			'CAL_TITLE'=>$heading,'CAL_VIEW'=>$view,'U_CAL_HOME'=>$this->helper->route('phpbb2plus_calendar_home'),
 			'U_CAL_MONTH'=>$this->link('month',$day,$filter),
 			'U_CAL_PREV'=>(int)$previous->format('Y')>=1971 ? $this->link($view==='month'?'month':'day',$previous,$filter) : '',
