@@ -1,8 +1,10 @@
 """Assemble a fresh phpBB3 Plus web root from verified release archives."""
 import argparse
 from hashlib import sha256
+import json
 from pathlib import Path, PurePosixPath
 import os
+import re
 import shutil
 import tempfile
 import urllib.request
@@ -71,6 +73,31 @@ def unpack(package, prefix, root):
                 target.chmod(0o755)
 
 
+def bundle_flags(web):
+    source = ROOT / "phpBB2"
+    folder = web / "images/plusflags"
+    folder.mkdir(exist_ok=True)
+    catalog = []
+    for line in (source / "install/schemas/mysql_basic.sql").read_text(encoding="utf-8").splitlines():
+        if not line.startswith("INSERT INTO phpbb_flags "):
+            continue
+        row = re.fullmatch(r"INSERT INTO phpbb_flags \(flag_name, flag_image\) VALUES \('([^']+)','([a-zA-Z0-9_-]+\.gif)'\);", line)
+        if not row:
+            raise ValueError("Unrecognised flag entry in the original Plus distribution")
+        title, name = row.groups()
+        data = (source / "images/flags" / name).read_bytes()
+        if data[:6] not in (b"GIF87a", b"GIF89a"):
+            raise ValueError(f"Invalid bundled flag image {name}")
+        image = sha256(data).hexdigest() + ".gif"
+        (folder / image).write_bytes(data)
+        catalog.append({"label": title, "source_file": name, "image": image})
+    if not catalog:
+        raise ValueError("The Plus distribution contains no flag definitions")
+    dest = web / "ext/phpbb2plus/community/data"
+    dest.mkdir(exist_ok=True)
+    (dest / "flags.json").write_text(json.dumps(catalog, ensure_ascii=True), encoding="ascii")
+
+
 def assemble(output, cache, offline=False):
     output = output.resolve()
     overlay = ROOT / "phpBB3"
@@ -93,6 +120,7 @@ def assemble(output, cache, offline=False):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
         images = web / "styles" / "fisubsilversh" / "theme" / "images"
+        bundle_flags(web)
         runtime = ROOT / "phpBB2/assets/ruffle"
         player = web / "assets/ruffle"
         player.mkdir()

@@ -118,7 +118,7 @@ def server(web, root):
 
 
 def source_files(source, target):
-    for directory in ("images/smiles", "images/ranks", "images/avatars/gallery"):
+    for directory in ("images/smiles", "images/ranks", "images/avatars/gallery", "images/flags"):
         if (source / directory).is_dir():
             shutil.copytree(source / directory, target / directory)
     marker = Path("includes/functions_post_author.php")
@@ -198,6 +198,10 @@ def profiles(base, member, owner):
     path = "memberlist.php?mode=viewprofile&u=2"
     public = Browser(base).fetch(path)
     private = member.fetch(path)
+    if re.search(r'<dt>(?:Age|Alter)\s*:', public) or not re.search(r'<dt>Age\s*:', private):
+        raise RuntimeError("Native profile age did not respect Plus member-only visibility")
+    if 'stat-block birthday-list' in Browser(base).fetch("index.php") or 'stat-block birthday-list' not in member.fetch("index.php"):
+        raise RuntimeError("The native board birthday list did not retain its audience")
     if "ModernMember" not in public or "mode=compose" not in public:
         raise RuntimeError("Guest profile must be reachable with a PM login link")
     for marker in ("Fixture Town", "Example.42", "ABCD0123", "examplefixture", "example.fixture"):
@@ -210,13 +214,24 @@ def profiles(base, member, owner):
     form = owner.fetch(edit)
     if 'name="pf_plus_telegram"' not in form or "ABCD0123" not in form:
         raise RuntimeError("The native UCP is missing the converted contacts")
+    flags = re.search(r'<select[^>]+name="pf_plus_country"[^>]*>(.*?)</select>', form, re.S)
+    option = re.search(r'<option value="([0-9]+)"[^>]*>\s*Abendrot\s*</option>', flags.group(1)) if flags else None
+    if not option or "Nordlicht" not in private or "images/plusflags/" not in private or "Nordlicht" in public or "images/plusflags/" in public:
+        raise RuntimeError("Imported native flag options or guest visibility differ from the source")
     action, fields = Page(form).forms["ucp"]
+    fields["pf_plus_country"] = option.group(1)
     fields.update(submit="1", pf_phpbb_location="Fixture Town", pf_phpbb_facebook="https://www.facebook.com/example.fixture",
                   pf_phpbb_twitter="examplefixture", pf_plus_telegram="updatedfixture", pf_plus_signal="Example.42",
                   pf_plus_threema="ABCD0123", bday_year="1970", bday_month="1", bday_day="1")
     time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
     response = owner.fetch(urljoin(urljoin(base, edit), action), fields)
     updated = member.fetch(path)
+    if "Abendrot" not in updated or "images/plusflags/" not in updated or "Abendrot" in Browser(base).fetch(path):
+        raise RuntimeError("The native UCP did not retain the selected flag and its visibility")
+    from profile_media import SMILE
+    image = re.search(r'<img src="([^"]*images/plusflags/[a-f0-9]+\.png)"', updated)
+    if not image or member.fetch(unescape(image.group(1)), raw=True) != SMILE:
+        raise RuntimeError("The edited country field serves the wrong historical image")
     if "https://t.me/updatedfixture" not in updated or "https://www.facebook.com/example.fixture" not in updated:
         error = re.search(r'class="error">(.+?)</', response, re.S)
         raise RuntimeError("Native UCP contact edit failed: " + (error.group(1) if error else "no update"))

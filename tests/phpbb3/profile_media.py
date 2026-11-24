@@ -12,6 +12,7 @@ RANKS = {"de": png(21, 6, b"\x80\x10\x10"), "en": png(21, 6, b"\x10\x10\x80")}
 
 def source_media(legacy):
     files = {"images/avatars/historic.png": UPLOAD, "images/avatars/gallery/Grüne Gruppe/Blauer Stern.png": LOCAL,
+             "images/flags/nordlicht.png": png(15, 10, b"\x20\x90\x60"), "images/flags/Abendrot.png": SMILE,
              "images/avatars/gallery/Anderes/Unused.png": SMILE, "images/smiles/zeichen.png": SMILE}
     for lang, name in (("en", "english"), ("de", "german")):
         files[f"templates/fisubsilversh/images/lang_{name}/ranks/abzeichen.png"] = RANKS[lang]

@@ -87,6 +87,11 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2)
 		VALUES (50,32,0,-1,0),(50,32,0,-1,0),(50,40,0,2,0),(63,0,111,2,1),(63,0,112,2,1)");
 }
+elseif ($argv[1] === 'installed-flags')
+{
+	$stats = $db->query("SELECT COUNT(*) AS choices, SUM(image='') AS missing FROM p3_plus_flags")->fetch_assoc();
+	check_fixture((int) $stats['choices'] === 192 && (int) $stats['missing'] === 0, 'Fresh board has an incomplete bundled flag catalogue');
+}
 elseif ($argv[1] === 'profile-media')
 {
 	$id = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];

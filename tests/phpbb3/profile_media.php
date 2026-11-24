@@ -1,6 +1,9 @@
 <?php
 function seed_profile_media($db)
 {
+	$db->query("INSERT INTO phpbb_flags (flag_id,flag_name,flag_image) VALUES (250,'Nordlicht','nordlicht.png')");
+	$db->query("UPDATE phpbb_users SET user_from_flag='nordlicht.png' WHERE user_id=2");
+	$db->query("UPDATE phpbb_users SET user_from_flag='Abendrot.png' WHERE user_id=1");
 	$db->query("UPDATE phpbb_config SET config_value='1' WHERE config_name IN ('allow_avatar_upload','allow_avatar_local','allow_avatar_remote')");
 	$db->query("UPDATE phpbb_users SET user_avatar_type=1,user_avatar='historic.png' WHERE user_id=1");
 	$db->query("UPDATE phpbb_users SET user_avatar_type=3,user_avatar='Grüne Gruppe/Blauer Stern.png',user_rank=77 WHERE user_id=2");

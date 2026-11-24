@@ -118,6 +118,7 @@ def main():
             install(web, root, target)
             php("bin/phpbbcli.php", "--version", cwd=web)
             fixture = ROOT / "tests/phpbb3/legacy_database.php"
+            php(fixture, "installed-flags", target)
             os.environ["PLUS_TEST_MODERN_PASSWORD"] = secrets.token_hex(7) + '"&Ü\\'
             os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
             php(fixture, "seed", source)
