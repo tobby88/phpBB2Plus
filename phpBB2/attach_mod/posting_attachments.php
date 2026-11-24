@@ -278,16 +278,8 @@ class attach_parent
 				$mode = 'editpost';
 			}
 
-			if ($userdata['user_level'] == ADMIN)
-			{
-				$is_auth['auth_attachments'] = 1;
-				$max_attachments = ADMIN_MAX_ATTACHMENTS;
-			}
-			else
-			{
-				$is_auth['auth_attachments'] = intval($attach_config['allow_pm_attach']);
-				$max_attachments = intval($attach_config['max_attachments_pm']);
-			}
+			$is_auth['auth_attachments'] = !empty($attach_config['allow_pm_attach']);
+			$max_attachments = ($userdata['user_level'] == ADMIN) ? ADMIN_MAX_ATTACHMENTS : intval($attach_config['max_attachments_pm']);
 
 			$sql_id = 'privmsgs_id';
 		}
@@ -1186,9 +1178,9 @@ class attach_parent
 				$row = array('allow_group' => 0, 'max_filesize' => 0, 'cat_id' => 0, 'forum_permissions' => '');
 			}
 
-			$allowed_filesize = ($row['max_filesize']) ? $row['max_filesize'] : $attach_config['max_filesize'];
+			$admin = ($userdata['user_level'] == ADMIN);
+			$allowed_filesize = attach_extension_file_limit($row['max_filesize'], $attach_config['max_filesize'], $admin);
 			$cat_id = intval($row['cat_id']);
-			$auth_cache = trim($row['forum_permissions']);
 
 			if (!$error && $cat_id == IMAGE_CAT)
 			{
@@ -1259,7 +1251,7 @@ class attach_parent
 			} 
 
 			// Check Forum Permissions
-			if (!$error && $this->page != PAGE_PRIVMSGS && $userdata['user_level'] != ADMIN && !is_forum_authed($auth_cache, $forum_id) && trim($auth_cache) != '')
+			if (!$error && !attach_extension_allowed_here($row['forum_permissions'], $forum_id, $this->page == PAGE_PRIVMSGS, $admin))
 			{
 				$error = TRUE;
 				if(!empty($error_msg))
@@ -1413,7 +1405,7 @@ class attach_parent
 			}
 
 			// check Filesize 
-			if (!$error && $allowed_filesize != 0 && $this->filesize > $allowed_filesize && $userdata['user_level'] != ADMIN)
+			if (!$error && $allowed_filesize != 0 && $this->filesize > $allowed_filesize)
 			{
 				$size_lang = ($allowed_filesize >= 1048576) ? $lang['MB'] : ( ($allowed_filesize >= 1024) ? $lang['KB'] : $lang['Bytes'] );
 

@@ -115,9 +115,9 @@ $lang['Attachment_test_ftp_listing'] = 'Das FTP-Verzeichnis %s konnte nicht aufg
 // Attach Rules Window
 $lang['Rules_page'] = 'Attachment Regeln';
 $lang['Attach_rules_title'] = 'Erlaubte Dateierweiterungen und deren Dateigrößen';
-$lang['Group_rule_header'] = '%s -> Maximale Upload Größe: %s';
+$lang['Group_rule_header'] = '%s · Forenlimit pro Datei: %s';
 $lang['Allowed_extensions_and_sizes'] = 'Erlaubte Dateierweiterungen';
-$lang['Note_user_empty_group_permissions'] = 'BEACHTE:<br />Es ist normalerweise erlaubt Dateien in diesem Forum zu posten, <br />aber da hier alle Dateierweiterungen verboten wurden <br />ist es unmöglich eine Datei zu posten. Wenn du es <br />versuchst, dann wirst du eine Fehlernachricht erhalten.<br />';
+$lang['Note_user_empty_group_permissions'] = 'Hier sind keine Dateitypen für Anhänge freigegeben.';
 
 // Quota Variables
 $lang['Upload_quota'] = 'Upload Quota';

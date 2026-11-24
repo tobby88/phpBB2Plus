@@ -187,6 +187,55 @@ function is_forum_authed($auth_cache, $check_forum_id)
 	return false;
 }
 
+// Forum restrictions apply to ordinary post attachments. The per-file limit
+// is independent of the combined space available in a user's PM mailbox.
+function attach_extension_allowed_here($permissions, $forum_id, $private_message, $admin)
+{
+	return $private_message || $admin || is_forum_authed(trim($permissions), $forum_id);
+}
+
+function attach_extension_file_limit($group_limit, $default_limit, $admin)
+{
+	if ($admin) { return 0; }
+	return $group_limit ? $group_limit : $default_limit;
+}
+
+function attach_get_extension_rules($db, $forum_id, $private_message, $admin, $default_limit)
+{
+	$sql = 'SELECT g.group_id, g.group_name, g.max_filesize, g.forum_permissions, e.extension
+		FROM ' . EXTENSION_GROUPS_TABLE . ' g
+		INNER JOIN ' . EXTENSIONS_TABLE . ' e ON e.group_id = g.group_id
+		WHERE g.allow_group = 1
+		ORDER BY g.group_name, g.group_id, e.extension';
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not query attachment rules.', '', __LINE__, __FILE__, $sql);
+	}
+
+	$groups = array();
+	try
+	{
+		while ($row = $db->sql_fetchrow($result))
+		{
+			if (phpbb_forbidden_upload_extension($row['extension'])
+				|| !attach_extension_allowed_here($row['forum_permissions'], $forum_id, $private_message, $admin))
+			{
+				continue;
+			}
+			$id = (int)$row['group_id'];
+			if (!isset($groups[$id]))
+			{
+				$groups[$id] = array('name' => $row['group_name'],
+					'limit' => attach_extension_file_limit($row['max_filesize'], $default_limit, $admin),
+					'extensions' => array());
+			}
+			$groups[$id]['extensions'][] = $row['extension'];
+		}
+	}
+	finally { $db->sql_freeresult($result); }
+	return $groups;
+}
+
 /**
 * Init FTP Session
 */

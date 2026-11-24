@@ -115,9 +115,9 @@ $lang['Attachment_test_ftp_listing'] = 'The FTP directory %s could not be listed
 // Attach Rules Window
 $lang['Rules_page'] = 'Attachment Rules';
 $lang['Attach_rules_title'] = 'Allowed Extension Groups and their Sizes';
-$lang['Group_rule_header'] = '%s -> Maximum Upload Size: %s'; // Replace first %s with Extension Group, second one with the Size STRING
+$lang['Group_rule_header'] = '%s · Board limit per file: %s';
 $lang['Allowed_extensions_and_sizes'] = 'Allowed Extensions and Sizes';
-$lang['Note_user_empty_group_permissions'] = 'NOTE:<br />You are normally allowed to attach files within this Forum, <br />but since no Extension Group is allowed to be attached here, <br />you are unable to attach anything. If you try, <br />you will receive an Error Message.<br />';
+$lang['Note_user_empty_group_permissions'] = 'No file types are enabled for attachments here.';
 
 // Quota Variables
 $lang['Upload_quota'] = 'Upload Quota';

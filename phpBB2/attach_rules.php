@@ -22,100 +22,51 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 
 $forum_id = get_var('f', 0);
-$privmsg = (!$forum_id) ? true : false;
+$privmsg = ($forum_id === 0);
 
 // Start Session Management
 $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
 
-// Display the allowed Extension Groups and Upload Size
+$admin = ($userdata['user_level'] == ADMIN);
 if ($privmsg)
 {
-	$auth['auth_attachments'] = ($userdata['user_level'] != ADMIN) ? intval($attach_config['allow_pm_attach']) : true;
-	$auth['auth_view'] = true;
-	$_max_filesize = $attach_config['max_filesize_pm'];
+	$allowed = $userdata['session_logged_in'] && empty($board_config['privmsg_disable'])
+		&& !empty($userdata['user_allow_pm']) && !empty($attach_config['allow_pm_attach']);
 }
 else
 {
 	$auth = auth(AUTH_ALL, $forum_id, $userdata);
-	$_max_filesize = $attach_config['max_filesize'];
+	$allowed = !empty($auth['auth_view']) && !empty($auth['auth_read']) && !empty($auth['auth_attachments']);
 }
-
-if (!($auth['auth_attachments'] && $auth['auth_view']))
+if (!empty($attach_config['disable_mod']) || !$allowed)
 {
-	message_die(GENERAL_ERROR, 'You are not allowed to call this file (ID:2)');
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 }
 
 $template->set_filenames(array(
 	'body' => 'posting_attach_rules.tpl')
 );
 
-$sql = 'SELECT group_id, group_name, max_filesize, forum_permissions
-	FROM ' . EXTENSION_GROUPS_TABLE . ' 
-	WHERE allow_group = 1 
-	ORDER BY group_name ASC';
-
-if (!($result = $db->sql_query($sql)))
-{ 
-	message_die(GENERAL_ERROR, 'Could not query Extension Groups.', '', __LINE__, __FILE__, $sql); 
-} 
-
-$allowed_filesize = array(); 
-$rows = $db->sql_fetchrowset($result); 
-$num_rows = $db->sql_numrows($result); 
-$db->sql_freeresult($result);
-
-// Ok, only process those Groups allowed within this forum
-$nothing = true;
-for ($i = 0; $i < $num_rows; $i++)
+$groups = attach_get_extension_rules($db, $forum_id, $privmsg, $admin, $attach_config['max_filesize']);
+foreach ($groups as $group)
 {
-	$auth_cache = trim($rows[$i]['forum_permissions']);
-	
-	$permit = ($privmsg) ? true : ((is_forum_authed($auth_cache, $forum_id)) || trim($rows[$i]['forum_permissions']) == '');
-
-	if ($permit)
+	$limit = $group['limit'];
+	$label = $lang['Unlimited'];
+	if ($limit > 0)
 	{
-		$nothing = false;
-		$group_name = $rows[$i]['group_name'];
-		$f_size = intval(trim($rows[$i]['max_filesize']));
-		$det_filesize = (!$f_size) ? $_max_filesize : $f_size;
-		$size_lang = ($det_filesize >= 1048576) ? $lang['MB'] : (($det_filesize >= 1024) ? $lang['KB'] : $lang['Bytes']); 
-
-		if ($det_filesize >= 1048576) 
-		{
-			$det_filesize = round($det_filesize / 1048576 * 100) / 100; 
-		}
-		else if ($det_filesize >= 1024) 
-		{ 
-			$det_filesize = round($det_filesize / 1024 * 100) / 100; 
-		} 
-
-		$max_filesize = ($det_filesize == 0) ? $lang['Unlimited'] : $det_filesize . ' ' . $size_lang;
-
-		$template->assign_block_vars('group_row', array(
-			'GROUP_RULE_HEADER' => sprintf($lang['Group_rule_header'], htmlspecialchars($group_name, ENT_QUOTES, 'UTF-8'), $max_filesize))
-		);
-		
-		$sql = 'SELECT extension
-			FROM ' . EXTENSIONS_TABLE . " 
-			WHERE group_id = " . (int) $rows[$i]['group_id'] . " 
-			ORDER BY extension ASC";
-
-		if (!($result = $db->sql_query($sql))) 
-		{ 
-			message_die(GENERAL_ERROR, 'Could not query Extensions.', '', __LINE__, __FILE__, $sql); 
-		} 
-
-		$e_rows = $db->sql_fetchrowset($result);
-		$e_num_rows = $db->sql_numrows($result);
-		$db->sql_freeresult($result);
-
-		for ($j = 0; $j < $e_num_rows; $j++)
-		{
-			$template->assign_block_vars('group_row.extension_row', array(
-				'EXTENSION' => htmlspecialchars($e_rows[$j]['extension'], ENT_QUOTES, 'UTF-8'))
-			);
-		}
+		if ($limit >= 1048576) { $label = round($limit / 1048576, 2) . ' ' . $lang['MB']; }
+		elseif ($limit >= 1024) { $label = round($limit / 1024, 2) . ' ' . $lang['KB']; }
+		else { $label = $limit . ' ' . $lang['Bytes']; }
+	}
+	$template->assign_block_vars('group_row', array('GROUP_RULE_HEADER' => sprintf(
+		$lang['Group_rule_header'], htmlspecialchars($group['name'], ENT_QUOTES, 'UTF-8'), $label
+	)));
+	foreach ($group['extensions'] as $extension)
+	{
+		$template->assign_block_vars('group_row.extension_row', array(
+			'EXTENSION' => htmlspecialchars($extension, ENT_QUOTES, 'UTF-8')
+		));
 	}
 }
 
@@ -129,11 +80,12 @@ $template->assign_vars(array(
 	'L_EMPTY_GROUP_PERMS'	=> $lang['Note_user_empty_group_permissions'])
 );
 
-if ($nothing)
+if (!$groups)
 {
 	$template->assign_block_vars('switch_nothing', array());
 }
 
 $template->pparse('body');
+include($phpbb_root_path . 'includes/page_tail.' . $phpEx);
 
 ?>
