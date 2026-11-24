@@ -204,3 +204,22 @@ def profiles(base, member, owner):
         raise RuntimeError("Native UCP contact edit failed: " + (error.group(1) if error else "no update"))
     if "updatedfixture" in Browser(base).fetch(path):
         raise RuntimeError("The edited contact became public")
+
+
+def native_content(base, moderator, member):
+    poll = member.fetch("viewtopic.php?t=1")
+    if "Welche Jahreszeit?" not in poll or "Frühling" not in poll or "Herbst" not in poll:
+        raise RuntimeError("A converted poll is missing from the topic")
+    search = "search.php?keywords=Archivsuchprobe&sr=posts"
+    results = Browser(base).fetch(search)
+    restricted = moderator.fetch(search)
+    if ("Retained post" not in results or "Restricted topic fixture" in results
+            or "Restricted topic fixture" not in restricted):
+        raise RuntimeError("The native search must find indexed posts within each viewer's forum permissions")
+    inbox = member.fetch("ucp.php?i=pm&folder=inbox")
+    if ("Postfachprobe 111" not in inbox or "Postfachprobe 115" not in inbox
+            or "Postfachprobe 112" in inbox or "Postfachprobe 113" in inbox):
+        raise RuntimeError("Imported new/unread PMs did not arrive in the native inbox")
+    private = member.fetch("ucp.php?i=pm&mode=view&p=111")
+    if "Vertraulich 111" not in private or "Grüße" not in private:
+        raise RuntimeError("Unable to read a converted private message")

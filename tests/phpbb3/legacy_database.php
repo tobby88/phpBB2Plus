@@ -12,6 +12,7 @@ function check_fixture($ok, $message)
 {
 	if (!$ok) { throw new RuntimeException($message); }
 }
+require __DIR__ . '/native_data.php';
 
 if ($argv[1] === 'seed')
 {
@@ -60,6 +61,7 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (40,'Restricted topic fixture','Private fixture text')");
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
+	seed_native_content($db);
 }
 elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 {
@@ -72,6 +74,7 @@ elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 		check_fixture($is_bridge === ($argv[1] === 'converted'), 'Unexpected credential upgrade state for ' . $user['username']);
 	}
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
+	if ($argv[1] === 'converted') { verify_native_content($db, (int) $users[0]['user_id']); }
 	$byline = $db->query('SELECT * FROM p3_posts WHERE post_id=31')->fetch_assoc();
 	check_fixture($byline && (int) $byline['post_visibility'] === 2 && (int) $byline['post_delete_time'] === 10200
 		&& (int) $byline['post_delete_user'] === 2 && (int) $byline['post_edit_user'] === (int) $users[0]['user_id']

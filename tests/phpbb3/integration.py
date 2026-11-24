@@ -16,7 +16,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
-from http_board import convert, login, public_pages, profiles, server, source_files
+from http_board import convert, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
 
 
@@ -127,6 +127,7 @@ def main():
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
+                native_content(base, member, ordinary)
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 

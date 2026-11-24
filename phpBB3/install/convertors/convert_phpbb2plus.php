@@ -37,6 +37,7 @@ if (!$get_info)
 	$convertor['test_file'] = $test_file;
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
+	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 
@@ -59,6 +60,18 @@ if (!$get_info)
 			{
 				$field = array('user_birthday', 'users.user_birthday', 'plus_convert_birthday');
 			}
+			if ($section['target'] === USERS_TABLE && $field[0] === 'user_new_privmsg')
+			{
+				$field = array('user_new_privmsg', 0, '');
+			}
+			if ($section['target'] === PRIVMSGS_TO_TABLE && $field[0] === 'folder_id' && $field[1] === PRIVMSGS_INBOX)
+			{
+				$field = array('folder_id', 'privmsgs.privmsgs_type', 'plus_pm_incoming_folder');
+			}
+			if ($section['target'] === PRIVMSGS_TO_TABLE && $field[2] === 'phpbb_unread_pm')
+			{
+				$field[2] = 'plus_pm_unread';
+			}
 			if ($section['target'] === POSTS_TABLE && $field[0] === 'post_username')
 			{
 				$field = array('post_username', array('posts.post_username', 'posts.post_author_removed'), 'plus_convert_author');
@@ -73,6 +86,18 @@ if (!$get_info)
 			}
 		}
 		unset($field);
+		if ($section['target'] === TOPICS_WATCH_TABLE)
+		{
+			$section = array(
+				'target' => TOPICS_WATCH_TABLE,
+				'query_first' => array('target', $convert->truncate_statement . TOPICS_WATCH_TABLE),
+				'distinct' => true, 'order_by' => 'topics_watch.topic_id, topics_watch.user_id',
+				array('topic_id', 'topics_watch.topic_id', 'intval'),
+				array('user_id', 'topics_watch.user_id', 'phpbb_user_id'),
+				array('notify_status', array('topics_watch.topic_id', 'topics_watch.user_id'), 'plus_watch_status'),
+				'where' => 'topics_watch.user_id > 0 AND topics_watch.topic_id = topics.topic_id AND topics_watch.user_id = users.user_id',
+			);
+		}
 		if ($section['target'] === USERS_TABLE)
 		{
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
@@ -91,6 +116,10 @@ if (!$get_info)
 		}
 	}
 	unset($section);
+	$convertor['schema'][] = array(
+		'target' => SEARCH_WORDMATCH_TABLE, 'primary' => 'posts.post_id',
+		array('', 'posts.post_id', 'plus_index_native_post'),
+	);
 	$shouts_table = $table_prefix . 'plus_shouts';
 	$convertor['schema'][] = array(
 		'target' => $shouts_table, 'primary' => 'shout.shout_id', 'autoincrement' => 'shout_id',
