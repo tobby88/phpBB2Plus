@@ -129,6 +129,11 @@ function plus_arcade_copy_group($short, $column, $value)
 				$data[$dest] = $dest === 'score_units' ? \phpbb2plus\arcade\service\score::units($row[$field]) : $row[$field];
 			}
 			foreach ($owners as $field => $owner) { $data[$owner] = plus_arcade_owner($row[$field]); }
+			if (array_key_exists('game_data', $data) && in_array($short, array('scores','game_saves'), true) && $data['game_data'] !== null)
+			{
+				$data = array_replace($data, \phpbb2plus\arcade\service\saved_game::pack($data['game_data']));
+			}
+			elseif ($short === 'scores') { $data['save_encoded'] = 0; }
 			if (isset($names[$short]))
 			{
 				list($id, $byline) = $names[$short];
@@ -160,6 +165,10 @@ function plus_arcade_schema($prefix, $truncate)
 		$group = 'ina_' . $short . '.' . $column;
 		$section = array('target' => $target, 'query_first' => array('target', $truncate . $target), 'group_by' => $group, 'order_by' => $group,
 			array('', array($short, $column, $group), 'plus_arcade_copy_group'));
+		if ($short === 'games')
+		{
+			$section['query_first'] = array(array('target', $truncate . $target), array('target', $truncate . $prefix . 'plus_arc_launches'));
+		}
 		if ($key && $short !== 'data') { $section['autoincrement'] = $key; }
 		$sections[] = $section;
 	}
@@ -170,5 +179,5 @@ function plus_arcade_schema($prefix, $truncate)
 	$sections[] = array('target' => $prefix . 'plus_arc_assets', 'primary' => 'ina_games.game_id',
 		'query_first' => array('target', $truncate . $prefix . 'plus_arc_assets'),
 		array('',array('ina_games.game_id','ina_games.game_name','ina_games.game_path','ina_games.game_flash'),'plus_arcade_media'));
-	return $sections;
+	return array_merge($sections, plus_arcade_wallet_schema($prefix, $truncate));
 }

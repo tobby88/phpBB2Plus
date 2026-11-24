@@ -10,19 +10,33 @@ class listener implements EventSubscriberInterface
 	private $helper;
 	private $db;
 	private $prefix;
+	private $protocol;
 
-	public function __construct($language, $template, $helper, $db, $prefix)
+	public function __construct($language, $template, $helper, $db, $prefix, $protocol)
 	{
 		$this->language = $language;
 		$this->template = $template;
 		$this->helper = $helper;
 		$this->db = $db;
 		$this->prefix = $prefix;
+		$this->protocol = $protocol;
 	}
 
 	static public function getSubscribedEvents()
 	{
-		return array('core.page_header' => 'header', 'core.permissions' => 'permissions', 'core.delete_user_before' => array('depart', 10));
+		return array('core.page_header' => 'header', 'core.permissions' => 'permissions', 'core.delete_user_before' => array('depart', 10),
+			'core.index_modify_page_title' => array('index_protocol', 10));
+	}
+
+	public function index_protocol()
+	{
+		$endpoint = $this->protocol->index_endpoint();
+		if ($endpoint !== '')
+		{
+			$this->protocol->handle($endpoint)->send();
+			garbage_collection();
+			exit_handler();
+		}
 	}
 
 	public function header()
@@ -53,7 +67,7 @@ class listener implements EventSubscriberInterface
 				if ($table === 'all_scores') { $update['player_name'] = $name; }
 				$this->db->sql_query('UPDATE ' . $this->prefix . $table . ' SET ' . $this->db->sql_build_array('UPDATE', $update) . ' WHERE owner_id=' . $id);
 			}
-			foreach (array('saves','favorites','invites','players') as $table) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . ' WHERE owner_id=' . $id); }
+			foreach (array('saves','favorites','invites','players','wallets') as $table) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . ' WHERE owner_id=' . $id); }
 			foreach (array('ratings' => 'owner_id', 'bans' => 'owner_id', 'log' => 'owner_id', 'tour_plays' => 'owner_id',
 				'comments' => 'editor_id', 'tour_games' => 'winner_id') as $table => $field)
 			{ $this->db->sql_query('UPDATE ' . $this->prefix . "$table SET $field=0 WHERE $field=$id"); }

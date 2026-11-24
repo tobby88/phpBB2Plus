@@ -17,8 +17,9 @@ class board
 	private $pagination;
 	private $prefix;
 	private $names;
+	private $wallet;
 
-	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $names = null)
+	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $names = null)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -30,6 +31,7 @@ class board
 		$this->pagination = $pagination;
 		$this->prefix = $prefix;
 		$this->names = $names;
+		$this->wallet = $wallet;
 	}
 
 	private function header()
@@ -99,6 +101,12 @@ class board
 	{
 		$this->header();
 		$g = $this->catalog->game($game);
+		$account = $this->wallet->account((int) $this->user->data['user_id']);
+		if ($account && $account['balance_text'] !== '')
+		{
+			$this->template->assign_vars(array('ARC_WALLET' => true, 'ARC_BALANCE' => $account['balance_text'] ?? $account['initial_amount'],
+				'ARC_CURRENCY' => catalog::plain($account['currency_name']) ?: $this->language->lang('PLUS_ARC_POINTS'), 'ARC_COST' => (int) $g['game_charge']));
+		}
 		$params = array('game' => (int) $g['game_id']);
 		$title = catalog::plain($g['game_desc'] ?: $g['game_name']);
 		if ($this->catalog->can_play($g))

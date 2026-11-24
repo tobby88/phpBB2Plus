@@ -27,6 +27,11 @@ phpbb2plus_arcade_play:
     defaults: { _controller: phpbb2plus.arcade.player:page }
     requirements: { game: '[1-9][0-9]*', launch: '[a-f0-9]{32}' }
     methods: [GET, HEAD]
+phpbb2plus_arcade_protocol:
+    path: /arcade/game/{game}/media/{launch}/{endpoint}
+    defaults: { _controller: phpbb2plus.arcade.protocol:handle }
+    requirements: { game: '[1-9][0-9]*', launch: '[a-f0-9]{32}', endpoint: '(?:newscore|IBProArcade|pnFlashGames|arcade|index)\.php' }
+    methods: [GET, POST]
 phpbb2plus_arcade_asset:
     path: /arcade/game/{game}/media/{launch}/{name}
     defaults: { _controller: phpbb2plus.arcade.player:asset }

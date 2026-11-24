@@ -1,6 +1,10 @@
 <?php
 function seed_arcade($db)
 {
+	$db->query("ALTER TABLE phpbb_users ADD user_points DECIMAL(30,8) DEFAULT 3, ADD user_cash BIGINT UNSIGNED DEFAULT 0");
+	$db->query("UPDATE phpbb_users SET user_points=9007199254740993.12345678,user_cash=18446744073709551615 WHERE user_id=1");
+	$db->query("INSERT INTO phpbb_config (config_name,config_value) VALUES ('points_name','Fixture credits') ON DUPLICATE KEY UPDATE config_value='Fixture credits'");
+	$db->query("UPDATE phpbb_ina_data SET config_value='1' WHERE config_name IN ('use_rewards_mod','use_point_system')");
 	$db->query("UPDATE phpbb_ina_data SET config_value='0' WHERE config_name IN ('games_offline','games_no_guests')");
 	$db->query("UPDATE phpbb_ina_data SET config_value='1' WHERE config_name IN ('games_guest_highscore','games_comments','games_rate','games_at_highscore','games_show_mhm')");
 	$db->query("INSERT INTO phpbb_ina_cat (cat_id,cat_name,cat_desc,cat_type,cat_parent,cat_order,group_required,mod_id) VALUES
@@ -12,6 +16,8 @@ function seed_arcade($db)
 		(62,'private','games/puzzle/club','Vertrauliche Spielprobe',12,0,1,0,1,1,'10',10,0,0,''),
 		(63,'closed','games/','Abgeschaltetes Spiel',10,0,0,0,1,1,'10',10,0,0,''),
 		(64,'personal','games/','Persönliche Spielprobe',13,0,1,0,1,1,'10',10,0,0,'')");
+	$db->query("UPDATE phpbb_ina_games SET game_reward=4,game_bonus=2 WHERE game_id=60");
+	$db->query("UPDATE phpbb_ina_games SET game_charge=8 WHERE game_id=62");
 	$db->query("INSERT INTO phpbb_ina_scores (game_name,player,player_id,score,date,time_taken,gameData) VALUES
 		('puzzle','AlterSpielname',1,95.1234,11001,20,'state:α'),('puzzle','ModernMember',2,5.5000,11002,25,''),
 		('puzzle','EditorFixture',98,-12.3751,11003,30,''),('timer','HistoricMember',1,0.0001,11004,3,''),('timer','ModernMember',2,9.7500,11005,7,'')");
@@ -21,7 +27,7 @@ function seed_arcade($db)
 	$db->query("INSERT INTO phpbb_ina_highscore (highscore_id,highscore_year,highscore_mon,highscore_game,highscore_user_id,highscore_player,highscore_score,highscore_date)
 		VALUES (7,2008,5,'puzzle',1,'AlterSpielname',96.0004,11006)");
 	$db->query("INSERT INTO phpbb_ina_fav (user_id,fav_game_id,fav_game_name) VALUES (1,60,'puzzle')");
-	$db->query("INSERT INTO phpbb_ina_game_saves (user_id,game_id,game_data,saved_at) VALUES (1,60,'Spielstand ü=7',11007)");
+	$db->query("INSERT INTO phpbb_ina_game_saves (user_id,game_id,game_data,saved_at) VALUES (1,60,'Spielstand ü=7 🎮',11007)");
 	$db->query("INSERT INTO phpbb_ina_comment (comment_id,comment_game_name,comment_user_id,comment_username,comment_time,comment_text,comment_edit_user_id)
 		VALUES (71,'puzzle',1,'AlterSpielname',11008,'Schöne Farben',2)");
 	$db->query("INSERT INTO phpbb_ina_rate (rate_game_name,rate_user_id,rate_user_ip,rate_point) VALUES ('puzzle',1,'7f000001',7)");
@@ -38,6 +44,9 @@ function seed_arcade($db)
 function verify_arcade($db, $member)
 {
 	$p = 'p3_plus_arc_';
+	$currencies = $db->query("SELECT currency_field,balance_text FROM {$p}wallets WHERE owner_id=$member ORDER BY currency_field")->fetch_all(MYSQLI_ASSOC);
+	check_fixture(count($currencies) === 2 && $currencies[0]['balance_text'] === '18446744073709551615' &&
+		$currencies[1]['balance_text'] === '9007199254740993.12345678', 'Balances lost precision during conversion');
 	foreach (array('categories'=>4,'games'=>5,'scores'=>5,'all_scores'=>5,'monthly'=>1,'comments'=>1,'ratings'=>1,'favorites'=>1,'saves'=>1,
 		'tours'=>1,'tour_games'=>2,'invites'=>1,'tour_plays'=>1,'players'=>1,'log'=>1,'bans'=>1,'grants'=>2) as $table => $count)
 	{
@@ -48,7 +57,7 @@ function verify_arcade($db, $member)
 	check_fixture((int) $first['owner_id'] === $member && $first['game_data'] === 'state:α' && $first['score_units'] === '951234', 'Arcade score precision, player or legacy state changed');
 	$highest = $db->query("SELECT MAX(score_units) FROM {$p}all_scores")->fetch_row()[0];
 	$missing = $db->query("SELECT score_units,winner_id FROM {$p}tour_games WHERE game_name='timer'")->fetch_assoc();
-	$saved = $db->query("SELECT owner_id,game_data FROM {$p}saves WHERE game_id=60")->fetch_assoc();
+	$saved = $db->query("SELECT owner_id,game_data,save_encoded FROM {$p}saves WHERE game_id=60")->fetch_assoc();
 	check_fixture($highest === '99999999999999' && $missing['score_units'] === null && !(int) $missing['winner_id'] &&
-		(int)$saved['owner_id'] === $member && $saved['game_data'] === 'Spielstand ü=7', 'Lost score precision, missing tournament score, or saved game');
+		(int)$saved['owner_id'] === $member && $saved['save_encoded'] && base64_decode($saved['game_data'],true) === 'Spielstand ü=7 🎮', 'Lost score precision, missing tournament score, or saved game');
 }

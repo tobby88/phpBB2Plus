@@ -11,8 +11,9 @@ class sessions
 	private $config;
 	private $prefix;
 	private $root;
+	private $wallet;
 
-	public function __construct($catalog, $db, $user, $config, $prefix, $root)
+	public function __construct($catalog, $db, $user, $config, $prefix, $root, $wallet)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -20,6 +21,7 @@ class sessions
 		$this->config = $config;
 		$this->prefix = $prefix;
 		$this->root = $root;
+		$this->wallet = $wallet;
 	}
 
 	private function session_key()
@@ -117,9 +119,7 @@ class sessions
 			$this->db->sql_freeresult($result);
 			if ($existing !== false) { if ((int) $existing <= time()) { throw new \DomainException('FORM_INVALID'); } return; }
 			$now = time();
-			if ((int) $game['game_charge'] > 0 && (int) $this->catalog->setting('use_rewards_mod', 0) &&
-				((int) $this->catalog->setting('use_point_system',0) || (int) $this->catalog->setting('use_cash_system',0) || (int) $this->catalog->setting('use_allowance_system',0)))
-			{ throw new \DomainException('PLUS_ARC_WALLET'); }
+			$this->wallet->charge($game, $user);
 			$row = array('token_key' => $key, 'session_key' => $session, 'user_id' => $user, 'game_id' => $id, 'started_at' => $now, 'expires_at' => $now + 86400);
 			$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $row));
 			$this->record_play($game, $now);

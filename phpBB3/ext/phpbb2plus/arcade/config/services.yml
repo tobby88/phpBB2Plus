@@ -2,17 +2,26 @@ services:
     phpbb2plus.arcade.catalog:
         class: phpbb2plus\arcade\service\catalog
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_']
+    phpbb2plus.arcade.wallet:
+        class: phpbb2plus\arcade\service\wallet
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '%core.table_prefix%plus_arc_']
     phpbb2plus.arcade.board:
         class: phpbb2plus\arcade\controller\board
-        arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_arc_', '@?phpbb2plus.community.former_members']
+        arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.wallet', '@?phpbb2plus.community.former_members']
     phpbb2plus.arcade.events:
         class: phpbb2plus\arcade\event\listener
-        arguments: ['@language', '@template', '@controller.helper', '@dbal.conn', '%core.table_prefix%plus_arc_']
+        arguments: ['@language', '@template', '@controller.helper', '@dbal.conn', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.protocol']
         tags:
             - { name: event.listener }
     phpbb2plus.arcade.sessions:
         class: phpbb2plus\arcade\service\sessions
-        arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_arc_', '%core.root_path%']
+        arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_arc_', '%core.root_path%', '@phpbb2plus.arcade.wallet']
     phpbb2plus.arcade.player:
         class: phpbb2plus\arcade\controller\player
         arguments: ['@phpbb2plus.arcade.sessions', '@request', '@language', '@template', '@controller.helper', '@user', '@config']
+    phpbb2plus.arcade.results:
+        class: phpbb2plus\arcade\service\results
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@user', '@config', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.wallet']
+    phpbb2plus.arcade.protocol:
+        class: phpbb2plus\arcade\controller\protocol
+        arguments: ['@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.results', '@phpbb2plus.arcade.catalog', '@request', '@symfony_request', '@config', '@controller.helper', '@language']

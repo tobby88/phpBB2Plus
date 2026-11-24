@@ -15,6 +15,29 @@ class score
 		return $digits === '' ? '0' : $parts[1] . $digits;
 	}
 
+	// Games also send scientific notation and unrounded decimals. Round the
+	// digits themselves so that large scores retain the same fourth decimal on every host.
+	static public function from_wire($value)
+	{
+		if (!is_string($value) || strlen($value) > 128 ||
+			!preg_match('/^([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]+))?$/D', trim($value), $m) ||
+			($m[2] . ($m[3] ?? '')) === '') { throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
+		$digits = $m[2] . ($m[3] ?? '');
+		$significant = ltrim($digits, '0');
+		if ($significant === '') { return '0'; }
+		$exp = max(-256, min(256, (int) ($m[4] ?? 0)));
+		$point = strlen($m[2]) + $exp - (strlen($digits) - strlen($significant));
+		if ($point > 10) { throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
+		$places = $point + 4;
+		if ($places < 0) { return '0'; }
+		$padded = str_pad($significant, $places + 1, '0');
+		// All 14-digit integers are exact even when PHP's native int is 32-bit.
+		$units = (float) substr($padded, 0, $places);
+		if ($padded[$places] >= '5') { $units++; }
+		if ($units > 99999999999999) { throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
+		return sprintf('%.0F', $units && $m[1] === '-' ? -$units : $units);
+	}
+
 	static public function display($units, $separator = '.')
 	{
 		$v = (string) $units;

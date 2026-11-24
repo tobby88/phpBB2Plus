@@ -136,6 +136,23 @@ elseif ($argv[1] === 'played')
 	check_fixture($row && (int) $row['played'] === 1 && (int) $row['total_played'] === 1 &&
 		(int) $row['launches'] === 1 && $row['last_played'] === 'puzzle', 'Repeating the start form changed the play history');
 }
+elseif ($argv[1] === 'scored')
+{
+	$member = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
+	foreach (array('scores','all_scores') as $board)
+	{
+		$rows = $db->query("SELECT score_units,player_id FROM p3_plus_arc_$board WHERE game_name='puzzle' AND owner_id=$member")->fetch_all(MYSQLI_ASSOC);
+		check_fixture(count($rows) === 1 && $rows[0]['score_units'] === '1457500' && (int) $rows[0]['player_id'] === 1, 'Wrong score or duplicated migrated identity');
+	}
+	$winner = $db->query("SELECT winner_id,all_winner_id FROM p3_plus_arc_games WHERE game_id=60")->fetch_assoc();
+	check_fixture((int) $winner['winner_id'] === $member && (int) $winner['all_winner_id'] === 2, 'Current and all-time winner pointers diverged');
+	$count = $db->query("SELECT COUNT(*) FROM p3_plus_arc_launches WHERE finished_at>0 AND game_id=60")->fetch_row()[0];
+	check_fixture((int) $count === 4, 'A duplicate callback counted an extra completed play');
+	$wallet = $db->query("SELECT balance_text FROM p3_plus_arc_wallets WHERE owner_id=$member AND currency_field='user_points'")->fetch_row()[0];
+	$poor = $db->query("SELECT balance_text FROM p3_plus_arc_wallets WHERE owner_id=2 AND currency_field='user_points'")->fetch_row()[0];
+	$paid = $db->query("SELECT played FROM p3_plus_arc_games WHERE game_id=62")->fetch_row()[0];
+	check_fixture($wallet === '9007199254741092.87345678' && $poor === '3' && (int) $paid === 1, 'A reward, charge or rejected play changed the wrong balance');
+}
 elseif ($argv[1] === 'attachments')
 {
 	$rows = $db->query('SELECT r.source_id,r.parent_id,r.attach_id,r.in_message,a.filesize,a.physical_filename,a.is_orphan,a.download_count

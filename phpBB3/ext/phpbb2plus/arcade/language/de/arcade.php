@@ -2,6 +2,11 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_ARC' => 'Spielhalle',
+	'PLUS_ARC_INVALID_SCORE' => 'Dieses Ergebnis konnte nicht gewertet werden.',
+	'PLUS_ARC_FINISHED' => 'Für diesen Spielstart wurde bereits ein Ergebnis gewertet.',
+	'PLUS_ARC_PROGRESS' => 'Der Spielstand konnte nicht verarbeitet werden.',
+	'PLUS_ARC_FUNDS' => 'Dein Guthaben reicht für dieses Spiel nicht aus.',
+	'PLUS_ARC_BALANCE' => 'Dein Guthaben:', 'PLUS_ARC_COST' => 'Pro Spiel:',
 	'PLUS_ARC_PLAY' => 'Spiel starten', 'PLUS_ARC_LOADING' => 'Spiel wird geladen …', 'PLUS_ARC_PLAYER_ERROR' => 'Ruffle konnte dieses Spiel nicht starten.',
 	'PLUS_ARC_NO_FILE' => 'Die Spieldatei ist nicht verfügbar.', 'PLUS_ARC_WALLET' => 'Dieses Spiel setzt ein eingerichtetes Guthaben voraus.',
 	'PLUS_ARC_CLOSED' => 'Die Spielhalle ist momentan geschlossen.',

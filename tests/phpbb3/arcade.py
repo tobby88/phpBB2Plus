@@ -4,7 +4,7 @@ import re
 import struct
 import time
 from html import unescape
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import parse_qs, urljoin, urlsplit
 from http_board import Browser, Page, login
 
 
@@ -83,3 +83,66 @@ def player(base, guest, member, root):
     if "arcade-play" in Page(guest.fetch(root + "/game/61")).forms:
         raise RuntimeError("Missing SWFs should keep their rankings without offering a broken launch")
     return urlsplit(asset).path
+
+
+def next_play(base, member):
+    page = "app.php/arcade/game/60"
+    action, fields = Page(member.fetch(page)).forms["arcade-play"]
+    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+    html = member.fetch(urljoin(urljoin(base, page), action), fields)
+    match = re.search(r'id="plus-arc-player" data-source="([^"]+)"', html)
+    if not match:
+        raise RuntimeError("Cannot start the fixture game")
+    return urljoin(base, unescape(match.group(1)))
+
+
+def protocols(base, member, first_source):
+    source = urljoin(base, first_source)
+    pn = urljoin(source, "pnFlashGames.php")
+    ok = "&opSuccess=true&endvar=1"
+    saved = parse_qs(member.fetch(pn, {"func": "loadGame", "gid": "60"}))
+    if saved.get("gameData") != ["Spielstand ü=7 🎮"]:
+        raise RuntimeError("Converted saved game cannot be loaded through pnFlashGames")
+    for state in ('  Farben &amp; "ä" = 🎮\n', "0", ""):
+        if member.fetch(pn, {"func": "saveGame", "gid": "60", "gameData": state}) != ok:
+            raise RuntimeError("Failed to save a game through its original callback")
+        data = parse_qs(member.fetch(pn, {"func": "loadGame", "gid": "60"}), keep_blank_values=True)
+        if data.get("gameData") != [state]:
+            raise RuntimeError("The opaque save was modified")
+    token = source.split("/media/", 1)[1].split("/", 1)[0]
+    values = {"game_name": "puzzle", "arcade_hash": token, "score": "1.23456789e2"}
+    for url in (urljoin(source, "newscore.php"), "newscore.php", "index.php?act=Arcade"):
+        if not re.search(r">123[.,]4568<", member.fetch(url, values)):
+            raise RuntimeError("The score was not recorded or an identical callback could not be retried")
+    member.fetch("newscore.php", dict(values, score="125"), expected_status=422)
+    if not re.search(r">123[.,]4568<", member.fetch("app.php/arcade/game/60/scores/month")):
+        raise RuntimeError("The monthly championship was not updated")
+    source = next_play(base, member)
+    pn = urljoin(source, "pnFlashGames.php")
+    if member.fetch(pn, {"func": "storeScore", "score": "126.75"}) != ok:
+        raise RuntimeError("pnFlashGames did not acknowledge a score")
+    source = next_play(base, member)
+    ib = urljoin(source, "IBProArcade.php")
+    check = parse_qs(member.fetch(urljoin(source, "index.php?autocom=arcade"), {"do": "verifyscore"}))
+    a, b = int(check["randchar"][0]), int(check["randchar2"][0])
+    if "139" not in member.fetch(ib, {"do": "savescore", "gscore": "139", "enscore": str((139 * a) ^ b)}):
+        raise RuntimeError("IBProArcade did not record the completed play")
+    source = next_play(base, member)
+    token = parse_qs(urlsplit(source).query)["arcade_hash"][0]
+    if "initbar=puzzle" not in member.fetch("arcade.php", {"sessdo": "sessionstart", "arcade_hash": token}):
+        raise RuntimeError("vBulletin session setup failed")
+    permission = parse_qs(member.fetch("arcade.php", {"sessdo": "permrequest", "score": "145.75", "fakekey": "fixture", "arcade_hash": token}))
+    if not re.search(r">145[.,]75<", member.fetch("arcade.php", {"sessdo": "burn", "microone": permission["microone"][0], "arcade_hash": token})):
+        raise RuntimeError("vBulletin did not complete the play")
+
+
+def wallets(base, member, administrator):
+    path = "app.php/arcade/game/62"
+    for actor, expected in ((member, 200), (administrator, 422)):
+        detail = actor.fetch(path)
+        if "Fixture credits" not in detail:
+            raise RuntimeError("The game did not display the member's configured currency")
+        action, fields = Page(detail).forms["arcade-play"]
+        time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+        for _ in range(2):
+            actor.fetch(urljoin(urljoin(base, path), action), fields, expected_status=expected)
