@@ -1,0 +1,19 @@
+services:
+    phpbb2plus.community.password:
+        class: phpbb2plus\community\password\legacy
+        arguments: ['@request']
+        tags:
+            - { name: passwords.driver }
+    phpbb2plus.community.portal:
+        class: phpbb2plus\community\controller\portal
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.community.navigation:
+        class: phpbb2plus\community\event\navigation
+        arguments: ['@controller.helper', '@template', '@language', '@request']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.bylines:
+        class: phpbb2plus\community\event\bylines
+        arguments: ['@dbal.conn', '@config', '@user', '%core.table_prefix%plus_bylines']
+        tags:
+            - { name: event.listener }

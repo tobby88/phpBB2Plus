@@ -1,0 +1,12 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_PORTAL}</h2>
+<div class="forabg"><div class="inner">
+	<ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_RECENT_TOPICS}</div></dt><dd class="lastpost">{L_LAST_POST}</dd></dl></li></ul>
+	<ul class="topiclist topics">
+		<!-- BEGIN plus_topics -->
+		<li class="row"><dl><dt><div class="list-inner"><a class="topictitle" href="{plus_topics.U_TOPIC}">{plus_topics.TITLE}</a><br><a href="{plus_topics.U_FORUM}">{plus_topics.FORUM}</a></div></dt><dd class="lastpost"><span>{plus_topics.LAST_POST}</span></dd></dl></li>
+		<!-- BEGINELSE --><li class="row"><p class="responsive-center">{L_NO_TOPICS}</p></li><!-- END plus_topics -->
+	</ul>
+</div></div>
+<p><a href="{U_INDEX}">{L_INDEX}</a></p>
+<!-- INCLUDE overall_footer.html -->

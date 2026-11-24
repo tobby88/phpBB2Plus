@@ -16,12 +16,14 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
+from http_board import convert, login, public_pages, server, source_files
 
 
 def php(*args, cwd=None, capture=False):
     result = subprocess.run([os.environ.get("PLUS_TEST_PHP", "php"), "-d", "disable_functions=mail",
                              *map(str, args)], cwd=cwd, text=True, encoding="utf-8",
-                            errors="replace", stdout=subprocess.PIPE if capture else None, check=True)
+                            errors="replace", stdout=subprocess.PIPE if capture else None,
+                            stderr=subprocess.STDOUT if capture else None, check=True)
     return result.stdout if capture else None
 
 
@@ -63,14 +65,17 @@ def install(web, settings_dir, name):
         cookie_secure: false
         server_protocol: http://
         force_server_vars: false
-        server_name: localhost
+        server_name: 127.0.0.1
         server_port: 80
         script_path: /
-    extensions: []
+    extensions: [all]
 """, encoding="utf-8")
-    php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web)
-    if "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
-        raise RuntimeError("phpBB installer did not finish")
+    report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
+    if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
+        raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
+    if "Successfully enabled extension phpbb2plus/community" not in report:
+        raise RuntimeError("The installer did not activate the Plus extension: " + report[-3500:])
+    php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
 
 
 def verify_upstream(web, cache):
@@ -100,10 +105,26 @@ def main():
         web = root / "board"
         assemble(web, args.cache.resolve(), args.offline)
         count = verify_upstream(web, args.cache.resolve())
-        with database() as target:
+        with database() as target, database() as source:
             install(web, root, target)
             php("bin/phpbbcli.php", "--version", cwd=web)
-    print(f"Verified {count} upstream files and fresh German installation in {monotonic()-start:.1f}s")
+            fixture = ROOT / "tests/phpbb3/legacy_database.php"
+            os.environ["PLUS_TEST_MODERN_PASSWORD"] = secrets.token_hex(7) + '"&Ü\\'
+            os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
+            php(fixture, "seed", source)
+            source_files(ROOT / "phpBB2", root / "legacy")
+            with server(web, root) as base:
+                convert(base, source)
+                (web / "install").rename(root / "finished-installer")
+                php(fixture, "converted", target)
+                login(base, "ModernMember", "incorrect", expect_success=False)
+                php(fixture, "converted", target)
+                member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+                login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+                php(fixture, "signed-in", target)
+                public_pages(base, member)
+                login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+    print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 
 
 if __name__ == "__main__":

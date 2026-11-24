@@ -1,0 +1,4 @@
+phpbb2plus_community_portal:
+    path: /portal
+    defaults: { _controller: phpbb2plus.community.portal:handle }
+    methods: [GET, HEAD]

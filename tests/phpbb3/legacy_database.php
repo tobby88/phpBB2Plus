@@ -1,0 +1,91 @@
+<?php
+// Fixture-only reads and writes to schemas created by database.php.
+if (PHP_SAPI !== 'cli' || getenv('PLUS_TEST_DATABASE') !== '1' || $argc !== 3 ||
+	!preg_match('/^plus3_test_[a-f0-9]{24}$/D', $argv[2])) { exit(2); }
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$db = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'),
+	$argv[2], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
+$db->set_charset('utf8mb4');
+
+function check_fixture($ok, $message)
+{
+	if (!$ok) { throw new RuntimeException($message); }
+}
+
+if ($argv[1] === 'seed')
+{
+	$schemas = dirname(__DIR__, 2) . '/phpBB2/install/schemas/';
+	// The historical setup SQL relies on its installer's session defaults.
+	$db->query("SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO'");
+	foreach (array('mysql_schema.sql', 'mysql_basic.sql') as $file)
+	{
+		$db->multi_query(file_get_contents($schemas . $file));
+		do {
+			if ($result = $db->store_result()) { $result->free(); }
+		} while ($db->more_results() && $db->next_result());
+	}
+	$statement = $db->prepare("UPDATE phpbb_users SET username='ModernMember', user_password=?,
+		user_lang='german', user_email='modern@example.invalid' WHERE user_id=2");
+	$modern = password_hash(addslashes(getenv('PLUS_TEST_MODERN_PASSWORD')), PASSWORD_BCRYPT);
+	$statement->bind_param('s', $modern);
+	$statement->execute();
+	$statement = $db->prepare("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email)
+		VALUES (1,'HistoricMember',?,'english','historic@example.invalid')");
+	$historic = md5(addslashes(getenv('PLUS_TEST_HISTORIC_PASSWORD')));
+	$statement->bind_param('s', $historic);
+	$statement->execute();
+	$db->query("UPDATE phpbb_config SET config_value='german' WHERE config_name='default_lang'");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_username,
+		post_time,post_edit_time,post_edit_count,post_edit_user_id,post_author_removed,post_deleted,post_deleted_time,post_deleted_by)
+		VALUES (31,1,1,-1,'7f000001','AliasFixture',10000,10100,1,1,1,1,10200,2)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (31,'Test','0')");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_username,post_time,post_author_removed)
+		VALUES (32,1,1,-1,'7f000001','RetiredFixture',1000010000,1)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (32,'Retained post','Former member fixture')");
+	$db->query("UPDATE phpbb_posts_text SET post_text='Grüße [b:testuid]Forum[/b:testuid] 😀', bbcode_uid='testuid' WHERE post_id=1");
+	$db->query("INSERT INTO phpbb_bookmarks VALUES (1,1),(1,1),(999,1),(1,-1)");
+	$db->query("INSERT INTO phpbb_categories (cat_id,cat_title,cat_order,cat_main,cat_main_type)
+		VALUES(11,'Nested category',2,1,'f')");
+	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,forum_order,cat_id,main_type,auth_view,auth_read)
+		VALUES (7,'Restricted forum fixture','',20,1,'f',5,5),(11,'Native link','',2,11,'c',0,0)");
+	$db->query("UPDATE phpbb_forums SET forum_link='https://example.invalid/archive',forum_link_hit_count=1,forum_link_hit=8 WHERE forum_id=11");
+	$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id)
+		VALUES (7,7,'Restricted topic fixture',2,1234567891,40,40)");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time)
+		VALUES (40,7,7,2,'7f000001',1234567891)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (40,'Restricted topic fixture','Private fixture text')");
+}
+elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
+{
+	$users = $db->query("SELECT user_id,username,user_password,user_lang FROM p3_users
+		WHERE username IN ('ModernMember','HistoricMember') ORDER BY username")->fetch_all(MYSQLI_ASSOC);
+	check_fixture(count($users) === 2, 'Lost migrated accounts');
+	foreach ($users as $user)
+	{
+		$is_bridge = strpos($user['user_password'], '$PLUS2$') === 0;
+		check_fixture($is_bridge === ($argv[1] === 'converted'), 'Unexpected credential upgrade state for ' . $user['username']);
+	}
+	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
+	$byline = $db->query('SELECT * FROM p3_posts WHERE post_id=31')->fetch_assoc();
+	check_fixture($byline && (int) $byline['post_visibility'] === 2 && (int) $byline['post_delete_time'] === 10200
+		&& (int) $byline['post_delete_user'] === 2 && (int) $byline['post_edit_user'] === (int) $users[0]['user_id']
+		&& $byline['post_text'] === '<t>0</t>' && $byline['post_username'] === 'Ehemaliger Nutzer', 'Lost deletion, editor, byline or zero post');
+	$bookmarks = $db->query('SELECT topic_id,user_id FROM p3_bookmarks')->fetch_all(MYSQLI_ASSOC);
+	check_fixture(count($bookmarks) === 1 && (int) $bookmarks[0]['topic_id'] === 1
+		&& (int) $bookmarks[0]['user_id'] === (int) $users[0]['user_id'], 'Bookmarks not remapped');
+	$extension = $db->query("SELECT ext_active FROM p3_ext WHERE ext_name='phpbb2plus/community'")->fetch_row();
+	check_fixture($extension && (int) $extension[0] === 1, 'The Plus extension must be enabled');
+	$text = $db->query('SELECT post_text FROM p3_posts WHERE post_id=1')->fetch_row()[0];
+	check_fixture(strpos($text, 'Grüße') !== false && strpos($text, '<B>') !== false
+		&& strpos(html_entity_decode($text, ENT_QUOTES, 'UTF-8'), '😀') !== false, 'Lost Unicode text or BBCode');
+	$alias = $db->query('SELECT author_name FROM p3_plus_bylines WHERE post_id=32')->fetch_row();
+	check_fixture($alias && $alias[0] === 'RetiredFixture', 'Missing retained byline');
+	$nested = $db->query("SELECT c.parent_id, c.left_id AS cat_left, f.left_id, f.right_id, c.right_id AS cat_right,
+		f.forum_type, f.forum_link FROM p3_forums c JOIN p3_forums f ON f.parent_id=c.forum_id
+		WHERE c.forum_name='Nested category' AND f.forum_id=11")->fetch_assoc();
+	check_fixture($nested && (int) $nested['parent_id'] === 1 && $nested['cat_left'] < $nested['left_id']
+		&& $nested['cat_right'] > $nested['right_id'] && (int) $nested['forum_type'] === 2
+		&& $nested['forum_link'] === 'https://example.invalid/archive', 'Lost nested category, linked forum or tree bounds');
+}
+else { exit(2); }
