@@ -43,9 +43,12 @@ class v100_style extends \phpbb\db\migration\migration
 		$this->db->sql_freeresult($result);
 		if ($current === (int) $parent['style_id'])
 		{
-			$this->config->set('default_style', $id);
-			$this->db->sql_query('UPDATE ' . $this->table_prefix . 'users SET user_style = ' . $id
-				. ' WHERE user_id = ' . ANONYMOUS . ' AND user_style IN (0, ' . (int) $parent['style_id'] . ')');
+			$this->config['default_style'] = (string) $current;
+			if ($this->config->set_atomic('default_style', (string) $current, (string) $id))
+			{
+				$this->db->sql_query('UPDATE ' . $this->table_prefix . 'users SET user_style = ' . $id
+					. ' WHERE user_id = ' . ANONYMOUS . ' AND user_style IN (0, ' . (int) $parent['style_id'] . ')');
+			}
 		}
 	}
 }
