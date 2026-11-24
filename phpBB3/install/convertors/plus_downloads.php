@@ -243,6 +243,10 @@ function plus_dl_schema($prefix, $truncate)
 		$column = 'pa_' . $short . '.' . $source_key;
 		$s = array('target' => $target, 'group_by' => $column, 'order_by' => $column, 'query_first' => array('target', $truncate . $target),
 			array('', array($short, $column), 'plus_dl_group'));
+		if ($short === 'files')
+		{
+			$s['query_first'] = array($s['query_first'], array('target', $truncate . $prefix . 'plus_dl_receipts'));
+		}
 		if ($primary) { $s['autoincrement'] = $primary; }
 		$sections[] = $s;
 	}

@@ -60,3 +60,35 @@ def browse(base, founder, member):
         time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
         if member.fetch(urljoin(urljoin(base, path), action), fields, raw=True) != expected:
             raise RuntimeError("A licensed download or mirror returned different bytes")
+    feedback(base, pending, founder, guest)
+
+
+def feedback(base, author, moderator, guest):
+    page = "app.php/downloads/file/50"
+    url = urljoin(base, page)
+    initial = author.fetch(page)
+    if 'src="https://example.invalid/forbidden-preview.png"' in initial or "[No image please]" not in initial:
+        raise RuntimeError("An imported comment ignored the paFileDB media settings")
+    forms = Page(initial).forms
+    action, comment = forms["dl-comment"]
+    vote_url, vote = forms["dl-rate"]
+    comment.update(subject="Fiktiver Folgekommentar", message="Ein [b]Farbkreis[/b] 🎨")
+    vote["points"] = "6"
+    time.sleep(max(0, int(comment["creation_time"]) + 1.05 - time.time()))
+    for _ in range(2):
+        posted = author.fetch(urljoin(url, action), comment)
+        author.fetch(urljoin(url, vote_url), vote)
+    if posted.count("Fiktiver Folgekommentar") != 1 or not re.search(r"<strong[^>]*>Farbkreis</strong>", posted):
+        raise RuntimeError("A repeated comment or its native BBCode did not round-trip")
+    link = re.search(r'href="([^"]+/comment/([0-9]+)/delete[^"]*)"', posted)
+    if not link:
+        raise RuntimeError("The author cannot manage their download comment")
+    delete = urljoin(url, link.group(1))
+    guest.fetch(delete, expected_status=404)
+    vote_url, fresh = Page(author.fetch(page)).forms["dl-rate"]
+    action, remove = Page(moderator.fetch(delete)).forms["dl-remove"]
+    time.sleep(max(0, max(int(fresh["creation_time"]), int(remove["creation_time"])) + 1.05 - time.time()))
+    author.fetch(urljoin(url, vote_url), dict(fresh, points="9"), expected_status=422)
+    after = moderator.fetch(urljoin(delete, action), remove)
+    if "Fiktiver Folgekommentar" in after or "Testkommentar" not in after:
+        raise RuntimeError("The moderator did not remove the selected comment")

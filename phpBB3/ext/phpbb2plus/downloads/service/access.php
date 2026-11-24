@@ -126,6 +126,21 @@ class access
 
 	public static function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 
+	public function write($id, callable $operation)
+	{
+		$id = (int) $id;
+		$this->db->sql_transaction('begin');
+		try
+		{
+			$this->db->sql_query('UPDATE ' . $this->prefix . "files SET file_id=file_id WHERE file_id=$id");
+			$this->refresh();
+			$result = $operation($this->file($id));
+			if (!$this->db->sql_transaction('commit')) { throw new \RuntimeException('The download transaction did not commit.'); }
+			return $result;
+		}
+		catch (\Throwable $e) { if ($this->db->get_transaction()) { $this->db->sql_transaction('rollback'); } throw $e; }
+	}
+
 	public static function external($url)
 	{
 		$url = (string) $url;

@@ -160,6 +160,8 @@ elseif ($argv[1] === 'downloaded')
 {
 	$counts = $db->query('SELECT downloads,last_download,(SELECT COUNT(*) FROM p3_plus_dl_visitors WHERE file_id=50) AS visitors FROM p3_plus_dl_files WHERE file_id=50')->fetch_assoc();
 	check_fixture((int) $counts['downloads'] === 10 && (int) $counts['visitors'] === 1 && $counts['last_download']>20000, 'Licence, original or mirror accounting double-counted a visitor');
+	$votes = $db->query('SELECT COUNT(*),SUM(points) FROM p3_plus_dl_votes WHERE file_id=50')->fetch_row();
+	check_fixture((int) $votes[0] === 3 && (int) $votes[1] === 24, 'A repeated vote changed the paFileDB rating totals');
 }
 elseif ($argv[1] === 'attachments')
 {

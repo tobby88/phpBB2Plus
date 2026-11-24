@@ -19,7 +19,7 @@ function seed_downloads($db)
 		VALUES (81,'Farbauswahl','','a:2:{i:0;s:4:\"Blau\";i:1;s:3:\"Rot\";}',1,4,'')");
 	$db->query("INSERT INTO phpbb_pa_customdata VALUES (50,81,'a:2:{i:0;s:4:\"Blau\";i:1;s:3:\"Rot\";}')");
 	$db->query("INSERT INTO phpbb_pa_comments (comments_id,file_id,comments_text,comments_title,comments_time,comment_bbcode_uid,poster_id)
-		VALUES (91,50,'Ein [b:fixture]Beispiel[/b:fixture] 🎨','Testkommentar',20005,'fixture',1)");
+		VALUES (91,50,'Ein [b:fixture]Beispiel[/b:fixture] 🎨 [img:fixture]https://example.invalid/forbidden-preview.png[/img:fixture]','Testkommentar',20005,'fixture',1)");
 	$db->query("INSERT INTO phpbb_pa_votes (user_id,votes_ip,votes_file,rate_point) VALUES (1,'7f000001',50,8),(2,'7f000002',50,10)");
 	$db->query("INSERT INTO phpbb_pa_download_info VALUES (50,1,'7f000001','Linux','Firefox','1')");
 	$db->query("INSERT INTO phpbb_pa_file_journal (operation_id,item_index,operation_kind,actor_id,file_scope,file_dir,filename,file_bytes,file_sha256,binding_hash,item_state,created_at,completed_at)

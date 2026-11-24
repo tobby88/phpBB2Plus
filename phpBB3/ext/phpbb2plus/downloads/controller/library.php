@@ -14,10 +14,10 @@ class library
 	private $helper;
 	private $request;
 	private $pagination;
-	private $renderer;
+	private $feedback;
 	private $prefix;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $renderer, $prefix)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $feedback, $prefix)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -27,7 +27,7 @@ class library
 		$this->helper = $helper;
 		$this->request = $request;
 		$this->pagination = $pagination;
-		$this->renderer = $renderer;
+		$this->feedback = $feedback;
 		$this->prefix = $prefix;
 	}
 
@@ -149,6 +149,15 @@ class library
 			$this->db->sql_freeresult($result);
 			if ($rating['votes']) { $this->template->assign_vars(array('DL_VOTES'=>(int) $rating['votes'], 'DL_AVERAGE'=>round((float) $rating['average'], 2))); }
 		}
+		$feedback = array();
+		foreach (array('rate','comment') as $operation)
+		{
+			if ($this->feedback->can($f,$operation))
+			{
+				$feedback['U_DL_' . strtoupper($operation)] = $this->helper->route('phpbb2plus_downloads_feedback',array('file'=>$id,'operation'=>$operation));
+			}
+		}
+		if ($feedback) { add_form_key('plus_dl_feedback_' . $id); $this->template->assign_vars($feedback + array('DL_NONCE'=>bin2hex(random_bytes(16)))); }
 		if ($cats[$cat]['allow_comments'] && $this->access->allows($cat,'view_comment'))
 		{
 			$table = $this->prefix . 'comments';
@@ -161,7 +170,8 @@ class library
 				" u ON u.user_id=c.owner_id AND c.owner_id>0 WHERE c.file_id=$id ORDER BY c.posted_at,c.comment_id", 20, $start);
 			while ($r = $this->db->sql_fetchrow($result))
 			{
-				$this->template->assign_block_vars('dl_comments',array('TITLE'=>access::plain($r['title']), 'BODY'=>$this->renderer->render($r['body']),
+				$this->template->assign_block_vars('dl_comments',array('ID'=>(int) $r['comment_id'],'TITLE'=>access::plain($r['title']), 'BODY'=>$this->feedback->render($r['body']),
+					'U_DELETE'=>$this->feedback->can_delete($f,$r) ? $this->helper->route('phpbb2plus_downloads_remove',array('file'=>$id,'comment'=>(int) $r['comment_id'])) : '',
 					'DATE'=>$this->user->format_date((int) $r['posted_at']), 'AUTHOR'=>$r['username'] === null ? $this->language->lang('GUEST') : get_username_string('full',$r['owner_id'],$r['username'],$r['user_colour'])));
 			}
 			$this->db->sql_freeresult($result);

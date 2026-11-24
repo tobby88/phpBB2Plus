@@ -77,9 +77,9 @@ class delivery
 			array('Content-Type'=>$f['preview_type'], 'Content-Security-Policy'=>"default-src 'none'; sandbox"), false));
 	}
 
-	private function choice($id, $mirror)
+	private function choice($id, $mirror, $f = null)
 	{
-		$f = $this->access->file($id);
+		if ($f === null) { $f = $this->access->file($id); }
 		if (!$this->access->allows((int) $f['cat_id'], 'download')) { throw new NotFoundHttpException(); }
 		$selected = $f;
 		if ($mirror)
@@ -176,18 +176,13 @@ class delivery
 			return $this->private_response($this->helper->render('@phpbb2plus_downloads/license.html',$this->language->lang('PLUS_DL_LICENSE')));
 		}
 		if ($this->http->isMethod('HEAD')) { return $this->private_response($this->content($f,$selected)); }
-		$this->db->sql_transaction('begin');
-		try
-		{
-			$this->db->sql_query('UPDATE ' . $this->prefix . "files SET file_id=file_id WHERE file_id=$id");
-			$this->access->refresh();
-			list($f,$selected,$license) = $this->choice($id,$mirror);
+		$response = $this->access->write($id, function ($f) use ($id,$mirror) {
+			list(,$selected,$license) = $this->choice($id,$mirror,$f);
 			if ($license && (!$this->request->is_set_post('accept') || !check_form_key($this->form_key($f,$mirror,$license)))) { throw new AccessDeniedHttpException(); }
 			$response = $this->content($f,$selected);
 			$this->record($id);
-			$this->db->sql_transaction('commit');
-		}
-		catch (\Throwable $e) { if ($this->db->get_transaction()) { $this->db->sql_transaction('rollback'); } throw $e; }
+			return $response;
+		});
 		return $this->private_response($response);
 	}
 }

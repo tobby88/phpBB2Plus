@@ -6,11 +6,18 @@
 {% if U_DL_PREVIEW %}<p><a href="{U_DL_PREVIEW}"><img class="postimage" src="{U_DL_PREVIEW}" alt="{L_PLUS_DL_PREVIEW}"></a></p>{% elseif U_DL_REMOTE_PREVIEW %}<p><a href="{U_DL_REMOTE_PREVIEW}" rel="noreferrer">{L_PLUS_DL_PREVIEW}</a></p>{% endif %}
 <dl class="details">{% if DL_CREATOR %}<dt>{L_AUTHOR}</dt><dd>{{ DL_CREATOR|e }}</dd>{% endif %}{% if DL_VERSION %}<dt>{L_PLUS_DL_VERSION}</dt><dd>{{ DL_VERSION|e }}</dd>{% endif %}
 <dt>{L_DATE}</dt><dd>{DL_DATE}</dd><dt>{L_PLUS_DL_COUNT}</dt><dd>{{ DL_COUNT }}</dd>{% if DL_BYTES %}<dt>{L_FILESIZE}</dt><dd>{{ DL_BYTES }} B</dd>{% endif %}
-{% if DL_VOTES %}<dt>{L_PLUS_DL_RATING}</dt><dd>{{ DL_AVERAGE }} ({{ DL_VOTES }})</dd>{% endif %}{% for field in loops.dl_fields %}<dt>{{ field.TITLE|e }}</dt><dd>{{ field.VALUE|e }}</dd>{% endfor %}</dl>
+{% if DL_VOTES %}<dt id="rating">{L_PLUS_DL_RATING}</dt><dd>{{ DL_AVERAGE }} ({{ DL_VOTES }})</dd>{% endif %}{% for field in loops.dl_fields %}<dt>{{ field.TITLE|e }}</dt><dd>{{ field.VALUE|e }}</dd>{% endfor %}</dl>
 {% if U_DL_DOCS %}<p><a href="{U_DL_DOCS}" rel="noreferrer">{L_PLUS_DL_DOCS}</a></p>{% endif %}
 <div id="downloads">{% if U_DL_MAIN %}<a class="button1" href="{U_DL_MAIN}">{L_PLUS_DL_GET}</a>{% elseif DL_UNAVAILABLE %}<p>{L_PLUS_DL_MISSING}</p>{% endif %}
 {% for m in loops.dl_mirrors %}<a class="button2" href="{{ m.URL }}">{{ m.LABEL|e }}</a> {% endfor %}</div>
 </div></div>
-{% for c in loops.dl_comments %}<div class="post bg{{ loop.index is odd ? '1' : '2' }}"><div class="inner"><h3>{{ c.TITLE|e }}</h3><p class="author">{{ c.AUTHOR }} · {{ c.DATE }}</p><div class="content">{{ c.BODY }}</div></div></div>{% endfor %}
+{% if U_DL_RATE %}<form id="dl-rate" class="panel" method="post" action="{U_DL_RATE}">{S_FORM_TOKEN}<input type="hidden" name="nonce" value="{DL_NONCE}">
+<label for="dl-points">{L_PLUS_DL_RATING}</label> <select id="dl-points" name="points">{% for v in 1..10 %}<option value="{{ v }}">{{ v }}</option>{% endfor %}</select> <button class="button2" type="submit">{L_PLUS_DL_VOTE}</button></form>{% endif %}
+{% for c in loops.dl_comments %}<div id="comment-{{ c.ID }}" class="post bg{{ loop.index is odd ? '1' : '2' }}"><div class="inner"><h3>{{ c.TITLE|e }}</h3><p class="author">{{ c.AUTHOR }} · {{ c.DATE }}</p><div class="content">{{ c.BODY }}</div>
+{% if c.U_DELETE %}<p><a href="{{ c.U_DELETE }}">{L_PLUS_DL_DELETE_COMMENT}</a></p>{% endif %}</div></div>{% endfor %}
 {% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% if U_DL_COMMENT %}<form id="dl-comment" method="post" action="{U_DL_COMMENT}" class="panel"><div class="inner"><h3>{L_PLUS_DL_COMMENT}</h3>
+<fieldset class="fields1"><dl><dt><label for="dl-subject">{L_SUBJECT}</label></dt><dd><input type="text" class="inputbox" id="dl-subject" name="subject"></dd></dl>
+<dl><dt><label for="dl-message">{L_MESSAGE}</label></dt><dd><textarea class="inputbox" id="dl-message" name="message" rows="5" required></textarea></dd></dl></fieldset>
+{S_FORM_TOKEN}<input type="hidden" name="nonce" value="{DL_NONCE}"><fieldset class="submit-buttons"><button class="button1" type="submit">{L_SUBMIT}</button></fieldset></div></form>{% endif %}
 <!-- INCLUDE overall_footer.html -->

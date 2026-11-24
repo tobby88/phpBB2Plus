@@ -27,3 +27,13 @@ phpbb2plus_downloads_preview:
     defaults: { _controller: phpbb2plus.downloads.delivery:preview }
     requirements: { file: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_downloads_feedback:
+    path: /downloads/file/{file}/{operation}
+    defaults: { _controller: phpbb2plus.downloads.actions:publish }
+    requirements: { file: '[1-9][0-9]*', operation: 'rate|comment' }
+    methods: [POST]
+phpbb2plus_downloads_remove:
+    path: /downloads/file/{file}/comment/{comment}/delete
+    defaults: { _controller: phpbb2plus.downloads.actions:remove }
+    requirements: { file: '[1-9][0-9]*', comment: '[1-9][0-9]*' }
+    methods: [GET, POST]
