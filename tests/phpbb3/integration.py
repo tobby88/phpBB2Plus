@@ -16,6 +16,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
+import attachments
 from http_board import convert, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
 
@@ -114,10 +115,12 @@ def main():
             os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
             php(fixture, "seed", source)
             source_files(ROOT / "phpBB2", root / "legacy")
+            attachments.source_media(root / "legacy")
             with server(web, root) as base:
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
                 php(fixture, "converted", target)
+                attachments.verify_storage(web, php(fixture, "attachments", target, capture=True))
                 login(base, "ModernMember", "incorrect", expect_success=False)
                 php(fixture, "converted", target)
                 member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
@@ -128,6 +131,7 @@ def main():
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
                 native_content(base, member, ordinary)
+                attachments.downloads(ordinary)
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 

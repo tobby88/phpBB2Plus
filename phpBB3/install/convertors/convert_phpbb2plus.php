@@ -40,6 +40,12 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
+	if (defined('MOD_ATTACHMENT'))
+	{
+		$convertor['schema'] = array_values(array_filter($convertor['schema'], static function ($section) {
+			return $section['target'] !== ATTACHMENTS_TABLE;
+		}));
+	}
 
 	foreach ($convertor['schema'] as &$section)
 	{
@@ -47,6 +53,11 @@ if (!$get_info)
 		{
 			if (!is_int($key)) { continue; }
 			if ($field[2] === 'phpbb_prepare_message') { $field[2] = 'plus_convert_message'; }
+			if (in_array($field[0], array('post_attachment', 'topic_attachment', 'message_attachment'), true))
+			{
+				// Rebuild these markers from the attachments actually owned by each item.
+				$field = array($field[0], 0, '');
+			}
 
 			if ($section['target'] === USERS_TABLE && $field[0] === 'user_password')
 			{
@@ -116,6 +127,21 @@ if (!$get_info)
 		}
 	}
 	unset($section);
+	if (defined('MOD_ATTACHMENT'))
+	{
+		$convertor['schema'][] = array(
+			'target' => ATTACHMENTS_TABLE, 'primary' => 'attachments_desc.attach_id', 'autoincrement' => 'attach_id',
+			'execute_first' => 'plus_check_attachment_source();',
+			'query_first' => array(array('target', $convert->truncate_statement . ATTACHMENTS_TABLE),
+				array('target', $convert->truncate_statement . $table_prefix . 'plus_attach_refs')),
+			array('', 'attachments_desc.attach_id', 'plus_attachment_primary'),
+		);
+		$convertor['schema'][] = array(
+			'target' => ATTACHMENTS_TABLE, 'primary' => 'attachments.attach_id',
+			'group_by' => 'attachments.attach_id', 'having' => 'COUNT(*) > 1',
+			array('', 'attachments.attach_id', 'plus_attachment_copies'),
+		);
+	}
 	$convertor['schema'][] = array(
 		'target' => SEARCH_WORDMATCH_TABLE, 'primary' => 'posts.post_id',
 		array('', 'posts.post_id', 'plus_index_native_post'),

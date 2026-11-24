@@ -62,6 +62,11 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 	seed_native_content($db);
+	$db->query("INSERT INTO phpbb_attachments_desc (attach_id,physical_filename,real_filename,download_count,extension,mimetype,filesize,filetime,thumbnail)
+		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
+		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");
+	$db->query("INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2)
+		VALUES (50,32,0,-1,0),(50,32,0,-1,0),(50,40,0,2,0),(63,0,111,2,1),(63,0,112,2,1)");
 }
 elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 {
@@ -102,5 +107,11 @@ elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 	check_fixture($profile && $profile['user_birthday'] === ' 1- 1-1970' && $profile['user_ip'] === '2001:db8::7'
 		&& $profile['pf_phpbb_facebook'] === 'https://www.facebook.com/example.fixture' && $profile['pf_plus_signal'] === 'Example.42'
 		&& $profile['pf_plus_threema'] === 'ABCD0123', 'Missing native birthday, registration IP or contact field');
+}
+elseif ($argv[1] === 'attachments')
+{
+	$rows = $db->query('SELECT r.source_id,r.parent_id,r.attach_id,r.in_message,a.filesize,a.physical_filename,a.is_orphan,a.download_count
+		FROM p3_plus_attach_refs r JOIN p3_attachments a ON a.attach_id=r.attach_id ORDER BY r.source_id,r.attach_id')->fetch_all(MYSQLI_ASSOC);
+	echo json_encode($rows), "\n";
 }
 else { exit(2); }
