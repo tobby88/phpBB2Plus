@@ -196,7 +196,7 @@ class board
 		$this->template->assign_vars(array('ALBUM_TITLE' => $pic['title'], 'ALBUM_DESCRIPTION' => $pic['description'], 'ALBUM_AUTHOR' => $this->author($pic),
 			'ALBUM_DATE' => $this->user->format_date($pic['created_at']), 'S_ALBUM_COMMENTS' => $comments,
 			'U_FULL' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')),
-			'U_MEDIUM' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'medium'))));
+			'U_PREVIEW' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => $this->request->variable('full', 0) ? 'full' : 'medium'))));
 		return $this->helper->render('@phpbb2plus_gallery/picture.html', utf8_htmlspecialchars($pic['title']));
 	}
 }

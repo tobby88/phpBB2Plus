@@ -52,6 +52,43 @@ function plus_kb_pages($id, $text, $uid, $time)
 	$db->sql_transaction('commit');
 }
 
+function plus_kb_discussion_receipt($article, $topic)
+{
+	global $src_db, $convert, $db, $table_prefix;
+	$article = (int) $article;
+	$topic = (int) $topic;
+	$p = $convert->src_table_prefix;
+	$result = $src_db->sql_query("SELECT t.topic_first_post_id,x.post_subject,x.post_text,x.bbcode_uid FROM {$p}topics t
+		JOIN {$p}posts s ON s.post_id=t.topic_first_post_id AND s.topic_id=t.topic_id AND s.forum_id=t.forum_id
+		JOIN {$p}posts_text x ON x.post_id=s.post_id
+		WHERE t.topic_id=$topic AND t.topic_moved_id=0 AND s.post_deleted=0 AND NOT EXISTS
+		(SELECT 1 FROM {$p}kb_articles a WHERE a.topic_id=t.topic_id AND a.article_id<>$article)");
+	$source = $src_db->sql_fetchrow($result);
+	$src_db->sql_freeresult($result);
+	if (!$source || strpos($source['post_subject'], '[ KB ] ') !== 0) { return; }
+	// Require the generated footer, pointing to this exact article on the configured source board.
+	$body = plus_kb_editor($source['post_text'], $source['bbcode_uid']);
+	if (!preg_match('~\[b\]\[url=([^\[\]\s]+)\][^\r\n\[]+\[/url\]\[/b\]\s*$~i', $body, $match)) { return; }
+	$url = parse_url($match[1]);
+	$base = rtrim('/' . trim(get_config_value('script_path'), '/'), '/');
+	if (!$url || !in_array(strtolower($url['scheme'] ?? ''), array('http','https'), true) ||
+		strcasecmp($url['host'] ?? '', get_config_value('server_name')) !== 0 || ($url['path'] ?? '') !== $base . '/kb.php' ||
+		($url['query'] ?? '') !== 'mode=article&k=' . $article || isset($url['user']) || isset($url['fragment'])) { return; }
+	$first = (int) $source['topic_first_post_id'];
+	$table = $table_prefix . 'plus_kb_articles';
+	$result = $db->sql_query("SELECT a.* FROM $table a JOIN " . TOPICS_TABLE . ' t ON t.topic_id=a.topic_id JOIN ' . POSTS_TABLE . " p
+		ON t.topic_first_post_id=p.post_id AND t.topic_id=p.topic_id AND t.forum_id=p.forum_id
+		WHERE a.article_id=$article AND a.topic_id=$topic AND p.post_id=$first");
+	$a = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$a) { return; }
+	$hash = \phpbb2plus\knowledgebase\service\publication::digest($a);
+	$db->sql_transaction('begin');
+	$db->sql_query("UPDATE $table SET managed_topic=1,intro_post=$first,discussion_hash='$hash' WHERE article_id=$article");
+	$db->sql_query('UPDATE ' . POSTS_TABLE . " SET plus_kb_article=$article,plus_kb_digest='$hash' WHERE post_id=$first");
+	$db->sql_transaction('commit');
+}
+
 function plus_kb_moderators()
 {
 	global $src_db, $convert, $db, $phpbb_container;
@@ -116,6 +153,8 @@ function plus_kb_schema($prefix, $truncate)
 			array('editor_text',array('kb_articles.article_body','kb_articles.bbcode_uid'),'plus_kb_editor'),
 			array('search_text',array('kb_articles.article_body','kb_articles.bbcode_uid'),'plus_kb_search'),
 			array('',array('kb_articles.article_id','kb_articles.article_body','kb_articles.bbcode_uid','kb_articles.article_date'),'plus_kb_pages')),
+		array('target' => $p . 'articles', 'primary' => 'kb_articles.article_id', 'where' => 'kb_articles.topic_id > 0',
+			array('', array('kb_articles.article_id','kb_articles.topic_id'), 'plus_kb_discussion_receipt')),
 		array('target' => $p . 'votes','order_by' => 'kb_votes.votes_file,kb_votes.votes_userid,kb_votes.votes_ip',
 			'query_first' => array('target', $truncate . $p . 'votes'), array('article_id','kb_votes.votes_file','intval'),
 			array('user_id','kb_votes.votes_userid','plus_existing_author'), array('user_ip','kb_votes.votes_ip','plus_registration_ip')),

@@ -53,6 +53,13 @@ def browse(base, moderator, member):
     if moderator.fetch(media + "full", raw=True) != ORIGINAL:
         raise RuntimeError("The staff full-size original differs from the source")
     protected = guest.fetch(media + "full", raw=True)
+    if protected != guest.fetch("album_pic.php?pic_id=100", raw=True) or moderator.fetch("album_pic.php?pic_id=100", raw=True) != ORIGINAL:
+        raise RuntimeError("A legacy direct image link did not apply the current viewer's media policy")
+    full_page = guest.fetch("album_showpage.php?full=&pic_id=100")
+    if not re.search(r'<img src="[^"]*/album/picture/100/full[^"]*"', full_page) or "Historischer Bildkommentar" not in full_page:
+        raise RuntimeError("The original full-size album page lost its picture or its discussion")
+    guest.fetch("album_thumbnail.php?pic_id=101", expected_status=404)
+    guest.fetch("album_delete.php?pic_id=100", {}, expected_status=405)
     if protected == ORIGINAL or protected[:8] != ORIGINAL[:8]:
         raise RuntimeError("The snapshot's public watermark policy was lost")
     for size, dimensions in (("small", (16, 10)), ("medium", (30, 18))):

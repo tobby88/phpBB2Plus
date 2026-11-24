@@ -12,6 +12,14 @@ function seed_knowledgebase($db)
 		(203,8,'Überarbeitete Anleitung','','100203',87,'','','Noch in Prüfung',2,2,0,1,0,0),
 		(204,8,'Geschütztes Diskussionsthema','','100204',0,'EditorFixture','','0',1,1,7,1,0,0)");
 	$db->query("INSERT INTO phpbb_kb_votes (votes_ip,votes_userid,votes_file) VALUES ('c0000203',1,201),('192.0.2.5',2,201)");
+	$db->query("INSERT INTO phpbb_kb_articles (article_id,article_category_id,article_title,article_description,article_date,article_author_id,
+		username,bbcode_uid,article_body,article_type,approved,topic_id,views,article_rating,article_totalvotes)
+		VALUES (210,8,'Verknüpfter Artikel','','100210',2,'','','Verknüpfung',1,1,9,0,0,0)");
+	$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id)
+		VALUES (9,1,'[ KB ] Verknüpfter Artikel',2,100210,72,72)");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time) VALUES (72,9,1,2,'7f000001',100210)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,bbcode_uid,post_text) VALUES (72,'[ KB ] Verknüpfter Artikel','testuid',
+		'[b:testuid]Kategorie:[/b:testuid] Wissensarchiv\n[b:testuid][url=http://www.myserver.tld/phpBB2/kb.php?mode=article&amp;k=210]Artikel lesen[/url][/b:testuid]')");
 }
 
 function verify_knowledgebase($db, $member)
@@ -25,4 +33,8 @@ function verify_knowledgebase($db, $member)
 		strpos($pages[0]['content'], '<B>') !== false && strpos($pages[1]['content'], 'Zweite Wissensseite') !== false, 'Knowledge Base page boundaries or formatter changed');
 	$v = $db->query('SELECT user_ip,points FROM p3_plus_kb_votes WHERE user_id=' . (int) $member . ' AND article_id=201')->fetch_assoc();
 	check_fixture($v && $v['user_ip'] === '192.0.2.3' && (int) $v['points'] === 0, 'Lost historical Knowledge Base voting identity');
+	$owned = $db->query('SELECT a.intro_post,p.plus_kb_article,p.plus_kb_digest,a.discussion_hash FROM p3_plus_kb_articles a
+		JOIN p3_posts p ON p.post_id=a.intro_post WHERE a.article_id=210 AND a.managed_topic=1')->fetch_assoc();
+	check_fixture($owned && (int) $owned['intro_post'] === 72 && (int) $owned['plus_kb_article'] === 210 &&
+		$owned['plus_kb_digest'] === $owned['discussion_hash'] && !(int) $a['managed_topic'], 'A generated intro or an ordinary linked topic was misclassified');
 }

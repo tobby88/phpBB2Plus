@@ -128,6 +128,11 @@ class publication
 		return $a;
 	}
 
+	static public function digest($a)
+	{
+		return hash('sha256', serialize(array($a['title'], $a['description'], (int) $a['cat_id'], (int) $a['type_id'], $a['editor_text'])));
+	}
+
 	public function discuss($id)
 	{
 		if (!(int) $this->articles->setting('comments', 1)) { return; }
@@ -136,7 +141,7 @@ class publication
 		$this->db->sql_freeresult($result);
 		if (!$a) { return; }
 		$a = $this->recover($a);
-		$hash = hash('sha256', serialize(array($a['title'], $a['description'], (int) $a['cat_id'], (int) $a['type_id'], $a['editor_text'])));
+		$hash = self::digest($a);
 		if ($a['discussion_hash'] === $hash) { return; }
 		$topic = false;
 		if ($a['topic_id'])

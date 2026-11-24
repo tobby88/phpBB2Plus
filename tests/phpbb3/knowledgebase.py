@@ -27,6 +27,10 @@ def browse(base, administrator, editor):
     if "Ungeprüfte Anleitung" in guest.fetch(index + "?q=Wissensprobe") or "Ungeprüfte Anleitung" not in editor.fetch(index + "?q=Wissensprobe"):
         raise RuntimeError("Knowledge Base search crossed the article approval boundary")
     first = guest.fetch(article + "201")
+    legacy = guest.fetch("kb.php?mode=article&k=201&page_num=2&print=true")
+    if "Zweite Wissensseite" not in legacy or "Wissensarchiv" not in guest.fetch("kb.php?mode=cat&cat=8"):
+        raise RuntimeError("A bookmarked Knowledge Base page no longer opens its original content")
+    guest.fetch("kb.php?mode=article&k=202", expected_status=404)
     if not re.search(r"<strong[^>]*>Grüße</strong>", first) or "Fortsetzung" not in first or "Zweite Wissensseite" in first or "8,25 von 10" not in first:
         raise RuntimeError("Unexpected first article page, table of contents, formatting or historical rating")
     if "Zweite Wissensseite" not in guest.fetch(article + "201?page=2&print=1") or "Diskussion im Forum" not in first:
