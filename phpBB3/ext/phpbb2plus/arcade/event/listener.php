@@ -62,6 +62,7 @@ class listener implements EventSubscriberInterface
 				foreach ($fields as $field) { $this->db->sql_query('UPDATE ' . $this->prefix . "$table SET $field=0 WHERE $field=$id"); }
 			}
 			$this->db->sql_query('DELETE FROM ' . $this->prefix . 'members WHERE user_id=' . $id);
+			$this->db->sql_query('DELETE FROM ' . $this->prefix . 'launches WHERE user_id=' . $id);
 			$this->db->sql_query('DELETE FROM ' . $this->prefix . "grants WHERE subject_type='u' AND subject_id=" . $id);
 		}
 	}

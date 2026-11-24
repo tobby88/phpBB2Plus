@@ -126,6 +126,16 @@ elseif ($argv[1] === 'converted' || $argv[1] === 'signed-in')
 		&& $profile['pf_phpbb_facebook'] === 'https://www.facebook.com/example.fixture' && $profile['pf_plus_signal'] === 'Example.42'
 		&& $profile['pf_plus_threema'] === 'ABCD0123', 'Missing native birthday, registration IP or contact field');
 }
+elseif ($argv[1] === 'played')
+{
+	$row = $db->query("SELECT g.played,c.total_played,c.last_user_id,p.owner_id,p.last_played,
+		(SELECT COUNT(*) FROM p3_plus_arc_launches WHERE game_id=60) AS launches
+		FROM p3_plus_arc_games g JOIN p3_plus_arc_categories c ON c.cat_id=g.cat_id
+		JOIN p3_plus_arc_players p ON p.owner_id=c.last_user_id JOIN p3_users u ON u.user_id=p.owner_id
+		WHERE g.game_id=60 AND u.username='HistoricMember'")->fetch_assoc();
+	check_fixture($row && (int) $row['played'] === 1 && (int) $row['total_played'] === 1 &&
+		(int) $row['launches'] === 1 && $row['last_played'] === 'puzzle', 'Repeating the start form changed the play history');
+}
 elseif ($argv[1] === 'attachments')
 {
 	$rows = $db->query('SELECT r.source_id,r.parent_id,r.attach_id,r.in_message,a.filesize,a.physical_filename,a.is_orphan,a.download_count

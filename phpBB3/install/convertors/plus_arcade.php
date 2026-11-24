@@ -167,5 +167,8 @@ function plus_arcade_schema($prefix, $truncate)
 	$sections[] = array('target' => $table, 'primary' => 'users.user_id', 'where' => 'users.user_id > 0',
 		'query_first' => array('target', $truncate . $table), array('user_id','users.user_id','phpbb_user_id'),
 		array('blocked','users.arcade_banned','intval'), array('block_pm','users.games_block_pm','intval'));
+	$sections[] = array('target' => $prefix . 'plus_arc_assets', 'primary' => 'ina_games.game_id',
+		'query_first' => array('target', $truncate . $prefix . 'plus_arc_assets'),
+		array('',array('ina_games.game_id','ina_games.game_name','ina_games.game_path','ina_games.game_flash'),'plus_arcade_media'));
 	return $sections;
 }

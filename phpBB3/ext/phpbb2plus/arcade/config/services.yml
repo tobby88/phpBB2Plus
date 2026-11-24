@@ -10,3 +10,9 @@ services:
         arguments: ['@language', '@template', '@controller.helper', '@dbal.conn', '%core.table_prefix%plus_arc_']
         tags:
             - { name: event.listener }
+    phpbb2plus.arcade.sessions:
+        class: phpbb2plus\arcade\service\sessions
+        arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_arc_', '%core.root_path%']
+    phpbb2plus.arcade.player:
+        class: phpbb2plus\arcade\controller\player
+        arguments: ['@phpbb2plus.arcade.sessions', '@request', '@language', '@template', '@controller.helper', '@user', '@config']

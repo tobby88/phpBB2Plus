@@ -20,6 +20,7 @@ import arcade
 import attachments
 import gallery
 import knowledgebase
+from ruffle_browser import playback
 from http_board import convert, former_names, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
 
@@ -121,6 +122,7 @@ def main():
             source_files(ROOT / "phpBB2", root / "legacy")
             attachments.source_media(root / "legacy")
             gallery.source_media(root / "legacy")
+            arcade.source_media(root / "legacy")
             with server(web, root) as base:
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
@@ -138,6 +140,8 @@ def main():
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
                 arcade.browse(base, member, ordinary)
+                php(fixture, "played", target)
+                playback(web, base, root)
                 knowledgebase.browse(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                 gallery.browse(base, member, ordinary)

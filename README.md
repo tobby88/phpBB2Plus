@@ -19,7 +19,9 @@ build and integration tests work offline. Enable **phpBB2 Plus Community**,
 **phpBB2 Plus Photo Album**, **phpBB2 Plus Knowledge Base** and **phpBB2 Plus Arcade** on the fresh target. Community installs FI Subsilver
 Shadow as a child of prosilver and selects it for a new board. The installer’s
 Convert tab then offers **phpBB2
-Plus (UTF-8)**. The [conversion coverage](phpbb3-port.md) lists verified
+Plus (UTF-8)**. The assembled board includes the self-hosted Ruffle player.
+The Arcade converter imports game files from the separate source board.
+The [conversion coverage](phpbb3-port.md) lists verified
 behaviour and the modules still being ported. Use the branch with test data.
 
 This repository is a historical archive of **phpBB2 Plus 1.53a**, a pre-modded

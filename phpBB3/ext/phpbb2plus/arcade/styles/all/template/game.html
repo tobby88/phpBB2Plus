@@ -1,5 +1,7 @@
 <!-- INCLUDE overall_header.html -->
 <h2><a href="{U_ARC_GAME}">{{ ARC_TITLE|e }}</a></h2>
+{% if U_ARC_START %}<form id="arcade-play" method="post" action="{U_ARC_START}">{S_FORM_TOKEN}<input type="hidden" name="play_nonce" value="{ARC_NONCE}"><input class="button1" type="submit" value="{L_PLUS_ARC_PLAY}"></form>
+{% elseif ARC_NO_FILE %}<p>{L_PLUS_ARC_NO_FILE}</p>{% endif %}
 {% if ARC_INSTRUCTIONS %}<div class="panel"><div class="inner"><p>{{ ARC_INSTRUCTIONS|e|nl2br }}</p></div></div>{% endif %}
 <div class="action-bar">{% for board in loops.arc_boards %}<a class="button2" href="{{ board.URL }}">{{ board.LABEL }}</a> {% endfor %}</div>
 {% if ARC_BOARD %}<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{L_PLUS_ARC_PLACE}</th><th>{L_USERNAME}</th><th>{L_PLUS_ARC_POINTS}</th><th>{L_DATE}</th></tr></thead>

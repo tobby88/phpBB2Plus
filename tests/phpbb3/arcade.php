@@ -7,11 +7,11 @@ function seed_arcade($db)
 		(10,'Spielearchiv','Offene Spiele','p',0,1,0,2),(11,'Clubspiele','','p',0,2,71,1),(12,'Clubturniere','','s',11,1,0,1),(13,'Einzelspieler','','p',0,3,72,1)");
 	$db->query("INSERT INTO phpbb_ina_games (game_id,game_name,game_path,game_desc,cat_id,allow_guest,game_avail,reverse_list,game_show_score,game_flash,
 		highscore_limit,at_highscore_limit,highscore_id,at_highscore_id,instructions) VALUES
-		(60,'puzzle','puzzle.swf','Öffentliches Denkspiel',10,1,1,0,1,1,'10',10,1,2,'Steine &amp; Farben'),
-		(61,'timer','timer.swf','Stoppuhr',10,1,1,1,1,1,'10',10,1,1,'Zeit messen'),
-		(62,'private','private.swf','Vertrauliche Spielprobe',12,0,1,0,1,1,'10',10,0,0,''),
-		(63,'closed','closed.swf','Abgeschaltetes Spiel',10,0,0,0,1,1,'10',10,0,0,''),
-		(64,'personal','personal.swf','Persönliche Spielprobe',13,0,1,0,1,1,'10',10,0,0,'')");
+		(60,'puzzle','games/puzzle/','Öffentliches Denkspiel',10,1,1,0,1,1,'10',10,1,2,'Steine &amp; Farben'),
+		(61,'timer','games/','Stoppuhr',10,1,1,1,1,1,'10',10,1,1,'Zeit messen'),
+		(62,'private','games/puzzle/club','Vertrauliche Spielprobe',12,0,1,0,1,1,'10',10,0,0,''),
+		(63,'closed','games/','Abgeschaltetes Spiel',10,0,0,0,1,1,'10',10,0,0,''),
+		(64,'personal','games/','Persönliche Spielprobe',13,0,1,0,1,1,'10',10,0,0,'')");
 	$db->query("INSERT INTO phpbb_ina_scores (game_name,player,player_id,score,date,time_taken,gameData) VALUES
 		('puzzle','AlterSpielname',1,95.1234,11001,20,'state:α'),('puzzle','ModernMember',2,5.5000,11002,25,''),
 		('puzzle','EditorFixture',98,-12.3751,11003,30,''),('timer','HistoricMember',1,0.0001,11004,3,''),('timer','ModernMember',2,9.7500,11005,7,'')");

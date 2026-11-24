@@ -35,6 +35,15 @@ class catalog
 
 	public function admin() { return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_arcade'); }
 
+	public function refresh() { $this->settings = $this->groups = $this->categories = null; }
+
+	public function can_play($game)
+	{
+		return empty($this->user->data['is_bot']) && $game['game_avail'] && $game['asset_status'] === 'ready' &&
+			(!empty($this->user->data['is_registered']) || $game['allow_guest']) &&
+			(int) $this->user->data['user_posts'] >= (int) $this->setting('games_posts_required', 0);
+	}
+
 	public function staff()
 	{
 		return !empty($this->user->data['is_registered']) && ($this->admin() || $this->auth->acl_get('m_plus_arcade') || $this->auth->acl_get('m_') || $this->auth->acl_getf_global('m_'));

@@ -17,3 +17,18 @@ phpbb2plus_arcade_scores:
     defaults: { _controller: phpbb2plus.arcade.board:game }
     requirements: { game: '[1-9][0-9]*', board: 'current|all|month' }
     methods: [GET, HEAD]
+phpbb2plus_arcade_start:
+    path: /arcade/game/{game}/start
+    defaults: { _controller: phpbb2plus.arcade.player:start }
+    requirements: { game: '[1-9][0-9]*' }
+    methods: [POST]
+phpbb2plus_arcade_play:
+    path: /arcade/game/{game}/play/{launch}
+    defaults: { _controller: phpbb2plus.arcade.player:page }
+    requirements: { game: '[1-9][0-9]*', launch: '[a-f0-9]{32}' }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_asset:
+    path: /arcade/game/{game}/media/{launch}/{name}
+    defaults: { _controller: phpbb2plus.arcade.player:asset }
+    requirements: { game: '[1-9][0-9]*', launch: '[a-f0-9]{32}', name: '.+' }
+    methods: [GET, HEAD]

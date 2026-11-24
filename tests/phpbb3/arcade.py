@@ -1,6 +1,29 @@
 """Verify the visible games and native rankings for different viewers."""
 import os
-from http_board import Browser, login
+import re
+import struct
+import time
+from html import unescape
+from urllib.parse import urljoin, urlsplit
+from http_board import Browser, Page, login
+
+
+def movie():
+    # A single Flash frame with a coloured background. No ActionScript or third-party content.
+    rect = "01100" + "".join(f"{coordinate:012b}" for coordinate in (0, 1600, 0, 900))
+    rect += "0" * (-len(rect) % 8)
+    body = int(rect, 2).to_bytes(len(rect) // 8, "big") + struct.pack("<HH", 24 << 8, 1)
+    body += struct.pack("<H", 9 << 6 | 3) + b"\x22\x77\xaa" + struct.pack("<HH", 1 << 6, 0)
+    return b"FWS\x09" + struct.pack("<I", len(body) + 8) + body
+
+
+def source_media(legacy):
+    folder = legacy / "games/puzzle"
+    (folder / "levels").mkdir(parents=True, exist_ok=True)
+    (folder / "club").mkdir(exist_ok=True)
+    (folder / "puzzle.swf").write_bytes(movie())
+    (folder / "levels/two.txt").write_text("Spielstufe zwei", encoding="utf-8")
+    (folder / "club/private.swf").write_bytes(movie())
 
 
 def browse(base, administrator, member):
@@ -35,3 +58,28 @@ def browse(base, administrator, member):
     timed = guest.fetch(root + "/game/61/scores/current")
     if timed.index("0,0001") > timed.index("9,75"):
         raise RuntimeError("Lower-is-better games use the wrong ranking")
+    return player(base, guest, member, root)
+
+
+def player(base, guest, member, root):
+    path = root + "/game/60"
+    action, fields = Page(member.fetch(path)).forms["arcade-play"]
+    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+    target = urljoin(urljoin(base, path), action)
+    sources = []
+    for _ in range(2):
+        html = member.fetch(target, fields)
+        obj = re.search(r'id="plus-arc-player" data-source="([^"]+)"', html)
+        if not obj or "ruffle/ruffle.js" not in html:
+            raise RuntimeError("The game did not load the self-hosted player")
+        sources.append(unescape(obj.group(1)))
+    if sources[0] != sources[1] or member.fetch(sources[0], raw=True) != movie():
+        raise RuntimeError("A repeated launch created a new game session or returned different media")
+    asset = urljoin(base, sources[0])
+    if member.fetch(urljoin(asset, "levels/two.txt")) != "Spielstufe zwei":
+        raise RuntimeError("Relative game assets are unavailable")
+    member.fetch(urljoin(asset, "club/private.swf"), expected_status=404)
+    guest.fetch(asset, expected_status=404)
+    if "arcade-play" in Page(guest.fetch(root + "/game/61")).forms:
+        raise RuntimeError("Missing SWFs should keep their rankings without offering a broken launch")
+    return urlsplit(asset).path

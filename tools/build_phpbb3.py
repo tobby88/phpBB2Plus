@@ -93,6 +93,15 @@ def assemble(output, cache, offline=False):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
         images = web / "styles" / "fisubsilversh" / "theme" / "images"
+        runtime = ROOT / "phpBB2/assets/ruffle"
+        player = web / "assets/ruffle"
+        player.mkdir()
+        for component in ("ruffle.js", "core.ruffle.*.js", "*.wasm", "LICENSE_*", "package.json", "UPSTREAM_README.md"):
+            files = sorted(runtime.glob(component))
+            if not files:
+                raise ValueError(f"Incomplete bundled Ruffle runtime: {component}")
+            for file in files:
+                shutil.copyfile(file, player / file.name)
         images.mkdir(parents=True, exist_ok=True)
         for name in STYLE_IMAGES:
             with (images / name).open("xb") as out:

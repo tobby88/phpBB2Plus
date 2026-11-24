@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_ARC' => 'Arcade',
+	'PLUS_ARC_PLAY' => 'Play game', 'PLUS_ARC_LOADING' => 'Loading game…', 'PLUS_ARC_PLAYER_ERROR' => 'Ruffle could not start this game.',
+	'PLUS_ARC_NO_FILE' => 'The game file is unavailable.', 'PLUS_ARC_WALLET' => 'This game requires a configured rewards balance.',
 	'PLUS_ARC_CLOSED' => 'The arcade is currently closed.',
 	'PLUS_ARC_CATEGORIES' => 'Categories',
 	'PLUS_ARC_GAMES' => 'Games',

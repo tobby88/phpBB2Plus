@@ -101,6 +101,12 @@ class board
 		$g = $this->catalog->game($game);
 		$params = array('game' => (int) $g['game_id']);
 		$title = catalog::plain($g['game_desc'] ?: $g['game_name']);
+		if ($this->catalog->can_play($g))
+		{
+			add_form_key('plus_arc_play_' . (int) $g['game_id']);
+			$this->template->assign_vars(array('U_ARC_START' => $this->helper->route('phpbb2plus_arcade_start', $params), 'ARC_NONCE' => bin2hex(random_bytes(16))));
+		}
+		elseif ($g['asset_status'] !== 'ready') { $this->template->assign_var('ARC_NO_FILE', true); }
 		$scoreboards = $this->catalog->scores_available($g);
 		$all = $scoreboards && (int) $this->catalog->setting('games_at_highscore', 1) && (int) $g['at_highscore_limit'] > 0;
 		$monthly = $scoreboards && (int) $this->catalog->setting('games_show_mhm', 1);
