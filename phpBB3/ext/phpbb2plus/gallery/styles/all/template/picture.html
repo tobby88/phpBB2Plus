@@ -6,6 +6,7 @@
 <figcaption><a href="{U_FULL}">{L_PLUS_ALBUM_ORIGINAL}</a> &middot; {ALBUM_AUTHOR} &middot; {ALBUM_DATE}</figcaption></figure>
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
 {% if ALBUM_RATING %}<p>{{ ALBUM_RATING }}</p>{% endif %}
+{% if loops.album_actions %}<div class="action-bar">{% for action in loops.album_actions %}<a class="button2" href="{{ action.URL }}">{{ action.LABEL }}</a> {% endfor %}</div>{% endif %}
 </div></div>
 {% if S_ALBUM_COMMENTS %}
 <h3>{L_PLUS_ALBUM_COMMENTS}</h3>

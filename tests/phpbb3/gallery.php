@@ -17,10 +17,12 @@ function seed_gallery($db)
 	$db->query("INSERT INTO phpbb_album (pic_id,pic_filename,pic_title,pic_desc,pic_user_id,pic_username,pic_time,pic_cat_id,pic_view_count,pic_lock,pic_approval)
 		VALUES (100,'fixture.png','Öffentliche Fotoprobe','Beschreibung &amp; Grüße',2,'',100100,1,14,0,1),
 		(101,'fixture.png','Clubfotoprobe','',1,'',100101,8,2,0,1),(102,'fixture.png','Freigabeprobe','',1,'',100102,1,0,0,0),
-		(103,'fixture.png','Persönliche Fotoprobe','',1,'',100103,0,2,0,1),(104,'fixture.png','Verschachtelte Fotoprobe','',2,'',100104,9,4,1,1)");
+		(103,'fixture.png','Persönliche Fotoprobe','',1,'',100103,0,2,0,1),(104,'fixture.png','Verschachtelte Fotoprobe','',2,'',100104,9,4,1,1),
+		(105,'fixture.png','Foto zum Kontowechsel','',87,'',100105,1,0,0,1)");
 	$db->query("INSERT INTO phpbb_album_comment (comment_id,comment_pic_id,comment_cat_id,comment_user_id,comment_username,comment_user_ip,
 		comment_time,comment_text,comment_edit_time,comment_edit_count,comment_edit_user_id)
-		VALUES (95,100,1,-1,'EditorFixture','c0000203',100112,'Historischer Bildkommentar',100114,1,1)");
+		VALUES (95,100,1,-1,'EditorFixture','c0000203',100112,'Historischer Bildkommentar',100114,1,1),
+		(96,105,1,87,'','c0000209',100115,'Kommentar zum Kontowechsel',100116,1,87)");
 	$db->query("INSERT INTO phpbb_album_rate (rate_pic_id,rate_user_id,rate_user_ip,rate_point,rate_hon_point) VALUES (100,1,'c0000204',8,-1),(100,2,'c0000205',6,3)");
 }
 

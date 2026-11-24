@@ -136,9 +136,11 @@ def main():
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
                 gallery.browse(base, member, ordinary)
+                php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
                 former_names(base, ordinary)
                 php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                 former_names(base, ordinary, removed=True)
+                gallery.departed(base, ordinary)
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 

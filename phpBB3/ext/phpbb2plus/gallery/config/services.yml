@@ -4,7 +4,7 @@ services:
         arguments: ['@dbal.conn', '@user', '@auth', '%core.table_prefix%plus_album_']
     phpbb2plus.gallery.board:
         class: phpbb2plus\gallery\controller\board
-        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@?phpbb2plus.community.former_members']
+        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@phpbb2plus.gallery.pictures', '@?phpbb2plus.community.former_members']
     phpbb2plus.gallery.media:
         class: phpbb2plus\gallery\controller\media
         arguments: ['@phpbb2plus.gallery.access', '@config', '%core.root_path%', '@php_ini']
@@ -25,3 +25,21 @@ services:
     phpbb2plus.gallery.comments:
         class: phpbb2plus\gallery\controller\comments
         arguments: ['@phpbb2plus.gallery.discussion', '@request', '@controller.helper', '@language', '@template']
+    phpbb2plus.gallery.pictures:
+        class: phpbb2plus\gallery\service\pictures
+        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '%core.table_prefix%plus_album_']
+    phpbb2plus.gallery.manage:
+        class: phpbb2plus\gallery\controller\manage
+        arguments: ['@phpbb2plus.gallery.pictures', '@controller.helper', '@request', '@template', '@language', '@phpbb2plus.gallery.uploads']
+    phpbb2plus.gallery.accounts:
+        class: phpbb2plus\gallery\event\accounts
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_album_']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.gallery.cleanup:
+        class: phpbb2plus\gallery\cron\cleanup
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_album_', '%core.root_path%']
+        calls:
+            - [set_name, [phpbb2plus.gallery.cleanup]]
+        tags:
+            - { name: cron.task }

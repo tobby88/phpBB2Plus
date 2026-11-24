@@ -21,4 +21,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_BAD_RATING' => 'Bitte wähle einen Wert innerhalb der Bewertungsskala.', 'PLUS_ALBUM_ALREADY_RATED' => 'Du hast dieses Bild bereits bewertet.',
 	'PLUS_ALBUM_EDIT_COMMENT' => 'Kommentar bearbeiten', 'PLUS_ALBUM_DELETE_COMMENT' => 'Kommentar löschen',
 	'PLUS_ALBUM_CONFIRM_COMMENT' => 'Diesen Kommentar endgültig löschen?',
+	'PLUS_ALBUM_ACTION_EDIT' => 'Bild bearbeiten', 'PLUS_ALBUM_ACTION_MOVE' => 'Bild verschieben', 'PLUS_ALBUM_ACTION_APPROVE' => 'Bild freigeben',
+	'PLUS_ALBUM_ACTION_UNAPPROVE' => 'Freigabe zurücknehmen', 'PLUS_ALBUM_ACTION_LOCK' => 'Bild sperren', 'PLUS_ALBUM_ACTION_UNLOCK' => 'Bild entsperren',
+	'PLUS_ALBUM_ACTION_DELETE' => 'Bild löschen', 'PLUS_ALBUM_DESTINATION' => 'Zielalbum',
+	'PLUS_ALBUM_CONFIRM_DELETE' => '„%s“ mit allen Kommentaren und Bewertungen endgültig löschen?',
 ));

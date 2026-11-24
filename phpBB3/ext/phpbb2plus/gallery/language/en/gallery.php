@@ -21,4 +21,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_BAD_RATING' => 'Choose a value on the rating scale.', 'PLUS_ALBUM_ALREADY_RATED' => 'You have already rated this picture.',
 	'PLUS_ALBUM_EDIT_COMMENT' => 'Edit comment', 'PLUS_ALBUM_DELETE_COMMENT' => 'Delete comment',
 	'PLUS_ALBUM_CONFIRM_COMMENT' => 'Permanently delete this comment?',
+	'PLUS_ALBUM_ACTION_EDIT' => 'Edit picture', 'PLUS_ALBUM_ACTION_MOVE' => 'Move picture', 'PLUS_ALBUM_ACTION_APPROVE' => 'Approve picture',
+	'PLUS_ALBUM_ACTION_UNAPPROVE' => 'Withdraw approval', 'PLUS_ALBUM_ACTION_LOCK' => 'Lock picture', 'PLUS_ALBUM_ACTION_UNLOCK' => 'Unlock picture',
+	'PLUS_ALBUM_ACTION_DELETE' => 'Delete picture', 'PLUS_ALBUM_DESTINATION' => 'Destination album',
+	'PLUS_ALBUM_CONFIRM_DELETE' => 'Permanently delete “%s” with all its comments and ratings?',
 ));

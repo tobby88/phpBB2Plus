@@ -27,6 +27,11 @@ phpbb2plus_gallery_discuss:
     defaults: { _controller: phpbb2plus.gallery.comments:post }
     requirements: { picture: '[1-9][0-9]*' }
     methods: [POST]
+phpbb2plus_gallery_manage:
+    path: /album/picture/{picture}/manage/{mode}
+    defaults: { _controller: phpbb2plus.gallery.manage:picture }
+    requirements: { picture: '[1-9][0-9]*', mode: 'edit|move|approve|unapprove|lock|unlock|delete' }
+    methods: [GET, POST]
 phpbb2plus_gallery_comment:
     path: /album/picture/{picture}/comment/{comment}/{mode}
     defaults: { _controller: phpbb2plus.gallery.comments:manage }

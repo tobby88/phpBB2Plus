@@ -14,8 +14,9 @@ class board
 	private $prefix;
 	private $names;
 	private $discussion;
+	private $pictures;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $names = null)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $names = null)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -28,6 +29,7 @@ class board
 		$this->prefix = $prefix;
 		$this->names = $names;
 		$this->discussion = $discussion;
+		$this->pictures = $pictures;
 	}
 
 	private function breadcrumbs($cat = null)
@@ -119,6 +121,7 @@ class board
 	{
 		list($pic, $cat) = $this->access->picture($picture);
 		$this->breadcrumbs($cat);
+		$this->language->add_lang('viewtopic');
 		$id = (int) $pic['pic_id'];
 		$params = array('picture' => $id);
 		$link = $this->helper->route('phpbb2plus_gallery_picture', $params);
@@ -149,6 +152,10 @@ class board
 				{
 					$editor = (int) $comment['editor_id'] > ANONYMOUS && $comment['editor_name'] !== null ?
 						get_username_string('full', $comment['editor_id'], $comment['editor_name'], $comment['editor_colour']) : $this->language->lang('GUEST');
+					if ($comment['retired_editor'] !== '')
+					{
+						$editor = $this->author(array('author_id' => ANONYMOUS, 'author_name' => $comment['retired_editor'], 'author_removed' => 1));
+					}
 					$edit = $this->language->lang('EDITED_TIMES_TOTAL', (int) $comment['edit_count'], $editor, $this->user->format_date($comment['edited_at']));
 				}
 				$links = array();
@@ -163,6 +170,14 @@ class board
 					'EDITED' => $edit, 'TIME' => $this->user->format_date($comment['created_at']), 'BODY' => censor_text($comment['body'])));
 			}
 			$this->db->sql_freeresult($result);
+		}
+		foreach (array('edit','move','approve','unapprove','lock','unlock','delete') as $action)
+		{
+			if ($this->pictures->allowed($pic, $cat, $action))
+			{
+				$this->template->assign_block_vars('album_actions', array('LABEL' => $this->language->lang('PLUS_ALBUM_ACTION_' . strtoupper($action)),
+					'URL' => $this->helper->route('phpbb2plus_gallery_manage', $params + array('mode' => $action))));
+			}
 		}
 		$may_rate = $this->access->may_discuss($pic, $cat, 'rate');
 		$may_comment = $this->access->may_discuss($pic, $cat, 'comment');

@@ -1,6 +1,7 @@
 """Public, restricted, personal and pending albums from an offline snapshot."""
 import struct
 import json
+import os
 import re
 import time
 from urllib.parse import urljoin
@@ -25,7 +26,7 @@ def source_media(legacy):
 
 
 def browse(base, moderator, member):
-    from http_board import Browser
+    from http_board import Browser, login
     guest = Browser(base)
     album = "app.php/album"
     if "Test category" not in guest.fetch(album) or "/album" not in guest.fetch("app.php/portal"):
@@ -42,6 +43,8 @@ def browse(base, moderator, member):
     for hidden in ("/category/9", "/picture/101", "/picture/101/small", "/picture/102/medium", "/picture/103/full"):
         guest.fetch(album + hidden, expected_status=404)
     member.fetch(album + "/picture/102/full", expected_status=404)
+    applicant = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+    applicant.fetch(album + "/picture/101/full", expected_status=404)
     details = guest.fetch(album + "/picture/100")
     if ("Historischer Bildkommentar" not in details or "7,0 von 10" not in details or "EditorFixture" in details
             or "EditorFixture" not in member.fetch(album + "/picture/100")):
@@ -58,6 +61,7 @@ def browse(base, moderator, member):
             raise RuntimeError("Incorrect gallery preview dimensions or cached content")
     uploads(base, guest, moderator, member)
     discussion(base, guest, moderator, member)
+    manage(base, guest, moderator, member)
 
 
 def uploads(base, guest, moderator, member):
@@ -92,14 +96,15 @@ def uploads(base, guest, moderator, member):
         raise RuntimeError("The ordinary multipart form must work without JavaScript")
 
 
+def submit(browser, path, form_id, fields, status=200):
+    from http_board import Page
+    action, hidden = Page(browser.fetch(path)).forms[form_id]
+    time.sleep(max(0, int(hidden["creation_time"]) + 1.05 - time.time()))
+    return browser.fetch(urljoin(urljoin(browser.base, path), action), dict(hidden, **fields), expected_status=status)
+
+
 def discussion(base, guest, moderator, member):
     from http_board import Page
-
-    def submit(browser, path, form_id, fields, status=200):
-        action, hidden = Page(browser.fetch(path)).forms[form_id]
-        time.sleep(max(0, int(hidden["creation_time"]) + 1.05 - time.time()))
-        return browser.fetch(urljoin(urljoin(base, path), action), dict(hidden, **fields), expected_status=status)
-
     picture = "app.php/album/picture/101"
     if "album-discuss" in Page(guest.fetch("app.php/album/picture/100")).forms:
         raise RuntimeError("A member-only discussion form was offered to a guest")
@@ -124,3 +129,43 @@ def discussion(base, guest, moderator, member):
     deleted = submit(moderator, comment + "/delete", "album-comment-edit", {})
     if "Überarbeiteter Kommentar" in deleted:
         raise RuntimeError("Confirmed album comment deletion did not take effect")
+
+
+def manage(base, guest, moderator, member):
+    from http_board import Page
+    picture = "app.php/album/picture/102"
+    def action(browser, mode, **values):
+        return submit(browser, picture + "/manage/" + mode, "album-manage", values)
+    action(moderator, "approve")
+    if "Freigabeprobe" not in guest.fetch(picture):
+        raise RuntimeError("Approving a pending photo did not publish it")
+    action(member, "edit", title="Geänderte Freigabeprobe", description="Änderungsprobe")
+    action(moderator, "lock")
+    if "album-discuss" in Page(member.fetch(picture)).forms:
+        raise RuntimeError("The locked picture still offers a new discussion")
+    action(moderator, "unlock")
+    if "album-discuss" not in Page(member.fetch(picture)).forms:
+        raise RuntimeError("Unlocking a photo did not restore discussion")
+    action(moderator, "unapprove")
+    guest.fetch(picture + "/small", expected_status=404)
+    action(moderator, "approve")
+    action(moderator, "move", destination=8)
+    guest.fetch(picture, expected_status=404)
+    if "Geänderte Freigabeprobe" not in member.fetch("app.php/album/category/8"):
+        raise RuntimeError("A photo move lost its title or category association")
+    submit(member, picture, "album-discuss", {"body": "Kommentar vor dem Löschen", "points": 8})
+    member.fetch(picture + "/small", raw=True)
+    confirmation = moderator.fetch(picture + "/manage/delete")
+    if "Geänderte Freigabeprobe" not in confirmation or "Geänderte Freigabeprobe" not in member.fetch(picture):
+        raise RuntimeError("A photo delete must first confirm the intended picture")
+    action(moderator, "delete")
+    member.fetch(picture, expected_status=404)
+    moderator.fetch(picture + "/full", expected_status=404)
+
+
+def departed(base, member):
+    from http_board import Browser
+    picture = "app.php/album/picture/105"
+    public, private = Browser(base).fetch(picture), member.fetch(picture)
+    if "DepartingFixture" in public or "Ehemaliger Nutzer" not in public or private.count("DepartingFixture") < 3:
+        raise RuntimeError("Album uploader, comment and editor attribution changed after native account removal")

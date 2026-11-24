@@ -95,7 +95,7 @@ class media
 		$mark_hash = $strength ? hash_file('sha256', $mark) : '';
 		if ($strength && !$mark_hash) { throw new ServiceUnavailableHttpException(); }
 		$key = implode(':', array('v1', $pic['storage_name'], $width, $height, $size, $quality, $strength, $position, $mark_hash));
-		$cached = $directory . '/gallery_cache_' . hash_hmac('sha256', $key, $this->config['plus_gallery_media_key']);
+		$cached = $directory . '/gallery_cache_' . substr($pic['storage_name'], 8) . '_' . hash_hmac('sha256', $key, $this->config['plus_gallery_media_key']);
 		$use_cache = $size === 'small' ? (int) $this->access->setting('thumbnail_cache', 1) : (int) $this->access->setting('midthumb_cache', 1, 'sp');
 		if ($use_cache && is_file($cached) && !is_link($cached)) { return $this->response($cached, $mime); }
 		$budget = $this->ini->getBytes('memory_limit');
