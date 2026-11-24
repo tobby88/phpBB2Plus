@@ -10,8 +10,8 @@ class period
 		if (!$start) { return $empty; }
 		$a = (new \DateTimeImmutable('@' . $start))->setTimezone($zone);
 		$b = (new \DateTimeImmutable('@' . $end))->setTimezone($zone);
-		$all_day = $a->getTimestamp() === $a->setTime(0,0)->getTimestamp() &&
-			$b->getTimestamp() === $b->modify('+1 day')->setTime(0,0)->getTimestamp() - 1;
+		$all_day = $start === (int) $a->setTime(0,0)->format('U') &&
+			$end === (int) $b->modify('+1 day')->setTime(0,0)->format('U') - 1;
 		return array('start_date'=>$a->format('Y-m-d'), 'start_time'=>$all_day ? '' : $a->format('H:i:s'),
 			'end_date'=>$all_day || $end !== $start ? $b->format('Y-m-d') : '',
 			'end_time'=>$all_day || $end === $start ? '' : $b->format('H:i:s'));
@@ -47,13 +47,14 @@ class period
 		if ($fields['end_date'] !== '')
 		{
 			$b = self::local($fields['end_date'],$fields['end_time'],$stored[1],$zone);
-			$end = $fields['end_time'] === '' ? $b->modify('+1 day')->setTime(0,0)->getTimestamp()-1 : $b->getTimestamp();
+			$end = $fields['end_time'] === '' ? (int) $b->modify('+1 day')->setTime(0,0)->format('U') - 1 : (int) $b->format('U');
 		}
 		else
 		{
-			$end = $fields['start_time'] === '' ? $a->modify('+1 day')->setTime(0,0)->getTimestamp()-1 : $a->getTimestamp();
+			$end = $fields['start_time'] === '' ? (int) $a->modify('+1 day')->setTime(0,0)->format('U') - 1 : (int) $a->format('U');
 		}
-		$start = $a->getTimestamp();
+		// On PHP 7.4 getTimestamp() can reinterpret the first repeated local hour as the second.
+		$start = (int) $a->format('U');
 		if ($start === $stored[0] && $end === $stored[1]) { return $stored; }
 		if ($end < $start || (int) $a->format('Y') < 1971 || (int) $a->format('Y') > 2069 || $end > 4294967294)
 		{

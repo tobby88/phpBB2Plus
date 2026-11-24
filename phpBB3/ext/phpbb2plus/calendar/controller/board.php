@@ -51,7 +51,7 @@ class board
 	private function records($from, $until, $forums)
 	{
 		yield from $this->schedule->birthdays($from,$until);
-		yield from $this->schedule->topics($from->getTimestamp(),$until->getTimestamp(),$forums);
+		yield from $this->schedule->topics((int) $from->format('U'),(int) $until->format('U'),$forums);
 	}
 
 	private function description($record)
@@ -110,7 +110,7 @@ class board
 		$selected_slot = null;
 		if ($view === 'hour')
 		{
-			$stamp = $moment ? $moment->getTimestamp() : $day->getTimestamp();
+			$stamp = $moment ? (int) $moment->format('U') : $day->getTimestamp();
 			$selected_slot = $day->getTimestamp() + intdiv($stamp - $day->getTimestamp(),3600) * 3600;
 			$from = $day->setTimestamp($selected_slot);
 			$until = $day->setTimestamp(min($end_of_day,$selected_slot+3600));
