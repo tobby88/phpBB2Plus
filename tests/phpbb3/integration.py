@@ -1,0 +1,110 @@
+"""Install the built distribution in a fresh, disposable MySQL/MariaDB database."""
+import argparse
+from contextlib import contextmanager
+from hashlib import sha256
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import subprocess
+import sys
+import tempfile
+from time import monotonic
+import zipfile
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tools"))
+from build_phpbb3 import assemble, PACKAGES
+
+
+def php(*args, cwd=None, capture=False):
+    result = subprocess.run([os.environ.get("PLUS_TEST_PHP", "php"), "-d", "disable_functions=mail",
+                             *map(str, args)], cwd=cwd, text=True, encoding="utf-8",
+                            errors="replace", stdout=subprocess.PIPE if capture else None, check=True)
+    return result.stdout if capture else None
+
+
+@contextmanager
+def database():
+    tool = ROOT / "tests/phpbb3/database.php"
+    name = php(tool, "create", capture=True).strip()
+    if not re.fullmatch(r"plus3_test_[a-f0-9]{24}", name):
+        raise ValueError("Failed to create an isolated schema")
+    try:
+        yield name
+    finally:
+        php(tool, "drop", name)
+
+
+def install(web, settings_dir, name):
+    config = settings_dir / "install.yml"
+    quote = json.dumps
+    config.write_text(f"""installer:
+    admin:
+        name: PlusFounder
+        password: {quote(secrets.token_hex(12))}
+        email: founder@example.invalid
+    board:
+        lang: de
+        name: Plus integration test
+        description: Disposable test installation
+    database:
+        dbms: mysqli
+        dbhost: 127.0.0.1
+        dbport: {quote(os.environ.get("PLUS_TEST_DB_PORT", "3306"))}
+        dbuser: {quote(os.environ.get("PLUS_TEST_DB_USER", "root"))}
+        dbpasswd: {quote(os.environ.get("PLUS_TEST_DB_PASSWORD", ""))}
+        dbname: {quote(name)}
+        table_prefix: p3_
+    email:
+        enabled: false
+    server:
+        cookie_secure: false
+        server_protocol: http://
+        force_server_vars: false
+        server_name: localhost
+        server_port: 80
+        script_path: /
+    extensions: []
+""", encoding="utf-8")
+    php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web)
+    if "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
+        raise RuntimeError("phpBB installer did not finish")
+
+
+def verify_upstream(web, cache):
+    count = 0
+    for url, _, prefix in PACKAGES:
+        with zipfile.ZipFile(cache / url.rsplit("/", 1)[1]) as source:
+            for info in source.infolist():
+                if info.is_dir():
+                    continue
+                relative = Path(info.filename).relative_to(prefix or ".")
+                if sha256(source.read(info)).digest() != sha256((web / relative).read_bytes()).digest():
+                    raise ValueError(f"Modified upstream file: {relative}")
+                count += 1
+    return count
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cache", type=Path, required=True)
+    parser.add_argument("--offline", action="store_true")
+    args = parser.parse_args()
+    if os.environ.get("PLUS_TEST_DATABASE") != "1":
+        parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
+    start = monotonic()
+    with tempfile.TemporaryDirectory(prefix="plus3-integration-") as directory:
+        root = Path(directory)
+        web = root / "board"
+        assemble(web, args.cache.resolve(), args.offline)
+        count = verify_upstream(web, args.cache.resolve())
+        with database() as target:
+            install(web, root, target)
+            php("bin/phpbbcli.php", "--version", cwd=web)
+    print(f"Verified {count} upstream files and fresh German installation in {monotonic()-start:.1f}s")
+
+
+if __name__ == "__main__":
+    main()

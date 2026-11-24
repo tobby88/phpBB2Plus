@@ -1,0 +1,63 @@
+/* FI Subsilver Shadow inherits the phpBB3 templates, icons and responsive controls. */
+@import url("../../prosilver/theme/stylesheet.css");
+
+html, body { background-color: #ecf0f6; color: #172536; }
+body, h1, h2, h3, .content, .postbody, .postprofile, .topiclist, .button {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+body { padding: 6px; }
+.wrap {
+	max-width: 1400px; border: 1px solid #91a0ae; border-radius: 0;
+	padding: 7px; box-shadow: 2px 3px 7px #9ca9b4;
+}
+.headerbar {
+	min-height: 100px; margin-bottom: 0; border-radius: 0; border: 1px solid #9ca9b4;
+	background: #dbe3ee url("images/cellpic_bkg.jpg") repeat-x; color: #173457;
+}
+.headerbar .inner {
+	min-height: 100px; background: url("images/phpbb2_logor.jpg") right center / auto 100% no-repeat;
+}
+.site_logo {
+	background: url("images/phpbb2_logo.jpg") left center / contain no-repeat;
+	width: 218px; height: 100px;
+}
+.logo { padding: 0 12px 0 0; }
+.site-description h1, .site-description p { color: #173457; }
+.site-description h1 { margin-top: 20px; }
+.headerbar .search-header { margin-right: 145px; }
+.navbar {
+	background: #e5ebf3 url("images/cellpic_nav.gif") repeat-x; color: #223950;
+	border: 1px solid #91a0ae; border-radius: 0;
+}
+.forabg, .forumbg, .cp-mini, .stat-block h3 {
+	border-radius: 0; background: #48647d url("images/cellpic3.gif") repeat-x;
+}
+.forabg, .forumbg { padding: 3px; }
+.forabg li.header, .forumbg li.header { font-weight: bold; }
+.stat-block h3 { background: #d9e2ec url("images/cellpic1.gif") repeat-x; padding: 6px; color: #23415d; }
+ul.forums { background: #eaedf4; }
+li.row { border-top-color: #fff; border-bottom-color: #bcc9d5; }
+li.row:hover { background-color: #f2f5f9; }
+.bg1, .panel, .post.bg1 { background-color: #eaedf4; }
+.bg2, .post.bg2 { background-color: #d9e2ec; }
+.bg3 { background-color: #cedcec; }
+.post, .panel, .postbody blockquote, .codebox { border-radius: 0; }
+.postbody blockquote, .codebox { background-color: #fafafa; border: 1px solid #9ca9b4; }
+a, a.topictitle, a.forumtitle { color: #074777; }
+a:visited { color: #446984; }
+a:hover, a.topictitle:hover, a.forumtitle:hover { color: #a54900; }
+.header a, .header a:visited { color: #fff; }
+@media (min-width: 701px) {
+	.postprofile { float: left; border-width: 0 1px 0 0; border-color: #a8b8c7; }
+	.postbody { float: right; }
+	.rtl .postprofile { float: right; border-width: 0 0 0 1px; }
+	.rtl .postbody { float: left; }
+}
+@media (max-width: 700px) {
+	body { padding: 2px; }
+	.wrap { padding: 4px; }
+	.headerbar, .headerbar .inner { min-height: 66px; }
+	.headerbar .inner { background-image: none; }
+	.site-description h1 { margin-top: 8px; }
+	.navbar { background-color: #e5ebf3; }
+}

@@ -58,6 +58,7 @@
 /phpBB2/usage/*
 
 # Local tools and comparison artifacts
+/build/
 /.reference/
 /.deploy/
 /.tools/
