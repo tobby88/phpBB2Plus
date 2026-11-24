@@ -7,4 +7,11 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_KB_SCORE' => 'Rating %1$s out of 10 (%2$s votes)', 'PLUS_KB_DECIMAL' => '.', 'PLUS_KB_RATE' => 'Rate article',
 	'PLUS_KB_BAD_RATING' => 'Choose a rating between 1 and 10.', 'PLUS_KB_ALREADY_RATED' => 'You have already rated this article.',
 	'PLUS_KB_FORMER' => 'Former member', 'PLUS_KB_CONTENTS' => 'Contents', 'PLUS_KB_DISCUSSION' => 'Forum discussion', 'PLUS_KB_PRINT' => 'Print view',
+	'PLUS_KB_ACTION_NEW' => 'Submit article', 'PLUS_KB_ACTION_EDIT' => 'Edit article', 'PLUS_KB_ACTION_APPROVE' => 'Approve article',
+	'PLUS_KB_ACTION_UNAPPROVE' => 'Withdraw approval', 'PLUS_KB_ACTION_DELETE' => 'Delete article', 'PLUS_KB_CATEGORY' => 'Category', 'PLUS_KB_TYPE' => 'Article type',
+	'PLUS_KB_INVALID_TEXT' => 'Please check the title, description and article text.', 'PLUS_KB_INVALID_CATEGORY' => 'Choose an existing category and article type.',
+	'PLUS_KB_CONFLICT' => 'The article has changed since you opened it. Open the current version before applying your changes.',
+	'PLUS_KB_BAD_NAME' => 'Choose an available guest name.', 'PLUS_KB_SUBMITTED' => 'Your article has been submitted for approval.',
+	'PLUS_KB_MARKUP' => 'You can use BBCode. [page] starts a new page. Add [toc] after a heading to include it in the contents.',
+	'PLUS_KB_CONFIRM_DELETE' => 'Permanently delete “%s” and its ratings?',
 ));

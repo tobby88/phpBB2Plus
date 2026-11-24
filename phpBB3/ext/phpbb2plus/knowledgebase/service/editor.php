@@ -1,0 +1,160 @@
+<?php
+namespace phpbb2plus\knowledgebase\service;
+
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+class editor
+{
+	private $articles;
+	private $db;
+	private $config;
+	private $user;
+	private $auth;
+	private $prefix;
+	private $root;
+	private $php_ext;
+
+	public function __construct($articles, $db, $config, $user, $auth, $prefix, $root, $php_ext)
+	{
+		$this->articles = $articles;
+		$this->db = $db;
+		$this->config = $config;
+		$this->user = $user;
+		$this->auth = $auth;
+		$this->prefix = $prefix;
+		$this->root = $root;
+		$this->php_ext = $php_ext;
+	}
+
+	public function allowed($action, $a = null)
+	{
+		if (!empty($this->user->data['is_bot'])) { return false; }
+		if ($action === 'new') { return $this->articles->moderator() || ((int) $this->articles->setting('allow_new', 1) &&
+			(!empty($this->user->data['is_registered']) || (int) $this->articles->setting('allow_anon', 0))); }
+		if (!$a) { return false; }
+		if ($action === 'edit') { return $this->articles->moderator() || (!empty($this->user->data['is_registered']) &&
+			(int) $this->articles->setting('allow_edit', 1) && (int) $a['author_id'] === (int) $this->user->data['user_id']); }
+		if (!$this->articles->moderator()) { return false; }
+		return $action === 'delete' || ($action === 'approve' && (int) $a['approval'] !== 1) || ($action === 'unapprove' && (int) $a['approval'] === 1);
+	}
+
+	public function context($action, $id)
+	{
+		$a = $id ? $this->articles->find($id) : null;
+		if (!$this->allowed($action, $a)) { throw new NotFoundHttpException(); }
+		return $a;
+	}
+
+	public function types()
+	{
+		$result = $this->db->sql_query('SELECT type_id,title FROM ' . $this->prefix . 'types ORDER BY title,type_id');
+		$rows = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+		return $rows;
+	}
+
+	public function prepare($form)
+	{
+		if ($form['title'] === '' || utf8_strlen($form['title']) > 255 || utf8_strlen($form['description']) > 255 ||
+			$form['body'] === '' || strlen($form['body']) > 262140 || utf8_strlen($form['body']) > 65535) { throw new \DomainException('PLUS_KB_INVALID_TEXT'); }
+		$pages = array();
+		foreach (explode('[page]', $form['body']) as $part)
+		{
+			$pieces = explode('[toc]', $part, 2);
+			$heading = count($pieces) === 2 ? trim(preg_replace('/\[\/?[a-z][a-z0-9]*(?:[=:\s][^\]\r\n]*)?\]/i', '', $pieces[0])) : '';
+			$text = utf8_htmlspecialchars(str_replace('[toc]', '', $part));
+			$uid = $bits = ''; $flags = 0;
+			generate_text_for_storage($text, $uid, $bits, $flags, (bool) $this->config['allow_bbcode'], (bool) $this->config['allow_post_links'], (bool) $this->config['allow_smilies']);
+			$pages[] = array('heading' => utf8_substr($heading, 0, 255), 'content' => $text, 'bbcode_uid' => $uid, 'bbcode_bitfield' => $bits, 'bbcode_options' => $flags);
+		}
+		return $pages;
+	}
+
+	public function locked(callable $operation)
+	{
+		$this->db->sql_transaction('begin');
+		try
+		{
+			$table = $this->prefix . 'state';
+			$this->db->sql_query("UPDATE $table SET state_id=1 WHERE state_id=1");
+			$result = $this->db->sql_query("SELECT state_id FROM $table WHERE state_id=1");
+			$exists = $this->db->sql_fetchfield('state_id') !== false;
+			$this->db->sql_freeresult($result);
+			if (!$exists) { throw new \RuntimeException('Knowledge Base coordinator missing.'); }
+			$this->articles->refresh();
+			$out = $operation();
+			$this->db->sql_transaction('commit');
+			return $out;
+		}
+		catch (\Throwable $e) { $this->db->sql_transaction('rollback'); throw $e; }
+	}
+
+	public function save($mode, $id, $form, $nonce, $revision)
+	{
+		$this->context($mode, $id);
+		$pages = $this->prepare($form);
+		if (!preg_match('/^[a-f0-9]{32}$/D', $nonce)) { throw new \DomainException('FORM_INVALID'); }
+		$key = hash('sha256', $this->user->session_id . ':' . (int) $this->user->data['user_id'] . ':' . $mode . ':' . $id . ':' . $nonce);
+		$digest = hash('sha256', serialize(array($form, $revision)));
+		return $this->locked(function () use ($id, $mode, $key, $digest, $form, $pages, $revision)
+		{
+			$a = $this->context($mode, $id);
+			$table = $this->prefix . 'articles';
+			$result = $this->db->sql_query('SELECT payload,article_id FROM ' . $this->prefix . "submissions WHERE form_key='$key'");
+			$saved = $this->db->sql_fetchrow($result);
+			$this->db->sql_freeresult($result);
+			if ($saved)
+			{
+				if (!hash_equals($saved['payload'], $digest)) { throw new \DomainException('FORM_INVALID'); }
+				return (int) $saved['article_id'];
+			}
+			if ($a && (int) $a['revision'] !== $revision) { throw new \DomainException('PLUS_KB_CONFLICT'); }
+			if (!$form['category'] || !$this->articles->trail($form['category']) || !in_array($form['type'], array_map('intval', array_column($this->types(), 'type_id')), true))
+			{ throw new \DomainException('PLUS_KB_INVALID_CATEGORY'); }
+			$can_publish = $this->articles->moderator() || (!$a && !empty($this->user->data['is_registered']) && ($this->auth->acl_get('m_') || $this->auth->acl_getf_global('m_')));
+			$approval = $can_publish || !(int) $this->articles->setting($a ? 'approve_edit' : 'approve_new', 1) ? 1 : ($a ? 2 : 0);
+			$row = array('cat_id' => $form['category'], 'type_id' => $form['type'], 'title' => $form['title'], 'description' => $form['description'],
+				'created_at' => time(), 'editor_text' => $form['body'], 'search_text' => preg_replace('/\[\/?[a-z][a-z0-9]*(?:[=:\s][^\]\r\n]*)?\]/i', ' ', $form['body']),
+				'approval' => $approval, 'revision' => $a ? $revision + 1 : 1);
+			if ($a) { $this->db->sql_query("UPDATE $table SET " . $this->db->sql_build_array('UPDATE', $row) . ' WHERE article_id=' . (int) $id); }
+			else
+			{
+				$name = empty($this->user->data['is_registered']) ? $form['guest'] : '';
+				if ($name !== '')
+				{
+					if (!function_exists('validate_username')) { include_once $this->root . 'includes/functions_user.' . $this->php_ext; }
+					if (utf8_strlen($name) > 32 || validate_username(utf8_htmlspecialchars($name)) !== false) { throw new \DomainException('PLUS_KB_BAD_NAME'); }
+				}
+				$row += array('author_id' => (int) $this->user->data['user_id'], 'author_name' => $name, 'source_date' => '');
+				$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $row));
+				$id = (int) $this->db->sql_nextid();
+			}
+			$this->db->sql_query('DELETE FROM ' . $this->prefix . 'pages WHERE article_id=' . $id);
+			foreach ($pages as $i => $page)
+			{
+				$this->db->sql_query('INSERT INTO ' . $this->prefix . 'pages ' . $this->db->sql_build_array('INSERT', $page + array('article_id' => $id, 'page_number' => $i + 1)));
+			}
+			$this->db->sql_query('INSERT INTO ' . $this->prefix . 'submissions ' . $this->db->sql_build_array('INSERT',
+				array('form_key' => $key, 'payload' => $digest, 'article_id' => $id, 'created_at' => time())));
+			return $id;
+		});
+	}
+
+	public function moderate($mode, $id, $expected)
+	{
+		$this->locked(function () use ($mode, $id, $expected)
+		{
+			$a = $this->context($mode, $id);
+			if ((int) $a['revision'] !== $expected) { throw new \DomainException('PLUS_KB_CONFLICT'); }
+			$where = ' WHERE article_id=' . (int) $id;
+			if ($mode === 'delete')
+			{
+				foreach (array('votes','pages','articles') as $name) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $name . $where); }
+			}
+			else
+			{
+				$this->db->sql_query('UPDATE ' . $this->prefix . 'articles SET revision=revision+1,approval=' . ($mode === 'approve' ? 1 : 0) . $where);
+			}
+		});
+	}
+}

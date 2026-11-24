@@ -18,8 +18,9 @@ class board
 	private $root;
 	private $php_ext;
 	private $names;
+	private $editor;
 
-	public function __construct($articles, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $root, $php_ext, $names = null)
+	public function __construct($articles, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $root, $php_ext, $editor, $names = null)
 	{
 		$this->articles = $articles;
 		$this->db = $db;
@@ -33,6 +34,7 @@ class board
 		$this->root = $root;
 		$this->php_ext = $php_ext;
 		$this->names = $names;
+		$this->editor = $editor;
 	}
 
 	private function breadcrumbs($id)
@@ -89,6 +91,7 @@ class board
 		}
 		$this->db->sql_freeresult($result);
 		$title = $id ? $cats[$id]['title'] : $this->language->lang('PLUS_KB');
+		if ($this->editor->allowed('new')) { $this->template->assign_var('U_KB_NEW', $this->helper->route('phpbb2plus_kb_submit', $id ? array('category' => $id) : array())); }
 		$this->template->assign_vars(array('KB_TITLE' => $title, 'KB_QUERY' => $query, 'KB_SORT' => $view ?: $configured, 'U_SEARCH' => $url));
 		return $this->helper->render('@phpbb2plus_knowledgebase/index.html', utf8_htmlspecialchars($title));
 	}
@@ -135,6 +138,15 @@ class board
 			}
 		}
 		$topic = $this->articles->discussion($a['topic_id']);
+		if (!$print)
+		{
+			foreach (array('edit','approve','unapprove','delete') as $action)
+			{
+				if (!$this->editor->allowed($action, $a)) { continue; }
+				$this->template->assign_block_vars('kb_actions', array('LABEL' => $this->language->lang('PLUS_KB_ACTION_' . strtoupper($action)),
+					'URL' => $this->helper->route('phpbb2plus_kb_manage', $params + array('mode' => $action))));
+			}
+		}
 		if ($topic)
 		{
 			$this->template->assign_vars(array('KB_DISCUSSION' => $topic['topic_title'],

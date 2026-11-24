@@ -34,6 +34,8 @@ class articles
 		return $this->settings[$name] ?? $default;
 	}
 
+	public function refresh() { $this->settings = $this->categories = null; }
+
 	public function moderator()
 	{
 		return !empty($this->user->data['is_registered']) && ($this->auth->acl_get('m_plus_kb') || $this->auth->acl_get('a_plus_kb'));

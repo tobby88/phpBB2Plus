@@ -1,6 +1,8 @@
 """Browse migrated multi-page articles, moderation, search, topics and historical voting receipts."""
 import os
 import re
+import time
+from urllib.parse import urlencode, urljoin
 from http_board import Browser, Page, login
 from gallery import submit
 
@@ -40,3 +42,49 @@ def browse(base, administrator, editor):
     new_rating = submit(reader, article + "201", "kb-rate", {"rating": 7})
     if "7,83 von 10 (3 Stimmen)" not in new_rating:
         raise RuntimeError("Historical and new Knowledge Base ratings do not add up")
+    publication(base, guest, reader, editor)
+
+
+def publication(base, guest, author, reviewer):
+    new = "app.php/knowledge/new"
+    guest.fetch(new, expected_status=404)
+    target, fields = Page(author.fetch(new)).forms["kb-editor"]
+    target = urljoin(urljoin(base, new), target)
+    fields.update(title="Neuer Wissensbeitrag", description="Veröffentlichungsprobe", category=8, type=2,
+                  body="Übersicht[toc]\n[b]Öffentlicher Text[/b][page]Anhang[toc]\nNachtrag")
+    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+    preview = author.fetch(target, dict(fields, preview="1"))
+    if not re.search(r"<strong[^>]*>Öffentlicher Text</strong>", preview):
+        raise RuntimeError("Article preview lost native BBCode")
+    search = "app.php/knowledge?" + urlencode({"q": "Veröffentlichungsprobe"})
+    if "Neuer Wissensbeitrag" in reviewer.fetch(search):
+        raise RuntimeError("Preview unexpectedly created an article")
+    for _ in range(2):
+        pending = author.fetch(target, fields)
+        if "Wartet auf Freigabe" not in pending:
+            raise RuntimeError("New article bypassed the configured approval step")
+    listing = reviewer.fetch(search)
+    paths = re.findall(r'href="([^"]*/knowledge/article/\d+[^"]*)"[^>]*>Neuer Wissensbeitrag</a>', listing)
+    if len(paths) != 1:
+        raise RuntimeError("A retried submission did not produce exactly one article")
+    item = urljoin(base, paths[0]).split("?", 1)[0]
+    guest.fetch(item, expected_status=404)
+    submit(reviewer, item + "/approve", "kb-editor", {})
+    if "Öffentlicher Text" not in guest.fetch(item) or "Nachtrag" not in guest.fetch(item + "?page=2"):
+        raise RuntimeError("Approved article pages did not become public")
+    _, old = Page(author.fetch(item + "/edit")).forms["kb-editor"]
+    fields.update(title="Bearbeiteter Wissensbeitrag", body="Änderung zur Prüfung")
+    changes = {key: fields[key] for key in ("title", "description", "body", "category", "type")}
+    if "Wartet auf Freigabe" not in submit(author, item + "/edit", "kb-editor", changes):
+        raise RuntimeError("Article edits did not return to approval")
+    guest.fetch(item, expected_status=404)
+    stale = author.fetch(item + "/edit", dict(old, **changes), expected_status=422)
+    if "inzwischen geändert" not in stale:
+        raise RuntimeError("A stale editor could overwrite the newer version")
+    submit(reviewer, item + "/approve", "kb-editor", {})
+    submit(reviewer, item + "/unapprove", "kb-editor", {})
+    guest.fetch(item, expected_status=404)
+    if "Bearbeiteter Wissensbeitrag" not in reviewer.fetch(item + "/delete"):
+        raise RuntimeError("Missing article deletion confirmation")
+    submit(reviewer, item + "/delete", "kb-editor", {})
+    reviewer.fetch(item, expected_status=404)

@@ -17,3 +17,12 @@ phpbb2plus_kb_rate:
     defaults: { _controller: phpbb2plus.knowledgebase.board:rate }
     requirements: { article: '[1-9][0-9]*' }
     methods: [POST]
+phpbb2plus_kb_submit:
+    path: /knowledge/new
+    defaults: { _controller: phpbb2plus.knowledgebase.compose:form, mode: new, article: 0 }
+    methods: [GET, POST]
+phpbb2plus_kb_manage:
+    path: /knowledge/article/{article}/{mode}
+    defaults: { _controller: phpbb2plus.knowledgebase.compose:form }
+    requirements: { article: '[1-9][0-9]*', mode: 'edit|approve|unapprove|delete' }
+    methods: [GET, POST]

@@ -8,4 +8,11 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_KB_RATE' => 'Artikel bewerten', 'PLUS_KB_BAD_RATING' => 'Bitte wähle eine Bewertung zwischen 1 und 10.',
 	'PLUS_KB_ALREADY_RATED' => 'Du hast diesen Artikel bereits bewertet.', 'PLUS_KB_FORMER' => 'Ehemaliger Nutzer',
 	'PLUS_KB_CONTENTS' => 'Inhalt', 'PLUS_KB_DISCUSSION' => 'Diskussion im Forum', 'PLUS_KB_PRINT' => 'Druckansicht',
+	'PLUS_KB_ACTION_NEW' => 'Artikel einreichen', 'PLUS_KB_ACTION_EDIT' => 'Artikel bearbeiten', 'PLUS_KB_ACTION_APPROVE' => 'Artikel freigeben',
+	'PLUS_KB_ACTION_UNAPPROVE' => 'Freigabe zurücknehmen', 'PLUS_KB_ACTION_DELETE' => 'Artikel löschen', 'PLUS_KB_CATEGORY' => 'Kategorie', 'PLUS_KB_TYPE' => 'Artikeltyp',
+	'PLUS_KB_INVALID_TEXT' => 'Bitte prüfe Titel, Beschreibung und Artikeltext.', 'PLUS_KB_INVALID_CATEGORY' => 'Bitte wähle eine vorhandene Kategorie und einen Artikeltyp.',
+	'PLUS_KB_CONFLICT' => 'Der Artikel wurde inzwischen geändert. Öffne die aktuelle Version, bevor du deine Änderungen übernimmst.',
+	'PLUS_KB_BAD_NAME' => 'Bitte wähle einen zulässigen Gastnamen.', 'PLUS_KB_SUBMITTED' => 'Der Artikel wurde eingereicht und wartet auf Freigabe.',
+	'PLUS_KB_MARKUP' => 'BBCode ist möglich. [page] beginnt eine neue Seite. Mit [toc] hinter der Überschrift erscheint sie im Inhaltsverzeichnis.',
+	'PLUS_KB_CONFIRM_DELETE' => 'Den Artikel „%s“ mit seinen Bewertungen endgültig löschen?',
 ));
