@@ -1,0 +1,23 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
+<!-- INCLUDE overall_header.html -->
+<h2>{{ ALBUM_TITLE|e }}</h2>
+{% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
+{% if loops.album_categories %}
+<div class="forabg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_ALBUM_CATEGORIES}</div></dt></dl></li></ul>
+<ul class="topiclist forums">
+{% for cat in loops.album_categories %}
+<li class="row"><dl class="row-item forum_read"><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.U_CATEGORY }}">{{ cat.TITLE|e }}</a>
+{% if cat.DESCRIPTION %}<br><span class="plus-album-copy">{{ cat.DESCRIPTION|e }}</span>{% endif %}</div></dt></dl></li>
+{% endfor %}
+</ul></div></div>
+{% endif %}
+{% if loops.album_pictures %}
+<div class="panel"><ul class="plus-album-grid">
+{% for pic in loops.album_pictures %}
+<li><a href="{{ pic.U_PICTURE }}"><img loading="lazy" src="{{ pic.U_THUMB }}" alt=""><strong>{{ pic.TITLE|e }}</strong></a><time>{{ pic.TIME }}</time></li>
+{% endfor %}</ul></div>
+{% elseif not loops.album_categories %}
+<p class="panel">{L_PLUS_ALBUM_EMPTY}</p>
+{% endif %}
+{% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

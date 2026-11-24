@@ -1,0 +1,6 @@
+.plus-album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 1.25em; list-style: none; padding: 1em; }
+.plus-album-grid li, .plus-album-photo { text-align: center; }
+.plus-album-grid img, .plus-album-photo img { display: block; margin: 0 auto .65em; max-width: 100%; height: auto; }
+.plus-album-grid time { display: block; margin-top: .3em; }
+.plus-album-photo { margin: .8em 0; }
+.plus-album-copy { white-space: pre-wrap; overflow-wrap: anywhere; }

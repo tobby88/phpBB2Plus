@@ -53,7 +53,7 @@ class Browser:
         self.base = base
         self.opener = build_opener(HTTPCookieProcessor(CookieJar()), LoopbackRedirect(urlsplit(base).netloc))
 
-    def fetch(self, path, data=None, ajax=False, raw=False):
+    def fetch(self, path, data=None, ajax=False, raw=False, expected_status=200):
         address = urljoin(self.base, path)
         if urlsplit(address).netloc != urlsplit(self.base).netloc:
             raise ValueError("Unexpected link away from the disposable board")
@@ -61,9 +61,14 @@ class Browser:
         req = Request(address, data=urlencode(data).encode() if data is not None else None, headers=headers)
         try:
             with self.opener.open(req, timeout=90) as response:
+                if response.status != expected_status:
+                    raise RuntimeError(f"Expected HTTP {expected_status} at {urlsplit(address).path}, got {response.status}")
                 body = response.read()
                 return body if raw else body.decode("utf-8")
         except HTTPError as error:
+            if error.code == expected_status:
+                body = error.read()
+                return body if raw else body.decode("utf-8")
             summary = " ".join(unescape(re.sub(r"<[^>]+>", " ", error.read().decode("utf-8", "replace"))).split())
             raise RuntimeError(f"HTTP {error.code} at {urlsplit(address).path}: {summary[-1500:]}") from None
 

@@ -15,9 +15,10 @@ authenticates the official core and the German “Du” translation against thei
 published SHA-256 digests. Plus additions live in `phpBB3/`. The builder
 refuses collisions with upstream files. English and German are included.
 Both unmodified distribution archives are included in `vendor/phpbb/` so the
-build and integration tests work offline. Enable **phpBB2 Plus Community** on
-the fresh target. It installs FI Subsilver Shadow as a child of prosilver and
-selects it for a new board. The installer’s Convert tab then offers **phpBB2
+build and integration tests work offline. Enable **phpBB2 Plus Community** and
+**phpBB2 Plus Photo Album** on the fresh target. Community installs FI Subsilver
+Shadow as a child of prosilver and selects it for a new board. The installer’s
+Convert tab then offers **phpBB2
 Plus (UTF-8)**. The [conversion coverage](phpbb3-port.md) lists verified
 behaviour and the modules still being ported. Use the branch with test data.
 

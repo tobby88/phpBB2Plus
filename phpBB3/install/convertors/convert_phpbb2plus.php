@@ -3,12 +3,12 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = 'phpbb2plus/community'");
-	$enabled = $db->sql_fetchfield('ext_active');
-	$db->sql_freeresult($result);
-	if (!$enabled)
+	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery') as $extension)
 	{
-		throw new \RuntimeException('Enable phpBB2 Plus Community on the destination before starting the conversion.');
+		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
+		$enabled = $db->sql_fetchfield('ext_active');
+		$db->sql_freeresult($result);
+		if (!$enabled) { throw new \RuntimeException('Enable ' . $extension . ' on the destination before starting the conversion.'); }
 	}
 }
 
@@ -199,4 +199,5 @@ if (!$get_info)
 		array('', 'users.user_id AS existing_user', ''),
 		'where' => 'bookmarks.user_id > 0 AND bookmarks.topic_id = topics.topic_id AND bookmarks.user_id = users.user_id',
 	);
+	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement));
 }

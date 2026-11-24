@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 import attachments
+import gallery
 from http_board import convert, former_names, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
 
@@ -75,8 +76,9 @@ def install(web, settings_dir, name):
     report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
     if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
         raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
-    if "Successfully enabled extension phpbb2plus/community" not in report:
-        raise RuntimeError("The installer did not activate the Plus extension: " + report[-3500:])
+    for extension in ("community", "gallery"):
+        if "Successfully enabled extension phpbb2plus/" + extension not in report:
+            raise RuntimeError(f"The installer did not activate {extension}: " + report[-3500:])
     php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
 
 
@@ -116,6 +118,7 @@ def main():
             php(fixture, "seed", source)
             source_files(ROOT / "phpBB2", root / "legacy")
             attachments.source_media(root / "legacy")
+            gallery.source_media(root / "legacy")
             with server(web, root) as base:
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
@@ -132,6 +135,7 @@ def main():
                 profiles(base, ordinary, member)
                 native_content(base, member, ordinary)
                 attachments.downloads(ordinary)
+                gallery.browse(base, member, ordinary)
                 former_names(base, ordinary)
                 php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                 former_names(base, ordinary, removed=True)
