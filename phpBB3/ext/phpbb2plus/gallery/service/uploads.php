@@ -149,12 +149,8 @@ class uploads
 		$payload = hash('sha256', serialize(array($title, $description, $registered ? '' : $guest_name, $identity)));
 		$dir = realpath($this->root . $this->config['upload_path']);
 		if (!$dir || !is_dir($dir)) { throw new \RuntimeException('Album storage unavailable.'); }
-		$this->db->sql_transaction('begin');
-		try
+		return $this->access->write(function () use ($id, $batch, $payload, $dir, $images, $title, $description, $registered, $guest_name)
 		{
-			// The same row serializes category quotas and personal quotas shared across subalbums.
-			$this->db->sql_query('UPDATE ' . $this->prefix . 'writes SET lock_id=1 WHERE lock_id=1');
-			$this->access->refresh();
 			$cat = $this->destination($id);
 			$result = $this->db->sql_query('SELECT payload_hash FROM ' . $this->prefix . "batches WHERE batch_key='$batch'");
 			$saved = $this->db->sql_fetchfield('payload_hash');
@@ -178,13 +174,7 @@ class uploads
 				$this->db->sql_query('INSERT INTO ' . $this->prefix . 'batches ' . $this->db->sql_build_array('INSERT',
 					array('batch_key' => $batch, 'payload_hash' => $payload, 'created_at' => time())));
 			}
-			$this->db->sql_transaction('commit');
 			return (int) $cat['approval'] !== 0;
-		}
-		catch (\Throwable $e)
-		{
-			$this->db->sql_transaction('rollback');
-			throw $e;
-		}
+		});
 	}
 }

@@ -1,0 +1,7 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{ALBUM_ACTION_TITLE}</h2>
+<form method="post" id="album-comment-edit" action="{U_ACTION}"><div class="panel"><div class="inner">
+{% if S_COMMENT_DELETE %}<p>{L_PLUS_ALBUM_CONFIRM_COMMENT}</p><blockquote>{{ ALBUM_BODY|e }}</blockquote>
+{% else %}<label for="album-body">{L_MESSAGE}</label><textarea class="inputbox" id="album-body" name="body" rows="5" required maxlength="{ALBUM_LIMIT}">{{ ALBUM_BODY|e }}</textarea>{% endif %}
+</div></div><fieldset class="submit-buttons">{S_FORM_TOKEN}<input class="button1" type="submit" value="{ALBUM_ACTION_TITLE}"> <a class="button2" href="{U_PICTURE}">{L_CANCEL}</a></fieldset></form>
+<!-- INCLUDE overall_footer.html -->

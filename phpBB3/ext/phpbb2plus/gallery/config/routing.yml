@@ -22,3 +22,13 @@ phpbb2plus_gallery_media:
     defaults: { _controller: phpbb2plus.gallery.media:show }
     requirements: { picture: '[1-9][0-9]*', size: 'small|medium|full' }
     methods: [GET, HEAD]
+phpbb2plus_gallery_discuss:
+    path: /album/picture/{picture}/discussion
+    defaults: { _controller: phpbb2plus.gallery.comments:post }
+    requirements: { picture: '[1-9][0-9]*' }
+    methods: [POST]
+phpbb2plus_gallery_comment:
+    path: /album/picture/{picture}/comment/{comment}/{mode}
+    defaults: { _controller: phpbb2plus.gallery.comments:manage }
+    requirements: { picture: '[1-9][0-9]*', comment: '[1-9][0-9]*', mode: 'edit|delete' }
+    methods: [GET, POST]

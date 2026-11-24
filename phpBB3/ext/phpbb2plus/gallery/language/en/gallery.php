@@ -16,4 +16,9 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_BAD_COUNT' => 'This number of pictures cannot be uploaded together.',
 	'PLUS_ALBUM_BAD_NAME' => 'Choose an available guest name.', 'PLUS_ALBUM_BAD_TEXT' => 'The title or description is too long.',
 	'PLUS_ALBUM_QUOTA' => 'These pictures would exceed the remaining album quota.',
+	'PLUS_ALBUM_WRITE_COMMENT' => 'Comment on this picture', 'PLUS_ALBUM_SCORE' => 'Rate this picture', 'PLUS_ALBUM_HONOUR' => 'Hot or Not rating',
+	'PLUS_ALBUM_COMMENT_LENGTH' => 'Enter a comment within the length limit or choose a rating.',
+	'PLUS_ALBUM_BAD_RATING' => 'Choose a value on the rating scale.', 'PLUS_ALBUM_ALREADY_RATED' => 'You have already rated this picture.',
+	'PLUS_ALBUM_EDIT_COMMENT' => 'Edit comment', 'PLUS_ALBUM_DELETE_COMMENT' => 'Delete comment',
+	'PLUS_ALBUM_CONFIRM_COMMENT' => 'Permanently delete this comment?',
 ));

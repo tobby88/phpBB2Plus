@@ -13,8 +13,9 @@ class board
 	private $pagination;
 	private $prefix;
 	private $names;
+	private $discussion;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $names = null)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $names = null)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -26,6 +27,7 @@ class board
 		$this->pagination = $pagination;
 		$this->prefix = $prefix;
 		$this->names = $names;
+		$this->discussion = $discussion;
 	}
 
 	private function breadcrumbs($cat = null)
@@ -124,7 +126,7 @@ class board
 		$comments = (int) $this->access->setting('comment', 1) === 1;
 		if ($rate)
 		{
-			$result = $this->db->sql_query('SELECT COUNT(*) AS votes,AVG(points) AS rating FROM ' . $this->prefix . 'ratings WHERE pic_id=' . $id);
+			$result = $this->db->sql_query('SELECT COUNT(*) AS votes,AVG(points) AS rating FROM ' . $this->prefix . 'ratings WHERE points>0 AND pic_id=' . $id);
 			$rating = $this->db->sql_fetchrow($result);
 			$this->db->sql_freeresult($result);
 			if ($rating['votes']) { $this->template->assign_var('ALBUM_RATING', $this->language->lang('PLUS_ALBUM_RATING',
@@ -149,10 +151,28 @@ class board
 						get_username_string('full', $comment['editor_id'], $comment['editor_name'], $comment['editor_colour']) : $this->language->lang('GUEST');
 					$edit = $this->language->lang('EDITED_TIMES_TOTAL', (int) $comment['edit_count'], $editor, $this->user->format_date($comment['edited_at']));
 				}
-				$this->template->assign_block_vars('album_comments', array('ID' => $comment['comment_id'], 'AUTHOR' => $this->author($comment),
+				$links = array();
+				foreach (array('edit','delete') as $mode)
+				{
+					if ($this->access->allows($cat, 'comment') && $this->access->may_change($cat, $comment['author_id'], $mode))
+					{
+						$links['U_' . strtoupper($mode)] = $this->helper->route('phpbb2plus_gallery_comment', $params + array('comment' => $comment['comment_id'], 'mode' => $mode));
+					}
+				}
+				$this->template->assign_block_vars('album_comments', $links + array('ID' => $comment['comment_id'], 'AUTHOR' => $this->author($comment),
 					'EDITED' => $edit, 'TIME' => $this->user->format_date($comment['created_at']), 'BODY' => censor_text($comment['body'])));
 			}
 			$this->db->sql_freeresult($result);
+		}
+		$may_rate = $this->access->may_discuss($pic, $cat, 'rate');
+		$may_comment = $this->access->may_discuss($pic, $cat, 'comment');
+		if ($may_rate || $may_comment)
+		{
+			add_form_key('plus_discussion_' . $id);
+			$this->template->assign_vars(array('U_DISCUSS' => $this->helper->route('phpbb2plus_gallery_discuss', $params),
+				'S_ALBUM_COMMENT' => $may_comment, 'S_ALBUM_RATE' => $may_rate, 'S_ALBUM_HONOUR' => $this->discussion->honours($pic, $cat),
+				'ALBUM_SCALE' => $this->discussion->scale(), 'ALBUM_LIMIT' => $this->discussion->text_limit(),
+				'S_ALBUM_GUEST' => empty($this->user->data['is_registered'])));
 		}
 		if ($this->request->server('REQUEST_METHOD') === 'GET' && !$this->request->variable('start', 0) && empty($this->user->data['is_bot']))
 		{

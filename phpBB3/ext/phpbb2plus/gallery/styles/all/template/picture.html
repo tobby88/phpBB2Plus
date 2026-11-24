@@ -11,8 +11,21 @@
 <h3>{L_PLUS_ALBUM_COMMENTS}</h3>
 {% for comment in loops.album_comments %}
 <article class="post bg1" id="comment-{{ comment.ID }}"><div class="inner"><p class="author">{{ comment.AUTHOR }} &middot; {{ comment.TIME }}</p>
-<div class="content plus-album-copy">{{ comment.BODY|e }}</div>{% if comment.EDITED %}<div class="notice">{{ comment.EDITED }}</div>{% endif %}</div></article>
+<div class="content plus-album-copy">{{ comment.BODY|e }}</div>{% if comment.EDITED %}<div class="notice">{{ comment.EDITED }}</div>{% endif %}
+{% if comment.U_EDIT %}<a href="{{ comment.U_EDIT }}">{L_EDIT}</a>{% endif %} {% if comment.U_DELETE %}<a href="{{ comment.U_DELETE }}">{L_DELETE}</a>{% endif %}</div></article>
 {% else %}<p>{L_PLUS_ALBUM_NO_COMMENTS}</p>{% endfor %}
 {% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
+{% endif %}
+{% if U_DISCUSS %}
+<form id="album-discuss" action="{U_DISCUSS}" method="post"><div class="panel"><div class="inner"><fieldset class="fields2">
+{% if S_ALBUM_COMMENT %}<dl><dt><label for="album-comment">{L_PLUS_ALBUM_WRITE_COMMENT}</label></dt><dd><textarea class="inputbox" id="album-comment" name="body" rows="3" maxlength="{ALBUM_LIMIT}"></textarea></dd></dl>
+{% if S_ALBUM_GUEST %}<dl><dt><label for="album-name">{L_USERNAME}</label></dt><dd><input id="album-name" class="inputbox" name="guest_name" maxlength="32"></dd></dl>{% endif %}{% endif %}
+{% if S_ALBUM_RATE %}<dl><dt><label for="album-points">{L_PLUS_ALBUM_SCORE}</label></dt><dd><select id="album-points" name="points"><option value="0">&mdash;</option>{% for value in 1..ALBUM_SCALE %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select></dd></dl>{% endif %}
+</fieldset>{S_FORM_TOKEN}<input class="button1" type="submit" value="{L_SUBMIT}"></div></div></form>
+{% endif %}
+{% if S_ALBUM_HONOUR %}
+<form id="album-honour" action="{U_DISCUSS}" method="post"><div class="panel"><label for="album-honour-score">{L_PLUS_ALBUM_HONOUR}</label>
+<select id="album-honour-score" name="points">{% for value in 1..ALBUM_SCALE %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+<input type="hidden" name="mode" value="honour">{S_FORM_TOKEN}<input class="button2" type="submit" value="{L_SUBMIT}"></div></form>
 {% endif %}
 <!-- INCLUDE overall_footer.html -->

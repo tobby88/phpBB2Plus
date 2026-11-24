@@ -39,6 +39,41 @@ class access
 		$this->categories = array();
 	}
 
+	/** Serialize gallery writes, including quotas shared by all of a member's subalbums. */
+	public function write(callable $operation)
+	{
+		$this->db->sql_transaction('begin');
+		try
+		{
+			$this->db->sql_query('UPDATE ' . $this->prefix . 'writes SET lock_id=1 WHERE lock_id=1');
+			$result = $this->db->sql_query('SELECT lock_id FROM ' . $this->prefix . 'writes WHERE lock_id=1');
+			$locked = $this->db->sql_fetchfield('lock_id');
+			$this->db->sql_freeresult($result);
+			if ((int) $locked !== 1) { throw new \RuntimeException('Gallery write coordinator missing.'); }
+			$this->refresh();
+			$value = $operation();
+			$this->db->sql_transaction('commit');
+			return $value;
+		}
+		catch (\Throwable $e)
+		{
+			$this->db->sql_transaction('rollback');
+			throw $e;
+		}
+	}
+
+	public function may_change($category, $author, $action)
+	{
+		return !empty($this->user->data['is_registered']) && $this->allows($category, $action) &&
+			((int) $author === (int) $this->user->data['user_id'] || $this->moderates($category));
+	}
+
+	public function may_discuss($picture, $category, $action)
+	{
+		return empty($this->user->data['is_bot']) && (int) $this->setting($action, 1) === 1 && $this->allows($category, $action) &&
+			(!(int) $picture['locked'] || $this->moderates($category));
+	}
+
 	public function administrator()
 	{
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_gallery');
