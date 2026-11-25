@@ -65,10 +65,9 @@ class profile implements EventSubscriberInterface
 	private function localized_rank($rank)
 	{
 		$src = $rank['img_src'];
-		if ($src && preg_match('~(/plus-rank-[0-9]+-[a-f0-9]{16}-)(de|en)(\.(?:gif|png|jpe?g))$~D', $src, $parts))
+		$rank['img_src'] = \phpbb2plus\community\service\rank_image::localize($src, $this->user->lang_name);
+		if ($rank['img_src'] !== $src)
 		{
-			$lang = strpos($this->user->lang_name, 'de') === 0 ? 'de' : 'en';
-			$rank['img_src'] = substr($src, 0, -strlen($parts[0])) . $parts[1] . $lang . $parts[3];
 			$rank['img'] = str_replace('src="' . $src . '"', 'src="' . $rank['img_src'] . '"', $rank['img']);
 		}
 		return $rank;

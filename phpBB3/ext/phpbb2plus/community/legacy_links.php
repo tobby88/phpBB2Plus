@@ -64,6 +64,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'download':
 			if ($id = $positive('id')) { $path = 'legacy/attachment/' . $id . '/' . ($positive('thumb') ? 'thumb' : 'file'); }
 			break;
+		case 'ranks':
+			$path = 'ranks';
+			break;
 		case 'profile':
 			$mode = $query['mode'] ?? '';
 			if (in_array($mode, array('viewprofile','email'), true))

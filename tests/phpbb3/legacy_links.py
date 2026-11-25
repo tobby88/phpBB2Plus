@@ -43,6 +43,7 @@ def browse(base, owner, historic_id):
         ("privmsg.php?mode=quote&p=110", "app.php/legacy/pm/quote/110", {}, ""),
         ("privmsg.php?mode=edit&p=110", "app.php/legacy/pm/edit/110", {}, ""),
         ("kb.php?mode=stats&stats=toprated&start=12", "app.php/knowledge/statistics/toprated", {"start": 12}, ""),
+        ("ranks.php", "app.php/ranks", {}, ""),
         ("album.php?user_id=0", "app.php/album", {}, ""),
         ("album.php?user_id=-1", "app.php/album/legacy/member/0", {}, ""),
         ("album.php?user_id=1&cat_id=11", "app.php/album/category/11", {}, ""),

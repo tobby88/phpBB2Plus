@@ -95,6 +95,7 @@ def browse(base, admin, member, fixture):
         check_operations(public, ordinary, private)
         fixture("hide-profiles")
         try:
+            member.fetch("app.php/ranks", expected_status=403)
             narrowed = panels(member.fetch(path))
             if list(narrowed) != [16, 11, 12, 22, 23, 24, 25] or "/memberlist.php?mode=viewprofile" in narrowed[24] or narrowed[24].count('<th scope="row">') != 14:
                 raise RuntimeError("A reader denied native profile access received a member ranking")

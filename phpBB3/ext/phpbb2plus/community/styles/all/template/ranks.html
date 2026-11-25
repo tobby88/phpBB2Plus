@@ -1,0 +1,20 @@
+{% include 'overall_header.html' %}
+<h2>{{ lang('PLUS_RANKS') }}</h2>
+{% if S_PLUS_RANK_DETAIL %}<p><a href="{{ U_PLUS_ALL_RANKS }}">{{ lang('PLUS_RANKS') }}</a></p>{% endif %}
+{% for title, ranks in PLUS_RANK_SECTIONS %}
+<div class="forabg"><div class="inner">
+<table class="table1" aria-label="{{ lang(title) }}"><thead><tr>
+	<th scope="col">{{ lang(title) }}</th>
+	{% if title == 'PLUS_RANKS_STANDARD' %}<th scope="col">{{ lang('PLUS_RANKS_MIN') }}</th>{% endif %}
+	<th scope="col">{{ lang('PLUS_RANKS_MEMBERS') }}</th>
+</tr></thead><tbody>
+{% for rank in ranks %}<tr id="rank-{{ rank.ID }}" class="{{ loop.index is odd ? 'bg1' : 'bg2' }}">
+	<th scope="row">{{ rank.TITLE|e }}{% if rank.IMAGE %}<br><img src="{{ rank.IMAGE|e }}" alt="">{% endif %}</th>
+	{% if title == 'PLUS_RANKS_STANDARD' %}<td>{{ rank.MIN }}</td>{% endif %}
+	<td>({{ rank.COUNT }}) {% for member in rank.MEMBERS %}<a href="{{ member.URL|e }}">{{ member.NAME|e }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+	{% if rank.MORE %}<a href="{{ rank.MORE }}">{{ lang('PLUS_RANKS_ALL') }}</a>{% endif %}</td>
+</tr>{% endfor %}
+</tbody></table></div></div>
+{% endfor %}
+{% if pagination %}<div class="pagination">{% include 'pagination.html' %}</div>{% endif %}
+{% include 'overall_footer.html' %}

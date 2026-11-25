@@ -45,6 +45,7 @@ import historical_actions
 import credits
 import warning_cards
 import profile_media
+import rank_overview
 import topic_calendar
 import gallery
 import gallery_personal
@@ -283,6 +284,8 @@ def main():
                 custom_profiles.exercise(base, pending)
                 media = json.loads(php(fixture, "profile-media", target, capture=True))
                 profile_media.browse(ordinary, member, media)
+                rank_overview.browse(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/rank_overview.php", target, phase, cwd=web))
                 legacy_links.browse(base, member, media["member"])
                 legacy_links.groups(base, member, ordinary, pending, int(php(fixture, "group-bookmarks", target, capture=True)))
                 credits.browse(base, ordinary)

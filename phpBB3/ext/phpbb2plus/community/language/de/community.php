@@ -2,6 +2,12 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL' => 'Portal',
+	'PLUS_RANKS' => 'Forenränge',
+	'PLUS_RANKS_STANDARD' => 'Ränge nach Beitragszahl',
+	'PLUS_RANKS_SPECIAL' => 'Spezialränge',
+	'PLUS_RANKS_MIN' => 'Mindestbeiträge',
+	'PLUS_RANKS_MEMBERS' => 'Mitglieder',
+	'PLUS_RANKS_ALL' => 'Alle Mitglieder dieses Rangs',
 	'PLUS_CREDITS' => 'Mods und Credits',
 	'ACL_A_PLUS_CREDITS' => 'Kann historische Mod-Credits verwalten',
 	'ACL_A_PLUS_STATS_PRIVATE' => 'Kann Administratoren vorbehaltene Statistikmodule ansehen',
