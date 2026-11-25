@@ -9,7 +9,8 @@ from http_board import Browser, FormFields, Page
 def browse(base, member, ordinary, verify):
     root = "app.php/downloads"
     entire = root + "/all"
-    folder = root + "/category/10931"
+    shelf = 10931
+    folder = f"{root}/category/{shelf}"
     guest = Browser(base)
     verify("seed")
 
@@ -62,7 +63,7 @@ def browse(base, member, ordinary, verify):
         raise RuntimeError("Pagination did not preserve both sorts, repeat both pins or clamp to the last page")
     if fixture_ids(guest.fetch(folder + "?sort_method=old&sort_order=unknown")) != fixture_ids(initial):
         raise RuntimeError("Unrecognized historical preferences did not fall back to the saved defaults")
-    legacy = "dload.php?action=category&cat_id=10930"
+    legacy = f"dload.php?action=category&cat_id={shelf}"
     if fixture_ids(guest.fetch(legacy, {"sort_method": "file_name", "sort_order": "ASC", "start": 2})) != fixture_ids(next_page):
         raise RuntimeError("The original category sort form opened a different page of files")
     for path in (folder, entire):
