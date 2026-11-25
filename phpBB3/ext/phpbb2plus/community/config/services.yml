@@ -252,3 +252,8 @@ services:
         arguments: ['@phpbb2plus.community.account_logins', '@config', '@user', '@language', '@template', '@auth']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.password_renewal:
+        class: phpbb2plus\community\event\password_renewal
+        arguments: ['@dbal.conn', '@config', '@user', '@auth', '@template', '@controller.helper']
+        tags:
+            - { name: event.listener }

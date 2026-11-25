@@ -18,9 +18,22 @@ function plus_password_change_time($value)
 	return max(0, (int) $value);
 }
 
+function plus_password_renewal_seen($value)
+{
+	return (int) ((int) $value < 0);
+}
+
 function plus_login_settings()
 {
 	global $config, $convert, $src_db;
+	// get_config_value() conflates the explicit string "0" with an empty value.
+	$source_config = get_config();
+	$age = isset($source_config['max_password_age']) ? (string) $source_config['max_password_age'] : '';
+	if (preg_match('/^[0-9]{1,10}$/D', $age) && (float) $age <= 2147483647)
+	{
+		$config->set('chg_passforce', (int) $age);
+		$config->set('plus_pw_age_policy', 1);
+	}
 	$table = $convert->src_table_prefix . 'ctracker_config';
 	$keys = array('login_history' => 'plus_login_history', 'login_history_count' => 'plus_login_limit',
 		'login_ip_check' => 'plus_login_network_check', 'pw_control' => 'plus_pw_reminder', 'pw_validity' => 'plus_pw_reminder_days');

@@ -13,6 +13,9 @@
 {% if PLUS_LOGIN_NOTICE and not S_PLUS_LOGIN_PANEL %}
 <div class="rules" id="plus-login-notice"><div class="inner">{{ PLUS_LOGIN_NOTICE }} <a href="{{ U_PLUS_ACCOUNT_LOGINS }}">{{ lang('UCP_PLUS_LOGINS') }}</a></div></div>
 {% endif %}
+{% if PLUS_PW_RENEW_NOTICE %}
+<div class="rules" id="plus-password-renewal"><div class="inner">{{ PLUS_PW_RENEW_NOTICE }}{% if U_PLUS_RENEW_PASSWORD %} <a href="{{ U_PLUS_RENEW_PASSWORD }}">{{ lang('PLUS_PW_REMINDER_CHANGE') }}</a>{% endif %}</div></div>
+{% endif %}
 {% if PLUS_PW_REMINDER %}
 <div class="rules" id="plus-password-reminder"><div class="inner">{{ PLUS_PW_REMINDER }}{% if U_PLUS_CHANGE_PASSWORD %} <a href="{{ U_PLUS_CHANGE_PASSWORD }}">{{ lang('PLUS_PW_REMINDER_CHANGE') }}</a>{% endif %}</div></div>
 {% endif %}

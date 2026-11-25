@@ -35,6 +35,7 @@ def browse(base, owner, historic_id):
         ("groupcp.php?g=73&start=25", "app.php/legacy/group/73/members/25", {}, ""),
         ("groupcp.php?g=79&validate=true", "app.php/legacy/group/79/requests/0", {}, ""),
         ("profile_options.php", "ucp.php", {"i": "ucp_prefs", "mode": "personal"}, ""),
+        ("change_password.php?start=10", "ucp.php", {"i": "ucp_profile", "mode": "reg_details"}, ""),
         ("privmsg.php?mode=newpm", "ucp.php", {"i": "pm", "mode": "view", "folder": "inbox"}, ""),
         ("privmsg.php?folder=sentbox&start=10", "ucp.php", {"i": "pm", "mode": "view", "folder": "sentbox", "start": 10}, ""),
         ("privmsg.php?mode=post", "ucp.php", {"i": "pm", "mode": "compose"}, ""),
@@ -135,6 +136,7 @@ def browse(base, owner, historic_id):
     if "Private fixture text" in guest.fetch("fpost40.html") or "Private fixture text" not in owner.fetch("fpost40.html"):
         raise RuntimeError("Old post link changed the forum's read permissions")
     guest.fetch("profile.php?mode=register", {}, expected_status=405)
+    guest.fetch("change_password.php", {"submit": "1"}, expected_status=405)
     guest.fetch("album_modcp.php?mode=delete&pic_id=100", {"confirm": 1}, expected_status=405)
     guest.fetch("album_comment_delete.php?comment_id=95", {"confirm": 1}, expected_status=405)
     guest.fetch("album_personal_cat_admin.php?user_id=87&action=delete", {"confirm": 1}, expected_status=405)

@@ -24,6 +24,10 @@ if ($argv[2] === 'older')
 elseif ($argv[2] === 'upgraded')
 {
 	$notice = $phpbb_container->get('phpbb2plus.community.member_notice')->current();
+	if (!$config->offsetExists('plus_pw_age_policy') || (int) $config['plus_pw_age_policy'] !== 0)
+	{
+		throw new RuntimeException('An upgrade without the source board enabled historical password expiry');
+	}
 	$result = $db->sql_query_limit('SELECT user_id FROM ' . USERS_TABLE . ' WHERE plus_notice_pending<>0', 1);
 	$recipient = $db->sql_fetchfield('user_id');
 	$db->sql_freeresult($result);

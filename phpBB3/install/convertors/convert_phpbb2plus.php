@@ -228,6 +228,7 @@ if (!$get_info)
 			{
 				$section[] = array('user_passchg', 'users.user_passwd_change', 'plus_password_change_time');
 				$section[] = array('plus_pw_native_origin', 'users.user_passwd_change', 'plus_password_change_time');
+				$section[] = array('plus_pw_renewal_seen', 'users.user_passwd_change', 'plus_password_renewal_seen');
 			}
 			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_last_pw_change'))
 			{

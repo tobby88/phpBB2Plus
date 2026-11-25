@@ -6,6 +6,11 @@ function seed_account_logins($db, $enabled)
 	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='" . (int) $enabled . "' WHERE ct_config_name='pw_control'");
 	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='90' WHERE ct_config_name='pw_validity'");
 	$now = time();
+	$days = $enabled ? 50000 : 0;
+	$db->query("UPDATE phpbb_config SET config_value='$days' WHERE config_name='max_password_age'");
+	$db->query("UPDATE phpbb_users SET user_passwd_change=$now WHERE user_passwd_change=0 AND user_id>0");
+	$db->query("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email,user_passwd_change)
+		SELECT 141,'RenewalMember',user_password,'english','renewal@example.invalid',0 FROM phpbb_users WHERE user_id=2");
 	$old = $now - 100 * 86400;
 	// The three dates had independent meanings in Plus. A recent reset request
 	// and a fresh native-age timestamp must not hide the tracker's older reminder.
@@ -40,4 +45,11 @@ function check_imported_logins($db, $member)
 		'The independent native renewal and tracker reminder dates changed during conversion');
 	check_fixture((int) $db->query('SELECT user_passchg FROM p3_users WHERE user_id=59')->fetch_row()[0] === 0,
 		'The negative source sentinel became a native password change date');
+	$policy = $db->query("SELECT config_value FROM p3_config WHERE config_name='plus_pw_age_policy'")->fetch_row()[0];
+	$interval = $db->query("SELECT config_value FROM p3_config WHERE config_name='chg_passforce'")->fetch_row()[0];
+	$tracker = $db->query("SELECT config_value FROM p3_config WHERE config_name='plus_pw_reminder'")->fetch_row()[0];
+	check_fixture((int) $policy === 1 && (int) $interval === ((int) $tracker ? 50000 : 0),
+		'The native mandatory password interval lost the source setting');
+	$markers = $db->query('SELECT plus_pw_renewal_seen FROM p3_users WHERE user_id IN (59,141) ORDER BY user_id')->fetch_all();
+	check_fixture(array_map('intval', array_column($markers, 0)) === array(1,0), 'Known renewal prompt and first login became indistinguishable');
 }

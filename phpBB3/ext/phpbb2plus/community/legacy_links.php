@@ -117,6 +117,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'statistics': $path = 'statistics'; break;
 		case 'staff': $base = './'; $path = 'memberlist.php'; $extra = array('mode' => 'team'); break;
 		case 'profile_options': $base = './'; $path = 'ucp.php'; $extra = array('i' => 'ucp_prefs', 'mode' => 'personal'); break;
+		case 'change_password': $base = './'; $path = 'ucp.php'; $extra = array('i' => 'ucp_profile', 'mode' => 'reg_details'); break;
 		case 'privmsg':
 			$mode = $query['mode'] ?? '';
 			$folder = $query['folder'] ?? 'inbox';
@@ -371,7 +372,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		}
 		if (in_array($query['sort_order'] ?? '', array('ASC','DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
 	}
-	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg','ct_login_history'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	// Only search forms need to retain their body at the destination.
 	$status = $method === 'POST' ? ($sort_redirect ? 303 : 307) : 302;

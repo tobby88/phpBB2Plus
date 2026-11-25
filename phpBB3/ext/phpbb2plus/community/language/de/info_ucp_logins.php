@@ -23,4 +23,10 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_PW_REMINDER_DAYS' => 'Erinnern nach',
 	'PLUS_PW_REMINDER_NOTICE' => 'Du verwendest dein Forenpasswort seit mehr als %d Tagen.',
 	'PLUS_PW_REMINDER_CHANGE' => 'Passwort ändern',
+	'PLUS_PW_RENEW_EXPIRED' => 'Dein Passwort ist abgelaufen.',
+	'PLUS_PW_RENEW_POLICY' => 'Passwortablauf bei der Anmeldung prüfen',
+	'PLUS_PW_RENEW_POLICY_EXPLAIN' => 'Wendet die Anmelderegeln von phpBB2 Plus auf das eingestellte Passwortalter an. Mitglieder erhalten vor Ablauf einen Hinweis und können abgelaufene Passwörter über die Passwort-Wiederherstellung erneuern. Bei null Tagen ist der Ablauf deaktiviert.',
+	'PLUS_PW_RENEW_CONTACT' => 'Dein Passwort ist abgelaufen. Bitte wende dich an die Administration.',
+	'PLUS_PW_RENEW_UNKNOWN' => 'Bitte ändere dein Passwort vor der nächsten Anmeldung.',
+	'PLUS_PW_RENEW_SOON' => array(1 => 'Dein Passwort läuft in einem Tag ab.', 2 => 'Dein Passwort läuft in %d Tagen ab.'),
 ));

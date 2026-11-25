@@ -58,6 +58,7 @@ import historical_actions
 import credits
 import warning_cards
 import account_logins
+import password_renewal
 import member_notice
 import profile_media
 import rank_overview
@@ -354,6 +355,8 @@ def main():
                     account_logins.browse(base, ordinary, member, login_fixture)
                     member_notice.manage(base, ordinary, member, lambda phase: php(
                         ROOT / "tests/phpbb3/member_notice_member.php", target, phase, cwd=web))
+                    password_renewal.exercise(base, member, lambda phase: php(
+                        ROOT / "tests/phpbb3/password_renewal.php", target, phase, cwd=web))
                     delegation.module_roles(base, file_roles)
                     download_checks(base, member, ordinary, pending, fixture, target, web)
                     php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
