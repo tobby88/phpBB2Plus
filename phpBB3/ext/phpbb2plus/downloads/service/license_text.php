@@ -7,17 +7,7 @@ class license_text
 	// In particular, a licence name can contain literal entity text as well as emoji.
 	public static function raw($row, $column)
 	{
-		$source = json_decode($row['source_json'],true);
-		$value = $row[$column];
-		if (!empty($source['plus_license_escaped'])) { return access::plain($value); }
-		$key = $column === 'title' ? 'license_name' : 'license_text';
-		if (isset($source[$key]) && is_string($source[$key]) && utf8_encode_ucr($source[$key]) === $value) { return $source[$key]; }
-		// Older layouts can lack the source document. Undo only the supplementary
-		// character references produced by the original converter.
-		return preg_replace_callback('/&#([0-9]{5,7});/',static function ($match) {
-			$point = (int) $match[1];
-			return $point >= 65536 && $point <= 1114111 ? utf8_chr($point) : $match[0];
-		},$value);
+		return access::raw_text($row,$column,$column === 'title' ? 'license_name' : 'license_text','plus_license_escaped');
 	}
 
 	private static function url($value, $root, $link)

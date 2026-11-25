@@ -39,6 +39,12 @@ def browse(base, founder, member, pending):
     if member.fetch(root + "/file/51/get/0", raw=True) != b"Club fixture" or "Ungeprüfter Entwurf" not in member.fetch(root + "/file/52"):
         raise RuntimeError("Approved group access or access to the owner's draft was lost")
     detail = guest.fetch(root + "/file/50")
+    sources = guest.fetch(root + "/file/50/download")
+    if "Downloadquellen" not in sources or "Originaldatei" not in sources or "Lokale Kopie &amp;amp; 📡" not in sources:
+        raise RuntimeError("The source chooser did not distinguish the original and its literal mirror label")
+    alternative = member.fetch(root + "/file/53/download")
+    if "Mirror 10" not in alternative or "The original file is unavailable." not in alternative or "/file/53/get/10" not in alternative:
+        raise RuntimeError("A file with only an unnamed remote mirror had no usable download choice")
     if "Blau, Rot" not in guest.fetch("dload.php?action=file%3Ffile_id%3D50") or "Beispiellizenz" not in guest.fetch("dload.php?action=download&file_id=50&mirror_id=8"):
         raise RuntimeError("Historical file and mirror links did not reach the converted item")
     if any(text not in detail for text in ("Zeichen &amp; Farben", "Blau, Rot", "Testkommentar", "HistoricMember", "Lokale Kopie")) or not re.search(r"<strong[^>]*>Beispiel</strong>", detail):

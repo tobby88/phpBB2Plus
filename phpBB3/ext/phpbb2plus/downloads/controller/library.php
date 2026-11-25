@@ -144,11 +144,14 @@ class library
 		{
 			if (in_array($f['asset_status'],array('ready','remote'),true)) { $this->template->assign_var('U_DL_MAIN',$this->helper->route('phpbb2plus_downloads_media',array('file'=>$id,'mirror'=>0))); }
 			else { $this->template->assign_var('DL_UNAVAILABLE',true); }
-			$result = $this->db->sql_query('SELECT mirror_id,location,asset_status FROM ' . $this->prefix . "mirrors WHERE file_id=$id ORDER BY mirror_id");
+			$result = $this->db->sql_query('SELECT mirror_id,location,source_json FROM ' . $this->prefix .
+				"mirrors WHERE file_id=$id AND asset_status IN ('ready','remote') ORDER BY mirror_id");
 			while ($r = $this->db->sql_fetchrow($result))
 			{
-				if (in_array($r['asset_status'],array('ready','remote'),true)) { $this->template->assign_block_vars('dl_mirrors',array('LABEL'=>access::plain($r['location']),
-					'URL'=>$this->helper->route('phpbb2plus_downloads_media',array('file'=>$id,'mirror'=>(int) $r['mirror_id'])))); }
+				$label = access::raw_text($r,'location','mirror_location','plus_mirror_escaped');
+				$this->template->assign_block_vars('dl_mirrors',array('LABEL'=>trim($label) === '' ?
+					$this->language->lang('PLUS_DL_MIRROR_NUMBER',(int) $r['mirror_id']) : $label,
+					'URL'=>$this->helper->route('phpbb2plus_downloads_media',array('file'=>$id,'mirror'=>(int) $r['mirror_id']))));
 			}
 			$this->db->sql_freeresult($result);
 		}

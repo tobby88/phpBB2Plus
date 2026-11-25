@@ -23,6 +23,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_BAD_EXTENSION'=>'Diese Dateiendung ist beim Hochladen gesperrt.', 'PLUS_DL_BAD_PREVIEW'=>'Wähle ein Vorschaubild im GIF-, JPEG- oder PNG-Format.',
 	'PLUS_DL_BAD_SUBMISSION'=>'Prüfe Titel, Beschreibung und Länge der Angaben.', 'PLUS_DL_BAD_FIELD'=>'Prüfe die zusätzlichen Downloadfelder.',
 	'PLUS_DL_SAVE_FILE'=>'Änderungen speichern',
+	'PLUS_DL_DOWNLOAD_SOURCES'=>'Downloadquellen','PLUS_DL_PRIMARY_SOURCE'=>'Originaldatei','PLUS_DL_MIRROR_NUMBER'=>'Spiegelserver %d',
 	'PLUS_DL_FIELDS_CHANGED'=>'Die Zusatzfelder wurden inzwischen geändert. Prüfe die angezeigten Angaben vor dem erneuten Absenden.',
 	'ACL_A_PLUS_DL_FIELDS'=>'Kann Zusatzfelder für Downloads verwalten',
 	'PLUS_DL_BAD_URL'=>'Gib einen gültigen HTTP- oder HTTPS-Link an.', 'PLUS_DL_BAD_LICENSE'=>'Wähle eine vorhandene Lizenz.',

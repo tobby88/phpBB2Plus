@@ -23,6 +23,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_BAD_EXTENSION'=>'This file extension is unavailable for uploads.', 'PLUS_DL_BAD_PREVIEW'=>'Choose a GIF, JPEG or PNG screenshot.',
 	'PLUS_DL_BAD_SUBMISSION'=>'Check the title, description and length of the submitted details.', 'PLUS_DL_BAD_FIELD'=>'Check the additional download fields.',
 	'PLUS_DL_SAVE_FILE'=>'Save changes',
+	'PLUS_DL_DOWNLOAD_SOURCES'=>'Download sources','PLUS_DL_PRIMARY_SOURCE'=>'Original file','PLUS_DL_MIRROR_NUMBER'=>'Mirror %d',
 	'PLUS_DL_FIELDS_CHANGED'=>'The custom fields have changed. Review the displayed values before submitting again.',
 	'ACL_A_PLUS_DL_FIELDS'=>'Can manage custom download fields',
 	'PLUS_DL_BAD_URL'=>'Enter a valid HTTP or HTTPS link.', 'PLUS_DL_BAD_LICENSE'=>'Choose an existing licence.',

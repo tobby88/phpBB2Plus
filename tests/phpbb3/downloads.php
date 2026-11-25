@@ -18,7 +18,8 @@ function seed_downloads($db)
 		(53,1,'Kein Original',21,'','missing.txt','missing-53.txt','','','','','',0,20003,1,0,''),
 		(54,1,'Privatfreigabe',24,'','external.txt','','Fixture download','','','','',0,20004,1,1,'https://example.invalid/fixture.txt')");
 	$db->query("INSERT INTO phpbb_pa_mirrors (mirror_id,file_id,unique_name,file_dir,file_dlurl,mirror_location)
-		VALUES (8,50,'mirror-50.txt','pafiledb/uploads/','','Lokale Kopie'),(9,51,'','','https://example.invalid/club.txt','Beispielserver')");
+		VALUES (8,50,'mirror-50.txt','pafiledb/uploads/','','Lokale Kopie &amp; 📡'),(9,51,'','','https://example.invalid/club.txt','Beispielserver'),
+		(10,53,'','','https://example.invalid/alternate.txt','')");
 	$db->query("INSERT INTO phpbb_pa_custom (custom_id,custom_name,custom_description,data,field_order,field_type,regex)
 		VALUES (81,'Farbauswahl','','a:2:{i:0;s:4:\"Blau\";i:1;s:3:\"Rot\";}',1,4,'')");
 	$db->query("INSERT INTO phpbb_pa_customdata VALUES (50,81,'a:2:{i:0;s:4:\"Blau\";i:1;s:3:\"Rot\";}')");
@@ -57,7 +58,7 @@ function verify_downloads($db, $member)
 	check_fixture($f && (int) $f['owner_id'] === $member && $f['asset_status'] === 'ready' && $f['preview_type'] === 'image/png'
 		&& $mirror && $mirror['asset_status'] === 'ready' && $mirror['storage_name'] !== $f['storage_name'] &&
 		strpos(html_entity_decode($conditions, ENT_QUOTES, 'UTF-8'),'🎮') !== false, 'Missing paFileDB media, account or licence text');
-	foreach (array('files'=>5,'mirrors'=>2,'grants'=>3,'comments'=>1,'votes'=>2,'visitors'=>1,'fields'=>7,'field_values'=>7,'licenses'=>1,'import_journal'=>1) as $table=>$count)
+	foreach (array('files'=>5,'mirrors'=>3,'grants'=>3,'comments'=>1,'votes'=>2,'visitors'=>1,'fields'=>7,'field_values'=>7,'licenses'=>1,'import_journal'=>1) as $table=>$count)
 	{
 		check_fixture((int) $db->query("SELECT COUNT(*) FROM p3_plus_dl_$table")->fetch_row()[0] === $count, 'Incomplete download conversion for ' . $table);
 	}

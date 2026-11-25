@@ -233,6 +233,21 @@ class access
 
 	public static function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 
+	// paFileDB stored some strings literally, while our native writers escape
+	// them before the phpBB UCR conversion. Preserve literal entity spellings.
+	public static function raw_text($row, $column, $source_key, $escaped_flag)
+	{
+		$source = json_decode($row['source_json'],true);
+		$value = $row[$column];
+		if (!empty($source[$escaped_flag])) { return self::plain($value); }
+		if (isset($source[$source_key]) && is_string($source[$source_key]) && utf8_encode_ucr($source[$source_key]) === $value)
+		{ return $source[$source_key]; }
+		return preg_replace_callback('/&#([0-9]{5,7});/',static function ($match) {
+			$point = (int) $match[1];
+			return $point >= 65536 && $point <= 1114111 ? utf8_chr($point) : $match[0];
+		},$value);
+	}
+
 	public function write($id, callable $operation)
 	{
 		$id = (int) $id;
