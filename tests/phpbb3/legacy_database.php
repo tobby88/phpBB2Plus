@@ -25,6 +25,7 @@ require __DIR__ . '/delegation.php';
 require __DIR__ . '/historical_actions.php';
 require __DIR__ . '/credits.php';
 require __DIR__ . '/warning_cards.php';
+require __DIR__ . '/account_logins.php';
 
 if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 {
@@ -175,6 +176,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	$db->query("UPDATE phpbb_forums SET forum_desc='Übersicht & Rückblick 📷' WHERE forum_id=15");
 	$db->query('INSERT INTO phpbb_forum_prune (forum_id,prune_days,prune_freq) VALUES (1,10,1),(1,90,7),(7,90,7),(11,10,1),(14,10,1),(14,10,1),(15,0,2)');
 	seed_warning_cards($db);
+	seed_account_logins($db, $argv[1] === 'seed-pruning-off');
 }
 elseif ($argv[1] === 'cards-reset')
 {
@@ -255,9 +257,14 @@ elseif (in_array($argv[1], array('converted', 'converted-pruning-off', 'hashes-u
 		check_fixture($is_bridge === ($argv[1] !== 'signed-in'), 'Unexpected credential upgrade state for ' . $user['username']);
 	}
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
+	if ($argv[1] === 'hashes-unchanged') { check_imported_logins($db, (int) $users[0]['user_id']); }
 	if (!in_array($argv[1], array('converted', 'converted-pruning-off'), true)) { return; }
 	verify_delegation($db);
 	verify_warning_cards($db, (int) $users[0]['user_id']);
+	check_imported_logins($db, (int) $users[0]['user_id']);
+	$login_policy = $db->query("SELECT config_value FROM p3_config WHERE config_name IN ('plus_login_history','plus_login_limit','plus_login_network_check') ORDER BY config_name")->fetch_all();
+	$enabled = (int) ($argv[1] === 'converted-pruning-off');
+	check_fixture(array_map('intval', array_column($login_policy, 0)) === array($enabled,3,$enabled), 'Login collection policy did not match the source');
 	$historic_id = (int) $users[0]['user_id'];
 	$icon = $db->query('SELECT i.plus_icon_id,i.icons_width,i.icons_height FROM p3_posts p JOIN p3_icons i ON i.icons_id=p.icon_id WHERE p.post_id=1')->fetch_row();
 	$topic_icon = $db->query('SELECT i.plus_icon_id FROM p3_topics t JOIN p3_icons i ON i.icons_id=t.icon_id WHERE t.topic_id=2')->fetch_row();

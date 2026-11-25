@@ -236,3 +236,11 @@ services:
         arguments: ['@phpbb2plus.community.attachment_quotas', '@dbal.conn', '@user', '@auth', '@language']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.account_logins:
+        class: phpbb2plus\community\service\account_logins
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%']
+    phpbb2plus.community.account_login_events:
+        class: phpbb2plus\community\event\account_logins
+        arguments: ['@phpbb2plus.community.account_logins', '@config', '@user', '@language', '@template']
+        tags:
+            - { name: event.listener }

@@ -1,0 +1,31 @@
+{% include 'ucp_header.html' %}
+<h2>{{ lang('UCP_PLUS_LOGINS') }}</h2>
+<div class="panel"><div class="inner">
+{% if S_PLUS_LOGIN_HISTORY %}
+	{% if loops.account_login|length %}
+		<table class="table1" id="plus-account-logins">
+			<thead><tr><th scope="col">{{ lang('PLUS_LOGIN_WHEN') }}</th><th scope="col">{{ lang('PLUS_LOGIN_ADDRESS') }}</th></tr></thead>
+			<tbody>{% for login in loops.account_login %}<tr class="{{ loop.index is odd ? 'bg1' : 'bg2' }}"><td>{{ login.WHEN }}</td><td>{{ login.ADDRESS }}</td></tr>{% endfor %}</tbody>
+		</table>
+	{% else %}<p>{{ lang('PLUS_LOGIN_EMPTY') }}</p>{% endif %}
+{% else %}<p>{{ lang('PLUS_LOGIN_HISTORY_OFF') }}</p>{% endif %}
+</div></div>
+{% if S_PLUS_LOGIN_NETWORK %}
+<form id="plus-login-preferences" action="{{ U_ACTION }}" method="post">
+	<div class="panel"><div class="inner"><fieldset>
+		<dl><dt><label for="plus-login-warn">{{ lang('PLUS_LOGIN_PREFERENCE') }}</label></dt><dd>
+			<label><input id="plus-login-warn" type="radio" name="network_warning" value="1"{% if S_PLUS_LOGIN_WARN %} checked{% endif %}> {{ lang('YES') }}</label>
+			<label><input type="radio" name="network_warning" value="0"{% if not S_PLUS_LOGIN_WARN %} checked{% endif %}> {{ lang('NO') }}</label>
+		</dd></dl>
+	</fieldset></div></div>
+	<fieldset class="submit-buttons"><input type="hidden" name="change" value="preference"><input type="submit" class="button1" value="{{ lang('SUBMIT') }}">{{ S_FORM_TOKEN }}</fieldset>
+</form>
+{% if PLUS_ACCOUNT_NOTICE %}
+<form id="plus-login-acknowledge" action="{{ U_ACTION }}" method="post">
+	<div class="rules"><div class="inner"><p>{{ PLUS_ACCOUNT_NOTICE }}</p>
+	<input type="hidden" name="change" value="acknowledge"><input type="hidden" name="notice_context" value="{{ PLUS_LOGIN_CONTEXT }}">
+	<input class="button2" type="submit" value="{{ lang('PLUS_LOGIN_ACKNOWLEDGE') }}">{{ S_FORM_TOKEN }}</div></div>
+</form>
+{% endif %}
+{% endif %}
+{% include 'ucp_footer.html' %}

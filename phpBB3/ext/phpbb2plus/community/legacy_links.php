@@ -44,6 +44,11 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'ct_login_history':
+			$base = './';
+			$path = 'ucp.php';
+			$extra = array('i' => '-phpbb2plus-community-ucp-logins_module', 'mode' => 'history');
+			break;
 		case 'arcade_tournament':
 			$mode = $query['mode'] ?? '';
 			if ($mode === '') { $path = 'arcade/tournaments'; }
@@ -366,7 +371,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		}
 		if (in_array($query['sort_order'] ?? '', array('ASC','DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
 	}
-	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg','ct_login_history'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	// Only search forms need to retain their body at the destination.
 	$status = $method === 'POST' ? ($sort_redirect ? 303 : 307) : 302;

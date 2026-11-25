@@ -57,6 +57,7 @@ import delegation_administration
 import historical_actions
 import credits
 import warning_cards
+import account_logins
 import profile_media
 import rank_overview
 import topic_calendar
@@ -340,9 +341,12 @@ def main():
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
+                def login_fixture(phase):
+                    php(ROOT / "tests/phpbb3/login_networks.php", target, phase, cwd=web)
                 def file_roles(phase):
                     php(ROOT / "tests/phpbb3/delegation_files.php", target, phase, cwd=web)
                 if media_only:
+                    account_logins.browse(base, ordinary, member, login_fixture)
                     delegation.module_roles(base, file_roles)
                     download_checks(base, member, ordinary, pending, fixture, target, web)
                     php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
@@ -354,6 +358,8 @@ def main():
                     download_upgrades(target, web)
                     print(f"Verified {count} upstream files, conversion, downloads and album management in {monotonic()-start:.1f}s")
                     return
+                account_logins.disabled(base, ordinary)
+                login_fixture("disabled")
                 board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
                 print_topics.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/print_topics.php", phase, target, cwd=web))

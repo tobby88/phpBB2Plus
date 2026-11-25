@@ -15,6 +15,10 @@ $name = $db->sql_fetchfield('username');
 $db->sql_freeresult($result);
 if ($name !== 'DepartingFixture') { throw new RuntimeException('Unexpected fixture identity'); }
 user_delete('retain', 87, true);
+$private = $db->sql_query('SELECT COUNT(*) AS total FROM ' . $table_prefix . 'plus_account_logins WHERE user_id=87');
+$remaining = (int) $db->sql_fetchfield('total');
+$db->sql_freeresult($private);
+if ($remaining) { throw new RuntimeException('Native removal left private login history behind'); }
 $result = $db->sql_query('SELECT poster_id,post_username FROM ' . POSTS_TABLE . ' WHERE post_id=42');
 $post = $db->sql_fetchrow($result);
 $db->sql_freeresult($result);

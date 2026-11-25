@@ -63,6 +63,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_gallery_personal_permissions();';
 	$convertor['execute_last'][] = 'plus_jr_finish();';
 	$convertor['execute_last'][] = 'plus_finish_action_log();';
+	$convertor['execute_last'][] = 'plus_login_settings();';
 	$convertor['execute_last'][] = 'plus_card_finish();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
@@ -217,6 +218,14 @@ if (!$get_info)
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
+			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
+			foreach (array('ct_enable_ip_warn' => 'plus_login_warn', 'ct_last_ip' => 'plus_login_previous', 'ct_last_used_ip' => 'plus_login_current') as $old => $new)
+			{
+				if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', $old))
+				{
+					$section[] = array($new, 'users.' . $old, $old === 'ct_enable_ip_warn' ? 'plus_login_warning_enabled' : 'plus_login_address');
+				}
+			}
 			$section[] = array('plus_card_count', array('users.user_id', 'users.user_warnings'), 'plus_card_count');
 			foreach (\phpbb2plus\calendar\service\settings::MEMBER as $name=>$default)
 			{
@@ -362,6 +371,15 @@ if (!$get_info)
 		plus_dl_schema($table_prefix, $convert->truncate_statement), plus_banner_schema($table_prefix, $convert->truncate_statement));
 	$actions = plus_action_schema($src_db, $convert->src_table_prefix, $table_prefix);
 	if ($actions) { $convertor['schema'][] = $actions; }
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_account_logins');
+	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'ctracker_loginhistory'))
+	{
+		// Account ownership is established on the source before native ID remapping.
+		$convertor['schema'][] = array('target' => $table_prefix . 'plus_account_logins', 'distinct' => true,
+			'order_by' => 'users.user_id', array('', 'users.user_id', 'plus_import_account_logins'),
+			array('', 'ctracker_loginhistory.ct_user_id', ''),
+			'where' => 'ctracker_loginhistory.ct_user_id=users.user_id AND users.user_id>0');
+	}
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_credits');
 	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'hacks_list'))
 	{
