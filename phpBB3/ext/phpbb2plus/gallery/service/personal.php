@@ -103,12 +103,13 @@ class personal
 			$levels = $this->access->administrator() ? array(-1,0,1,2,3) : array(-1,0,3);
 			if ($mode === 'start')
 			{
+				if (!$this->access->may_create_personal($owner, true)) { throw new NotFoundHttpException(); }
 				$view = (int) $this->access->setting('personal_gallery_view', -1);
 				if (!in_array($view, array(-1,0,1,2,3), true)) { $view = 1; }
 				$data = array('parent_id' => 0, 'owner_id' => $owner, 'source_owner' => 0, 'title' => access::encode_label($root_title), 'label_encoded' => 1,
 					'description' => '', 'sort_order' => 0, 'approval' => 0, 'view_level' => $view, 'upload_level' => 3,
 					'rate_level' => 0, 'comment_level' => 0, 'edit_level' => 3, 'delete_level' => 3);
-				$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $data));
+				$this->insert_category($data);
 				return;
 			}
 			$cat = $tree[$id];
@@ -135,7 +136,7 @@ class personal
 					if (!$this->can_add($tree)) { throw new \DomainException('PLUS_ALBUM_CAT_QUOTA'); }
 					$data += array('parent_id' => $id, 'owner_id' => $owner, 'source_owner' => (int) $cat['source_owner'], 'sort_order' => $this->hierarchy->next_order($tree, $id),
 						'approval' => 0, 'edit_level' => 3, 'delete_level' => 3);
-					$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $data));
+					$this->insert_category($data);
 					return;
 				}
 				if ($parent && (string) $parent !== $form['parent'])
@@ -157,5 +158,16 @@ class personal
 			if ($dest !== 'remove' && !isset($this->destinations($tree, $id, 'delete')[$dest])) { throw new \DomainException('PLUS_ALBUM_BAD_CATEGORY'); }
 			$this->hierarchy->remove($cat, $dest);
 		});
+	}
+
+	private function insert_category($data)
+	{
+		$this->db->sql_query('INSERT INTO ' . $this->prefix . 'cats ' . $this->db->sql_build_array('INSERT', $data));
+		$id = (int) $this->db->sql_nextid();
+		// Slot zero contains only explicitly chosen defaults for new personal albums.
+		$table = $this->prefix . 'grants';
+		$this->db->sql_query("INSERT INTO $table (cat_id,capability,subject_type,subject_id)
+			SELECT $id,d.capability,d.subject_type,d.subject_id FROM $table d JOIN " . GROUPS_TABLE . " g ON g.group_id=d.subject_id
+			WHERE d.cat_id=0 AND d.subject_type='g' AND g.group_type<>" . GROUP_SPECIAL . ' AND ' . $this->db->sql_in_set('d.capability', permissions::ACTIONS));
 	}
 }

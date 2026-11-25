@@ -31,11 +31,8 @@ class permissions
 		return $this->hierarchy->tree(0);
 	}
 
-	public function page($id, $page)
+	public function group_page($page)
 	{
-		$tree = $this->tree();
-		if (!isset($tree[$id])) { throw new \DomainException('PLUS_ALBUM_PUBLIC_MISSING'); }
-		$category = $tree[$id];
 		// phpBB2 offered named groups. Its single-member groups were converted into individual grants.
 		$where = ' FROM ' . GROUPS_TABLE . ' WHERE group_type <> ' . GROUP_SPECIAL;
 		$result = $this->db->sql_query('SELECT COUNT(*) AS total' . $where);
@@ -48,6 +45,16 @@ class permissions
 		$groups = array();
 		while ($row = $this->db->sql_fetchrow($result)) { $groups[(int) $row['group_id']] = htmlspecialchars_decode($row['group_name'], ENT_QUOTES); }
 		$this->db->sql_freeresult($result);
+		return array('groups' => $groups, 'pages' => $pages);
+	}
+
+	public function page($id, $page)
+	{
+		$tree = $this->tree();
+		if (!isset($tree[$id])) { throw new \DomainException('PLUS_ALBUM_PUBLIC_MISSING'); }
+		$category = $tree[$id];
+		$listing = $this->group_page($page);
+		$groups = $listing['groups'];
 		$selected = array();
 		if ($groups)
 		{
@@ -57,7 +64,7 @@ class permissions
 			while ($row = $this->db->sql_fetchrow($result)) { $selected[(int) $row['subject_id']][$row['capability']] = true; }
 			$this->db->sql_freeresult($result);
 		}
-		return array('category' => $category, 'groups' => $groups, 'selected' => $selected, 'pages' => $pages,
+		return $listing + array('category' => $category, 'selected' => $selected,
 			'state' => hash('sha256', serialize(array($category, $page, $groups, $selected))));
 	}
 

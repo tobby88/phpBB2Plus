@@ -79,13 +79,30 @@ class access
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_gallery');
 	}
 
-	public function may_create_personal($owner)
+	public function may_create_personal($owner, $fresh = false)
 	{
 		if (empty($this->user->data['is_registered']) || !empty($this->user->data['is_bot']) || $owner <= ANONYMOUS) { return false; }
-		if ($this->administrator()) { return true; }
-		if ((int) $this->user->data['user_id'] !== (int) $owner) { return false; }
+		$id = (int) $this->user->data['user_id'];
+		if ($fresh)
+		{
+			$result = $this->db->sql_query('SELECT user_type,user_perm_from FROM ' . USERS_TABLE . " WHERE user_id=$id");
+			$actor = $this->db->sql_fetchrow($result);
+			$this->db->sql_freeresult($result);
+			if (!$actor || (int) $actor['user_perm_from'] || !in_array((int) $actor['user_type'], array(USER_NORMAL, USER_FOUNDER), true)) { return false; }
+			if ((int) $actor['user_type'] === USER_FOUNDER) { return true; }
+			$rules = $this->auth->acl_raw_data($id, array('a_plus_gallery','u_plus_album_personal'), 0);
+			$rules = $rules[$id][0] ?? array();
+			if ((int) ($rules['a_plus_gallery'] ?? ACL_NO) === ACL_YES) { return true; }
+			$selected = (int) ($rules['u_plus_album_personal'] ?? ACL_NO) === ACL_YES;
+		}
+		else
+		{
+			if ($this->administrator()) { return true; }
+			$selected = $this->auth->acl_get('u_plus_album_personal');
+		}
+		if ($id !== (int) $owner) { return false; }
 		$policy = (string) $this->setting('personal_gallery', '0');
-		return $policy === '0' || ($policy === '3' && $this->auth->acl_get('u_plus_album_personal'));
+		return $policy === '0' || ($policy === '3' && $selected);
 	}
 
 	public function may_manage_personal($category)

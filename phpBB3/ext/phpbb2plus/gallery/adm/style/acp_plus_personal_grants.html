@@ -1,0 +1,35 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_PERSONAL_GRANTS}</h1>
+{% if GROUP_NAME %}<h2>{{ GROUP_NAME|e }}</h2>{% endif %}
+{% if ALBUM_ERROR %}<div class="errorbox"><p>{{ ALBUM_ERROR|e }}</p></div>
+{% elseif S_LIST %}
+<p>{L_PLUS_PERSONAL_GRANTS_SELECT}</p>
+{% if loops.groups %}<ul>{% for group in loops.groups %}<li><a href="{{ group.U_EDIT }}">{{ group.NAME|e }}</a></li>{% endfor %}</ul>
+{% else %}<p>{L_PLUS_ALBUM_GRANTS_NO_GROUPS}</p>{% endif %}
+{% if ALBUM_PAGES > 1 %}<p>{% if U_PREV %}<a href="{U_PREV}">{L_PREVIOUS}</a> &middot; {% endif %}{{ lang('PLUS_ALBUM_GRANTS_PAGE', ALBUM_PAGE, ALBUM_PAGES) }}{% if U_NEXT %} &middot; <a href="{U_NEXT}">{L_NEXT}</a>{% endif %}</p>{% endif %}
+{% elseif S_FORM %}
+<form id="album-personal-grants" method="post" action="{U_EDIT}">
+<fieldset><legend>{L_PLUS_ALBUM_GRANT_CREATE}</legend><p>{L_PLUS_PERSONAL_GRANTS_CREATION}</p>
+<dl><dt><label for="grant-create">{L_PLUS_PERSONAL_GRANTS_DIRECT}</label></dt><dd>{% if CREATE_YES %}{L_YES}{% else %}{L_NO}{% endif %}
+{% if CREATE_NEVER %} &middot; {L_PLUS_PERSONAL_GRANTS_NEVER}<input type="hidden" name="change[create]" value="keep">
+{% else %}{% if ROLE_YES %} &middot; {L_PLUS_PERSONAL_GRANTS_ROLE}{% endif %}
+<select id="grant-create" name="change[create]"><option value="keep">{L_PLUS_PERSONAL_GRANTS_KEEP}</option><option value="grant">{L_PLUS_PERSONAL_GRANTS_GRANT}</option><option value="remove">{L_PLUS_PERSONAL_GRANTS_REMOVE}</option></select>{% endif %}</dd></dl></fieldset>
+<fieldset><legend>{L_PLUS_PERSONAL_GRANTS_ACTIONS}</legend><p>{% if S_NATIVE %}{L_PLUS_PERSONAL_GRANTS_EXPLAIN}{% else %}{L_PLUS_PERSONAL_GRANTS_LEGACY_SCOPE}{% endif %}</p>
+<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_PERSONAL_GRANTS_PERMISSION}</th>{% if S_NATIVE %}<th>{L_PLUS_PERSONAL_GRANTS_DEFAULT}</th>{% endif %}<th>{L_PLUS_PERSONAL_GRANTS_EXISTING_COUNT}</th><th>{L_OPTIONS}</th></tr></thead>
+<tbody>{% for row in loops.actions %}<tr data-permission="{{ row.NAME }}" data-assigned="{{ row.EXISTING }}" data-categories="{{ TOTAL }}"><th scope="row"><label for="grant-{{ row.NAME }}">{{ row.LABEL|e }}</label></th>{% if S_NATIVE %}<td>{% if row.DEFAULT %}{L_YES}{% else %}{L_NO}{% endif %}</td>{% endif %}
+<td>{{ row.EXISTING }} / {{ TOTAL }}</td><td><select id="grant-{{ row.NAME }}" name="change[{{ row.NAME }}]"><option value="keep">{L_PLUS_PERSONAL_GRANTS_KEEP}</option><option value="grant">{L_PLUS_PERSONAL_GRANTS_GRANT}</option><option value="remove">{L_PLUS_PERSONAL_GRANTS_REMOVE}</option></select></td></tr>{% endfor %}</tbody></table>
+{% if S_NATIVE %}<dl><dt><label for="scope">{L_PLUS_PERSONAL_GRANTS_SCOPE}</label></dt><dd><select id="scope" name="scope"><option value="future">{L_PLUS_PERSONAL_GRANTS_FUTURE}</option><option value="existing">{L_PLUS_PERSONAL_GRANTS_EXISTING}</option><option value="both">{L_PLUS_PERSONAL_GRANTS_BOTH}</option></select></dd></dl>
+{% else %}<input type="hidden" name="scope" value="existing">{% endif %}
+</fieldset><fieldset class="submit-buttons"><input type="hidden" name="state" value="{STATE}">{S_FORM_TOKEN}<button class="button1" type="submit">{L_PREVIEW}</button></fieldset></form>
+{% elseif S_PREVIEW %}
+{% if loops.changes %}<h3>{L_PREVIEW}</h3><p>{{ SCOPE_LABEL|e }}</p>
+<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_PERSONAL_GRANTS_PERMISSION}</th><th>{L_OPTIONS}</th><th>{L_PLUS_PERSONAL_GRANTS_EFFECT}</th></tr></thead>
+<tbody>{% for row in loops.changes %}<tr><th scope="row">{{ row.LABEL|e }}</th><td>{{ row.VALUE|e }}</td><td>{{ row.IMPACT|e }}</td></tr>{% endfor %}</tbody></table>
+<form id="album-personal-grants-confirm" method="post" action="{U_EDIT}"><fieldset class="submit-buttons">
+{% for field in loops.fields %}<input type="hidden" name="change[{{ field.NAME }}]" value="{{ field.VALUE }}">{% endfor %}
+<input type="hidden" name="scope" value="{SCOPE}"><input type="hidden" name="state" value="{STATE}"><input type="hidden" name="confirm" value="1">{S_FORM_TOKEN}
+<button type="submit" class="button1">{L_CONFIRM}</button> <a class="button2" href="{U_EDIT}">{L_CANCEL}</a></fieldset></form>
+{% else %}<p>{L_PLUS_PERSONAL_GRANTS_UNCHANGED}</p><p><a href="{U_EDIT}">{L_BACK}</a></p>{% endif %}
+{% endif %}
+{% if not S_LIST %}<p><a href="{U_BACK}">{L_PLUS_PERSONAL_GRANTS_SELECT}</a></p>{% endif %}
+<!-- INCLUDE overall_footer.html -->

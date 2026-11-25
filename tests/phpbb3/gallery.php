@@ -14,6 +14,9 @@ function seed_gallery($db)
 	$db->query("UPDATE phpbb_album_cat SET cat_approval=2 WHERE cat_id=1");
 	$db->query("INSERT INTO phpbb_album_cat (cat_id,cat_parent,cat_title,cat_desc,cat_order,cat_view_level,cat_view_groups,cat_moderator_groups)
 		VALUES (8,1,'Clubfotografie','Gruppenalbum',2,3,'71','72'),(9,8,'Unteralbum','',1,-1,'','')");
+	// Real stored personal categories can have different group lists and converted individual grants.
+	$db->query("INSERT INTO phpbb_album_cat (cat_id,cat_parent,cat_title,cat_desc,cat_user_id,cat_view_level,cat_view_groups,cat_moderator_groups)
+		VALUES (81,0,'Stored personal rules','',2,3,'71','72'),(82,81,'Different personal rules','',2,3,'74','')");
 	$db->query("INSERT INTO phpbb_album (pic_id,pic_filename,pic_title,pic_desc,pic_user_id,pic_username,pic_time,pic_cat_id,pic_view_count,pic_lock,pic_approval)
 		VALUES (100,'fixture.png','Öffentliche Fotoprobe','Beschreibung &amp; Grüße',2,'',100100,1,14,0,1),
 		(101,'fixture.png','Clubfotoprobe','',1,'',100101,8,2,0,1),(102,'fixture.png','Freigabeprobe','',1,'',100102,1,0,0,0),

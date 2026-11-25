@@ -109,9 +109,10 @@ elseif ($argv[2] === 'resize_rendered')
 		}
 	}
 }
-elseif (preg_match('/^(category|grants)_(delegate|revoke)$/D', $argv[2], $match))
+elseif (preg_match('/^(category|grants|personal_rules)_(delegate|revoke)$/D', $argv[2], $match))
 {
-	$name = $match[1] === 'category' ? 'a_plus_album_categories' : 'a_plus_album_auth';
+	$options = array('category' => 'a_plus_album_categories', 'grants' => 'a_plus_album_auth', 'personal_rules' => 'a_plus_album_personal_auth');
+	$name = $options[$match[1]];
 	$option = (int) album_fixture_value('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='$name'");
 	if (!$option) { throw new RuntimeException('The narrow native gallery permission is unavailable'); }
 	$where = "forum_id=0 AND user_id=87 AND auth_role_id=0 AND auth_option_id=$option";
@@ -123,6 +124,60 @@ elseif (preg_match('/^(category|grants)_(delegate|revoke)$/D', $argv[2], $match)
 	}
 	else { $db->sql_query('DELETE FROM ' . ACL_USERS_TABLE . ' WHERE ' . $where); }
 	$auth->acl_clear_prefetch(87);
+}
+elseif ($argv[2] === 'personal_rules_start')
+{
+	album_fixture_config('personal_gallery', '3');
+	album_fixture_config('personal_gallery_view', '3');
+	if ((int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=0") ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=81 AND subject_type='g' AND subject_id=71 AND capability='view'") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=82 AND subject_type='g' AND subject_id=74 AND capability='view'") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=81 AND subject_type='u' AND capability='moderator'") !== 1)
+	{ throw new RuntimeException('The converter did not preserve mixed personal category grants and an individual moderator'); }
+}
+elseif ($argv[2] === 'personal_rules_never' || $argv[2] === 'personal_rules_allow')
+{
+	$option = (int) album_fixture_value('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='u_plus_album_personal'");
+	if ($argv[2] === 'personal_rules_never')
+	{
+		$db->sql_query('INSERT INTO ' . ACL_GROUPS_TABLE . ' ' . $db->sql_build_array('INSERT',
+			array('forum_id'=>0,'group_id'=>75,'auth_role_id'=>0,'auth_option_id'=>$option,'auth_setting'=>ACL_NEVER)));
+	}
+	else { $db->sql_query('DELETE FROM ' . ACL_GROUPS_TABLE . " WHERE forum_id=0 AND group_id=75 AND auth_role_id=0 AND auth_option_id=$option AND auth_setting=" . ACL_NEVER); }
+	$auth->acl_clear_prefetch(89);
+}
+elseif ($argv[2] === 'personal_creator_pending' || $argv[2] === 'personal_creator_approved')
+{
+	$pending = $argv[2] === 'personal_creator_pending' ? 1 : 0;
+	$db->sql_query('UPDATE ' . USER_GROUP_TABLE . " SET user_pending=$pending WHERE group_id=75 AND user_id=89");
+	$auth->acl_clear_prefetch(89);
+}
+elseif ($argv[2] === 'personal_rules_future' || $argv[2] === 'personal_rules_existing')
+{
+	$existing = $argv[2] === 'personal_rules_existing';
+	$cats = (int) album_fixture_value("SELECT COUNT(*) FROM {$g}cats WHERE owner_id>" . ANONYMOUS . " AND legacy_guest_root=0");
+	$view = (int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants g JOIN {$g}cats c ON c.cat_id=g.cat_id WHERE c.owner_id>" . ANONYMOUS . " AND c.legacy_guest_root=0 AND g.subject_type='g' AND g.subject_id=71 AND g.capability='view'");
+	if (($existing ? $view !== $cats : $view >= $cats) ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=0 AND subject_type='g' AND subject_id=71") !== ($existing ? 6 : 7) ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=81 AND subject_type='u' AND capability='moderator'") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=82 AND subject_type='g' AND subject_id=74 AND capability='view'") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=8 AND subject_type='g' AND subject_id=71 AND capability='view'") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants g JOIN {$g}cats c ON c.cat_id=g.cat_id WHERE c.legacy_guest_root=1 AND g.subject_id=71 AND g.subject_type='g'"))
+	{ throw new RuntimeException('Changing personal group defaults altered another principal, scope or collection'); }
+}
+elseif ($argv[2] === 'personal_rules_finished')
+{
+	$option = (int) album_fixture_value('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='u_plus_album_personal'");
+	if ((int) album_fixture_value('SELECT COUNT(*) FROM ' . ACL_GROUPS_TABLE . " WHERE group_id=75 AND auth_option_id=$option AND auth_setting=" . ACL_YES) ||
+		(int) album_fixture_value('SELECT COUNT(*) FROM ' . ACL_USERS_TABLE . " WHERE auth_option_id=$option AND auth_setting=" . ACL_YES) < 1)
+	{ throw new RuntimeException('The member-specific native creation grant or the revoked group grant changed'); }
+	album_fixture_config('personal_gallery', '0');
+}
+elseif ($argv[2] === 'personal_rules_existing_only')
+{
+	if ((int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=0 AND subject_type='g' AND subject_id=75") ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=8 AND capability='delete' AND subject_type='g' AND subject_id=75"))
+	{ throw new RuntimeException('An existing-only album update altered a future default or public category'); }
 }
 elseif ($argv[2] === 'grants_groups')
 {

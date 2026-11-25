@@ -9,6 +9,7 @@ import gallery_media
 import gallery_zip
 import gallery_categories
 import gallery_permissions
+import gallery_personal_grants
 from http_board import Browser, FormFields, Page, admin_url, submit_form
 
 
@@ -135,6 +136,7 @@ def browse(base, administrator, member, owner, check):
     gallery_zip.browse(administrator, owner, guest, root)
     gallery_categories.browse(administrator, member, owner, guest, root, check)
     gallery_permissions.browse(administrator, member, owner, guest, root, check)
+    gallery_personal_grants.browse(administrator, member, owner, guest, check)
 
 
 def configuration(administrator, owner, guest, root):
