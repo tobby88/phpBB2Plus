@@ -43,6 +43,10 @@ def publishing(owner, member, pending):
     editor(member, 1, "012", True)
     editor(pending, 1, "", False)
     moderator = login(owner.base, "ModerationFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+    for actor, group in ((moderator, "Designated leader"), (pending, "Waiting leader"), (member, "Approved leader")):
+        managed = actor.fetch("ucp.php?i=ucp_groups&mode=manage")
+        if group not in managed or "Former leader" in managed:
+            raise RuntimeError("The native group management panel lost or reassigned a converted leadership")
     editor(moderator, 12, "012", True)
     editor(member, 12, "", False)
     page = editor(pending, 14, "03", True)

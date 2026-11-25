@@ -2,13 +2,28 @@
 // Called only by the isolated legacy_database.php fixture.
 function seed_forum_access($db)
 {
+	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_moderator,group_single_user) VALUES
+		(77,2,'Designated leader','',89,0),(78,2,'Waiting leader','',87,0),(79,2,'Approved leader','',1,0),(80,2,'Former leader','',888888,0)");
+	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES
+		(77,1,1),(77,1,0),(77,1,0),(77,87,1),(77,87,1),(77,-1,0),(77,888888,0),
+		(78,87,1),(79,1,1),(79,1,0),(80,888888,0)');
+	// Old ID 1 is remapped to max(source IDs)+1 on this board. A retired grant can have that same number.
+	$reuse = 1 + (int) $db->query('SELECT MAX(user_id) FROM phpbb_users')->fetch_row()[0];
+	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,cat_id,forum_order,auth_view,auth_read,auth_post,auth_reply,auth_edit,auth_delete)
+		VALUES (15,'Contributors','',1,35,0,0,2,2,2,2)");
+	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user) VALUES
+		(81,1,'Personal moderation','',1),(82,1,'Personal editing','',1),(83,1,'Former assignment','',1)");
+	$db->query("INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES
+		(81,87,1),(81,89,1),(81,89,0),(82,87,0),(82,1,0),(83,888888,0),(83,$reuse,0),(83,-1,0)");
+	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_edit,auth_reply,auth_mod)
+		VALUES (81,15,0,0,1),(82,15,1,0,0),(83,15,0,1,1)');
 	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,cat_id,forum_order,auth_view,auth_read) VALUES
 		(8,'Listed reading room','',1,32,0,5),(9,'Private reading room','',1,33,2,0),(10,'Two reading circles','',1,34,2,2)");
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user)
 		VALUES (76,1,'Personal reading permission','',1)");
 	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (76,89,0)');
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_view,auth_read) VALUES
-		(71,9,1,0),(71,10,1,0),(74,10,1,0),(73,10,0,1),(76,10,0,1)');
+		(71,9,1,0),(77,9,1,0),(71,10,1,0),(74,10,1,0),(73,10,0,1),(76,10,0,1)');
 	foreach (array(8,9,10) as $forum)
 	{
 		$topic = 480+$forum;

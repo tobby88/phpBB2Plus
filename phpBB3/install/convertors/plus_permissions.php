@@ -80,7 +80,7 @@ function plus_forum_permissions()
 	}
 
 	$p = $convert->src_table_prefix;
-	$columns = array_merge(array('auth_view','auth_read'),array_values($mapping));
+	$columns = array_merge(array('auth_view','auth_read'),array_values($mapping),array_keys(plus_personal_post_options()));
 	$r = $src_db->sql_query('SELECT forum_id,' . implode(',',$columns) . " FROM {$p}forums ORDER BY forum_id");
 	$forums = $src_db->sql_fetchrowset($r);
 	$src_db->sql_freeresult($r);
@@ -88,13 +88,12 @@ function plus_forum_permissions()
 	try
 	{
 		$conditional_forums = array();
-		plus_clear_local_options(array_values($options),array_column($forums,'forum_id'));
 		foreach (array_chunk($forums,32) as $batch)
 		{
-			$assignments = array();
-			$sql = 'SELECT a.forum_id,a.auth_mod,a.' . implode(',a.',$columns) . ",g.group_id,g.group_single_user,ug.user_id
+			$assignments = $affected = array();
+			$sql = 'SELECT a.forum_id,a.auth_mod,a.' . implode(',a.',$columns) . ",g.group_id,g.group_single_user,ug.user_id,ug.user_pending,u.user_id AS source_account
 				FROM {$p}auth_access a JOIN {$p}groups g ON g.group_id=a.group_id LEFT JOIN {$p}user_group ug
-				ON g.group_single_user=1 AND ug.group_id=g.group_id AND ug.user_pending=0 WHERE " .
+				ON g.group_single_user=1 AND ug.group_id=g.group_id LEFT JOIN {$p}users u ON u.user_id=ug.user_id AND u.user_id>0 WHERE " .
 				$src_db->sql_in_set('a.forum_id',array_column($batch,'forum_id'));
 			$r = $src_db->sql_query($sql);
 			$rows = $src_db->sql_fetchrowset($r);
@@ -102,10 +101,25 @@ function plus_forum_permissions()
 			foreach ($rows as $row)
 			{
 				$row['principal'] = $row['group_single_user'] ? 'user_id' : 'group_id';
-				$row['id'] = $row['group_single_user'] ? plus_existing_author($row['user_id']) : (int) $row['group_id'];
-				if ($row['group_single_user'] && $row['id'] === ANONYMOUS) { continue; }
+				$row['id'] = (int) $row['group_id'];
+				if ($row['group_single_user'])
+				{
+					if ($row['user_id'] === null) { continue; }
+					$row['id'] = (int) phpbb_user_id((int) $row['user_id']);
+					if ($row['source_account'] === null || $row['user_pending'] === null || (int) $row['user_pending'] !== 0)
+					{
+						$affected[(int) $row['forum_id']][$row['id']] = true;
+						continue;
+					}
+				}
 				$assignments[(int) $row['forum_id']][] = $row;
 			}
+			foreach ($batch as $forum)
+			{
+				$id = (int) $forum['forum_id'];
+				if (isset($affected[$id])) { plus_reconcile_personal_memberships($forum,$assignments[$id] ?? array(),$affected[$id]); }
+			}
+			plus_clear_local_options(array_values($options),array_column($batch,'forum_id'));
 			$insert = array('group_id'=>array(),'user_id'=>array());
 			foreach ($batch as $forum)
 			{

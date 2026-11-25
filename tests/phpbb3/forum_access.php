@@ -43,8 +43,28 @@ if ($argv[2] === 'disable' || $argv[2] === 'enable')
 	return;
 }
 if ($argv[2] !== 'membership') { exit(2); }
+$r = $db->sql_query('SELECT group_id,user_id,group_leader,user_pending FROM ' . USER_GROUP_TABLE . ' WHERE group_id BETWEEN 77 AND 80 ORDER BY group_id,user_id');
+$members = array();
+while ($member = $db->sql_fetchrow($r)) { $members[] = array_map('intval',array_values($member)); }
+$db->sql_freeresult($r);
+$expected = array(array(77,87,0,1),array(77,89,1,1),array(77,$historic,0,0),array(78,87,1,1),array(79,$historic,1,0));
+usort($expected,static function ($a,$b) { return $a <=> $b; });
+if ($members !== $expected) { throw new RuntimeException('Group management, pending or duplicate membership changed during conversion'); }
+foreach (array($historic=>array(true,false,false),87=>array(true,false,false),89=>array(true,true,true),ANONYMOUS=>array(false,false,false)) as $id=>$rights)
+{
+	$row = access_row($id);
+	$auth->acl($row);
+	foreach (array('f_edit','f_reply','m_edit') as $index=>$option)
+	{
+		if ((bool) $auth->acl_get($option,15) !== $rights[$index]) { throw new RuntimeException("Incorrect personal $option for converted membership $id"); }
+	}
+}
+$r = $db->sql_query('SELECT COUNT(*) AS n FROM ' . ACL_USERS_TABLE . ' WHERE forum_id=15 AND user_id=888888');
+if ((int) $db->sql_fetchfield('n') !== 0) { throw new RuntimeException('A retired personal membership survived as a native assignment'); }
+$db->sql_freeresult($r);
 access_check(ANONYMOUS,8,true,false);
 access_check(ANONYMOUS,9,false,false);
+access_check(89,9,false,false);
 access_check($historic,9,true,true);
 access_check($historic,10,true,true);
 foreach (array(false,'f_%') as $filter)

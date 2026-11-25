@@ -90,8 +90,14 @@ if (!$get_info)
 		}));
 	}
 
-	foreach ($convertor['schema'] as &$section)
+	$schema = array();
+	foreach ($convertor['schema'] as $section)
 	{
+		if ($section['target'] === USER_GROUP_TABLE)
+		{
+			foreach (plus_membership_sections($section) as $members) { $schema[] = $members; }
+			continue;
+		}
 		foreach ($section as $key => &$field)
 		{
 			if (!is_int($key)) { continue; }
@@ -222,8 +228,10 @@ if (!$get_info)
 			$section[] = array('post_delete_time', 'posts.post_deleted_time', 'intval');
 			$section[] = array('post_delete_user', 'posts.post_deleted_by', 'plus_convert_optional_user');
 		}
+		$schema[] = $section;
 	}
-	unset($section);
+	$convertor['schema'] = $schema;
+	unset($schema);
 	$convertor['schema'][] = array('target'=>$table_prefix . 'plus_colours', 'primary'=>'color_groups.group_id', 'autoincrement'=>'colour_id',
 		'query_first'=>array('target',$convert->truncate_statement . $table_prefix . 'plus_colours'),
 		array('colour_id','color_groups.group_id','intval'),array('name','color_groups.group_name','plus_convert_byline'),
