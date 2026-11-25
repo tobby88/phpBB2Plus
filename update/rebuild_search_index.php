@@ -25,18 +25,27 @@ $project_root = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'phpBB2';
 chdir($project_root);
 
 define('IN_PHPBB', true);
-define('IN_ADMIN', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 
-$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-$_SERVER['HTTP_USER_AGENT'] = 'phpBB search index CLI';
-$_SERVER['REQUEST_METHOD'] = 'CLI';
-$_SERVER['SCRIPT_NAME'] = '/update/rebuild_search_index.php';
-$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
-$HTTP_SERVER_VARS = $_SERVER;
-
-include($phpbb_root_path . 'common.' . $phpEx);
+// Offline maintenance uses the installed database and the board's search language.
+// common.php initializes HTTP sessions, request filtering and the web installer guard.
+require $phpbb_root_path . 'config.' . $phpEx;
+if (!defined('PHPBB_INSTALLED') || !isset($table_prefix) || !preg_match('/^[A-Za-z0-9_]+$/D', $table_prefix))
+{
+	fwrite(STDERR, "An installed forum configuration with a valid table prefix is required.\n");
+	exit(2);
+}
+require $phpbb_root_path . 'includes/constants.' . $phpEx;
+require $phpbb_root_path . 'includes/functions.' . $phpEx;
+require $phpbb_root_path . 'db/mysqli.' . $phpEx;
+$db = new sql_db($dbhost, $dbuser, $dbpasswd, $dbname, false);
+if (!$db->db_connect_id || ($board_config = phpbb_load_config_table($db, CONFIG_TABLE)) === false)
+{
+	fwrite(STDERR, "Could not load the installed board configuration.\n");
+	exit(3);
+}
+$board_config['default_lang'] = phpbb_normalize_language(isset($board_config['default_lang']) ? $board_config['default_lang'] : 'english');
 include($phpbb_root_path . 'includes/functions_search.' . $phpEx);
 
 function rebuild_query_or_fail($sql, $description)
