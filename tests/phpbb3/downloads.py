@@ -100,6 +100,7 @@ def feedback(base, author, moderator, guest):
 
 
 def submissions(base, founder, moderator, author, verify):
+    verify("begin")
     guest = Browser(base)
     root = "app.php/downloads"
     category = root + "/category/21"
@@ -146,6 +147,7 @@ def submissions(base, founder, moderator, author, verify):
     if len(match) != 1 or shown in guest.fetch(category):
         raise RuntimeError("Retrying a submission produced a duplicate or exposed the draft")
     item = urljoin(base, unescape(match[0][0])).split("?", 1)[0]
+    verify("record-assets-" + match[0][1])
     guest.fetch(item, expected_status=404)
     guest.fetch(item + "/preview", expected_status=404)
     moderator.fetch(item + "/review/approve", expected_status=404)

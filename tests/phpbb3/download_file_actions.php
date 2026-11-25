@@ -130,6 +130,10 @@ switch ($phase)
 			{ throw new RuntimeException('Removing only the selected downloads did not preserve unrelated ' . $table); }
 		}
 		$shared = $rows("SELECT storage_name,preview_name FROM {$p}files WHERE file_id=10103")[0];
+		$club = $rows("SELECT storage_name FROM {$p}files WHERE file_id=51")[0]['storage_name'];
+		if (!$rows("SELECT job_id FROM {$p}media_queue WHERE storage_name='" . $db->sql_escape($club) . "'") ||
+			!is_file('./' . $config['upload_path'] . '/' . $club))
+		{ throw new RuntimeException('A removed private copy lost its cleanup receipt or its still-referenced original'); }
 		$jobs = $rows("SELECT job_id,storage_name FROM {$p}media_queue WHERE " . $db->sql_in_set('storage_name',array($unique,$shared['storage_name'],$shared['preview_name'])));
 		$media = $phpbb_container->get('phpbb2plus.downloads.media');
 		foreach ($jobs as $job) { $media->collect((int) $job['job_id']); }

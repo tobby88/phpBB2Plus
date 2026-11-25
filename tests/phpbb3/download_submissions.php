@@ -14,8 +14,29 @@ $row = static function ($query) use ($db) {
 	$db->sql_freeresult($result);
 	return $value;
 };
-switch ($argv[2])
+$phase = $argv[2];
+$state = $phpbb_container->get('config_text');
+if ($phase === 'begin' || $phase === 'editing')
 {
+	$before = $row("SELECT MAX(job_id) AS latest FROM {$p}media_queue");
+	$state->set('plus_fixture_dl_queue_start', (string) (int) $before['latest']);
+}
+if (preg_match('/^record-assets-([1-9][0-9]*)$/D', $phase, $match))
+{
+	$assets = $row("SELECT storage_name,preview_name FROM {$p}files WHERE file_id=" . (int) $match[1]);
+	if (!$assets || !$assets['storage_name'] || !$assets['preview_name']) { throw new RuntimeException('Missing submitted original or preview'); }
+	$state->set('plus_fixture_dl_assets', json_encode(array_values($assets)));
+	return;
+}
+if ($phase === 'cleanup' || $phase === 'edited_cleanup')
+{
+	$before = $state->get('plus_fixture_dl_queue_start');
+	if (!is_string($before) || !ctype_digit($before)) { throw new RuntimeException('Missing cleanup fixture starting point'); }
+	$scope = ' WHERE job_id > ' . (int) $before;
+}
+switch ($phase)
+{
+	case 'begin': break;
 	case 'editing':
 		$owner = $row('SELECT user_id FROM ' . USERS_TABLE . " WHERE username='DepartingFixture'");
 		if (!$owner) { throw new RuntimeException('Missing synthetic download owner'); }
@@ -60,11 +81,11 @@ switch ($argv[2])
 		if ((int) $files['total'] || (int) $custom['total']) { throw new RuntimeException('A confirmed deletion left file metadata'); }
 		$dir = $phpbb_root_path . $config['upload_path'] . '/';
 		$keep = $row("SELECT storage_name,preview_name FROM {$p}files WHERE file_id=50");
-		$result = $db->sql_query("SELECT DISTINCT storage_name FROM {$p}media_queue");
+		$result = $db->sql_query("SELECT DISTINCT storage_name FROM {$p}media_queue" . $scope);
 		$jobs = $db->sql_fetchrowset($result);
 		$db->sql_freeresult($result);
 		if (count($jobs) !== 4) { throw new RuntimeException('Lost or leaked a media reservation during replacement'); }
-		$db->sql_query("UPDATE {$p}media_queue SET queued_at=0");
+		$db->sql_query("UPDATE {$p}media_queue SET queued_at=0" . $scope);
 		$phpbb_container->get('phpbb2plus.downloads.cleanup')->run();
 		foreach ($jobs as $job)
 		{
@@ -86,10 +107,15 @@ switch ($argv[2])
 		$db->sql_query("UPDATE {$p}settings SET config_value='0' WHERE config_name='need_validation'");
 		break;
 	case 'cleanup':
-		$result = $db->sql_query("SELECT storage_name FROM {$p}media_queue ORDER BY job_id");
+		$result = $db->sql_query("SELECT storage_name FROM {$p}media_queue" . $scope . " ORDER BY job_id");
 		$jobs = $db->sql_fetchrowset($result);
 		$db->sql_freeresult($result);
-		if (count($jobs) !== 2) { throw new RuntimeException('A retry leaked media or rejection missed a protected asset'); }
+		$expected = json_decode((string) $state->get('plus_fixture_dl_assets'), true);
+		$actual = array_column($jobs, 'storage_name');
+		if (!is_array($expected) || count($expected) !== 2) { throw new RuntimeException('Missing expected cleanup assets'); }
+		sort($expected);
+		sort($actual);
+		if ($actual !== $expected) { throw new RuntimeException('A retry leaked media or rejection missed the submitted original or preview'); }
 		$dir = $phpbb_root_path . $config['upload_path'] . '/';
 		foreach ($jobs as $job)
 		{
@@ -104,7 +130,7 @@ switch ($argv[2])
 		$interrupted = 'download_' . bin2hex(random_bytes(32));
 		$phpbb_container->get('phpbb2plus.downloads.media')->queue($interrupted);
 		file_put_contents($dir . $interrupted, 'Incomplete synthetic submission');
-		$db->sql_query("UPDATE {$p}media_queue SET queued_at=0");
+		$db->sql_query("UPDATE {$p}media_queue SET queued_at=0" . $scope);
 		$phpbb_container->get('phpbb2plus.downloads.cleanup')->run();
 		foreach ($jobs as $job) { if (file_exists($dir . $job['storage_name'])) { throw new RuntimeException('Rejected original or screenshot survived cleanup'); } }
 		if (!is_file($dir . $keep)) { throw new RuntimeException('A queued but referenced file was removed'); }
