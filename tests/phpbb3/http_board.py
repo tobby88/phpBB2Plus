@@ -101,7 +101,12 @@ def server(web, root):
     base = f"http://127.0.0.1:{port}/"
     log_file = root / "http-test.log"
     binary = os.environ.get("PLUS_TEST_PHP", "php")
-    options = ["-d", "opcache.enable=1", "-d", "opcache.enable_cli=1", "-d", "opcache.file_update_protection=0",
+    # phpBB recreates its Symfony container and Twig files when extensions change.
+    # Two different containers can have the same path and second-resolution mtime.
+    excludes = root / "opcache-exclusions.txt"
+    cache_path = (web / "cache").resolve()
+    excludes.write_text("\n".join(sorted({str(cache_path) + os.sep, cache_path.as_posix() + "/"})) + "\n", encoding="utf-8")
+    options = ["-d", "opcache.enable=1", "-d", "opcache.enable_cli=1", "-d", "opcache.blacklist_filename=" + str(excludes),
                "-d", "opcache.validate_timestamps=1", "-d", "opcache.revalidate_freq=0"]
     if os.name == "nt":
         dll = Path(shutil.which(binary) or binary).parent / "ext/php_opcache.dll"

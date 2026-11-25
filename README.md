@@ -24,6 +24,9 @@ Plus (UTF-8)**. The assembled board includes the self-hosted Ruffle player.
 The Arcade converter imports game files from the separate source board.
 After changing extensions through the CLI, run `php bin/phpbbcli.php cache:purge`
 in the assembled board so its compiled templates use the current extension list.
+If the web PHP process caches generated PHP indefinitely, exclude the assembled
+board's cache directory from OPcache or reload the web PHP process after an
+extension change.
 The [conversion coverage](phpbb3-port.md) lists verified
 behaviour and the modules still being ported. Use the branch with test data.
 

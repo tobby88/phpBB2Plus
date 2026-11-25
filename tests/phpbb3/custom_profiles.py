@@ -55,6 +55,9 @@ def administration(owner):
 
 
 def visibility_after_toggle(base, enabled):
-    page = Browser(base).fetch("memberlist.php?mode=viewprofile&u=87")
+    try:
+        page = Browser(base).fetch("memberlist.php?mode=viewprofile&u=87")
+    except RuntimeError as error:
+        raise RuntimeError(f"Profile request after community extension {'enable' if enabled else 'disable'} failed") from error
     if ("Lesen, Bild &amp; Ton" in page) != enabled or "Nur im Thema 42" in page or "Vertrauliche interne Notiz" in page:
         raise RuntimeError("Toggling the community extension changed custom profile visibility or lost selections")
