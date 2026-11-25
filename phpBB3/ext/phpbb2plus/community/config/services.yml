@@ -58,7 +58,10 @@ services:
         arguments: ['@phpbb2plus.community.credit_entries', '@ext.manager', '@controller.helper', '@template', '@language', '@request', '@pagination']
     phpbb2plus.community.statistics:
         class: phpbb2plus\community\controller\statistics
-        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@config', '@config_text', '@language', '@template', '@controller.helper', '@request', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.statistics_attachments', '@phpbb2plus.community.statistics_installation']
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@config', '@config_text', '@language', '@template', '@controller.helper', '@request', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.statistics_attachments', '@phpbb2plus.community.statistics_installation', '@phpbb2plus.community.statistics_smilies']
+    phpbb2plus.community.statistics_smilies:
+        class: phpbb2plus\community\service\statistics_smilies
+        arguments: ['@dbal.conn', '@config', '@user', '@path_helper']
     phpbb2plus.community.statistics_installation:
         class: phpbb2plus\community\service\statistics_installation
         arguments: ['@dbal.conn', '@cache', '@config', '@language', '@user', '%core.root_path%', '%core.php_ext%', '%core.table_prefix%']

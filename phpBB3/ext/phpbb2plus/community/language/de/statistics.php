@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_STATS_DECIMAL' => ',',
+	'PLUS_STATS_TOP_SMILIES' => 'Meistverwendete Smilies', 'PLUS_STATS_SMILEY' => 'Smilie', 'PLUS_STATS_USES' => 'Verwendungen',
+	'PLUS_STATS_SHARE_SMILIES' => 'Anteil an allen sichtbaren Smilies',
 	'PLUS_STATS_LANGUAGE' => 'Sprache', 'PLUS_STATS_ADMIN_STATISTICS' => 'Betriebsstatistik',
 	'PLUS_STATS_DAYS' => 'Tage seit dem Forenstart', 'PLUS_STATS_LATEST_DATE' => 'Registrierungsdatum des neuesten Mitglieds',
 	'PLUS_STATS_LATEST_MEMBER' => 'Neuestes Mitglied', 'PLUS_STATS_ONLINE_DATE' => 'Datum des Besucherrekords',

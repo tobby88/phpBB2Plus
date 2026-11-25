@@ -3,11 +3,12 @@ from html import unescape
 from http.client import HTTPConnection
 import re
 import shutil
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from attachments import GIF
-from http_board import Browser
+from http_board import Browser, submit_form
 from legacy_links import link
+from profile_media import SMILE
 
 
 def source_modules(source, target):
@@ -26,6 +27,25 @@ def panels(body):
 
 def languages(panel):
     return {name.strip(): int(amount) for name, amount in re.findall(r'<tr><td>\d+</td><td>([^<>]+)</td><td>(\d+)</td>', panel)}
+
+
+def smiley_count(panel):
+    found = re.search(r':pf:\s*</td><td>([0-9]+)</td>', panel)
+    return int(found.group(1)) if found else 0
+
+
+def check_smilies(guest, member, owner, path, baseline, public, ordinary):
+    if (smiley_count(public[21]) != baseline[0] + 4 or smiley_count(ordinary[21]) != baseline[1] + 8
+            or '<meter ' not in ordinary[21] or ':pf2:' in ordinary[21]):
+        raise RuntimeError(f"Visible parsed aliases, disabled posts, legacy markers or private forums were counted incorrectly: {baseline}, {public[21]}, {ordinary[21]}")
+    image = re.search(r'<img class="smilies" src="([^"]+)"', ordinary[21])
+    if not image or member.fetch(urljoin(urljoin(member.base, path), image.group(1)), raw=True) != SMILE:
+        raise RuntimeError("The statistics image did not open the converted local smiley")
+    edit = "posting.php?mode=edit&p=975613"
+    submit_form(owner, edit, owner.fetch(edit), "postform",
+                {"message": "Fixture :pf: :pf2: [code]:pf:[/code]", "disable_smilies": None, "post": "1"})
+    if smiley_count(panels(guest.fetch(path))[21]) != baseline[0] + 6:
+        raise RuntimeError("A native edit with two displayed aliases and a literal code example was not counted immediately")
 
 
 def check_operations(public, ordinary, private):
@@ -65,7 +85,9 @@ def check_files(public, ordinary, private, member, path, fixture):
 def browse(base, admin, member, fixture):
     guest = Browser(base)
     path = "app.php/statistics"
-    before = languages(panels(guest.fetch(path))[22])
+    initial = panels(guest.fetch(path))
+    before = languages(initial[22])
+    baseline = smiley_count(initial[21]), smiley_count(panels(member.fetch(path))[21])
     fixture("setup")
     try:
         fixture("extension-cache")
@@ -75,8 +97,8 @@ def browse(base, admin, member, fixture):
         public = panels(guest.fetch(path))
         ordinary = panels(member.fetch("statistics.php"))
         private = panels(admin.fetch(path))
-        if (list(public) not in ([16, 11, 22, 23, 24], [16, 11, 13, 22, 23, 24])
-                or list(ordinary) != [16, 11, 13, 14, 12, 22, 23, 24, 25] or list(private) != [16, 11, 13, 14, 12, 15, 22, 23, 24, 25, 26]):
+        if (list(public) not in ([16, 11, 21, 22, 23, 24], [16, 11, 13, 21, 22, 23, 24])
+                or list(ordinary) != [16, 11, 13, 14, 12, 21, 22, 23, 24, 25] or list(private) != [16, 11, 13, 14, 12, 15, 21, 22, 23, 24, 25, 26]):
             raise RuntimeError(f"Wrong statistics audiences or active registrations: {list(public)}, {list(ordinary)}, {list(private)}")
         if ("Stats public & Grüße" not in public[11] or "Stats private" in public[11] or "Stats private" not in ordinary[11]
                 or public[11].count('<tr><td>') != 2 or "StatsPrivate" not in ordinary[14] or "StatsPublic" not in ordinary[14]):
@@ -93,11 +115,12 @@ def browse(base, admin, member, fixture):
             raise RuntimeError(f"Language totals included an inactive account, linked a profile or varied by viewer: {before} / {after}")
         check_files(public, ordinary, private, member, path, fixture)
         check_operations(public, ordinary, private)
+        check_smilies(guest, member, admin, path, baseline, public, ordinary)
         fixture("hide-profiles")
         try:
             member.fetch("app.php/ranks", expected_status=403)
             narrowed = panels(member.fetch(path))
-            if list(narrowed) != [16, 11, 12, 22, 23, 24, 25] or "/memberlist.php?mode=viewprofile" in narrowed[24] or narrowed[24].count('<th scope="row">') != 14:
+            if list(narrowed) != [16, 11, 12, 21, 22, 23, 24, 25] or "/memberlist.php?mode=viewprofile" in narrowed[24] or narrowed[24].count('<th scope="row">') != 14:
                 raise RuntimeError("A reader denied native profile access received a member ranking")
         finally:
             fixture("restore-profiles")

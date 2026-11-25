@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_STATS_DECIMAL' => '.',
+	'PLUS_STATS_TOP_SMILIES' => 'Most used smilies', 'PLUS_STATS_SMILEY' => 'Smiley', 'PLUS_STATS_USES' => 'Uses',
+	'PLUS_STATS_SHARE_SMILIES' => 'Share of all visible smilies',
 	'PLUS_STATS_LANGUAGE' => 'Language', 'PLUS_STATS_ADMIN_STATISTICS' => 'Board statistics',
 	'PLUS_STATS_DAYS' => 'Days since the board started', 'PLUS_STATS_LATEST_DATE' => 'Newest member’s registration date',
 	'PLUS_STATS_LATEST_MEMBER' => 'Newest member', 'PLUS_STATS_ONLINE_DATE' => 'Online record date',

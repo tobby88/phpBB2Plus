@@ -30,7 +30,7 @@ function stats_change_recorded_renderer($renderer)
 	$records = json_decode($db->query("SELECT config_value FROM p3_config_text WHERE config_name='plus_statistics_modules'")->fetch_row()[0], true);
 	foreach ($records as &$record)
 	{
-		if (in_array($record['module_id'], array(22,23,24,25,26), true)) { $record['renderer'] = $renderer; }
+		if (in_array($record['module_id'], array(21,22,23,24,25,26), true)) { $record['renderer'] = $renderer; }
 	}
 	unset($record);
 	$db->query("UPDATE p3_config_text SET config_value='" . $db->real_escape_string(json_encode($records)) . "' WHERE config_name='plus_statistics_modules'");
@@ -69,7 +69,7 @@ switch ($argv[1])
 		$map = array_column($modules, null, 'module_id');
 		stats_expect($map[24]['renderer'] === 'native' && $map[25]['auth_value'] === 1 && $map[26]['auth_value'] === 5, 'Lost operating statistics registration or audience');
 		stats_expect($map[11]['renderer'] === 'native' && $map[14]['renderer'] === 'native' && $map[11]['update_time'] === 17 &&
-			$map[20]['renderer'] === 'unported' && $map[20]['source_sha256'] === '' && $map[21]['renderer'] === 'unported' &&
+			$map[20]['renderer'] === 'unported' && $map[20]['source_sha256'] === '' && $map[21]['renderer'] === 'native' &&
 			preg_match('/^[a-f0-9]{64}$/D', $map[21]['source_sha256']) && $map[22]['renderer'] === 'native' && $map[23]['renderer'] === 'native', 'Lost the statistics module metadata');
 		stats_expect(!\phpbb2plus\community\service\statistics_modules::recognised('top_attachments', str_repeat('0', 64)) &&
 			!\phpbb2plus\community\service\statistics_modules::recognised('most_used_languages', $map[23]['source_sha256']),
@@ -83,6 +83,7 @@ switch ($argv[1])
 		$user = $db->query("SELECT * FROM p3_users WHERE username='ModernMember'")->fetch_assoc();
 		$topic = $db->query('SELECT * FROM p3_topics WHERE topic_id=1')->fetch_assoc();
 		$post = $db->query('SELECT * FROM p3_posts WHERE post_id=1')->fetch_assoc();
+		$smiley = $db->query("SELECT smiley_url FROM p3_smilies WHERE code=':pf:'")->fetch_row()[0];
 		stats_expect($db->query("SELECT forum_password FROM p3_forums WHERE forum_id=15")->fetch_row()[0] === '', 'Unexpected protected test forum');
 		$db->query("UPDATE p3_forums SET forum_password='temporary-local-forum-password' WHERE forum_id=15");
 		$profiles = array(1=>'StatsPublic', 2=>'StatsPrivate', 3=>'StatsPassword', 4=>'StatsDormant', 5=>'StatsDeleted');
@@ -110,10 +111,15 @@ switch ($argv[1])
 				'topic_first_post_id'=>$first,'topic_last_post_id'=>$first+$count-1));
 			for ($i=0; $i<$count; ++$i)
 			{
+				$text = '<t>Statistic text</t>';
+				if ($id === 1 && $i === 0) { $text = '<r><E>:pf:</E> <E>:pf:</E> <E>:pf2:</E> <CODE>:pf:</CODE> &lt;E&gt;:pf:&lt;/E&gt;</r>'; }
+				elseif ($id === 1 && $i === 2) { $text = '<!-- s:pf: --><img src="{SMILIES_PATH}/' . $smiley . '" alt=":pf:" /><!-- s:pf: -->'; }
+				elseif ($i === 0 && $id !== 7) { $text = '<r>' . str_repeat('<E>:pf2:</E> ', 4) . '</r>'; }
 				stats_clone('p3_posts', $post, array('post_id'=>$first+$i,'topic_id'=>$topic_id,'forum_id'=>$forum,'poster_id'=>975800+$author,
-					'post_time'=>time(),'post_postcount'=>1,'post_visibility'=>$post_state));
+					'post_time'=>time(),'post_postcount'=>1,'post_visibility'=>$post_state,'post_text'=>$text,'enable_smilies'=>1));
 			}
 		}
+		$db->query("UPDATE p3_posts SET enable_smilies=0,post_text='<r><E>:pf:</E></r>' WHERE post_id=975611");
 		$attachment = $db->query('SELECT * FROM p3_attachments WHERE attach_id=50')->fetch_assoc();
 		$extension_group = $db->query("SELECT g.* FROM p3_extension_groups g JOIN p3_extensions e ON e.group_id=g.group_id WHERE e.extension='gif'")->fetch_assoc();
 		stats_clone('p3_extension_groups', $extension_group, array('group_id'=>975901,'group_name'=>'Statistics fixture files',
@@ -141,6 +147,7 @@ switch ($argv[1])
 		$db->begin_transaction();
 		$db->query("UPDATE p3_forums SET forum_password='' WHERE forum_id=15 AND forum_password='temporary-local-forum-password'");
 		$db->query('DELETE FROM p3_attachments WHERE attach_id BETWEEN 975901 AND 975909 AND topic_id BETWEEN 975501 AND 975507');
+		$db->query('DELETE FROM p3_search_wordmatch WHERE post_id BETWEEN 975610 AND 975674');
 		$db->query("DELETE FROM p3_extensions WHERE extension_id=975901 AND extension='fstat'");
 		$db->query("DELETE FROM p3_extension_groups WHERE group_id=975901 AND group_name='Statistics fixture files'");
 		stats_change_recorded_renderer('native');

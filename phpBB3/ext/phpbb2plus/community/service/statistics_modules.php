@@ -14,6 +14,7 @@ class statistics_modules
 		'most_used_languages' => '166eabfd20e4832f46b56683afd21234c1503bc3be26736592fd440b14238aac',
 		'top_attachments' => '81ef3b4b15cd850e783834c5fae41eccfb4fea2f85218b491b2a221369c87594',
 		'admin_statistics' => '1607bdd051f289351435aab2ac6508f37f8be58d84565ab174afcac5a2470e87',
+		'top_smilies' => '48bb907ef959fd6e90778d79f2f438857e6270f52bab606acffabf2dc8f29b2d',
 	);
 
 	public static function recognised($name, $digest)

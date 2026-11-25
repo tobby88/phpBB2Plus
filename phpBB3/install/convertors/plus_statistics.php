@@ -7,7 +7,7 @@ use phpbb2plus\community\service\statistics_modules;
 function plus_statistics_renderer($root, $directory, $name, &$fingerprint)
 {
 	$fingerprint = '';
-	if (!isset(statistics_modules::SOURCES[$name]) && $name !== 'top_smilies') { return 'unported'; }
+	if (!isset(statistics_modules::SOURCES[$name])) { return 'unported'; }
 	$dir = trim(str_replace('\\', '/', $directory), '/');
 	if ($dir === '' || strpos($dir, '..') !== false || !preg_match('~^[a-zA-Z0-9_./-]+$~D', $dir)) { return 'unavailable'; }
 	try
@@ -22,8 +22,6 @@ function plus_statistics_renderer($root, $directory, $name, &$fingerprint)
 			$parts[] = str_replace(array("\r\n", "\r"), "\n", $contents);
 		}
 		$fingerprint = hash('sha256', implode("\0", $parts));
-		// A subsequent port can recognise the remaining bundled modules without reopening the source board.
-		if (!isset(statistics_modules::SOURCES[$name])) { return 'unported'; }
 		return statistics_modules::recognised($name, $fingerprint) ? 'native' : 'customised';
 	}
 	catch (\RuntimeException $e) { return 'unavailable'; }

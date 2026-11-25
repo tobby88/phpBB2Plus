@@ -6,7 +6,8 @@ use phpbb2plus\community\service\statistics_modules;
 class statistics
 {
 	private const COLUMNS = array('most_active_topics' => array('TOPIC','REPLIES'), 'most_viewed_topics' => array('TOPIC','VIEWS'),
-		'most_used_languages' => array('PLUS_STATS_LANGUAGE','PLUS_STATS_MEMBERS'), 'top_attachments' => array('PLUS_STATS_FILE','PLUS_STATS_DOWNLOADS'));
+		'most_used_languages' => array('PLUS_STATS_LANGUAGE','PLUS_STATS_MEMBERS'), 'top_attachments' => array('PLUS_STATS_FILE','PLUS_STATS_DOWNLOADS'),
+		'top_smilies' => array('PLUS_STATS_SMILEY','PLUS_STATS_USES'));
 	private const AUTHORS = array('top_posters' => '', 'site_hist_week_top_posters' => 'week', 'site_hist_month_top_posters' => 'month');
 	private $db;
 	private $auth;
@@ -22,8 +23,9 @@ class statistics
 	private $ext;
 	private $attachments;
 	private $installation;
+	private $smilies;
 
-	public function __construct($db, $auth, $visibility, $user, $config, $text, $language, $template, $helper, $request, $root, $ext, $attachments, $installation)
+	public function __construct($db, $auth, $visibility, $user, $config, $text, $language, $template, $helper, $request, $root, $ext, $attachments, $installation, $smilies)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -39,6 +41,7 @@ class statistics
 		$this->ext = $ext;
 		$this->attachments = $attachments;
 		$this->installation = $installation;
+		$this->smilies = $smilies;
 	}
 
 	private function audience($value)
@@ -151,20 +154,22 @@ class statistics
 			$files = $name === 'top_attachments';
 			$languages = $name === 'most_used_languages';
 			$operations = $name === 'admin_statistics';
+			$smilies = $name === 'top_smilies';
 			list($label, $metric) = self::COLUMNS[$name] ?? array('USERNAME', 'POSTS');
-			$this->template->assign_block_vars('stats_modules', array('ID' => (int) $module['module_id'], 'INDEX' => $name === 'forum_index', 'AUTHORS' => $author,
+			$this->template->assign_block_vars('stats_modules', array('ID' => (int) $module['module_id'], 'INDEX' => $name === 'forum_index',
 				'FILES' => $files, 'DETAILS' => $operations, 'COLUMN' => $this->language->lang($label),
 				'TITLE' => $this->language->lang('PLUS_STATS_' . strtoupper($name)), 'METRIC' => $this->language->lang($metric),
-				'SHARE' => $author ? $this->language->lang($name === 'top_posters' ? 'PLUS_STATS_SHARE_TOTAL' : 'PLUS_STATS_SHARE_RANKED') : ''));
+				'SHARE' => $smilies ? $this->language->lang('PLUS_STATS_SHARE_SMILIES') :
+					($author ? $this->language->lang($name === 'top_posters' ? 'PLUS_STATS_SHARE_TOTAL' : 'PLUS_STATS_SHARE_RANKED') : '')));
 			if ((!$scope && !$languages && !$operations) || $name === 'forum_index') { continue; }
 			if (!isset($results[$name]))
 			{
 				if ($languages) { $results[$name] = $this->languages($limit); }
 				elseif ($operations) { $results[$name] = $this->installation->rows($profiles); }
-				elseif ($files)
+				elseif ($files || $smilies)
 				{
 					$post_scope = $scope . ' AND p.post_visibility=' . ITEM_APPROVED . ' AND (' . $this->visibility->get_forums_visibility_sql('post', $forums, 'p.') . ')';
-					$results[$name] = $this->attachments->ranking($forums, $post_scope, $limit);
+					$results[$name] = $files ? $this->attachments->ranking($forums, $post_scope, $limit) : $this->smilies->ranking($post_scope, $limit);
 				}
 				elseif ($author) { $results[$name] = $this->author_rows(self::AUTHORS[$name], $forums, $scope, $limit); }
 				else { $results[$name] = $this->topic_rows($name, $forums, $scope, $limit); }
