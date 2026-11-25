@@ -159,6 +159,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'album_cat': case 'album_upload':
 			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . ($entry === 'album_upload' ? '/upload' : ''); }
 			break;
+		case 'album_hotornot': $path = 'album/hot-or-not'; break;
 		case 'album_search':
 			$path = 'album/search';
 			foreach (array('mode','search') as $key)

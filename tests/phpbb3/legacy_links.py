@@ -45,6 +45,7 @@ def browse(base, owner, historic_id):
         ("kb.php?mode=stats&stats=toprated&start=12", "app.php/knowledge/statistics/toprated", {"start": 12}, ""),
         ("ranks.php", "app.php/ranks", {}, ""),
         ("album.php?user_id=0", "app.php/album", {}, ""),
+        ("album_hotornot.php", "app.php/album/hot-or-not", {}, ""),
         ("album_search.php?mode=name&search=Gr%C3%BC%C3%9Fe&start=20", "app.php/album/search",
          {"mode": "name", "search": "Grüße", "start": 20}, ""),
         ("album.php?user_id=-1", "app.php/album/legacy/member/0", {}, ""),
