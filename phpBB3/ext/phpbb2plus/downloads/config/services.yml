@@ -1,10 +1,24 @@
 services:
+    phpbb2plus.downloads.file_search:
+        class: phpbb2plus\downloads\service\file_search
+        arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '%core.table_prefix%plus_dl_', '@config']
+    phpbb2plus.downloads.search_results:
+        class: phpbb2plus\downloads\service\search_results
+        arguments: ['@dbal.conn', '@config', '@user', '%core.table_prefix%plus_dl_searches']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.downloads.search_controller:
+        class: phpbb2plus\downloads\controller\search
+        arguments: ['@phpbb2plus.downloads.file_search', '@phpbb2plus.downloads.search_results', '@phpbb2plus.downloads.report_data', '@phpbb2plus.downloads.public_listing', '@phpbb2plus.downloads.access', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination']
+    phpbb2plus.downloads.public_listing:
+        class: phpbb2plus\downloads\service\public_listing
+        arguments: ['@phpbb2plus.downloads.access', '@user', '@language', '@template', '@controller.helper', '@path_helper']
     phpbb2plus.downloads.report_data:
         class: phpbb2plus\downloads\service\report_data
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.reports:
         class: phpbb2plus\downloads\controller\reports
-        arguments: ['@phpbb2plus.downloads.report_data', '@phpbb2plus.downloads.access', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@path_helper']
+        arguments: ['@phpbb2plus.downloads.report_data', '@phpbb2plus.downloads.access', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@phpbb2plus.downloads.public_listing']
     phpbb2plus.downloads.settings:
         class: phpbb2plus\downloads\service\settings
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@user', '@log', '%core.table_prefix%plus_dl_']

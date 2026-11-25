@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_ADVANCED'=>'Erweiterte Download-Suche','PLUS_DL_WORDS'=>'Suchbegriffe','PLUS_DL_WORDS_HELP'=>'Durchsucht Titel, Urheber und Beschreibungen. Verwende * als Platzhalter oder verknüpfe Begriffe mit AND, OR und NOT.',
+	'PLUS_DL_AUTHOR_HELP'=>'Gib den Benutzernamen des Mitglieds ein, das die Datei eingereicht hat. Mit * kannst du nach einem Teil des Namens suchen.',
+	'PLUS_DL_MATCH'=>'Suchbegriffe verknüpfen','PLUS_DL_ANY'=>'Ein beliebiger Begriff','PLUS_DL_ALL'=>'Alle Begriffe','PLUS_DL_ALL_CATEGORIES'=>'Alle zugänglichen Kategorien',
+	'PLUS_DL_SEARCH_COMMENTS'=>'Lesbare Kommentare durchsuchen','PLUS_DL_UPDATED'=>'Letzte Änderung','PLUS_DL_MATCHES'=>array(0=>'Keine Downloads gefunden',1=>'1 Download gefunden',2=>'%d Downloads gefunden'),
+	'PLUS_DL_SEARCH_EXPIRED'=>'Diese Trefferliste ist in deiner aktuellen Sitzung nicht verfügbar. Bitte führe die Suche erneut aus.',
 	'PLUS_DL_STATS'=>'Download-Statistik','PLUS_DL_TOPLIST'=>'Download-Bestenlisten','PLUS_DL_RECORDS'=>'Rekorde','PLUS_DL_DECIMAL'=>',',
 	'PLUS_DL_TOTAL_FILES'=>'Veröffentlichte Dateien','PLUS_DL_TOTAL_CATEGORIES'=>'Kategorien','PLUS_DL_TOTAL_DOWNLOADS'=>'Downloads insgesamt',
 	'PLUS_DL_TOTAL_MEAN_DOWNLOADS'=>'Durchschnittliche Downloads je Datei','PLUS_DL_TOTAL_MEAN_RATING'=>'Durchschnittliche Dateibewertung',

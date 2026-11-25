@@ -6,6 +6,10 @@ phpbb2plus_downloads_stats:
     path: /downloads/stats
     defaults: { _controller: phpbb2plus.downloads.reports:stats }
     methods: [GET, HEAD]
+phpbb2plus_downloads_search:
+    path: /downloads/search
+    defaults: { _controller: phpbb2plus.downloads.search_controller:view }
+    methods: [GET, HEAD, POST]
 phpbb2plus_downloads_toplist:
     path: /downloads/toplist
     defaults: { _controller: phpbb2plus.downloads.reports:toplist }

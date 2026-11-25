@@ -3,6 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 use phpbb2plus\downloads\service\access as plus_dl_access;
 use phpbb2plus\downloads\service\client_family as plus_dl_client;
+use phpbb2plus\downloads\service\search_text as plus_dl_search;
 
 function plus_dl_layout()
 {
@@ -169,6 +170,7 @@ function plus_dl_rows($short, $r, $subjects)
 				'approved'=>(int) $r['file_approved'] === 1, 'broken'=>(bool) $r['file_broken']);
 			$media = plus_dl_asset('file', $r['file_id'], $r);
 			$data += \phpbb2plus\downloads\service\file_display::imported($r);
+			$data += plus_dl_search::file($data,$r);
 			unset($media['mime']);
 			$data += $media;
 			if (!empty($r['file_ssurl']))
@@ -200,6 +202,7 @@ function plus_dl_rows($short, $r, $subjects)
 			$convert->row['old_bbcode_uid'] = $uid;
 			$data = array('comment_id'=>$r['comments_id'], 'file_id'=>$r['file_id'], 'owner_id'=>$id($r['poster_id']), 'posted_at'=>$r['comments_time'],
 				'title'=>plus_dl_text($r['comments_title']), 'body'=>plus_convert_message($r['comments_text']));
+			$data += plus_dl_search::comment($data);
 			break;
 		case 'votes': $data = array('file_id'=>$r['votes_file'], 'owner_id'=>$id($r['user_id']), 'ip_address'=>plus_registration_ip($r['votes_ip']),
 			'points'=>(int) $r['rate_point']) + plus_dl_client::imported($r,'voter'); break;
@@ -251,7 +254,8 @@ function plus_dl_schema($prefix, $truncate)
 			array('', array($short, $column), 'plus_dl_group'));
 		if ($short === 'files')
 		{
-			$s['query_first'] = array($s['query_first'], array('target', $truncate . $prefix . 'plus_dl_receipts'));
+			$s['query_first'] = array($s['query_first'], array('target', $truncate . $prefix . 'plus_dl_receipts'),
+				array('target', $truncate . $prefix . 'plus_dl_searches'));
 		}
 		if ($primary) { $s['autoincrement'] = $primary; }
 		$sections[] = $s;

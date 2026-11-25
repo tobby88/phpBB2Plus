@@ -216,7 +216,7 @@ class submissions
 			if ($previous) { $this->media->queue($previous['preview_name']); }
 		}
 		$row['source_json'] = json_encode($metadata);
-		return $row + $admin_row;
+		return $row + $admin_row + search_text::file($row,$metadata);
 	}
 
 	public function submit($category, $nonce, $form, $input, $file, $preview, $admin = null)

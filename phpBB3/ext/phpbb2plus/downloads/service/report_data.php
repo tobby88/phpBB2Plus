@@ -120,11 +120,13 @@ class report_data
 		return (int) $this->rows('SELECT COUNT(*) AS total FROM ' . $this->prefix . 'files f WHERE ' . $where)[0]['total'];
 	}
 
-	public function files($where,$mode,$limit,$start)
+	public function files($where,$mode,$limit,$start,$direction = 'DESC')
 	{
-		$sort = array('rating'=>'rating','downloads'=>'f.downloads','newest'=>'f.added_at')[$mode];
+		$sort = array('rating'=>'rating','downloads'=>'f.downloads','newest'=>'f.added_at','file_name'=>'f.title','file_time'=>'f.added_at',
+			'file_rating'=>'rating','file_dls'=>'f.downloads','file_update_time'=>'f.updated_at')[$mode];
+		$direction = $direction === 'ASC' ? 'ASC' : 'DESC';
 		return $this->rows('SELECT f.file_id,f.cat_id,f.title,f.summary,f.added_at,f.downloads,f.pinned,f.icon_name,u.user_id,u.username,u.user_colour,' .
 			$this->rating() . ' AS rating FROM ' . $this->prefix . 'files f LEFT JOIN ' . USERS_TABLE .
-			" u ON u.user_id=f.owner_id AND u.user_id>" . ANONYMOUS . " WHERE $where ORDER BY $sort DESC,f.file_id DESC",$limit,$start);
+			" u ON u.user_id=f.owner_id AND u.user_id>" . ANONYMOUS . " WHERE $where ORDER BY $sort $direction,f.file_id $direction",$limit,$start);
 	}
 }

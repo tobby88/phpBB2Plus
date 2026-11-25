@@ -123,6 +123,7 @@ class feedback
 				$smilies = (int) $this->access->setting('allow_smilies', 1) && $this->config['allow_smilies'] && $this->user->optionget('smilies');
 				generate_text_for_storage($text,$uid,$bits,$flags,$bbcode,$links,$smilies,(bool) $this->access->setting('allow_comment_images',1),false,true,$links);
 				$row = array('file_id'=>$id,'owner_id'=>$owner,'posted_at'=>time(),'title'=>utf8_encode_ucr(utf8_htmlspecialchars($title)),'body'=>$text,'source_json'=>'{}');
+				$row += search_text::comment($row);
 				$this->db->sql_query('INSERT INTO ' . $this->prefix . 'comments ' . $this->db->sql_build_array('INSERT',$row));
 				$item = (int) $this->db->sql_nextid();
 			}

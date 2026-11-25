@@ -3,7 +3,6 @@ namespace phpbb2plus\downloads\controller;
 
 use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\client_family;
-use phpbb2plus\downloads\service\file_display;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class reports
@@ -16,9 +15,9 @@ class reports
 	private $helper;
 	private $request;
 	private $pagination;
-	private $paths;
+	private $listing;
 
-	public function __construct($data,$access,$user,$language,$template,$helper,$request,$pagination,$paths)
+	public function __construct($data,$access,$user,$language,$template,$helper,$request,$pagination,$listing)
 	{
 		$this->data = $data;
 		$this->access = $access;
@@ -28,7 +27,7 @@ class reports
 		$this->helper = $helper;
 		$this->request = $request;
 		$this->pagination = $pagination;
-		$this->paths = $paths;
+		$this->listing = $listing;
 	}
 
 	private function header($view,$params = array())
@@ -51,6 +50,7 @@ class reports
 		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL_' . strtoupper($view)),
 			'U_VIEW_FORUM'=>$this->helper->route($route,$params)));
 		$other = $view === 'stats' ? 'toplist' : 'stats';
+		if ($this->access->allows(0,'search')) { $this->template->assign_var('U_DL_ADVANCED',$this->helper->route('phpbb2plus_downloads_search')); }
 		if ($this->access->allows(0,$other)) { $this->template->assign_var('U_DL_' . strtoupper($other),$this->helper->route('phpbb2plus_downloads_' . $other)); }
 		return $this->data->scope();
 	}
@@ -60,13 +60,6 @@ class reports
 		$response = $this->helper->render('@phpbb2plus_downloads/' . $view . '.html',$this->language->lang('PLUS_DL_' . strtoupper($view)));
 		$response->headers->set('Cache-Control','private, no-store');
 		return $response;
-	}
-
-	private function score($value)
-	{
-		if ($value === null) { return $this->language->lang('PLUS_DL_UNRATED'); }
-		$points = rtrim(rtrim(number_format((float) $value,2,'.',''),'0'),'.');
-		return str_replace('.',$this->language->lang('PLUS_DL_DECIMAL'),$points) . ' / 10';
 	}
 
 	public function stats()
@@ -85,7 +78,7 @@ class reports
 			$detail = '';
 			if ($row)
 			{
-				if (isset($row['rating'])) { $detail = $this->score($row['rating']); }
+				if (isset($row['rating'])) { $detail = $this->listing->score($row['rating']); }
 				elseif (in_array($key,array('newest','oldest'),true)) { $detail = $this->user->format_date((int) $row['added_at']); }
 				else { $detail = (string) $row['downloads']; }
 			}
@@ -176,19 +169,7 @@ class reports
 		$limit = max(1,min(100,(int) $this->access->setting('settings_file_page',20)));
 		$start = $this->pagination->validate_start(max(0,$this->request->variable('start',0)),$limit,$total);
 		$this->pagination->generate_template_pagination($this->top_url($params),'pagination','start',$total,$limit,$start);
-		$cats = $this->access->categories();
-		$days = max(0,min(1000000,(int) $this->access->setting('settings_newdays',0)));
-		$recent = time()-$days*86400;
-		foreach ($total ? $this->data->files($where,$mode,min($total-$start,$limit),$start) : array() as $row)
-		{
-			$cat = (int) $row['cat_id'];
-			$this->template->assign_block_vars('ranked',array('TITLE'=>access::plain($row['title']),'SUMMARY'=>access::plain($row['summary']),
-				'PUBLISHER'=>$row['user_id'] ? get_username_string('full',(int) $row['user_id'],$row['username'],$row['user_colour']) : $this->language->lang('GUEST'),
-				'DATE'=>$this->user->format_date((int) $row['added_at']),'SCORE'=>$this->score($row['rating']),'COUNT'=>(int) $row['downloads'],
-				'RECENT'=>$days && (int) $row['added_at']>$recent,'PINNED'=>(bool) $row['pinned'],'ICON'=>file_display::icon_url($row['icon_name'],$this->paths->get_web_root_path()),
-				'CATEGORY'=>access::plain($cats[$cat]['title']),'CATEGORY_URL'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$cat)),
-				'URL'=>$this->helper->route('phpbb2plus_downloads_file',array('file'=>(int) $row['file_id']))));
-		}
+		if ($total) { $this->listing->assign($this->data->files($where,$mode,min($total-$start,$limit),$start)); }
 		return $this->render('toplist');
 	}
 }

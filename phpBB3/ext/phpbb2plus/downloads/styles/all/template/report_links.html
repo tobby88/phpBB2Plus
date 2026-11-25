@@ -1,3 +1,4 @@
-{% if U_DL_STATS or U_DL_TOPLIST %}<p>
+{% if U_DL_ADVANCED or U_DL_STATS or U_DL_TOPLIST %}<p>
+{% if U_DL_ADVANCED %}<a href="{U_DL_ADVANCED}">{L_PLUS_DL_ADVANCED}</a>{% if U_DL_STATS or U_DL_TOPLIST %} &middot; {% endif %}{% endif %}
 {% if U_DL_STATS %}<a href="{U_DL_STATS}">{L_PLUS_DL_STATS}</a>{% endif %}{% if U_DL_STATS and U_DL_TOPLIST %} &middot; {% endif %}
 {% if U_DL_TOPLIST %}<a href="{U_DL_TOPLIST}">{L_PLUS_DL_TOPLIST}</a>{% endif %}</p>{% endif %}
