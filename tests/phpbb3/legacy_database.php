@@ -136,12 +136,14 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_quota_limits (quota_limit_id,quota_desc,quota_limit) VALUES
 		(9,'Klein & fein',50),(10,'Medium fixture',100),(11,'Group fixture',300),(12,'Full range',18446744073709551615)");
 	$db->query("INSERT INTO phpbb_attach_quota (user_id,group_id,quota_type,quota_limit_id) VALUES
-		(1,0,1,9),(0,71,1,11),(0,73,1,10),(0,71,2,10),(0,73,2,11),(0,72,1,12),(999,0,2,12)");
+		(1,0,1,9),(0,71,1,11),(0,73,1,10),(0,71,2,10),(0,73,2,11),(0,72,1,12),(999,0,2,12),(0,74,1,34)");
 	$db->query("UPDATE phpbb_attachments_config SET config_value='1' WHERE config_name='default_upload_quota'");
 	$db->query('UPDATE phpbb_forums SET auth_attachments=1 WHERE forum_id=1');
 	$db->query('UPDATE phpbb_forums SET auth_attachments=2,auth_download=1 WHERE forum_id=14');
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_attachments) VALUES (71,14,1) ON DUPLICATE KEY UPDATE auth_attachments=1');
 	$db->query("UPDATE phpbb_attachments_config SET config_value='9' WHERE config_name='default_pm_quota'");
+	$db->query("UPDATE phpbb_attachments_config SET config_value='257' WHERE config_name='max_filesize_pm'");
+	$db->query("UPDATE phpbb_attachments_config SET config_value='1048576' WHERE config_name='max_filesize'");
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user) VALUES (74,2,'PM quota circle','',0)");
 	$db->query("INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (74,87,0)");
 }

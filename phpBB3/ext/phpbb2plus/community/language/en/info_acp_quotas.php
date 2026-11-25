@@ -1,0 +1,26 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_ATTACH_QUOTAS'=>'Attachment storage allowances',
+	'PLUS_QUOTA_DEFAULTS'=>'Board defaults',
+	'PLUS_QUOTA_ENABLED'=>'Apply personal storage allowances',
+	'PLUS_QUOTA_ENABLED_HELP'=>'The board-wide storage quota and individual file size limits still apply.',
+	'PLUS_QUOTA_BASE_PM'=>'Storage per private mailbox in bytes',
+	'PLUS_QUOTA_BASE_HELP'=>'Applies separately to received and sent attachments for accounts without an allowance level. Enter 0 for unlimited storage.',
+	'PLUS_QUOTA_BOARD'=>'Use the board storage setting',
+	'PLUS_QUOTA_INHERIT'=>'Inherit allowance',
+	'PLUS_QUOTA_INHERIT_HELP'=>'A personal assignment takes precedence. Other accounts use their group allowances, then the board defaults.',
+	'PLUS_QUOTA_POST'=>'Post attachment level','PLUS_QUOTA_PM'=>'Private message attachment level',
+	'PLUS_QUOTA_LEVELS'=>'Allowance levels','PLUS_QUOTA_NAME'=>'Level name','PLUS_QUOTA_CAPACITY'=>'Storage in bytes',
+	'PLUS_QUOTA_NEW'=>'Create allowance level','PLUS_QUOTA_EDIT'=>'Edit allowance level','PLUS_QUOTA_UNLIMITED'=>'Unlimited',
+	'PLUS_QUOTA_SIZE_HELP'=>'Enter a whole number of bytes. Use 0 for unlimited storage.',
+	'PLUS_QUOTA_ASSIGNMENTS'=>'User and group assignments','PLUS_QUOTA_MISSING'=>'Missing historical level %d',
+	'PLUS_QUOTA_DELETE'=>'Delete allowance level',
+	'PLUS_QUOTA_DELETE_CONFIRM'=>'Delete this allowance level and its assignments? Affected accounts will inherit their storage limit. Existing attachments will be kept.',
+	'PLUS_QUOTA_INVALID'=>'Check the name, number of bytes and selected allowance levels.',
+	'PLUS_QUOTA_STALE'=>'The allowances have changed. Open the settings again.',
+	'PLUS_QUOTA_NO_IDS'=>'No more allowance level identifiers are available.',
+	'LOG_PLUS_QUOTA_SETTINGS'=>'Changed default attachment allowances','LOG_PLUS_QUOTA_LEVEL'=>'Saved attachment allowance level (%s)',
+	'LOG_PLUS_QUOTA_REMOVE'=>'Deleted attachment allowance level (%s)','LOG_PLUS_QUOTA_MEMBER'=>'Changed attachment allowances for user (%s)',
+	'LOG_PLUS_QUOTA_GROUP'=>'Changed attachment allowances for group (%s)',
+));

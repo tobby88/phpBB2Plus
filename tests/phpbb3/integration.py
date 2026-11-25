@@ -198,6 +198,7 @@ def main():
                 native_content(base, member, ordinary)
                 attachment_quotas.messages(member, ordinary, media["member"])
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
+                attachment_quotas.administration(member, lambda phase: php(ROOT / "tests/phpbb3/attachment_quotas.php", target, phase, cwd=web))
                 attachments.downloads(ordinary)
                 game_source = arcade.browse(base, member, ordinary, pending)
                 php(fixture, "played", target)

@@ -1,0 +1,26 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_ATTACH_QUOTAS'=>'Speicher für Dateianhänge',
+	'PLUS_QUOTA_DEFAULTS'=>'Vorgaben für das Board',
+	'PLUS_QUOTA_ENABLED'=>'Persönliche Speicherkontingente anwenden',
+	'PLUS_QUOTA_ENABLED_HELP'=>'Die Einstellungen für einzelne Dateien und den gesamten Speicherplatz des Boards gelten weiterhin.',
+	'PLUS_QUOTA_BASE_PM'=>'Speicher je PN-Postfach in Bytes',
+	'PLUS_QUOTA_BASE_HELP'=>'Gilt je Konto für empfangene und gesendete Anhänge getrennt, wenn keine Kontingentstufe greift. 0 erlaubt unbegrenzten Speicher.',
+	'PLUS_QUOTA_BOARD'=>'Speichervorgabe des Boards verwenden',
+	'PLUS_QUOTA_INHERIT'=>'Kontingent erben',
+	'PLUS_QUOTA_INHERIT_HELP'=>'Persönliche Zuweisungen haben Vorrang. Ohne persönliche Zuweisung gelten Gruppenstufen, danach die Boardvorgaben.',
+	'PLUS_QUOTA_POST'=>'Stufe für Beitragsanhänge','PLUS_QUOTA_PM'=>'Stufe für PN-Anhänge',
+	'PLUS_QUOTA_LEVELS'=>'Kontingentstufen','PLUS_QUOTA_NAME'=>'Name der Stufe','PLUS_QUOTA_CAPACITY'=>'Speicher in Bytes',
+	'PLUS_QUOTA_NEW'=>'Kontingentstufe anlegen','PLUS_QUOTA_EDIT'=>'Kontingentstufe bearbeiten','PLUS_QUOTA_UNLIMITED'=>'Unbegrenzt',
+	'PLUS_QUOTA_SIZE_HELP'=>'Gib eine ganze Zahl in Bytes ein. 0 erlaubt unbegrenzten Speicher.',
+	'PLUS_QUOTA_ASSIGNMENTS'=>'Zuweisungen für Benutzer und Gruppen','PLUS_QUOTA_MISSING'=>'Fehlende historische Stufe %d',
+	'PLUS_QUOTA_DELETE'=>'Kontingentstufe löschen',
+	'PLUS_QUOTA_DELETE_CONFIRM'=>'Diese Kontingentstufe und ihre Zuweisungen löschen? Die betroffenen Konten erben danach ihre Speichergrenze. Bereits gespeicherte Anhänge bleiben erhalten.',
+	'PLUS_QUOTA_INVALID'=>'Bitte prüfe den Namen, die Bytezahl und die ausgewählten Kontingentstufen.',
+	'PLUS_QUOTA_STALE'=>'Die Kontingente wurden inzwischen geändert. Öffne die Einstellungen erneut.',
+	'PLUS_QUOTA_NO_IDS'=>'Es ist keine weitere Kennung für eine Kontingentstufe verfügbar.',
+	'LOG_PLUS_QUOTA_SETTINGS'=>'Speichervorgaben für Dateianhänge geändert','LOG_PLUS_QUOTA_LEVEL'=>'Kontingentstufe gespeichert (%s)',
+	'LOG_PLUS_QUOTA_REMOVE'=>'Kontingentstufe gelöscht (%s)','LOG_PLUS_QUOTA_MEMBER'=>'Speicherkontingente eines Benutzers geändert (%s)',
+	'LOG_PLUS_QUOTA_GROUP'=>'Speicherkontingente einer Gruppe geändert (%s)',
+));

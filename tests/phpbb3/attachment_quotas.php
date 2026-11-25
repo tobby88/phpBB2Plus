@@ -20,6 +20,8 @@ $policy = $phpbb_container->get('phpbb2plus.community.attachment_quotas');
 $p = $table_prefix . 'plus_attach_';
 if ($argv[2] === 'before')
 {
+	if ((string) $config['plus_attach_base_pm'] !== '257' || (string) $config['max_filesize_pm'] !== '1048576' ||
+		(string) $config['max_filesize'] !== '1048576') { throw new RuntimeException('The converter confused mailbox capacity and maximum individual file size'); }
 	if (!$policy->enabled() || $policy->allowance($id,false) !== '50' || $policy->allowance($id,true) !== '300' ||
 		$policy->allowance(87,false) !== '262144' || $policy->allowance(87,true) !== '50' ||
 		$policy->allowance(2,true) !== '0' || $policy->allowance(2,false) !== '0')
@@ -84,5 +86,18 @@ elseif ($argv[2] === 'messages')
 	{
 		throw new RuntimeException('Private attachment usage diverged from the actual delivery');
 	}
+}
+elseif ($argv[2] === 'assigned')
+{
+	if ($policy->allowance(87,false) !== '128' || $policy->allowance(87,true) !== '128' ||
+		(string) $config['plus_attach_base_pm'] !== '4096' || (string) $config['max_filesize_pm'] !== '1048576')
+	{ throw new RuntimeException('The ACP assignments did not become effective on the native attachment policy'); }
+}
+elseif ($argv[2] === 'inherited')
+{
+	if ($policy->allowance(87,false) !== '100' || $policy->allowance(87,true) !== '4096' ||
+		(int) $config['plus_attach_default_post'] || (int) $config['plus_attach_default_pm'] ||
+		(int) quota_fixture_scalar("SELECT COUNT(*) AS n FROM " . ATTACHMENTS_TABLE . ' WHERE attach_id IN (50,63)','n') !== 2)
+	{ throw new RuntimeException('Removing a level failed to restore group and board inheritance or affected stored files'); }
 }
 else { exit(2); }

@@ -58,6 +58,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = "plus_forum_permission('f_plus_calendar');";
 	if (defined('MOD_ATTACHMENT'))
 	{
+		$convertor['execute_last'][] = 'plus_quota_defaults();';
 		$convertor['execute_last'][] = "plus_forum_permission('f_attach');";
 		$convertor['execute_last'][] = "plus_forum_permission('f_download');";
 	}

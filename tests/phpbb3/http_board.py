@@ -47,6 +47,47 @@ class Page(HTMLParser):
             self.form = None
 
 
+class FormFields(HTMLParser):
+    """Read the successful controls as the displayed browser form would submit them."""
+    def __init__(self, html, form_id):
+        super().__init__(convert_charrefs=True)
+        self.form_id = form_id
+        self.values = {}
+        self.inside = False
+        self.select = self.textarea = None
+        self.feed(html)
+
+    def handle_starttag(self, tag, pairs):
+        attrs = dict(pairs)
+        name = attrs.get("name")
+        if tag == "form":
+            self.inside = attrs.get("id") == self.form_id
+        if not self.inside:
+            return
+        if tag == "input" and name and attrs.get("type") not in {"submit", "button"}:
+            if attrs.get("type") != "checkbox" or "checked" in attrs:
+                self.values[name] = attrs.get("value", "")
+        elif tag == "select":
+            self.select = name
+        elif tag == "option" and self.select and ("selected" in attrs or self.select not in self.values):
+            self.values[self.select] = attrs.get("value", "")
+        elif tag == "textarea":
+            self.textarea = name
+            self.values[name] = ""
+
+    def handle_endtag(self, tag):
+        if tag == "form":
+            self.inside = False
+        elif tag == "select":
+            self.select = None
+        elif tag == "textarea":
+            self.textarea = None
+
+    def handle_data(self, text):
+        if self.textarea:
+            self.values[self.textarea] += text
+
+
 class LoopbackRedirect(HTTPRedirectHandler):
     def __init__(self, origin):
         self.origin = origin

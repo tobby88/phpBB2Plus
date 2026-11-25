@@ -1,0 +1,50 @@
+<!-- INCLUDE overall_header.html -->
+{% macro plans(name, selected, missing, levels, fallback) %}
+<select id="quota-{{ name }}" name="{{ name }}">
+<option value="0"{% if selected == 0 %} selected{% endif %}>{{ fallback|e }}</option>
+{% if missing %}<option value="{{ selected }}" selected>{{ lang('PLUS_QUOTA_MISSING', selected)|e }}</option>{% endif %}
+{% for level in levels %}<option value="{{ level.ID }}"{% if selected == level.ID %} selected{% endif %}>{{ level.NAME|e }}</option>{% endfor %}
+</select>
+{% endmacro %}
+{% import _self as fields %}
+<h1>{L_ACP_PLUS_ATTACH_QUOTAS}</h1>
+{% if SECTION != 'settings' %}<p><a href="{U_LIST}">{L_BACK}</a></p>{% endif %}
+<form id="plus-quota-edit" method="post" action="{U_SAVE}">
+{% if SECTION == 'level' %}
+<fieldset><legend>{% if QUOTA_ID %}{L_PLUS_QUOTA_EDIT}{% else %}{L_PLUS_QUOTA_NEW}{% endif %}</legend>
+<dl><dt><label for="quota-label">{L_PLUS_QUOTA_NAME}</label></dt><dd><input id="quota-label" name="label" type="text" maxlength="100" value="{{ TARGET|e }}" required></dd></dl>
+<dl><dt><label for="quota-bytes">{L_PLUS_QUOTA_CAPACITY}</label><br><span>{L_PLUS_QUOTA_SIZE_HELP}</span></dt>
+<dd><input id="quota-bytes" type="text" name="bytes" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" value="{{ BYTES|e }}" required></dd></dl>
+</fieldset>
+{% else %}
+<fieldset><legend>{% if SECTION == 'settings' %}{L_PLUS_QUOTA_DEFAULTS}{% else %}{{ TARGET|e }}{% endif %}</legend>
+{% if SECTION == 'settings' %}
+<dl><dt><label for="quota-enabled">{L_PLUS_QUOTA_ENABLED}</label><br><span>{L_PLUS_QUOTA_ENABLED_HELP}</span></dt>
+<dd><input type="checkbox" id="quota-enabled" name="enabled" value="1"{% if ENABLED %} checked{% endif %}></dd></dl>
+<dl><dt><label for="quota-base-pm">{L_PLUS_QUOTA_BASE_PM}</label><br><span>{L_PLUS_QUOTA_BASE_HELP}</span></dt>
+<dd><input type="text" id="quota-base-pm" name="base_pm" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" value="{{ BASE_PM|e }}" required></dd></dl>
+{% else %}<p>{L_PLUS_QUOTA_INHERIT_HELP}</p>{% endif %}
+{% set fallback = SECTION == 'settings' ? lang('PLUS_QUOTA_BOARD') : lang('PLUS_QUOTA_INHERIT') %}
+<dl><dt><label for="quota-post_level">{L_PLUS_QUOTA_POST}</label></dt><dd>{{ fields.plans('post_level', POST_LEVEL, MISSING_POST, loops.levels, fallback) }}</dd></dl>
+<dl><dt><label for="quota-pm_level">{L_PLUS_QUOTA_PM}</label></dt><dd>{{ fields.plans('pm_level', PM_LEVEL, MISSING_PM, loops.levels, fallback) }}</dd></dl>
+</fieldset>
+{% endif %}
+<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ REVISION|e }}">
+<input type="submit" class="button1" name="save" value="{L_SUBMIT}">
+{% if SECTION == 'level' and QUOTA_ID %}<input type="submit" class="button2" name="remove" value="{L_DELETE}" formnovalidate>{% endif %}
+{S_FORM_TOKEN}</fieldset>
+</form>
+{% if SECTION == 'settings' %}
+<h2>{L_PLUS_QUOTA_LEVELS}</h2>
+{% if loops.levels %}<table class="table1"><thead><tr><th>{L_PLUS_QUOTA_NAME}</th><th>{L_PLUS_QUOTA_CAPACITY}</th></tr></thead>
+<tbody>{% for level in loops.levels %}<tr><td><a href="{{ level.URL }}">{{ level.NAME|e }}</a></td><td>{% if level.BYTES == '0' %}{L_PLUS_QUOTA_UNLIMITED}{% else %}{{ level.BYTES|e }}{% endif %}</td></tr>{% endfor %}</tbody></table>{% endif %}
+<p><a class="button2" href="{U_NEW}">{L_PLUS_QUOTA_NEW}</a></p>
+{% if S_USERS or S_GROUPS %}<h2>{L_PLUS_QUOTA_ASSIGNMENTS}</h2>{% endif %}
+{% if S_USERS %}<form id="plus-quota-member" method="post" action="{U_LIST}"><fieldset><legend>{L_USERNAME}</legend>
+<label for="quota-username">{L_USERNAME}</label> <input type="text" name="username" id="quota-username" required>
+<input class="button2" type="submit" name="find_member" value="{L_GO}"></fieldset></form>{% endif %}
+{% if S_GROUPS %}<form id="plus-quota-group" method="post" action="{U_LIST}"><fieldset><legend>{L_USERGROUPS}</legend>
+<label for="quota-group">{L_USERGROUPS}</label> <select id="quota-group" name="group_id">{% for group in loops.groups %}<option value="{{ group.ID }}">{{ group.NAME|e }}</option>{% endfor %}</select>
+<input class="button2" type="submit" name="find_group" value="{L_GO}"></fieldset></form>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -1,10 +1,81 @@
 """Exercise the native attachment editor on a board with converted per-user allowances."""
 import re
 import time
-from urllib.parse import urljoin
+from html import unescape
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 from attachments import GIF, PNG
-from http_board import Page
+from http_board import FormFields, Page, admin_url
+
+
+def administration(owner, check):
+    entry = admin_url(owner)
+    menu = owner.fetch(entry + "&i=acp_attachments&mode=extensions")
+    match = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Speicher für Dateianhänge</span>', menu)
+    if not match:
+        raise RuntimeError("The allowance editor is missing from native attachment administration")
+    panel = urljoin(entry, unescape(match[1]))
+    form = "plus-quota-edit"
+
+    def link(page, title):
+        found = re.search(r'<a\b[^>]*href="([^"]+)"[^>]*>' + re.escape(title) + '</a>', page)
+        if not found:
+            raise RuntimeError("Missing attachment allowance link for " + title)
+        return urljoin(panel, unescape(found[1]))
+
+    def submit(page, changes, form_id=form):
+        action, _ = Page(page).forms[form_id]
+        fields = FormFields(page, form_id).values
+        fields.update(changes)
+        if "creation_time" in fields:
+            time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+        return owner.fetch(urljoin(panel, action), fields)
+
+    home = owner.fetch(panel)
+    previous = FormFields(home, form).values
+    if (previous.get("base_pm"), previous.get("post_level"), previous.get("pm_level")) != ("257", "1", "9"):
+        raise RuntimeError("The ACP did not display the converted board defaults")
+    new_url = link(home, "Kontingentstufe anlegen")
+    new = owner.fetch(new_url)
+    change = {"label":"Bilder & Grüße", "bytes":"18446744073709551615", "save":"1"}
+    submit(new, change)
+    if "inzwischen geändert" not in submit(new, change):
+        raise RuntimeError("Repeating a creation form did not report the stale revision")
+    edit = link(owner.fetch(panel), "Bilder &amp; Grüße")
+    plan = parse_qs(urlsplit(edit).query)["quota_id"][0]
+    if int(plan) <= 34 or FormFields(owner.fetch(edit), form).values["bytes"] != change["bytes"]:
+        raise RuntimeError("A new quota lost its exact byte value or reused a dangling historical level")
+    edit_page = owner.fetch(edit)
+    if "Bitte prüfe" not in submit(edit_page, {"bytes":"18446744073709551616", "save":"1"}):
+        raise RuntimeError("An out-of-range byte value was accepted")
+    submit(edit_page, {"bytes":"128", "save":"1"})
+    submit(owner.fetch(panel), {"base_pm":"4096", "post_level":plan, "pm_level":plan, "save":"1"})
+
+    def group():
+        page = owner.fetch(panel)
+        if not re.search(r'<option value="74">PM quota circle</option>', page):
+            raise RuntimeError("Converted native group unavailable for assignment")
+        return submit(page, {"group_id":"74", "find_group":"1"}, "plus-quota-group")
+
+    def member():
+        return submit(owner.fetch(panel), {"username":"DepartingFixture", "find_member":"1"}, "plus-quota-member")
+
+    submit(group(), {"post_level":"10", "pm_level":plan, "save":"1"})
+    submit(member(), {"post_level":plan, "pm_level":"0", "save":"1"})
+    if FormFields(member(), form).values["post_level"] != plan or FormFields(group(), form).values["pm_level"] != plan:
+        raise RuntimeError("User and group assignments were not displayed separately")
+    check("assigned")
+    prompt = submit(owner.fetch(edit), {"remove":"1"})
+    confirm = next((key for key, (_, hidden) in Page(prompt).forms.items() if "confirm_uid" in hidden), None)
+    if not confirm or not link(owner.fetch(panel), "Bilder &amp; Grüße"):
+        raise RuntimeError("Deleting an allowance skipped native confirmation")
+    submit(prompt, {"confirm":"Ja"}, confirm)
+    check("inherited")
+    submit(new, change)
+    if "Bilder &amp; Grüße" in owner.fetch(panel):
+        raise RuntimeError("An old creation form restored a deleted level")
+    submit(group(), {"post_level":"0", "pm_level":"0", "save":"1"})
+    submit(owner.fetch(panel), {key: previous[key] for key in ("base_pm", "post_level", "pm_level")} | {"save":"1"})
 
 
 def browse(member):

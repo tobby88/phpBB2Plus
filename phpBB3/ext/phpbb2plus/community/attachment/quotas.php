@@ -71,7 +71,7 @@ class quotas
 			while ($row = $this->db->sql_fetchrow($r)) { $personal[$row['user_id']] = self::integer($row['bytes']); }
 			$this->db->sql_freeresult($r);
 		}
-		$global = self::integer($this->config[$pm ? 'max_filesize_pm' : 'attachment_quota']);
+		$global = self::integer($this->config[$pm ? 'plus_attach_base_pm' : 'attachment_quota']);
 		$default = $global;
 		$default_id = (int) $this->config[$pm ? 'plus_attach_default_pm' : 'plus_attach_default_post'];
 		if ($default_id && count($personal) < count($members))
