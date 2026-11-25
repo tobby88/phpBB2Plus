@@ -1,3 +1,4 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ ALBUM_PERSONAL_TITLE|e }}</h2>
 {% if S_PERSONAL_FORM %}
@@ -27,6 +28,7 @@
 {% if not S_ALBUM_FULL %}<button class="button1" type="submit">{{ PERSONAL_ACTION|e }}</button>{% endif %}
 <a class="button2" href="{U_PERSONAL}">{L_CANCEL}</a></fieldset></form>
 {% else %}
+<!-- INCLUDE @phpbb2plus_gallery/search_form.html -->
 {% if U_START %}<div class="action-bar"><a class="button" href="{U_START}">{L_PLUS_ALBUM_CAT_START}</a></div>{% endif %}
 {% if loops.personal_cats %}<div class="forabg"><div class="inner">
 <ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_ALBUM_CATEGORIES}</div></dt></dl></li></ul>

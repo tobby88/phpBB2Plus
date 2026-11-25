@@ -2,6 +2,10 @@ phpbb2plus_gallery_index:
     path: /album
     defaults: { _controller: phpbb2plus.gallery.board:index, category: 0 }
     methods: [GET, HEAD]
+phpbb2plus_gallery_search:
+    path: /album/search
+    defaults: { _controller: phpbb2plus.gallery.search:find }
+    methods: [GET, HEAD, POST]
 phpbb2plus_gallery_personal:
     path: /album/member/{owner}
     defaults: { _controller: phpbb2plus.gallery.personal_controller:index }

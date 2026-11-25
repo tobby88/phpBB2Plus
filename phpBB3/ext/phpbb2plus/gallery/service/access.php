@@ -258,13 +258,14 @@ class access
 	}
 
 	/** Categories have already passed their full ancestor visibility check. */
-	public function picture_filter($categories)
+	public function picture_filter($categories, $published_only = false)
 	{
 		if (!$categories) { return '1=0'; }
 		$pending = array();
 		foreach ($categories as $id)
 		{
-			if ($this->pending_visible($this->category_row($id))) { $pending[] = $id; }
+			$cat = $this->category_row($id);
+			if ($published_only ? !(int) $cat['approval'] : $this->pending_visible($cat)) { $pending[] = $id; }
 		}
 		return $this->db->sql_in_set('p.cat_id', $categories) . ' AND (p.approved=1' .
 			($pending ? ' OR ' . $this->db->sql_in_set('p.cat_id', $pending) : '') . ')';

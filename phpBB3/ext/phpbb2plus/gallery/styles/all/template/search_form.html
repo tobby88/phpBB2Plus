@@ -1,0 +1,9 @@
+<form id="album-search" class="plus-album-search" action="{{ path('phpbb2plus_gallery_search') }}" method="{% if S_ALBUM_SEARCH_POST %}post{% else %}get{% endif %}" role="search" aria-label="{L_PLUS_ALBUM_SEARCH}">
+<label for="album-search-mode">{L_PLUS_ALBUM_SEARCH_IN}</label>
+<select id="album-search-mode" name="mode"><option value="user"{% if not ALBUM_SEARCH_MODE or ALBUM_SEARCH_MODE == 'user' %} selected{% endif %}>{L_AUTHOR}</option>
+<option value="name"{% if ALBUM_SEARCH_MODE == 'name' %} selected{% endif %}>{L_PLUS_ALBUM_SORT_TITLE}</option>
+<option value="desc"{% if ALBUM_SEARCH_MODE == 'desc' %} selected{% endif %}>{L_PLUS_ALBUM_DESCRIPTION}</option></select>
+<label for="album-search-text">{L_PLUS_ALBUM_SEARCH_TEXT}</label>
+<input type="search" id="album-search-text" class="inputbox" name="search" value="{{ ALBUM_QUERY|e('html_attr') }}" maxlength="100" required>
+{S_SEARCH_HIDDEN_FIELDS}<button class="button2" type="submit">{L_SEARCH}</button>
+</form>

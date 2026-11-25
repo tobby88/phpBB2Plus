@@ -32,6 +32,14 @@ class byline
 		return $this->names ? $this->names->hidden() : empty($this->user->data['is_registered']);
 	}
 
+	/** The search joins only current member accounts. Stored guest names are plain text. */
+	public function search_condition($native_like, $plain_like)
+	{
+		$visible = $this->hide_former() ? ' AND p.author_removed=0 AND p.author_id<=' . ANONYMOUS : '';
+		return '((u.user_id IS NOT NULL AND LOWER(u.username) ' . $native_like . ') OR (u.user_id IS NULL' .
+			$visible . ' AND LOWER(p.author_name) ' . $plain_like . '))';
+	}
+
 	public function sort_expression($db)
 	{
 		$registered = 'p.author_id>' . ANONYMOUS;

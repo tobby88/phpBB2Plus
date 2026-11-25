@@ -1,6 +1,7 @@
 <!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ ALBUM_TITLE|e }}</h2>
+<!-- INCLUDE @phpbb2plus_gallery/search_form.html -->
 {% if U_ALBUM_UPLOAD or U_ALBUM_PERSONAL %}<div class="action-bar">
 {% if U_ALBUM_UPLOAD %}<a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a>{% endif %}
 {% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>{% endif %}

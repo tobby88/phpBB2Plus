@@ -1,0 +1,24 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_ALBUM_SEARCH}</h2>
+<!-- INCLUDE @phpbb2plus_gallery/search_form.html -->
+{% if S_ALBUM_SEARCH_ERROR %}<p class="error" role="alert">{L_PLUS_ALBUM_SEARCH_INVALID}</p>{% endif %}
+{% if S_ALBUM_RESULTS %}
+<section class="plus-album-block" id="album-search-results" aria-labelledby="album-result-heading">
+<h3 class="plus-album-heading" id="album-result-heading">{% if S_ALBUM_CAPPED %}{L_PLUS_ALBUM_SEARCH_CAPPED}{% else %}{{ lang('PLUS_ALBUM_SEARCH_FOUND', ALBUM_FOUND) }}{% endif %}</h3>
+{% if loops.album_results %}
+<table class="plus-album-results">
+<thead><tr><th scope="col">{L_PLUS_ALBUM_SORT_TITLE}</th><th scope="col">{L_PLUS_ALBUM}</th><th scope="col">{L_AUTHOR}</th><th scope="col">{L_PLUS_ALBUM_DATE}</th></tr></thead>
+<tbody>{% for result in loops.album_results %}<tr>
+<td><a href="{{ result.U_PICTURE }}">{{ result.TITLE|e }}</a></td>
+<td><a href="{{ result.U_CATEGORY }}">{{ result.CATEGORY|e }}</a></td><td>{{ result.AUTHOR }}</td>
+<td><time datetime="{{ result.DATETIME }}">{{ result.TIME }}</time></td></tr>{% endfor %}</tbody>
+</table>{% endif %}</section>
+{% endif %}
+{% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
+{% if ALBUM_POST_PAGES %}<form class="plus-album-sort" id="album-search-pagination" method="post" action="{{ path('phpbb2plus_gallery_search') }}">
+<input type="hidden" name="mode" value="{{ ALBUM_SEARCH_MODE|e('html_attr') }}"><input type="hidden" name="search" value="{{ ALBUM_QUERY|e('html_attr') }}">
+{S_SEARCH_HIDDEN_FIELDS}{% if S_ALBUM_PREVIOUS %}<button type="submit" class="button2" name="start" value="{{ ALBUM_PREVIOUS_START }}">{L_PREVIOUS}</button>{% endif %}
+<span>{{ ALBUM_POST_PAGES }}</span>
+{% if S_ALBUM_NEXT %}<button type="submit" class="button2" name="start" value="{{ ALBUM_NEXT_START }}">{L_NEXT}</button>{% endif %}</form>{% endif %}
+<!-- INCLUDE overall_footer.html -->

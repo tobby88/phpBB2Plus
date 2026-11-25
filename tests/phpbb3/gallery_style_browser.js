@@ -118,5 +118,13 @@ async function checkGalleryStyle(frame) {
         if (width > 700 ? author.right > reply.left : author.bottom > reply.top) {
             throw Error("The album comment author overlaps its text at " + width + "px");
         }
+        const found = await page("/search?mode=name&search=Fotoprobe", width);
+        const form = found.querySelector("#album-search");
+        const results = found.querySelector("#album-search-results");
+        if (!form || form.elements.mode.value !== "name" || form.elements.search.value !== "Fotoprobe" || !results ||
+            !fillsBoard(found, results) || !results.querySelector("td a[href*='/album/picture/100']") ||
+            results.querySelector("td a[href*='/album/picture/104']")) {
+            throw Error("The search form or its visible photo results changed at " + width + "px");
+        }
     }
 }
