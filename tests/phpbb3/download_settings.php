@@ -60,7 +60,9 @@ switch ($phase)
 		if (!$actor) { throw new RuntimeException('Could not create the settings-only delegate'); }
 		(new auth_admin())->acl_set('user',0,$actor,array('a_plus_dl_settings'=>ACL_YES));
 		$cat = $rows("SELECT * FROM {$p}categories WHERE cat_id=21")[0];
-		$insert($p.'categories',array('cat_id'=>10630,'title'=>'Sort fixture')+$cat);
+		$levels = json_decode($cat['access_levels'], true);
+		$levels['upload'] = 1;
+		$insert($p.'categories',array('cat_id'=>10630,'title'=>'Sort fixture','access_levels'=>json_encode($levels))+$cat);
 		$f = $rows("SELECT * FROM {$p}files WHERE file_id=50")[0];
 		foreach (array(10641=>'Zulu oldest',10642=>'Alpha recent',10643=>'Pinned fixture') as $id=>$name)
 		{

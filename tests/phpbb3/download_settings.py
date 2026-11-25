@@ -66,7 +66,7 @@ def administration(owner, member, verify):
     referred.opener.addheaders = [("Referer", "https://other.example.invalid/")]
     referred.fetch(preview, expected_status=403)
 
-    upload = root + "/category/21/submit"
+    upload = root + "/category/10630/submit"
     page = member.fetch(upload)
     target, params = Page(page).forms["dl-submit"]
     params = dict(params, title="Settings size fixture", description="Disposable fixture")
