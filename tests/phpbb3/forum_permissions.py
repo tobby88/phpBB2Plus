@@ -5,7 +5,29 @@ import re
 import time
 from urllib.parse import urljoin
 
-from http_board import Page, login
+from http_board import Browser, Page, login
+
+
+def reading(base, member, pending):
+    guest = Browser(base).fetch("index.php")
+    if ("Listed reading room" not in guest or "Private reading room" in guest or "Two reading circles" in guest
+            or any(f"Reading notes {forum}" in guest for forum in (8, 9, 10))):
+        raise RuntimeError("The guest index did not distinguish listing from reading")
+    member_index = member.fetch("index.php")
+    for forum, name in ((9, "Private reading room"), (10, "Two reading circles")):
+        if name not in member_index or f"Reading notes {forum}" not in member.fetch(f"viewforum.php?f={forum}"):
+            raise RuntimeError("An approved combination of memberships lost its forum topics")
+    pending_index = pending.fetch("index.php")
+    if "Two reading circles" not in pending_index or "Reading notes 10" in pending_index or "Private reading room" in pending_index:
+        raise RuntimeError("A listed forum exposed its last topic before both permissions were granted")
+    public = "viewforum.php?f=1"
+    for actor, permitted in ((Browser(base), False), (pending, False), (member, True)):
+        listing = actor.fetch(public)
+        if ("Verschobener Lesekreis" in listing) != permitted or ("Neue Sitzordnung" in listing) != permitted:
+            raise RuntimeError("A moved-topic link or its description did not follow destination access")
+        results = actor.fetch("search.php?keywords=Kreisnotizprobe&sr=posts")
+        if "#p32" not in results or ("#p490" in results) != permitted:
+            raise RuntimeError("Native post search ignored the combined viewing and reading permissions")
 
 
 def publishing(owner, member, pending):

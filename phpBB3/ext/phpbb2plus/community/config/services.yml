@@ -1,4 +1,8 @@
 services:
+    phpbb2plus.community.conditional_read:
+        class: phpbb2plus\community\auth\conditional_read
+        decorates: auth
+        arguments: ['@config', '@config_text']
     phpbb2plus.community.removed_posts:
         class: phpbb2plus\community\event\removed_posts
         arguments: ['@dbal.conn', '@auth', '@content.visibility', '@config', '@language']

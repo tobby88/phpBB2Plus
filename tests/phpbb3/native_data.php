@@ -1,5 +1,28 @@
 <?php
 // Called only by the isolated legacy_database.php fixture.
+function seed_forum_access($db)
+{
+	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,cat_id,forum_order,auth_view,auth_read) VALUES
+		(8,'Listed reading room','',1,32,0,5),(9,'Private reading room','',1,33,2,0),(10,'Two reading circles','',1,34,2,2)");
+	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user)
+		VALUES (76,1,'Personal reading permission','',1)");
+	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (76,89,0)');
+	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_view,auth_read) VALUES
+		(71,9,1,0),(71,10,1,0),(74,10,1,0),(73,10,0,1),(76,10,0,1)');
+	foreach (array(8,9,10) as $forum)
+	{
+		$topic = 480+$forum;
+		$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id)
+			VALUES ($topic,$forum,'Reading notes $forum',2,1000,$topic,$topic)");
+		$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time) VALUES ($topic,$topic,$forum,2,'c0000203',1000)");
+		$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES ($topic,'Reading notes $forum','Reading circle fixture $forum')");
+	}
+	$db->query("UPDATE phpbb_topics SET topic_desc='Neue Sitzordnung' WHERE topic_id=490");
+	$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_desc,topic_poster,topic_time,topic_first_post_id,topic_last_post_id,topic_moved_id,topic_status)
+		VALUES (511,1,'Verschobener Lesekreis','Frühere Sitzordnung',2,1000,490,490,490,2)");
+	$db->query("UPDATE phpbb_posts_text SET post_text=CONCAT(post_text,' Kreisnotizprobe') WHERE post_id IN (32,490)");
+}
+
 function seed_native_content($db)
 {
 	$db->query("INSERT INTO phpbb_topics_watch (topic_id,user_id,notify_status)

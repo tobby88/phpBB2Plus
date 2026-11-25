@@ -160,6 +160,7 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user) VALUES (75,2,'Local moderation fixture','',0)");
 	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (75,89,0)');
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_mod) VALUES (75,12,1)');
+	seed_forum_access($db);
 }
 elseif ($argv[1] === 'installed-flags')
 {

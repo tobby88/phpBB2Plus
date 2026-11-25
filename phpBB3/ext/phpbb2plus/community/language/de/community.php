@@ -30,4 +30,5 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_SHOUT_LENGTH' => 'Bitte gib eine Nachricht mit höchstens 16.000 Byte ein.',
 	'ACL_U_PLUS_SHOUT' => 'Kann Nachrichten in der Shoutbox schreiben',
 	'ACL_M_PLUS_SHOUT' => 'Kann die Shoutbox moderieren',
+	'ACL_F_PLUS_READ_IF_LISTED' => 'Kann im konvertierten Forum lesen und suchen, wenn das Konto das Forum auch sehen darf',
 ));

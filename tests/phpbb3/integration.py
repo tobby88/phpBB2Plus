@@ -163,6 +163,8 @@ def main():
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
                 forum_permissions.publishing(member, ordinary, pending)
+                php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
+                forum_permissions.reading(base, ordinary, pending)
                 public_pages(base, member)
                 legend = member.fetch("index.php")
                 if ('#5A769B">Redaktion &amp; Gäste</span>' not in legend or 'Hidden palette' in legend
@@ -195,6 +197,7 @@ def main():
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/colours", "--no-interaction", cwd=web)
                     php("bin/phpbbcli.php", "cache:purge", "--no-interaction", cwd=web)
                     php(fixture, "colours-" + action, target)
+                    php(ROOT / "tests/phpbb3/forum_access.php", target, action, cwd=web)
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
                 native_content(base, member, ordinary)

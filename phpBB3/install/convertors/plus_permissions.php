@@ -14,10 +14,11 @@ function plus_forum_grants($native,$source,$forum,$groups,$assignments)
 	{
 		$grants['group_id'][$groups['REGISTERED']] = true;
 		if (isset($groups['REGISTERED_COPPA'])) { $grants['group_id'][$groups['REGISTERED_COPPA']] = true; }
-		if ($level === 0 && $native !== 'f_plus_news' && !(int) $forum['auth_view'] && !(int) $forum['auth_read'])
+		$access_option = $native === 'f_list' || $native === 'f_read';
+		if ($level === 0 && $native !== 'f_plus_news' && ($access_option || (!(int) $forum['auth_view'] && !(int) $forum['auth_read'])))
 		{
 			$grants['group_id'][$groups['GUESTS']] = true;
-			if ($native === 'f_download' && isset($groups['BOTS'])) { $grants['group_id'][$groups['BOTS']] = true; }
+			if (($access_option || $native === 'f_download') && isset($groups['BOTS'])) { $grants['group_id'][$groups['BOTS']] = true; }
 		}
 	}
 	elseif ($level === 2 || $level === 3)
@@ -30,16 +31,46 @@ function plus_forum_grants($native,$source,$forum,$groups,$assignments)
 	return $grants;
 }
 
+/** phpBB2 checked both visibility and reading before displaying topic titles or posts. */
+function plus_forum_read_grants($forum,$groups,$rows)
+{
+	$view = plus_forum_grants('f_list','auth_view',$forum,$groups,$rows);
+	$read = plus_forum_grants('f_read','auth_read',$forum,$groups,$rows);
+	$v = (int) $forum['auth_view'];
+	$r = (int) $forum['auth_read'];
+	$conditional = array('group_id'=>array(),'user_id'=>array());
+	if ($v === 0 || ($v === 1 && $r !== 0)) { $both = $read; }
+	elseif ($r === 0 || $r === 1) { $both = $view; }
+	else
+	{
+		$both = $view_only = $read_only = array();
+		foreach (array('user_id','group_id') as $key)
+		{
+			$both[$key] = array_intersect_key($view[$key],$read[$key]);
+			$view_only[$key] = array_diff_key($view[$key],$both[$key]);
+			$read_only[$key] = array_diff_key($read[$key],$both[$key]);
+		}
+		// A member can combine distinct groups or a personal grant with a group.
+		// Two distinct personal grants alone can never identify the same member.
+		if (($view_only['group_id'] && ($read_only['group_id'] || $read_only['user_id'])) || ($read_only['group_id'] && $view_only['user_id']))
+		{
+			$conditional = $read_only;
+		}
+	}
+	return array('f_list'=>$view,'f_read'=>$both,'f_list_topics'=>$both,'f_search'=>$both,'f_plus_read_if_listed'=>$conditional);
+}
+
 function plus_forum_permissions()
 {
-	global $db, $src_db, $convert, $phpbb_container;
+	global $db, $src_db, $convert, $phpbb_container, $config;
 	$mapping = array('f_plus_calendar'=>'auth_cal','f_plus_news'=>'auth_news','f_sticky'=>'auth_sticky',
 		'f_announce'=>'auth_announce','f_announce_global'=>'auth_global_announce','f_poll'=>'auth_pollcreate','f_vote'=>'auth_vote');
 	if (defined('MOD_ATTACHMENT')) { $mapping += array('f_attach'=>'auth_attachments','f_download'=>'auth_download'); }
-	$r = $db->sql_query('SELECT auth_option,auth_option_id FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option',array_keys($mapping)));
+	$names = array_merge(array_keys($mapping),array('f_list','f_read','f_list_topics','f_search','f_plus_read_if_listed'));
+	$r = $db->sql_query('SELECT auth_option,auth_option_id FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option',$names));
 	$options = array_column($db->sql_fetchrowset($r),'auth_option_id','auth_option');
 	$db->sql_freeresult($r);
-	if (array_diff_key($mapping,$options)) { throw new \RuntimeException('The destination is missing a Plus forum permission'); }
+	if (array_diff($names,array_keys($options))) { throw new \RuntimeException('The destination is missing a Plus forum permission'); }
 	$r = $db->sql_query('SELECT group_id,group_name FROM ' . GROUPS_TABLE . ' WHERE group_type=' . GROUP_SPECIAL);
 	$groups = array_column($db->sql_fetchrowset($r),'group_id','group_name');
 	$db->sql_freeresult($r);
@@ -49,18 +80,19 @@ function plus_forum_permissions()
 	}
 
 	$p = $convert->src_table_prefix;
-	$columns = implode(',',array_values($mapping));
-	$r = $src_db->sql_query("SELECT forum_id,auth_view,auth_read,$columns FROM {$p}forums ORDER BY forum_id");
+	$columns = array_merge(array('auth_view','auth_read'),array_values($mapping));
+	$r = $src_db->sql_query('SELECT forum_id,' . implode(',',$columns) . " FROM {$p}forums ORDER BY forum_id");
 	$forums = $src_db->sql_fetchrowset($r);
 	$src_db->sql_freeresult($r);
 	$db->sql_transaction('begin');
 	try
 	{
+		$conditional_forums = array();
 		plus_clear_local_options(array_values($options),array_column($forums,'forum_id'));
 		foreach (array_chunk($forums,32) as $batch)
 		{
 			$assignments = array();
-			$sql = 'SELECT a.forum_id,a.auth_mod,a.' . implode(',a.',array_values($mapping)) . ",g.group_id,g.group_single_user,ug.user_id
+			$sql = 'SELECT a.forum_id,a.auth_mod,a.' . implode(',a.',$columns) . ",g.group_id,g.group_single_user,ug.user_id
 				FROM {$p}auth_access a JOIN {$p}groups g ON g.group_id=a.group_id LEFT JOIN {$p}user_group ug
 				ON g.group_single_user=1 AND ug.group_id=g.group_id AND ug.user_pending=0 WHERE " .
 				$src_db->sql_in_set('a.forum_id',array_column($batch,'forum_id'));
@@ -78,9 +110,16 @@ function plus_forum_permissions()
 			foreach ($batch as $forum)
 			{
 				$id = (int) $forum['forum_id'];
+				$rows = $assignments[$id] ?? array();
+				$grants = plus_forum_read_grants($forum,$groups,$rows);
+				if ($grants['f_plus_read_if_listed']['user_id'] || $grants['f_plus_read_if_listed']['group_id']) { $conditional_forums[] = $id; }
 				foreach ($mapping as $native=>$source)
 				{
-					foreach (plus_forum_grants($native,$source,$forum,$groups,$assignments[$id] ?? array()) as $field=>$principals)
+					$grants[$native] = plus_forum_grants($native,$source,$forum,$groups,$rows);
+				}
+				foreach ($grants as $native=>$grant)
+				{
+					foreach ($grant as $field=>$principals)
 					{
 						foreach (array_keys($principals) as $who)
 						{
@@ -94,6 +133,8 @@ function plus_forum_permissions()
 				foreach (array_chunk($insert[$key],100) as $items) { $db->sql_multi_insert($target,$items); }
 			}
 		}
+		$phpbb_container->get('config_text')->set('plus_read_scopes',implode(',',$conditional_forums));
+		$config->set('plus_conditional_read',(int) (bool) $conditional_forums);
 		$db->sql_transaction('commit');
 	}
 	catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
