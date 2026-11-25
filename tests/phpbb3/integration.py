@@ -34,6 +34,7 @@ import removed_posts
 import delete_policy
 import confirmed_deletions
 import removed_shadow_links
+import age_pruning
 import print_topics
 import announcement_duration
 import legacy_links
@@ -66,6 +67,7 @@ import gallery_moderation
 import gallery_previews
 import gallery_hot
 import gallery_directory
+import gallery_category_index
 import gallery_search
 import gallery_personal
 import gallery_cache
@@ -460,6 +462,8 @@ def main():
                         ROOT / "tests/phpbb3/gallery_hot.php", target, phase, cwd=web, capture=True))
                     gallery_directory.browse(admin, reader, applicant, guest, lambda phase: php(
                         ROOT / "tests/phpbb3/gallery_directory.php", target, phase, cwd=web, capture=True))
+                    gallery_category_index.browse(admin, reader, applicant, guest, lambda phase: php(
+                        ROOT / "tests/phpbb3/gallery_category_index.php", target, phase, cwd=web, capture=True))
                     gallery_activity.browse(admin, reader, applicant, guest, lambda phase: php(
                         ROOT / "tests/phpbb3/gallery_activity.php", target, phase, cwd=web, capture=True))
                     gallery_moderation.browse(admin, reader, applicant, guest, lambda phase: php(
@@ -497,6 +501,9 @@ def main():
                     ROOT / "tests/phpbb3/confirmed_deletions.php", target, phase, cwd=web))
                 removed_shadow_links.exercise(member, lambda phase: php(
                     ROOT / "tests/phpbb3/removed_shadow_links.php", target, phase, cwd=web))
+                prune_admin, _ = delegation.authenticate(base, "ModernMember")
+                age_pruning.browse(prune_admin, lambda phase: php(
+                    ROOT / "tests/phpbb3/age_pruning.php", target, phase, cwd=web))
                 if args.suite == "all":
                     download_upgrades(target, web)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)

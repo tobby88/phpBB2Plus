@@ -102,7 +102,8 @@ elseif ($argv[2] === 'volume')
 	if (count($direct) !== 511 || array_sum(array_column(array_column($direct, 'total'), 'pictures')) !== 1 || $direct_queries > 14)
 	{ throw new RuntimeException('Directory queries grew with the number of direct categories (' . $direct_queries . ' queries)'); }
 	$db->sql_transaction('rollback');
-	echo max($queries, $direct_queries); exit;
+	echo max($queries, $direct_queries);
+	return;
 }
 elseif ($argv[2] === 'cleanup')
 {
