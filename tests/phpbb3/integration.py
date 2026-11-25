@@ -31,6 +31,7 @@ import custom_profiles
 import colours
 import post_icons
 import removed_posts
+import print_topics
 import announcement_duration
 import legacy_links
 import mail_links
@@ -38,6 +39,7 @@ import downloads
 import download_categories
 import download_fields
 import download_file_actions
+import download_file_editor
 import download_permissions
 import download_licenses
 import download_mirrors
@@ -180,6 +182,8 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
                 ROOT / "tests/phpbb3/download_mirrors.php", target, phase, cwd=web))
             download_file_actions.administration(admin, historical, lambda phase: php(
                 ROOT / "tests/phpbb3/download_file_actions.php", target, phase, cwd=web))
+            download_file_editor.administration(admin, historical, lambda phase: php(
+                ROOT / "tests/phpbb3/download_file_editor.php", target, phase, cwd=web))
             # The storage-failure case temporarily switches the board's upload directory.
             gallery_run.result()
             downloads.submissions(base, admin, historical, applicant,
@@ -265,6 +269,8 @@ def main():
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
                 board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
+                print_topics.browse(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/print_topics.php", phase, target, cwd=web))
                 forum_permissions.publishing(member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)
