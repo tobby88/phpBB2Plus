@@ -38,6 +38,7 @@ import download_categories
 import download_fields
 import download_permissions
 import download_licenses
+import download_mirrors
 import delegation
 import delegation_administration
 import historical_actions
@@ -171,6 +172,8 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
                 php(ROOT / "tests/phpbb3/download_fields.php", target, phase, cwd=web)
             download_fields.runtime(admin, historical, verify_fields)
             download_fields.administration(admin, historical, verify_fields)
+            download_mirrors.administration(admin, historical, lambda phase: php(
+                ROOT / "tests/phpbb3/download_mirrors.php", target, phase, cwd=web))
             # The storage-failure case temporarily switches the board's upload directory.
             gallery_run.result()
             downloads.submissions(base, admin, historical, applicant,
