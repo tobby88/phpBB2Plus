@@ -21,4 +21,11 @@ class statistics_modules
 	{
 		return isset(self::SOURCES[$name]) && self::SOURCES[$name] === $digest;
 	}
+
+	public static function supported($record)
+	{
+		$name = trim($record['name']);
+		if ($record['renderer'] === 'native_install') { return isset(self::SOURCES[$name]); }
+		return in_array($record['renderer'], array('native','unported'), true) && self::recognised($name, $record['source_sha256'] ?? '');
+	}
 }

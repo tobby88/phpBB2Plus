@@ -62,6 +62,9 @@ services:
     phpbb2plus.community.statistics_smilies:
         class: phpbb2plus\community\service\statistics_smilies
         arguments: ['@dbal.conn', '@config', '@user', '@path_helper']
+    phpbb2plus.community.statistics_admin:
+        class: phpbb2plus\community\service\statistics_admin
+        arguments: ['@dbal.conn', '@config', '@config_text', '%tables.config_text%', '@user', '@auth', '@phpbb2plus.community.statistics_installation', '@cache']
     phpbb2plus.community.statistics_installation:
         class: phpbb2plus\community\service\statistics_installation
         arguments: ['@dbal.conn', '@cache', '@config', '@language', '@user', '%core.root_path%', '%core.php_ext%', '%core.table_prefix%']

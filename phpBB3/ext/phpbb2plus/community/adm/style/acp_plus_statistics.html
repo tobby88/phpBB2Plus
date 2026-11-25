@@ -1,0 +1,31 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{% if STATS_MODE == 'settings' %}{L_ACP_PLUS_STATS_SETTINGS}{% else %}{L_ACP_PLUS_STATS_MANAGE}{% endif %}</h1>
+{% if STATS_MODE == '' %}
+{% if U_STATS_ADD %}<p><a class="button2" href="{U_STATS_ADD}">{L_PLUS_STATS_ADD}</a></p>{% endif %}
+<table class="table1"><thead><tr><th>{L_PLUS_STATS_NAME}</th><th>{L_STATUS}</th><th>{L_PLUS_STATS_AUDIENCE}</th><th>{L_OPTIONS}</th></tr></thead><tbody>
+{% for row in loops.registrations %}
+<tr><td>{{ loop.index }}. {{ row.NAME|e }}{% if row.SOURCE %}<details><summary>{L_PLUS_STATS_SOURCE}</summary>{{ row.SOURCE|e }}{% if row.DIGEST %}<br><code>{{ row.DIGEST|e }}</code>{% endif %}</details>{% endif %}</td>
+<td>{{ row.STATE|e }}</td><td>{{ row.AUDIENCE|e }}</td><td>{% if row.EDIT %}<a href="{{ row.EDIT }}">{L_EDIT}</a>{% else %}{L_PLUS_STATS_ARCHIVED}{% endif %}</td></tr>
+{% else %}<tr><td colspan="4">{L_PLUS_STATS_NONE}</td></tr>{% endfor %}</tbody></table>
+{% else %}
+<form id="plus-stats-admin" action="{U_STATS_SAVE}" method="post"><fieldset>
+{% if STATS_MODE == 'settings' %}
+<legend>{L_ACP_PLUS_STATS_SETTINGS}</legend>
+<dl><dt><label for="stats-limit">{L_PLUS_STATS_LIMIT}</label></dt><dd><input id="stats-limit" name="limit" type="number" min="1" max="100" value="{{ STATS_LIMIT }}" required></dd></dl>
+<dl><dt><label for="stats-ttl">{L_PLUS_STATS_STORAGE_TTL}</label></dt><dd><input id="stats-ttl" name="ttl" type="number" min="0" max="86400" value="{{ STATS_TTL }}" required></dd></dl>
+<dl><dt><label for="stats-clear">{L_PLUS_STATS_CLEAR}</label></dt><dd><input id="stats-clear" name="clear" type="checkbox" value="1"></dd></dl>
+{% if STATS_SOURCE_DIR %}<dl><dt>{L_PLUS_STATS_SOURCE_DIR}</dt><dd>{{ STATS_SOURCE_DIR|e }}</dd></dl>{% endif %}
+{% else %}
+<legend>{% if STATS_ADD %}{L_PLUS_STATS_ADD}{% else %}{{ STATS_NAME|e }}{% endif %}</legend>
+{% if STATS_ADD %}<dl><dt><label for="stats-name">{L_PLUS_STATS_NAME}</label></dt><dd><select id="stats-name" name="name">{% for item in loops.available %}<option value="{{ item.KEY|e }}">{{ item.NAME|e }}</option>{% endfor %}</select></dd></dl>{% endif %}
+<dl><dt><label for="stats-state">{L_STATUS}</label></dt><dd><select id="stats-state" name="state">
+{% if not STATS_ADD %}<option value="0"{% if STATS_STATE == 0 %} selected{% endif %}>{L_PLUS_STATS_STATE_0}</option>{% endif %}
+<option value="1"{% if STATS_STATE == 1 %} selected{% endif %}>{L_PLUS_STATS_STATE_1}</option><option value="2"{% if STATS_STATE == 2 %} selected{% endif %}>{L_PLUS_STATS_STATE_2}</option></select></dd></dl>
+<dl><dt><label for="stats-audience">{L_PLUS_STATS_AUDIENCE}</label></dt><dd><select id="stats-audience" name="audience" required>
+{% if STATS_SELECTED %}<option value="" selected>{L_PLUS_STATS_UNMAPPED}</option>{% endif %}{% for item in loops.audiences %}
+<option value="{{ item.KEY }}"{% if item.SELECTED %} selected{% endif %}>{{ item.LABEL|e }}</option>{% endfor %}</select></dd></dl>
+<dl><dt><label for="stats-position">{L_PLUS_STATS_POSITION}</label></dt><dd><input id="stats-position" name="position" type="number" min="1" max="{{ STATS_MAX_POSITION }}" value="{{ STATS_POSITION }}" required></dd></dl>
+{% endif %}</fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ STATS_REVISION }}">{S_FORM_TOKEN}
+<input class="button1" type="submit" value="{L_SUBMIT}"> <a href="{U_STATS_RETURN}">{L_CANCEL}</a></fieldset></form>
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

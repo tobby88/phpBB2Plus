@@ -147,8 +147,8 @@ class statistics
 		{
 			$name = trim($module['name']);
 			// Earlier conversions recorded the source hash before all native panels existed.
-			if ($module['active'] !== 1 || $module['installed'] !== 1 || !in_array($module['renderer'], array('native','unported'), true) ||
-				!statistics_modules::recognised($name, $module['source_sha256'] ?? '') || !$this->audience($module['auth_value'])) { continue; }
+			if ($module['active'] !== 1 || $module['installed'] !== 1 || !statistics_modules::supported($module) ||
+				!$this->audience($module['auth_value'])) { continue; }
 			$author = isset(self::AUTHORS[$name]);
 			if ($author && !$profiles) { continue; }
 			$files = $name === 'top_attachments';

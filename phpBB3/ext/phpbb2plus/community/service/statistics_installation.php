@@ -41,11 +41,16 @@ class statistics_installation
 		return $bytes;
 	}
 
+	private function size_key() { return '_plus_stats_sizes_' . md5($this->prefix . '/' . $this->config['avatar_path']); }
+
+	public function clear() { $this->cache->destroy($this->size_key()); }
+
 	private function sizes()
 	{
 		// Only cache board-wide numbers. No profile data or viewer-specific values belong here.
-		$key = '_plus_stats_sizes_' . md5($this->prefix . '/' . $this->config['avatar_path']);
-		$sizes = $this->cache->get($key);
+		$ttl = (int) ($this->config['plus_statistics_storage_ttl'] ?? 600);
+		$key = $this->size_key();
+		$sizes = $ttl ? $this->cache->get($key) : false;
 		if ($sizes !== false) { return $sizes; }
 		$sizes = array('database' => null, 'avatars' => $this->avatar_bytes());
 		if ($this->db->get_sql_layer() === 'mysqli')
@@ -58,7 +63,7 @@ class statistics_installation
 			$this->db->sql_freeresult($result);
 			if (is_numeric($value)) { $sizes['database'] = (int) $value; }
 		}
-		$this->cache->put($key, $sizes, 600);
+		if ($ttl) { $this->cache->put($key, $sizes, $ttl); }
 		return $sizes;
 	}
 

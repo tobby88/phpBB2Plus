@@ -56,7 +56,9 @@ function plus_statistics_settings()
 		}
 		$src_db->sql_freeresult($result);
 	}
-	$phpbb_container->get('config_text')->set('plus_statistics_modules', json_encode($modules, JSON_INVALID_UTF8_SUBSTITUTE));
+	$registry = json_encode($modules, JSON_INVALID_UTF8_SUBSTITUTE);
+	$phpbb_container->get('config_text')->set_array(array('plus_statistics_modules' => $registry,
+		'plus_statistics_source_modules' => $registry, 'plus_statistics_source_dir' => $settings['modules_dir'] ?? ''));
 	$config->set('plus_statistics_limit', max(1, min(100, (int) ($settings['return_limit'] ?? 10))));
 	$config->set('plus_statistics_installed', max(0, (int) ($settings['install_date'] ?? 0)));
 	$config->set('plus_statistics_views', max(0, (int) ($settings['page_views'] ?? 0)), false);
