@@ -305,7 +305,8 @@ def main():
             php(fixture, "installed-flags", target)
             os.environ["PLUS_TEST_MODERN_PASSWORD"] = secrets.token_hex(7) + '"&Ü\\'
             os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
-            php(fixture, "seed", source)
+            # The independent media installation covers boards that disabled pruning globally.
+            php(fixture, "seed-pruning-off" if media_only else "seed", source)
             statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
             php(statistics_fixture, "seed", source)
             source_files(ROOT / "phpBB2", root / "legacy")
@@ -322,7 +323,7 @@ def main():
             with server(web, root) as base:
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
-                php(fixture, "converted", target)
+                php(fixture, "converted-pruning-off" if media_only else "converted", target)
                 php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)

@@ -26,7 +26,7 @@ require __DIR__ . '/historical_actions.php';
 require __DIR__ . '/credits.php';
 require __DIR__ . '/warning_cards.php';
 
-if ($argv[1] === 'seed')
+if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 {
 	$schemas = dirname(__DIR__, 2) . '/phpBB2/install/schemas/';
 	// The historical setup SQL relies on its installer's session defaults.
@@ -170,6 +170,7 @@ if ($argv[1] === 'seed')
 	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (75,89,0)');
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_mod) VALUES (75,12,1)');
 	seed_forum_access($db);
+	if ($argv[1] === 'seed-pruning-off') { $db->query("UPDATE phpbb_config SET config_value='0' WHERE config_name='prune_enable'"); }
 	$db->query('UPDATE phpbb_forums SET prune_enable=1,prune_next=2140000000 WHERE forum_id IN (1,7,11,14,15)');
 	$db->query("UPDATE phpbb_forums SET forum_desc='Übersicht & Rückblick 📷' WHERE forum_id=15");
 	$db->query('INSERT INTO phpbb_forum_prune (forum_id,prune_days,prune_freq) VALUES (1,10,1),(1,90,7),(7,90,7),(11,10,1),(14,10,1),(14,10,1),(15,0,2)');
@@ -243,7 +244,7 @@ elseif (in_array($argv[1], array('mail-bookmarks-off','mail-bookmarks-on'), true
 	$db->query("UPDATE p3_privmsgs_folder f JOIN p3_privmsgs_to r ON r.user_id=f.user_id AND r.folder_id=f.folder_id
 		SET f.plus_legacy_savebox=$state WHERE r.msg_id=113");
 }
-elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), true))
+elseif (in_array($argv[1], array('converted', 'converted-pruning-off', 'hashes-unchanged', 'signed-in'), true))
 {
 	$users = $db->query("SELECT user_id,username,user_password,user_lang FROM p3_users
 		WHERE username IN ('ModernMember','HistoricMember') ORDER BY username")->fetch_all(MYSQLI_ASSOC);
@@ -254,7 +255,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 		check_fixture($is_bridge === ($argv[1] !== 'signed-in'), 'Unexpected credential upgrade state for ' . $user['username']);
 	}
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
-	if ($argv[1] !== 'converted') { return; }
+	if (!in_array($argv[1], array('converted', 'converted-pruning-off'), true)) { return; }
 	verify_delegation($db);
 	verify_warning_cards($db, (int) $users[0]['user_id']);
 	$historic_id = (int) $users[0]['user_id'];
@@ -306,7 +307,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 		&& $nested['cat_right'] > $nested['right_id'] && (int) $nested['forum_type'] === 2
 		&& $nested['forum_link'] === 'https://example.invalid/archive', 'Lost nested category, linked forum or tree bounds');
 	$rules = $db->query('SELECT forum_id,enable_prune,prune_days,prune_freq,prune_next FROM p3_forums WHERE forum_id IN (7,11,14,15) ORDER BY forum_id')->fetch_all(MYSQLI_ASSOC);
-	check_fixture(array_map('intval', array_column($rules, 'enable_prune')) === array(1,0,0,0)
+	check_fixture(array_map('intval', array_column($rules, 'enable_prune')) === array((int) ($argv[1] === 'converted'),0,0,0)
 		&& (int) $rules[0]['prune_days'] === 90 && (int) $rules[0]['prune_freq'] === 7 && (int) $rules[0]['prune_next'] === 2140000000,
 		'Conversion activated a link, duplicate or empty pruning rule, or lost the valid schedule');
 	$ambiguous = $db->query('SELECT enable_prune,prune_days,prune_freq FROM p3_forums WHERE forum_id=1')->fetch_row();
