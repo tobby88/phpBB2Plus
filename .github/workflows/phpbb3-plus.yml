@@ -42,13 +42,14 @@ permissions:
 
 jobs:
   port:
-    name: phpBB3 on PHP ${{ matrix.php }}
+    name: phpBB3 on PHP ${{ matrix.php }} (${{ matrix.suite }})
     runs-on: ubuntu-latest
     timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
         php: ['7.4', '8.5']
+        suite: [forum, downloads]
     services:
       db:
         image: mariadb:10.11
@@ -71,5 +72,5 @@ jobs:
           PLUS_TEST_DATABASE: '1'
           PLUS_TEST_DB_PASSWORD: fixture-only
           PLUS_TEST_DB_PORT: ${{ job.services.db.ports[3306] }}
-          PLUS_TEST_CHROME: ${{ matrix.php == '8.5' && 'google-chrome' || '' }}
-        run: python3 tests/phpbb3/integration.py --cache vendor/phpbb --offline
+          PLUS_TEST_CHROME: ${{ matrix.php == '8.5' && matrix.suite == 'forum' && 'google-chrome' || '' }}
+        run: python3 tests/phpbb3/integration.py --cache vendor/phpbb --offline --suite "${{ matrix.suite }}"

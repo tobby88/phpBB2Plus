@@ -35,6 +35,14 @@ extension change.
 The [conversion coverage](phpbb3-port.md) lists verified
 behaviour and the modules still being ported. Use the branch with test data.
 
+The integration tests in `tests/phpbb3/` assemble the distribution, create
+disposable MariaDB schemas on localhost, convert a fixture board and exercise
+the resulting site over HTTP. Run `integration.py --cache vendor/phpbb --offline`
+with `PLUS_TEST_DATABASE=1` and the connection settings from the phpBB3 Plus
+workflow. The default runs all modules on the same board. GitHub runs the
+`--suite forum` and `--suite downloads` groups on separate installations for
+PHP 7.4 and 8.5.
+
 This repository is a historical archive of **phpBB2 Plus 1.53a**, a pre-modded
 phpBB2 distribution that was originally based on phpBB 2.0.21. Its official
 phpBB baseline and database version identity are 2.0.23. The preserved code is

@@ -340,6 +340,23 @@ elseif ($argv[1] === 'downloaded')
 	$votes = $db->query('SELECT COUNT(*),SUM(points) FROM p3_plus_dl_votes WHERE file_id=50')->fetch_row();
 	check_fixture((int) $votes[0] === 3 && (int) $votes[1] === 24, 'A repeated vote changed the paFileDB rating totals');
 }
+elseif ($argv[1] === 'download-voter' || $argv[1] === 'download-departed')
+{
+	$departed = $argv[1] === 'download-departed';
+	$owner = $departed ? 0 : 87;
+	$count = $db->query("SELECT COUNT(*) FROM p3_plus_dl_votes WHERE file_id=50 AND points=6 AND owner_id=$owner")->fetch_row()[0];
+	check_fixture((int) $count === 1, 'The departing download voter lost their vote or retained their account attribution');
+	if ($departed)
+	{
+		foreach (array('files', 'comments', 'visitors', 'votes') as $table)
+		{
+			$remaining = $db->query("SELECT COUNT(*) FROM p3_plus_dl_$table WHERE owner_id=87")->fetch_row()[0];
+			check_fixture((int) $remaining === 0, 'A download record retained a deleted owner in ' . $table);
+		}
+		$grants = $db->query("SELECT COUNT(*) FROM p3_plus_dl_grants WHERE subject_type='u' AND subject_id=87")->fetch_row()[0];
+		check_fixture((int) $grants === 0, 'The deleted download account retained a grant');
+	}
+}
 elseif ($argv[1] === 'kb-category-cleanup')
 {
 	verify_knowledgebase_category_removal($db);

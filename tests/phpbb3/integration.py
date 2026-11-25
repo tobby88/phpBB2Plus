@@ -162,42 +162,59 @@ def verify_upstream(web, cache):
     return count
 
 
-def module_administration(base, member, ordinary, pending, fixture, target, web):
-    started = monotonic()
-
-    def download_checks(gallery_run, admin, historical, applicant):
-        downloads.browse(base, admin, historical, applicant)
-        php(fixture, "downloaded", target)
-        # Permission edits use their own category tree. Complete them before the
-        # category manager takes a snapshot of destinations and grants.
-        with ThreadPoolExecutor(max_workers=1) as worker:
-            permissions = worker.submit(download_permissions.administration,
-                                        *(actor.separate_client() for actor in (admin, historical, applicant)),
-                                        lambda phase: php(ROOT / "tests/phpbb3/download_permissions.php", target, phase, cwd=web))
-            def verify_licence(phase):
-                php(ROOT / "tests/phpbb3/download_licenses.php", target, phase, cwd=web)
-            download_licenses.agreements(historical, verify_licence)
-            download_licenses.administration(admin, historical, verify_licence)
-            def verify_fields(phase):
-                php(ROOT / "tests/phpbb3/download_fields.php", target, phase, cwd=web)
-            download_fields.runtime(admin, historical, verify_fields)
-            download_fields.administration(admin, historical, verify_fields)
-            download_mirrors.administration(admin, historical, lambda phase: php(
-                ROOT / "tests/phpbb3/download_mirrors.php", target, phase, cwd=web))
-            download_file_actions.administration(admin, historical, lambda phase: php(
-                ROOT / "tests/phpbb3/download_file_actions.php", target, phase, cwd=web))
-            download_file_editor.administration(admin, historical, lambda phase: php(
-                ROOT / "tests/phpbb3/download_file_editor.php", target, phase, cwd=web))
-            # The storage-failure case temporarily switches the board's upload directory.
+def download_checks(base, admin, historical, applicant, fixture, target, web, gallery_run=None):
+    downloads.browse(base, admin, historical, applicant)
+    php(fixture, "downloaded", target)
+    # Permission edits use their own category tree. Complete them before the
+    # category manager takes a snapshot of destinations and grants.
+    with ThreadPoolExecutor(max_workers=1) as worker:
+        permissions = worker.submit(download_permissions.administration,
+                                    *(actor.separate_client() for actor in (admin, historical, applicant)),
+                                    lambda phase: php(ROOT / "tests/phpbb3/download_permissions.php", target, phase, cwd=web))
+        def verify_licence(phase):
+            php(ROOT / "tests/phpbb3/download_licenses.php", target, phase, cwd=web)
+        download_licenses.agreements(historical, verify_licence)
+        download_licenses.administration(admin, historical, verify_licence)
+        def verify_fields(phase):
+            php(ROOT / "tests/phpbb3/download_fields.php", target, phase, cwd=web)
+        download_fields.runtime(admin, historical, verify_fields)
+        download_fields.administration(admin, historical, verify_fields)
+        download_mirrors.administration(admin, historical, lambda phase: php(
+            ROOT / "tests/phpbb3/download_mirrors.php", target, phase, cwd=web))
+        download_file_actions.administration(admin, historical, lambda phase: php(
+            ROOT / "tests/phpbb3/download_file_actions.php", target, phase, cwd=web))
+        download_file_editor.administration(admin, historical, lambda phase: php(
+            ROOT / "tests/phpbb3/download_file_editor.php", target, phase, cwd=web))
+        # The storage-failure case temporarily switches the board's upload directory.
+        if gallery_run is not None:
             gallery_run.result()
-            downloads.submissions(base, admin, historical, applicant,
-                                  lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
-            permissions.result()
-            download_reports.browse(base, historical, applicant, lambda phase: php(
-                ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
-            # The settings test temporarily closes the download area and restores its global policy.
-            download_settings.administration(admin, historical, lambda phase: php(
-                ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
+        downloads.submissions(base, admin, historical, applicant,
+                              lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
+        permissions.result()
+        download_reports.browse(base, historical, applicant, lambda phase: php(
+            ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
+        # The settings test temporarily closes the download area and restores its global policy.
+        download_settings.administration(admin, historical, lambda phase: php(
+            ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
+
+
+def download_category_checks(admin, target, web):
+    def verify(phase):
+        php(ROOT / "tests/phpbb3/download_categories.php", target, phase, cwd=web)
+    verify("roles")
+    download_categories.administration(admin, verify)
+
+
+def download_report_upgrade(target, web):
+    fixture = ROOT / "tests/phpbb3/download_reports.php"
+    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
+    php(fixture, target, "older", cwd=web)
+    php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
+    php(fixture, target, "upgraded", cwd=web)
+
+
+def module_administration(base, member, ordinary, pending, fixture, target, web, include_downloads):
+    started = monotonic()
 
     def gallery_checks(admin, historical, applicant):
         gallery.browse(base, admin, historical, applicant)
@@ -207,29 +224,33 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
     with ThreadPoolExecutor(max_workers=2) as workers:
         people = (member, ordinary, pending)
         gallery_run = workers.submit(gallery_checks, *(actor.separate_client() for actor in people))
-        download_run = workers.submit(download_checks, gallery_run, *(actor.separate_client() for actor in people))
+        if include_downloads:
+            download_run = workers.submit(download_checks, base, *(actor.separate_client() for actor in people),
+                                          fixture, target, web, gallery_run)
         knowledgebase.administration(member)
         knowledgebase.type_administration(member)
         knowledgebase.category_administration(member)
         php(fixture, "kb-category-cleanup", target)
         knowledgebase.settings_administration(member, pending)
-        download_run.result()
-        def verify_category(phase):
-            php(ROOT / "tests/phpbb3/download_categories.php", target, phase, cwd=web)
-        verify_category("roles")
-        category_run = workers.submit(download_categories.administration, member.separate_client(), verify_category)
+        gallery_run.result()
+        if include_downloads:
+            download_run.result()
+            category_run = workers.submit(download_category_checks, member.separate_client(), target, web)
         # All membership-sensitive KB and download cases are now finished. The
         # download category tree is independent of these private album operations.
         gallery_personal.browse(base, member, ordinary, pending,
                                 lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
-        category_run.result()
-    print(f"Knowledge Base, downloads and gallery workflows: {monotonic()-started:.1f}s", flush=True)
+        if include_downloads:
+            category_run.result()
+    print(f"Module administration and gallery workflows: {monotonic()-started:.1f}s", flush=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--suite", choices=("all", "forum", "downloads"), default="all",
+                        help="Run the full converted board or one of the independent CI suites")
     args = parser.parse_args()
     if os.environ.get("PLUS_TEST_DATABASE") != "1":
         parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
@@ -274,10 +295,22 @@ def main():
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
                 login(base, "ModernMember", "incorrect", expect_success=False)
                 php(fixture, "hashes-unchanged", target)
-                member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+                if args.suite == "downloads":
+                    member, _ = delegation.authenticate(base, "ModernMember")
+                else:
+                    member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
+                if args.suite == "downloads":
+                    download_checks(base, member, ordinary, pending, fixture, target, web)
+                    download_category_checks(member, target, web)
+                    php(fixture, "download-voter", target)
+                    php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
+                    php(fixture, "download-departed", target)
+                    download_report_upgrade(target, web)
+                    print(f"Verified {count} upstream files, conversion and download workflows in {monotonic()-start:.1f}s")
+                    return
                 board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
                 print_topics.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/print_topics.php", phase, target, cwd=web))
@@ -389,10 +422,14 @@ def main():
                     knowledgebase.reply_preferences(base, member, lambda phase: php(fixture, phase, target))
                     php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                     navigation.result()
-                module_administration(base, member, ordinary, pending, fixture, target, web)
+                module_administration(base, member, ordinary, pending, fixture, target, web, args.suite == "all")
                 former_names(base, ordinary)
                 removed_posts.converted(base, ordinary, member)
+                if args.suite == "all":
+                    php(fixture, "download-voter", target)
                 php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
+                if args.suite == "all":
+                    php(fixture, "download-departed", target)
                 former_names(base, ordinary, removed=True, founder=member)
                 gallery.departed(base, ordinary)
                 post_icons.browse(member, ordinary, json.loads(php(fixture, "post-icons", target, capture=True)))
@@ -404,6 +441,8 @@ def main():
                 removed_posts.native(base, positions)
                 php(removal_fixture, target, positions["posts"][4], cwd=web)
                 removed_posts.restored(base, positions)
+                if args.suite == "all":
+                    download_report_upgrade(target, web)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 
