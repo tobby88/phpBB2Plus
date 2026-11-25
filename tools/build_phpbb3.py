@@ -98,6 +98,35 @@ def bundle_flags(web):
     (dest / "flags.json").write_text(json.dumps(catalog, ensure_ascii=True), encoding="ascii")
 
 
+def bundle_post_icons(web):
+    source = ROOT / "phpBB2"
+    text = (source / "includes/icon_defaults.php").read_text(encoding="utf-8")
+    icons = []
+    destination = web / "images/icons/plus"
+    destination.mkdir()
+    for item in re.finditer(r"'ind'\s*=>\s*(\d+),\s*'img'\s*=>\s*'([^']*)',\s*'alt'\s*=>\s*'(\w+)',\s*'auth'\s*=>\s*(\d+)", text):
+        index, image, label, level = item.groups()
+        if not int(index):
+            continue
+        if not re.fullmatch(r"images/icon/icon\d+\.gif", image):
+            raise ValueError("Unexpected image in the bundled post icon catalogue")
+        name = Path(image).name
+        shutil.copyfile(source / image, destination / name)
+        icons.append(dict(id=int(index), image="plus/" + name, label=label, level=int(level)))
+    defaults = {key: int(value) for key, value in re.findall(
+        r"'(POST_[A-Z_]+)'\s*=>\s*array\(\s*'lang_key'\s*=>\s*'\w+',\s*'icon'\s*=>\s*(\d+)", text)}
+    if len({icon["id"] for icon in icons}) != 22 or len(defaults) != 8:
+        raise ValueError("Incomplete Plus post icon catalogue")
+    titles = {}
+    for locale, old in (("en", "english"), ("de", "german")):
+        lang = (source / "language" / ("lang_" + old) / "lang_extend_post_icons.php").read_text(encoding="utf-8")
+        titles[locale] = dict(re.findall(r"^\$lang\['(icon_\w+)'\]\s*=\s*'([^']*)';", lang, re.M))
+        if any(icon["label"] not in titles[locale] for icon in icons):
+            raise ValueError("Missing post icon translation for " + locale)
+    manifest = web / "ext/phpbb2plus/community/data/post_icons.json"
+    manifest.write_text(json.dumps(dict(icons=icons, defaults=defaults, titles=titles), ensure_ascii=False), encoding="utf-8")
+
+
 def assemble(output, cache, offline=False):
     output = output.resolve()
     overlay = ROOT / "phpBB3"
@@ -121,6 +150,7 @@ def assemble(output, cache, offline=False):
             shutil.copyfile(source, target)
         images = web / "styles" / "fisubsilversh" / "theme" / "images"
         bundle_flags(web)
+        bundle_post_icons(web)
         runtime = ROOT / "phpBB2/assets/ruffle"
         player = web / "assets/ruffle"
         player.mkdir()

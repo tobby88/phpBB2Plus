@@ -1,4 +1,9 @@
 services:
+    phpbb2plus.community.post_icons:
+        class: phpbb2plus\community\event\post_icons
+        arguments: ['@dbal.conn', '@config', '@user', '@auth', '@template', '@request', '@cache']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.polls:
         class: phpbb2plus\community\event\polls
         arguments: ['@dbal.conn', '@user']

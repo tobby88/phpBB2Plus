@@ -14,6 +14,8 @@ class ext extends \phpbb\extension\base
 				WHERE plus_paused_type=1 AND field_type='profilefields.type.text'");
 			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . ' SET field_no_view=0,plus_paused_view=0 WHERE plus_paused_view=1');
 			$this->container->get('profilefields.manager')->enable_profilefields('profilefields.type.plus_multi');
+			$db->sql_query('UPDATE ' . ICONS_TABLE . ' SET display_on_posting=1,plus_icon_paused=0 WHERE plus_icon_paused=1');
+			$this->container->get('cache.driver')->destroy('_icons');
 			$db->sql_transaction('commit');
 		}
 		catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
@@ -28,6 +30,11 @@ class ext extends \phpbb\extension\base
 		try
 		{
 			$this->container->get('profilefields.manager')->disable_profilefields('profilefields.type.plus_multi');
+			if ($this->container->get('dbal.tools')->sql_column_exists(ICONS_TABLE,'plus_icon_paused'))
+			{
+				$db->sql_query('UPDATE ' . ICONS_TABLE . ' SET display_on_posting=0,plus_icon_paused=1 WHERE plus_icon_level>0 AND display_on_posting=1');
+				$this->container->get('cache.driver')->destroy('_icons');
+			}
 			// The native new-account default builder also visits inactive fields and needs a registered type.
 			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . " SET field_type='profilefields.type.text',plus_paused_type=1
 				WHERE field_type='profilefields.type.plus_multi'");

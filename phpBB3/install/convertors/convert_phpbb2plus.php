@@ -25,6 +25,7 @@ $tables[] = 'news';
 $tables[] = 'portal';
 $tables[] = 'plus';
 $tables[] = 'color_groups';
+$tables[] = 'post_icon_config';
 
 if (!$get_info)
 {
@@ -41,8 +42,11 @@ if (!$get_info)
 	$src_db->sql_freeresult($result);
 	$convertor['test_file'] = $test_file;
 	$convertor['execute_first'] = str_replace('import_avatar_gallery();', 'plus_import_avatar_gallery();', $convertor['execute_first']);
+	// Schema hooks run after the wizard resets the destination media issue report.
+	$convertor['schema'][0]['execute_first'] = ($convertor['schema'][0]['execute_first'] ?? '') . ' plus_import_post_icons();';
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_media_issues');
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
+	$convertor['execute_last'][] = 'plus_enable_post_icons();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
@@ -85,6 +89,10 @@ if (!$get_info)
 		{
 			if (!is_int($key)) { continue; }
 			if ($field[2] === 'phpbb_prepare_message') { $field[2] = 'plus_convert_message'; }
+			if ($field[0] === 'icon_id' && in_array($section['target'],array(TOPICS_TABLE,POSTS_TABLE),true))
+			{
+				$field = array('icon_id',$section['target'] === TOPICS_TABLE ? 'topics.topic_icon' : 'posts.post_icon','plus_post_icon_id');
+			}
 			if (in_array($field[0], array('post_attachment', 'topic_attachment', 'message_attachment'), true))
 			{
 				// Rebuild these markers from the attachments actually owned by each item.

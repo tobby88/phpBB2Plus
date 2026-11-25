@@ -80,6 +80,17 @@ if ($argv[1] === 'seed')
 		VALUES (42,1,1,87,'7f000001',1234501000)");
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (42,'Account fixture','Account removal fixture')");
 	seed_gallery($db);
+	$catalogue = unserialize($db->query('SELECT config_value FROM phpbb_post_icon_config WHERE config_id=1')->fetch_row()[0],array('allowed_classes'=>false));
+	$catalogue['icons'][] = array('ind'=>90,'img'=>'images/icon/icon3.gif','alt'=>'icon_idea','auth'=>1);
+	$catalogue['icons'][] = array('ind'=>91,'img'=>'images/icon/withdrawn.gif','alt'=>'Withdrawn','auth'=>0);
+	$catalogue['special']['POST_CALENDAR']['icon']=22;
+	$update_icons = $db->prepare('UPDATE phpbb_post_icon_config SET config_value=? WHERE config_id=1');
+	$serialized_icons = serialize($catalogue);
+	$update_icons->bind_param('s',$serialized_icons);
+	$update_icons->execute();
+	$db->query('UPDATE phpbb_topics SET topic_icon=0 WHERE topic_id=1');
+	$db->query('UPDATE phpbb_topics SET topic_icon=3 WHERE topic_id=2');
+	$db->query('UPDATE phpbb_posts SET post_icon=3 WHERE post_id=1');
 	$db->query("INSERT INTO phpbb_color_groups (group_id,group_name,group_color,hidden,order_num)
 		VALUES (6,'Redaktion &amp; Gäste','#5a769B',0,8),(7,'Hidden palette','navy',1,-2),(8,'Invalid colour','not-a-colour',0,9)");
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user,group_color_group)
@@ -123,6 +134,11 @@ elseif ($argv[1] === 'profile-media')
 	$id = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
 	echo json_encode(verify_profile_media($db, $id));
 }
+elseif ($argv[1] === 'post-icons')
+{
+	$rows = $db->query('SELECT plus_icon_id,icons_id,icons_url,icons_width,icons_height,icons_alt,display_on_posting FROM p3_icons WHERE plus_icon_id>0')->fetch_all(MYSQLI_ASSOC);
+	echo json_encode(array_column($rows,null,'plus_icon_id'));
+}
 elseif (in_array($argv[1],array('colours-disable','colours-enable'),true))
 {
 	$enabled = $argv[1] === 'colours-enable';
@@ -145,6 +161,11 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
 	if ($argv[1] !== 'converted') { return; }
 	$historic_id = (int) $users[0]['user_id'];
+	$icon = $db->query('SELECT i.plus_icon_id,i.icons_width,i.icons_height FROM p3_posts p JOIN p3_icons i ON i.icons_id=p.icon_id WHERE p.post_id=1')->fetch_row();
+	$topic_icon = $db->query('SELECT i.plus_icon_id FROM p3_topics t JOIN p3_icons i ON i.icons_id=t.icon_id WHERE t.topic_id=2')->fetch_row();
+	$unavailable = $db->query("SELECT source_id FROM p3_plus_media_issues WHERE asset_kind='post-icon'")->fetch_row();
+	check_fixture($icon && (int) $icon[0]===3 && (int) $icon[1]>0 && (int) $icon[2]>0 && (int) $topic_icon[0]===3 &&
+		(int) $unavailable[0]===91,'Converted post/topic selectors, image dimensions or missing artwork report were lost');
 	$colours = $db->query("SELECT user_id,user_colour,plus_colour_applied,plus_colour_id FROM p3_users WHERE user_id IN (2,87,$historic_id)")->fetch_all(MYSQLI_ASSOC);
 	$by_user = array_column($colours,null,'user_id');
 	check_fixture($by_user[2]['user_colour']==='FF0000' && $by_user[$historic_id]['user_colour']==='000080'

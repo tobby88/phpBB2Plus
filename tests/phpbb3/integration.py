@@ -21,6 +21,7 @@ import news
 import portal
 import custom_profiles
 import colours
+import post_icons
 import legacy_links
 import downloads
 import profile_media
@@ -197,6 +198,7 @@ def main():
                 php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                 former_names(base, ordinary, removed=True)
                 gallery.departed(base, ordinary)
+                post_icons.browse(member, ordinary, json.loads(php(fixture, "post-icons", target, capture=True)))
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")

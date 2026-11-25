@@ -138,7 +138,7 @@ def server(web, root):
 
 
 def source_files(source, target):
-    for directory in ("images/smiles", "images/ranks", "images/avatars/gallery", "images/flags"):
+    for directory in ("images/smiles", "images/ranks", "images/avatars/gallery", "images/flags", "images/icon"):
         if (source / directory).is_dir():
             shutil.copytree(source / directory, target / directory)
     news = Path("templates/fisubsilversh/images/news")
