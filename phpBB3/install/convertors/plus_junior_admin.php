@@ -73,17 +73,24 @@ function plus_jr_registry()
 		'admin_kb_cat.php' => '863dc52eacce55c3c07f348a334afb4b12f5d807b796e390184e416e58b34b39',
 		'admin_pa_category.php' => 'e9ce286f24b744c64d27055848046ddd874a23eb99f9bbe3b4e6e8b3f7ed3b00',
 		'admin_pa_catauth.php' => '82f9f61690992ab2986c841535e13cd0678d838f0c180b1c8166a2cf043b489e',
+		'admin_pa_license.php' => '32dc2e04ca66019c8b2e02cf77a14d2ad15256543844ab154bd915ead4fbb76c',
 		'admin_album_cat.php' => '621ff302762cb0bad95c8a0039445bbdc1b94b4d7ee3d01e7fe669b30447c406',
+		'admin_album_auth.php' => '6a79dbf47486d217b4660903ef30efa8b35a85c99daa72b04bd88766e2742767',
 		'admin_hacks_list.php' => '12e39f97b24f72134803b9d4e82dbf0453240bc5c18ddda038278d4a3d73e9f1',
 	);
 	// These controllers share or delegate their actual write authority. A customised
 	// or absent helper can narrow the source grant despite an unchanged menu entry.
+	$file_authority = array(
+		'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+		'pafiledb/includes/functions_file_authority.php' => 'd875f99ae5eafa9a2398fbc89fefd86cc406a7d91633290834c62b77023ba2a1',
+	);
 	$dependencies = array(
-		'admin_pa_catauth.php' => array(
+		'admin_pa_catauth.php' => $file_authority + array(
 			'admin_pa_ug_auth.php' => 'fa7397cc5100fd2dbeb871477fc5bc166d63a5d3ff789df671ce1a5e09edcd01',
-			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
-			'pafiledb/includes/functions_file_authority.php' => 'd875f99ae5eafa9a2398fbc89fefd86cc406a7d91633290834c62b77023ba2a1',
 			'pafiledb/includes/functions_permission_storage.php' => '4b9503464cdb3e0e7a5ec3426a116f0c6e0cb6c251a6ad5ebebac1d78900c450',
+		),
+		'admin_pa_license.php' => $file_authority + array(
+			'pafiledb/includes/functions_license_storage.php' => '65f0f934e1574795548a1d9a52add58a77b7a3fb5e72cf59e6f1b62efdf92300',
 		),
 		'admin_album_cat.php' => array(
 			'album_mod/album_admin_category_storage.php' => '872eab0aaf53f1ec8201ff7b91dbfc44d334187c7bc813de5ed43f078f8b5f2f',

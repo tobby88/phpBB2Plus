@@ -18,7 +18,8 @@ def source_modules(source, target):
     for file in (source / "admin").glob("admin_*.php"):
         shutil.copyfile(file, directory / file.name)
     for path in ("includes/functions_jr_admin_auth.php", "pafiledb/includes/functions_file_authority.php",
-                 "pafiledb/includes/functions_permission_storage.php", "album_mod/album_admin_category_storage.php",
+                 "pafiledb/includes/functions_permission_storage.php", "pafiledb/includes/functions_license_storage.php",
+                 "album_mod/album_admin_category_storage.php",
                  "album_mod/album_category_remove.php", "album_mod/album_lifecycle_authority.php"):
         (target / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / path, target / path)
@@ -51,7 +52,9 @@ def module_roles(base):
     modules = {
         "DownloadCategoryJunior": ("-phpbb2plus-downloads-acp-categories_module", "action=edit&category=23", "dl-category", "summary", "Delegated category edit"),
         "DownloadAccessJunior": ("-phpbb2plus-downloads-acp-permissions_module", "section=edit&category=21", "dl-permissions", "values[view]", "1"),
+        "DownloadLicenseJunior": ("-phpbb2plus-downloads-acp-licenses_module", "action=edit&ids=31", "dl-license-admin", "name", "Delegated licence edit"),
         "AlbumCategoryJunior": ("-phpbb2plus-gallery-acp-categories_module", "action=edit&category=8", "album-public-category", "description", "Delegated album edit"),
+        "AlbumAccessJunior": ("-phpbb2plus-gallery-acp-permissions_module", "category=8", "album-category-grants", "grant[71][comment]", "1"),
         "CreditsJunior": ("-phpbb2plus-community-acp-credits_module", "action=edit&credit=19001", "plus-credit", "title", "Delegated credits edit"),
     }
 
@@ -65,19 +68,24 @@ def module_roles(base):
                         raise RuntimeError(f"{username} could open the separately delegated {module}")
                     continue
                 page = browser.fetch(url)
-                original = FormFields(page, form).values[field]
+                controls = FormFields(page, form).values
+                if "form_token" not in controls:
+                    raise RuntimeError(f"{username} could not open its mapped form {form}")
+                original = controls.get(field)
                 if original == new_value:
                     raise RuntimeError(f"Expected a different starting value for {module}")
                 for value in (new_value, original):
                     submit_form(browser, url, page, form, {field: value})
                     page = browser.fetch(url)
-                    if FormFields(page, form).values.get(field) != value:
+                    controls = FormFields(page, form).values
+                    if "form_token" not in controls or controls.get(field) != value:
                         raise RuntimeError(f"{username} could not save its mapped {field} in {module}")
 
-    # Download categories and their ACLs share one catalogue. Keep their two
-    # round trips sequential while the independently stored album and credits run.
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior"), ("AlbumCategoryJunior", "CreditsJunior"))))
+    # Each catalogue shares its write lock and revisions. Keep edits within it
+    # sequential while testing the independent download, album and credit stores.
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior"),
+                                 ("AlbumCategoryJunior", "AlbumAccessJunior"), ("CreditsJunior",))))
 
 
 def browse(base):

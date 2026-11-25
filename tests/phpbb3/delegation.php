@@ -14,6 +14,8 @@ function delegation_fixture_roles()
 		47 => array('DownloadAccessJunior', 'DownloadPermissionsadmin_pa_catauth.php', 'a_plus_dl_perms'),
 		48 => array('AlbumCategoryJunior', 'Photo_AlbumCategoriesadmin_album_cat.php', 'a_plus_album_categories'),
 		49 => array('CreditsJunior', 'GeneralHacks_Listadmin_hacks_list.php', 'a_plus_credits'),
+		50 => array('AlbumAccessJunior', 'Photo_AlbumPermissionsadmin_album_auth.php', 'a_plus_album_auth'),
+		51 => array('DownloadLicenseJunior', 'DownloadLicense_titleadmin_pa_license.php', 'a_plus_dl_licenses'),
 	);
 }
 
