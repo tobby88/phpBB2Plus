@@ -51,6 +51,16 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'banner':
 			if ($id = $positive('banner_id')) { $path = 'banners/' . $id . '/visit'; }
 			break;
+		case 'groupcp':
+			if (!isset($query['g']))
+			{
+				$base = './'; $path = 'ucp.php'; $extra = array('i' => 'ucp_groups', 'mode' => 'membership');
+			}
+			elseif ($group = $positive('g'))
+			{
+				$path = 'legacy/group/' . $group . '/' . (isset($query['validate']) ? 'requests' : 'members') . '/' . $positive('start');
+			}
+			break;
 		case 'profile':
 			$mode = $query['mode'] ?? '';
 			if (in_array($mode, array('viewprofile','email'), true))
@@ -213,7 +223,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 	}
 	if ($path === '') { http_response_code(404); return; }
-	if (!in_array($entry, array('calendar','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	header('Location: ' . $base . $path . $search . $anchor, true, 302);
 }

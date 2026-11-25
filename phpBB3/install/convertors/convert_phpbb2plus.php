@@ -218,6 +218,7 @@ if (!$get_info)
 		if ($section['target'] === PRIVMSGS_FOLDER_TABLE) { $section[] = array('plus_legacy_savebox', 1, ''); }
 		if ($section['target'] === GROUPS_TABLE)
 		{
+			$section[] = array('plus_legacy_group', 1, '');
 			$section[] = array('plus_colour_id','groups.group_color_group','intval');
 		}
 		if ($section['target'] === TOPICS_TABLE)

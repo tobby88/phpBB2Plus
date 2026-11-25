@@ -2,7 +2,7 @@
 from http.client import HTTPConnection
 from urllib.parse import parse_qs, urljoin, urlsplit
 
-from http_board import Browser
+from http_board import Browser, Page
 
 
 def link(base, path, expected_path, query, fragment="", method="GET"):
@@ -28,6 +28,9 @@ def browse(base, owner, historic_id):
     cases = (
         ("hacks_list.php", "app.php/credits", {}, ""),
         ("staff.php", "memberlist.php", {"mode": "team"}, ""),
+        ("groupcp.php", "ucp.php", {"i": "ucp_groups", "mode": "membership"}, ""),
+        ("groupcp.php?g=73&start=25", "app.php/legacy/group/73/members/25", {}, ""),
+        ("groupcp.php?g=79&validate=true", "app.php/legacy/group/79/requests/0", {}, ""),
         ("profile_options.php", "ucp.php", {"i": "ucp_prefs", "mode": "personal"}, ""),
         ("privmsg.php?mode=newpm", "ucp.php", {"i": "pm", "mode": "view", "folder": "inbox"}, ""),
         ("privmsg.php?folder=sentbox&start=10", "ucp.php", {"i": "pm", "mode": "view", "folder": "sentbox", "start": 10}, ""),
@@ -80,3 +83,21 @@ def browse(base, owner, historic_id):
     if "Private fixture text" in guest.fetch("fpost40.html") or "Private fixture text" not in owner.fetch("fpost40.html"):
         raise RuntimeError("Old post link changed the forum's read permissions")
     guest.fetch("profile.php?mode=register", {}, expected_status=405)
+
+
+def groups(base, owner, member, pending, native_group):
+    guest = Browser(base)
+    if "login" not in Page(guest.fetch("groupcp.php?g=73")).forms:
+        raise RuntimeError("A guest group bookmark did not open the login form")
+    for actor in (owner, member):
+        roster = actor.fetch("groupcp.php?g=73&validate=true")
+        if "Archive Club" not in roster or 'name="usernames"' in roster:
+            raise RuntimeError("The converted group bookmark did not open the group roster")
+    pending.fetch("groupcp.php?g=77", expected_status=404)
+    owner.fetch("groupcp.php?g=" + str(native_group), expected_status=404)
+    if "Approved leader" not in member.fetch("groupcp.php?g=79"):
+        raise RuntimeError("The converted group leader could not see their group")
+    request = member.fetch("groupcp.php?g=79&validate=true")
+    if "Approved leader" not in request or 'name="usernames"' not in request or "ucp" not in Page(request).forms:
+        raise RuntimeError("A group leader's notification did not open native membership management")
+    guest.fetch("groupcp.php?g=73", {}, expected_status=405)

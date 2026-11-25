@@ -8,6 +8,11 @@ phpbb2plus_community_member_link:
     defaults: { _controller: phpbb2plus.community.legacy:member_link }
     requirements: { source: '[1-9][0-9]{0,9}', mode: 'viewprofile|email' }
     methods: [GET, HEAD]
+phpbb2plus_community_group_link:
+    path: /legacy/group/{source}/{view}/{start}
+    defaults: { _controller: phpbb2plus.community.legacy:group_link }
+    requirements: { source: '[1-9][0-9]{0,9}', view: 'members|requests', start: '[0-9]{1,10}' }
+    methods: [GET, HEAD]
 phpbb2plus_community_portal:
     path: /portal
     defaults: { _controller: phpbb2plus.community.portal:handle }

@@ -249,6 +249,7 @@ def main():
                 media = json.loads(php(fixture, "profile-media", target, capture=True))
                 profile_media.browse(ordinary, member, media)
                 legacy_links.browse(base, member, media["member"])
+                legacy_links.groups(base, member, ordinary, pending, int(php(fixture, "group-bookmarks", target, capture=True)))
                 credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
                 # The calendar test reauthenticates the founder. Credit edits have

@@ -93,6 +93,34 @@ class legacy
 		return $this->destination('memberlist', array('mode'=>$mode, 'u'=>$id));
 	}
 
+	public function group_link($source, $view, $start)
+	{
+		$group = (int) $source;
+		$start = (int) $start;
+		if (empty($this->user->data['is_registered']))
+		{
+			$return = 'groupcp.' . $this->ext . '?g=' . $group . ($view === 'requests' ? '&validate=1' : '') . ($start ? '&start=' . $start : '');
+			return $this->destination('ucp', array('mode' => 'login', 'redirect' => $return));
+		}
+		// Converted named groups retain their ID. A new group can reuse a retired number.
+		$result = $this->db->sql_query('SELECT g.group_type, ug.user_id, ug.group_leader FROM ' . GROUPS_TABLE . ' g
+			LEFT JOIN ' . USER_GROUP_TABLE . ' ug ON ug.group_id=g.group_id AND ug.user_pending=0 AND ug.user_id=' . (int) $this->user->data['user_id'] . '
+			WHERE g.plus_legacy_group=1 AND g.group_id=' . $group);
+		$row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		if (!$row || ((int) $row['group_type'] === GROUP_HIDDEN && !$row['user_id'] && !$this->auth->acl_gets('a_group', 'a_groupadd', 'a_groupdel')))
+		{
+			throw new NotFoundHttpException();
+		}
+		if ($view === 'requests' && $row['group_leader'])
+		{
+			return $this->destination('ucp', array('i' => 'ucp_groups', 'mode' => 'manage', 'action' => 'list', 'g' => $group));
+		}
+		$params = array('mode' => 'group', 'g' => $group);
+		if ($start) { $params['start'] = $start; }
+		return $this->destination('memberlist', $params);
+	}
+
 	private function mail_login($query)
 	{
 		return $this->destination('ucp', array('mode' => 'login', 'redirect' => 'privmsg.' . $this->ext . '?' . $query));

@@ -216,6 +216,14 @@ elseif ($argv[1] === 'banner-clicks')
 	check_fixture($row['views'] === '18446744073709551615.00' && (int) $db->query('SELECT views FROM p3_plus_banners WHERE banner_id=21')->fetch_row()[0] === 0,
 		'Banner views overflowed the original counter or counted a placement outside its schedule');
 }
+elseif ($argv[1] === 'group-bookmarks')
+{
+	$groups = $db->query("SELECT group_name,plus_legacy_group FROM p3_groups WHERE group_name IN ('Archive Club','Approved leader','REGISTERED')")->fetch_all(MYSQLI_ASSOC);
+	$flags = array_column($groups, 'plus_legacy_group', 'group_name');
+	check_fixture(count($flags) === 3 && (int) $flags['Archive Club'] === 1 && (int) $flags['Approved leader'] === 1 &&
+		(int) $flags['REGISTERED'] === 0, 'Original and native-only group identities were mixed during conversion');
+	echo (int) $db->query("SELECT group_id FROM p3_groups WHERE group_name='REGISTERED'")->fetch_row()[0];
+}
 elseif (in_array($argv[1], array('mail-bookmarks-off','mail-bookmarks-on'), true))
 {
 	$state = (int) ($argv[1] === 'mail-bookmarks-on');
