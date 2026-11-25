@@ -82,8 +82,9 @@ class access
 	public function watermark_strength()
 	{
 		if ((int) $this->setting('use_watermark', 0, 'sp') !== 1) { return 0; }
+		$forum = array('m_edit','m_delete','m_lock','m_approve','m_move','m_split','m_merge');
 		$staff = !empty($this->user->data['is_registered']) &&
-			($this->administrator() || $this->auth->acl_get('m_') || $this->auth->acl_getf_global('m_'));
+			($this->administrator() || $this->auth->acl_gets($forum) || $this->auth->acl_getf_global($forum));
 		if (!$staff) { return 50; }
 		return (int) $this->setting('wut_users', 0, 'sp') === 1 ? 70 : 0;
 	}

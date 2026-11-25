@@ -190,6 +190,7 @@ def main():
                 downloads.browse(base, member, ordinary, pending)
                 php(fixture, "downloaded", target)
                 playback(web, base, root)
+                php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
                 knowledgebase.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                 gallery.browse(base, member, ordinary, pending)

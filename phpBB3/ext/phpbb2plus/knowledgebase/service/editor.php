@@ -119,7 +119,9 @@ class editor
 			if ($a && (int) $a['revision'] !== $revision) { throw new \DomainException('PLUS_KB_CONFLICT'); }
 			if (!$form['category'] || !$this->articles->trail($form['category']) || !in_array($form['type'], array_map('intval', array_column($this->types(), 'type_id')), true))
 			{ throw new \DomainException('PLUS_KB_INVALID_CATEGORY'); }
-			$can_publish = $this->articles->moderator() || (!$a && !empty($this->user->data['is_registered']) && ($this->auth->acl_get('m_') || $this->auth->acl_getf_global('m_')));
+			$forum = array('m_edit','m_delete','m_lock','m_approve','m_move','m_split','m_merge');
+			$can_publish = $this->articles->moderator() || (!$a && !empty($this->user->data['is_registered']) &&
+				($this->auth->acl_gets($forum) || $this->auth->acl_getf_global($forum)));
 			$approval = $can_publish || !(int) $this->articles->setting($a ? 'approve_edit' : 'approve_new', 1) ? 1 : ($a ? 2 : 0);
 			$row = array('cat_id' => $form['category'], 'type_id' => $form['type'], 'title' => $form['title'], 'description' => $form['description'],
 				'created_at' => time(), 'editor_text' => $form['body'], 'search_text' => preg_replace('/\[\/?[a-z][a-z0-9]*(?:[=:\s][^\]\r\n]*)?\]/i', ' ', $form['body']),

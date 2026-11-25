@@ -51,6 +51,8 @@ def browse(base, moderator, member, applicant):
     if moderator.fetch(media + "full", raw=True) != ORIGINAL:
         raise RuntimeError("The staff full-size original differs from the source")
     protected = guest.fetch(media + "full", raw=True)
+    if member.fetch(media + "full", raw=True) != protected:
+        raise RuntimeError("A Knowledge Base moderator received a different album watermark from other readers")
     if protected != guest.fetch("album_pic.php?pic_id=100", raw=True) or moderator.fetch("album_pic.php?pic_id=100", raw=True) != ORIGINAL:
         raise RuntimeError("A legacy direct image link did not apply the current viewer's media policy")
     full_page = guest.fetch("album_showpage.php?full=&pic_id=100")

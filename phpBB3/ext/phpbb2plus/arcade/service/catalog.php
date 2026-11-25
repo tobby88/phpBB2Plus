@@ -46,7 +46,9 @@ class catalog
 
 	public function staff()
 	{
-		return !empty($this->user->data['is_registered']) && ($this->admin() || $this->auth->acl_get('m_plus_arcade') || $this->auth->acl_get('m_') || $this->auth->acl_getf_global('m_'));
+		$forum = array('m_edit','m_delete','m_lock','m_approve','m_move','m_split','m_merge');
+		return !empty($this->user->data['is_registered']) && ($this->admin() || $this->auth->acl_get('m_plus_arcade')
+			|| $this->auth->acl_gets($forum) || $this->auth->acl_getf_global($forum));
 	}
 
 	private function groups()
