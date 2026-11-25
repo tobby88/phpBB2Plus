@@ -26,6 +26,7 @@ def link(base, path, expected_path, query, fragment="", method="GET"):
 
 def browse(base, owner, historic_id):
     cases = (
+        ("hacks_list.php", "app.php/credits", {}, ""),
         ("kb.php?mode=stats&stats=toprated&start=12", "app.php/knowledge/statistics/toprated", {"start": 12}, ""),
         ("album.php?user_id=0", "app.php/album", {}, ""),
         ("album.php?user_id=-1", "app.php/album/legacy/member/0", {}, ""),

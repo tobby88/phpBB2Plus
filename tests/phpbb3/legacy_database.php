@@ -23,6 +23,7 @@ require __DIR__ . '/downloads.php';
 require __DIR__ . '/banners.php';
 require __DIR__ . '/delegation.php';
 require __DIR__ . '/historical_actions.php';
+require __DIR__ . '/credits.php';
 
 if ($argv[1] === 'seed')
 {
@@ -117,6 +118,7 @@ if ($argv[1] === 'seed')
 	seed_custom_profiles($db);
 	seed_delegation($db);
 	seed_historical_actions($db);
+	seed_credits($db);
 	$db->query("UPDATE phpbb_portal SET portal_value='<center>Grüße aus dem <b>Archiv</b><br><a href=\"ftopic1.html\">Forum</a><img src=\"templates/fisubsilversh/images/news/topicnews.gif\" alt=\"Briefkopf\"></center>' WHERE portal_name='welcome_text'");
 	$db->query("UPDATE phpbb_portal SET portal_value='14' WHERE portal_name='exceptional_forums'");
 	$db->query("UPDATE phpbb_portal SET portal_value='1,7' WHERE portal_name='poll_forum'");
@@ -234,6 +236,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	verify_gallery($db, (int) $users[0]['user_id']);
 	verify_knowledgebase($db, (int) $users[0]['user_id']);
 	verify_historical_actions($db, (int) $users[0]['user_id']);
+	verify_credits($db);
 	verify_arcade($db, (int) $users[0]['user_id']);
 	verify_downloads($db, (int) $users[0]['user_id']);
 	verify_banners($db, (int) $users[0]['user_id']);

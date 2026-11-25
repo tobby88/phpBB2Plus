@@ -36,7 +36,8 @@ class navigation implements EventSubscriberInterface
 	public function header()
 	{
 		$this->language->add_lang('community', 'phpbb2plus/community');
-		$this->template->assign_var('U_PLUS_PORTAL', $this->helper->route('phpbb2plus_community_portal'));
+		$this->template->assign_vars(array('U_PLUS_PORTAL' => $this->helper->route('phpbb2plus_community_portal'),
+			'U_PLUS_CREDITS' => $this->helper->route('phpbb2plus_community_credits')));
 	}
 
 	public function home()

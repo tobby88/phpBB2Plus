@@ -340,4 +340,9 @@ if (!$get_info)
 		plus_dl_schema($table_prefix, $convert->truncate_statement), plus_banner_schema($table_prefix, $convert->truncate_statement));
 	$actions = plus_action_schema($src_db, $convert->src_table_prefix, $table_prefix);
 	if ($actions) { $convertor['schema'][] = $actions; }
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_credits');
+	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'hacks_list'))
+	{
+		$convertor['schema'][] = plus_credits_schema($table_prefix);
+	}
 }

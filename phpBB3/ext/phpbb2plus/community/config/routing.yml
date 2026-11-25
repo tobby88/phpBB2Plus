@@ -12,6 +12,10 @@ phpbb2plus_community_portal:
     path: /portal
     defaults: { _controller: phpbb2plus.community.portal:handle }
     methods: [GET, HEAD]
+phpbb2plus_community_credits:
+    path: /credits
+    defaults: { _controller: phpbb2plus.community.credits:show }
+    methods: [GET, HEAD]
 phpbb2plus_community_shouts:
     path: /shoutbox
     defaults: { _controller: phpbb2plus.community.shouts:show }

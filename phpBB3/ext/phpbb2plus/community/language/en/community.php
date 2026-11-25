@@ -2,6 +2,10 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL' => 'Portal',
+	'PLUS_CREDITS' => 'Mods and credits',
+	'PLUS_CREDITS_INSTALLED' => 'Active Plus extensions',
+	'PLUS_CREDITS_ARCHIVE' => 'Credits from the original phpBB2 board',
+	'PLUS_CREDITS_AUTHOR' => 'By %s',
 	'PLUS_REMOVED_POSTS'=>array(1=>'Deleted post', 2=>'%d deleted posts'),
 	'PLUS_PORTAL_DOWNLOADS'=>'Recent downloads (0 to hide)', 'PLUS_PORTAL_PICTURES'=>'Album pictures (0 to hide)',
 	'PLUS_PORTAL_PICTURE_SIZE'=>'Maximum preview size in pixels', 'PLUS_PORTAL_PICTURE_PERSONAL'=>'Include personal albums',

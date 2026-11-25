@@ -36,6 +36,7 @@ import download_categories
 import delegation
 import delegation_administration
 import historical_actions
+import credits
 import profile_media
 import topic_calendar
 import gallery
@@ -228,6 +229,7 @@ def main():
                 media = json.loads(php(fixture, "profile-media", target, capture=True))
                 profile_media.browse(ordinary, member, media)
                 legacy_links.browse(base, member, media["member"])
+                credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
                 news.administration(base, member)
                 banners.administration(base, member, web)
@@ -245,6 +247,7 @@ def main():
                         delegation.suspended(junior, junior_entry)
                     else:
                         delegation.resumed(junior)
+                        credits.colours_disabled(base)
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/colours", "--no-interaction", cwd=web)
                     php("bin/phpbbcli.php", "cache:purge", "--no-interaction", cwd=web)
                     php(fixture, "colours-" + action, target)

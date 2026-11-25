@@ -2,6 +2,10 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL' => 'Portal',
+	'PLUS_CREDITS' => 'Mods und Credits',
+	'PLUS_CREDITS_INSTALLED' => 'Aktive Plus-Erweiterungen',
+	'PLUS_CREDITS_ARCHIVE' => 'Credits der ursprünglichen phpBB2-Installation',
+	'PLUS_CREDITS_AUTHOR' => 'Von %s',
 	'PLUS_REMOVED_POSTS'=>array(1=>'Gelöschter Beitrag', 2=>'%d gelöschte Beiträge'),
 	'PLUS_PORTAL_DOWNLOADS'=>'Anzahl neuer Downloads (0 zum Ausblenden)', 'PLUS_PORTAL_PICTURES'=>'Anzahl der Albumbilder (0 zum Ausblenden)',
 	'PLUS_PORTAL_PICTURE_SIZE'=>'Maximale Vorschaugröße in Pixeln', 'PLUS_PORTAL_PICTURE_PERSONAL'=>'Persönliche Alben einbeziehen',

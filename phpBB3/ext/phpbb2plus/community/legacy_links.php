@@ -67,6 +67,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			}
 			break;
 		case 'news_cats': $path = 'news/categories'; break;
+		case 'hacks_list': $path = 'credits'; break;
 		case 'news_rss':
 			$path = 'news/feed';
 			if ($cat = $positive('cat_id')) { $extra['category'] = $cat; }

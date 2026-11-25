@@ -1,0 +1,28 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_CREDITS}</h2>
+<section class="panel"><div class="inner">
+	<h3>{L_PLUS_CREDITS_INSTALLED}</h3>
+	<ul class="topiclist">
+	{% for item in loops.plus_packages %}
+		<li class="row"><strong>{{ item.NAME|e }}</strong>{% if item.VERSION %} ({{ item.VERSION|e }}){% endif %}
+			{% if item.AUTHORS %}&ndash; {{ lang('PLUS_CREDITS_AUTHOR', item.AUTHORS)|e }}{% endif %}</li>
+	{% endfor %}
+	</ul>
+</div></section>
+{% if loops.archive_credits %}
+<section class="panel"><div class="inner">
+	<h3>{L_PLUS_CREDITS_ARCHIVE}</h3>
+	{% for item in loops.archive_credits %}
+	<dl id="credit-{{ item.ID }}"><dt>
+		{% if item.DOWNLOAD %}<a href="{{ item.DOWNLOAD|e }}" rel="noopener noreferrer">{{ item.NAME|e }}</a>{% else %}{{ item.NAME|e }}{% endif %}
+		{% if item.VERSION is not same as('') %} ({{ item.VERSION|e }}){% endif %}
+	</dt>
+	{% if item.DESCRIPTION is not same as('') %}<dd>{{ item.DESCRIPTION|e }}</dd>{% endif %}
+	{% if item.AUTHOR is not same as('') %}<dd>{% if item.EMAIL %}<a href="mailto:{{ item.EMAIL|e }}">{{ lang('PLUS_CREDITS_AUTHOR', item.AUTHOR)|e }}</a>{% else %}{{ lang('PLUS_CREDITS_AUTHOR', item.AUTHOR)|e }}{% endif %}</dd>{% endif %}
+	{% if item.WEBSITE %}<dd><a href="{{ item.WEBSITE|e }}" rel="noopener noreferrer">{{ item.WEBSITE|e }}</a></dd>{% endif %}
+	</dl>
+	{% endfor %}
+</div></section>
+{% endif %}
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->
