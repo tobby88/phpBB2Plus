@@ -107,6 +107,8 @@ try {
  $album_picture_rows_before=plus_storage_rows($db,'SELECT * FROM phpbb_album ORDER BY pic_id');
  plus_storage_query($db,"INSERT INTO phpbb_forums(forum_id,cat_id,forum_name,forum_desc,forum_order,count_posts) VALUES(1,1,'Counted','Keep',0,1),(2,1,'Not counted','Keep',1,0)");
  plus_storage_query($db,"INSERT INTO phpbb_posts(post_id,topic_id,forum_id,poster_id,poster_ip) VALUES(1,1,1,1,'7f000001'),(2,1,1,1,'7f000001'),(3,2,2,1,'7f000001'),(4,1,1,-1,'7f000001')");
+ plus_storage_query($db,'DROP TABLE phpbb_removed_author_names');
+ plus_storage_query($db,"UPDATE phpbb_posts SET post_username='Former &amp; archived',post_author_removed=1 WHERE post_id=4");
  $counter_posts_before=plus_storage_rows($db,'SELECT * FROM phpbb_posts ORDER BY post_id');
  // Exercise the actual CLI updater against a fully isolated fresh schema,
  // then a mixed-engine already-upgraded schema. Never read a real config.
@@ -128,6 +130,14 @@ try {
   storage_check(is_resource($p),'Updater subprocess');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($p);
   storage_check($code===($case==='missing-maintenance'?2:0),'Actual updater '.$case.' failed: '.$err);
   require_once $root.'/update/banner_counter_migration.php';
+  $registry_exists = count(plus_storage_rows($db,"SHOW TABLES LIKE 'phpbb_removed_author_names'")) === 1;
+  if ($case === 'dry' || $case === 'missing-maintenance') {
+   storage_check(!$registry_exists,'A preview or refused apply leaves the author registry absent');
+  } else {
+   storage_check($registry_exists,'Full updater installs the former-author registry');
+   $aliases=plus_storage_rows($db,'SELECT author_user_id,author_name_hash,author_name FROM phpbb_removed_author_names');
+   storage_check($aliases===array(array('author_user_id'=>'0','author_name_hash'=>hash('sha256','Former & archived'),'author_name'=>'Former & archived')),'Only classified bylines enter the registry, exactly once across retries');
+  }
   storage_check(count(plus_banner_ids_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0)
    &&plus_storage_rows($db,'SELECT * FROM phpbb_banner ORDER BY banner_id')===($case==='missing-banner'?array():$banner_rows_before),
    'Actual full updater makes banner IDs atomic without rewriting payloads; dry/refused/retries preserve data');

@@ -29,6 +29,7 @@ $project_root = dirname(__DIR__);
 $forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 require_once $forum_root . '/includes/functions_user_ids.php';
+require_once $forum_root . '/includes/functions_author_visibility.php';
 require_once $forum_root . '/includes/functions_ctracker_legacy_rules.php';
 require_once __DIR__ . '/innodb_migration.php';
 require_once __DIR__ . '/style_id_migration.php';
@@ -97,7 +98,7 @@ function update_usage()
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|banner|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts|profile_field_jobs|profile_field_actions|album_file_jobs|album_file_items|pa_file_journal|post_icon_config))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|banner|logs|user_removals|user_removal_items|removed_author_names|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts|profile_field_jobs|profile_field_actions|album_file_jobs|album_file_items|pa_file_journal|post_icon_config))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)
@@ -141,6 +142,7 @@ if (in_array('--self-test', $argv, true))
 {
 	try {
 		plus_icon_storage_definition('phpbb_', $schema_source);
+		if (!isset($create_statements['phpbb_removed_author_names'])) { throw new RuntimeException('Removed-author registry missing from full updater'); }
 		if (!isset($create_statements['phpbb_post_icon_config']) || strpos($basic_source, 'INSERT INTO phpbb_post_icon_config (config_id,schema_version,config_value)') === false || phpbb_icon_defaults($forum_root) === false) { throw new RuntimeException('Canonical icon storage/defaults missing'); }
 		$download_journal = plus_pa_file_journal_definitions('phpbb_', $schema_source);
 		if (count($download_journal) !== 1 || !isset($create_statements['phpbb_pa_file_journal'])) { throw new RuntimeException('Download file journal missing from full updater'); }
@@ -320,8 +322,44 @@ class UpdateUserIdDatabase
 	var $connection;
 	function __construct($connection) { $this->connection = $connection; }
 	function sql_query($sql) { return update_query_or_fail($this->connection, $sql); }
+	function sql_escape($value) { return mysqli_real_escape_string($this->connection, $value); }
 	function sql_fetchrowset($result) { $rows = array(); while ($row = mysqli_fetch_assoc($result)) { $rows[] = $row; } return $rows; }
 	function sql_freeresult($result) { mysqli_free_result($result); }
+}
+function update_removed_author_registry($connection, $database, $prefix, $apply)
+{
+	$table = $prefix . 'removed_author_names';
+	$has_registry = update_table_exists($connection, $database, $table);
+	$writer = new UpdateUserIdDatabase($connection);
+	if (!defined('REMOVED_AUTHOR_NAMES_TABLE')) { define('REMOVED_AUTHOR_NAMES_TABLE', $table); }
+	$sources = array(
+		array('posts', 'poster_id', 'post_username', 'post_author_removed'),
+		array('shout', 'shout_user_id', 'shout_username', 'shout_author_removed'),
+	);
+	$names = array();
+	foreach ($sources as $source)
+	{
+		list($suffix, $id, $byline, $flag) = $source;
+		$source_table = $prefix . $suffix;
+		if (!update_column_exists($connection, $database, $source_table, $flag)) { continue; }
+		$rows = update_query_or_fail($connection, "SELECT DISTINCT BINARY $byline FROM $source_table WHERE $id = -1 AND $flag = 1 AND $byline <> ''");
+		while ($row = mysqli_fetch_row($rows))
+		{
+			// The forum stores HTML-escaped bylines. Use the same key as an account removal.
+			$name = trim(html_entity_decode($row[0], ENT_QUOTES, 'UTF-8'));
+			if ($name !== '') { $names[hash('sha256', $name)] = $row[0]; }
+		}
+		mysqli_free_result($rows);
+	}
+	$count = 0;
+	foreach ($names as $hash => $stored)
+	{
+		$match = "SELECT 1 FROM $table WHERE author_name_hash='$hash'";
+		if ($has_registry && update_scalar($connection, "$match LIMIT 1")) { continue; }
+		$count++;
+		if ($apply) { phpbb_record_removed_author_name($writer, 0, $stored, "NOT EXISTS ($match)"); }
+	}
+	echo ($apply ? 'Recorded' : 'Would record') . " $count explicitly classified former-author names.\n";
 }
 function update_queue_user_id_sequence(&$operations, $database, $prefix, $exists)
 {
@@ -1210,6 +1248,7 @@ update_queue_standard_style(
 $config_defaults = array(
 	'xs_def_template' => 'fisubsilversh',
 	'cookie_consent_enable' => '1',
+	'hide_removed_author_names' => '1',
 	'sfs_enable' => '0',
 	'sfs_fail_closed' => '0',
 	'password_hashing' => '1',
@@ -1521,6 +1560,7 @@ foreach ($operations as $sql)
 		update_query_or_fail($connection, $sql);
 	}
 }
+update_removed_author_registry($connection, $dbname, $table_prefix, $apply);
 
 if ($apply)
 {
