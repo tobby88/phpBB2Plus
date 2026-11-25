@@ -1,0 +1,42 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_DL_PERMISSIONS}</h1>
+{% if not DL_EDITOR %}
+{% if DL_SAVED %}<div class="successbox"><p>{L_CONFIG_UPDATED}</p></div>{% endif %}
+{% for kind in ['u','g'] %}
+<form id="dl-select-{{ kind }}" method="post" action="{% if kind == 'u' %}{U_DL_USER}{% else %}{U_DL_GROUP}{% endif %}">
+<fieldset><legend>{% if kind == 'u' %}{L_ACP_PLUS_DL_USER_GRANTS}{% else %}{L_ACP_PLUS_DL_GROUP_GRANTS}{% endif %}</legend>
+{% if kind == 'u' %}<dl><dt><label for="dl-username">{L_USERNAME}</label></dt><dd><input type="text" id="dl-username" name="username" required></dd>
+<dd><a href="{U_FIND_USERNAME}" onclick="find_username(this.href); return false;">{L_FIND_USERNAME}</a></dd></dl>
+{% else %}<dl><dt><label for="dl-group">{L_GROUP}</label></dt><dd><select id="dl-group" name="subject" required>
+{% for g in loops.dl_groups %}<option value="{{ g.ID }}">{{ g.NAME|e }}</option>{% endfor %}</select></dd></dl>{% endif %}
+<dl><dt><label for="dl-scope-{{ kind }}">{L_ACP_PLUS_DL_SCOPE}</label></dt><dd><select id="dl-scope-{{ kind }}" name="category">
+<option value="0">{L_ACP_PLUS_DL_GLOBAL}</option>{% for c in loops.dl_scopes %}<option value="{{ c.ID }}">{{ c.NAME|e }} (#{{ c.ID }})</option>{% endfor %}</select></dd></dl>
+<p><button class="button2" type="submit">{L_GO}</button></p>{S_FORM_TOKEN}</fieldset></form>
+{% endfor %}
+<fieldset><legend>{L_ACP_PLUS_DL_CATEGORY_LEVELS}</legend>
+<ul>{% for c in loops.dl_scopes %}<li style="margin-inline-start:{{ c.DEPTH }}em"><a href="{{ c.U_LEVELS }}">{{ c.NAME|e }}</a></li>
+{% else %}<li>{L_ACP_PLUS_DL_EMPTY}</li>{% endfor %}</ul></fieldset>
+{% else %}
+<h2>{{ DL_SCOPE|e }}{% if DL_KIND %} · {{ DL_TARGET|e }}{% endif %}</h2>
+<p>{% if DL_KIND %}{L_ACP_PLUS_DL_GRANTS_HELP}{% else %}{L_ACP_PLUS_DL_LEVELS_HELP}{% endif %}</p>
+{% if DL_MODERATED %}<p>{L_ACP_PLUS_DL_MOD_APPLIES}</p>{% endif %}
+<form method="post" id="dl-permissions" action="{U_DL_SAVE}">
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_DL_ACTIONS}</th><th>{L_ACP_PLUS_DL_LEVEL}</th>
+{% if DL_KIND %}<th>{L_ACP_PLUS_DL_DIRECT}</th>{% if DL_KIND == 'u' %}<th>{L_ACP_PLUS_DL_INHERITED}</th>{% endif %}{% endif %}</tr></thead><tbody>
+{% for a in loops.dl_actions %}<tr><th scope="row"><label for="dl-{{ a.KEY }}">{{ a.LABEL|e }}</label></th>
+{% if not DL_KIND %}<td><select name="values[{{ a.KEY }}]" id="dl-{{ a.KEY }}">
+{% if a.LEVEL < 0 %}<option value="keep" selected>{L_ACP_PLUS_DL_LEVEL_UNKNOWN}</option>{% endif %}
+{% for v in loops.dl_levels %}<option value="{{ v.ID }}"{% if a.LEVEL == v.ID %} selected{% endif %}>{{ v.LABEL|e }}</option>{% endfor %}</select></td>
+{% else %}<td>{% if a.KEY != 'mod' %}{{ a.LEVEL_NAME|e }}{% else %}—{% endif %}</td><td>
+{% if a.EDITABLE %}<select name="values[{{ a.KEY }}]" id="dl-{{ a.KEY }}"><option value="0"{% if not a.DIRECT %} selected{% endif %}>{L_NO}</option><option value="1"{% if a.DIRECT %} selected{% endif %}>{L_YES}</option></select>
+{% elseif a.DIRECT %}{L_YES}{% else %}—{% endif %}</td>
+{% if DL_KIND == 'u' %}<td>{% if a.INHERITED %}{L_YES}{% else %}—{% endif %}</td>{% endif %}{% endif %}</tr>{% endfor %}
+</tbody></table>
+<p class="submit-buttons"><input type="hidden" name="state" value="{DL_STATE}">{S_FORM_TOKEN}
+{% if DL_SAVE %}<button type="submit" class="button1">{L_SUBMIT}</button>{% endif %} <a href="{U_BACK}">{L_BACK}</a></p></form>
+{% if DL_KIND %}<h3>{{ DL_RELATED|e }}</h3><ul>{% for r in loops.dl_related %}<li>
+{% if r.URL %}<a href="{{ r.URL }}">{{ r.NAME|e }}</a>{% else %}{{ r.NAME|e }}{% endif %}{% if r.PENDING %} ({L_ACP_PLUS_DL_MEMBERSHIP_PENDING}){% endif %}</li>
+{% else %}<li>{L_NONE}</li>{% endfor %}</ul>
+{% if U_DL_PREV %}<a href="{U_DL_PREV}">{L_PREVIOUS}</a> {% endif %}{% if U_DL_NEXT %}<a href="{U_DL_NEXT}">{L_NEXT}</a>{% endif %}{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -33,4 +33,5 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_RELOAD'=>'Open the current version for editing', 'PLUS_DL_BAD_DESTINATION'=>'Choose an available destination category.',
 	'PLUS_DL_MISSING_LICENSE'=>'Existing licence no. %d (unavailable)',
 	'ACL_A_PLUS_DL_CATEGORIES'=>'Can manage download categories',
+	'ACL_A_PLUS_DL_PERMS'=>'Can manage download library permissions',
 ));

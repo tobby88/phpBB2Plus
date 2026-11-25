@@ -208,8 +208,7 @@ class catalogue
 		if (!$id)
 		{
 			if (!in_array($form['initial_access'],array('private','legacy'),true)) { throw new \DomainException('ACP_PLUS_DL_CATEGORY_INVALID'); }
-			$levels = array_fill_keys(array('view','read','view_file','edit_file','delete_file','upload','download','rate','email',
-				'view_comment','post_comment','edit_comment','delete_comment'),$form['initial_access'] === 'legacy' ? 0 : 5);
+			$levels = array_fill_keys(access::CATEGORY_ACTIONS,$form['initial_access'] === 'legacy' ? 0 : 5);
 			$ids = $tree['children'][$parent] ?? array();
 			$last = $ids ? max(0,(int) $rows[end($ids)]['position']) : 0;
 			if ($last > 2147483637) { throw new \DomainException('ACP_PLUS_DL_CATEGORY_INVALID'); }

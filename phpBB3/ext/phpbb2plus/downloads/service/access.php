@@ -5,8 +5,26 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class access
 {
-	const ACTIONS = array('view','read','view_file','edit_file','delete_file','upload','download','rate','email',
-		'view_comment','post_comment','edit_comment','delete_comment','mod','search','stats','toplist','viewall');
+	const CATEGORY_ACTIONS = array('view','read','view_file','edit_file','delete_file','upload','download','rate','email',
+		'view_comment','post_comment','edit_comment','delete_comment');
+	const GLOBAL_ACTIONS = array('search','stats','toplist','viewall');
+	const ACTIONS = [...self::CATEGORY_ACTIONS,'mod',...self::GLOBAL_ACTIONS];
+	const LEVELS = array(0,1,2,3,5);
+
+	public static function level($value)
+	{
+		if (!is_int($value) && !is_string($value)) { return null; }
+		$level = (int) $value;
+		return (string) $level === (string) $value && in_array($level,self::LEVELS,true) ? $level : null;
+	}
+
+	public static function flags($encoded)
+	{
+		$flags = json_decode($encoded);
+		if (!is_array($flags)) { return null; }
+		foreach ($flags as $flag) { if (!is_string($flag)) { return null; } }
+		return $flags;
+	}
 
 	private $db;
 	private $auth;
@@ -46,8 +64,29 @@ class access
 			$this->auth->acl_gets('a_plus_downloads', 'a_plus_dl_categories');
 	}
 
-	// A category change must finish before a file can enter or leave its subtree.
-	// MySQL/MariaDB uploads and file edits can share the stable lock row with one another.
+	public function permissions_admin($fresh = false)
+	{
+		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) || empty($this->user->data['session_admin']) ||
+			!empty($this->user->data['user_perm_from']))
+		{ return false; }
+		if ($fresh)
+		{
+			// Load the native session and current ACL after acquiring the catalogue lock.
+			// A delegated administrator may have lost the grant since opening the form.
+			$result = $this->db->sql_query('SELECT u.user_id,u.user_type,u.user_permissions,u.user_perm_from,s.session_admin FROM ' .
+				USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE . " s ON s.session_user_id=u.user_id WHERE s.session_id='" .
+				$this->db->sql_escape($this->user->session_id) . "' AND u.user_id=" . (int) $this->user->data['user_id']);
+			$actor = $this->db->sql_fetchrow($result);
+			$this->db->sql_freeresult($result);
+			if (!$actor || !$actor['session_admin'] || $actor['user_perm_from'] || (int) $actor['user_type'] !== (int) $this->user->data['user_type'] ||
+				!in_array((int) $actor['user_type'],array(USER_NORMAL,USER_FOUNDER),true)) { return false; }
+			$this->auth->acl($actor);
+		}
+		return $this->auth->acl_gets('a_plus_downloads','a_plus_dl_perms');
+	}
+
+	// Catalogue and permission changes serialize with operations on files.
+	// On MySQL/MariaDB ordinary file operations share the stable lock row.
 	public function lock_catalogue($exclusive)
 	{
 		$where = " WHERE config_name='plus_download_media_key'";
@@ -90,16 +129,21 @@ class access
 		$this->grants = array();
 		if (empty($this->user->data['is_registered'])) { return $this->grants; }
 		$id = (int) $this->user->data['user_id'];
-		$result = $this->db->sql_query('SELECT g.cat_id,g.allowed FROM ' . $this->prefix . 'grants g LEFT JOIN ' . USER_GROUP_TABLE .
-			" ug ON g.subject_type='g' AND ug.group_id=g.subject_id AND ug.user_id=$id AND ug.user_pending=0
-			WHERE (g.subject_type='u' AND g.subject_id=$id) OR ug.user_id IS NOT NULL");
+		$result = $this->db->sql_query('SELECT g.cat_id,g.allowed FROM ' . $this->prefix . "grants g
+			WHERE (g.subject_type='u' AND g.subject_id=$id) OR (g.subject_type='g' AND g.subject_id IN (" . $this->active_groups_sql($id) . '))');
 		while ($r = $this->db->sql_fetchrow($result))
 		{
-			foreach (json_decode($r['allowed'], true) ?: array() as $key)
+			foreach (self::flags($r['allowed']) ?? array() as $key)
 			{ $this->grants[(int) $r['cat_id']][$key] = true; }
 		}
 		$this->db->sql_freeresult($result);
 		return $this->grants;
+	}
+
+	public function active_groups_sql($id)
+	{
+		return 'SELECT g.group_id FROM ' . GROUPS_TABLE . ' g JOIN ' . USER_GROUP_TABLE .
+			' ug ON ug.group_id=g.group_id WHERE ug.user_pending=0 AND ug.user_id=' . (int) $id;
 	}
 
 	public function allows($id, $key)
@@ -108,7 +152,7 @@ class access
 		$cats = $this->categories();
 		if ($id && !isset($cats[$id])) { return false; }
 		if ($this->admin()) { return true; }
-		$level = $id ? ($cats[$id]['levels'][$key] ?? -1) : (int) $this->setting('auth_' . $key, 5);
+		$level = self::level($id ? ($cats[$id]['levels'][$key] ?? null) : $this->setting('auth_' . $key,5));
 		if ($key !== 'mod' && $level === 0) { return true; }
 		if (empty($this->user->data['is_registered'])) { return false; }
 		$grants = $this->grants();
@@ -169,13 +213,13 @@ class access
 
 	public static function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 
-	public function write($id, callable $operation, $can_move = false)
+	public function write($id, callable $operation)
 	{
 		$id = (int) $id;
 		$this->db->sql_transaction('begin');
 		try
 		{
-			if ($can_move) { $this->lock_catalogue(false); }
+			$this->lock_catalogue(false);
 			$this->db->sql_query('UPDATE ' . $this->prefix . "files SET file_id=file_id WHERE file_id=$id");
 			$this->refresh();
 			$result = $operation($this->file($id));

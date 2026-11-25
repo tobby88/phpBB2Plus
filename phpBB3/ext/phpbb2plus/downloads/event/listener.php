@@ -22,7 +22,8 @@ class listener implements EventSubscriberInterface
 
 	static public function getSubscribedEvents()
 	{
-		return array('core.page_header' => 'header', 'core.permissions' => 'permissions', 'core.delete_user_before' => array('depart', 10));
+		return array('core.page_header' => 'header', 'core.permissions' => 'permissions', 'core.delete_user_before' => array('depart', 10),
+			'core.delete_group_after'=>'remove_group');
 	}
 
 	public function header()
@@ -37,7 +38,13 @@ class listener implements EventSubscriberInterface
 		$permissions = $event['permissions'];
 		$permissions['a_plus_downloads'] = array('lang' => 'ACL_A_PLUS_DOWNLOADS', 'cat' => 'misc');
 		$permissions['a_plus_dl_categories'] = array('lang'=>'ACL_A_PLUS_DL_CATEGORIES', 'cat'=>'misc');
+		$permissions['a_plus_dl_perms'] = array('lang'=>'ACL_A_PLUS_DL_PERMS', 'cat'=>'misc');
 		$event['permissions'] = $permissions;
+	}
+
+	public function remove_group($event)
+	{
+		$this->db->sql_query('DELETE FROM ' . $this->prefix . "grants WHERE subject_type='g' AND subject_id=" . (int) $event['group_id']);
 	}
 
 	public function depart($event)

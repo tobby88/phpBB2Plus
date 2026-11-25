@@ -251,7 +251,7 @@ class submissions
 				$row['cat_id'] = $category;
 				$this->db->sql_query('UPDATE ' . $this->prefix . 'files SET ' . $this->db->sql_build_array('UPDATE', $row) . ' WHERE file_id=' . (int) $id);
 				$this->save_fields($id, $fields, true);
-			}, true);
+			});
 		}
 		catch (\Throwable $e)
 		{

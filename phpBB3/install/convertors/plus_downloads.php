@@ -6,10 +6,12 @@ use phpbb2plus\downloads\service\access as plus_dl_access;
 function plus_dl_layout()
 {
 	// Source and destination group keys identify complete resumable batches, including duplicate historical rows.
-	$auth = array_map(static function ($key) { return 'auth_' . $key; }, plus_dl_access::ACTIONS);
+	$column = static function ($key) { return 'auth_' . $key; };
+	$auth = array_map($column, plus_dl_access::ACTIONS);
+	$category_auth = array_map($column, plus_dl_access::CATEGORY_ACTIONS);
 	return array(
 		'config' => array('settings','config_name','config_name', '', 'config_name config_value'),
-		'cat' => array('categories','cat_id','cat_id','cat_id','cat_id cat_name cat_desc cat_parent parents_data cat_order cat_allow_file cat_allow_ratings cat_allow_comments cat_files cat_last_file_id cat_last_file_name cat_last_file_time ' . implode(' ', array_slice($auth, 0, 13))),
+		'cat' => array('categories','cat_id','cat_id','cat_id','cat_id cat_name cat_desc cat_parent parents_data cat_order cat_allow_file cat_allow_ratings cat_allow_comments cat_files cat_last_file_id cat_last_file_name cat_last_file_time ' . implode(' ', $category_auth)),
 		'auth' => array('grants','group_id','legacy_group','','group_id cat_id ' . implode(' ', $auth)),
 		'license' => array('licenses','license_id','license_id','license_id','license_id license_name license_text'),
 		'files' => array('files','file_id','file_id','file_id','file_id user_id poster_ip file_name file_size unique_name real_name file_dir file_desc file_creator file_version file_longdesc file_ssurl file_sshot_link file_dlurl file_time file_update_time file_catid file_posticon file_license file_dls file_last file_pin file_docsurl file_approved file_broken'),
