@@ -16,11 +16,20 @@ class account_logins
 
 	private function account($id)
 	{
-		$result = $this->db->sql_query('SELECT plus_login_warn,plus_login_previous,plus_login_current FROM ' . USERS_TABLE .
+		$result = $this->db->sql_query('SELECT plus_login_warn,plus_login_binding,plus_login_previous,plus_login_current FROM ' . USERS_TABLE .
 			' WHERE user_id=' . (int) $id . ' AND user_type IN (' . USER_NORMAL . ',' . USER_FOUNDER . ') FOR UPDATE');
 		$row = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
 		return $row;
+	}
+
+	/** Caller holds the account row lock. A recycled numeric ID starts with a new binding. */
+	public static function bind_owner($db, $id, $binding)
+	{
+		if ($binding !== '') { return $binding; }
+		$binding = bin2hex(random_bytes(16));
+		$db->sql_query('UPDATE ' . USERS_TABLE . " SET plus_login_binding='$binding' WHERE user_id=" . (int) $id);
+		return $binding;
 	}
 
 	private function policy()
@@ -48,11 +57,13 @@ class account_logins
 			$account = $this->account($id);
 			if ($account && $settings['plus_login_history'])
 			{
+				$binding = self::bind_owner($db, $id, $account['plus_login_binding']);
+				$owner = "user_id=$id AND owner_binding='" . $db->sql_escape($binding) . "'";
 				$db->sql_query('INSERT INTO ' . $this->table . ' ' . $db->sql_build_array('INSERT',
-					array('user_id' => $id, 'login_time' => (int) $time, 'login_ip' => $ip)));
+					array('user_id' => $id, 'owner_binding' => $binding, 'login_time' => (int) $time, 'login_ip' => $ip)));
 				$limit = max(1, min(60, $settings['plus_login_limit']));
 				$result = $db->sql_query_limit('SELECT login_time,entry_id FROM ' . $this->table .
-					" WHERE user_id=$id ORDER BY login_time DESC,entry_id DESC", 1, $limit - 1);
+					" WHERE $owner ORDER BY login_time DESC,entry_id DESC", 1, $limit - 1);
 				$cut = $db->sql_fetchrow($result);
 				$db->sql_freeresult($result);
 				if ($cut)
@@ -60,7 +71,7 @@ class account_logins
 					$stamp = (int) $cut['login_time'];
 					$entry = (string) $cut['entry_id'];
 					if (!ctype_digit($entry)) { throw new \UnexpectedValueException('Invalid login history entry ID.'); }
-					$db->sql_query('DELETE FROM ' . $this->table . " WHERE user_id=$id AND
+					$db->sql_query('DELETE FROM ' . $this->table . " WHERE $owner AND
 						(login_time<$stamp OR (login_time=$stamp AND entry_id<$entry))");
 				}
 			}
@@ -78,8 +89,9 @@ class account_logins
 	{
 		if ((int) $id <= ANONYMOUS || empty($this->config['plus_login_history'])) { return array(); }
 		$limit = max(1, min(60, (int) $this->config['plus_login_limit']));
-		$result = $this->db->sql_query_limit('SELECT login_time,login_ip FROM ' . $this->table .
-			' WHERE user_id=' . (int) $id . ' ORDER BY login_time DESC,entry_id DESC', $limit);
+		$result = $this->db->sql_query_limit('SELECT h.login_time,h.login_ip FROM ' . $this->table . ' h JOIN ' . USERS_TABLE . ' u
+			ON u.user_id=h.user_id AND u.plus_login_binding=h.owner_binding WHERE h.user_id=' . (int) $id .
+			" AND u.plus_login_binding<>'' ORDER BY h.login_time DESC,h.entry_id DESC", $limit);
 		$rows = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
 		return $rows;

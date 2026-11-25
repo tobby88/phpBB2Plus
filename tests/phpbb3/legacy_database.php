@@ -195,6 +195,8 @@ elseif ($argv[1] === 'installed-flags')
 {
 	$stats = $db->query("SELECT COUNT(*) AS choices, SUM(image='') AS missing FROM p3_plus_flags")->fetch_assoc();
 	check_fixture((int) $stats['choices'] === 192 && (int) $stats['missing'] === 0, 'Fresh board has an incomplete bundled flag catalogue');
+	$logins = $db->query("SELECT config_value FROM p3_config WHERE config_name IN ('plus_login_history','plus_login_limit','plus_login_network_check') ORDER BY config_name")->fetch_all();
+	check_fixture(array_map('intval', array_column($logins, 0)) === array(1,10,1), 'Fresh installation lost the Plus login settings defaults');
 }
 elseif ($argv[1] === 'profile-media')
 {

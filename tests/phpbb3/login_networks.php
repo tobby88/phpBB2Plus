@@ -16,7 +16,7 @@ if ($argv[2] === 'disabled')
 	$result = $db->sql_query('SELECT COUNT(*) AS total FROM ' . $table_prefix . 'plus_account_logins');
 	$count = (int) $db->sql_fetchfield('total');
 	$db->sql_freeresult($result);
-	if ($count !== 5) { throw new RuntimeException('A disabled board recorded a new login'); }
+	if ($count !== 206) { throw new RuntimeException('A disabled board recorded a new login'); }
 	return;
 }
 $samples = array('network-change' => '2001:db8:45::5', 'another-network' => '192.0.2.32', 'network-only' => '203.0.113.40', 'history-only' => '198.51.100.41');

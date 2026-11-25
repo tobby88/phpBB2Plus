@@ -242,13 +242,16 @@ def media_administration(base, member, ordinary, pending, target, web):
         categories.result()
 
 
-def download_upgrades(target, web):
+def extension_upgrades(target, web):
     fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php", "download_mail.php")]
     # Start at the common parent of these dependent migrations and run the normal updater once.
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
+    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v137_account_logins", "--no-interaction", cwd=web)
+    php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "older", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "older", cwd=web)
     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
+    php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "upgraded", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "upgraded", cwd=web)
 
@@ -355,7 +358,7 @@ def main():
                     php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                     php(fixture, "download-departed", target)
                     gallery.departed(base, ordinary)
-                    download_upgrades(target, web)
+                    extension_upgrades(target, web)
                     print(f"Verified {count} upstream files, conversion, downloads and album management in {monotonic()-start:.1f}s")
                     return
                 account_logins.disabled(base, ordinary)
@@ -417,6 +420,7 @@ def main():
                 delegation_administration.manage(member, junior, junior_entry, delegation_fixture)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)
+                    php(ROOT / "tests/phpbb3/login_lifecycle.php", target, action, cwd=web)
                     if action == "disable":
                         delegation.suspended(junior, junior_entry)
                     else:
@@ -512,7 +516,7 @@ def main():
                 age_pruning.browse(prune_admin, lambda phase: php(
                     ROOT / "tests/phpbb3/age_pruning.php", target, phase, cwd=web))
                 if args.suite == "all":
-                    download_upgrades(target, web)
+                    extension_upgrades(target, web)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 

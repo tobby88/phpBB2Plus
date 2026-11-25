@@ -29,6 +29,10 @@ class ext extends \phpbb\extension\base
 			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . ' SET field_no_view=0,plus_paused_view=0 WHERE plus_paused_view=1');
 			$this->container->get('profilefields.manager')->enable_profilefields('profilefields.type.plus_multi');
 			$db->sql_query('UPDATE ' . ICONS_TABLE . ' SET display_on_posting=1,plus_icon_paused=0 WHERE plus_icon_paused=1');
+			// Native account removal also works while Community is disabled.
+			$table = $this->container->getParameter('core.table_prefix') . 'plus_account_logins';
+			$db->sql_query("DELETE FROM $table WHERE NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " u
+				WHERE u.user_id=$table.user_id AND u.plus_login_binding=$table.owner_binding AND u.plus_login_binding<>'')");
 			$this->container->get('cache.driver')->destroy('_icons');
 			$db->sql_transaction('commit');
 		}

@@ -51,6 +51,11 @@ function plus_import_account_logins($source_user)
 	$db->sql_transaction('begin');
 	try
 	{
+		$result = $db->sql_query('SELECT plus_login_binding FROM ' . USERS_TABLE . " WHERE user_id=$id AND plus_legacy_id=$source_user FOR UPDATE");
+		$binding = $db->sql_fetchfield('plus_login_binding');
+		$db->sql_freeresult($result);
+		if ($binding === false) { throw new \RuntimeException('The source login history has no matching destination account.'); }
+		$binding = \phpbb2plus\community\service\account_logins::bind_owner($db, $id, $binding);
 		$db->sql_query("DELETE FROM $table WHERE user_id=$id");
 		$after = null;
 		do
@@ -62,7 +67,8 @@ function plus_import_account_logins($source_user)
 			{
 				$after = (string) $row['ct_login_id'];
 				if (!ctype_digit($after)) { throw new \RuntimeException('Invalid numeric key in CrackerTracker login history.'); }
-				$rows[] = array('user_id' => $id, 'login_time' => (int) $row['ct_login_time'], 'login_ip' => plus_login_address($row['ct_login_ip']));
+				$rows[] = array('user_id' => $id, 'owner_binding' => $binding,
+					'login_time' => (int) $row['ct_login_time'], 'login_ip' => plus_login_address($row['ct_login_ip']));
 			}
 			$src_db->sql_freeresult($result);
 			if ($rows) { $db->sql_multi_insert($table, $rows); }
