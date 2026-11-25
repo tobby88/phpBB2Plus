@@ -76,6 +76,10 @@ def browse(base, owner, historic_id):
         ("dload.php?action=user_upload&do=delete&file_id=50", "app.php/downloads/file/50/delete", {}, ""),
         ("dload.php?action=mcp&cat_id=2", "app.php/downloads/category/2/review", {}, ""),
         ("dload.php?action=stats", "app.php/downloads/stats", {}, ""),
+        ("dload.php?action=viewall&sort_method=rating&sort_order=DESC&start=5", "app.php/downloads/all",
+         {"sort_method": "rating", "sort_order": "DESC", "start": 5}, ""),
+        ("dload.php?action=category&cat_id=21&sort_method=file_update_time", "app.php/downloads/category/21",
+         {"sort_method": "file_update_time"}, ""),
         ("dload.php?action=search&search_author=H%2A&cat_id=21&search_terms=all&comments_search=YES&sort_method=rating&sort_order=ASC",
          "app.php/downloads/search", {"search_author": "H*", "cat_id": 21, "search_terms": "all", "comments_search": "YES",
                                       "sort_method": "rating", "sort_order": "ASC"}, ""),
@@ -100,6 +104,11 @@ def browse(base, owner, historic_id):
     for path, script, query, fragment in cases:
         link(base, path, script, query, fragment)
     link(base, "ftopic1.html", "viewtopic.php", {"t": 1}, method="HEAD")
+    link(base, "dload.php?action=category&cat_id=21", "app.php/downloads/all",
+         {"sort_method": "file_rating", "sort_order": "ASC", "start": 5}, method="POST",
+         form={"action": "viewall", "sort_method": "file_rating", "sort_order": "ASC", "start": 5}, status=303)
+    link(base, "dload.php", "app.php/downloads/category/21", {"sort_method": "file_dls"}, method="POST",
+         form={"action": "category", "cat_id": 21, "sort_method": "file_dls"}, status=303)
     link(base, "album.php?user_id=2&sort_order=ASC", "app.php/album/legacy/member/1",
          {"mode": "list", "type": "comment", "sort_method": "pic_title", "sort_order": "ASC", "start": 4},
          method="POST", form={"user_id": 1, "mode": "LIST", "type": "comment", "sort_method": "pic_title",

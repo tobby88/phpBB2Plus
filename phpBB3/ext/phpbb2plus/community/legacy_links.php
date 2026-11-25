@@ -20,8 +20,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		// The original form posted its action to the bare dload.php address.
 		$action = $query['action'] ?? '';
 		if ($method === 'POST' && isset($_POST['action']) && $_POST['action'] !== '') { $action = $_POST['action']; }
-		$read_form = $action === 'search';
-		if ($read_form) { $query['action'] = 'search'; }
+		$sort_redirect = in_array($action, array('viewall', 'category'), true);
+		$read_form = $action === 'search' || $sort_redirect;
+		if ($read_form) { $query['action'] = $action; }
+		if ($sort_redirect && $method === 'POST')
+		{
+			$query = array_intersect_key($_POST, array_flip(array('cat_id', 'sort_method', 'sort_order', 'start'))) + $query;
+		}
 	}
 	if (!in_array($method, array('GET', 'HEAD'), true) && !($read_form && $method === 'POST'))
 	{
@@ -229,7 +234,8 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			$id = $positive('file_id') ?: $nested;
 			switch ($parts[0])
 			{
-				case 'main': case 'viewall': $path = 'downloads'; break;
+				case 'main': $path = 'downloads'; break;
+				case 'viewall': $path = 'downloads/all'; break;
 				case 'stats': $path = 'downloads/stats'; break;
 				case 'toplist':
 					$path = 'downloads/toplist';
@@ -282,6 +288,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 					$m = $query['mirror_id'] ?? '';
 					$path = 'downloads/file/' . $id . ($parts[0] === 'license' || $m === '-1' ? '/get/0' : ($positive('mirror_id') ? '/get/' . $positive('mirror_id') : '/download'));
 					break;
+			}
+			if (in_array($parts[0], array('viewall', 'category'), true))
+			{
+				if (in_array($query['sort_method'] ?? '', array('file_name', 'file_time', 'file_dls', 'file_rating', 'rating', 'file_update_time'), true))
+				{ $extra['sort_method'] = $query['sort_method']; }
+				if (in_array($query['sort_order'] ?? '', array('ASC', 'DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
+				header('Cache-Control: private, no-store');
 			}
 			break;
 		case 'kb': case 'kb_search':

@@ -44,6 +44,7 @@ import download_file_editor
 import download_permissions
 import download_reports
 import download_search
+import download_listing
 import download_settings
 import download_licenses
 import download_mirrors
@@ -200,6 +201,8 @@ def download_checks(base, admin, historical, applicant, fixture, target, web, ga
             ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
         download_search.browse(base, historical, applicant, lambda phase: php(
             ROOT / "tests/phpbb3/download_search.php", target, phase, cwd=web))
+        download_listing.browse(base, historical, applicant, lambda phase: php(
+            ROOT / "tests/phpbb3/download_listing.php", target, phase, cwd=web))
         # The settings test temporarily closes the download area and restores its global policy.
         download_settings.administration(admin, historical, lambda phase: php(
             ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))

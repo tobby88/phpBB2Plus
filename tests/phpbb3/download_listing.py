@@ -62,6 +62,9 @@ def browse(base, member, ordinary, verify):
         raise RuntimeError("Pagination did not preserve both sorts, repeat both pins or clamp to the last page")
     if fixture_ids(guest.fetch(folder + "?sort_method=old&sort_order=unknown")) != fixture_ids(initial):
         raise RuntimeError("Unrecognized historical preferences did not fall back to the saved defaults")
+    legacy = "dload.php?action=category&cat_id=10930"
+    if fixture_ids(guest.fetch(legacy, {"sort_method": "file_name", "sort_order": "ASC", "start": 2})) != fixture_ids(next_page):
+        raise RuntimeError("The original category sort form opened a different page of files")
     for path in (folder, entire):
         request = Request(urljoin(base, path), data=urlencode({"sort_method": "file_rating", "sort_order": "ASC"}).encode())
         with guest.opener.open(request, timeout=30) as response:
@@ -80,6 +83,7 @@ def browse(base, member, ordinary, verify):
     if "login" not in Page(guest.fetch(entire + "?sort_method=file_name&start=2")).forms:
         raise RuntimeError("A guest was not offered login for the private all-files view")
     ordinary.fetch(entire, expected_status=403)
+    ordinary.fetch("dload.php?action=viewall", expected_status=403)
     permitted = member.fetch(entire)
     if ("Clubbibliothek</a>" not in permitted or "Privatfreigabe</a>" not in permitted or "Inherited listing file" not in permitted or
             "Waiting listing file" in permitted or "Folder-only file" in permitted):
