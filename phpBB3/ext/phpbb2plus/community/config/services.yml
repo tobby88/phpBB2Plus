@@ -39,7 +39,10 @@ services:
         arguments: ['@dbal.conn', '@auth', '@user', '%core.root_path%', '%core.php_ext%']
     phpbb2plus.community.credits:
         class: phpbb2plus\community\controller\credits
-        arguments: ['@dbal.conn', '%core.table_prefix%plus_credits', '@ext.manager', '@controller.helper', '@template', '@language', '@request', '@pagination']
+        arguments: ['@phpbb2plus.community.credit_entries', '@ext.manager', '@controller.helper', '@template', '@language', '@request', '@pagination']
+    phpbb2plus.community.credit_entries:
+        class: phpbb2plus\community\service\credit_entries
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_credits', '@auth', '@user']
     profilefields.type.plus_multi:
         class: phpbb2plus\community\profile\multiple
         arguments: ['@profilefields.lang_helper', '@request', '@template', '@user']

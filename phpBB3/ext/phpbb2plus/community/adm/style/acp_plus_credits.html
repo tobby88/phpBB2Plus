@@ -1,0 +1,33 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_CREDITS}</h1>
+{% if CREDIT_FORM %}
+<form id="plus-credit" method="post" action="{U_CREDIT_SAVE}">
+	<fieldset><legend>{{ CREDIT_HEADING|e }}</legend>
+	{% if CREDIT_ERROR %}<div class="errorbox"><p>{{ CREDIT_ERROR|e }}</p></div>{% endif %}
+	{% if CREDIT_DELETE %}
+	<p>{{ lang('ACP_PLUS_CREDIT_CONFIRM', CREDIT_TITLE)|e }}</p>
+	{% else %}
+	{% for field in loops.credit_fields %}
+	<dl><dt><label for="credit-{{ field.KEY }}">{{ field.LABEL|e }}</label></dt><dd>
+		{% if field.LONG %}<textarea name="{{ field.KEY }}" id="credit-{{ field.KEY }}" rows="3" cols="55" required>{{ field.VALUE|e }}</textarea>
+		{% else %}<input type="text" name="{{ field.KEY }}" id="credit-{{ field.KEY }}" value="{{ field.VALUE|e('html_attr') }}"{% if field.REQUIRED %} required{% endif %}>{% endif %}
+	</dd></dl>
+	{% endfor %}
+	<dl><dt><label for="credit-visible">{L_ACP_PLUS_CREDIT_VISIBLE}</label></dt><dd><input type="checkbox" id="credit-visible" name="visible" value="1"{% if CREDIT_VISIBLE %} checked{% endif %}></dd></dl>
+	{% endif %}</fieldset>
+	<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ CREDIT_REVISION }}">{S_FORM_TOKEN}
+		{% if CREDIT_DELETE %}<button class="button1" type="submit" name="confirm" value="1">{L_DELETE}</button>{% else %}<input class="button1" type="submit" value="{L_SUBMIT}">{% endif %}
+		<a href="{U_BACK}">{L_CANCEL}</a></fieldset>
+</form>
+{% else %}
+<p>{L_ACP_PLUS_CREDIT_EXPLAIN}</p>
+<p><a class="button2" href="{U_CREDIT_CREATE}">{L_ACP_PLUS_CREDIT_CREATE}</a></p>
+<table class="table1"><thead><tr><th>{L_ACP_PLUS_CREDIT_TITLE}</th><th>{L_ACP_PLUS_CREDIT_AUTHOR}</th><th>{L_ACP_PLUS_CREDIT_VISIBLE}</th><th>{L_OPTIONS}</th></tr></thead><tbody>
+{% for row in loops.credit_list %}
+<tr><td>{{ row.NAME|e }}</td><td>{{ row.AUTHOR|e }}</td><td>{% if row.VISIBLE %}{L_YES}{% else %}{L_NO}{% endif %}</td>
+	<td><a href="{{ row.EDIT }}">{L_EDIT}</a> &middot; <a href="{{ row.DELETE }}">{L_DELETE}</a></td></tr>
+{% else %}<tr><td colspan="4">{L_ACP_PLUS_CREDIT_EMPTY}</td></tr>{% endfor %}
+</tbody></table>
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -236,6 +236,7 @@ def main():
                 colours.administration(member, media["member"])
                 portal.administration(base, member)
                 custom_profiles.administration(member)
+                credits.administration(member)
                 def delegation_fixture(operation):
                     php(ROOT / "tests/phpbb3/delegation_management.php", target, operation, cwd=web)
                 delegation_fixture("backfill")

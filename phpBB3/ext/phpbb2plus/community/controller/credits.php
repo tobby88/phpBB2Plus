@@ -1,10 +1,11 @@
 <?php
 namespace phpbb2plus\community\controller;
 
+use phpbb2plus\community\service\credit_entries;
+
 class credits
 {
-	private $db;
-	private $table;
+	private $entries;
 	private $extensions;
 	private $helper;
 	private $template;
@@ -12,10 +13,9 @@ class credits
 	private $request;
 	private $pagination;
 
-	public function __construct($db, $table, $extensions, $helper, $template, $language, $request, $pagination)
+	public function __construct($entries, $extensions, $helper, $template, $language, $request, $pagination)
 	{
-		$this->db = $db;
-		$this->table = $table;
+		$this->entries = $entries;
 		$this->extensions = $extensions;
 		$this->helper = $helper;
 		$this->template = $template;
@@ -49,44 +49,26 @@ class credits
 		}
 	}
 
-	private static function display($value)
-	{
-		$value = html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-		// Some phpBB2 distributions stored quoted strings with an extra slash.
-		return strtr($value, array("\\'" => "'", '\\"' => '"', '\\\\' => '\\'));
-	}
-
-	private static function web_url($value)
-	{
-		$value = self::display($value);
-		return preg_match('~^https?://~i', $value) && filter_var($value, FILTER_VALIDATE_URL) ? $value : '';
-	}
-
 	public function show()
 	{
 		$this->language->add_lang('community', 'phpbb2plus/community');
 		$this->installed();
-		$result = $this->db->sql_query('SELECT COUNT(*) AS total FROM ' . $this->table . ' WHERE visible=1');
-		$count = (int) $this->db->sql_fetchfield('total');
-		$this->db->sql_freeresult($result);
+		$count = $this->entries->count(true);
 		if ($count)
 		{
 			$url = $this->helper->route('phpbb2plus_community_credits');
 			$limit = 30;
 			$start = $this->pagination->validate_start($this->request->variable('start', 0), $limit, $count);
 			$this->pagination->generate_template_pagination($url, 'pagination', 'start', $count, $limit, $start);
-			$result = $this->db->sql_query_limit('SELECT credit_id,title,description,author,contact_email,author_website,version_text,download_url
-				FROM ' . $this->table . ' WHERE visible=1 ORDER BY title,credit_id', $limit, $start);
-			while ($row = $this->db->sql_fetchrow($result))
+			foreach ($this->entries->listing(true, $limit, $start) as $row)
 			{
-				$email = self::display($row['contact_email']);
+				$data = $this->entries->values($row);
+				$email = $data['contact_email'];
 				$this->template->assign_block_vars('archive_credits', array('ID' => (int) $row['credit_id'],
-					'NAME' => self::display($row['title']), 'VERSION' => self::display($row['version_text']),
-					'DESCRIPTION' => self::display($row['description']), 'AUTHOR' => self::display($row['author']),
+					'NAME' => $data['title'], 'VERSION' => $data['version_text'], 'DESCRIPTION' => $data['description'], 'AUTHOR' => $data['author'],
 					'EMAIL' => filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '',
-					'WEBSITE' => self::web_url($row['author_website']), 'DOWNLOAD' => self::web_url($row['download_url'])));
+					'WEBSITE' => credit_entries::url($data['author_website']), 'DOWNLOAD' => credit_entries::url($data['download_url'])));
 			}
-			$this->db->sql_freeresult($result);
 		}
 		return $this->helper->render('@phpbb2plus_community/credits.html', $this->language->lang('PLUS_CREDITS'));
 	}

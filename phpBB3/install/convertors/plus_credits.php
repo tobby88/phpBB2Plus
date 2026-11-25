@@ -8,8 +8,7 @@ function plus_credit_visible($value)
 
 function plus_credit_text($value)
 {
-	// Preserve literal entity spellings alongside supplementary characters on three-byte destinations.
-	return utf8_encode_ucr(str_replace('&', '&amp;', (string) $value));
+	return \phpbb2plus\community\service\credit_entries::encode($value);
 }
 
 function plus_credits_schema($prefix)
