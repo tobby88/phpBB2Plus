@@ -33,6 +33,24 @@ function plus_jr_source_directory($root)
 	return plus_media_path($root, rtrim($directory, '/'), true);
 }
 
+function plus_jr_source_matches($contents, $digest)
+{
+	return is_string($contents) && hash('sha256', str_replace(array("\r\n", "\r"), "\n", $contents)) === $digest;
+}
+
+function plus_jr_reviewed_dependencies($root, $directory, array $dependencies)
+{
+	foreach ($dependencies as $file => $digest)
+	{
+		// A sibling controller lives in the installation's actual ACP directory.
+		$base = strpos($file, '/') === false ? $directory : $root;
+		try { $path = plus_media_path($base, $file); }
+		catch (\RuntimeException $e) { return false; }
+		if (!plus_jr_source_matches(@file_get_contents($path), $digest)) { return false; }
+	}
+	return true;
+}
+
 function plus_jr_registry()
 {
 	global $convert;
@@ -54,6 +72,24 @@ function plus_jr_registry()
 		'admin_kb_types.php' => '9176f2a2cea0f652c22e7111bd70442cc29da931f758dd4f882ba0369994fb46',
 		'admin_kb_cat.php' => '863dc52eacce55c3c07f348a334afb4b12f5d807b796e390184e416e58b34b39',
 		'admin_pa_category.php' => 'e9ce286f24b744c64d27055848046ddd874a23eb99f9bbe3b4e6e8b3f7ed3b00',
+		'admin_pa_catauth.php' => '82f9f61690992ab2986c841535e13cd0678d838f0c180b1c8166a2cf043b489e',
+		'admin_album_cat.php' => '621ff302762cb0bad95c8a0039445bbdc1b94b4d7ee3d01e7fe669b30447c406',
+		'admin_hacks_list.php' => '12e39f97b24f72134803b9d4e82dbf0453240bc5c18ddda038278d4a3d73e9f1',
+	);
+	// These controllers share or delegate their actual write authority. A customised
+	// or absent helper can narrow the source grant despite an unchanged menu entry.
+	$dependencies = array(
+		'admin_pa_catauth.php' => array(
+			'admin_pa_ug_auth.php' => 'fa7397cc5100fd2dbeb871477fc5bc166d63a5d3ff789df671ce1a5e09edcd01',
+			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+			'pafiledb/includes/functions_file_authority.php' => 'd875f99ae5eafa9a2398fbc89fefd86cc406a7d91633290834c62b77023ba2a1',
+			'pafiledb/includes/functions_permission_storage.php' => '4b9503464cdb3e0e7a5ec3426a116f0c6e0cb6c251a6ad5ebebac1d78900c450',
+		),
+		'admin_album_cat.php' => array(
+			'album_mod/album_admin_category_storage.php' => '872eab0aaf53f1ec8201ff7b91dbfc44d334187c7bc813de5ed43f078f8b5f2f',
+			'album_mod/album_category_remove.php' => 'd10eea4bd6208303ec8430c513ae51de64fbfc1dd322a27b8bee3367e45439ba',
+			'album_mod/album_lifecycle_authority.php' => '0c7a663f8211eb2f317695d1e384a27f28de1eaaf422d74b250dfd8ced638349',
+		),
 	);
 	$registry = array();
 	foreach ($files as $file)
@@ -72,7 +108,8 @@ function plus_jr_registry()
 			$map = junior_admin::MODULES[$route] ?? null;
 			if ($map && $file === $route && $category === $map[0] && $label === $map[1])
 			{
-				if (isset($reviewed[$file]) && hash('sha256', str_replace(array("\r\n", "\r"), "\n", $source)) === $reviewed[$file])
+				if (isset($reviewed[$file]) && plus_jr_source_matches($source, $reviewed[$file])
+					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$file] ?? array()))
 				{ $record['option'] = $map[2]; }
 				else { $record['customised'] = true; }
 			}

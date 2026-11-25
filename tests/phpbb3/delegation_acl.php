@@ -10,7 +10,17 @@ if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1]) { exit(2); }
 require_once './includes/acp/auth.php';
 require_once './includes/functions_module.php';
 require_once dirname(__DIR__, 2) . '/phpBB3/install/convertors/plus_junior_admin.php';
+require_once dirname(__DIR__, 2) . '/phpBB3/install/convertors/plus_media.php';
+require_once __DIR__ . '/delegation.php';
 if (plus_jr_source_present($db, 'missing_fixture_')) { throw new RuntimeException('An absent Junior Admin source was treated as installed'); }
+$root = realpath('../legacy');
+$directory = $root . '/staff';
+$sibling = 'admin_pa_ug_auth.php';
+$digest = 'fa7397cc5100fd2dbeb871477fc5bc166d63a5d3ff789df671ce1a5e09edcd01';
+if (!plus_jr_reviewed_dependencies($root, $directory, array($sibling => $digest))
+	|| plus_jr_reviewed_dependencies($root, $directory, array($sibling => str_repeat('0', 64)))
+	|| plus_jr_reviewed_dependencies($root, $directory, array('missing_fixture_module.php' => $digest)))
+{ throw new RuntimeException('Changed or missing dependency was accepted for automatic delegation'); }
 plus_jr_finish();
 plus_jr_finish();
 $writer = new auth_admin();
@@ -42,6 +52,33 @@ if (!$auth->acl_get('a_') || !$auth->acl_get('a_words') || !$auth->acl_get('a_pl
 { throw new RuntimeException('Junior Admin entrance or the scoped module grant changed'); }
 define('IN_ADMIN', true);
 if ($auth->acl_get('a_')) { throw new RuntimeException('The ACP entrance changed native administrator status inside the panel'); }
+foreach (delegation_fixture_roles() as $id => $role)
+{
+	$result = $db->sql_query('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=' . $id);
+	$single = $db->sql_fetchrow($result) + array('is_registered' => true, 'is_bot' => false);
+	$db->sql_freeresult($result);
+	$auth->acl($single);
+	$stock->acl($single);
+	if ($single['username'] !== $role[0] || !$auth->has_delegated_acp() || $stock->acl_get('a_')) { throw new RuntimeException('Invalid isolated delegate'); }
+	foreach (array_keys($auth->acl_options['global']) as $option)
+	{
+		if (strpos($option, 'a_') === 0 && (bool) $auth->acl_get($option) !== ($option === $role[2]))
+		{ throw new RuntimeException('Unexpected native ACP option ' . $option . ' for ' . $role[0]); }
+	}
+	foreach (\phpbb2plus\community\auth\junior_admin::MODULES as $entry)
+	{
+		if ($auth->delegated_module($entry[3], $entry[4]) !== ($entry[2] === $role[2]))
+		{ throw new RuntimeException('Unexpected delegated ACP module for ' . $role[0]); }
+	}
+	try
+	{
+		$writer->acl_set('user', 0, $id, array($role[2] => ACL_NEVER));
+		$auth->acl($single);
+		if ($auth->has_delegated_acp()) { throw new RuntimeException('Native Never did not close the only delegated module'); }
+	}
+	finally { $writer->acl_set('user', 0, $id, array($role[2] => ACL_NO)); }
+}
+$auth->acl($account);
 $db->sql_transaction('begin');
 try
 {

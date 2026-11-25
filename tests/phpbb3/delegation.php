@@ -7,6 +7,16 @@ function delegation_fixture_grants()
 		md5('DownloadCat_manage_titleadmin_pa_category.php'), md5('KB_titleArt_manadmin_kb_art.php')));
 }
 
+function delegation_fixture_roles()
+{
+	return array(
+		46 => array('DownloadCategoryJunior', 'DownloadCat_manage_titleadmin_pa_category.php', 'a_plus_dl_categories'),
+		47 => array('DownloadAccessJunior', 'DownloadPermissionsadmin_pa_catauth.php', 'a_plus_dl_perms'),
+		48 => array('AlbumCategoryJunior', 'Photo_AlbumCategoriesadmin_album_cat.php', 'a_plus_album_categories'),
+		49 => array('CreditsJunior', 'GeneralHacks_Listadmin_hacks_list.php', 'a_plus_credits'),
+	);
+}
+
 function seed_delegation($db)
 {
 	$db->query("INSERT INTO phpbb_users(user_id,username,user_active,user_password,user_lang,user_email)
@@ -14,13 +24,24 @@ function seed_delegation($db)
 	$db->query("INSERT INTO phpbb_users(user_id,username,user_active,user_password,user_lang,user_email)
 		SELECT 92,'DormantJunior',0,user_password,'english','dormant@example.invalid' FROM phpbb_users WHERE user_id=2");
 	$insert = $db->prepare('INSERT INTO phpbb_jr_admin_users (user_id,user_jr_admin,start_date,update_date,admin_notes,notes_view) VALUES (?,?,100123,200456,?,?)');
-	foreach (array(
+	$rows = array(
 		array(1, '', 'Private source note', 0),
 		array(2, md5('UsersRanksadmin_ranks.php'), '', 0),
 		array(91, delegation_fixture_grants(), 'Fixture <only> & 😀', 1),
 		array(92, md5('UsersDisallowadmin_disallow.php'), 'Inactive note', 1),
 		array(1888, md5('UsersRanksadmin_ranks.php'), '', 0),
-	) as $fixture)
+	);
+	$member = $db->prepare("INSERT INTO phpbb_users(user_id,username,user_active,user_password,user_lang,user_email)
+		SELECT ?,?,1,user_password,'english',? FROM phpbb_users WHERE user_id=2");
+	foreach (delegation_fixture_roles() as $id => $role)
+	{
+		list($name, $registration) = $role;
+		$email = strtolower($name) . '@example.invalid';
+		$member->bind_param('iss', $id, $name, $email);
+		$member->execute();
+		$rows[] = array($id, md5($registration), '', 0);
+	}
+	foreach ($rows as $fixture)
 	{
 		list($id, $grants, $note, $visible) = $fixture;
 		$insert->bind_param('issi', $id, $grants, $note, $visible);
@@ -50,6 +71,15 @@ function verify_delegation($db)
 		$rows[92]['account_state'] === 'inactive-account' && $rows[92]['rights_json'] === '[]' &&
 		$rows[1888]['account_state'] === 'missing-account' && (int) $rows[1888]['user_id'] === 0,
 		'Junior Admin account provenance or remapped user ID lost');
-	$delegates = array_map('intval', array_column($db->query('SELECT user_id FROM p3_users WHERE plus_jr_delegate=1')->fetch_all(MYSQLI_ASSOC), 'user_id'));
-	check_fixture($delegates === array(91), 'An unintended account received delegated privileges');
+	foreach (delegation_fixture_roles() as $id => $role)
+	{
+		$row = $rows[$id];
+		$report = json_decode($row['report_json'], true);
+		check_fixture((int) $row['user_id'] === $id && base64_decode($row['modules_b64'], true) === md5($role[1])
+			&& json_decode($row['rights_json'], true) === array($role[2]) && count($report) === 1
+			&& $report[0]['result'] === 'delegated' && $report[0]['option'] === $role[2],
+			'Isolated delegation for ' . $role[0] . ' was not reconstructed: ' . $row['report_json']);
+	}
+	$delegates = array_map('intval', array_column($db->query('SELECT user_id FROM p3_users WHERE plus_jr_delegate=1 ORDER BY user_id')->fetch_all(MYSQLI_ASSOC), 'user_id'));
+	check_fixture($delegates === array_merge(array_keys(delegation_fixture_roles()), array(91)), 'An unintended account received delegated privileges');
 }

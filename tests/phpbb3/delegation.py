@@ -3,9 +3,10 @@ import json
 import os
 import shutil
 import time
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin
 
-from http_board import Browser, Page, admin_url, login
+from http_board import Browser, FormFields, Page, admin_url, login, submit_form
 
 
 def source_modules(source, target):
@@ -16,6 +17,13 @@ def source_modules(source, target):
     directory.mkdir(exist_ok=True)
     for file in (source / "admin").glob("admin_*.php"):
         shutil.copyfile(file, directory / file.name)
+    for path in ("includes/functions_jr_admin_auth.php", "pafiledb/includes/functions_file_authority.php",
+                 "pafiledb/includes/functions_permission_storage.php", "album_mod/album_admin_category_storage.php",
+                 "album_mod/album_category_remove.php", "album_mod/album_lifecycle_authority.php"):
+        (target / path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / path, target / path)
+    credits = directory / "admin_hacks_list.php"
+    credits.write_bytes(credits.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n").replace(b"\n", b"\r\n"))
     with (directory / "admin_disallow.php").open("ab") as changed:
         changed.write(b"\n/* Locally customised controller */\n")
 
@@ -27,16 +35,54 @@ def verify_report(php, web):
         raise RuntimeError("The operator report lost source account status or exposed private notes")
 
 
-def browse(base):
+def authenticate(base, name):
     password = os.environ["PLUS_TEST_MODERN_PASSWORD"]
-    junior = login(base, "JuniorFixture", password)
+    junior = login(base, name, password)
     entry = admin_url(junior)
     action, fields = Page(junior.fetch(entry)).forms["login"]
-    fields.update(login="1", username="JuniorFixture")
+    fields.update(login="1", username=name)
     fields["password_" + fields["credential"]] = password
     time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
     junior.fetch(urljoin(entry, action), fields)
-    entry = admin_url(junior)
+    return junior, admin_url(junior)
+
+
+def module_roles(base):
+    modules = {
+        "DownloadCategoryJunior": ("-phpbb2plus-downloads-acp-categories_module", "action=edit&category=23", "dl-category", "summary", "Delegated category edit"),
+        "DownloadAccessJunior": ("-phpbb2plus-downloads-acp-permissions_module", "section=edit&category=21", "dl-permissions", "values[view]", "1"),
+        "AlbumCategoryJunior": ("-phpbb2plus-gallery-acp-categories_module", "action=edit&category=8", "album-public-category", "description", "Delegated album edit"),
+        "CreditsJunior": ("-phpbb2plus-community-acp-credits_module", "action=edit&credit=19001", "plus-credit", "title", "Delegated credits edit"),
+    }
+
+    def exercise(roles):
+        for username in roles:
+            browser, acp = authenticate(base, username)
+            for owner, (module, query, form, field, new_value) in modules.items():
+                url = acp + "&i=" + module + "&mode=manage&" + query
+                if owner != username:
+                    if "Module not accessible" not in browser.fetch(url, expected_status=503):
+                        raise RuntimeError(f"{username} could open the separately delegated {module}")
+                    continue
+                page = browser.fetch(url)
+                original = FormFields(page, form).values[field]
+                if original == new_value:
+                    raise RuntimeError(f"Expected a different starting value for {module}")
+                for value in (new_value, original):
+                    submit_form(browser, url, page, form, {field: value})
+                    page = browser.fetch(url)
+                    if FormFields(page, form).values.get(field) != value:
+                        raise RuntimeError(f"{username} could not save its mapped {field} in {module}")
+
+    # Download categories and their ACLs share one catalogue. Keep their two
+    # round trips sequential while the independently stored album and credits run.
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior"), ("AlbumCategoryJunior", "CreditsJunior"))))
+
+
+def browse(base):
+    module_roles(base)
+    junior, entry = authenticate(base, "JuniorFixture")
     home = junior.fetch(entry)
     if "Your delegated administration" not in home or "Fixture &lt;only&gt; &amp; 😀" not in home or "Private source note" in home:
         raise RuntimeError("The delegated ACP home did not preserve the account's visible note")
