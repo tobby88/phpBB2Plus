@@ -11,7 +11,7 @@
 	{% elseif field.options %}<select id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}">{% for choice in field.options %}<option value="{{ choice.KEY|e('html_attr') }}"{% if choice.SELECTED %} selected{% endif %}>{{ choice.LABEL|e }}</option>{% endfor %}</select>
 	{% elseif field.KIND == 'memo' %}<textarea id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}" maxlength="{{ field.LIMIT }}" rows="3">{{ field.VALUE|e }}</textarea>
 	{% elseif field.KIND == 'text' %}<input class="inputbox" id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}" type="text" maxlength="{{ field.LIMIT }}" value="{{ field.VALUE|e('html_attr') }}">
-	{% else %}<input id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}" type="number" min="0" value="{{ field.VALUE|e('html_attr') }}" required>{% endif %}
+	{% else %}<input id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}" type="number" {% if field.KIND == 'page_size' %}min="1" max="1000"{% else %}min="0"{% endif %} value="{{ field.VALUE|e('html_attr') }}" required>{% endif %}
 	</dd></dl>{% endfor %}
 	<input type="hidden" name="state" value="{{ section.STATE }}"><input type="hidden" name="section" value="{{ section.KEY }}">{{ section.TOKEN }}
 	</fieldset>

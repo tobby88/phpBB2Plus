@@ -1,0 +1,15 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{{ KB_TITLE|e }}</h2>
+{% include '@phpbb2plus_knowledgebase/navigation.html' %}
+<div class="forumbg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_KB_ARTICLES}</div></dt></dl></li></ul><ul class="topiclist topics">
+{% for article in loops.kb_ranked %}
+<li class="row"><dl class="row-item topic_read"><dt><div class="list-inner">
+	<a class="topictitle" href="{{ article.URL }}">{{ article.TITLE|e }}</a>
+	{% if article.SUMMARY %}<br>{{ article.SUMMARY|e }}{% endif %}
+	<br>{{ article.AUTHOR }} &middot; {{ article.DATE }}{% if article.U_CATEGORY %} &middot; <a href="{{ article.U_CATEGORY }}">{{ article.CATEGORY|e }}</a>{% endif %}{% if article.TYPE %} &middot; {{ article.TYPE|e }}{% endif %}
+	<br>{{ lang('PLUS_KB_VIEWS', article.VIEWS) }}{% if article.SCORE %} &middot; {{ article.SCORE }}{% endif %}
+</div></dt></dl></li>
+{% else %}<li class="row"><p>{L_PLUS_KB_EMPTY}</p></li>{% endfor %}
+</ul></div></div>
+{% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

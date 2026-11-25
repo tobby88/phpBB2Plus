@@ -168,6 +168,11 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 				if (isset($query['search_keywords']) && is_string($query['search_keywords'])) { $extra['q'] = $query['search_keywords']; }
 			}
 			elseif ($mode === 'add') { $path = 'knowledge/new'; }
+			elseif ($mode === 'stats')
+			{
+				$list = $query['stats'] ?? 'latest';
+				$path = 'knowledge/statistics/' . (in_array($list, array('latest','mostpopular','toprated'), true) ? $list : 'latest');
+			}
 			elseif ($mode === 'cat' && ($id = $positive('cat'))) { $path = 'knowledge/category/' . $id; }
 			elseif (in_array($mode, array('article','edit','rate'), true) && ($id = $positive('k')))
 			{

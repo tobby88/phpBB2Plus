@@ -10,6 +10,7 @@ class settings
 		'discussion' => array('comments' => array('bool','1'), 'forum_id' => array('forum','0'),
 			'bump_post' => array('bool','1'), 'del_topic' => array('bool','1')),
 		'notices' => array('notify' => array('notify','0'), 'admin_id' => array('user','0')),
+		'display' => array('stats_list' => array('bool','1'), 'art_pagination' => array('page_size','5')),
 		'ratings' => array('allow_rating' => array('bool','0'), 'allow_anonymos_rating' => array('bool','0'),
 			'votes_check_userid' => array('bool','1'), 'votes_check_ip' => array('bool','1')),
 	);
@@ -58,6 +59,7 @@ class settings
 		{
 			case 'bool': return in_array($value, array('0','1'), true);
 			case 'notify': return in_array($value, array('0','1','2'), true);
+			case 'page_size': return preg_match('/^[1-9][0-9]{0,3}$/D', $value) && (int) $value <= 1000;
 			case 'text':
 			case 'memo': return utf8_strlen($value) <= $field[2];
 			case 'user':

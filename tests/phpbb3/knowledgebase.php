@@ -14,7 +14,7 @@ function seed_knowledgebase($db)
 		(201,8,'Öffentliche Anleitung','Beschreibung &amp; Grüße','100201',1,'','testuid','Einstieg[toc]\n[b:testuid]Grüße[/b:testuid] Wissensprobe[page]Fortsetzung[toc]\nZweite Wissensseite',2,1,1,17,16.5000,2),
 		(202,8,'Ungeprüfte Anleitung','','100202',2,'','','Wissensprobe nur intern',2,0,0,0,0,0),
 		(203,8,'Überarbeitete Anleitung','','100203',87,'','','Noch in Prüfung',2,2,0,1,0,0),
-		(204,8,'Geschütztes Diskussionsthema','','100204',0,'EditorFixture','','0',1,1,7,1,0,0),
+		(204,8,'Geschütztes Diskussionsthema','','100204',0,'EditorFixture','','0',1,1,7,1,8.1000,1),
 		(211,10,'Lesemappenbrief','','100211',2,'','','Rückblick',1,1,1,0,0,0),
 		(212,11,'Ein Fundstück','','100212',2,'','','Fundstück',1,1,0,0,0,0),
 		(213,10,'Interner Entwurf','','100213',2,'','','Entwurf',1,0,0,0,0,0),

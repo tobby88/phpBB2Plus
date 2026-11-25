@@ -1,6 +1,8 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_KB_SET_DISPLAY' => 'Article lists', 'ACP_PLUS_KB_OPT_STATS_LIST' => 'Show published article counts by type',
+	'ACP_PLUS_KB_OPT_ART_PAGINATION' => 'Articles per page (1 to 1000)',
 	'ACP_PLUS_KB' => 'Knowledge Base', 'ACP_PLUS_KB_ARTICLES' => 'Manage articles', 'ACP_PLUS_KB_ARTICLE' => 'Article',
 	'ACP_PLUS_KB_ALL' => 'All articles', 'ACP_PLUS_KB_EDITED' => 'Edits awaiting approval', 'ACP_PLUS_KB_PENDING' => 'New submissions',
 	'ACP_PLUS_KB_PUBLISHED' => 'Published', 'ACP_PLUS_KB_EMPTY' => 'No articles in this view.',

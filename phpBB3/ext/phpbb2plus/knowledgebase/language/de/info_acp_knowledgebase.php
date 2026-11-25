@@ -40,6 +40,8 @@ $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_KB_OPT_VOTES_CHECK_USERID' => 'Eine Bewertung pro Benutzerkonto und Artikel',
 	'ACP_PLUS_KB_OPT_VOTES_CHECK_IP' => 'Eine Bewertung pro IP-Adresse und Artikel',
 	'ACP_PLUS_KB_SETTINGS_SAVED' => 'Die Einstellungen wurden gespeichert.',
+	'ACP_PLUS_KB_SET_DISPLAY' => 'Artikellisten', 'ACP_PLUS_KB_OPT_STATS_LIST' => 'Anzahl veröffentlichter Artikel nach Typ anzeigen',
+	'ACP_PLUS_KB_OPT_ART_PAGINATION' => 'Artikel pro Seite (1 bis 1000)',
 	'ACP_PLUS_KB_SETTINGS_CONFLICT' => 'Dieser Bereich wurde inzwischen geändert. Prüfe die aktuellen Einstellungen vor dem erneuten Speichern.',
 	'ACP_PLUS_KB_SETTINGS_INVALID' => 'Prüfe die ausgewählten Optionen, Textlängen und die angegebene Benutzer-ID.',
 	'ACP_PLUS_KB_DELETE_EXPLAIN' => 'Mit dem Artikel werden seine Seiten und Bewertungen gelöscht. Ob auch die verknüpfte Diskussion entfernt wird, hängt von den Diskussionseinstellungen und deinen Forenrechten ab.',

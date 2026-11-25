@@ -3,6 +3,7 @@ namespace phpbb2plus\knowledgebase\controller;
 
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class board
 {
@@ -49,10 +50,84 @@ class board
 		}
 	}
 
+	private function navigation($active = '')
+	{
+		foreach (array('latest','mostpopular','toprated') as $list)
+		{
+			if ($list === 'toprated' && !(int) $this->articles->setting('allow_rating', 0)) { continue; }
+			$this->template->assign_block_vars('kb_lists', array('ACTIVE' => $list === $active,
+				'LABEL' => $this->language->lang('PLUS_KB_LIST_' . strtoupper($list)),
+				'URL' => $this->helper->route('phpbb2plus_kb_rankings', array('list' => $list))));
+		}
+		if (!(int) $this->articles->setting('stats_list', 1)) { return; }
+		$result = $this->db->sql_query('SELECT t.title,t.label_encoded,COALESCE(c.amount,0) AS amount FROM ' . $this->prefix . 'types t
+			LEFT JOIN (SELECT type_id,COUNT(*) AS amount FROM ' . $this->prefix . 'articles WHERE approval=1 GROUP BY type_id) c ON c.type_id=t.type_id
+			ORDER BY t.title,t.type_id');
+		while ($type = $this->db->sql_fetchrow($result))
+		{
+			$this->template->assign_block_vars('kb_totals', array('TITLE' => $this->articles->label($type['title'], $type['label_encoded']), 'COUNT' => $type['amount']));
+		}
+		$this->db->sql_freeresult($result);
+	}
+
+	private function page_window($url, $count)
+	{
+		$limit = max(1, min(1000, (int) $this->articles->setting('art_pagination', 5)));
+		$start = $this->pagination->validate_start(max(0, $this->request->variable('start', 0)), $limit, $count);
+		$this->pagination->generate_template_pagination($url, 'pagination', 'start', $count, $limit, $start);
+		return array($limit, $start);
+	}
+
+	private function score_label($average, $count)
+	{
+		return $this->language->lang('PLUS_KB_SCORE', number_format($average, 2, $this->language->lang('PLUS_KB_DECIMAL'), ''), $count);
+	}
+
+	public function rankings($list)
+	{
+		$ratings = (int) $this->articles->setting('allow_rating', 0);
+		if (!in_array($list, array('latest','mostpopular','toprated'), true) || ($list === 'toprated' && !$ratings)) { throw new NotFoundHttpException(); }
+		$this->breadcrumbs(0);
+		$this->navigation($list);
+		$from = $this->prefix . 'articles a';
+		$where = 'a.approval=1';
+		$order = 'a.created_at';
+		$votes = 'CAST(a.historical_votes AS DECIMAL(30,0)) + COALESCE(v.amount,0)';
+		$points = 'CAST(a.historical_points AS DECIMAL(32,4)) + COALESCE(v.points,0)';
+		$totals = $ratings ? ' LEFT JOIN (SELECT article_id,COUNT(*) AS amount,SUM(points) AS points FROM ' . $this->prefix .
+			'votes WHERE points>0 GROUP BY article_id) v ON v.article_id=a.article_id' : '';
+		if ($list === 'mostpopular') { $where .= ' AND a.views>0'; $order = 'a.views'; }
+		elseif ($list === 'toprated') { $where .= " AND ($votes)>0"; $order = "($points)/NULLIF(($votes),0)"; }
+		$result = $this->db->sql_query("SELECT COUNT(*) AS total FROM $from " . ($list === 'toprated' ? $totals : '') . " WHERE $where");
+		$count = (int) $this->db->sql_fetchfield('total');
+		$this->db->sql_freeresult($result);
+		list($limit, $start) = $this->page_window($this->helper->route('phpbb2plus_kb_rankings', array('list' => $list)), $count);
+		$sql = 'SELECT a.article_id,a.title,a.description,a.cat_id,a.created_at,a.author_id,a.author_name,a.author_removed,a.views,
+			u.username,u.user_colour,t.title AS type_name,t.label_encoded' . ($ratings ? ",($votes) AS num_votes,($points) AS num_points" : '') .
+			" FROM $from $totals LEFT JOIN " . USERS_TABLE . ' u ON u.user_id=a.author_id LEFT JOIN ' . $this->prefix . 'types t ON t.type_id=a.type_id' .
+			" WHERE $where ORDER BY $order DESC,a.article_id DESC";
+		$categories = $this->articles->category_list();
+		$result = $this->db->sql_query_limit($sql, $limit, $start);
+		while ($a = $this->db->sql_fetchrow($result))
+		{
+			$cat = $categories[(int) $a['cat_id']] ?? null;
+			$this->template->assign_block_vars('kb_ranked', array('TITLE' => $a['title'], 'SUMMARY' => $a['description'],
+				'URL' => $this->helper->route('phpbb2plus_kb_article', array('article' => $a['article_id'])),
+				'CATEGORY' => $cat ? $cat['title'] : '', 'U_CATEGORY' => $cat ? $this->helper->route('phpbb2plus_kb_category', array('category' => $a['cat_id'])) : '',
+				'TYPE' => $this->articles->label($a['type_name'], $a['label_encoded']), 'AUTHOR' => $this->author($a), 'DATE' => $this->user->format_date($a['created_at']),
+				'VIEWS' => $a['views'], 'SCORE' => $ratings && (string) $a['num_votes'] !== '0' ? $this->score_label((float) $a['num_points'] / (float) $a['num_votes'], $a['num_votes']) : ''));
+		}
+		$this->db->sql_freeresult($result);
+		$title = $this->language->lang('PLUS_KB_LIST_' . strtoupper($list));
+		$this->template->assign_var('KB_TITLE', $title);
+		return $this->helper->render('@phpbb2plus_knowledgebase/rankings.html', $title);
+	}
+
 	public function index($category = 0)
 	{
 		$id = (int) $category;
 		$this->breadcrumbs($id);
+		$this->navigation();
 		$cats = $this->articles->category_list();
 		$query = htmlspecialchars_decode($this->request->variable('q', '', true), ENT_QUOTES);
 		$view = $this->request->variable('order', '');
@@ -80,9 +155,7 @@ class board
 		$result = $this->db->sql_query("SELECT COUNT(*) AS total FROM $from WHERE $where");
 		$count = (int) $this->db->sql_fetchfield('total');
 		$this->db->sql_freeresult($result);
-		$limit = max(1, min(100, (int) $this->articles->setting('art_pagination', 5)));
-		$start = $this->pagination->validate_start(max(0, $this->request->variable('start', 0)), $limit, $count);
-		$this->pagination->generate_template_pagination($this->helper->route($route, $params), 'pagination', 'start', $count, $limit, $start);
+		list($limit, $start) = $this->page_window($this->helper->route($route, $params), $count);
 		$result = $this->db->sql_query_limit("SELECT a.article_id,a.title,a.description,a.approval FROM $from WHERE $where ORDER BY $sort,a.article_id", $limit, $start);
 		while ($article = $this->db->sql_fetchrow($result))
 		{
@@ -110,6 +183,7 @@ class board
 		$this->breadcrumbs($a['cat_id']);
 		$params = array('article' => $id);
 		$print = $this->request->variable('print', 0) === 1;
+		if (!$print) { $this->navigation(); }
 		$page = max(1, $this->request->variable('page', 1));
 		$part = $this->articles->page($id, $page);
 		foreach ($this->articles->pages($id) as $part_info)
@@ -129,7 +203,7 @@ class board
 			$score = $this->articles->scores($a);
 			if ($score['count'] !== '0')
 			{
-				$this->template->assign_var('KB_SCORE', $this->language->lang('PLUS_KB_SCORE', number_format($score['average'], 2, $this->language->lang('PLUS_KB_DECIMAL'), ''), $score['count']));
+				$this->template->assign_var('KB_SCORE', $this->score_label($score['average'], $score['count']));
 			}
 			if (!$print && $this->articles->may_rate())
 			{
