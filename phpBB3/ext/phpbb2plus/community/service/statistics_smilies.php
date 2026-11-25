@@ -73,21 +73,26 @@ class statistics_smilies
 		}
 		$sql = 'SELECT p.post_text FROM ' . POSTS_TABLE . ' p JOIN ' . TOPICS_TABLE . ' t ON t.topic_id=p.topic_id AND t.forum_id=p.forum_id
 			WHERE ' . $post_scope . ' AND p.enable_smilies=1 AND (' . $marked . ')';
+		// Stop at the last post present when this request began, even on busy boards.
+		$cursor = $this->db->sql_query('SELECT MAX(post_id) AS last_post FROM ' . POSTS_TABLE);
+		$last_post = (int) $this->db->sql_fetchfield('last_post');
+		$this->db->sql_freeresult($cursor);
 		$after = 0;
 		$batch = 256;
-		do
+		while ($after < $last_post)
 		{
-			$cursor = $this->db->sql_query_limit('SELECT post_id FROM ' . POSTS_TABLE . ' WHERE post_id>' . $after . ' ORDER BY post_id', 1, $batch - 1);
-			$upper = (int) $this->db->sql_fetchfield('post_id');
+			$cursor = $this->db->sql_query_limit('SELECT post_id FROM ' . POSTS_TABLE .
+				' WHERE post_id>' . $after . ' AND post_id<=' . $last_post . ' ORDER BY post_id', 1, $batch - 1);
+			$upper = (int) $this->db->sql_fetchfield('post_id') ?: $last_post;
 			$this->db->sql_freeresult($cursor);
-			$result = $this->db->sql_query($sql . ' AND p.post_id>' . $after . ($upper ? ' AND p.post_id<=' . $upper : ''));
+			$result = $this->db->sql_query($sql . ' AND p.post_id>' . $after . ' AND p.post_id<=' . $upper);
 			while ($row = $this->db->sql_fetchrow($result))
 			{
 				$this->count_post($row['post_text'], $codes, $totals);
 			}
 			$this->db->sql_freeresult($result);
 			$after = $upper;
-		} while ($upper);
+		}
 
 		$totals = array_filter($totals);
 		if (!$totals) { return array(); }
