@@ -30,6 +30,7 @@ class navigation implements EventSubscriberInterface
 		$permissions['u_plus_shout'] = array('lang' => 'ACL_U_PLUS_SHOUT', 'cat' => 'post');
 		$permissions['m_plus_shout'] = array('lang' => 'ACL_M_PLUS_SHOUT', 'cat' => 'misc');
 		$permissions['a_plus_credits'] = array('lang' => 'ACL_A_PLUS_CREDITS', 'cat' => 'misc');
+		$permissions['a_plus_stats_private'] = array('lang' => 'ACL_A_PLUS_STATS_PRIVATE', 'cat' => 'misc');
 		$permissions['f_plus_read_if_listed'] = array('lang'=>'ACL_F_PLUS_READ_IF_LISTED','cat'=>'actions');
 		$event['permissions'] = $permissions;
 	}
@@ -38,6 +39,7 @@ class navigation implements EventSubscriberInterface
 	{
 		$this->language->add_lang('community', 'phpbb2plus/community');
 		$this->template->assign_vars(array('U_PLUS_PORTAL' => $this->helper->route('phpbb2plus_community_portal'),
+			'U_PLUS_STATISTICS' => $this->helper->route('phpbb2plus_community_statistics'),
 			'U_PLUS_CREDITS' => $this->helper->route('phpbb2plus_community_credits')));
 	}
 

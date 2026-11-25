@@ -70,6 +70,7 @@ if (!$get_info)
 	}
 	$convertor['execute_last'][] = 'plus_finish_news();';
 	$convertor['execute_last'][] = 'plus_portal_settings();';
+	$convertor['execute_last'][] = 'plus_statistics_settings();';
 	$convertor['execute_last'][] = 'plus_finish_colours();';
 	// The native converter resets default-group colours after all execute_last callbacks.
 	// Apply the imported priorities when its next, resumable forum-sync stage opens.

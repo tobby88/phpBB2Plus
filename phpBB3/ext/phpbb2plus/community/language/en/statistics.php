@@ -1,0 +1,12 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'PLUS_STATS_DECIMAL' => '.',
+	'PLUS_STATS_FORUM_INDEX' => 'Return to the board index', 'PLUS_STATS_MOST_ACTIVE_TOPICS' => 'Topics with the most replies',
+	'PLUS_STATS_MOST_VIEWED_TOPICS' => 'Most viewed topics', 'PLUS_STATS_TOP_POSTERS' => 'Members with the most posts',
+	'PLUS_STATS_SITE_HIST_WEEK_TOP_POSTERS' => 'Most active members this week', 'PLUS_STATS_SITE_HIST_MONTH_TOP_POSTERS' => 'Most active members this month',
+	'PLUS_STATS_RANK' => 'Rank', 'PLUS_STATS_SHARE_TOTAL' => 'Share of visible member posts', 'PLUS_STATS_SHARE_RANKED' => 'Share within this ranking',
+	'PLUS_STATS_NO_ROWS' => 'There are no visible entries for this ranking.',
+	'PLUS_STATS_NO_MODULES' => 'There are no statistics available for this audience.', 'PLUS_STATS_VIEWS' => 'Statistics page views: %d',
+	'PLUS_STATS_INSTALLED' => 'Statistics since %s', 'PLUS_STATS_VERSION' => 'Original Statistics MOD version: %s',
+));

@@ -4,6 +4,7 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL' => 'Portal',
 	'PLUS_CREDITS' => 'Mods and credits',
 	'ACL_A_PLUS_CREDITS' => 'Can manage historical MOD credits',
+	'ACL_A_PLUS_STATS_PRIVATE' => 'Can view statistics modules restricted to administrators',
 	'PLUS_CREDITS_INSTALLED' => 'Active Plus extensions',
 	'PLUS_CREDITS_ARCHIVE' => 'Credits from the original phpBB2 board',
 	'PLUS_CREDITS_AUTHOR' => 'By %s',

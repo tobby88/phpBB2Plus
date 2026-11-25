@@ -1,0 +1,16 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_STATISTICS}</h2>
+{% for panel in loops.stats_modules %}
+<section class="panel" id="{{ panel.ID }}"><div class="inner">
+{% if panel.INDEX %}<a href="{U_INDEX}">{{ panel.TITLE|e }}</a>
+{% else %}<h3>{{ panel.TITLE|e }}</h3>
+{% if panel.entries %}
+<table class="table1"><thead><tr><th scope="col">{{ lang('PLUS_STATS_RANK') }}</th><th scope="col">{% if panel.AUTHORS %}{L_USERNAME}{% else %}{L_TOPIC}{% endif %}</th>
+<th scope="col">{{ panel.METRIC|e }}</th>{% if panel.AUTHORS %}<th scope="col">{{ panel.SHARE|e }}</th>{% endif %}</tr></thead><tbody>
+{% for row in panel.entries %}<tr><td>{{ loop.index }}</td><td><a href="{{ row.URL|e }}">{{ row.LABEL|e }}</a></td><td>{{ row.COUNT }}</td>
+{% if panel.AUTHORS %}<td><meter value="{{ row.BAR }}" max="{{ row.MAX }}" aria-hidden="true"></meter> {{ row.PERCENT|e }} %</td>{% endif %}</tr>{% endfor %}
+</tbody></table>{% else %}<p>{{ lang('PLUS_STATS_NO_ROWS') }}</p>{% endif %}{% endif %}
+</div></section>
+{% else %}<p>{{ lang('PLUS_STATS_NO_MODULES') }}</p>{% endfor %}
+<p class="copyright">{{ STATS_VIEWS|e }}{% if STATS_STARTED %}<br>{{ STATS_STARTED|e }}{% endif %}{% if STATS_SOURCE %}<br>{{ STATS_SOURCE|e }}{% endif %}</p>
+<!-- INCLUDE overall_footer.html -->
