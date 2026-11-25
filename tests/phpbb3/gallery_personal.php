@@ -109,12 +109,13 @@ elseif ($argv[2] === 'resize_rendered')
 		}
 	}
 }
-elseif ($argv[2] === 'category_delegate' || $argv[2] === 'category_revoke')
+elseif (preg_match('/^(category|grants)_(delegate|revoke)$/D', $argv[2], $match))
 {
-	$option = (int) album_fixture_value('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='a_plus_album_categories'");
-	if (!$option) { throw new RuntimeException('The narrow native category permission is unavailable'); }
+	$name = $match[1] === 'category' ? 'a_plus_album_categories' : 'a_plus_album_auth';
+	$option = (int) album_fixture_value('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='$name'");
+	if (!$option) { throw new RuntimeException('The narrow native gallery permission is unavailable'); }
 	$where = "forum_id=0 AND user_id=87 AND auth_role_id=0 AND auth_option_id=$option";
-	if ($argv[2] === 'category_delegate')
+	if ($match[2] === 'delegate')
 	{
 		if ((int) album_fixture_value('SELECT COUNT(*) FROM ' . ACL_USERS_TABLE . ' WHERE ' . $where)) { throw new RuntimeException('Duplicate fixture category grant'); }
 		$db->sql_query('INSERT INTO ' . ACL_USERS_TABLE . ' ' . $db->sql_build_array('INSERT',
@@ -122,6 +123,37 @@ elseif ($argv[2] === 'category_delegate' || $argv[2] === 'category_revoke')
 	}
 	else { $db->sql_query('DELETE FROM ' . ACL_USERS_TABLE . ' WHERE ' . $where); }
 	$auth->acl_clear_prefetch(87);
+}
+elseif ($argv[2] === 'grants_groups')
+{
+	$result = $db->sql_query('SELECT * FROM ' . GROUPS_TABLE . ' WHERE group_id=71');
+	$original = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$original || (int) album_fixture_value('SELECT COUNT(*) FROM ' . GROUPS_TABLE . ' WHERE group_id BETWEEN 9300 AND 9320'))
+	{ throw new RuntimeException('The disposable group range is not available'); }
+	$rows = array();
+	for ($id = 9300; $id <= 9320; ++$id) { $rows[] = array('group_id' => $id, 'group_name' => 'ZZ Gallery ' . $id) + $original; }
+	$db->sql_multi_insert(GROUPS_TABLE, $rows);
+}
+elseif ($argv[2] === 'grants_approved' || $argv[2] === 'grants_pending')
+{
+	$pending = $argv[2] === 'grants_pending' ? 1 : 0;
+	$db->sql_query('UPDATE ' . USER_GROUP_TABLE . " SET user_pending=$pending WHERE group_id=71 AND user_id=87");
+}
+elseif ($argv[2] === 'grants_complete')
+{
+	if ((int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=8 AND subject_type='g' AND subject_id=9320 AND capability='delete'") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=8 AND subject_type='g' AND subject_id=71 AND capability='view'") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=8 AND subject_type='g' AND subject_id IN (71,74)") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=8 AND subject_type='u' AND capability='moderator'") !== 1)
+	{ throw new RuntimeException('Saving a page altered another group page, an individual grant or the original category grants'); }
+	require_once './includes/functions_user.php';
+	$user->session_begin();
+	$user->setup();
+	group_delete(9320, 'ZZ Gallery 9320');
+	if ((int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE subject_type='g' AND subject_id=9320"))
+	{ throw new RuntimeException('A deleted group retained a gallery permission'); }
+	$db->sql_query('DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id BETWEEN 9300 AND 9319');
 }
 elseif ($argv[2] === 'category_grants')
 {

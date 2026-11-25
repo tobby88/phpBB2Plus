@@ -2,6 +2,15 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ALBUM_CATEGORIES' => 'Fotokategorien',
+	'ACP_PLUS_ALBUM_AUTH' => 'Gruppenrechte für Fotokategorien',
+	'PLUS_ALBUM_GRANTS_SELECT' => 'Wähle die allgemeine Fotokategorie, deren Gruppenrechte du bearbeiten möchtest.',
+	'PLUS_ALBUM_GRANTS_EXPLAIN' => 'Ein Häkchen weist der Gruppe das Recht für diese Kategorie zu. Die sechs Aktionsrechte gelten bei der Zugriffsstufe für zugewiesene Mitglieder und Gruppen. Moderatorenrechte gelten entsprechend den Zugriffsstufen der Kategorie. Nur bestätigte Gruppenmitglieder erhalten die Gruppenrechte. Übernommene Einzelzuweisungen gelten zusätzlich. Jede Seite speichert ihre eigenen Gruppen.',
+	'PLUS_ALBUM_GRANTS_CHANGED' => 'Das Formular ist unvollständig oder die Gruppe, die Kategorie oder ihre Rechte haben sich inzwischen geändert. Öffne die Gruppenrechte erneut.',
+	'PLUS_ALBUM_GRANTS_NO_CATEGORIES' => 'Es gibt noch keine allgemeinen Fotokategorien.', 'PLUS_ALBUM_GRANTS_NO_GROUPS' => 'Es gibt noch keine benutzerdefinierten Gruppen.',
+	'PLUS_ALBUM_GRANTS_PAGE' => 'Seite %1$d von %2$d', 'PLUS_ALBUM_GRANT_VIEW' => 'Ansehen', 'PLUS_ALBUM_GRANT_UPLOAD' => 'Hochladen',
+	'PLUS_ALBUM_GRANT_RATE' => 'Bewerten', 'PLUS_ALBUM_GRANT_COMMENT' => 'Kommentieren', 'PLUS_ALBUM_GRANT_EDIT' => 'Bearbeiten',
+	'PLUS_ALBUM_GRANT_DELETE' => 'Löschen', 'PLUS_ALBUM_GRANT_MODERATOR' => 'Moderieren',
+	'LOG_PLUS_ALBUM_AUTH' => '<strong>Gruppenrechte einer Fotokategorie geändert</strong><br>» %s',
 	'PLUS_ALBUM_PUBLIC_SCOPE' => 'Hier werden die allgemeinen Kategorien des Fotoalbums verwaltet. Eine Kategorie ist nur erreichbar, wenn auch alle übergeordneten Kategorien sichtbar sind.',
 	'PLUS_ALBUM_PUBLIC_NAME' => 'Kategoriename', 'PLUS_ALBUM_PUBLIC_ROOT' => 'Oberste Ebene des Fotoalbums',
 	'PLUS_ALBUM_PUBLIC_ADD' => 'Kategorie anlegen', 'PLUS_ALBUM_PUBLIC_EDIT' => 'Kategorie bearbeiten',

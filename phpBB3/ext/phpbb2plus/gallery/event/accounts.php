@@ -7,16 +7,26 @@ class accounts implements EventSubscriberInterface
 {
 	private $db;
 	private $prefix;
+	private $access;
 
-	public function __construct($db, $prefix)
+	public function __construct($db, $prefix, $access)
 	{
 		$this->db = $db;
 		$this->prefix = $prefix;
+		$this->access = $access;
 	}
 
 	static public function getSubscribedEvents()
 	{
-		return array('core.delete_user_before' => array('depart', 10));
+		return array('core.delete_user_before' => array('depart', 10), 'core.delete_group_after' => 'group');
+	}
+
+	public function group($event)
+	{
+		$id = (int) $event['group_id'];
+		$this->access->write(function () use ($id) {
+			$this->db->sql_query('DELETE FROM ' . $this->prefix . "grants WHERE subject_type='g' AND subject_id=$id");
+		});
 	}
 
 	public function depart($event)

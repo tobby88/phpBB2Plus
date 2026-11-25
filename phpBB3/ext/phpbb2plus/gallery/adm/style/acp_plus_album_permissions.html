@@ -1,0 +1,24 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_ALBUM_AUTH}</h1>
+{% if ALBUM_ERROR %}<div class="errorbox"><p>{{ ALBUM_ERROR|e }}</p></div><p><a href="{U_BACK}">{L_BACK}</a></p>
+{% elseif S_DIRECTORY %}
+<p>{L_PLUS_ALBUM_GRANTS_SELECT}</p>
+{% if loops.categories %}<ul>{% for cat in loops.categories %}<li>{{ cat.INDENT|e }}<a href="{{ cat.U_EDIT }}">{{ cat.TITLE|e }}</a></li>{% endfor %}</ul>
+{% else %}<p>{L_PLUS_ALBUM_GRANTS_NO_CATEGORIES}</p>{% endif %}
+{% elseif S_MATRIX %}
+<h2>{{ ALBUM_CATEGORY|e }}</h2>
+<p>{L_PLUS_ALBUM_GRANTS_EXPLAIN}</p>
+{% if loops.groups %}
+<form id="album-category-grants" action="{U_SAVE}" method="post">
+<table class="table1 zebra-table"><thead><tr><th scope="col">{L_GROUP}</th>
+{% for action in loops.actions %}<th scope="col">{{ action.LABEL|e }}</th>{% endfor %}</tr></thead>
+<tbody>{% for group in loops.groups %}<tr><th scope="row">{{ group.NAME|e }}</th>
+{% for action in group.actions %}<td><input type="checkbox" name="grant[{{ group.ID }}][{{ action.NAME }}]" value="1" aria-label="{{ group.NAME|e('html_attr') }} – {{ action.LABEL|e('html_attr') }}"{% if action.CHECKED %} checked{% endif %}></td>{% endfor %}
+</tr>{% endfor %}</tbody></table>
+<fieldset class="submit-buttons"><input type="hidden" name="state" value="{ALBUM_STATE}">{S_FORM_TOKEN}<input type="hidden" name="complete" value="1">
+<button type="submit" class="button1">{L_SUBMIT}</button></fieldset></form>
+{% if ALBUM_PAGES > 1 %}<p>{% if U_PREV %}<a href="{U_PREV}">{L_PREVIOUS}</a> &middot; {% endif %}{{ lang('PLUS_ALBUM_GRANTS_PAGE', ALBUM_PAGE, ALBUM_PAGES) }}{% if U_NEXT %} &middot; <a href="{U_NEXT}">{L_NEXT}</a>{% endif %}</p>{% endif %}
+{% else %}<p>{L_PLUS_ALBUM_GRANTS_NO_GROUPS}</p>{% endif %}
+<p><a href="{U_BACK}">{L_BACK}</a></p>
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

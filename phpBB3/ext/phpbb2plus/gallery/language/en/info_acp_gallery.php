@@ -2,6 +2,15 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ALBUM_CATEGORIES' => 'Photo categories',
+	'ACP_PLUS_ALBUM_AUTH' => 'Photo category group permissions',
+	'PLUS_ALBUM_GRANTS_SELECT' => 'Choose the shared photo category whose group permissions you want to edit.',
+	'PLUS_ALBUM_GRANTS_EXPLAIN' => 'Check a box to grant that permission to the group in this category. The six action permissions apply when the category grants access to assigned members and groups. Moderator permissions follow the category’s access levels. Only approved members receive the group’s permissions. Imported individual grants apply independently. Each page saves its own groups.',
+	'PLUS_ALBUM_GRANTS_CHANGED' => 'The form is incomplete or the group, category or its permissions have changed. Open the group permissions again.',
+	'PLUS_ALBUM_GRANTS_NO_CATEGORIES' => 'There are no shared photo categories yet.', 'PLUS_ALBUM_GRANTS_NO_GROUPS' => 'There are no user-defined groups yet.',
+	'PLUS_ALBUM_GRANTS_PAGE' => 'Page %1$d of %2$d', 'PLUS_ALBUM_GRANT_VIEW' => 'View', 'PLUS_ALBUM_GRANT_UPLOAD' => 'Upload',
+	'PLUS_ALBUM_GRANT_RATE' => 'Rate', 'PLUS_ALBUM_GRANT_COMMENT' => 'Comment', 'PLUS_ALBUM_GRANT_EDIT' => 'Edit',
+	'PLUS_ALBUM_GRANT_DELETE' => 'Delete', 'PLUS_ALBUM_GRANT_MODERATOR' => 'Moderate',
+	'LOG_PLUS_ALBUM_AUTH' => '<strong>Changed photo category group permissions</strong><br>» %s',
 	'PLUS_ALBUM_PUBLIC_SCOPE' => 'Manage the shared photo album categories here. Visitors can open a category only when they can also see every parent category.',
 	'PLUS_ALBUM_PUBLIC_NAME' => 'Category name', 'PLUS_ALBUM_PUBLIC_ROOT' => 'Photo album root',
 	'PLUS_ALBUM_PUBLIC_ADD' => 'Create category', 'PLUS_ALBUM_PUBLIC_EDIT' => 'Edit category',
