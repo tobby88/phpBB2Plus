@@ -21,6 +21,7 @@ require __DIR__ . '/knowledgebase.php';
 require __DIR__ . '/arcade.php';
 require __DIR__ . '/downloads.php';
 require __DIR__ . '/banners.php';
+require __DIR__ . '/delegation.php';
 
 if ($argv[1] === 'seed')
 {
@@ -113,6 +114,7 @@ if ($argv[1] === 'seed')
 	seed_banners($db);
 	seed_profile_media($db);
 	seed_custom_profiles($db);
+	seed_delegation($db);
 	$db->query("UPDATE phpbb_portal SET portal_value='<center>Grüße aus dem <b>Archiv</b><br><a href=\"ftopic1.html\">Forum</a><img src=\"templates/fisubsilversh/images/news/topicnews.gif\" alt=\"Briefkopf\"></center>' WHERE portal_name='welcome_text'");
 	$db->query("UPDATE phpbb_portal SET portal_value='14' WHERE portal_name='exceptional_forums'");
 	$db->query("UPDATE phpbb_portal SET portal_value='1,7' WHERE portal_name='poll_forum'");
@@ -207,6 +209,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	}
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
 	if ($argv[1] !== 'converted') { return; }
+	verify_delegation($db);
 	$historic_id = (int) $users[0]['user_id'];
 	$icon = $db->query('SELECT i.plus_icon_id,i.icons_width,i.icons_height FROM p3_posts p JOIN p3_icons i ON i.icons_id=p.icon_id WHERE p.post_id=1')->fetch_row();
 	$topic_icon = $db->query('SELECT i.plus_icon_id FROM p3_topics t JOIN p3_icons i ON i.icons_id=t.icon_id WHERE t.topic_id=2')->fetch_row();

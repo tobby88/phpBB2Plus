@@ -32,6 +32,7 @@ import removed_posts
 import announcement_duration
 import legacy_links
 import downloads
+import delegation
 import profile_media
 import topic_calendar
 import gallery
@@ -176,6 +177,7 @@ def main():
             os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
             php(fixture, "seed", source)
             source_files(ROOT / "phpBB2", root / "legacy")
+            delegation.source_modules(ROOT / "phpBB2", root / "legacy")
             attachments.source_media(root / "legacy")
             news.source_media(root / "legacy")
             gallery.source_media(root / "legacy")
@@ -233,6 +235,10 @@ def main():
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/colours", "--no-interaction", cwd=web)
                     php("bin/phpbbcli.php", "cache:purge", "--no-interaction", cwd=web)
                     php(fixture, "colours-" + action, target)
+                    if action == "disable":
+                        junior = login(base, "JuniorFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+                        if "adm/index.php?" in junior.fetch("index.php"):
+                            raise RuntimeError("Disabling Community did not suspend Junior Admin access")
                     php(ROOT / "tests/phpbb3/forum_access.php", target, action, cwd=web)
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
@@ -256,6 +262,9 @@ def main():
                 arcade_administration.closure(member, ordinary, pending, creation, lambda step: php(ROOT / "tests/phpbb3/tournament_closure.php", target, step, cwd=web))
                 playback(web, base, root)
                 php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
+                php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
+                delegation.verify_report(php, web)
+                delegation.browse(base)
                 knowledgebase.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                 module_administration(base, member, ordinary, pending, fixture, target, web)

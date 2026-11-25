@@ -57,6 +57,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$convertor['execute_last'][] = 'plus_gallery_personal_permissions();';
+	$convertor['execute_last'][] = 'plus_jr_finish();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
 	{
@@ -322,6 +323,14 @@ if (!$get_info)
 		array('', 'users.user_id AS existing_user', ''),
 		'where' => 'bookmarks.user_id > 0 AND bookmarks.topic_id = topics.topic_id AND bookmarks.user_id = users.user_id',
 	);
+	if (plus_jr_source_present($src_db, $convert->src_table_prefix))
+	{
+		$convertor['schema'][] = plus_jr_schema($table_prefix, $convert->truncate_statement);
+	}
+	else
+	{
+		$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_jr_records');
+	}
 	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement),
 		plus_kb_schema($table_prefix, $convert->truncate_statement), plus_arcade_schema($table_prefix, $convert->truncate_statement),
 		plus_dl_schema($table_prefix, $convert->truncate_statement), plus_banner_schema($table_prefix, $convert->truncate_statement));
