@@ -22,6 +22,27 @@ class tournaments_module
 	private $games;
 	private $lock;
 
+	private function close_event($id, $operation, $key, $revision, $closure)
+	{
+		$url = $this->u_action . '&amp;event=' . $id;
+		if ($this->request->is_set_post('cancel')) { redirect($url); }
+		if ($this->request->is_set_post('confirm'))
+		{
+			$snapshot = $this->request->variable('snapshot','',false,request_interface::POST);
+			if (!confirm_box(true) || !check_form_key($key . '_' . $operation . '_' . $snapshot)) { trigger_error('FORM_INVALID', E_USER_WARNING); }
+			$this->lock->locked(function () use ($closure,$id,$operation,$revision,$snapshot) { $closure->apply($id,$operation,$revision,$snapshot); });
+			redirect($operation === 'delete' ? $this->u_action : $url);
+		}
+		if (!check_form_key($key)) { trigger_error('FORM_INVALID', E_USER_WARNING); }
+		$review = $closure->review($id, $operation, $revision);
+		add_form_key($key . '_' . $operation . '_' . $review['snapshot']);
+		$title = utf8_htmlspecialchars($review['event']['tour_name']);
+		$message = $operation === 'delete' ? $this->language->lang('PLUS_ARC_EVENT_DELETE_CONFIRM', $title) :
+			$this->language->lang('PLUS_ARC_EVENT_END_CONFIRM', $title, $review['winner']['name'] ?: $this->language->lang('PLUS_ARC_FORMER'));
+		$fields = build_hidden_fields(array('operation'=>$operation, 'revision'=>$revision, 'snapshot'=>$review['snapshot']));
+		confirm_box(false, $message, $fields . $this->template->retrieve_var('S_FORM_TOKEN'));
+	}
+
 	private function directory()
 	{
 		$total = $this->tours->count_all();
@@ -82,7 +103,12 @@ class tournaments_module
 		$input = null;
 		try
 		{
-			if ($request->is_set_post('save'))
+			if ($id && $request->is_set_post('operation'))
+			{
+				$operation = $request->variable('operation','',false,request_interface::POST);
+				$this->close_event($id, $operation, $key, $revision, $phpbb_container->get('phpbb2plus.arcade.tournament_closure'));
+			}
+			elseif ($request->is_set_post('save'))
 			{
 				if (!check_form_key($key)) { trigger_error('FORM_INVALID', E_USER_WARNING); }
 				$input = array();

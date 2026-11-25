@@ -34,5 +34,10 @@
 <input type="hidden" name="revision" value="{{ REVISION }}"><input type="hidden" name="add_games" value="1">{{ S_FORM_TOKEN }}
 <p class="submit-buttons"><button class="button1" type="submit">{{ lang('PLUS_ARC_EVENT_ADD_GAMES') }}</button></p></fieldset></form>{% else %}<p>{{ lang('PLUS_ARC_EMPTY') }}</p>{% endif %}
 {% if U_GAMES_PREV %}<a href="{{ U_GAMES_PREV }}">{{ lang('PREVIOUS') }}</a>{% endif %} {% if U_GAMES_NEXT %}<a href="{{ U_GAMES_NEXT }}">{{ lang('NEXT') }}</a>{% endif %}
-{% endif %}{% endif %}{% endif %}
+{% endif %}
+<form id="arc-event-actions" action="{{ U_EDIT }}" method="post"><fieldset class="submit-buttons">
+<input type="hidden" name="revision" value="{{ REVISION }}">{{ S_FORM_TOKEN }}
+{% if not S_FINISHED %}<button class="button2" name="operation" value="end">{{ lang('PLUS_ARC_EVENT_END') }}</button>{% endif %}
+<button class="button2" name="operation" value="delete">{{ lang('DELETE') }}</button></fieldset></form>
+{% endif %}{% endif %}
 <!-- INCLUDE overall_footer.html -->

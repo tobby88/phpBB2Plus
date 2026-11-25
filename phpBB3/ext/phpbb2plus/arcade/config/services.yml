@@ -5,6 +5,16 @@ services:
     phpbb2plus.arcade.settings:
         class: phpbb2plus\arcade\service\settings
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '%core.table_prefix%plus_arc_settings']
+    phpbb2plus.arcade.tournament_closure:
+        class: phpbb2plus\arcade\service\tournament_closure
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.tournaments', '@phpbb2plus.arcade.tournament_management', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.tournament_notices']
+    phpbb2plus.arcade.tournament_notices:
+        class: phpbb2plus\arcade\cron\tournament_notices
+        arguments: ['@dbal.conn', '@config', '@auth', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.messages', '%core.table_prefix%plus_arc_']
+        calls:
+            - [set_name, [phpbb2plus.arcade.tournament_notices]]
+        tags:
+            - { name: cron.task }
     phpbb2plus.arcade.tournament_games:
         class: phpbb2plus\arcade\service\tournament_games
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.tournaments', '@phpbb2plus.arcade.tournament_management', '%core.table_prefix%plus_arc_']
@@ -16,7 +26,10 @@ services:
         arguments: ['@phpbb2plus.arcade.tournaments', '@phpbb2plus.arcade.sessions', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@phpbb2plus.arcade.tournament_management']
     phpbb2plus.arcade.comments:
         class: phpbb2plus\arcade\service\comments
-        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@user', '@auth', '@config', '@language', '%core.table_prefix%plus_arc_', '%core.root_path%', '%core.php_ext%']
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@user', '@auth', '@config', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.messages']
+    phpbb2plus.arcade.messages:
+        class: phpbb2plus\arcade\service\messages
+        arguments: ['@language', '@request', '%core.root_path%', '%core.php_ext%']
     phpbb2plus.arcade.preferences:
         class: phpbb2plus\arcade\event\preferences
         arguments: ['@dbal.conn', '@user', '@request', '@language', '@template', '%core.table_prefix%plus_arc_members']

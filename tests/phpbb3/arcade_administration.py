@@ -139,3 +139,76 @@ def control(owner, member, other, verify):
     if "arcade-join-tour" not in Page(owner.fetch("app.php/arcade/tournament/" + re.search(r'[?&]event=(\d+)', created)[1])).forms:
         raise RuntimeError("Creating a tournament as administrator unexpectedly took a player's place")
     verify()
+    return new, first
+
+
+def closure(owner, member, other, original_creation, verify):
+    panel = panel_for(owner, "Spielhallen-Turniere")
+    listing = owner.fetch(panel)
+
+    def path(label):
+        href = re.search(r'<a href="([^"]+)">' + re.escape(label) + r'</a>', listing)
+        if not href:
+            raise RuntimeError("Missing closure fixture " + label)
+        edit = urljoin(panel, unescape(href[1]))
+        return edit, "app.php/arcade/tournament/" + re.search(r'[?&]event=(\d+)', edit)[1]
+
+    def action(edit, operation):
+        return form(owner, edit, owner.fetch(edit), "arc-event-actions", {"operation": operation})
+
+    def score(actor, public, value):
+        play = form(actor, public, actor.fetch(public), "arcade-turn-60", {})
+        source = re.search(r'id="plus-arc-player" data-source="([^"]+)"', play)
+        if not source:
+            raise RuntimeError("The candidate champion could not play a tournament turn")
+        actor.fetch(urljoin(urljoin(actor.base, unescape(source[1])), "newscore.php"), {"score": value, "game_name": "puzzle"})
+
+    empty, empty_public = path("Herbstpokal")
+    tie, _ = path("Offene Runde")
+    if "noch keinen gewerteten Sieger" not in action(empty, "end") or "gleich viele Spiele" not in action(tie, "end"):
+        raise RuntimeError("A tied or unscored tournament accepted a champion")
+    edit, public = path("Früh &amp; Spät")
+    form(owner, edit, owner.fetch(edit), "arc-event-edit", {"state": "2"})
+    score(owner, public, "0.05")
+    prompt = action(edit, "end")
+    if "ModernMember als Sieger" not in prompt:
+        raise RuntimeError("The first recorded score failed to produce the leading player")
+    score(member, public, "0.125")
+    stale = form(owner, edit, prompt, "confirm", {"confirm": "Ja"})
+    if "zwischenzeitlich geändert" not in stale:
+        error = re.search(r'<div class="(?:errorbox|phpbb_panel)"[^>]*>(.*?)</div>', stale, re.S)
+        heading = re.search(r'<h1[^>]*>(.*?)</h1>', stale, re.S)
+        labels = [re.sub(r'<[^>]+>', ' ', part[1]).strip()[:180] for part in (heading, error) if part]
+        raise RuntimeError("A stale closure did not return the revised event: " + " ".join(labels))
+    if "arcade-turn-60" not in Page(member.fetch(public)).forms:
+        raise RuntimeError("Rejecting a stale confirmation consumed an extra turn")
+    prompt = action(edit, "end")
+    if "HistoricMember als Sieger" not in prompt:
+        raise RuntimeError("The second confirmation did not name the new leader")
+    form(owner, edit, prompt, "confirm", {"confirm": "Ja"})
+    archive = member.fetch(public)
+    if (not re.search(r'Champion · [^\n]*HistoricMember', archive) or "0.125" not in archive
+            or "arcade-turn-60" in Page(archive).forms or "Früh &amp; Spät" not in member.fetch("app.php/arcade/tournaments/champions")):
+        raise RuntimeError("Closing the tournament lost its records or still admitted plays")
+    verify("notices")
+    inbox = member.fetch("ucp.php?i=pm&folder=inbox")
+    message = re.search(r'<a href="([^"]+)"[^>]*>Tournament result</a>', inbox)
+    if not message:
+        raise RuntimeError("The participating member did not receive the native result PM")
+    body = member.fetch(urljoin(member.base + "ucp.php", unescape(message[1])))
+    if "Früh &amp; Spät" not in body or public.split("app.php", 1)[1] not in body:
+        raise RuntimeError("The result PM lost the tournament or its permanent link")
+    if ">Turnierergebnis<" in other.fetch("ucp.php?i=pm&folder=inbox"):
+        raise RuntimeError("A member who disabled Arcade messages received a result PM")
+    prompt = action(edit, "delete")
+    form(owner, edit, prompt, "confirm", {"cancel": "Nein"})
+    member.fetch(public)
+    for target, audience in ((empty, empty_public), (edit, public)):
+        prompt = action(target, "delete")
+        form(owner, target, prompt, "confirm", {"confirm": "Ja"})
+        member.fetch(audience, expected_status=404)
+    new, first = original_creation
+    repeated = form(owner, new, first, "arc-event-edit", {"name":"Herbstpokal", "state":"2"})
+    if "bereits gesendet" not in repeated or "Herbstpokal</a>" in owner.fetch(panel):
+        raise RuntimeError("Replaying its creation form recreated a withdrawn tournament")
+    verify("cleanup")

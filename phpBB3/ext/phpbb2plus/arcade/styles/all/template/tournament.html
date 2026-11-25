@@ -1,5 +1,6 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{{ TOUR.NAME|e }}</h2>
+{% if TOUR.CHAMPION %}<p>{{ lang('PLUS_ARC_TOUR_WINNER') }} · {{ TOUR.CHAMPION }}</p>{% endif %}
 {% if TOUR.DESCRIPTION %}<p>{{ TOUR.DESCRIPTION|e|nl2br }}</p>{% endif %}
 <p>{{ TOUR.STATE }} · {{ lang('PLUS_ARC_TOUR_SEATS',TOUR.PLAYERS,TOUR.CAPACITY) }} · {{ lang('PLUS_ARC_TOUR_TURNS',MAX_TURNS) }}
 {% if TOUR.INVITED %} · {{ lang('PLUS_ARC_TOUR_INVITED') }}{% endif %}{% if TOUR.STATUS %} · <strong>{{ TOUR.STATUS }}</strong>{% endif %}</p>

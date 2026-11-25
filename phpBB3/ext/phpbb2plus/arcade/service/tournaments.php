@@ -80,6 +80,14 @@ class tournaments
 			WHERE t.tour_active=3 AND t.champion>0 ORDER BY t.tour_id DESC', $limit, $start);
 	}
 
+	public function champion($id)
+	{
+		$rows = $this->rows('SELECT t.winner_id AS owner_id,t.champion AS source_player,u.username,u.user_colour
+			FROM ' . $this->prefix . 'tours t LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=t.winner_id AND t.winner_id>0
+			WHERE t.tour_active=3 AND t.champion>0 AND t.tour_id=' . (int) $id);
+		return $rows ? $rows[0] : null;
+	}
+
 	public function participants($id, $start, $limit)
 	{
 		return $this->rows('SELECT p.row_id,p.owner_id,p.user_id AS source_player,u.username,u.user_colour

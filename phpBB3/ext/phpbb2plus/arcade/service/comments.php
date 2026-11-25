@@ -11,22 +11,18 @@ class comments
 	private $user;
 	private $auth;
 	private $config;
-	private $language;
 	private $prefix;
-	private $root;
-	private $php_ext;
+	private $messages;
 
-	public function __construct($db,$catalog,$user,$auth,$config,$language,$prefix,$root,$php_ext)
+	public function __construct($db,$catalog,$user,$auth,$config,$prefix,$messages)
 	{
 		$this->db = $db;
 		$this->catalog = $catalog;
 		$this->user = $user;
 		$this->auth = $auth;
 		$this->config = $config;
-		$this->language = $language;
 		$this->prefix = $prefix;
-		$this->root = $root;
-		$this->php_ext = $php_ext;
+		$this->messages = $messages;
 	}
 
 	public function game($id)
@@ -121,21 +117,8 @@ class comments
 		if (!$row || (int) $row['owner_id'] <= ANONYMOUS || (int) $row['owner_id'] === $owner || empty($row['user_allow_pm']) ||
 			$row['block_pm'] === null || (int) $row['block_pm'] !== 0 ||
 			!in_array((int) $row['user_type'],array(USER_NORMAL,USER_FOUNDER),true)) { return; }
-		include_once $this->root . 'includes/functions_privmsgs.' . $this->php_ext;
-		$locale = clone $this->language;
-		$locale->set_user_language($row['user_lang'],true);
-		$locale->add_lang('arcade','phpbb2plus/arcade');
-		$subject = utf8_htmlspecialchars($locale->lang('PLUS_ARC_COMMENT_PM'));
-		// Group membership can change between notifications. The destination checks access when opened.
-		$url = rtrim(generate_board_url(),'/') . '/app.' . $this->php_ext . '/arcade/game/' . (int) $game . '/comments?focus=' . (int) $comment;
-		$text = utf8_htmlspecialchars($locale->lang('PLUS_ARC_COMMENT_PM_TEXT') . "\n\n" . $url);
-		$uid = $bits = ''; $flags = 0;
-		generate_text_for_storage($text,$uid,$bits,$flags,false,true,false);
-		$data = array('from_user_id'=>$owner,'from_user_ip'=>$this->user->ip,'from_username'=>$this->user->data['username'],
-			'reply_from_root_level'=>0,'reply_from_msg_id'=>0,'icon_id'=>0,'enable_sig'=>false,'enable_bbcode'=>false,
-			'enable_smilies'=>false,'enable_urls'=>true,'bbcode_bitfield'=>$bits,'bbcode_uid'=>$uid,'message'=>$text,
-			'attachment_data'=>array(),'filename_data'=>array(),'address_list'=>array('u'=>array((int) $row['owner_id']=>'to')));
-		submit_pm('post',$subject,$data,false);
+		$this->messages->send($owner, $this->user->data['username'], $this->user->ip, $row['owner_id'], $row['user_lang'],
+			'game/' . (int) $game . '/comments?focus=' . (int) $comment, 'PLUS_ARC_COMMENT_PM', 'PLUS_ARC_COMMENT_PM_TEXT');
 	}
 
 	public function write($game_id,$action,$id,$raw,$receipt,$revision)

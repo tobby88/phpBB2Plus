@@ -68,6 +68,7 @@ class listener implements EventSubscriberInterface
 				$this->db->sql_query('UPDATE ' . $this->prefix . $table . ' SET ' . $this->db->sql_build_array('UPDATE', $update) . ' WHERE owner_id=' . $id);
 			}
 			foreach (array('saves','favorites','invites','players','wallets','comment_receipts','proposals') as $table) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . ' WHERE owner_id=' . $id); }
+			$this->db->sql_query('DELETE FROM ' . $this->prefix . "tour_notices WHERE sender_id=$id OR recipient_id=$id");
 			foreach (array('ratings' => 'owner_id', 'bans' => 'owner_id', 'log' => 'owner_id', 'tour_plays' => 'owner_id',
 				'comments' => 'editor_id', 'tour_games' => 'winner_id') as $table => $field)
 			{ $this->db->sql_query('UPDATE ' . $this->prefix . "$table SET $field=0 WHERE $field=$id"); }

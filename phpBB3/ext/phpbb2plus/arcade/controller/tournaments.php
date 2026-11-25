@@ -144,6 +144,8 @@ class tournaments
 		$this->header('phpbb2plus_arcade_tournament', $params);
 		$entry = $this->tours->entry($id);
 		$view = $this->display($entry);
+		$champion = (int) $entry['tour_active'] === 3 ? $this->tours->champion($id) : null;
+		if ($champion) { $view['CHAMPION'] = $this->player($champion); }
 		$start = $this->start('phpbb2plus_arcade_tournament', $params, $view['PLAYERS']);
 		$participants = $this->tours->participants($id, $start, 25);
 		$history = $this->tours->participant_games($participants);
