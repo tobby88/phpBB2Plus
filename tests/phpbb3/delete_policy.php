@@ -45,6 +45,10 @@ switch ($argv[2])
 				$db->sql_query('INSERT INTO ' . POSTS_TABLE . ' ' . $db->sql_build_array('INSERT', $post));
 			}
 		}
+		$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET forum_posts_approved=forum_posts_approved+6,
+			forum_topics_approved=forum_topics_approved+2 WHERE forum_id=15');
+		$config->increment('num_posts', 6, false);
+		$config->increment('num_topics', 2, false);
 		$db->sql_transaction('commit');
 		break;
 	case 'allow':
