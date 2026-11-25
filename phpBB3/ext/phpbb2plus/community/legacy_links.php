@@ -193,6 +193,16 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			switch ($parts[0])
 			{
 				case 'main': case 'viewall': $path = 'downloads'; break;
+				case 'stats': $path = 'downloads/stats'; break;
+				case 'toplist':
+					$path = 'downloads/toplist';
+					if (in_array($query['mode'] ?? '', array('newest', 'downloads', 'rating'), true)) { $extra['mode'] = $query['mode']; }
+					if (in_array($query['most_type'] ?? '', array('num', 'per'), true)) { $extra['most_type'] = $query['most_type']; }
+					foreach (array('days', 'selected_date', 'most_num') as $key)
+					{
+						if ($value = $positive($key)) { $extra[$key] = $value; }
+					}
+					break;
 				case 'user_upload':
 					$file = $positive('file_id');
 					$cat = $positive('cat_id');

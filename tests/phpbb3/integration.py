@@ -41,6 +41,7 @@ import download_fields
 import download_file_actions
 import download_file_editor
 import download_permissions
+import download_reports
 import download_settings
 import download_licenses
 import download_mirrors
@@ -192,6 +193,8 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
             downloads.submissions(base, admin, historical, applicant,
                                   lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
             permissions.result()
+            download_reports.browse(base, historical, applicant, lambda phase: php(
+                ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
             # The settings test temporarily closes the download area and restores its global policy.
             download_settings.administration(admin, historical, lambda phase: php(
                 ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
@@ -264,6 +267,7 @@ def main():
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
                 php(fixture, "converted", target)
+                php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
                 php(statistics_fixture, "converted", target)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True))
                 converted = monotonic()
