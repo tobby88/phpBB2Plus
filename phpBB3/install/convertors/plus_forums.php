@@ -111,8 +111,15 @@ function plus_restore_forum_tree()
 					'forum_flags' => (int) $row['forum_link_hit_count'] ? FORUM_FLAG_LINK_TRACK : 0,
 					'forum_posts_approved' => (int) $row['forum_link_hit']);
 			}
+			else
+			{
+				// Unlike stock phpBB2, Plus age pruning protects polls and announcements
+				// and treats a sticky topic like an ordinary topic of the same age.
+				$fields['forum_flags'] = (phpbb_forum_flags() & ~(FORUM_FLAG_PRUNE_POLL | FORUM_FLAG_PRUNE_ANNOUNCE)) | FORUM_FLAG_PRUNE_STICKY;
+			}
 			$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $fields) . ' WHERE forum_id=' . $node['id']);
 		}
+		$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET enable_prune=0 WHERE enable_prune<>0 AND (forum_type<>' . FORUM_POST . ' OR prune_days=0 OR prune_freq=0)');
 		// Categories are containers. Grant list access to groups and individual
 		// users with a listable descendant. Posting forum permissions stay native.
 		foreach ($nodes as $node)
