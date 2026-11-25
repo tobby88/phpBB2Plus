@@ -1,0 +1,59 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+
+function plus_portal_image($url, $index)
+{
+	$parts = parse_url($url);
+	if (!$parts || empty($parts['path']) || isset($parts['user']) || isset($parts['pass'])) { return $url; }
+	if (isset($parts['host']) && strcasecmp($parts['host'],trim((string) get_config_value('server_name'))) !== 0) { return $url; }
+	if (isset($parts['scheme']) && !in_array(strtolower($parts['scheme']),array('http','https'),true)) { return ''; }
+	$path = rawurldecode($parts['path']);
+	$board_path = '/' . trim((string) get_config_value('script_path'),'/');
+	if ($board_path !== '/' && strpos($path,$board_path . '/') === 0) { $path = substr($path,strlen($board_path)); }
+	if (strpos($path,'./') === 0) { $path = substr($path,2); }
+	$path = ltrim($path,'/');
+	if (in_array($path,array('album_pic.php','album_thumbnail.php','album_picm.php'),true))
+	{
+		return $path . (isset($parts['query']) ? '?' . $parts['query'] : '');
+	}
+	$directory = dirname($path);
+	$bitmap = plus_profile_image($directory === '.' ? '' : $directory,basename($path),true);
+	if (!$bitmap) { plus_profile_media_issue('portal',$index,$url,'unavailable'); return ''; }
+	return 'images/plusportal/' . plus_public_bitmap($bitmap,'plusportal');
+}
+
+function plus_portal_settings()
+{
+	global $src_db, $convert, $phpbb_container, $config;
+	$p = $convert->src_table_prefix;
+	$text = $phpbb_container->get('config_text');
+	$result = $src_db->sql_query("SELECT portal_name,portal_value FROM {$p}portal");
+	while ($row = $src_db->sql_fetchrow($result))
+	{
+		$value = $row['portal_value'];
+		switch ($row['portal_name'])
+		{
+			case 'welcome_text': $text->set('plus_portal_welcome',\phpbb2plus\community\service\welcome::migrate_images($value,'plus_portal_image')); break;
+			case 'exceptional_forums':
+			case 'poll_forum':
+				$ids = array_filter(array_map('trim',explode(',',$value)),static function ($id) { return preg_match('/^[1-9][0-9]{0,8}$/D',$id); });
+				$text->set($row['portal_name'] === 'poll_forum' ? 'plus_portal_poll_forums' : 'plus_portal_exclude',implode(',',array_unique($ids)));
+				break;
+			case 'number_recent_topics': $config->set('plus_portal_recent',max(0,min(100,(int) $value))); break;
+			case 'last_seen': $config->set('plus_portal_last_seen',max(0,min(100,(int) $value))); break;
+			case 'number_top_posters': $config->set('plus_portal_top_posters',max(0,min(100,(int) $value))); break;
+		}
+	}
+	$src_db->sql_freeresult($result);
+	$result = $src_db->sql_query("SELECT config_name,config_value FROM {$p}plus WHERE config_name IN ('show_shoutbox','show_boardstats')");
+	while ($r = $src_db->sql_fetchrow($result))
+	{
+		if ($r['config_name'] === 'show_shoutbox')
+		{
+			$mode = (int) $r['config_value'];
+			$config->set('plus_portal_shouts',in_array($mode,array(1,3),true) ? 1 : (in_array($mode,array(2,4),true) ? 2 : 0));
+		}
+		else { $config->set('plus_portal_stats',(int) (bool) $r['config_value']); }
+	}
+	$src_db->sql_freeresult($result);
+}

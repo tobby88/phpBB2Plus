@@ -26,6 +26,20 @@ async function checkPlusStyle(frame) {
             throw Error("The Plus header lost its linked logos at " + width + "px");
         }
         const recent = portal.querySelector(".plus-recent");
+        if (desktop) {
+            const poll = portal.querySelector("#plus-portal-poll");
+            const form = new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => { observer.disconnect(); reject(Error("The portal poll did not load")); }, 7000);
+                const observer = new MutationObserver(() => {
+                    const native = poll.querySelector("form.topic_poll");
+                    if (native) { clearTimeout(timeout); observer.disconnect(); resolve(native); }
+                });
+                observer.observe(poll, {childList: true, subtree: true});
+            });
+            poll.open = true;
+            if (!new URL((await form).action).pathname.endsWith("/viewtopic.php")) { throw Error("The portal poll did not use the native vote handler"); }
+            poll.open = false;
+        }
         const row = recent.tBodies[0].rows[0];
         const title = row.querySelector("a.topictitle");
         const ink = luminance(win.getComputedStyle(title).color);

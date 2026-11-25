@@ -145,7 +145,7 @@ class articles
 		$rows = array();
 		while ($row = $this->db->sql_fetchrow($result)) { $rows[(int) $row['post_id']] = $row; }
 		$this->db->sql_freeresult($result);
-		$event = $this->dispatcher->trigger_event('phpbb2plus.news.preview_bylines',array('rowset'=>$rows,'post_list'=>array_keys($rows)));
+		$event = $this->dispatcher->trigger_event('phpbb2plus.community.preview_bylines',array('rowset'=>$rows,'post_list'=>array_keys($rows)));
 		$files = $this->attachments($rows);
 		$trim = !$feed || $this->config['plus_news_feed_abstract'] ? max(0,(int) $this->config['plus_news_trim']) : 0;
 		$title_limit = max(0,(int) $this->config['plus_news_title_trim']);

@@ -133,6 +133,7 @@ def assemble(output, cache, offline=False):
         images.mkdir(parents=True, exist_ok=True)
         old_images = ROOT / "phpBB2/templates/fisubsilversh/images"
         news_images = web / "images/plusnews"
+        (web / "images/plusportal").mkdir(parents=True, exist_ok=True)
         news_images.mkdir()
         for name in ("topicnews.gif", "announcements.gif"):
             shutil.copyfile(old_images / "news" / name, news_images / name)

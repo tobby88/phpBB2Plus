@@ -19,6 +19,16 @@ function plus_media_path($root, $relative, $directory = false)
 	return $path;
 }
 
+/** Copy a validated public design image under a content-derived file name. */
+function plus_public_bitmap($picture, $folder)
+{
+	global $phpbb_root_path;
+	$filename = hash_file('sha256',$picture['source']) . '.' . $picture['ext'];
+	$directory = plus_media_path($phpbb_root_path,'images/' . $folder,true);
+	plus_copy_media($picture['source'],$directory . '/' . $filename);
+	return $filename;
+}
+
 /** Publish only a complete, byte-identical copy and reuse it on wizard retries. */
 function plus_copy_media($source, $target)
 {

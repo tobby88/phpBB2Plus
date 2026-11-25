@@ -18,6 +18,7 @@ from build_phpbb3 import assemble, PACKAGES
 import arcade
 import attachments
 import news
+import portal
 import custom_profiles
 import legacy_links
 import downloads
@@ -147,10 +148,11 @@ def main():
                 login(base, "ModernMember", "incorrect", expect_success=False)
                 php(fixture, "hashes-unchanged", target)
                 member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
-                ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+                ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
                 public_pages(base, member)
+                portal.browse(base, member)
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
@@ -161,6 +163,7 @@ def main():
                 legacy_links.browse(base, member, media["member"])
                 topic_calendar.browse(base, member, ordinary, pending)
                 news.administration(base, member)
+                portal.administration(base, member)
                 custom_profiles.administration(member)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)

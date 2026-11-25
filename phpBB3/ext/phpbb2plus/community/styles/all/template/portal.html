@@ -6,29 +6,56 @@
 	<li><a href="{U_INDEX}">{L_INDEX}</a></li>
 	<!-- IF S_DISPLAY_SEARCH --><li><a href="{U_SEARCH}">{L_SEARCH}</a></li><!-- ENDIF -->
 	<!-- IF S_DISPLAY_MEMBERLIST --><li><a href="{U_MEMBERLIST}">{L_MEMBERLIST}</a></li><!-- ENDIF -->
-	<li><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></li>
+	<!-- IF U_PLUS_SHOUTBOX --><li><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></li><!-- ENDIF -->
 	<!-- EVENT phpbb2plus_community_portal_navigation -->
 	<li><a href="{U_FAQ}">{L_FAQ}</a></li>
 	<!-- IF U_TEAM --><li><a href="{U_TEAM}">{L_THE_TEAM}</a></li><!-- ENDIF -->
 </ul></div></nav>
 <div class="plus-portal-main">
+<!-- IF PLUS_WELCOME --><section class="panel plus-welcome"><h3>{SITENAME}<!-- IF SITE_DESCRIPTION --> &ndash; {SITE_DESCRIPTION}<!-- ENDIF --></h3>
+<div class="content">{PLUS_WELCOME}</div></section><!-- ENDIF -->
 <!-- EVENT phpbb2plus_community_portal_main_before -->
-<section aria-label="{L_PLUS_RECENT_TOPICS}">
+<!-- IF S_PLUS_RECENT --><section aria-label="{L_PLUS_RECENT_TOPICS}">
 <div class="forabg"><table class="plus-recent">
 	<thead><tr><th scope="col">{L_PLUS_RECENT_TOPICS}</th><th scope="col">{L_LAST_POST}</th></tr></thead>
 	<tbody>
 	<!-- BEGIN plus_topics -->
-	<tr class="<!-- IF plus_topics.S_ROW_COUNT is even -->bg1<!-- ELSE -->bg2<!-- ENDIF -->">
+	<tr data-forum="{plus_topics.FORUM_ID}" class="<!-- IF plus_topics.S_ROW_COUNT is even -->bg1<!-- ELSE -->bg2<!-- ENDIF -->">
 		<td><a class="topictitle" href="{plus_topics.U_TOPIC}">{plus_topics.TITLE}</a><br><a href="{plus_topics.U_FORUM}">{plus_topics.FORUM}</a></td>
-		<td>{plus_topics.LAST_POST}</td>
+		<td>{plus_topics.LAST_POST}<br>{plus_topics.AUTHOR}</td>
 	</tr>
 	<!-- BEGINELSE --><tr class="bg1"><td colspan="2">{L_NO_TOPICS}</td></tr><!-- END plus_topics -->
 	</tbody>
 </table></div>
-</section></div>
-<aside class="panel"><div class="inner"><h3><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></h3>
+</section><!-- ENDIF --></div>
+<aside class="plus-portal-side">
+<!-- IF not S_USER_LOGGED_IN and not S_IS_BOT -->
+<section class="panel"><h3><a href="{U_LOGIN_LOGOUT}">{L_LOGIN}</a></h3>
+<form id="plus-portal-login" action="{S_LOGIN_ACTION}" method="post">
+<label for="plus-login-name">{L_USERNAME}<input class="inputbox" type="text" name="username" id="plus-login-name" autocomplete="username" required></label>
+<label for="plus-login-pass">{L_PASSWORD}<input class="inputbox" type="password" name="password" id="plus-login-pass" autocomplete="current-password" required></label>
+<!-- IF S_AUTOLOGIN_ENABLED --><label><input type="checkbox" name="autologin"> {L_LOG_ME_IN}</label><!-- ENDIF -->
+<p><button type="submit" class="button2" name="login" value="1">{L_LOGIN}</button></p>
+{S_LOGIN_REDIRECT}{S_FORM_TOKEN_LOGIN}</form>
+<!-- IF U_SEND_PASSWORD --><p><a href="{U_SEND_PASSWORD}">{L_FORGOT_PASS}</a></p><!-- ENDIF -->
+<!-- IF S_REGISTER_ENABLED --><p><a href="{U_REGISTER}">{L_REGISTER}</a></p><!-- ENDIF --></section>
+<!-- ELSEIF S_USER_LOGGED_IN --><section class="panel"><h3><a href="{U_PROFILE}">{S_USERNAME}</a></h3>
+<p>{LAST_VISIT_DATE}</p><!-- IF S_DISPLAY_SEARCH --><p><a href="{U_SEARCH_SELF}">{L_SEARCH_SELF}</a></p><!-- ENDIF -->
+</section><!-- ENDIF -->
+<!-- IF U_PLUS_SHOUTBOX --><section class="panel"><div class="inner"><h3><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></h3>
 	<!-- BEGIN plus_shouts --><div class="plus-shout"><strong>{plus_shouts.AUTHOR}</strong> &middot; {plus_shouts.TIME}
 		<div class="content">{plus_shouts.MESSAGE}</div></div>
 	<!-- BEGINELSE --><p>{L_PLUS_SHOUT_EMPTY}</p><!-- END plus_shouts -->
-</div></aside></div>
+</div></section><!-- ENDIF -->
+<!-- IF U_PLUS_POLL --><section class="panel"><h3>{L_PLUS_PORTAL_POLL}</h3>
+<details id="plus-portal-poll"><summary>{PLUS_POLL_TOPIC}</summary><div class="plus-poll-content"><a href="{U_PLUS_POLL}">{L_PLUS_OPEN_POLL}</a></div></details>
+<!-- INCLUDEJS @phpbb2plus_community/portal_poll.js --></section><!-- ENDIF -->
+<!-- IF S_DISPLAY_ONLINE_LIST --><section class="panel"><h3>{L_WHO_IS_ONLINE}</h3><p>{TOTAL_USERS_ONLINE}</p>
+<!-- IF LOGGED_IN_USER_LIST --><p>{LOGGED_IN_USER_LIST}</p><!-- ENDIF --></section><!-- ENDIF -->
+<!-- IF .plus_seen --><section class="panel plus-seen"><h3>{L_PLUS_LAST_SEEN}</h3><ul>
+<!-- BEGIN plus_seen --><li>{plus_seen.MEMBER}<br>{plus_seen.DETAIL}</li><!-- END plus_seen --></ul></section><!-- ENDIF -->
+<!-- IF .plus_top --><section class="panel plus-top"><h3>{L_PLUS_TOP_POSTERS}</h3><ol>
+<!-- BEGIN plus_top --><li>{plus_top.MEMBER}<br>{plus_top.DETAIL}</li><!-- END plus_top --></ol></section><!-- ENDIF -->
+<!-- IF S_PLUS_STATS --><section class="panel plus-stats"><h3>{L_STATISTICS}</h3><p>{PLUS_POSTS}<br>{PLUS_TOPICS}<br>{PLUS_MEMBERS}</p><p>{PLUS_NEWEST}</p></section><!-- ENDIF -->
+</aside></div>
 <!-- INCLUDE overall_footer.html -->

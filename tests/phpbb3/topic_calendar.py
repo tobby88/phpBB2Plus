@@ -99,7 +99,7 @@ def edit_event(base, owner, member, pending):
         return urljoin(urljoin(base, path), unescape(action)), fields
 
     def submit(action, fields):
-        time.sleep(max(0, int(fields["creation_time"]) + 2.05 - time.time()))
+        time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
         return owner.fetch(action, fields)
 
     action, fields = form(new)

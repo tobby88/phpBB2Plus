@@ -85,6 +85,12 @@ if ($argv[1] === 'seed')
 	seed_downloads($db);
 	seed_profile_media($db);
 	seed_custom_profiles($db);
+	$db->query("UPDATE phpbb_portal SET portal_value='<center>Grüße aus dem <b>Archiv</b><br><a href=\"ftopic1.html\">Forum</a><img src=\"templates/fisubsilversh/images/news/topicnews.gif\" alt=\"Briefkopf\"></center>' WHERE portal_name='welcome_text'");
+	$db->query("UPDATE phpbb_portal SET portal_value='14' WHERE portal_name='exceptional_forums'");
+	$db->query("UPDATE phpbb_portal SET portal_value='1,7' WHERE portal_name='poll_forum'");
+	$db->query("UPDATE phpbb_portal SET portal_value='2' WHERE portal_name='number_recent_topics'");
+	$db->query("UPDATE phpbb_plus SET config_value='4' WHERE config_name='show_shoutbox'");
+	$db->query("UPDATE phpbb_users SET user_allow_viewonline=0,user_lastlogon=1084742471 WHERE user_id=87");
 	$db->query("UPDATE phpbb_topics SET topic_calendar_time=1206917100,topic_calendar_duration=91799 WHERE topic_id=1");
 	$db->query("UPDATE phpbb_topics SET topic_calendar_time=1206964800,topic_calendar_duration=0 WHERE topic_id=7");
 	$db->query("UPDATE phpbb_users SET user_birthday=DATEDIFF('1980-02-29','1970-01-01'),user_calendar_forum=0 WHERE user_id=1");

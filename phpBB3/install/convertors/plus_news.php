@@ -1,22 +1,13 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
-function plus_news_bitmap($picture)
-{
-	global $phpbb_root_path;
-	$filename = hash_file('sha256',$picture['source']) . '.' . $picture['ext'];
-	$directory = plus_media_path($phpbb_root_path, 'images/plusnews', true);
-	plus_copy_media($picture['source'],$directory . '/' . $filename);
-	return $filename;
-}
-
 function plus_news_image($id, $reference)
 {
 	if ($reference === '' || $reference === null) { return ''; }
 	$relative = trim((string) get_config_value('news_path'),'/');
 	$picture = plus_profile_image('templates/fisubsilversh/' . $relative, $reference);
 	if (!$picture) { plus_profile_media_issue('news', $id, $reference, 'unavailable'); return ''; }
-	return plus_news_bitmap($picture);
+	return plus_public_bitmap($picture,'plusnews');
 }
 
 function plus_finish_news()
@@ -37,7 +28,7 @@ function plus_finish_news()
 	{
 		$image = plus_profile_image($directory,$entry);
 		if (!$image) { continue; }
-		$asset = plus_news_bitmap($image);
+		$asset = plus_public_bitmap($image,'plusnews');
 		if (!isset($images[$asset])) { $images[$asset] = array('asset'=>$asset,'label'=>truncate_string(utf8_htmlspecialchars($entry),255,255,false)); }
 	}
 	$db->sql_transaction('begin');
@@ -65,7 +56,7 @@ function plus_finish_news()
 		$directory = dirname($image);
 		$bitmap = $image !== '' && strpos($image,'//') === false ? plus_profile_image($directory === '.' ? '' : $directory,basename($image),true) : false;
 		if (!$bitmap) { plus_profile_media_issue('news-feed',0,$source,'unavailable'); }
-		$image = $bitmap ? 'images/plusnews/' . plus_news_bitmap($bitmap) : '';
+		$image = $bitmap ? 'images/plusnews/' . plus_public_bitmap($bitmap,'plusnews') : '';
 	}
 	$config->set('plus_news_feed_image',truncate_string(utf8_htmlspecialchars($image),255,255,false));
 }

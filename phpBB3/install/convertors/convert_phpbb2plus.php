@@ -22,6 +22,8 @@ $convertor_data['version'] = '0.1.0';
 $test_file = 'includes/functions_post_author.php';
 $tables[] = 'bookmarks';
 $tables[] = 'news';
+$tables[] = 'portal';
+$tables[] = 'plus';
 
 if (!$get_info)
 {
@@ -48,6 +50,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = "plus_forum_permission('f_plus_news');";
 	$convertor['execute_last'][] = 'plus_guest_poll_permissions();';
 	$convertor['execute_last'][] = 'plus_finish_news();';
+	$convertor['execute_last'][] = 'plus_portal_settings();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 	foreach (array('publish'=>'allow_news','page_size'=>'news_item_num','trim'=>'news_item_trim','title_trim'=>'news_title_trim',
@@ -159,6 +162,7 @@ if (!$get_info)
 		{
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
+			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			foreach (\phpbb2plus\calendar\service\settings::MEMBER as $name=>$default)
 			{
 				$section[] = array('plus_cal_' . $name, 'users.user_calendar_' . $name, 'intval');

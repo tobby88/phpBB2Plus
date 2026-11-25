@@ -9,6 +9,7 @@ require_once __DIR__ . '/plus_flags.php';
 require_once __DIR__ . '/plus_custom_profiles.php';
 require_once __DIR__ . '/plus_permissions.php';
 require_once __DIR__ . '/plus_news.php';
+require_once __DIR__ . '/plus_portal.php';
 require_once __DIR__ . '/plus_attachments.php';
 require_once __DIR__ . '/plus_gallery.php';
 require_once __DIR__ . '/plus_knowledgebase.php';

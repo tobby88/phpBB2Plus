@@ -24,7 +24,12 @@ services:
             - { name: passwords.driver }
     phpbb2plus.community.portal:
         class: phpbb2plus\community\controller\portal
-        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox', '@dispatcher']
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox', '@dispatcher', '@config', '@config_text', '@path_helper']
+    phpbb2plus.community.portal_sessions:
+        class: phpbb2plus\community\event\portal_sessions
+        arguments: ['@dbal.conn']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.navigation:
         class: phpbb2plus\community\event\navigation
         arguments: ['@controller.helper', '@template', '@language', '@request']

@@ -1,0 +1,20 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_PORTAL}</h1>
+<form id="plus-portal-settings" method="post" action="{U_SAVE}">
+<fieldset><legend>{L_ACP_PLUS_PORTAL}</legend>
+<dl><dt><label for="plus-welcome">{L_PLUS_PORTAL_WELCOME}</label><br><span>{L_PLUS_PORTAL_WELCOME_HELP}</span></dt>
+<dd><textarea id="plus-welcome" name="welcome" rows="7" cols="48">{WELCOME_TEXT}</textarea></dd></dl>
+<!-- BEGIN counts --><dl><dt><label for="plus-count-{counts.NAME}">{counts.LABEL}</label></dt><dd>
+<input id="plus-count-{counts.NAME}" type="number" min="0" max="100" name="{counts.NAME}" value="{counts.VALUE}" required></dd></dl><!-- END counts -->
+<!-- BEGIN lists --><dl><dt><label for="plus-list-{lists.NAME}">{lists.LABEL}</label></dt><dd>
+<select id="plus-list-{lists.NAME}" name="{lists.NAME}[]" multiple size="5">
+<!-- BEGIN options --><option value="{lists.options.ID}"<!-- IF lists.options.SELECTED --> selected<!-- ENDIF -->>{lists.options.TITLE}</option><!-- END options -->
+</select></dd></dl><!-- END lists -->
+<dl><dt><label for="plus-shouts">{L_PLUS_SHOUTBOX}</label></dt><dd><select id="plus-shouts" name="shouts">
+<option value="0"<!-- IF SHOUTS == 0 --> selected<!-- ENDIF -->>{L_DISABLED}</option><option value="1"<!-- IF SHOUTS == 1 --> selected<!-- ENDIF -->>{L_PLUS_PORTAL_EVERYONE}</option>
+<option value="2"<!-- IF SHOUTS == 2 --> selected<!-- ENDIF -->>{L_PLUS_PORTAL_MEMBERS}</option></select></dd></dl>
+<dl><dt><label for="plus-stats">{L_STATISTICS}</label></dt><dd><select id="plus-stats" name="stats">
+<option value="1"<!-- IF STATS --> selected<!-- ENDIF -->>{L_ENABLED}</option><option value="0"<!-- IF not STATS --> selected<!-- ENDIF -->>{L_DISABLED}</option></select></dd></dl>
+</fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{REVISION}">
+<input class="button1" type="submit" name="save" value="{L_SUBMIT}">{S_FORM_TOKEN}</fieldset></form>
+<!-- INCLUDE overall_footer.html -->

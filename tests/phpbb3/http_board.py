@@ -182,11 +182,11 @@ def convert(base, source_name):
     raise RuntimeError("Converter did not terminate")
 
 
-def login(base, username, password, expect_success=True):
+def login(base, username, password, expect_success=True, portal=False):
     browser = Browser(base)
-    path = "ucp.php?mode=login"
+    path = "app.php/portal" if portal else "ucp.php?mode=login"
     page = Page(browser.fetch(path))
-    action, inputs = page.forms["login"]
+    action, inputs = page.forms["plus-portal-login" if portal else "login"]
     inputs.update(username=username, password=password, login="1")
     # The normal phpBB form accepts submissions starting in the next clock second.
     time.sleep(max(0, int(inputs["creation_time"]) + 1.05 - time.time()))
