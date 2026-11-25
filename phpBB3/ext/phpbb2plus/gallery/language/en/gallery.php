@@ -4,6 +4,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_HOT' => 'Rate a random picture', 'PLUS_ALBUM_HOT_EMPTY' => 'There are currently no pictures available for random rating.',
 	'PLUS_ALBUM_VOTE_SAVED' => 'Your rating has been saved.', 'PLUS_ALBUM_DRAW_AGAIN' => 'Another random picture',
 	'PLUS_ALBUM_VOTE_UNAVAILABLE' => 'You cannot currently rate this picture.',
+	'PLUS_ALBUM_MEMBERS' => 'Members’ photo albums', 'PLUS_ALBUM_LAST_PICTURE' => 'Latest picture',
+	'PLUS_ALBUM_NO_MEMBERS' => 'No members have pictures you can view in their personal albums.',
 	'PLUS_ALBUM_FILE_SLOTS' => 'Select up to %d files.',
 	'PLUS_ALBUM_ZIP_HINT' => 'ZIP archives may contain up to %1$d JPG, PNG or GIF pictures with distinct file names. You can submit up to %2$d pictures in total. A shared title is numbered in archive order.',
 	'PLUS_ALBUM_ZIP_PREVIEWS' => 'You can also upload the thumbnails as a ZIP. Arrange the thumbnails in the same order as the pictures.',

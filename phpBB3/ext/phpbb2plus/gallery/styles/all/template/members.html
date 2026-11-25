@@ -1,0 +1,20 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_ALBUM_MEMBERS}</h2>
+<!-- INCLUDE @phpbb2plus_gallery/search_form.html -->
+{% if loops.album_owners %}
+<table class="plus-album-results" id="album-members">
+<thead><tr><th scope="col">{L_USERNAME}</th><th scope="col">{L_JOINED}</th><th scope="col">{L_PLUS_ALBUM_PICTURES}</th></tr></thead>
+<tbody>{% for owner in loops.album_owners %}
+<tr><td><a href="{{ owner.U_ALBUM }}">{{ owner.NAME|e }}</a></td>
+<td><time datetime="{{ owner.JOINED_AT }}">{{ owner.JOINED }}</time></td><td>{{ owner.PICTURES }}</td></tr>
+{% endfor %}</tbody></table>
+{% else %}<p class="panel plus-album-empty">{L_PLUS_ALBUM_NO_MEMBERS}</p>{% endif %}
+<form class="plus-album-sort" id="album-member-sort" action="{{ path('phpbb2plus_gallery_members') }}" method="get">
+<label for="album-member-mode">{L_SORT_BY}</label>
+<select id="album-member-mode" name="mode">{% for sort in loops.album_member_sorts %}<option value="{{ sort.VALUE }}"{% if sort.SELECTED %} selected{% endif %}>{{ sort.LABEL }}</option>{% endfor %}</select>
+<label for="album-member-order">{L_PLUS_ALBUM_ORDER}</label>
+<select id="album-member-order" name="order"><option value="ASC"{% if ALBUM_MEMBER_ORDER == 'ASC' %} selected{% endif %}>{L_ASCENDING}</option><option value="DESC"{% if ALBUM_MEMBER_ORDER == 'DESC' %} selected{% endif %}>{L_DESCENDING}</option></select>
+{ALBUM_SORT_HIDDEN}<button class="button2" type="submit">{L_GO}</button></form>
+{% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

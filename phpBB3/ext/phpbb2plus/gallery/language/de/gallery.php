@@ -4,6 +4,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_HOT' => 'Zufallsbild bewerten', 'PLUS_ALBUM_HOT_EMPTY' => 'Für die Zufallsbewertung sind derzeit keine Bilder sichtbar.',
 	'PLUS_ALBUM_VOTE_SAVED' => 'Deine Bewertung wurde gespeichert.', 'PLUS_ALBUM_DRAW_AGAIN' => 'Weiteres Zufallsbild',
 	'PLUS_ALBUM_VOTE_UNAVAILABLE' => 'Du kannst dieses Bild derzeit nicht bewerten.',
+	'PLUS_ALBUM_MEMBERS' => 'Fotoalben der Mitglieder', 'PLUS_ALBUM_LAST_PICTURE' => 'Neuestes Bild',
+	'PLUS_ALBUM_NO_MEMBERS' => 'Derzeit sind für dich keine Bilder in den persönlichen Alben der Mitglieder sichtbar.',
 	'PLUS_ALBUM_FILE_SLOTS' => 'Bis zu %d Dateien auswählen.',
 	'PLUS_ALBUM_ZIP_HINT' => 'Eine ZIP-Datei darf bis zu %1$d JPG-, PNG- oder GIF-Bilder mit unterschiedlichen Dateinamen enthalten. Insgesamt sind bis zu %2$d Bilder je Upload möglich. Ein gemeinsamer Titel wird in Archiv-Reihenfolge nummeriert.',
 	'PLUS_ALBUM_ZIP_PREVIEWS' => 'Auch die Vorschaubilder können als ZIP-Datei hochgeladen werden. Ihre Reihenfolge muss der Reihenfolge der Bilder entsprechen.',

@@ -230,6 +230,34 @@ class board
 		return new RedirectResponse($this->helper->route('phpbb2plus_gallery_picture', $params, false) . '#comment-' . $id);
 	}
 
+	public function members()
+	{
+		$this->breadcrumbs();
+		$sort = array();
+		foreach (array('mode' => 'joindate', 'order' => 'ASC') as $name => $default)
+		{
+			$source = $this->request->is_set($name, request_interface::POST) ? request_interface::POST : request_interface::GET;
+			$sort[$name] = $this->request->variable($name, $default, false, $source);
+		}
+		$page = $this->personal->directory($sort['mode'], $sort['order'], $this->request->variable('start', 0, false, request_interface::GET),
+			$this->config['topics_per_page']);
+		foreach ($page['rows'] as $owner)
+		{
+			$this->template->assign_block_vars('album_owners', array('NAME' => html_entity_decode($owner['username'], ENT_QUOTES, 'UTF-8'),
+				'JOINED' => $this->user->format_date($owner['user_regdate'], $this->language->lang('DATE_FORMAT')),
+				'JOINED_AT' => gmdate('c', $owner['user_regdate']), 'PICTURES' => (int) $owner['pics'],
+				'U_ALBUM' => $this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner['user_id']))));
+		}
+		foreach (array('joindate' => 'JOINED', 'username' => 'USERNAME', 'pics' => 'PLUS_ALBUM_PICTURES', 'last_pic' => 'PLUS_ALBUM_LAST_PICTURE') as $value => $label)
+		{
+			$this->template->assign_block_vars('album_member_sorts', array('VALUE' => $value, 'LABEL' => $this->language->lang($label), 'SELECTED' => $page['mode'] === $value));
+		}
+		$this->template->assign_vars(array('ALBUM_MEMBER_ORDER' => $page['order'], 'ALBUM_SORT_HIDDEN' => $this->hidden_fields(array())));
+		$url = $this->helper->route('phpbb2plus_gallery_members', array('mode' => $page['mode'], 'order' => $page['order']));
+		$this->pagination->generate_template_pagination($url, 'pagination', 'start', $page['total'], $page['size'], $page['start']);
+		return $this->helper->render('@phpbb2plus_gallery/members.html', $this->language->lang('PLUS_ALBUM_MEMBERS'));
+	}
+
 	private function rating_text($picture, $honour)
 	{
 		$rating = $this->discussion->rating($picture, $honour);

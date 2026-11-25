@@ -3,6 +3,7 @@
 <h2>{{ ALBUM_TITLE|e }}</h2>
 <!-- INCLUDE @phpbb2plus_gallery/search_form.html -->
 <div class="action-bar"><a class="button" href="{{ path('phpbb2plus_gallery_hot') }}">{L_PLUS_ALBUM_HOT}</a>
+<a class="button" href="{{ path('phpbb2plus_gallery_members') }}">{L_PLUS_ALBUM_MEMBERS}</a>
 {% if U_ALBUM_UPLOAD %}<a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a>{% endif %}
 {% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}

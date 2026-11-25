@@ -47,6 +47,49 @@ class personal
 		return $roots;
 	}
 
+	public function directory($mode, $order, $start, $size)
+	{
+		$sorts = array('joindate' => 'u.user_regdate', 'username' => 'u.username', 'pics' => 'g.pics', 'last_pic' => 'g.last_pic');
+		$mode = isset($sorts[$mode]) ? $mode : 'joindate';
+		$order = $order === 'ASC' ? 'ASC' : 'DESC';
+		$size = max(1, min(100, (int) $size));
+		$start = max(0, min(1000000, (int) $start));
+		// Counts, page boundaries and rows must describe the same set of visible photos.
+		$this->db->sql_transaction('begin');
+		try
+		{
+			$visible = $this->access->portal_categories(true, array());
+			$personal = array();
+			foreach ($visible as $id)
+			{
+				$cat = $this->access->category_row($id);
+				if ((int) $cat['owner_id'] > ANONYMOUS) { $personal[] = $id; }
+			}
+			$from = ' FROM (SELECT c.owner_id,COUNT(*) AS pics,MAX(p.created_at) AS last_pic FROM ' . $this->prefix . 'pics p
+				JOIN ' . $this->prefix . 'cats c ON c.cat_id=p.cat_id WHERE ' . $this->access->picture_filter($personal) . ' GROUP BY c.owner_id) g
+				JOIN ' . USERS_TABLE . ' u ON u.user_id=g.owner_id WHERE ' . $this->db->sql_in_set('u.user_type', array(USER_NORMAL, USER_FOUNDER));
+			$result = $this->db->sql_query('SELECT COUNT(*) AS total' . $from);
+			$total = (int) $this->db->sql_fetchfield('total');
+			$this->db->sql_freeresult($result);
+			$start = intdiv(min($start, max(0, $total - 1)), $size) * $size;
+			$rows = array();
+			if ($total)
+			{
+				$result = $this->db->sql_query_limit('SELECT u.user_id,u.username,u.user_regdate,g.pics' . $from .
+					' ORDER BY ' . $sorts[$mode] . ' ' . $order . ',u.user_id ' . $order, $size, $start);
+				$rows = $this->db->sql_fetchrowset($result);
+				$this->db->sql_freeresult($result);
+			}
+			$this->db->sql_transaction('commit');
+		}
+		catch (\Throwable $error)
+		{
+			$this->db->sql_transaction('rollback');
+			throw $error;
+		}
+		return array('mode' => $mode, 'order' => $order, 'size' => $size, 'start' => $start, 'total' => $total, 'rows' => $rows);
+	}
+
 	public function available($owner)
 	{
 		if ($owner <= ANONYMOUS || !$this->owner($owner, false)) { return false; }
