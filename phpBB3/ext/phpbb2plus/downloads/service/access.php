@@ -70,6 +70,11 @@ class access
 		return $this->acp_admin('a_plus_dl_perms',$fresh);
 	}
 
+	public function settings_admin($fresh = false)
+	{
+		return $this->acp_admin('a_plus_dl_settings',$fresh);
+	}
+
 	public function license_admin($fresh = false)
 	{
 		return $this->acp_admin('a_plus_dl_licenses',$fresh);

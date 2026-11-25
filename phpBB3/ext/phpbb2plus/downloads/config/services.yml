@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.downloads.settings:
+        class: phpbb2plus\downloads\service\settings
+        arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@user', '@log', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.file_list:
         class: phpbb2plus\downloads\service\file_list
         arguments: ['@dbal.conn', '%core.table_prefix%plus_dl_']

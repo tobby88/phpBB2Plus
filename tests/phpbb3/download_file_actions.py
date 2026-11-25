@@ -7,7 +7,7 @@ from http_board import Browser, Page, admin_url, login, submit_form
 from knowledgebase import acp_panel
 
 
-def english_file_panel(base, username):
+def english_file_panel(base, username, title="Manage download files"):
     delegate = login(base, username, os.environ["PLUS_TEST_MODERN_PASSWORD"])
     entry = admin_url(delegate)
     form = delegate.fetch(entry)
@@ -20,7 +20,7 @@ def english_file_panel(base, username):
     if not tab:
         raise RuntimeError("The English native Extensions tab is missing for the limited file administrator")
     menu = delegate.fetch(urljoin(entry, unescape(tab[1])))
-    match = re.search(r'<a href="([^"]+)"><span>Manage download files</span>', menu)
+    match = re.search(r'<a href="([^"]+)"><span>' + re.escape(title) + r'</span>', menu)
     if not match:
         raise RuntimeError("The English download file action panel is missing")
     return delegate, urljoin(entry, unescape(match[1]))

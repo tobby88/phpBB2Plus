@@ -1,0 +1,14 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_DL_SETTINGS}</h1>
+{% if DL_SAVED %}<div class="successbox"><p>{L_CONFIG_UPDATED}</p></div>{% endif %}
+{% if DL_ERROR %}<div class="errorbox"><p>{{ DL_ERROR|e }}{% if DL_STALE %} <a href="{U_DL_SAVE}">{L_PLUS_DL_RELOAD}</a>{% endif %}</p></div>{% endif %}
+<form id="dl-settings" method="post" action="{U_DL_SAVE}">
+{% for group in loops.sections %}<fieldset><legend>{{ group.TITLE|e }}</legend>
+{% for f in group.fields %}<dl><dt><label for="dl-{{ f.NAME }}">{{ f.TITLE|e }}</label>{% if f.HELP %}<br><span>{{ f.HELP|e }}</span>{% endif %}</dt><dd>
+{% if f.SELECT %}<select id="dl-{{ f.NAME }}" name="v[{{ f.NAME }}]">{% for choice in f.choices %}<option value="{{ choice.VALUE|e('html_attr') }}"{% if choice.SELECTED %} selected{% endif %}>{{ choice.NAME|e }}</option>{% endfor %}</select>
+{% else %}<input type="text" class="text {% if f.NUMERIC %}short{% else %}medium{% endif %}" id="dl-{{ f.NAME }}" name="v[{{ f.NAME }}]" value="{{ f.VALUE|e('html_attr') }}"{% if f.NUMERIC %} inputmode="numeric"{% endif %}>{% endif %}</dd></dl>{% endfor %}</fieldset>{% endfor %}
+<fieldset class="submit-buttons"><input type="hidden" name="state" value="{{ DL_STATE }}"><input type="hidden" name="complete" value="1">{S_FORM_TOKEN}
+{% if not DL_STALE %}<button class="button1">{L_SUBMIT}</button>{% endif %}</fieldset></form>
+{% if loops.archived %}<details><summary>{L_ACP_PLUS_DL_CFG_ARCHIVE}</summary><p>{L_ACP_PLUS_DL_CFG_ARCHIVE_HELP}</p><dl>
+{% for item in loops.archived %}<dt>{{ item.NAME|e }}</dt><dd><samp>{{ item.VALUE|e }}</samp></dd>{% endfor %}</dl></details>{% endif %}
+<!-- INCLUDE overall_footer.html -->

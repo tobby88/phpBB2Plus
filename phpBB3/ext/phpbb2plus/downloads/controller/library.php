@@ -5,6 +5,7 @@ use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\field_data;
 use phpbb2plus\downloads\service\file_display;
 use phpbb2plus\downloads\service\mirrors;
+use phpbb2plus\downloads\service\settings;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class library
@@ -87,6 +88,7 @@ class library
 		$params = $id ? array('category'=>$id) : array();
 		$url = $this->helper->route($route, $params);
 		$title = $id ? access::plain($cats[$id]['title']) : access::plain($this->access->setting('settings_dbname', $this->language->lang('PLUS_DL')));
+		if (!$id && trim($title) === '') { $title = $this->language->lang('PLUS_DL'); }
 		$this->template->assign_vars(array('DL_TITLE'=>$title, 'DL_QUERY'=>$query, 'S_DL_SEARCH'=>$can_search, 'U_DL_SEARCH'=>$url));
 		if ($can_submit || ($id && $this->access->can_submit($id)))
 		{
@@ -110,11 +112,19 @@ class library
 			$limit = max(1, min(100, (int) $this->access->setting('settings_file_page', 20)));
 			$start = $this->pagination->validate_start(max(0,$this->request->variable('start',0)), $limit, $total);
 			$this->pagination->generate_template_pagination($this->helper->route($route, $params + ($query !== '' ? array('q'=>$query) : array())), 'pagination', 'start', $total, $limit, $start);
-			$result = $this->db->sql_query_limit('SELECT file_id,title,summary,downloads,pinned,icon_name' . $from . ' ORDER BY pinned DESC,added_at DESC,file_id DESC', $limit, $start);
+			$method = settings::SORT[$this->access->setting('sort_method','file_time')] ?? 'added_at';
+			$direction = $this->access->setting('sort_order','DESC') === 'ASC' ? 'ASC' : 'DESC';
+			$rating = $method === 'rating' ? ',(SELECT COALESCE(AVG(v.points),0) FROM ' . $this->prefix . 'votes v WHERE v.file_id=' .
+				$this->prefix . 'files.file_id) AS rating' : '';
+			$days = max(0,min(1000000,(int) $this->access->setting('settings_newdays',0)));
+			$new_since = time() - $days*86400;
+			$result = $this->db->sql_query_limit('SELECT file_id,title,summary,downloads,pinned,icon_name,added_at' . $rating . $from .
+				" ORDER BY pinned DESC,$method $direction,file_id $direction",$limit,$start);
 			while ($f = $this->db->sql_fetchrow($result))
 			{
 				$this->template->assign_block_vars('dl_files', array('TITLE'=>access::plain($f['title']), 'SUMMARY'=>access::plain($f['summary']), 'DOWNLOADS'=>(int) $f['downloads'],
 					'ICON'=>file_display::icon_url($f['icon_name'],$this->paths->get_web_root_path()),
+					'NEW'=>$days && (int) $f['added_at'] > $new_since,
 					'URL'=>$this->helper->route('phpbb2plus_downloads_file', array('file'=>(int) $f['file_id']))));
 			}
 			$this->db->sql_freeresult($result);
