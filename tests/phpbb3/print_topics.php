@@ -37,8 +37,16 @@ switch ($argv[1])
 		$now = time();
 		$day = 86400;
 		$dates = array(0 => $now-370*$day, 1 => $now-364*$day-3600, 2 => $now-13*$day, 3 => $now-3*$day, 4 => $now-36*3600);
+		$sample = "Print body 982067\n[url=https://example.invalid/archive?a=1&b=2]Weg[/url]\n" .
+			"[list=a][*]Alpha[*]Beta[/list]\n[code]x<&\n  Keep &amp; 😀[/code]\n[quote=\"EditorFixture\"]Zitatprobe[/quote]\n:pf:";
+		// Match phpBB's request normalization before the post parser decodes form entities.
+		$sample = htmlspecialchars($sample, ENT_QUOTES, 'UTF-8');
+		$uid = $bits = '';
+		$flags = 0;
+		generate_text_for_storage($sample, $uid, $bits, $flags, true, true, true);
 		$db->sql_transaction('begin');
-		foreach (array(981010 => ITEM_APPROVED, 981011 => ITEM_UNAPPROVED, 981012 => ITEM_DELETED) as $id => $visibility)
+		foreach (array(981010 => ITEM_APPROVED, 981011 => ITEM_UNAPPROVED, 981012 => ITEM_DELETED, 981013 => ITEM_APPROVED,
+			981014 => ITEM_APPROVED) as $id => $visibility)
 		{
 			$first = $id === 981010 ? 982000 : $id;
 			$t = array_replace($topic, array('topic_id' => $id, 'forum_id' => 15, 'topic_title' => 'Print &amp; Grüße ' . $id,
@@ -46,17 +54,49 @@ switch ($argv[1])
 				'topic_posts_approved' => $id === 981010 ? 69 : 1, 'topic_posts_softdeleted' => $id === 981010 ? 2 : 0,
 				'topic_posts_unapproved' => $id === 981010 ? 1 : 0, 'plus_news_cat' => 0, 'poll_start' => 0, 'topic_attachment' => 0));
 			$db->sql_query('INSERT INTO ' . TOPICS_TABLE . ' ' . $db->sql_build_array('INSERT', $t));
-			for ($index = 0; $index < ($id === 981010 ? 72 : 1); ++$index)
+			$count = $id === 981010 ? 72 : ($id === 981014 ? 0 : 1);
+			for ($index = 0; $index < $count; ++$index)
 			{
 				$state = $index === 68 || $index === 69 ? ITEM_DELETED : ($index === 70 ? ITEM_UNAPPROVED : ITEM_APPROVED);
 				$p = array_replace($post, array('post_id' => $first+$index,'forum_id' => 15,'topic_id' => $id,'post_time' => $dates[$index] ?? $now-7200,
 					'post_visibility' => $state,'plus_public_post' => $index < 69 || $index === 71 ? 1 : 0,'poster_id' => 2,
 					'post_subject' => 'Print subject ' . ($first+$index), 'post_text' => '<r><B>Print body ' . ($first+$index) . '</B></r>',
 					'post_attachment' => 0,'post_edit_count' => 0));
+				if ($index === 67)
+				{
+					$p['post_text'] = $sample;
+					$p['bbcode_uid'] = $uid;
+					$p['bbcode_bitfield'] = $bits;
+				}
+				if ($id === 981013)
+				{
+					$p['poster_id'] = 99001801;
+					$p['post_username'] = 'UnknownRetiredWriter';
+				}
 				$db->sql_query('INSERT INTO ' . POSTS_TABLE . ' ' . $db->sql_build_array('INSERT', $p));
 			}
 		}
 		$db->sql_transaction('commit');
+		break;
+	case 'text-limits':
+		$language = $phpbb_container->get('language');
+		$topic = array('topic_title' => 'A &amp; B', 'forum_name' => 'Text');
+		$post = array('BODY' => str_repeat('A', 1024*1024), 'AUTHOR' => 'Fixture');
+		list($file, $length) = \phpbb2plus\community\service\topic_archive::build($topic, array($post,$post,$post), $language);
+		if ($length < 3*1024*1024 || fstat($file)['size'] !== $length || ftell($file) !== 0) { throw new RuntimeException('Incomplete text spool'); }
+		fclose($file);
+		$too_large = false;
+		try { \phpbb2plus\community\service\topic_archive::build($topic, array($post,$post,$post), $language, $length-1); }
+		catch (\LengthException $ok) { $too_large = true; }
+		if (!$too_large || \phpbb2plus\community\service\topic_archive::MAX_BYTES !== 64*1024*1024) { throw new RuntimeException('Missing archive byte limit'); }
+		foreach (array('AUX' => 'topic-AUX', '&#x2f;' => 'topic-51', str_repeat('Ä', 91) => str_repeat('Ä', 90)) as $title => $name)
+		{
+			$header = \phpbb2plus\community\service\topic_text::disposition($title, 51);
+			if (substr($header, -strlen(rawurlencode($name . '.txt'))) !== rawurlencode($name . '.txt')) { throw new RuntimeException('Invalid download filename or UTF-8 boundary'); }
+		}
+		break;
+	case 'text-snapshot':
+		require __DIR__ . '/topic_exports.php';
 		break;
 	case 'ignore':
 		$db->sql_query('INSERT INTO ' . ZEBRA_TABLE . ' ' . $db->sql_build_array('INSERT', array('user_id' => (int) $member['user_id'], 'zebra_id' => 2, 'foe' => 1, 'friend' => 0)));
@@ -97,8 +137,8 @@ switch ($argv[1])
 		break;
 	case 'cleanup':
 		$db->sql_transaction('begin');
-		$db->sql_query('DELETE FROM ' . POSTS_TABLE . ' WHERE forum_id=15 AND topic_id BETWEEN 981010 AND 981012');
-		$db->sql_query('DELETE FROM ' . TOPICS_TABLE . ' WHERE forum_id=15 AND topic_id BETWEEN 981010 AND 981012');
+		$db->sql_query('DELETE FROM ' . POSTS_TABLE . ' WHERE forum_id=15 AND topic_id BETWEEN 981010 AND 981014');
+		$db->sql_query('DELETE FROM ' . TOPICS_TABLE . ' WHERE forum_id=15 AND topic_id BETWEEN 981010 AND 981014');
 		$db->sql_query('DELETE FROM ' . FORUMS_ACCESS_TABLE . ' WHERE forum_id=15');
 		$db->sql_query('UPDATE ' . FORUMS_TABLE . " SET forum_password='' WHERE forum_id=15");
 		$db->sql_transaction('commit');

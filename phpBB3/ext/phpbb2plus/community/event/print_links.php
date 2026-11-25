@@ -35,13 +35,16 @@ class print_links implements EventSubscriberInterface
 	{
 		$forum = (int) $event['forum_id'];
 		$url = '';
+		$export = '';
 		if ($this->auth->acl_get('f_list', $forum) && $this->auth->acl_get('f_read', $forum) && $this->auth->acl_get('f_print', $forum) &&
 			(int) $event['topic_data']['topic_visibility'] !== ITEM_DELETED)
 		{
 			$days = $this->request->variable('st', (int) $this->user->data['user_post_show_days']);
 			$direction = $this->request->variable('sd', (string) $this->user->data['user_post_sortby_dir']);
 			$url = $this->url($event['topic_data']['topic_id'], print_options::filters($days, $direction === 'd' ? 'desc' : 'asc', true));
+			// The old Save Topic button always started with the full chronological text.
+			$export = $this->helper->route('phpbb2plus_community_topic_export', array('topic_id' => (int) $event['topic_data']['topic_id']));
 		}
-		$this->template->assign_var('U_PRINT_TOPIC', $url);
+		$this->template->assign_vars(array('U_PRINT_TOPIC' => $url, 'U_PLUS_TOPIC_EXPORT' => $export));
 	}
 }

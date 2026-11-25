@@ -6,6 +6,7 @@ from urllib.parse import urljoin, urlsplit
 
 from http_board import Browser, Page
 from legacy_links import link
+import topic_exports
 
 
 def posts(page):
@@ -27,6 +28,9 @@ def browse(base, owner, member, fixture):
         guest.fetch("printview.php", {"t": "981010"}, expected_status=404)
         whole = guest.fetch("printview.php?topic=981010&start=60")
         published = list(range(982000, 982068)) + [982071]
+        fixture("text-limits")
+        fixture("text-snapshot")
+        topic_exports.downloads(base, guest, owner, member, published)
         if (posts(whole) != published or whole.count('class="post removed"') != 1 or "Print &amp; Grüße" not in whole
                 or not re.search(r'<strong[^>]*>Print body 982064</strong>', whole)):
             raise RuntimeError("A full-topic print lost old posts, stable ordering, formatting or the deletion marker")
@@ -43,6 +47,8 @@ def browse(base, owner, member, fixture):
             ignored = member.fetch(path)
             if "Print body" in ignored or 'class="post ignored"' not in ignored or 'class="post removed"' not in ignored:
                 raise RuntimeError("Printing uncovered a writer ignored by the signed-in reader")
+            if "Print body" in member.fetch("export.php?t=981010"):
+                raise RuntimeError("A saved topic uncovered an ignored writer")
         finally:
             fixture("unignore")
         filtered = guest.fetch("printview.php?t=981010&postdays=1&postorder=asc", {"postdays": "7", "postorder": "desc", "t": "7"})
@@ -74,6 +80,7 @@ def browse(base, owner, member, fixture):
             for topic in (1, 490):
                 member.fetch(f"printview.php?t={topic}", expected_status=403)
                 member.fetch(f"viewtopic.php?t={topic}&view=print", expected_status=403)
+                member.fetch(f"export.php?t={topic}", expected_status=403)
                 if f"/topic/{topic}/print" in member.fetch(f"viewtopic.php?t={topic}"):
                     raise RuntimeError("A normal topic retained its forbidden print button")
             if "/topic/1/print" in member.fetch("portal.php"):
@@ -89,6 +96,7 @@ def browse(base, owner, member, fixture):
         finally:
             fixture("after-print-import")
         fixture("password")
+        topic_exports.password(base, "app.php/topic/981010/export.txt")
         locked = guest.fetch(path)
         action, fields = Page(locked).forms["login_forum"]
         if "Print body" in locked or "Print &amp; Grüße" in locked:

@@ -26,6 +26,16 @@ phpbb2plus_community_topic_print:
     defaults: { _controller: phpbb2plus.community.topic_print:show }
     requirements: { topic_id: '[1-9][0-9]{0,9}' }
     methods: [GET, HEAD, POST]
+phpbb2plus_community_topic_export:
+    path: /topic/{topic_id}/export.txt
+    defaults: { _controller: phpbb2plus.community.topic_export:download, post_id: 0 }
+    requirements: { topic_id: '[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD, POST]
+phpbb2plus_community_post_export:
+    path: /post/{post_id}/topic.txt
+    defaults: { _controller: phpbb2plus.community.topic_export:download, topic_id: 0 }
+    requirements: { post_id: '[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD, POST]
 phpbb2plus_community_legacy_message:
     path: /legacy/pm/{mode}/{source}
     defaults: { _controller: phpbb2plus.community.legacy:message }
