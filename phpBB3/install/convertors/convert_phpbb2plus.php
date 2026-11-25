@@ -48,6 +48,7 @@ if (!$get_info)
 	// Schema hooks run after the wizard resets the destination media issue report.
 	$convertor['schema'][0]['execute_first'] = ($convertor['schema'][0]['execute_first'] ?? '') . ' plus_import_post_icons();';
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_media_issues');
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_action_import');
 	// Category listing grants depend on the final visibility of their descendant forums.
 	$convertor['execute_last'][] = 'plus_forum_permissions();';
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
@@ -58,6 +59,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$convertor['execute_last'][] = 'plus_gallery_personal_permissions();';
 	$convertor['execute_last'][] = 'plus_jr_finish();';
+	$convertor['execute_last'][] = 'plus_finish_action_log();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
 	{
@@ -334,4 +336,6 @@ if (!$get_info)
 	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement),
 		plus_kb_schema($table_prefix, $convert->truncate_statement), plus_arcade_schema($table_prefix, $convert->truncate_statement),
 		plus_dl_schema($table_prefix, $convert->truncate_statement), plus_banner_schema($table_prefix, $convert->truncate_statement));
+	$actions = plus_action_schema($src_db, $convert->src_table_prefix, $table_prefix);
+	if ($actions) { $convertor['schema'][] = $actions; }
 }

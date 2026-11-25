@@ -33,6 +33,7 @@ import announcement_duration
 import legacy_links
 import downloads
 import delegation
+import historical_actions
 import profile_media
 import topic_calendar
 import gallery
@@ -263,6 +264,8 @@ def main():
                 arcade_administration.closure(member, ordinary, pending, creation, lambda step: php(ROOT / "tests/phpbb3/tournament_closure.php", target, step, cwd=web))
                 playback(web, base, root)
                 php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
+                php(ROOT / "tests/phpbb3/historical_actions_finish.php", target, cwd=web)
+                historical_actions.browse(member)
                 php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
                 delegation.verify_report(php, web)
                 knowledgebase.browse(base, member, ordinary, pending)
