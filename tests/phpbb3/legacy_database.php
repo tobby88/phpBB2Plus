@@ -20,6 +20,7 @@ require __DIR__ . '/gallery.php';
 require __DIR__ . '/knowledgebase.php';
 require __DIR__ . '/arcade.php';
 require __DIR__ . '/downloads.php';
+require __DIR__ . '/banners.php';
 
 if ($argv[1] === 'seed')
 {
@@ -107,6 +108,7 @@ if ($argv[1] === 'seed')
 	seed_knowledgebase($db);
 	seed_arcade($db);
 	seed_downloads($db);
+	seed_banners($db);
 	seed_profile_media($db);
 	seed_custom_profiles($db);
 	$db->query("UPDATE phpbb_portal SET portal_value='<center>Grüße aus dem <b>Archiv</b><br><a href=\"ftopic1.html\">Forum</a><img src=\"templates/fisubsilversh/images/news/topicnews.gif\" alt=\"Briefkopf\"></center>' WHERE portal_name='welcome_text'");
@@ -156,6 +158,15 @@ elseif (in_array($argv[1],array('colours-disable','colours-enable'),true))
 	check_fixture((int) $row['plus_colour_id'] === 1 && (bool) $row['plus_colour_applied'] === $enabled
 		&& $row['user_colour'] === $wanted && $row['topic_first_poster_colour'] === $wanted,'Toggling the extension lost a selection or left a stale colour');
 }
+elseif ($argv[1] === 'banner-clicks')
+{
+	$row = $db->query("SELECT clicks,views,(SELECT COUNT(*) FROM p3_plus_banner_hits WHERE banner_id=5) AS total
+		FROM p3_plus_banners WHERE banner_id=5")->fetch_assoc();
+	check_fixture($row && $row['clicks'] === '18446744073709551614.00' && (int) $row['total'] === 3,
+		'The first click and its detail row should each be recorded exactly once');
+	check_fixture($row['views'] === '18446744073709551615.00' && (int) $db->query('SELECT views FROM p3_plus_banners WHERE banner_id=21')->fetch_row()[0] === 0,
+		'Banner views overflowed the original counter or counted a placement outside its schedule');
+}
 elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), true))
 {
 	$users = $db->query("SELECT user_id,username,user_password,user_lang FROM p3_users
@@ -191,6 +202,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	verify_knowledgebase($db, (int) $users[0]['user_id']);
 	verify_arcade($db, (int) $users[0]['user_id']);
 	verify_downloads($db, (int) $users[0]['user_id']);
+	verify_banners($db, (int) $users[0]['user_id']);
 	$byline = $db->query('SELECT * FROM p3_posts WHERE post_id=31')->fetch_assoc();
 	check_fixture($byline && (int) $byline['post_visibility'] === 2 && (int) $byline['post_delete_time'] === 10200
 		&& (int) $byline['post_delete_user'] === 2 && (int) $byline['post_edit_user'] === (int) $users[0]['user_id']

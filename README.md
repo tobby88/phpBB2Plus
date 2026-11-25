@@ -17,8 +17,8 @@ refuses collisions with upstream files. English and German are included.
 Both unmodified distribution archives are included in `vendor/phpbb/` so the
 build and integration tests work offline. Enable **phpBB2 Plus Community**,
 **phpBB2 Plus Photo Album**, **phpBB2 Plus Knowledge Base**, **phpBB2 Plus Arcade**,
-**phpBB2 Plus Downloads**, **phpBB2 Plus Topic Calendar**, **phpBB2 Plus Forum News**
-and **phpBB2 Plus Member Colours** on the fresh target. Community installs FI Subsilver
+**phpBB2 Plus Downloads**, **phpBB2 Plus Topic Calendar**, **phpBB2 Plus Forum News**,
+**phpBB2 Plus Member Colours** and **phpBB2 Plus Banners** on the fresh target. Community installs FI Subsilver
 Shadow as a child of prosilver and selects it for a new board. The installer’s
 Convert tab then offers **phpBB2
 Plus (UTF-8)**. The assembled board includes the self-hosted Ruffle player.

@@ -1,0 +1,17 @@
+{% if items %}
+<!-- INCLUDECSS @phpbb2plus_banners/banners.css -->
+{% if portal_links %}<section class="panel plus-portal-links"><h3>{L_PLUS_BANNER_LINKS}</h3>{% endif %}
+<div class="plus-banners{% if portal_links %} plus-banner-column{% elseif banner_grid %} plus-banner-grid{% endif %}">
+{% for banner in items %}
+<a data-plus-spot="{{ banner.spot }}" href="{{ path('phpbb2plus_banners_click', {'banner': banner.id}) }}" target="_blank" rel="noopener noreferrer" title="{{ banner.description|e }}">
+{% if banner.image or banner.movie %}
+{% set source = banner.remote ? banner.remote : path('phpbb2plus_banners_media', {'banner': banner.id}) %}
+{% if banner.movie %}
+<span class="plus-banner-movie" data-source="{{ source|e }}" data-width="{{ banner.width }}" data-height="{{ banner.height }}">{{ banner.text ? banner.text|e : lang('PLUS_BANNER_VISIT') }}</span>
+<!-- INCLUDEJS {T_ASSETS_PATH}/ruffle/ruffle.js -->
+<!-- INCLUDEJS @phpbb2plus_banners/banner.js -->
+{% else %}<img src="{{ source|e }}" alt="{{ banner.description ? banner.description|e : lang('PLUS_BANNER_VISIT') }}"{% if banner.width and banner.height %} width="{{ banner.width }}" height="{{ banner.height }}"{% endif %}>{% endif %}
+{% else %}{{ banner.text ? banner.text|e : lang('PLUS_BANNER_VISIT') }}{% endif %}</a>
+{% endfor %}
+</div>{% if portal_links %}</section>{% endif %}
+{% endif %}

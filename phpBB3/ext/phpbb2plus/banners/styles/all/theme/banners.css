@@ -1,0 +1,14 @@
+.plus-banners { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .4em 1em; margin: .5em 0; }
+.plus-banner-column { flex-direction: column; }
+.plus-banners a { max-width: 100%; overflow-wrap: anywhere; }
+.plus-banners img, .plus-banner-movie { display: inline-block; max-width: 100%; vertical-align: middle; }
+.plus-banners img { object-fit: contain; }
+.plus-banner-movie { pointer-events: none; }
+@media (min-width: 701px) {
+	.plus-banner-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: center; }
+	.plus-banner-grid :is([data-plus-spot="1"], [data-plus-spot="2"], [data-plus-spot="7"], [data-plus-spot="8"]) { grid-column: 1; }
+	.plus-banner-grid :is([data-plus-spot="3"], [data-plus-spot="4"], [data-plus-spot="9"], [data-plus-spot="10"]) { grid-column: 2; }
+	.plus-banner-grid :is([data-plus-spot="5"], [data-plus-spot="6"], [data-plus-spot="11"], [data-plus-spot="12"]) { grid-column: 3; }
+	.plus-banner-grid :is([data-plus-spot="1"], [data-plus-spot="3"], [data-plus-spot="5"], [data-plus-spot="7"], [data-plus-spot="9"], [data-plus-spot="11"]) { grid-row: 1; }
+	.plus-banner-grid :is([data-plus-spot="2"], [data-plus-spot="4"], [data-plus-spot="6"], [data-plus-spot="8"], [data-plus-spot="10"], [data-plus-spot="12"]) { grid-row: 2; }
+}

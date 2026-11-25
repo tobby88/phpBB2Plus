@@ -19,6 +19,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'banner':
+			if ($id = $positive('banner_id')) { $path = 'banners/' . $id . '/visit'; }
+			break;
 		case 'profile':
 			$mode = $query['mode'] ?? '';
 			if (in_array($mode, array('viewprofile','email'), true))

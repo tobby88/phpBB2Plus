@@ -1,0 +1,10 @@
+phpbb2plus_banners_click:
+    path: /banners/{banner}/visit
+    defaults: { _controller: phpbb2plus.banners.delivery:visit }
+    requirements: { banner: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_banners_media:
+    path: /banners/{banner}/media
+    defaults: { _controller: phpbb2plus.banners.delivery:media }
+    requirements: { banner: '[1-9][0-9]*' }
+    methods: [GET, HEAD]

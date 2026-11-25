@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	foreach (array('community','gallery','knowledgebase','arcade','downloads','calendar','news','colours') as $module)
+	foreach (array('community','gallery','knowledgebase','arcade','downloads','calendar','news','colours','banners') as $module)
 	{
 		$extension = 'phpbb2plus/' . $module;
 		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
@@ -26,6 +26,8 @@ $tables[] = 'portal';
 $tables[] = 'plus';
 $tables[] = 'color_groups';
 $tables[] = 'post_icon_config';
+$tables[] = 'banner';
+$tables[] = 'banner_stats';
 
 if (!$get_info)
 {
@@ -301,5 +303,5 @@ if (!$get_info)
 	);
 	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement),
 		plus_kb_schema($table_prefix, $convert->truncate_statement), plus_arcade_schema($table_prefix, $convert->truncate_statement),
-		plus_dl_schema($table_prefix, $convert->truncate_statement));
+		plus_dl_schema($table_prefix, $convert->truncate_statement), plus_banner_schema($table_prefix, $convert->truncate_statement));
 }
