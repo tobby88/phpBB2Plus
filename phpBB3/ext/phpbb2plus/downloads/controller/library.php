@@ -20,8 +20,9 @@ class library
 	private $prefix;
 	private $paths;
 	private $listing;
+	private $mail;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $feedback, $prefix, $paths, $listing)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $feedback, $prefix, $paths, $listing, $mail)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -35,6 +36,7 @@ class library
 		$this->prefix = $prefix;
 		$this->paths = $paths;
 		$this->listing = $listing;
+		$this->mail = $mail;
 	}
 
 	public function file($file)
@@ -47,6 +49,7 @@ class library
 		$raw = json_decode($f['source_json'], true) ?: array();
 		$title = access::plain($f['title']);
 		$download = $this->access->allows($cat, 'download');
+		if ($this->mail->can($f)) { $this->template->assign_var('U_DL_RECOMMEND',$this->helper->route('phpbb2plus_downloads_recommend',array('file'=>$id))); }
 		if ($this->access->can_manage($f, 'edit_file'))
 		{ $this->template->assign_var('U_DL_EDIT', $this->helper->route('phpbb2plus_downloads_edit',array('file'=>$id))); }
 		if ($this->access->can_manage($f, 'delete_file'))

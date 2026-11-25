@@ -1,7 +1,8 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{% if DL_ICON %}<img src="{{ DL_ICON }}" alt=""> {% endif %}{{ DL_TITLE|e }}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
-{% if U_DL_EDIT or U_DL_DELETE or U_DL_QUEUE %}<div class="action-bar">
+{% if U_DL_RECOMMEND or U_DL_EDIT or U_DL_DELETE or U_DL_QUEUE %}<div class="action-bar">
+{% if U_DL_RECOMMEND %}<a class="button" href="{U_DL_RECOMMEND}">{L_PLUS_DL_RECOMMEND}</a>{% endif %}
 {% if U_DL_EDIT %}<a class="button" href="{U_DL_EDIT}">{L_PLUS_DL_EDIT}</a>{% endif %}
 {% if U_DL_DELETE %}<a class="button" href="{U_DL_DELETE}">{L_PLUS_DL_DELETE}</a>{% endif %}
 {% if U_DL_QUEUE %}<a class="button" href="{U_DL_QUEUE}">{L_PLUS_DL_REVIEW}</a>{% endif %}</div>{% endif %}

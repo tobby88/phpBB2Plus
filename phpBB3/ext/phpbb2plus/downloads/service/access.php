@@ -292,15 +292,21 @@ class access
 		},$value);
 	}
 
+	public function lock_file($id)
+	{
+		$this->lock_catalogue(false);
+		$id = (int) $id;
+		$this->db->sql_query('UPDATE ' . $this->prefix . "files SET file_id=file_id WHERE file_id=$id");
+		$this->refresh();
+	}
+
 	public function write($id, callable $operation, $admin_editor = false)
 	{
 		$id = (int) $id;
 		$this->db->sql_transaction('begin');
 		try
 		{
-			$this->lock_catalogue(false);
-			$this->db->sql_query('UPDATE ' . $this->prefix . "files SET file_id=file_id WHERE file_id=$id");
-			$this->refresh();
+			$this->lock_file($id);
 			if ($admin_editor && !$this->file_admin('edit',true)) { throw new \DomainException('NO_AUTH_OPERATION'); }
 			$result = $operation($admin_editor ? $this->editor_file($id) : $this->file($id));
 			if (!$this->db->sql_transaction('commit')) { throw new \RuntimeException('The download transaction did not commit.'); }

@@ -62,6 +62,11 @@ phpbb2plus_downloads_choose:
     defaults: { _controller: phpbb2plus.downloads.delivery:choose }
     requirements: { file: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_downloads_recommend:
+    path: /downloads/file/{file}/recommend
+    defaults: { _controller: phpbb2plus.downloads.recommend_controller:view }
+    requirements: { file: '[1-9][0-9]*' }
+    methods: [GET, HEAD, POST]
 phpbb2plus_downloads_media:
     path: /downloads/file/{file}/get/{mirror}
     defaults: { _controller: phpbb2plus.downloads.delivery:download, mirror: 0 }

@@ -7,16 +7,18 @@ class settings
 		'library'=>array('settings_dbname','settings_disable','settings_viewall','settings_file_page','settings_topnumber','sort_method','sort_order','settings_newdays'),
 		'files'=>array('max_file_size','forbidden_extensions','need_validation','validator','hotlink_prevent','hotlink_allowed'),
 		'comments'=>array('allow_bbcode','allow_smilies','allow_comment_links','no_comment_link_message','allow_comment_images','no_comment_image_message','max_comment_chars'),
+		'mail'=>array('massmail_protection','massmail_time'),
 		'access'=>array('auth_search','auth_stats','auth_toplist','auth_viewall'));
 	const DEFAULTS = array('settings_dbname'=>'','settings_disable'=>'0','settings_viewall'=>'1','settings_file_page'=>'20','settings_topnumber'=>'10','sort_method'=>'file_time','sort_order'=>'DESC',
 		'settings_newdays'=>'0','max_file_size'=>'262144','forbidden_extensions'=>'','need_validation'=>'1','validator'=>'validator_admin',
 		'hotlink_prevent'=>'0','hotlink_allowed'=>'','allow_bbcode'=>'1','allow_smilies'=>'1','allow_comment_links'=>'1','no_comment_link_message'=>'',
-		'allow_comment_images'=>'1','no_comment_image_message'=>'','max_comment_chars'=>'5000','auth_search'=>'5','auth_stats'=>'5','auth_toplist'=>'5','auth_viewall'=>'5');
+		'allow_comment_images'=>'1','no_comment_image_message'=>'','max_comment_chars'=>'5000','auth_search'=>'5','auth_stats'=>'5','auth_toplist'=>'5','auth_viewall'=>'5',
+		'massmail_protection'=>'1','massmail_time'=>'20');
 	const ARCHIVED = array('upload_dir','screenshots_dir','pm_notify','allow_html','tpl_php');
 	const SORT = array('file_name'=>'title','file_time'=>'added_at','file_rating'=>'rating','file_dls'=>'downloads','file_update_time'=>'updated_at');
-	const BOOL = array('settings_disable','settings_viewall','need_validation','hotlink_prevent','allow_bbcode','allow_smilies','allow_comment_links','allow_comment_images');
+	const BOOL = array('settings_disable','settings_viewall','need_validation','hotlink_prevent','allow_bbcode','allow_smilies','allow_comment_links','allow_comment_images','massmail_protection');
 	const TEXT = array('settings_dbname','no_comment_link_message','no_comment_image_message');
-	const RANGES = array('settings_file_page'=>array(1,100),'settings_topnumber'=>array(0,1000),'settings_newdays'=>array(0,1000000),'max_file_size'=>array(0,2147483647),'max_comment_chars'=>array(0,65535));
+	const RANGES = array('settings_file_page'=>array(1,100),'settings_topnumber'=>array(0,1000),'settings_newdays'=>array(0,1000000),'max_file_size'=>array(0,2147483647),'max_comment_chars'=>array(0,65535),'massmail_time'=>array(1,180));
 	private $db;
 	private $access;
 	private $user;

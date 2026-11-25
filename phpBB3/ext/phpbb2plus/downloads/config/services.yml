@@ -1,4 +1,11 @@
 services:
+    phpbb2plus.downloads.recommendations:
+        class: phpbb2plus\downloads\service\recommendations
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '@user', '@auth', '@request', '%core.table_prefix%plus_dl_mail_receipts', '%core.root_path%', '%core.php_ext%']
+        tags: [{ name: event.listener }]
+    phpbb2plus.downloads.recommend_controller:
+        class: phpbb2plus\downloads\controller\recommend
+        arguments: ['@phpbb2plus.downloads.recommendations', '@phpbb2plus.downloads.access', '@phpbb2plus.downloads.public_listing', '@user', '@language', '@template', '@controller.helper', '@request', '@config']
     phpbb2plus.downloads.file_search:
         class: phpbb2plus\downloads\service\file_search
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '%core.table_prefix%plus_dl_', '@config']
@@ -69,7 +76,7 @@ services:
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.library:
         class: phpbb2plus\downloads\controller\library
-        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@phpbb2plus.downloads.feedback', '%core.table_prefix%plus_dl_', '@path_helper', '@phpbb2plus.downloads.public_listing']
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@phpbb2plus.downloads.feedback', '%core.table_prefix%plus_dl_', '@path_helper', '@phpbb2plus.downloads.public_listing', '@phpbb2plus.downloads.recommendations']
     phpbb2plus.downloads.catalogue_controller:
         class: phpbb2plus\downloads\controller\catalogue
         arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.report_data', '@phpbb2plus.downloads.public_listing', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination']

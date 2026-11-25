@@ -1,6 +1,12 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_RECOMMEND'=>'Recommend this file','PLUS_DL_MAIL_NOTE'=>'I thought this download might interest you.',
+	'PLUS_DL_MAIL_YOUR_NAME'=>'Your name','PLUS_DL_MAIL_YOUR_ADDRESS'=>'Your reply address','PLUS_DL_MAIL_TO_NAME'=>'Recipient name (optional)',
+	'PLUS_DL_MAIL_TO_ADDRESS'=>'Recipient email address','PLUS_DL_MAIL_SENT'=>'Your recommendation was sent.',
+	'PLUS_DL_MAIL_ADDRESS'=>'Please enter a valid email address.','PLUS_DL_MAIL_INPUT'=>'Please check the names, subject and message length.',
+	'PLUS_DL_MAIL_NAME'=>'Please choose an available guest name.','PLUS_DL_MAIL_WAIT'=>'Please wait before sending another recommendation.',
+	'PLUS_DL_MAIL_UNAVAILABLE'=>'The recommendation could not be sent. Please try again later.',
 	'PLUS_DL_VIEWALL'=>'All files','PLUS_DL_VIEWALL_DISABLED'=>'The list of all downloads is disabled.','PLUS_DL_LAST_FILE'=>'Latest file',
 	'PLUS_DL_ADVANCED'=>'Advanced download search','PLUS_DL_WORDS'=>'Keywords','PLUS_DL_WORDS_HELP'=>'Search titles, creators and descriptions. Use * as a wildcard or combine terms with AND, OR and NOT.',
 	'PLUS_DL_AUTHOR_HELP'=>'Enter the submitting member’s username. Use * to match part of a name.','PLUS_DL_MATCH'=>'Match keywords','PLUS_DL_ANY'=>'Any term','PLUS_DL_ALL'=>'All terms',

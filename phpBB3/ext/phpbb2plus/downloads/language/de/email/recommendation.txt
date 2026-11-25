@@ -1,0 +1,9 @@
+Subject: {SUBJECT}
+
+Download-Empfehlung von {FROM_NAME} auf {SITENAME}
+
+{FILE_URL}
+
+{PERSONAL_NOTE}
+
+{EMAIL_SIG}

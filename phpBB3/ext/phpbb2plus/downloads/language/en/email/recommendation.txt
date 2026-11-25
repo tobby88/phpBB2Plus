@@ -1,0 +1,9 @@
+Subject: {SUBJECT}
+
+Download recommendation from {FROM_NAME} on {SITENAME}
+
+{FILE_URL}
+
+{PERSONAL_NOTE}
+
+{EMAIL_SIG}

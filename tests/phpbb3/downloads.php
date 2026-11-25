@@ -1,6 +1,8 @@
 <?php
 function seed_downloads($db)
 {
+	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='37' WHERE ct_config_name='massmail_time'");
+	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='0' WHERE ct_config_name='massmail_protection'");
 	$db->query("INSERT INTO phpbb_pa_cat (cat_id,cat_name,cat_desc,cat_parent,parents_data,cat_order,cat_allow_file,auth_view,auth_read,auth_view_file)
 		VALUES (21,'Öffentliche Dateien','',0,'',5,1,0,0,0),(22,'Clubordner','',0,'',6,0,2,2,0),
 		(23,'Clubdateien','',22,'',1,1,0,0,0),(24,'Einzelfreigabe','',0,'',7,1,2,2,2),(25,'Gästebriefkasten','',0,'',8,1,0,0,0)");

@@ -1,6 +1,12 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_RECOMMEND'=>'Datei empfehlen','PLUS_DL_MAIL_NOTE'=>'Dieser Download könnte dich interessieren.',
+	'PLUS_DL_MAIL_YOUR_NAME'=>'Dein Name','PLUS_DL_MAIL_YOUR_ADDRESS'=>'Deine Antwortadresse','PLUS_DL_MAIL_TO_NAME'=>'Name des Empfängers (optional)',
+	'PLUS_DL_MAIL_TO_ADDRESS'=>'E-Mail-Adresse des Empfängers','PLUS_DL_MAIL_SENT'=>'Deine Empfehlung wurde versendet.',
+	'PLUS_DL_MAIL_ADDRESS'=>'Bitte gib eine gültige E-Mail-Adresse ein.','PLUS_DL_MAIL_INPUT'=>'Bitte prüfe die Namen, den Betreff und die Länge der Nachricht.',
+	'PLUS_DL_MAIL_NAME'=>'Bitte wähle einen verfügbaren Gastnamen.','PLUS_DL_MAIL_WAIT'=>'Bitte warte, bevor du eine weitere Empfehlung versendest.',
+	'PLUS_DL_MAIL_UNAVAILABLE'=>'Die Empfehlung konnte nicht versendet werden. Bitte versuche es später erneut.',
 	'PLUS_DL_VIEWALL'=>'Alle Dateien','PLUS_DL_VIEWALL_DISABLED'=>'Die Gesamtansicht der Downloads ist deaktiviert.','PLUS_DL_LAST_FILE'=>'Neueste Datei',
 	'PLUS_DL_ADVANCED'=>'Erweiterte Download-Suche','PLUS_DL_WORDS'=>'Suchbegriffe','PLUS_DL_WORDS_HELP'=>'Durchsucht Titel, Urheber und Beschreibungen. Verwende * als Platzhalter oder verknüpfe Begriffe mit AND, OR und NOT.',
 	'PLUS_DL_AUTHOR_HELP'=>'Gib den Benutzernamen des Mitglieds ein, das die Datei eingereicht hat. Mit * kannst du nach einem Teil des Namens suchen.',

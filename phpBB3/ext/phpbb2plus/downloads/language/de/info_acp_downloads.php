@@ -1,6 +1,8 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_CFG_GROUP_MAIL'=>'Download-Empfehlungen','ACP_PLUS_DL_CFG_MASSMAIL_PROTECTION'=>'Zusätzliche E-Mail-Versandpause des CrackerTrackers anwenden',
+	'ACP_PLUS_DL_CFG_MASSMAIL_TIME'=>'Minuten zwischen erfolgreichen Empfehlungen (1–180)',
 	'ACP_PLUS_DL_ORDER_ASC'=>'Aufsteigend','ACP_PLUS_DL_ORDER_DESC'=>'Absteigend',
 	'ACP_PLUS_DL_SETTINGS'=>'Download-Einstellungen','ACP_PLUS_DL_CFG_GROUP_LIBRARY'=>'Katalog','ACP_PLUS_DL_CFG_GROUP_FILES'=>'Uploads und Downloads',
 	'ACP_PLUS_DL_CFG_GROUP_COMMENTS'=>'Kommentare','ACP_PLUS_DL_CFG_GROUP_ACCESS'=>'Globale Zugriffsstufen',

@@ -242,6 +242,34 @@ function plus_dl_group($short, $value)
 	finally { $src_db->sql_freeresult($result); }
 }
 
+function plus_dl_mail_policy()
+{
+	global $src_db,$db,$convert,$table_prefix;
+	$source = $convert->src_table_prefix . 'ctracker_config';
+	$tools = (new \phpbb\db\tools\factory())->get($src_db);
+	$target = $table_prefix . 'plus_dl_settings';
+	$values = array('massmail_protection'=>'1','massmail_time'=>'20');
+	if (in_array($source,$tools->sql_list_tables(),true))
+	{
+		// An incomplete installed policy used to prevent delivery and can be repaired in the ACP.
+		$values = array_fill_keys(array_keys($values),'');
+		$result = $src_db->sql_query("SELECT ct_config_name,ct_config_value FROM $source WHERE ct_config_name IN ('massmail_protection','massmail_time')");
+		try { while ($row = $src_db->sql_fetchrow($result)) { $values[$row['ct_config_name']]=$row['ct_config_value']; } }
+		finally { $src_db->sql_freeresult($result); }
+	}
+	$db->sql_transaction('begin');
+	try
+	{
+		foreach ($values as $name=>$value)
+		{
+			$db->sql_query("DELETE FROM $target WHERE config_name='" . $db->sql_escape($name) . "'");
+			$db->sql_query("INSERT INTO $target " . $db->sql_build_array('INSERT',array('config_name'=>$name,'config_value'=>$value)));
+		}
+		$db->sql_transaction('commit');
+	}
+	catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
+}
+
 function plus_dl_schema($prefix, $truncate)
 {
 	$sections = array();
@@ -252,10 +280,12 @@ function plus_dl_schema($prefix, $truncate)
 		$column = 'pa_' . $short . '.' . $source_key;
 		$s = array('target' => $target, 'group_by' => $column, 'order_by' => $column, 'query_first' => array('target', $truncate . $target),
 			array('', array($short, $column), 'plus_dl_group'));
+		// pa_config has been imported. The recommendation cooldown lived in CrackerTracker.
+		if ($short === 'cat') { $s['execute_first']='plus_dl_mail_policy();'; }
 		if ($short === 'files')
 		{
 			$s['query_first'] = array($s['query_first'], array('target', $truncate . $prefix . 'plus_dl_receipts'),
-				array('target', $truncate . $prefix . 'plus_dl_searches'));
+				array('target', $truncate . $prefix . 'plus_dl_searches'), array('target',$truncate . $prefix . 'plus_dl_mail_receipts'));
 		}
 		if ($primary) { $s['autoincrement'] = $primary; }
 		$sections[] = $s;
