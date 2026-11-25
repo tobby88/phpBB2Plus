@@ -62,6 +62,25 @@ class palette
 		}
 	}
 
+	/** Only members affected by the edited group or palette entry need a recalculation. */
+	public function refresh_assigned($id, $group)
+	{
+		$id = (int) $id;
+		$membership = 'SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug JOIN ' . GROUPS_TABLE . ' g ON g.group_id=ug.group_id
+			WHERE ug.user_id=u.user_id AND ug.user_pending=0 AND ' . ($group ? 'g.group_id=' : 'g.plus_colour_id=') . $id;
+		$filter = ($group ? '' : 'u.plus_colour_id=' . $id . ' OR ') . 'EXISTS (' . $membership . ')';
+		$after = ANONYMOUS;
+		do
+		{
+			$result = $this->db->sql_query_limit('SELECT u.user_id FROM ' . USERS_TABLE . ' u WHERE u.user_id>' . $after .
+				' AND (' . $filter . ') ORDER BY u.user_id',250);
+			$ids = array();
+			while ($row = $this->db->sql_fetchrow($result)) { $ids[] = (int) $row['user_id']; }
+			$this->db->sql_freeresult($result);
+			if ($ids) { $this->refresh($ids); $after = end($ids); }
+		} while (count($ids) === 250);
+	}
+
 	private function refresh_batch(array $ids, $enabled)
 	{
 		// Membership changes, native default-group writes and palette edits can overlap.

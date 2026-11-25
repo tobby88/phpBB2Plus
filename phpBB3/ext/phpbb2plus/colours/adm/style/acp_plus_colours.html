@@ -1,0 +1,32 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_COLOURS}</h1>
+<!-- IF S_EDITOR or S_ASSIGN --><p><a href="{U_LIST}">{L_BACK}</a></p><!-- ENDIF -->
+<!-- IF S_EDITOR -->
+<form id="plus-colour-entry" action="{U_SAVE}" method="post">
+<fieldset><legend>{L_PLUS_COLOURS_ENTRY}</legend>
+<dl><dt><label for="palette-name">{L_PLUS_COLOURS_LABEL}</label></dt><dd><input type="text" id="palette-name" name="label" maxlength="191" value="{NAME}" required></dd></dl>
+<dl><dt><label for="palette-value">{L_PLUS_COLOURS_COLOUR}</label><br>{L_PLUS_COLOURS_FORMAT}</dt><dd><input type="text" id="palette-value" name="colour" value="{COLOUR}" maxlength="12"></dd></dl>
+<dl><dt><label for="palette-order">{L_PLUS_COLOURS_POSITION}</label><br>{L_PLUS_COLOURS_PRIORITY}</dt><dd><input type="number" id="palette-order" name="position" min="-8388608" max="8388607" value="{POSITION}" required></dd></dl>
+<dl><dt><label for="palette-show">{L_PLUS_COLOURS_LEGEND}</label></dt><dd><input type="checkbox" id="palette-show" name="in_legend" value="1"<!-- IF VISIBLE --> checked<!-- ENDIF -->></dd></dl>
+</fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{REVISION}">
+<input type="submit" class="button1" name="save" value="{L_SUBMIT}">
+<!-- IF S_EXISTING --><input type="submit" class="button2" name="remove" value="{L_DELETE}" formnovalidate><!-- ENDIF -->
+{S_FORM_TOKEN}</fieldset></form>
+<!-- ELSEIF S_ASSIGN -->
+<form id="plus-colour-assignment" action="{U_SAVE}" method="post">
+<fieldset><legend>{OWNER}</legend><dl><dt><label for="palette-choice">{L_PLUS_COLOURS_ENTRY}</label></dt><dd>
+<select name="selection" id="palette-choice"><option value="0">{L_PLUS_COLOURS_INHERIT}</option>
+<!-- BEGIN choices --><option value="{choices.ID}"<!-- IF choices.SELECTED --> selected<!-- ENDIF -->>{choices.NAME}</option><!-- END choices --></select>
+</dd></dl></fieldset><fieldset class="submit-buttons"><input type="hidden" name="previous" value="{PREVIOUS}">
+<input type="submit" class="button1" name="save" value="{L_SUBMIT}">{S_FORM_TOKEN}</fieldset></form>
+<!-- ELSE -->
+<p>{L_PLUS_COLOURS_PRIORITY}</p>
+<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_COLOURS_LABEL}</th><th>{L_PLUS_COLOURS_COLOUR}</th><th>{L_PLUS_COLOURS_POSITION}</th><th>{L_PLUS_COLOURS_LEGEND}</th></tr></thead><tbody>
+<!-- BEGIN entries --><tr><td><a href="{entries.U_EDIT}">{entries.NAME}</a></td><td><!-- IF entries.COLOUR -->#{entries.COLOUR}<!-- ELSE -->&ndash;<!-- ENDIF --></td><td>{entries.POSITION}</td><td><!-- IF entries.VISIBLE -->{L_YES}<!-- ELSE -->{L_NO}<!-- ENDIF --></td></tr><!-- END entries -->
+</tbody></table><p><a href="{U_NEW}" class="button1">{L_PLUS_COLOURS_ADD}</a></p>
+<!-- IF S_CAN_USERS --><form id="plus-colour-member" action="{U_LIST}" method="post"><fieldset><legend>{L_PLUS_COLOURS_MEMBER}</legend>
+<label for="palette-user">{L_USERNAME}</label> <input type="text" name="member_name" id="palette-user" maxlength="255" required> <input type="submit" class="button2" name="lookup" value="{L_SELECT}">{S_FORM_TOKEN}</fieldset></form><!-- ENDIF -->
+<form id="plus-colour-group" action="{U_LIST}" method="post"><fieldset><legend>{L_GROUPS}</legend>
+<label for="palette-group">{L_USERGROUPS}</label> <select id="palette-group" name="group_id">{GROUP_OPTIONS}</select> <input type="submit" class="button2" name="lookup" value="{L_SELECT}">{S_FORM_TOKEN}</fieldset></form>
+<!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->

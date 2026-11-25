@@ -20,6 +20,7 @@ import attachments
 import news
 import portal
 import custom_profiles
+import colours
 import legacy_links
 import downloads
 import profile_media
@@ -168,6 +169,7 @@ def main():
                 legacy_links.browse(base, member, media["member"])
                 topic_calendar.browse(base, member, ordinary, pending)
                 news.administration(base, member)
+                colours.administration(member, media["member"])
                 portal.administration(base, member)
                 custom_profiles.administration(member)
                 for action in ("disable", "enable"):
