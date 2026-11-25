@@ -25,4 +25,11 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_CHOOSE_SOURCE'=>'Choose a local file or a download link. A screenshot also needs only one source.',
 	'PLUS_DL_SUBMISSION_GONE'=>'This submission has already been removed.',
 	'PLUS_DL_STORAGE_UNAVAILABLE'=>'The file could not be saved at the moment. Please choose the file again and retry later.',
+	'PLUS_DL_EDIT'=>'Edit download', 'PLUS_DL_EDITED'=>'The download changes were saved.', 'PLUS_DL_DELETE'=>'Delete download',
+	'PLUS_DL_DELETE_EXPLAIN'=>'Permanently delete this download with its files, mirrors, comments and ratings?',
+	'PLUS_DL_KEEP_SOURCE'=>'Leave the source fields empty to keep the existing file and screenshot. To replace either, choose a new file or enter a new link.',
+	'PLUS_DL_CURRENT_SOURCE'=>'Current download source', 'PLUS_DL_REMOVE_PREVIEW'=>'Remove the current screenshot',
+	'PLUS_DL_EDIT_CHANGED'=>'The download or its approval status has changed. Open the current version before continuing.',
+	'PLUS_DL_RELOAD'=>'Open the current version for editing', 'PLUS_DL_BAD_DESTINATION'=>'Choose an available destination category.',
+	'PLUS_DL_MISSING_LICENSE'=>'Existing licence no. %d (unavailable)',
 ));

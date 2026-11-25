@@ -8,8 +8,70 @@ $phpEx = 'php';
 require './common.php';
 if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1]) { exit(2); }
 $p = $table_prefix . 'plus_dl_';
+$row = static function ($query) use ($db) {
+	$result = $db->sql_query($query);
+	$value = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	return $value;
+};
 switch ($argv[2])
 {
+	case 'editing':
+		$owner = $row('SELECT user_id FROM ' . USERS_TABLE . " WHERE username='DepartingFixture'");
+		if (!$owner) { throw new RuntimeException('Missing synthetic download owner'); }
+		$db->sql_query("UPDATE {$p}settings SET config_value='validator_admin' WHERE config_name='validator'");
+		foreach (array(21=>array('upload'=>5,'edit_file'=>1,'delete_file'=>1),25=>array('edit_file'=>1,'delete_file'=>3)) as $cat=>$actions)
+		{
+			$category = $row("SELECT access_levels FROM {$p}categories WHERE cat_id=$cat");
+			$levels = $actions + json_decode($category['access_levels'], true);
+			$db->sql_query("UPDATE {$p}categories SET " . $db->sql_build_array('UPDATE',array('access_levels'=>json_encode($levels))) . " WHERE cat_id=$cat");
+		}
+		$file = $row("SELECT * FROM {$p}files WHERE file_id=50");
+		$file['owner_id'] = (int) $owner['user_id'];
+		$file['approved'] = 0;
+		$file['downloads'] = 17;
+		$file['pinned'] = 1;
+		$file['review_revision'] = 0;
+		foreach (array(8021,8022) as $id)
+		{
+			$file['file_id'] = $id;
+			$db->sql_query("INSERT INTO {$p}files " . $db->sql_build_array('INSERT',$file));
+		}
+		$custom = $row("SELECT * FROM {$p}field_values WHERE file_id=50 AND field_id=81");
+		unset($custom['row_id']);
+		$custom['file_id'] = 8021;
+		$db->sql_query("INSERT INTO {$p}field_values " . $db->sql_build_array('INSERT',$custom));
+		break;
+	case 'moved':
+		$file = $row("SELECT * FROM {$p}files WHERE file_id=8021");
+		$owner = $row('SELECT user_id FROM ' . USERS_TABLE . " WHERE username='DepartingFixture'");
+		if (!$file || (int) $file['cat_id'] !== 25 || (int) $file['owner_id'] !== (int) $owner['user_id'] || (int) $file['approved'] !== 1 ||
+			(int) $file['pinned'] !== 1 || (int) $file['downloads'] < 17 || $file['asset_status'] !== 'remote' ||
+			$file['storage_name'] !== '' || $file['preview_name'] !== '' || (int) $file['license_id'] !== 31 ||
+			(json_decode($file['source_json'],true)['file_dlurl'] ?? '') !== 'https://example.invalid/revised')
+		{ throw new RuntimeException('Editing or moving a download changed ownership, approval, statistics, licence or sources'); }
+		$custom = $row("SELECT source_json FROM {$p}field_values WHERE file_id=8021 AND field_id=81");
+		$original = $row("SELECT source_json FROM {$p}field_values WHERE file_id=50 AND field_id=81");
+		if (!$custom || $custom !== $original) { throw new RuntimeException('Editing the file rewrote an untouched imported custom field'); }
+		break;
+	case 'edited_cleanup':
+		$files = $row("SELECT COUNT(*) AS total FROM {$p}files WHERE file_id IN(8021,8022)");
+		$custom = $row("SELECT COUNT(*) AS total FROM {$p}field_values WHERE file_id=8021");
+		if ((int) $files['total'] || (int) $custom['total']) { throw new RuntimeException('A confirmed deletion left file metadata'); }
+		$dir = $phpbb_root_path . $config['upload_path'] . '/';
+		$keep = $row("SELECT storage_name,preview_name FROM {$p}files WHERE file_id=50");
+		$result = $db->sql_query("SELECT DISTINCT storage_name FROM {$p}media_queue");
+		$jobs = $db->sql_fetchrowset($result);
+		$db->sql_freeresult($result);
+		if (count($jobs) !== 4) { throw new RuntimeException('Lost or leaked a media reservation during replacement'); }
+		$db->sql_query("UPDATE {$p}media_queue SET queued_at=0");
+		$phpbb_container->get('phpbb2plus.downloads.cleanup')->run();
+		foreach ($jobs as $job)
+		{
+			$name = $job['storage_name'];
+			if (is_file($dir . $name) !== in_array($name,$keep,true)) { throw new RuntimeException('Replaced or shared media was cleaned incorrectly'); }
+		}
+		break;
 	case 'offline':
 		$config->set('upload_path', $config['upload_path'] . '/unavailable-fixture');
 		break;

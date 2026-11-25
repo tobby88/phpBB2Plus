@@ -1,6 +1,9 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{{ DL_TITLE|e }}</h2>
-{% if U_DL_QUEUE %}<div class="action-bar"><a class="button" href="{U_DL_QUEUE}">{L_PLUS_DL_REVIEW}</a></div>{% endif %}
+{% if U_DL_EDIT or U_DL_DELETE or U_DL_QUEUE %}<div class="action-bar">
+{% if U_DL_EDIT %}<a class="button" href="{U_DL_EDIT}">{L_PLUS_DL_EDIT}</a>{% endif %}
+{% if U_DL_DELETE %}<a class="button" href="{U_DL_DELETE}">{L_PLUS_DL_DELETE}</a>{% endif %}
+{% if U_DL_QUEUE %}<a class="button" href="{U_DL_QUEUE}">{L_PLUS_DL_REVIEW}</a>{% endif %}</div>{% endif %}
 <div class="panel"><div class="inner">
 {% if DL_PENDING %}<p class="notice">{L_PLUS_DL_PENDING}</p>{% endif %}{% if DL_BROKEN %}<p class="notice">{L_PLUS_DL_BROKEN}</p>{% endif %}
 {% if DL_SUMMARY %}<p>{{ DL_SUMMARY|e }}</p>{% endif %}{% if DL_DETAIL %}<div class="content">{{ DL_DETAIL|e|nl2br }}</div>{% endif %}

@@ -18,7 +18,7 @@ class media
 		$this->root = $root;
 	}
 
-	public function inspect($file, $preview)
+	public function inspect($file, $preview, $digest = true)
 	{
 		if (!$file || (isset($file['error']) && $file['error'] === UPLOAD_ERR_NO_FILE)) { return null; }
 		if (!isset($file['error'], $file['tmp_name'], $file['name']) || $file['error'] !== UPLOAD_ERR_OK ||
@@ -39,7 +39,7 @@ class media
 			if (!$image || !isset($types[$extension]) || $types[$extension] !== $image['mime']) { throw new \DomainException('PLUS_DL_BAD_PREVIEW'); }
 			$mime = $image['mime'];
 		}
-		$hash = hash_file('sha256', $file['tmp_name']);
+		$hash = $digest ? hash_file('sha256', $file['tmp_name']) : '';
 		if ($hash === false) { throw new \DomainException('PLUS_DL_BAD_UPLOAD'); }
 		return array('name'=>$name, 'bytes'=>$bytes, 'path'=>$file['tmp_name'], 'hash'=>$hash, 'mime'=>$mime);
 	}

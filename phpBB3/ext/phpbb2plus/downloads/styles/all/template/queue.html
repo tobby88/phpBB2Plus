@@ -1,9 +1,9 @@
 <!-- INCLUDE overall_header.html -->
-<h2>{L_PLUS_DL_REVIEW}</h2>
+<h2>{% if DL_DELETING %}{L_PLUS_DL_DELETE}{% else %}{L_PLUS_DL_REVIEW}{% endif %}</h2>
 {% if DL_CONFIRM %}
-<form id="dl-review" method="post" action="{U_DL_REVIEW}" class="panel"><div class="inner">
+<form id="{% if DL_DELETING %}dl-delete{% else %}dl-review{% endif %}" method="post" action="{U_DL_REVIEW}" class="panel"><div class="inner">
 <h3>{{ DL_ACTION|e }}</h3><p><a href="{U_DL_FILE}">{{ DL_TITLE|e }}</a></p>
-{% if DL_REJECT %}<p>{L_PLUS_DL_REJECT_EXPLAIN}</p>{% endif %}
+{% if DL_REJECT %}<p>{L_PLUS_DL_REJECT_EXPLAIN}</p>{% elseif DL_DELETING %}<p>{L_PLUS_DL_DELETE_EXPLAIN}</p>{% endif %}
 <fieldset class="submit-buttons"><input type="hidden" name="revision" value="{DL_REVISION}">{S_FORM_TOKEN}
 <button type="submit" class="button1">{{ DL_ACTION|e }}</button> <a class="button2" href="{U_DL_BACK}">{L_CANCEL}</a></fieldset></div></form>
 {% else %}

@@ -16,6 +16,16 @@ phpbb2plus_downloads_queue:
     defaults: { _controller: phpbb2plus.downloads.submissions_controller:queue }
     requirements: { category: '[1-9][0-9]*' }
     methods: [GET]
+phpbb2plus_downloads_edit:
+    path: /downloads/file/{file}/edit
+    defaults: { _controller: phpbb2plus.downloads.submissions_controller:edit }
+    requirements: { file: '[1-9][0-9]*' }
+    methods: [GET, POST]
+phpbb2plus_downloads_delete:
+    path: /downloads/file/{file}/delete
+    defaults: { _controller: phpbb2plus.downloads.submissions_controller:remove }
+    requirements: { file: '[1-9][0-9]*' }
+    methods: [GET, POST]
 phpbb2plus_downloads_review:
     path: /downloads/file/{file}/review/{action}
     defaults: { _controller: phpbb2plus.downloads.submissions_controller:review }

@@ -1,36 +1,43 @@
 <!-- INCLUDE overall_header.html -->
-<h2>{L_PLUS_DL_SUBMIT}</h2>
+<h2>{% if DL_EDITING %}{L_PLUS_DL_EDIT}{% else %}{L_PLUS_DL_SUBMIT}{% endif %}</h2>
 {% if DL_CHOOSE %}
 <div class="panel"><div class="inner"><h3>{L_PLUS_DL_CHOOSE_CATEGORY}</h3><ul>
 {% for cat in loops.dl_destinations %}<li><a href="{{ cat.U_SUBMIT }}">{{ cat.TITLE|e }}</a></li>{% endfor %}
 </ul></div></div>
 {% else %}
-<form id="dl-submit" method="post" enctype="multipart/form-data" action="{U_DL_SUBMIT}">
+<form id="{% if DL_EDITING %}dl-edit{% else %}dl-submit{% endif %}" method="post" enctype="multipart/form-data" action="{U_DL_SUBMIT}">
 <div class="panel"><div class="inner">
 {% if DL_ERROR %}<p class="error">{{ DL_ERROR|e }}</p>{% endif %}
+{% if DL_STALE %}<p><a href="{U_DL_SUBMIT}">{L_PLUS_DL_RELOAD}</a></p>{% endif %}
 <fieldset class="fields2">
+{% if DL_EDITING %}<dl><dt><label for="dl-destination">{L_PLUS_DL_CHOOSE_CATEGORY}</label></dt><dd><select id="dl-destination" name="category">
+{% for cat in loops.dl_destinations %}<option value="{{ cat.ID }}"{% if cat.SELECTED %} selected{% endif %}>{{ cat.TITLE|e }}</option>{% endfor %}</select></dd></dl>{% endif %}
 <dl><dt><label for="dl-title">{L_PLUS_DL_TITLE}</label></dt><dd><input class="inputbox" id="dl-title" name="title" value="{{ DL_TITLE|e('html_attr') }}" required></dd></dl>
 <dl><dt><label for="dl-summary">{L_PLUS_DL_SUMMARY}</label></dt><dd><input class="inputbox" id="dl-summary" name="summary" value="{{ DL_SUMMARY|e('html_attr') }}"></dd></dl>
 <dl><dt><label for="dl-description">{L_PLUS_DL_DESCRIPTION}</label></dt><dd><textarea class="inputbox" id="dl-description" name="description" rows="5" required>{{ DL_DESCRIPTION|e }}</textarea></dd></dl>
 <dl><dt><label for="dl-author">{L_AUTHOR}</label></dt><dd><input class="inputbox" id="dl-author" name="author" value="{{ DL_AUTHOR|e('html_attr') }}"></dd></dl>
 <dl><dt><label for="dl-version">{L_PLUS_DL_VERSION}</label></dt><dd><input class="inputbox" id="dl-version" name="version" value="{{ DL_VERSION|e('html_attr') }}"></dd></dl>
-<dl><dt><label for="dl-docs">{L_PLUS_DL_DOCS}</label></dt><dd><input class="inputbox" type="url" id="dl-docs" name="documentation" value="{{ DL_DOCUMENTATION|e('html_attr') }}"></dd></dl>
+<dl><dt><label for="dl-docs">{L_PLUS_DL_DOCS}</label></dt><dd><input class="inputbox" type="{% if DL_EDITING %}text{% else %}url{% endif %}" inputmode="url" id="dl-docs" name="documentation" value="{{ DL_DOCUMENTATION|e('html_attr') }}"></dd></dl>
 {% if loops.dl_licenses %}<dl><dt><label for="dl-license">{L_PLUS_DL_LICENSE}</label></dt><dd><select id="dl-license" name="license"><option value="0">{L_PLUS_DL_NO_LICENSE}</option>
 {% for license in loops.dl_licenses %}<option value="{{ license.ID }}"{% if license.SELECTED %} selected{% endif %}>{{ license.TITLE|e }}</option>{% endfor %}</select></dd></dl>{% endif %}
 {% for field in loops.dl_custom %}<dl><dt><label{% if field.TYPE not in [2,5] %} for="dl-field-{{ field.ID }}"{% endif %}>{{ field.TITLE|e }}</label>{% if field.SUMMARY %}<br>{{ field.SUMMARY|e }}{% endif %}</dt><dd>
 {% if field.TYPE == 0 %}<input class="inputbox" id="dl-field-{{ field.ID }}" name="field[{{ field.ID }}]" value="{{ field.VALUE|e('html_attr') }}">
 {% elseif field.TYPE == 1 %}<textarea class="inputbox" id="dl-field-{{ field.ID }}" name="field[{{ field.ID }}]">{{ field.VALUE|e }}</textarea>
 {% elseif field.TYPE in [3,4] %}<select id="dl-field-{{ field.ID }}" name="field[{{ field.ID }}]{% if field.TYPE == 4 %}[]{% endif %}"{% if field.TYPE == 4 %} multiple{% endif %}>
+{% if field.TYPE == 3 %}<option value=""></option>{% endif %}
 {% for choice in field.choices %}<option value="{{ choice.VALUE|e('html_attr') }}"{% if choice.SELECTED %} selected{% endif %}>{{ choice.VALUE|e }}</option>{% endfor %}</select>
 {% else %}{% for choice in field.choices %}<label><input type="{% if field.TYPE == 5 %}checkbox{% else %}radio{% endif %}" name="field[{{ field.ID }}]{% if field.TYPE == 5 %}[]{% endif %}" value="{{ choice.VALUE|e('html_attr') }}"{% if choice.SELECTED %} checked{% endif %}> {{ choice.VALUE|e }}</label> {% endfor %}{% endif %}
 </dd></dl>{% endfor %}
 </fieldset></div></div>
-<div class="panel"><div class="inner"><h3>{L_PLUS_DL_SOURCE}</h3><p>{L_PLUS_DL_SOURCE_HELP}</p><fieldset class="fields2">
+<div class="panel"><div class="inner"><h3>{L_PLUS_DL_SOURCE}</h3><p>{% if DL_EDITING %}{L_PLUS_DL_KEEP_SOURCE}{% else %}{L_PLUS_DL_SOURCE_HELP}{% endif %}</p>
+{% if DL_CURRENT_SOURCE %}<p>{L_PLUS_DL_CURRENT_SOURCE} {{ DL_CURRENT_SOURCE|e }}</p>{% endif %}<fieldset class="fields2">
 <dl><dt><label for="dl-file">{L_PLUS_DL_LOCAL}</label></dt><dd><input type="file" id="dl-file" name="original"></dd></dl>
 <dl><dt><label for="dl-url">{L_PLUS_DL_URL}</label></dt><dd><input class="inputbox" type="url" id="dl-url" name="url" value="{{ DL_URL|e('html_attr') }}"></dd></dl>
 <dl><dt><label for="dl-preview">{L_PLUS_DL_PREVIEW}</label></dt><dd><input type="file" id="dl-preview" name="screenshot" accept="image/png,image/jpeg,image/gif"></dd></dl>
 <dl><dt><label for="dl-preview-url">{L_PLUS_DL_PREVIEW_URL}</label></dt><dd><input class="inputbox" type="url" id="dl-preview-url" name="preview_url" value="{{ DL_PREVIEW_URL|e('html_attr') }}"></dd></dl>
+{% if DL_HAS_PREVIEW %}<dl><dt><label for="dl-remove-preview">{L_PLUS_DL_REMOVE_PREVIEW}</label></dt><dd><input type="checkbox" id="dl-remove-preview" name="remove_preview" value="1"{% if DL_REMOVE_PREVIEW %} checked{% endif %}></dd></dl>{% endif %}
 </fieldset></div></div>
-<fieldset class="submit-buttons"><input type="hidden" name="nonce" value="{DL_NONCE}">{S_FORM_TOKEN}<button class="button1" type="submit">{L_PLUS_DL_SUBMIT}</button></fieldset>
+<fieldset class="submit-buttons">{% if DL_EDITING %}<input type="hidden" name="revision" value="{DL_REVISION}">{% else %}<input type="hidden" name="nonce" value="{DL_NONCE}">{% endif %}{S_FORM_TOKEN}
+{% if not DL_STALE %}<button class="button1" type="submit">{% if DL_EDITING %}{L_SAVE}{% else %}{L_PLUS_DL_SUBMIT}{% endif %}</button>{% endif %}</fieldset>
 </form>{% endif %}
 <!-- INCLUDE overall_footer.html -->

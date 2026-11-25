@@ -25,4 +25,11 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_CHOOSE_SOURCE'=>'Wähle eine lokale Datei oder einen Downloadlink. Auch das Vorschaubild benötigt nur eine Quelle.',
 	'PLUS_DL_SUBMISSION_GONE'=>'Dieser eingereichte Download wurde bereits entfernt.',
 	'PLUS_DL_STORAGE_UNAVAILABLE'=>'Die Datei konnte gerade nicht gespeichert werden. Bitte wähle sie noch einmal aus und versuche es später erneut.',
+	'PLUS_DL_EDIT'=>'Download bearbeiten', 'PLUS_DL_EDITED'=>'Die Änderungen am Download wurden gespeichert.', 'PLUS_DL_DELETE'=>'Download löschen',
+	'PLUS_DL_DELETE_EXPLAIN'=>'Den Download mit Dateien, Spiegelservern, Kommentaren und Bewertungen endgültig löschen?',
+	'PLUS_DL_KEEP_SOURCE'=>'Lasse die Quellenfelder leer, um die vorhandene Datei und Vorschau zu behalten. Zum Ersetzen wähle eine neue Datei oder gib einen neuen Link an.',
+	'PLUS_DL_CURRENT_SOURCE'=>'Aktuelle Downloadquelle', 'PLUS_DL_REMOVE_PREVIEW'=>'Vorhandene Vorschau entfernen',
+	'PLUS_DL_EDIT_CHANGED'=>'Der Download wurde inzwischen bearbeitet oder sein Freigabestatus geändert. Öffne die aktuelle Fassung vor dem Fortfahren.',
+	'PLUS_DL_RELOAD'=>'Aktuelle Fassung zum Bearbeiten öffnen', 'PLUS_DL_BAD_DESTINATION'=>'Wähle eine für dich verfügbare Zielkategorie.',
+	'PLUS_DL_MISSING_LICENSE'=>'Bisherige Lizenz Nr. %d (nicht verfügbar)',
 ));

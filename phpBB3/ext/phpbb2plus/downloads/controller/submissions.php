@@ -66,49 +66,97 @@ class submissions
 
 	public function form($category)
 	{
-		$id = (int) $category;
-		if (!$this->access->can_submit($id)) { throw new NotFoundHttpException(); }
-		$this->heading($id);
-		$csrf = 'plus_dl_submit_' . $id;
+		if (!$this->access->can_submit((int) $category)) { throw new NotFoundHttpException(); }
+		return $this->editor((int) $category);
+	}
+
+	public function edit($file)
+	{
+		$item = $this->access->file((int) $file);
+		if (!$this->access->can_manage($item, 'edit_file')) { throw new NotFoundHttpException(); }
+		return $this->editor((int) $item['cat_id'], $item);
+	}
+
+	private function editor($category, $item = null)
+	{
+		$this->heading($category);
+		$id = $item ? (int) $item['file_id'] : 0;
+		$posted = $this->request->server('REQUEST_METHOD') === 'POST';
+		$csrf = $id ? 'plus_dl_edit_' . $id : 'plus_dl_submit_' . $category;
+		$url = $id ? $this->helper->route('phpbb2plus_downloads_edit',array('file'=>$id)) :
+			$this->helper->route('phpbb2plus_downloads_submit',array('category'=>$category));
 		$form = array();
 		foreach (array('title','summary','description','version','author','documentation','url','preview_url') as $key)
 		{
 			$form[$key] = htmlspecialchars_decode($this->request->variable($key, '', true, request_interface::POST), ENT_QUOTES);
 		}
-		if (!$this->request->is_set_post('author') && !empty($this->user->data['is_registered']))
+		if (!$id && !$this->request->is_set_post('author') && !empty($this->user->data['is_registered']))
 		{ $form['author'] = access::plain($this->user->data['username']); }
 		$form['license'] = $this->request->variable('license', 0, false, request_interface::POST);
 		$fields = $this->request->raw_variable('field', array(), request_interface::POST);
+		$existing = $id ? $this->submissions->saved_fields($id) : array();
+		$revision = $posted ? $this->request->variable('revision', -1, false, request_interface::POST) : (int) ($item['review_revision'] ?? 0);
+		$destination = $this->request->variable('category', $category, false, request_interface::POST);
+		$remove_preview = $this->request->variable('remove_preview', false, false, request_interface::POST);
+		if ($id)
+		{
+			$raw = json_decode($item['source_json'], true) ?: array();
+			if (!$posted)
+			{
+				$form['title'] = access::plain($item['title']);
+				$form['summary'] = access::plain($item['summary']);
+				$form['description'] = access::plain($raw['file_longdesc'] ?? '');
+				$form['author'] = access::plain($raw['file_creator'] ?? '');
+				$form['version'] = access::plain($raw['file_version'] ?? '');
+				$form['documentation'] = (string) ($raw['file_docsurl'] ?? '');
+				$form['license'] = (int) $item['license_id'];
+				$fields = $existing;
+			}
+			foreach ($this->access->categories() as $key => $cat)
+			{
+				if ($key === $category || $this->access->can_submit($key))
+				{ $this->template->assign_block_vars('dl_destinations',array('ID'=>$key,'TITLE'=>access::plain($cat['title']),'SELECTED'=>$key === $destination)); }
+			}
+			$this->template->assign_vars(array('DL_EDITING'=>true,'DL_REVISION'=>$revision, 'DL_CURRENT_SOURCE'=>$item['asset_status'] === 'remote' ?
+				($raw['file_dlurl'] ?? '') : ($raw['real_name'] ?? ''), 'DL_HAS_PREVIEW'=>($item['preview_name'] || !empty($raw['file_ssurl'])),
+				'DL_REMOVE_PREVIEW'=>$remove_preview));
+		}
 		$error = '';
 		$status = 200;
-		if ($this->request->server('REQUEST_METHOD') === 'POST')
+		if ($posted)
 		{
 			if (!check_form_key($csrf)) { throw new AccessDeniedHttpException(); }
 			try
 			{
-				$file = $this->submissions->submit($id, $this->request->variable('nonce', '', false, request_interface::POST), $form, $fields,
-					$this->request->raw_variable('original', array(), request_interface::FILES),
-					$this->request->raw_variable('screenshot', array(), request_interface::FILES));
-				try { $this->access->file($file); }
-				catch (NotFoundHttpException $e) { return $this->helper->message('PLUS_DL_SUBMITTED',array(),'INFORMATION',200); }
-				return new RedirectResponse($this->helper->route('phpbb2plus_downloads_file',array('file'=>$file),false), 303);
+				$original = $this->request->raw_variable('original', array(), request_interface::FILES);
+				$preview = $this->request->raw_variable('screenshot', array(), request_interface::FILES);
+				if ($item) { $this->submissions->edit($id, $destination, $revision, $form, $fields, $original, $preview, $remove_preview); }
+				else { $id = $this->submissions->submit($category, $this->request->variable('nonce', '', false, request_interface::POST), $form, $fields, $original, $preview); }
+				try { $this->access->file($id); }
+				catch (NotFoundHttpException $e) { return $this->helper->message($item ? 'PLUS_DL_EDITED' : 'PLUS_DL_SUBMITTED',array(),'INFORMATION',200); }
+				return new RedirectResponse($this->helper->route('phpbb2plus_downloads_file',array('file'=>$id),false), 303);
 			}
 			catch (\DomainException $e)
 			{
 				$error = $this->language->lang($e->getMessage());
-				$status = $e->getCode() === 503 ? 503 : 422;
+				$status = $e->getCode() ?: 422;
 			}
 		}
-		foreach ($this->submissions->licenses() as $license => $title)
+		$licenses = $this->submissions->licenses();
+		if ($item && $item['license_id'] && !isset($licenses[$item['license_id']]))
+		{ $licenses[(int) $item['license_id']] = $this->language->lang('PLUS_DL_MISSING_LICENSE', (int) $item['license_id']); }
+		foreach ($licenses as $license => $title)
 		{
 			$this->template->assign_block_vars('dl_licenses', array('ID'=>$license,'TITLE'=>$title,'SELECTED'=>$form['license'] === $license));
 		}
 		foreach ($this->submissions->fields() as $key => $definition)
 		{
+			if ($definition['type'] < 0 || $definition['type'] > 5) { continue; }
 			$value = $fields[$key] ?? '';
+			$options = array_unique(array_merge($definition['options'], $existing[$key] ?? array()));
 			$this->template->assign_block_vars('dl_custom', array('ID'=>$key,'TYPE'=>$definition['type'],'TITLE'=>$definition['title'],
-				'SUMMARY'=>$definition['description'],'VALUE'=>is_string($value) ? $value : ''));
-			foreach ($definition['options'] as $option)
+				'SUMMARY'=>$definition['description'],'VALUE'=>is_string($value) ? $value : ($existing[$key][0] ?? '')));
+			foreach ($options as $option)
 			{
 				$this->template->assign_block_vars('dl_custom.choices', array('VALUE'=>$option,'SELECTED'=>in_array($option,(array) $value,true)));
 			}
@@ -116,8 +164,32 @@ class submissions
 		foreach ($form as $key => $value) { $this->template->assign_var('DL_' . strtoupper($key), $value); }
 		add_form_key($csrf);
 		$this->template->assign_vars(array('DL_NONCE'=>bin2hex(random_bytes(16)),'DL_ERROR'=>$error,
-			'U_DL_SUBMIT'=>$this->helper->route('phpbb2plus_downloads_submit',array('category'=>$id))));
-		return $this->helper->render('@phpbb2plus_downloads/submit.html', $this->language->lang('PLUS_DL_SUBMIT'), $status);
+			'DL_STALE'=>$status === 409,'U_DL_SUBMIT'=>$url));
+		return $this->helper->render('@phpbb2plus_downloads/submit.html', $this->language->lang($item ? 'PLUS_DL_EDIT' : 'PLUS_DL_SUBMIT'), $status);
+	}
+
+	public function remove($file)
+	{
+		$id = (int) $file;
+		$item = $this->access->file($id);
+		if (!$this->access->can_manage($item, 'delete_file')) { throw new NotFoundHttpException(); }
+		$cat = (int) $item['cat_id'];
+		$this->heading($cat);
+		$csrf = 'plus_dl_delete_' . $id;
+		$params = array('file'=>$id);
+		$back = $this->helper->route('phpbb2plus_downloads_file', $params);
+		if ($this->request->server('REQUEST_METHOD') === 'POST')
+		{
+			if (!check_form_key($csrf)) { throw new AccessDeniedHttpException(); }
+			try { $this->submissions->remove($id, $this->request->variable('revision', -1, false, request_interface::POST)); }
+			catch (\DomainException $e) { return $this->helper->message($e->getMessage(),array(),'INFORMATION',409); }
+			return new RedirectResponse($this->helper->route('phpbb2plus_downloads_category',array('category'=>$cat),false), 303);
+		}
+		add_form_key($csrf);
+		$this->template->assign_vars(array('DL_CONFIRM'=>true, 'DL_DELETING'=>true, 'DL_TITLE'=>access::plain($item['title']),
+			'DL_ACTION'=>$this->language->lang('PLUS_DL_DELETE'), 'DL_REVISION'=>(int) $item['review_revision'], 'U_DL_BACK'=>$back,
+			'U_DL_FILE'=>$back, 'U_DL_REVIEW'=>$this->helper->route('phpbb2plus_downloads_delete',$params)));
+		return $this->helper->render('@phpbb2plus_downloads/queue.html', $this->language->lang('PLUS_DL_DELETE'));
 	}
 
 	public function queue($category)

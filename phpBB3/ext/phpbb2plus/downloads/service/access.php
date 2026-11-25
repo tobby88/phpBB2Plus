@@ -139,6 +139,14 @@ class access
 			($this->admin() || ($this->setting('validator', 'validator_admin') === 'validator_mod' && $this->allows($id, 'mod')));
 	}
 
+	public function can_manage($file, $action)
+	{
+		if (empty($this->user->data['is_registered']) || !in_array($action, array('edit_file', 'delete_file'), true)) { return false; }
+		$category = (int) $file['cat_id'];
+		return $this->visible($category, true) && ($this->allows($category, 'mod') ||
+			((int) $file['owner_id'] === (int) $this->user->data['user_id'] && $this->allows($category, $action)));
+	}
+
 	public static function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 
 	public function write($id, callable $operation)

@@ -125,6 +125,10 @@ class library
 		$raw = json_decode($f['source_json'], true) ?: array();
 		$title = access::plain($f['title']);
 		$download = $this->access->allows($cat, 'download');
+		if ($this->access->can_manage($f, 'edit_file'))
+		{ $this->template->assign_var('U_DL_EDIT', $this->helper->route('phpbb2plus_downloads_edit',array('file'=>$id))); }
+		if ($this->access->can_manage($f, 'delete_file'))
+		{ $this->template->assign_var('U_DL_DELETE', $this->helper->route('phpbb2plus_downloads_delete',array('file'=>$id))); }
 		if ($this->access->can_review($cat))
 		{
 			$this->template->assign_var('U_DL_QUEUE', $this->helper->route('phpbb2plus_downloads_queue',

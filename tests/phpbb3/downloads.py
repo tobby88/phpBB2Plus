@@ -3,7 +3,7 @@ import re
 import time
 from html import unescape
 from urllib.parse import urljoin
-from http_board import Browser, Page
+from http_board import Browser, FormFields, Page
 from gallery import ORIGINAL
 
 PAYLOAD = "Fixture-Datei mit Grüßen 🎨\n".encode()
@@ -180,3 +180,81 @@ def submissions(base, founder, moderator, author, verify):
                   {"title": "Öffentlicher Verweis", "description": "Ohne manuelle Freigabe", "url": "https://example.invalid/archive"})
     if "Öffentlicher Verweis" not in public or "Öffentlicher Verweis" not in guest.fetch(category):
         raise RuntimeError("The automatic publication setting did not apply to a member's submission")
+
+    edit_downloads(founder, moderator, author, guest, post, verify)
+
+
+def edit_downloads(founder, moderator, author, guest, post, verify):
+    verify("editing")
+    item = "app.php/downloads/file/8021"
+    edit = item + "/edit"
+    delete = item + "/delete"
+    approve = item + "/review/approve"
+    fresh = author.fetch(edit)
+    if ("Farben grüßen.txt" not in fresh or re.search(r'value="23"[^>]*>Clubdateien', fresh)
+            or not all(f'value="{colour}" selected' in fresh for colour in ("Blau", "Rot"))):
+        raise RuntimeError("The converted original and custom fields are missing from the edit form")
+    guest.fetch(edit, expected_status=404)
+    moderator.fetch(edit, expected_status=404)
+    moderator.fetch(delete, expected_status=404)
+    def form_values(page):
+        values = FormFields(page, "dl-edit").values
+        for key in ("field[81][]", "original", "screenshot", "form_token", "creation_time", "revision"):
+            values.pop(key, None)
+        # Two distinct scalar controls also work with the multipart fixture encoder.
+        values.update({"field[81][0]": "Blau", "field[81][1]": "Rot"})
+        return values
+
+    original = form_values(fresh)
+    if original["description"] != "Mehrzeilige Beschreibung" or original["license"] != "31" or original["category"] != "21":
+        raise RuntimeError("Editing did not open the converted licence, description and category")
+    old_delete = author.fetch(delete)
+    old_approval = founder.fetch(approve)
+    rejected = post(author, edit, fresh, "dl-edit", dict(original, category="23"), status=422)
+    if "Mehrzeilige Beschreibung" not in rejected:
+        raise RuntimeError("An unavailable destination discarded the edit draft")
+    verify("offline")
+    replacement = [("original", "Ersatz.txt", "text/plain", b"Revised download\n"), ("screenshot", "Neu.png", "image/png", ORIGINAL)]
+    post(author, edit, fresh, "dl-edit", original, replacement, 503)
+    verify("online")
+    download = item + "/get/0"
+    if post(author, download, author.fetch(download), "dl-license", {"accept": "1"}, raw=True) != PAYLOAD:
+        raise RuntimeError("A failed replacement lost the previous file")
+    details = dict(original, title="Fahrplan neu", description="Geänderte Beschreibung")
+    saved = post(author, edit, fresh, "dl-edit", details, replacement)
+    if "Fahrplan neu" not in saved or "Freigabe" not in saved or "Blau, Rot" not in saved:
+        raise RuntimeError("Replacing a pending original changed its approval or imported metadata")
+    if post(author, download, author.fetch(download), "dl-license", {"accept": "1"}, raw=True) != b"Revised download\n":
+        raise RuntimeError("The replacement bytes could not be downloaded")
+    guest.fetch(item, expected_status=404)
+    post(author, edit, fresh, "dl-edit", original, replacement, 409)
+    post(author, delete, old_delete, "dl-delete", status=409)
+    post(founder, approve, old_approval, "dl-review", status=409)
+    stale = author.fetch(edit)
+    post(founder, approve, founder.fetch(approve), "dl-review")
+    post(author, edit, stale, "dl-edit", details, status=409)
+    if guest.fetch(item + "/preview", raw=True) != ORIGINAL:
+        raise RuntimeError("Approval lost the replacement screenshot")
+    moderator.fetch(edit, expected_status=404)
+    moderator.fetch(delete, expected_status=404)
+
+    def edit_page(actor, changes):
+        page = actor.fetch(edit)
+        return post(actor, edit, page, "dl-edit", dict(form_values(page), **changes))
+
+    edit_page(author, {"category": "25", "url": "https://example.invalid/revised", "remove_preview": "1"})
+    author.fetch(delete, expected_status=404)
+    post(author, delete, old_delete, "dl-delete", status=404)
+    guest.fetch(item + "/preview", expected_status=404)
+    verify("moved")
+    edit_page(founder, {"category": "23"})
+    author.fetch(edit, expected_status=404)
+    guest.fetch(item, expected_status=404)
+    removal = moderator.fetch(delete)
+    if FormFields(moderator.fetch(edit), "dl-edit").values["title"] != "Fahrplan neu" or "Fahrplan neu" not in removal:
+        raise RuntimeError("The destination category moderator cannot maintain the moved download")
+    moderator.fetch(item + "/review/withdraw", expected_status=404)
+    post(moderator, delete, removal, "dl-delete")
+    owned = "app.php/downloads/file/8022/delete"
+    post(author, owned, author.fetch(owned), "dl-delete")
+    verify("edited_cleanup")
