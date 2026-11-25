@@ -19,6 +19,12 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'arcade_tournament':
+			$mode = $query['mode'] ?? '';
+			if ($mode === '') { $path = 'arcade/tournaments'; }
+			elseif ($mode === 'champions') { $path = 'arcade/tournaments/champions'; }
+			elseif ($mode === 'tour' && ($id = $positive('id'))) { $path = 'arcade/tournament/' . $id; }
+			break;
 		case 'activity':
 			$mode = $query['mode'] ?? '';
 			$id = $positive('id');

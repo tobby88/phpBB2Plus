@@ -7,7 +7,7 @@ function seed_arcade($db)
 	$db->query("INSERT INTO phpbb_config (config_name,config_value) VALUES ('points_name','Fixture credits') ON DUPLICATE KEY UPDATE config_value='Fixture credits'");
 	$db->query("UPDATE phpbb_ina_data SET config_value='1' WHERE config_name IN ('use_rewards_mod','use_point_system')");
 	$db->query("UPDATE phpbb_ina_data SET config_value='0' WHERE config_name IN ('games_offline','games_no_guests')");
-	$db->query("UPDATE phpbb_ina_data SET config_value='1' WHERE config_name IN ('games_guest_highscore','games_comments','games_rate','games_at_highscore','games_show_mhm')");
+	$db->query("UPDATE phpbb_ina_data SET config_value='1' WHERE config_name IN ('games_guest_highscore','games_comments','games_rate','games_at_highscore','games_show_mhm','games_tournament_mode')");
 	$db->query("INSERT INTO phpbb_ina_cat (cat_id,cat_name,cat_desc,cat_type,cat_parent,cat_order,group_required,mod_id) VALUES
 		(10,'Spielearchiv','Offene Spiele','p',0,1,0,2),(11,'Clubspiele','','p',0,2,71,1),(12,'Clubturniere','','s',11,1,0,1),(13,'Einzelspieler','','p',0,3,72,1)");
 	$db->query("INSERT INTO phpbb_ina_games (game_id,game_name,game_path,game_desc,cat_id,allow_guest,game_avail,reverse_list,game_show_score,game_flash,
@@ -36,10 +36,14 @@ function seed_arcade($db)
 		VALUES (71,'puzzle',1,'AlterSpielname',11008,'Schöne Farben &amp; Formen 🎲',2)");
 	$db->query("INSERT INTO phpbb_ina_rate (rate_game_name,rate_user_id,rate_user_ip,rate_point) VALUES ('puzzle',1,'7f000001',7)");
 	$db->query("INSERT INTO phpbb_ina_tour (tour_id,tour_name,tour_desc,start_id,start_date,tour_max_players,tour_player_turns,tour_active)
-		VALUES (31,'Frühlingsrunde','Spielprobe',1,11009,8,3,1)");
-	$db->query("INSERT INTO phpbb_ina_tour_data (tour_id,game_name,top_score,top_player) VALUES (31,'puzzle',95.1234,1),(31,'timer',NULL,NULL)");
-	$db->query("INSERT INTO phpbb_ina_tour_invite VALUES (31,2)");
-	$db->query("INSERT INTO phpbb_ina_tour_play (tour_id,user_id,last_played_time,last_played_game,gamedata) VALUES (31,1,11010,'puzzle','a:0:{}')");
+		VALUES (31,'Frühlingsrunde','Spielprobe',1,11009,8,3,1),(32,'Offene Runde','Anmeldung',1,11020,2,2,2),
+		(33,'Archivpokal','Abgeschlossen',98,11022,2,1,3),(34,'Abendrunde','Mehrfachanmeldung',2,11023,3,1,2)");
+	$db->query('UPDATE phpbb_ina_tour SET champion=98,end_date=11080 WHERE tour_id=33');
+	$db->query("INSERT INTO phpbb_ina_tour_data (tour_id,game_name,top_score,top_player) VALUES
+		(31,'puzzle',95.1234,1),(31,'timer',NULL,NULL),(32,'puzzle',0,1),(32,'personal',-2.1250,98),(34,'timer',NULL,NULL)");
+	$db->query("INSERT INTO phpbb_ina_tour_invite VALUES (31,2),(32,2)");
+	$db->query("INSERT INTO phpbb_ina_tour_play (tour_id,user_id,last_played_time,last_played_game,gamedata)
+		VALUES (31,1,11010,'puzzle','a:0:{}'),(32,1,11021,'puzzle','a:0:{}')");
 	$db->query("INSERT INTO phpbb_ina_user_data (user_id,first_places,first_list,user_game_time) VALUES (1,2,'puzzle|timer|',39)");
 	$db->query("INSERT INTO phpbb_ina_log (record_no,user_id,name,value,date) VALUES (91,1,'Fixture','Historisches Ereignis',11011)");
 	$db->query("INSERT INTO phpbb_ina_banned (username,user_id,game,score,date) VALUES ('Ehemaliger',98,'puzzle',3,'11012')");
@@ -52,7 +56,7 @@ function verify_arcade($db, $member)
 	check_fixture(count($currencies) === 2 && $currencies[0]['balance_text'] === '18446744073709551615' &&
 		$currencies[1]['balance_text'] === '9007199254740993.12345678', 'Balances lost precision during conversion');
 	foreach (array('categories'=>4,'games'=>5,'scores'=>8,'all_scores'=>8,'monthly'=>1,'comments'=>1,'ratings'=>1,'favorites'=>4,'saves'=>1,
-		'tours'=>1,'tour_games'=>2,'invites'=>1,'tour_plays'=>1,'players'=>1,'log'=>1,'bans'=>1,'grants'=>2) as $table => $count)
+		'tours'=>4,'tour_games'=>5,'invites'=>2,'tour_plays'=>2,'players'=>1,'log'=>1,'bans'=>1,'grants'=>2) as $table => $count)
 	{
 		$actual = $db->query("SELECT COUNT(*) FROM $p$table")->fetch_row()[0];
 		check_fixture((int) $actual === $count, 'Incomplete Arcade conversion for ' . $table);

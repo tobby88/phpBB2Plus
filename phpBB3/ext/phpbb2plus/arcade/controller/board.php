@@ -22,8 +22,9 @@ class board
 	private $legacy;
 	private $wallet;
 	private $activity;
+	private $tournaments;
 
-	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $names = null, $legacy = null)
+	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $tournaments, $names = null, $legacy = null)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -38,6 +39,7 @@ class board
 		$this->legacy = $legacy;
 		$this->wallet = $wallet;
 		$this->activity = $activity;
+		$this->tournaments = $tournaments;
 	}
 
 	private function header()
@@ -75,6 +77,10 @@ class board
 		}
 		$where = $this->catalog->game_filter($id);
 		$member = (int) $this->user->data['user_id'];
+		if ($this->tournaments->available())
+		{
+			$this->template->assign_var('U_ARC_TOURNAMENTS', $this->helper->route('phpbb2plus_arcade_tournaments'));
+		}
 		if (!empty($this->user->data['is_registered']) && $this->catalog->can_view_awards($member))
 		{
 			$this->template->assign_var('U_ARC_MY_AWARDS',$this->helper->route('phpbb2plus_arcade_awards',array('member'=>$member,'period'=>'current')));

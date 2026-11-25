@@ -7,6 +7,51 @@ from urllib.parse import parse_qs, urljoin, urlsplit
 from http_board import Browser, Page
 
 
+def tournaments(base, founder, member, pending, verify):
+    guest = Browser(base)
+    overview = "app.php/arcade/tournaments"
+    detail = "app.php/arcade/tournament/32"
+    if "/arcade/tournaments" in guest.fetch("app.php/arcade"):
+        raise RuntimeError("The guest arcade advertised a members-only tournament")
+    if "Offene Runde" in guest.fetch("arcade_tournament.php"):
+        raise RuntimeError("A signed-out visitor saw tournament data")
+    listing = member.fetch("arcade_tournament.php")
+    if "Tournaments" not in member.fetch("app.php/arcade") or "Offene Runde" not in listing or "You are invited" in listing:
+        raise RuntimeError("The migrated tournament listing or personal invitation changed")
+    champ = founder.fetch("arcade_tournament.php?mode=champions")
+    if "Archivpokal" not in champ or "Ehemaliger Nutzer" not in champ or "Offene Runde" in champ:
+        raise RuntimeError("The champions directory lost a completed tournament or reassigned its retired winner")
+    page = founder.fetch("arcade_tournament.php?mode=tour&id=32")
+    if ("Du bist eingeladen" not in page or "HistoricMember" not in page or "Persönliche Spielprobe" not in page
+            or ">-2,125<" not in page or ">0<" not in page):
+        raise RuntimeError("Tournament invitation, roster or signed and zero records changed")
+    waiting = pending.fetch(detail)
+    if "Persönliche Spielprobe" in waiting or "Du bist eingeladen" in waiting:
+        raise RuntimeError("Tournament listing revealed a restricted game or another user's invitation")
+    if "arcade-join-tour" in member.fetch(detail) or "arcade-join-tour" in founder.fetch("app.php/arcade/tournament/31"):
+        raise RuntimeError("An existing participant or a closed tournament offered a new seat")
+    action, data = Page(page).forms["arcade-join-tour"]
+    old_action, old_data = Page(waiting).forms["arcade-join-tour"]
+    many_action, many_data = Page(member.fetch(overview)).forms["arcade-join-tours"]
+    time.sleep(max(0, max(int(fields["creation_time"]) for fields in (data, old_data, many_data)) + 1.05 - time.time()))
+    for _ in range(2):
+        joined = founder.fetch(action, data)
+        if "2 von 2 Plätzen belegt" not in joined or "Du nimmst teil" not in joined or "arcade-join-tour" in joined:
+            raise RuntimeError("Joining or retrying registration changed the last place twice")
+    pending.fetch(old_action, old_data, expected_status=409)
+    for expected in ("You have joined the tournament.", "You are participating"):
+        bulk = member.fetch(many_action, dict(many_data, **{"tours[]": ["31", "32", "34", "34"]}))
+        if expected not in bulk or "Abendrunde" not in bulk or "You are participating" not in bulk:
+            raise RuntimeError("Bulk tournament enrolment lost an individual result")
+    verify("disable")
+    if "/arcade/tournaments" in member.fetch("app.php/arcade"):
+        raise RuntimeError("A disabled tournament catalogue was still linked")
+    member.fetch(overview, expected_status=404)
+    member.fetch(detail, expected_status=404)
+    founder.fetch(action, data, expected_status=404)
+    verify("enable")
+
+
 def awards(founder, member, pending):
     root = "app.php/arcade/player/2/awards"
 

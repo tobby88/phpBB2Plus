@@ -1,0 +1,27 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{{ ARC_TITLE|e }}</h2>
+{% if loops.joined %}
+<ul>{% for row in loops.joined %}<li><a href="{{ row.URL }}">{{ row.NAME|e }}</a> · {{ row.STATUS }}</li>{% endfor %}</ul>
+<a href="{{ U_TOURS }}">{{ lang('PLUS_ARC_TOURS') }}</a>
+{% else %}
+{% if not CHAMPIONS_ONLY %}
+{% if U_JOIN %}<form method="post" id="arcade-join-tours" action="{{ U_JOIN }}">{% endif %}
+<div class="forumbg"><div class="inner"><table class="table1">
+<thead><tr><th>{{ lang('PLUS_ARC_TOUR') }}</th><th>{{ lang('PLUS_ARC_TOUR_STATE') }}</th><th>{{ lang('PLUS_ARC_TOUR_PLAYERS') }}</th></tr></thead>
+<tbody>{% for tour in loops.tours %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}">
+<td><a href="{{ tour.URL }}">{{ tour.NAME|e }}</a>{% if tour.DESCRIPTION %}<br>{{ tour.DESCRIPTION|e }}{% endif %}</td>
+<td>{{ tour.STATE }}{% if tour.INVITED %} · {{ lang('PLUS_ARC_TOUR_INVITED') }}{% endif %}</td>
+<td>{{ lang('PLUS_ARC_TOUR_SEATS',tour.PLAYERS,tour.CAPACITY) }}
+{% if tour.CAN_JOIN %}<br><label><input type="checkbox" name="tours[]" value="{{ tour.ID }}"> {{ lang('PLUS_ARC_TOUR_JOIN') }}<span class="sr-only"> · {{ tour.NAME|e }}</span></label>{% elseif tour.STATUS %}<br>{{ tour.STATUS }}{% endif %}</td></tr>
+{% else %}<tr><td colspan="3">{{ lang('PLUS_ARC_TOURS_EMPTY') }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if U_JOIN %}<fieldset class="submit-buttons">{{ S_FORM_TOKEN }}<button type="submit" class="button1">{{ lang('PLUS_ARC_TOUR_JOIN_SELECTED') }}</button></fieldset></form>{% endif %}
+<h3>{{ lang('PLUS_ARC_TOUR_CHAMPIONS') }}</h3>
+{% endif %}
+<div class="forumbg"><div class="inner"><table class="table1">
+<thead><tr><th>{{ lang('PLUS_ARC_TOUR') }}</th><th>{{ lang('PLUS_ARC_TOUR_WINNER') }}</th></tr></thead>
+<tbody>{% for row in loops.champions %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td><a href="{{ row.URL }}">{{ row.NAME|e }}</a></td><td>{{ row.PLAYER }}</td></tr>
+{% else %}<tr><td colspan="2">{{ lang('PLUS_ARC_TOUR_NO_CHAMPIONS') }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if not CHAMPIONS_ONLY and loops.champions %}<p><a href="{{ U_CHAMPIONS }}">{{ lang('PLUS_ARC_TOUR_ALL_CHAMPIONS') }}</a></p>{% endif %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

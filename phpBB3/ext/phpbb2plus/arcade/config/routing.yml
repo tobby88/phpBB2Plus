@@ -1,3 +1,25 @@
+phpbb2plus_arcade_tournaments:
+    path: /arcade/tournaments
+    defaults: { _controller: phpbb2plus.arcade.events_board:listing, champions: false }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_champions:
+    path: /arcade/tournaments/champions
+    defaults: { _controller: phpbb2plus.arcade.events_board:listing, champions: true }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_tournament:
+    path: /arcade/tournament/{id}
+    defaults: { _controller: phpbb2plus.arcade.events_board:detail }
+    requirements: { id: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_join_tournaments:
+    path: /arcade/tournaments/join
+    defaults: { _controller: phpbb2plus.arcade.events_board:join, id: 0 }
+    methods: [POST]
+phpbb2plus_arcade_join_tournament:
+    path: /arcade/tournament/{id}/join
+    defaults: { _controller: phpbb2plus.arcade.events_board:join }
+    requirements: { id: '[1-9][0-9]*' }
+    methods: [POST]
 phpbb2plus_arcade_index:
     path: /arcade
     defaults: { _controller: phpbb2plus.arcade.board:index, category: 0 }
