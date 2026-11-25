@@ -49,7 +49,8 @@ function plus_attachment_parents($id)
 function plus_attachment_parent($source, $parent)
 {
 	global $db;
-	if (!$parent['parent_id']) { return array('poster_id' => ANONYMOUS, 'topic_id' => 0); }
+	// The native orphan handler treats poster_id as the account that owns a draft upload.
+	if (!$parent['parent_id']) { return array('poster_id' => 0, 'topic_id' => 0); }
 	$sql = $parent['in_message']
 		? 'SELECT author_id AS poster_id, 0 AS topic_id FROM ' . PRIVMSGS_TABLE . ' WHERE msg_id = '
 		: 'SELECT poster_id, topic_id FROM ' . POSTS_TABLE . ' WHERE post_id = ';

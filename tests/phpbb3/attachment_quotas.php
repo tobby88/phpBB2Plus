@@ -20,6 +20,24 @@ $policy = $phpbb_container->get('phpbb2plus.community.attachment_quotas');
 $p = $table_prefix . 'plus_attach_';
 if ($argv[2] === 'before')
 {
+	$orphan_owner = 'SELECT poster_id FROM ' . ATTACHMENTS_TABLE . ' WHERE attach_id=80 AND is_orphan=1';
+	if ((string) quota_fixture_scalar($orphan_owner, 'poster_id') !== '0') { throw new RuntimeException('An unassociated source file acquired a guest owner'); }
+	$db->sql_transaction('begin');
+	try
+	{
+		$upgrade = new \phpbb2plus\community\migrations\v129_unowned_attachments($config, $db, $phpbb_container->get('dbal.tools'), $phpbb_root_path, $phpEx, $table_prefix);
+		$db->sql_query('UPDATE ' . ATTACHMENTS_TABLE . ' SET poster_id=' . ANONYMOUS . ' WHERE attach_id=80');
+		$upgrade->clear_guest_owner();
+		$upgrade->clear_guest_owner();
+		if ((string) quota_fixture_scalar($orphan_owner, 'poster_id') !== '0') { throw new RuntimeException('The earlier converted orphan still has a guest owner'); }
+		$db->sql_query('UPDATE ' . ATTACHMENTS_TABLE . ' SET poster_id=' . $id . ' WHERE attach_id=80');
+		$upgrade->clear_guest_owner();
+		if ((int) quota_fixture_scalar($orphan_owner, 'poster_id') !== $id) { throw new RuntimeException('The upgrade removed an assigned owner'); }
+		$db->sql_query('UPDATE ' . ATTACHMENTS_TABLE . " SET poster_id=" . ANONYMOUS . ",physical_filename='native_fixture_file' WHERE attach_id=80");
+		$upgrade->clear_guest_owner();
+		if ((int) quota_fixture_scalar($orphan_owner, 'poster_id') !== ANONYMOUS) { throw new RuntimeException('The upgrade changed an unrelated native file'); }
+	}
+	finally { $db->sql_transaction('rollback'); }
 	if ((string) $config['plus_attach_base_pm'] !== '257' || (string) $config['max_filesize_pm'] !== '1048576' ||
 		(string) $config['max_filesize'] !== '1048576') { throw new RuntimeException('The converter confused mailbox capacity and maximum individual file size'); }
 	if (!$policy->enabled() || $policy->allowance($id,false) !== '50' || $policy->allowance($id,true) !== '300' ||
