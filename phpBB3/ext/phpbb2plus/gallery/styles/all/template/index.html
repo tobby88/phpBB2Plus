@@ -6,22 +6,34 @@
 {% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>{% endif %}
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
 {% if loops.album_categories %}
-<div class="forabg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_ALBUM_CATEGORIES}</div></dt></dl></li></ul>
-<ul class="topiclist forums">
+<section class="plus-album-block" aria-labelledby="album-categories">
+<h3 class="plus-album-heading" id="album-categories">{L_PLUS_ALBUM_CATEGORIES}</h3>
+<ul class="plus-album-categories">
 {% for cat in loops.album_categories %}
-<li class="row"><dl class="row-item forum_read"><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.U_CATEGORY }}">{{ cat.TITLE|e }}</a>
+<li><a class="forumtitle" href="{{ cat.U_CATEGORY }}">{{ cat.TITLE|e }}</a>
 {% if cat.OWNER %}<span>({{ cat.OWNER|e }})</span>{% endif %}
-{% if cat.DESCRIPTION %}<br><span class="plus-album-copy">{{ cat.DESCRIPTION|e }}</span>{% endif %}</div></dt></dl></li>
+{% if cat.DESCRIPTION %}<p class="plus-album-copy">{{ cat.DESCRIPTION|e }}</p>{% endif %}</li>
 {% endfor %}
-</ul></div></div>
+</ul></section>
 {% endif %}
-{% if loops.album_pictures %}
-<div class="panel"><ul class="plus-album-grid">
-{% for pic in loops.album_pictures %}
-<li><a href="{{ pic.U_PICTURE }}"><img loading="lazy" src="{{ pic.U_THUMB }}" alt=""><strong>{{ pic.TITLE|e }}</strong></a><time>{{ pic.TIME }}</time></li>
-{% endfor %}</ul></div>
-{% elseif not loops.album_categories %}
-<p class="panel">{L_PLUS_ALBUM_EMPTY}</p>
+{% for grid in loops.album_grids %}
+<section class="plus-album-block" aria-labelledby="album-grid-{{ loop.index }}">
+<h3 class="plus-album-heading" id="album-grid-{{ loop.index }}">{{ grid.HEADING }}</h3>
+{% if grid.pictures %}
+<ul class="plus-album-grid" style="--album-columns:{{ grid.COLUMNS }}; --album-mobile-columns:{{ grid.MOBILE_COLUMNS }}">
+{% for pic in grid.pictures %}
+<li><a href="{{ pic.U_PICTURE }}">{% if pic.U_THUMB %}<img loading="lazy" src="{{ pic.U_THUMB }}" alt="">{% else %}<span>{L_PLUS_ALBUM_MISSING_IMAGE}</span>{% endif %}<strong>{{ pic.TITLE|e }}</strong></a>
+<dl class="plus-album-caption">
+<dt>{L_AUTHOR}</dt><dd>{{ pic.AUTHOR }}</dd>
+<dt>{L_PLUS_ALBUM_DATE}</dt><dd><time datetime="{{ pic.DATETIME }}">{{ pic.TIME }}</time></dd>
+<dt>{L_VIEWS}</dt><dd>{{ pic.VIEWS }}</dd>
+{% if pic.S_RATE %}<dt>{L_PLUS_ALBUM_PORTAL_RATING}</dt><dd>{{ pic.RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</dd>{% endif %}
+</dl></li>
+{% endfor %}</ul>
+{% else %}<p class="plus-album-empty">{L_PLUS_ALBUM_EMPTY}</p>{% endif %}</section>
+{% endfor %}
+{% if not loops.album_grids and not loops.album_categories %}
+<p class="panel plus-album-empty">{L_PLUS_ALBUM_EMPTY}</p>
 {% endif %}
 {% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
 <!-- INCLUDE overall_footer.html -->

@@ -31,8 +31,14 @@ def browse(base, moderator, member, applicant):
     from http_board import Browser
     guest = Browser(base)
     album = "app.php/album"
-    if "Test category" not in guest.fetch(album) or "/album" not in guest.fetch("app.php/portal"):
+    home = guest.fetch(album)
+    if "Test category" not in home or "/album" not in guest.fetch("app.php/portal"):
         raise RuntimeError("Album root or portal navigation missing")
+    club_home, staff_home = member.fetch(album), moderator.fetch(album)
+    if ("Öffentliche Fotoprobe" not in home or "Clubfotoprobe" in home or "Verschachtelte Fotoprobe" in home or "Freigabeprobe" in home
+            or "Clubfotoprobe" not in club_home or "Freigabeprobe" in club_home or "Freigabeprobe" not in staff_home
+            or "Persönliche Fotoprobe" in staff_home):
+        raise RuntimeError("The shared album showcases changed approval, personal or group visibility")
     public = guest.fetch(album + "/category/1")
     private = member.fetch(album + "/category/1")
     if ("Öffentliche Fotoprobe" not in public or "Clubfotografie" in public or "Freigabeprobe" in public

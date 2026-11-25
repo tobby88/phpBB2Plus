@@ -1,20 +1,27 @@
 <!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
 <!-- INCLUDE overall_header.html -->
-<h2>{{ ALBUM_TITLE|e }}</h2>
-<div class="panel"><div class="inner">
+<section class="plus-album-block plus-album-detail" aria-labelledby="album-picture-title">
+<h2 class="plus-album-heading" id="album-picture-title">{{ ALBUM_TITLE|e }}</h2>
+{% if S_ALBUM_MEDIA %}
 <figure class="plus-album-photo"><a href="{U_FULL}"><img src="{U_PREVIEW}" alt="{{ ALBUM_TITLE|e }}"></a>
-<figcaption><a href="{U_FULL}">{L_PLUS_ALBUM_ORIGINAL}</a> &middot; {ALBUM_AUTHOR} &middot; {ALBUM_DATE}</figcaption></figure>
-{% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
-{% if ALBUM_RATING %}<p>{{ ALBUM_RATING }}</p>{% endif %}
+<figcaption><a href="{U_FULL}">{L_PLUS_ALBUM_ORIGINAL}</a></figcaption></figure>
+{% else %}<p class="plus-album-empty">{L_PLUS_ALBUM_MISSING_IMAGE}</p>{% endif %}
+<dl class="plus-album-metadata">
+<dt>{L_AUTHOR}</dt><dd>{ALBUM_AUTHOR}</dd>
+<dt>{L_PLUS_ALBUM_DATE}</dt><dd><time datetime="{ALBUM_DATETIME}">{ALBUM_DATE}</time></dd>
+<dt>{L_VIEWS}</dt><dd>{ALBUM_VIEWS}</dd>
+{% if S_ALBUM_RATE_DISPLAY %}<dt>{L_PLUS_ALBUM_PORTAL_RATING}</dt><dd>{{ ALBUM_RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</dd>{% endif %}
+{% if ALBUM_DESCRIPTION %}<dt>{L_PLUS_ALBUM_DESCRIPTION}</dt><dd class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</dd>{% endif %}
+</dl></section>
 {% if loops.album_actions %}<div class="action-bar">{% for action in loops.album_actions %}<a class="button2" href="{{ action.URL }}">{{ action.LABEL }}</a> {% endfor %}</div>{% endif %}
-</div></div>
 {% if S_ALBUM_COMMENTS %}
-<h3>{L_PLUS_ALBUM_COMMENTS}</h3>
+<section class="plus-album-block" aria-labelledby="album-comments"><h3 class="plus-album-heading" id="album-comments">{L_PLUS_ALBUM_COMMENTS}</h3>
 {% for comment in loops.album_comments %}
-<article class="post bg1" id="comment-{{ comment.ID }}"><div class="inner"><p class="author">{{ comment.AUTHOR }} &middot; {{ comment.TIME }}</p>
+<article class="plus-album-comment" id="comment-{{ comment.ID }}"><header>{{ comment.AUTHOR }}</header>
+<div><time datetime="{{ comment.DATETIME }}">{{ comment.TIME }}</time>
 <div class="content plus-album-copy">{{ comment.BODY|e }}</div>{% if comment.EDITED %}<div class="notice">{{ comment.EDITED }}</div>{% endif %}
 {% if comment.U_EDIT %}<a href="{{ comment.U_EDIT }}">{L_EDIT}</a>{% endif %} {% if comment.U_DELETE %}<a href="{{ comment.U_DELETE }}">{L_DELETE}</a>{% endif %}</div></article>
-{% else %}<p>{L_PLUS_ALBUM_NO_COMMENTS}</p>{% endfor %}
+{% else %}<p class="plus-album-empty">{L_PLUS_ALBUM_NO_COMMENTS}</p>{% endfor %}</section>
 {% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
 {% endif %}
 {% if U_DISCUSS %}

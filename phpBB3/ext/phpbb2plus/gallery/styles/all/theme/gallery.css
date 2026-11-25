@@ -1,8 +1,65 @@
-.plus-album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 1.25em; list-style: none; padding: 1em; }
-.plus-album-grid li, .plus-album-photo { text-align: center; }
-.plus-album-grid img, .plus-album-photo img { display: block; margin: 0 auto .65em; max-width: 100%; height: auto; }
-.plus-album-grid time { display: block; margin-top: .3em; }
-.plus-album-photo { margin: .8em 0; }
+.plus-album-block {
+	border: 1px solid #006699; margin: .8em 0 1.2em; padding: 1px; box-shadow: 0 2px 2px #b5bdc6;
+	background: #fff; color: #243648; font-size: max(1.2em, .8125rem); line-height: 1.45; overflow-wrap: anywhere;
+}
+.plus-album-block .plus-album-heading {
+	margin: 0; padding: .35em .65em; border: 0; text-align: center; font-size: 1.1em;
+	line-height: 1.35; text-transform: none; color: #fff; background: linear-gradient(#004578, #00588f);
+}
+.plus-album-block a, .plus-album-block a:visited { color: #174467; }
+.plus-album-block a:hover, .plus-album-block a:focus-visible { color: #092d49; text-decoration: underline; }
+.plus-album-block a:focus-visible { outline: 2px solid #174467; outline-offset: -2px; }
+/* An arbitrary group colour remains visible alongside a consistently legible name. */
+.plus-album-block .username-coloured { -webkit-text-fill-color: #174467; }
+.plus-album-block .username-coloured::before {
+	content: ""; display: inline-block; width: .5em; height: .5em; margin-inline-end: .3em;
+	background: currentColor; border: 1px solid #657381; vertical-align: .04em;
+}
+@media (forced-colors: active) {
+	.plus-album-block .username-coloured { -webkit-text-fill-color: currentColor; }
+}
+.plus-album-categories, .plus-album-grid { margin: 1px 0 0; padding: 0; list-style: none; }
+.plus-album-categories li { padding: .65em .85em; background: #eaedf4; }
+.plus-album-categories li + li { border-top: 1px solid #fff; }
+.plus-album-categories li:nth-child(even), .plus-album-metadata { background: #d9e2ec; }
+.plus-album-categories p { margin: .2em 0 0; font-size: 1em; }
+.plus-album-grid {
+	display: grid; gap: 1px;
+	/* Respect the album setting while allowing narrower boards and long captions to reflow. */
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, max(10em, calc((100% + 1px) / var(--album-columns) - 1px))), 1fr));
+}
+.plus-album-grid li { min-width: 0; display: flex; flex-direction: column; background: #d9e2ec; }
+.plus-album-grid li > a {
+	display: grid; grid-template-rows: 1fr auto; flex: 1 0 auto; align-items: center;
+	justify-items: center; gap: .5em; padding: .6em; background: #eaedf4; text-align: center;
+}
+.plus-album-grid img, .plus-album-photo img { display: block; max-width: 100%; height: auto; }
+.plus-album-caption, .plus-album-metadata { display: grid; align-content: start; gap: .15em .6em; margin: 0; padding: .55em .75em; }
+.plus-album-caption { grid-template-columns: auto minmax(0, 1fr); }
+.plus-album-caption dt, .plus-album-metadata dt { font-weight: bold; }
+.plus-album-caption dd, .plus-album-metadata dd { margin: 0; }
+.plus-album-photo { margin: 1px 0; padding: 1em; text-align: center; background: #eaedf4; }
+.plus-album-photo > a { display: inline-block; max-width: 100%; vertical-align: middle; }
+.plus-album-photo figcaption { margin-top: .6em; }
+.plus-album-metadata { grid-template-columns: minmax(6em, 24%) minmax(0, 1fr); padding: .85em 4%; }
+.plus-album-metadata dt { text-align: end; }
+.plus-album-comment { display: grid; grid-template-columns: minmax(8em, 15%) minmax(0, 1fr); gap: 1px; margin-top: 1px; }
+.plus-album-comment > * { background: #eaedf4; padding: .5em .75em; }
+.plus-album-comment > header { font-weight: bold; }
+.plus-album-comment .content { min-height: 0; margin-top: .4em; font-size: 1em; }
+.plus-album-empty { margin: 1px 0 0; padding: 1em; background: #eaedf4; text-align: center; }
 .plus-album-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+	.plus-album-grid { grid-template-columns: repeat(var(--album-mobile-columns), minmax(0, 1fr)); }
+	.plus-album-caption { grid-template-columns: 1fr; gap: 0; }
+	.plus-album-caption dd + dt { margin-top: .3em; }
+	.plus-album-metadata { padding: .65em; }
+	.plus-album-comment { grid-template-columns: 1fr; }
+}
+@media (max-width: 359px) {
+	.plus-album-grid { grid-template-columns: 1fr; }
+	.plus-album-caption { grid-template-columns: auto minmax(0, 1fr); gap: .15em .6em; }
+	.plus-album-caption dd + dt { margin: 0; }
+}
 #album-upload-status[hidden], #album-upload-status [hidden] { display: none; }
 #album-upload-status progress { max-width: 100%; vertical-align: middle; }

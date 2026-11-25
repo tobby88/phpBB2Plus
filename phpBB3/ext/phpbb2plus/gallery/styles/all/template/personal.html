@@ -8,7 +8,7 @@
 {% if S_PERSONAL_EDIT %}<fieldset class="fields2">
 {% if S_ALBUM_TEXT %}
 <dl><dt><label for="personal-title">{L_SUBJECT}</label></dt><dd><input id="personal-title" name="title" class="inputbox" maxlength="255" value="{{ ALBUM_TITLE|e('html_attr') }}" required></dd></dl>
-<dl><dt><label for="personal-desc">{L_DESCRIPTION}</label></dt><dd><textarea id="personal-desc" name="description" class="inputbox" rows="3" maxlength="65535">{{ ALBUM_DESCRIPTION|e }}</textarea></dd></dl>
+<dl><dt><label for="personal-desc">{L_PLUS_ALBUM_DESCRIPTION}</label></dt><dd><textarea id="personal-desc" name="description" class="inputbox" rows="3" maxlength="65535">{{ ALBUM_DESCRIPTION|e }}</textarea></dd></dl>
 {% endif %}
 {% if S_ALBUM_PARENT %}<dl><dt><label for="personal-parent">{L_PLUS_ALBUM_PARENT}</label></dt><dd><select id="personal-parent" name="parent" required>
 {% for option in loops.personal_choices %}<option value="{{ option.ID }}"{% if option.SELECTED %} selected{% endif %}>{{ option.INDENT|e }}{{ option.TITLE|e }}</option>{% endfor %}</select></dd></dl>{% endif %}

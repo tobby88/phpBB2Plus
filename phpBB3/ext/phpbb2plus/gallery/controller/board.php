@@ -59,6 +59,60 @@ class board
 		return $start;
 	}
 
+	private function picture_grid($heading, $columns, $where, $order, $limit, $start = 0)
+	{
+		$this->template->assign_block_vars('album_grids', array('HEADING' => $this->language->lang($heading),
+			'COLUMNS' => $columns, 'MOBILE_COLUMNS' => min(2, $columns)));
+		if ($where === '') { return; }
+		$rate = (int) $this->access->setting('rate', 1) === 1;
+		$rating = $rate || $heading === 'PLUS_ALBUM_HIGHEST' ? ',(SELECT AVG(r.points) FROM ' . $this->prefix .
+			'ratings r WHERE r.pic_id=p.pic_id AND r.points>0) AS rating' : '';
+		$result = $this->db->sql_query_limit('SELECT p.pic_id,p.title,p.created_at,p.views,p.author_id,p.author_name,p.author_removed,p.storage_name,
+			u.username,u.user_colour' . $rating . ' FROM ' . $this->prefix . 'pics p LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=p.author_id
+			WHERE ' . $where . ' ORDER BY ' . $order, $limit, $start);
+		while ($pic = $this->db->sql_fetchrow($result))
+		{
+			$params = array('picture' => (int) $pic['pic_id']);
+			$this->template->assign_block_vars('album_grids.pictures', array('TITLE' => $pic['title'],
+				'TIME' => $this->user->format_date($pic['created_at']), 'DATETIME' => gmdate('c', $pic['created_at']),
+				'AUTHOR' => $this->byline->display($pic), 'VIEWS' => (int) $pic['views'], 'S_RATE' => $rate,
+				'RATING' => $rate && $pic['rating'] !== null ? number_format((float) $pic['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), '') : '',
+				'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params),
+				'U_THUMB' => $pic['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small')) : ''));
+		}
+		$this->db->sql_freeresult($result);
+	}
+
+	private function home_grids()
+	{
+		$enabled = array();
+		foreach (array('disp_late' => 'PLUS_ALBUM_RECENT', 'disp_high' => 'PLUS_ALBUM_HIGHEST', 'disp_rand' => 'PLUS_ALBUM_RANDOM') as $setting => $heading)
+		{
+			if ((int) $this->access->setting($setting, 1, 'sp') === 1) { $enabled[$setting] = $heading; }
+		}
+		if (!$enabled) { return; }
+		$columns = max(1, min(20, (int) $this->access->setting('img_cols', 4, 'sp')));
+		$rows = max(1, min(100, (int) $this->access->setting('img_rows', 2, 'sp')));
+		$categories = $this->access->portal_categories(false, array());
+		$where = '';
+		if ($categories)
+		{
+			$pending = array();
+			foreach ($categories as $id)
+			{
+				if ($this->access->pending_visible($this->access->category_row($id))) { $pending[] = $id; }
+			}
+			$where = $this->db->sql_in_set('p.cat_id', $categories) . " AND p.storage_name<>'' AND (p.approved=1" .
+				($pending ? ' OR ' . $this->db->sql_in_set('p.cat_id', $pending) : '') . ')';
+		}
+		$random = in_array($this->db->get_sql_layer(), array('postgres', 'sqlite3'), true) ? 'RANDOM()' : 'RAND()';
+		$sort = array('disp_late' => 'p.created_at DESC,p.pic_id DESC', 'disp_high' => 'rating DESC,' . $random, 'disp_rand' => $random);
+		foreach ($enabled as $setting => $heading)
+		{
+			$this->picture_grid($heading, $columns, $where, $sort[$setting], min(100, $rows * $columns));
+		}
+	}
+
 	public function index($category = 0)
 	{
 		$id = (int) $category;
@@ -80,27 +134,20 @@ class board
 		}
 		if ($id)
 		{
-			$where = 'cat_id=' . $id . ($this->access->pending_visible($cat) ? '' : ' AND approved=1');
-			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'pics WHERE ' . $where);
+			$where = 'p.cat_id=' . $id . ($this->access->pending_visible($cat) ? '' : ' AND p.approved=1');
+			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'pics p WHERE ' . $where);
 			$total = (int) $this->db->sql_fetchfield('count');
 			$this->db->sql_freeresult($result);
-			$limit = max(1, min(60, (int) $this->access->setting('rows_per_page', 3) * (int) $this->access->setting('cols_per_page', 4)));
+			$columns = max(1, min(20, (int) $this->access->setting('cols_per_page', 4)));
+			$limit = max(1, min(60, (int) $this->access->setting('rows_per_page', 3) * $columns));
 			$url = $this->helper->route('phpbb2plus_gallery_category', array('category' => $id));
 			$start = $this->page($url, $total, $limit);
 			$sort = array('pic_time' => 'created_at','pic_title' => 'title','pic_view_count' => 'views','pic_id' => 'pic_id');
 			$order = $sort[$this->access->setting('sort_method', 'pic_time')] ?? 'created_at';
 			$direction = strtoupper($this->access->setting('sort_order', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
-			$result = $this->db->sql_query_limit('SELECT pic_id,title,created_at FROM ' . $this->prefix . "pics
-				WHERE $where ORDER BY $order $direction,pic_id $direction", $limit, $start);
-			while ($pic = $this->db->sql_fetchrow($result))
-			{
-				$params = array('picture' => $pic['pic_id']);
-				$this->template->assign_block_vars('album_pictures', array('TITLE' => $pic['title'], 'TIME' => $this->user->format_date($pic['created_at']),
-					'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params),
-					'U_THUMB' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small'))));
-			}
-			$this->db->sql_freeresult($result);
+			if ($total) { $this->picture_grid('PLUS_ALBUM_PICTURES', $columns, $where, "p.$order $direction,p.pic_id $direction", $limit, $start); }
 		}
+		else { $this->home_grids(); }
 		$title = $cat ? $cat['title'] : $this->language->lang('PLUS_ALBUM');
 		$owner = $cat ? (int) $cat['owner_id'] : (int) $this->user->data['user_id'];
 		if ($owner > ANONYMOUS && $this->personal->available($owner))
@@ -130,7 +177,7 @@ class board
 			$this->db->sql_freeresult($result);
 			if ($rating['votes']) { $this->template->assign_var('ALBUM_RATING', $this->language->lang('PLUS_ALBUM_RATING',
 				number_format((float) $rating['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), ''),
-				(int) $this->access->setting('rate_scale', 10), (int) $rating['votes'])); }
+				(int) $this->access->setting('rate_scale', 10), $this->language->lang('PLUS_ALBUM_VOTES', (int) $rating['votes']))); }
 		}
 		if ($comments)
 		{
@@ -163,7 +210,8 @@ class board
 					}
 				}
 				$this->template->assign_block_vars('album_comments', $links + array('ID' => $comment['comment_id'], 'AUTHOR' => $this->byline->display($comment),
-					'EDITED' => $edit, 'TIME' => $this->user->format_date($comment['created_at']), 'BODY' => censor_text($comment['body'])));
+					'EDITED' => $edit, 'TIME' => $this->user->format_date($comment['created_at']),
+					'DATETIME' => gmdate('c', $comment['created_at']), 'BODY' => censor_text($comment['body'])));
 			}
 			$this->db->sql_freeresult($result);
 		}
@@ -188,10 +236,12 @@ class board
 		if ($this->request->server('REQUEST_METHOD') === 'GET' && !$this->request->variable('start', 0) && empty($this->user->data['is_bot']))
 		{
 			$this->db->sql_query('UPDATE ' . $this->prefix . 'pics SET views=views+1 WHERE pic_id=' . $id);
+			$pic['views']++;
 		}
 		$this->template->assign_vars(array('ALBUM_TITLE' => $pic['title'], 'ALBUM_DESCRIPTION' => $pic['description'], 'ALBUM_AUTHOR' => $this->byline->display($pic),
-			'ALBUM_DATE' => $this->user->format_date($pic['created_at']), 'S_ALBUM_COMMENTS' => $comments,
-			'U_FULL' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')),
+			'ALBUM_DATE' => $this->user->format_date($pic['created_at']), 'ALBUM_DATETIME' => gmdate('c', $pic['created_at']),
+			'ALBUM_VIEWS' => (int) $pic['views'], 'S_ALBUM_RATE_DISPLAY' => $rate, 'S_ALBUM_COMMENTS' => $comments,
+			'S_ALBUM_MEDIA' => $pic['storage_name'] !== '', 'U_FULL' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')),
 			'U_PREVIEW' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => $this->request->variable('full', 0) ? 'full' : 'medium'))));
 		return $this->helper->render('@phpbb2plus_gallery/picture.html', utf8_htmlspecialchars($pic['title']));
 	}
