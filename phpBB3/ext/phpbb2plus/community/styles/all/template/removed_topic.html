@@ -1,0 +1,13 @@
+{% include 'overall_header.html' %}
+<h2 class="topic-title"><i class="icon fa-lock" aria-hidden="true"></i> {{ REMOVED_TOPIC }}</h2>
+<div class="action-bar bar-top">
+	<a href="{{ U_REMOVED_FORUM }}">{{ FORUM_NAME }}</a>
+	{% if U_REMOVED_PRINT %} &bull; <a href="{{ U_REMOVED_PRINT }}">{{ lang('PRINT_TOPIC') }}</a>
+	&bull; <a href="{{ U_REMOVED_EXPORT }}">{{ lang('PLUS_TOPIC_EXPORT') }}</a>{% endif %}
+	{% if loops.pagination %}<div class="pagination">{% include 'pagination.html' %}</div>{% endif %}
+</div>
+{% for row in loops.marker %}
+<div class="post bg2 plus-removed-post" id="p{{ row.ID }}"><p class="notice">{{ REMOVED_POST }}</p></div>
+{% endfor %}
+{% if loops.pagination %}<div class="action-bar bar-bottom"><div class="pagination">{% include 'pagination.html' %}</div></div>{% endif %}
+{% include 'overall_footer.html' %}

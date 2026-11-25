@@ -81,6 +81,8 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 	seed_native_content($db);
+	require_once __DIR__ . '/removed_topic_source.php';
+	seed_removed_topics($db);
 	seed_news($db);
 	$db->query("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email,user_posts)
 		VALUES (87,'DepartingFixture','" . $db->real_escape_string($modern) . "','german','departing@example.invalid',1)");
@@ -280,8 +282,10 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	verify_banners($db, (int) $users[0]['user_id']);
 	$byline = $db->query('SELECT * FROM p3_posts WHERE post_id=31')->fetch_assoc();
 	check_fixture($byline && (int) $byline['post_visibility'] === 2 && (int) $byline['post_delete_time'] === 10200
-		&& (int) $byline['post_delete_user'] === 2 && (int) $byline['post_edit_user'] === (int) $users[0]['user_id']
-		&& $byline['post_text'] === '<t>0</t>' && $byline['post_username'] === 'Ehemaliger Nutzer', 'Lost deletion, editor, byline or zero post');
+		&& (int) $byline['post_delete_user'] === 2 && (int) $byline['post_edit_user'] === 0 && (int) $byline['plus_legacy_erased'] === 1
+		&& $byline['post_text'] === '' && $byline['post_username'] === '', 'An explicitly erased post kept its text, editor or author, or lost its deletion record');
+	$zero = $db->query('SELECT post_visibility,post_text FROM p3_posts WHERE post_id=805300')->fetch_assoc();
+	check_fixture((int) $zero['post_visibility'] === 1 && $zero['post_text'] === '<t>0</t>', 'A published zero-only post was erased');
 	$bookmarks = $db->query('SELECT topic_id,user_id FROM p3_bookmarks')->fetch_all(MYSQLI_ASSOC);
 	check_fixture(count($bookmarks) === 1 && (int) $bookmarks[0]['topic_id'] === 1
 		&& (int) $bookmarks[0]['user_id'] === (int) $users[0]['user_id'], 'Bookmarks not remapped');

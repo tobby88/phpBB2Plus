@@ -72,6 +72,13 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_portal_settings();';
 	$convertor['execute_last'][] = 'plus_statistics_settings();';
 	$convertor['execute_last'][] = 'plus_finish_colours();';
+	// Native dynamic totals precede its per-topic resynchronization. Recount only
+	// after that pass has settled visibility and removed empty redirect records.
+	if (!empty($config['plus_removed_recount_due']) && $request->variable('final_jump', 0) === 1)
+	{
+		\phpbb2plus\community\service\removed_topics::refresh_counts($db, $config);
+		$config->delete('plus_removed_recount_due');
+	}
 	// The native converter resets default-group colours after all execute_last callbacks.
 	// Apply the imported priorities when its next, resumable forum-sync stage opens.
 	if (!empty($config['plus_convert_colours_due']) && $request->variable('jump',0) === 2)
@@ -247,6 +254,7 @@ if (!$get_info)
 		if ($section['target'] === POSTS_TABLE)
 		{
 			$section[] = array('plus_public_post', 1, '');
+			$section[] = array('plus_legacy_erased', 'posts.post_deleted', 'plus_erased_post');
 			$section[] = array('post_delete_time', 'posts.post_deleted_time', 'intval');
 			$section[] = array('post_delete_user', 'posts.post_deleted_by', 'plus_convert_optional_user');
 		}
@@ -280,10 +288,6 @@ if (!$get_info)
 		);
 		$convertor['schema'] = array_merge($convertor['schema'],plus_quota_schema($table_prefix,$convert->truncate_statement));
 	}
-	$convertor['schema'][] = array(
-		'target' => SEARCH_WORDMATCH_TABLE, 'primary' => 'posts.post_id',
-		array('', 'posts.post_id', 'plus_index_native_post'),
-	);
 	$shouts_table = $table_prefix . 'plus_shouts';
 	$convertor['schema'][] = array(
 		'target' => $table_prefix . 'plus_former_names',
@@ -327,6 +331,11 @@ if (!$get_info)
 		array('author_key', array('posts.post_username', 'posts.poster_id', 'posts.post_author_removed'), 'plus_search_author_key'),
 		array('editor_name', 'posts.post_edit_username', 'plus_convert_byline'),
 		'where' => "posts.post_author_removed = 1 OR posts.post_edit_username <> '' OR (posts.poster_id <= 0 AND posts.post_username <> '')",
+	);
+	// Bylines are available and the search backend has not indexed these posts.
+	$convertor['schema'][] = array(
+		'target' => SEARCH_WORDMATCH_TABLE, 'primary' => 'posts.post_id', 'execute_first' => 'plus_removed_topics();',
+		array('', 'posts.post_id', 'plus_index_native_post'),
 	);
 	$convertor['schema'][] = array(
 		'target' => BOOKMARKS_TABLE,

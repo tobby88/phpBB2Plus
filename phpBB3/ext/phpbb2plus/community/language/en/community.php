@@ -34,6 +34,7 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_FORMER_MEMBER' => 'Former member',
 	'PLUS_PRINT_IGNORED' => 'Post by an ignored member.',
 	'PLUS_TOPIC_EXPORT' => 'Save topic as a text file',
+	'PLUS_REMOVED_TOPIC' => 'Deleted topic',
 	'PLUS_TOPIC_EXPORT_TOO_LARGE' => 'This topic exceeds the 64 MiB text export limit.',
 	'PLUS_TOPIC_EXPORT_UNAVAILABLE' => 'The topic export could not be created. Please try again.',
 	'PLUS_SHOUTBOX' => 'Shoutbox',

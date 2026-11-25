@@ -7,6 +7,7 @@ from urllib.parse import urljoin, urlsplit
 from http_board import Browser, Page
 from legacy_links import link
 import topic_exports
+import removed_topics
 
 
 def posts(page):
@@ -16,6 +17,7 @@ def posts(page):
 
 
 def browse(base, owner, member, fixture):
+    removed_topics.browse(base, owner, member, fixture)
     guest = Browser(base)
     path = "app.php/topic/981010/print"
     fixture("setup")
@@ -96,6 +98,7 @@ def browse(base, owner, member, fixture):
         finally:
             fixture("after-print-import")
         fixture("password")
+        removed_topics.password(base)
         topic_exports.password(base, "app.php/topic/981010/export.txt")
         locked = guest.fetch(path)
         action, fields = Page(locked).forms["login_forum"]

@@ -17,7 +17,8 @@ def source_media(legacy):
 def verify_storage(web, encoded):
     rows = json.loads(encoded)
     uploaded = web / "files"
-    expected = {(50, 0, 32), (50, 0, 40), (63, 1, 111), (63, 1, 112), (80, 0, 0)}
+    expected = {(48, 0, 31), (48, 0, 805200), (48, 0, 805300), (50, 0, 32), (50, 0, 40),
+                (63, 1, 111), (63, 1, 112), (80, 0, 0)}
     associations = {(int(r["source_id"]), int(r["in_message"]), int(r["parent_id"])) for r in rows}
     if len(rows) != len(expected) or associations != expected:
         raise RuntimeError("Incorrect attachment ownership or shared association")
@@ -31,7 +32,7 @@ def verify_storage(web, encoded):
             raise RuntimeError("Attachment bytes or size changed during transfer")
         if source == 50 and (uploaded / ("thumb_" + file.name)).read_bytes() != GIF:
             raise RuntimeError("A shared attachment lost its thumbnail")
-        if bool(int(row["is_orphan"])) != (source == 80):
+        if bool(int(row["is_orphan"])) != (source == 80 or (source == 48 and int(row["parent_id"]) in (31, 805200))):
             raise RuntimeError("Unassociated source attachments must stay private")
     if sum(int(row["download_count"]) for row in rows) != 17:
         raise RuntimeError("The shared download counter was multiplied")

@@ -24,6 +24,19 @@ $member = print_fixture_row('SELECT * FROM ' . USERS_TABLE . " WHERE username='H
 $rights = new auth_admin();
 switch ($argv[1])
 {
+	case 'markers-import':
+	case 'markers-upgrade':
+		require __DIR__ . '/removed_topics.php';
+		break;
+	case 'markers-deny':
+	case 'markers-allow':
+		$rights->acl_set('user', 15, (int) $member['user_id'], array('f_print' => $argv[1] === 'markers-deny' ? ACL_NEVER : ACL_NO));
+		break;
+	case 'markers-cleanup':
+		$db->sql_query('DELETE FROM ' . POLL_OPTIONS_TABLE . ' WHERE topic_id=805105');
+		$db->sql_query('DELETE FROM ' . POSTS_TABLE . ' WHERE forum_id=15 AND topic_id IN (805102,805103,805105) AND post_id IN (805262,805263,805265)');
+		$db->sql_query('DELETE FROM ' . TOPICS_TABLE . ' WHERE forum_id=15 AND topic_id IN (805102,805103,805105)');
+		break;
 	case 'setup':
 		$guest = print_fixture_row('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=' . ANONYMOUS);
 		$auth->acl($guest);

@@ -33,14 +33,14 @@ class topic_reader
 		$this->ext = $ext;
 	}
 
-	public function open($topic_id, $post_id, $route, $params, $interactive = true)
+	public function open($topic_id, $post_id, $route, $params, $interactive = true, $require_print = true)
 	{
 		$this->language->add_lang('viewtopic');
 		$this->language->add_lang('community', 'phpbb2plus/community');
 		$join = $post_id ? ' JOIN ' . POSTS_TABLE . ' p ON p.topic_id=t.topic_id AND p.forum_id=t.forum_id' : '';
-		$columns = $post_id ? ',p.post_visibility,p.poster_id,p.plus_public_post' : '';
+		$columns = $post_id ? ',p.post_id,p.post_time,p.post_visibility,p.poster_id,p.plus_public_post' : '';
 		$target = $post_id ? 'p.post_id=' . (int) $post_id : 't.topic_id=' . (int) $topic_id;
-		$result = $this->db->sql_query('SELECT t.topic_id,t.topic_title,t.topic_poster,t.topic_visibility,f.forum_id,f.forum_name,f.forum_password' . $columns .
+		$result = $this->db->sql_query('SELECT t.topic_id,t.topic_title,t.topic_poster,t.topic_visibility,t.topic_status,t.plus_legacy_removed,f.forum_id,f.forum_name,f.forum_password' . $columns .
 			' FROM ' . TOPICS_TABLE . ' t JOIN ' . FORUMS_TABLE . " f ON f.forum_id=t.forum_id $join
 			WHERE $target AND t.topic_moved_id=0 AND t.topic_status<>" . ITEM_MOVED);
 		$topic = $this->db->sql_fetchrow($result);
@@ -56,15 +56,21 @@ class topic_reader
 			}
 			throw new NotFoundHttpException();
 		}
-		if ((int) $topic['topic_visibility'] === ITEM_DELETED || !$this->visibility->is_visible('topic', $forum, $topic)) { throw new NotFoundHttpException(); }
+		$marker = removed_topics::marker($topic);
+		if (!$marker && ((int) $topic['topic_visibility'] === ITEM_DELETED || !$this->visibility->is_visible('topic', $forum, $topic))) { throw new NotFoundHttpException(); }
+		if ($marker) { $topic['topic_title'] = $this->language->lang('PLUS_REMOVED_TOPIC'); }
 		if ($post_id)
 		{
-			$visible = (int) $topic['post_visibility'] === ITEM_DELETED
-				? (int) $topic['topic_visibility'] === ITEM_APPROVED && $topic['plus_public_post']
-				: $this->visibility->is_visible('post', $forum, $topic);
+			if ($marker) { $visible = (int) $topic['post_visibility'] === ITEM_DELETED && $topic['plus_public_post']; }
+			else
+			{
+				$visible = (int) $topic['post_visibility'] === ITEM_DELETED
+					? (int) $topic['topic_visibility'] === ITEM_APPROVED && $topic['plus_public_post']
+					: $this->visibility->is_visible('post', $forum, $topic);
+			}
 			if (!$visible) { throw new NotFoundHttpException(); }
 		}
-		if (!$this->auth->acl_get('f_print', $forum)) { throw new AccessDeniedHttpException($this->language->lang('NO_AUTH_PRINT_TOPIC')); }
+		if ($require_print && !$this->auth->acl_get('f_print', $forum)) { throw new AccessDeniedHttpException($this->language->lang('NO_AUTH_PRINT_TOPIC')); }
 		if ($topic['forum_password'] !== '' && $interactive)
 		{
 			require_once $this->root . 'includes/functions_display.' . $this->ext;
@@ -121,10 +127,17 @@ class topic_reader
 		$this->db->sql_freeresult($result);
 		// Each batch rechecks that the topic, its forum and the accepted password are still the same.
 		$where = "p.topic_id=$id AND p.forum_id=$forum AND p.post_id<=$last AND t.topic_moved_id=0 AND t.topic_status<>" . ITEM_MOVED .
-			' AND t.topic_visibility<>' . ITEM_DELETED . ' AND ' . $this->visibility->get_visibility_sql('topic', $forum, 't.') .
-			" AND f.forum_password='" . $this->db->sql_escape($topic['forum_password']) . "' AND ((" .
-			$this->visibility->get_visibility_sql('post', $forum, 'p.') . ' AND p.post_visibility<>' . ITEM_DELETED .
-			') OR (t.topic_visibility=' . ITEM_APPROVED . ' AND p.post_visibility=' . ITEM_DELETED . ' AND p.plus_public_post=1))';
+			" AND f.forum_password='" . $this->db->sql_escape($topic['forum_password']) . "'";
+		if (removed_topics::marker($topic))
+		{
+			$where .= ' AND ' . removed_topics::condition('t.') . ' AND p.post_visibility=' . ITEM_DELETED . ' AND p.plus_public_post=1';
+		}
+		else
+		{
+			$where .= ' AND t.topic_visibility<>' . ITEM_DELETED . ' AND ' . $this->visibility->get_visibility_sql('topic', $forum, 't.') .
+				' AND ((' . $this->visibility->get_visibility_sql('post', $forum, 'p.') . ' AND p.post_visibility<>' . ITEM_DELETED .
+				') OR (t.topic_visibility=' . ITEM_APPROVED . ' AND p.post_visibility=' . ITEM_DELETED . ' AND p.plus_public_post=1))';
+		}
 		if (isset($filters['postdays'])) { $where .= ' AND p.post_time>=' . (time() - 86400 * $filters['postdays']); }
 		// Deleted posts and ignored writers supply a position only. Their text and bylines
 		// never join the records passed to formatters, template events or attachments.
@@ -150,7 +163,7 @@ class topic_reader
 			$files = $include_attachments ? $this->attachments($readable, $topic) : array();
 			foreach ($rows as $post_id => $post)
 			{
-				if ((int) $post['post_visibility'] === ITEM_DELETED) { yield array('REMOVED' => true); }
+				if ((int) $post['post_visibility'] === ITEM_DELETED) { yield array('REMOVED' => true, 'ID' => (int) $post_id); }
 				elseif ($post['foe']) { yield array('IGNORED' => true); }
 				else
 				{

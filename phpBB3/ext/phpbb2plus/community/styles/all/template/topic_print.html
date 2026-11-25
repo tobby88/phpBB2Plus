@@ -18,7 +18,7 @@
 	</header>
 	<div id="page-body" class="page-body">
 	{% for post in PRINT_POSTS %}
-		{% if post.REMOVED %}<p class="post removed">{{ PRINT_REMOVED }}</p>
+		{% if post.REMOVED %}<p class="post removed" id="p{{ post.ID }}">{{ PRINT_REMOVED }}</p>
 		{% elseif post.IGNORED %}<p class="post ignored">{{ lang('PLUS_PRINT_IGNORED') }}</p>
 		{% else %}
 		<article class="post" id="p{{ post.ID }}">
