@@ -37,7 +37,8 @@ if ($review)
 	if (!$kb->reviewer() || $kb->moderator()) { throw new RuntimeException('Delegated article review must not imply editorial rights'); }
 }
 define('ADMIN_START', true);
-if (!$auth->acl_get('a_') || !$auth->acl_get('a_words') || !$auth->acl_get('a_plus_kb_types') || $auth->acl_get('a_icons'))
+if (!$auth->acl_get('a_') || !$auth->acl_get('a_words') || !$auth->acl_get('a_plus_kb_types') ||
+	!$auth->acl_get('a_plus_dl_categories') || $auth->acl_gets('a_plus_downloads', 'a_icons'))
 { throw new RuntimeException('Junior Admin entrance or the scoped module grant changed'); }
 define('IN_ADMIN', true);
 if ($auth->acl_get('a_')) { throw new RuntimeException('The ACP entrance changed native administrator status inside the panel'); }
@@ -49,6 +50,10 @@ try
 	$auth->acl($account);
 	if (!$auth->acl_get('a_words') || $auth->acl_get('a_plus_kb_types') || $auth->acl_get('a_plus_kb_articles'))
 	{ throw new RuntimeException('The loaded container retained rights for a disabled Knowledge Base'); }
+	$db->sql_query('UPDATE ' . EXT_TABLE . " SET ext_active=0 WHERE ext_name='phpbb2plus/downloads'");
+	$auth->acl($account);
+	if ($auth->acl_get('a_plus_dl_categories') || !$auth->acl_get('a_words'))
+	{ throw new RuntimeException('Disabling Downloads did not suspend exactly its own category grant'); }
 	$db->sql_query('UPDATE ' . EXT_TABLE . " SET ext_active=0 WHERE ext_name='phpbb2plus/community'");
 	$auth->acl($account);
 	if ($auth->has_delegated_acp()) { throw new RuntimeException('The loaded container retained a disabled Community delegation'); }
@@ -60,7 +65,7 @@ try
 	$account = $subject();
 	$auth->acl($account);
 	if ($auth->acl_get('a_words') || !$auth->acl_get('a_plus_kb_types')) { throw new RuntimeException('An individual native Never did not revoke just its matching delegation'); }
-	$writer->acl_set('user', 0, 91, array('a_plus_kb_types' => ACL_NEVER, 'a_plus_kb_articles' => ACL_NEVER));
+	$writer->acl_set('user', 0, 91, array('a_plus_kb_types' => ACL_NEVER, 'a_plus_kb_articles' => ACL_NEVER, 'a_plus_dl_categories' => ACL_NEVER));
 	plus_jr_finish();
 	$account = $subject();
 	$auth->acl($account);
@@ -76,7 +81,8 @@ try
 }
 finally
 {
-	$writer->acl_set('user', 0, 91, array('a_words' => ACL_NO, 'a_plus_kb_types' => ACL_NO, 'a_plus_kb_articles' => ACL_NO, 'a_ranks' => ACL_NO));
+	$writer->acl_set('user', 0, 91, array('a_words' => ACL_NO, 'a_plus_kb_types' => ACL_NO, 'a_plus_kb_articles' => ACL_NO,
+		'a_plus_dl_categories' => ACL_NO, 'a_ranks' => ACL_NO));
 }
 
 // The source fixture's ordinary Archive Club has no administrative assignments.

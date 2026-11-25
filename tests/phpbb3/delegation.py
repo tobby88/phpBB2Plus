@@ -46,6 +46,9 @@ def browse(base):
     types = junior.fetch(entry + "&i=-phpbb2plus-knowledgebase-acp-types_module&mode=manage&action=create")
     if 'id="kb-type"' not in types:
         raise RuntimeError("A converted Junior Admin could not open the delegated Knowledge Base module")
+    categories = junior.fetch(entry + "&i=-phpbb2plus-downloads-acp-categories_module&mode=manage&action=create")
+    if 'id="dl-category"' not in categories:
+        raise RuntimeError("The imported download category grant did not open its ACP module")
     denied = junior.fetch(entry + "&i=acp_board&mode=settings", expected_status=503)
     if "Module not accessible" not in denied:
         raise RuntimeError("phpBB did not return its native module-access denial")

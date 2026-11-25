@@ -11,6 +11,7 @@ class junior_admin
 		'admin_kb_art.php' => array('KB_title', 'Art_man', 'a_plus_kb_articles', 'phpbb2plus\knowledgebase\acp\articles_module', 'manage'),
 		'admin_kb_types.php' => array('KB_title', 'Types_man', 'a_plus_kb_types', 'phpbb2plus\knowledgebase\acp\types_module', 'manage'),
 		'admin_kb_cat.php' => array('KB_title', 'Cat_man', 'a_plus_kb_categories', 'phpbb2plus\knowledgebase\acp\categories_module', 'manage'),
+		'admin_pa_category.php' => array('Download', 'Cat_manage_title', 'a_plus_dl_categories', 'phpbb2plus\downloads\acp\categories_module', 'manage'),
 	);
 
 	private $db;

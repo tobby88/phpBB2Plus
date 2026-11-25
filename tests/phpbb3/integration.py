@@ -32,6 +32,7 @@ import removed_posts
 import announcement_duration
 import legacy_links
 import downloads
+import download_categories
 import delegation
 import delegation_administration
 import historical_actions
@@ -132,6 +133,7 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
         gallery_run.result()
         downloads.submissions(base, admin, historical, applicant,
                               lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
+        download_categories.administration(admin, lambda phase: php(ROOT / "tests/phpbb3/download_categories.php", target, phase, cwd=web))
 
     def gallery_checks(admin, historical, applicant):
         gallery.browse(base, admin, historical, applicant)

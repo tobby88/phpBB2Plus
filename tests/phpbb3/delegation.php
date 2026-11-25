@@ -3,7 +3,8 @@ function delegation_fixture_grants()
 {
 	$words = md5('GeneralWord_Censoradmin_words.php');
 	return implode('|', array($words, md5('KB_titleTypes_manadmin_kb_types.php'), md5('GeneralSmiliesadmin_smilies.php'),
-		$words, str_repeat('e', 32), 'unknown', md5('UsersDisallowadmin_disallow.php'), md5('KB_titleArt_manadmin_kb_art.php')));
+		$words, str_repeat('e', 32), 'unknown', md5('UsersDisallowadmin_disallow.php'),
+		md5('DownloadCat_manage_titleadmin_pa_category.php'), md5('KB_titleArt_manadmin_kb_art.php')));
 }
 
 function seed_delegation($db)
@@ -35,13 +36,13 @@ function verify_delegation($db)
 	$review = array_pop($modules);
 	check_fixture($review['route'] === 'admin_kb_art.php' && in_array($review['result'], array('delegated', 'target-module-too-broad'), true),
 		'The article review delegation has no audited decision');
-	$expected = array('a_words', 'a_plus_kb_types');
+	$expected = array('a_words', 'a_plus_kb_types', 'a_plus_dl_categories');
 	if ($review['result'] === 'delegated') { $expected[] = 'a_plus_kb_articles'; }
 	check_fixture(base64_decode($active['modules_b64'], true) === delegation_fixture_grants() &&
 		base64_decode($active['notes_b64'], true) === 'Fixture <only> & 😀' && (int) $active['notes_view'] === 1 &&
 		(int) $active['start_date'] === 100123 && (int) $active['update_date'] === 200456, 'Junior Admin source grants or notes changed');
 	check_fixture(json_decode($active['rights_json'], true) === $expected &&
-		array_column($modules, 'result') === array('delegated', 'delegated', 'manual-review', 'delegated', 'unresolved-module', 'invalid-hash', 'modified-source-module') &&
+		array_column($modules, 'result') === array('delegated', 'delegated', 'manual-review', 'delegated', 'unresolved-module', 'invalid-hash', 'modified-source-module', 'delegated') &&
 		$modules[2]['route'] === 'admin_smilies.php', 'Junior Admin module decisions diverged: ' . $active['report_json']);
 	$historic = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
 	check_fixture((int) $rows[1]['user_id'] === $historic && !$rows[1]['notes_view'] && $rows[1]['rights_json'] === '[]' &&

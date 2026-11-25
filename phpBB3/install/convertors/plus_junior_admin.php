@@ -53,6 +53,7 @@ function plus_jr_registry()
 		'admin_kb_art.php' => '2a92d60fe3c5772a0fce2bd09f10fabbee72e185fc99c3ce1ecc843aaca6f5ff',
 		'admin_kb_types.php' => '9176f2a2cea0f652c22e7111bd70442cc29da931f758dd4f882ba0369994fb46',
 		'admin_kb_cat.php' => '863dc52eacce55c3c07f348a334afb4b12f5d807b796e390184e416e58b34b39',
+		'admin_pa_category.php' => 'e9ce286f24b744c64d27055848046ddd874a23eb99f9bbe3b4e6e8b3f7ed3b00',
 	);
 	$registry = array();
 	foreach ($files as $file)
