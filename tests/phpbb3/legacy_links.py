@@ -1,20 +1,22 @@
 """Follow the forum's historical public link formats against the converted fixture."""
 from http.client import HTTPConnection
-from urllib.parse import parse_qs, urljoin, urlsplit
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 from http_board import Browser, Page
 
 
-def link(base, path, expected_path, query, fragment="", method="GET"):
+def link(base, path, expected_path, query, fragment="", method="GET", form=None, status=302):
     origin = urlsplit(base)
     if origin.hostname != "127.0.0.1":
         raise ValueError("The URL fixture requires loopback")
     conn = HTTPConnection(origin.hostname, origin.port, timeout=30)
     try:
-        conn.request(method, "/" + path)
+        body = urlencode(form) if form is not None else None
+        headers = {"Content-Type": "application/x-www-form-urlencoded"} if body is not None else {}
+        conn.request(method, "/" + path, body=body, headers=headers)
         response = conn.getresponse()
         location = urlsplit(urljoin(urljoin(base, path), response.getheader("Location", "")))
-        if response.status != 302 or location.netloc != origin.netloc or location.path != "/" + expected_path:
+        if response.status != status or location.netloc != origin.netloc or location.path != "/" + expected_path:
             raise RuntimeError(f"Wrong redirect for {path} ({response.status}, {location.path})")
         values = parse_qs(location.query)
         values.pop("sid", None)
@@ -52,6 +54,11 @@ def browse(base, owner, historic_id):
          {"mode": "name", "search": "Grüße", "start": 20}, ""),
         ("album.php?user_id=-1", "app.php/album/legacy/member/0", {}, ""),
         ("album.php?user_id=1&cat_id=11", "app.php/album/category/11", {}, ""),
+        ("album.php?user_id=1&mode=list&type=RATING&start=8", "app.php/album/legacy/member/1",
+         {"mode": "list", "type": "rating", "start": 8}, ""),
+        ("album_cat.php?user_id=1&mode=all&cat_id=11", "app.php/album/legacy/member/1",
+         {"mode": "all", "cat_id": 11}, ""),
+        ("album.php?user_id=-1&mode=all", "app.php/album/legacy/member/0", {"mode": "all"}, ""),
         ("album_personal.php", "app.php/album/legacy/member/0", {}, ""),
         ("album.php?user_id=1", "app.php/album/legacy/member/1", {}, ""),
         ("album_personal.php?user_id=-1", "app.php/album/legacy/member/-1", {}, ""),
@@ -93,6 +100,10 @@ def browse(base, owner, historic_id):
     for path, script, query, fragment in cases:
         link(base, path, script, query, fragment)
     link(base, "ftopic1.html", "viewtopic.php", {"t": 1}, method="HEAD")
+    link(base, "album.php?user_id=2&sort_order=ASC", "app.php/album/legacy/member/1",
+         {"mode": "list", "type": "comment", "sort_method": "pic_title", "sort_order": "ASC", "start": 4},
+         method="POST", form={"user_id": 1, "mode": "LIST", "type": "comment", "sort_method": "pic_title",
+                              "sort_order": "DESC", "start": 4}, status=303)
     guest = Browser(base)
     topic = guest.fetch("ftopic1.html")
     if 'id="32"' not in topic or 'id="p32"' not in topic or "Grüße" not in topic:

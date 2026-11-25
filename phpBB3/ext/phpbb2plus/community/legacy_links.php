@@ -5,6 +5,16 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 {
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
 	$read_form = in_array($entry, array('album_search', 'album_personal_index'), true);
+	$sort_redirect = $entry === 'album_personal_index';
+	if ($method === 'POST' && in_array($entry, array('album', 'album_cat'), true))
+	{
+		// The original gallery took the album identity from the form first and
+		// kept sorting and pagination from the URL when both were supplied.
+		$identity = array_intersect_key($_POST, array_flip(array('user_id', 'cat_id', 'mode', 'type')));
+		$sort = array_intersect_key($_POST, array_flip(array('sort_method', 'sort_order', 'start')));
+		$read_form = $sort_redirect = (bool) ($identity || $sort);
+		$query = $identity + $query + $sort;
+	}
 	if ($entry === 'dload')
 	{
 		// The original form posted its action to the bare dload.php address.
@@ -155,17 +165,29 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			}
 			break;
 		case 'shoutbox': case 'shoutbox_view': case 'shoutbox_max': $path = 'shoutbox'; break;
-		case 'album': case 'album_personal':
+		case 'album': case 'album_cat': case 'album_personal':
 			$source = $query['user_id'] ?? '0';
-			if ($entry === 'album' && ($cat = $positive('cat_id'))) { $path = 'album/category/' . $cat; }
+			$cat = $positive('cat_id');
+			$mode = is_string($query['mode'] ?? null) ? strtolower($query['mode']) : '';
+			if ($entry !== 'album_personal' && ($entry === 'album' || $cat) && ($source === '-1' || $positive('user_id'))
+				&& in_array($mode, array('all', 'list'), true))
+			{
+				$path = 'album/legacy/member/' . ($source === '-1' ? '0' : $source);
+				$extra['mode'] = $mode;
+				$type = is_string($query['type'] ?? null) ? strtolower($query['type']) : '';
+				if ($mode === 'list' && in_array($type, array('pic', 'rating', 'comment'), true)) { $extra['type'] = $type; }
+				if ($cat) { $extra['cat_id'] = $cat; }
+			}
+			elseif ($cat && $entry !== 'album_personal') { $path = 'album/category/' . $cat; }
+			elseif ($entry === 'album_cat') { break; }
 			elseif ($entry === 'album' && $source === '0') { $path = 'album'; }
 			elseif ($source === '-1' || $source === '0' || $positive('user_id'))
 			{
 				$path = 'album/legacy/member/' . ($entry === 'album' && $source === '-1' ? '0' : $source);
 			}
 			break;
-		case 'album_cat': case 'album_upload':
-			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . ($entry === 'album_upload' ? '/upload' : ''); }
+		case 'album_upload':
+			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . '/upload'; }
 			break;
 		case 'album_hotornot': $path = 'album/hot-or-not'; break;
 		case 'album_personal_index':
@@ -296,7 +318,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	}
 	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
-	// Search terms stay in the body. The directory sort has only public, enumerated fields.
-	$status = $method === 'POST' ? ($entry === 'album_personal_index' ? 303 : 307) : 302;
+	// Only search forms need to retain their body at the destination.
+	$status = $method === 'POST' ? ($sort_redirect ? 303 : 307) : 302;
 	header('Location: ' . $base . $path . $search . $anchor, true, $status);
 }
