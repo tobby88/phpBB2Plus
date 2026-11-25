@@ -66,6 +66,7 @@ function plus_jr_registry()
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
 		'admin_pa_file.php' => '4993fafef0f0f5702e1bb5f23163da0b5372838f9bb67d856dccce3e729e8adb',
+		'admin_pa_settings.php' => 'f8b7ebf1eefe344f2e22bd0eb31097755b4b7f66271ba6ff105bad7837eca6f3',
 		'admin_statistics.php' => '9dae7adc915d806601d0140450537a82d430d8039f06e095ae763b32972980e1',
 		'admin_pa_custom.php' => '9237b12da9f50adbc87ff38da3b3550063a92d017dc628b410ee65a69927350b',
 		'admin_album_personal.php' => 'd97d4e085e90eac081030134f6894b60b3e4824ee6d1ef88ad82bd1fd36f5d87',
@@ -88,22 +89,27 @@ function plus_jr_registry()
 		'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
 		'pafiledb/includes/functions_file_authority.php' => 'd875f99ae5eafa9a2398fbc89fefd86cc406a7d91633290834c62b77023ba2a1',
 	);
+	$download_writes = $file_authority + array(
+		'pafiledb/pafiledb_common.php' => 'b5af356469606b749cf2c37e25898806e7cdeb7bc9ebd0b3c4a12e8ca0e069dc',
+		'pafiledb/includes/pafiledb_constants.php' => '8dc66d466715450c7b8f98d0a434967819b58f3491a5372178ea190508a9b334',
+		'pafiledb/includes/functions_pafiledb.php' => '13897bc0b31c57f902c158b91bf3b76961773c450b3c407ca102711d587f9d3e',
+		'pafiledb/includes/functions_file_actions.php' => 'be947ea69f52eb0865481ba9c4c0d39417103939fa52ac79ea80c999eab3910e',
+		'pafiledb/includes/functions_file_coordinator.php' => 'fc97309b22c5dfa8b947377491b1833e41ba377444057ddac0e5fccbfdec1cc9',
+		'pafiledb/includes/functions_file_storage.php' => '912614c637b393a8a2d224358079144310df2f6a11443356a815c260904e07e4',
+		'pafiledb/includes/functions_mutation_storage.php' => 'c1aba8ca0e4eda2c68315962d3da42eac709f0ec17cc15f7c6bfb885eac72c15',
+		'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
+	);
 	$dependencies = array(
-		'admin_pa_file.php' => $file_authority + array(
-			'pafiledb/pafiledb_common.php' => 'b5af356469606b749cf2c37e25898806e7cdeb7bc9ebd0b3c4a12e8ca0e069dc',
-			'pafiledb/includes/pafiledb_constants.php' => '8dc66d466715450c7b8f98d0a434967819b58f3491a5372178ea190508a9b334',
-			'pafiledb/includes/functions_pafiledb.php' => '13897bc0b31c57f902c158b91bf3b76961773c450b3c407ca102711d587f9d3e',
-			'pafiledb/includes/functions_file_actions.php' => 'be947ea69f52eb0865481ba9c4c0d39417103939fa52ac79ea80c999eab3910e',
-			'pafiledb/includes/functions_file_coordinator.php' => 'fc97309b22c5dfa8b947377491b1833e41ba377444057ddac0e5fccbfdec1cc9',
+		'admin_pa_settings.php' => $download_writes + array(
+			'pafiledb/includes/functions_settings_storage.php' => '840e087ee3913ebf75a0b98382742926e4840b57f69dccd4ba6b37120b536334',
+		),
+		'admin_pa_file.php' => $download_writes + array(
 			'pafiledb/includes/functions_file_journal.php' => '72b42922fdc62a44ca30e035375572169c0ea45d9358805d73e4631ad211dbf9',
 			'pafiledb/includes/functions_file_reference.php' => '70fce49b6cbe87232cb86f4dbde01989d8c9eefda95960385656d3f06dc09b04',
-			'pafiledb/includes/functions_file_storage.php' => '912614c637b393a8a2d224358079144310df2f6a11443356a815c260904e07e4',
-			'pafiledb/includes/functions_mutation_storage.php' => 'c1aba8ca0e4eda2c68315962d3da42eac709f0ec17cc15f7c6bfb885eac72c15',
 			'pafiledb/includes/functions_field.php' => '55cda748f5b69160f14244f22d4496a8520f4ab4160150828effb35b4428ea20',
 			'pafiledb/includes/functions_mirror_storage.php' => '3e03516c4b245cd8c3c1c75fb561fddfad974603cc9ceb5efbaf969efbcb5304',
 			'pafiledb/includes/functions_file_delete.php' => 'bd1eb0e1847cebe74951c40c6b9912b3da298eadeff75036891856c8e6b55b00',
-			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
-			'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 		),
 		'admin_statistics.php' => array(
 			'includes/functions_stats.php' => 'df16dfb95b1f29bd7afc18b882d5516c0193fa63f0dbc09a640bd7ec5570f602',

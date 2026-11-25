@@ -26,6 +26,7 @@ def source_modules(source, target):
                  "pafiledb/includes/functions_file_journal.php", "pafiledb/includes/functions_file_reference.php",
                  "pafiledb/includes/functions_file_storage.php", "pafiledb/includes/functions_file_delete.php",
                  "pafiledb/includes/functions_mutation_storage.php", "pafiledb/includes/functions_mirror_storage.php",
+                 "pafiledb/includes/functions_settings_storage.php",
                  "pafiledb/includes/functions_permission_storage.php", "pafiledb/includes/functions_license_storage.php",
                  "pafiledb/includes/functions_custom_storage.php", "pafiledb/includes/functions_field.php",
                  "album_mod/album_admin_category_storage.php",
@@ -90,7 +91,7 @@ def file_management(browser, entry, fixture):
     remove = panel + "&action=delete&ids=10801"
     fixture("setup")
     try:
-        for module in ("categories", "permissions", "licenses", "fields"):
+        for module in ("categories", "permissions", "licenses", "fields", "settings"):
             url = entry + f"&i=-phpbb2plus-downloads-acp-{module}_module&mode=manage"
             if "Module not accessible" not in browser.fetch(url, expected_status=503):
                 raise RuntimeError(f"The historical file operator gained the independent {module} panel")
@@ -119,6 +120,7 @@ def module_roles(base, file_fixture):
         "DownloadAccessJunior": ("-phpbb2plus-downloads-acp-permissions_module", "section=edit&category=21", "dl-permissions", "values[view]", "1"),
         "DownloadLicenseJunior": ("-phpbb2plus-downloads-acp-licenses_module", "action=edit&ids=31", "dl-license-admin", "name", "Delegated licence edit"),
         "DownloadFieldsJunior": ("-phpbb2plus-downloads-acp-fields_module", "action=edit&ids=81", "dl-field-admin", "name", "Delegated field edit"),
+        "DownloadSettingsJunior": ("-phpbb2plus-downloads-acp-settings_module", "", "dl-settings", "v[settings_dbname]", "Delegated catalogue title"),
         "AlbumCategoryJunior": ("-phpbb2plus-gallery-acp-categories_module", "action=edit&category=8", "album-public-category", "description", "Delegated album edit"),
         "AlbumAccessJunior": ("-phpbb2plus-gallery-acp-permissions_module", "category=8", "album-category-grants", "grant[71][comment]", "1"),
         "AlbumPersonalJunior": ("-phpbb2plus-gallery-acp-personal_permissions_module", "group=75", "album-personal-grants", None, None),
@@ -155,7 +157,7 @@ def module_roles(base, file_fixture):
     # one catalogue still run in order because they share its write revision.
     with ThreadPoolExecutor(max_workers=4) as pool:
         sessions = {name: pool.submit(authenticate, base, name) for name in (*modules, "DownloadFilesJunior")}
-        list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior", "DownloadFieldsJunior"),
+        list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior", "DownloadFieldsJunior", "DownloadSettingsJunior"),
                                  ("AlbumCategoryJunior", "AlbumAccessJunior", "AlbumPersonalJunior"), ("CreditsJunior",))))
         file_management(*sessions["DownloadFilesJunior"].result(), file_fixture)
 

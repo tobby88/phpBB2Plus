@@ -41,6 +41,7 @@ import download_fields
 import download_file_actions
 import download_file_editor
 import download_permissions
+import download_settings
 import download_licenses
 import download_mirrors
 import delegation
@@ -190,6 +191,9 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
             downloads.submissions(base, admin, historical, applicant,
                                   lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
             permissions.result()
+            # The settings test temporarily closes the download area and restores its global policy.
+            download_settings.administration(admin, historical, lambda phase: php(
+                ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
 
     def gallery_checks(admin, historical, applicant):
         gallery.browse(base, admin, historical, applicant)

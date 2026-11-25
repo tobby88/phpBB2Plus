@@ -22,6 +22,7 @@ function delegation_fixture_roles()
 		55 => array('StatisticsSettingsJunior', 'StatisticsStatistics_configadmin_statistics.php?mode=config', 'a_plus_stats_settings'),
 		56 => array('DownloadFilesJunior', 'DownloadFile_manage_titleadmin_pa_file.php',
 			array('a_plus_dl_edit', 'a_plus_dl_approval', 'a_plus_dl_delete', 'a_plus_dl_mirrors')),
+		57 => array('DownloadSettingsJunior', 'DownloadSettingsadmin_pa_settings.php', 'a_plus_dl_settings'),
 	);
 }
 

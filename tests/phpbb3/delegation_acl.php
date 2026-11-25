@@ -32,6 +32,8 @@ try
 	$entry = $registry[$file_grant] ?? array();
 	if (empty($entry['customised']) || isset($entry['options']) || isset($entry['option']))
 	{ throw new RuntimeException('A customised file-management dependency retained its automatic assignment'); }
+	if (($registry[md5('DownloadSettingsadmin_pa_settings.php')]['option'] ?? '') !== 'a_plus_dl_settings')
+	{ throw new RuntimeException('Changing a mirror handler also suspended the separate settings assignment'); }
 }
 finally { file_put_contents($helper, $original); }
 $db->sql_transaction('begin');
