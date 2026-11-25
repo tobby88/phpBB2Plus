@@ -87,7 +87,7 @@ class age_pruning
 			$rows[0]['is_registered'] = true;
 			$this->auth->acl($rows[0]);
 		}
-		return $this->auth->acl_get('a_fprune') && $this->auth->acl_get('f_list', $forum);
+		return $this->auth->acl_get('a_prune') && $this->auth->acl_get('f_list', $forum);
 	}
 
 	public function apply($ids, $forum, $mode, $cutoff, $flags, $schedule = null)

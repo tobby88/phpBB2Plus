@@ -50,8 +50,8 @@ def browse(admin, verify):
                               r"\s*<td[^>]*>\s*(\d+)\s*</td>\s*</tr>", result)
             counts = {int(f): (int(t), int(p)) for f, t, p in rows}
             expected = {653: (topics, posts), 654: (0, 0)}
+            verify("manual-after")
             if counts != expected:
                 raise RuntimeError(f"Native ACP reported {counts} pruned topics/posts, expected {expected}")
-            verify("manual-after")
     finally:
         verify("cleanup")
