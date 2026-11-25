@@ -1,7 +1,9 @@
 <?php
 namespace phpbb2plus\gallery\controller;
 
+use phpbb\request\request_interface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class board
@@ -228,6 +230,56 @@ class board
 		return new RedirectResponse($this->helper->route('phpbb2plus_gallery_picture', $params, false) . '#comment-' . $id);
 	}
 
+	private function rating_text($picture, $honour)
+	{
+		$rating = $this->discussion->rating($picture, $honour);
+		return $rating['votes'] ? $this->language->lang('PLUS_ALBUM_RATING',
+			number_format((float) $rating['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), ''), $this->discussion->scale(),
+			$this->language->lang('PLUS_ALBUM_VOTES', (int) $rating['votes'])) : '';
+	}
+
+	public function hot()
+	{
+		$this->breadcrumbs();
+		$title = $this->language->lang('PLUS_ALBUM_HOT');
+		if ($this->request->server('REQUEST_METHOD') === 'POST')
+		{
+			$id = $this->request->variable('pic_id', 0, false, request_interface::POST);
+			if (!check_form_key('plus_album_hot_' . $id)) { throw new AccessDeniedHttpException(); }
+			try
+			{
+				$this->discussion->publish($id, '', '', $this->request->variable('hon_rating', 0, false, request_interface::POST), true);
+			}
+			catch (\DomainException $e) { return $this->helper->message($e->getMessage(), array(), 'INFORMATION', 422); }
+			return new RedirectResponse($this->helper->route('phpbb2plus_gallery_hot', array('rated' => 1), false), 303);
+		}
+		$this->template->assign_var('S_ALBUM_SAVED_VOTE', $this->request->variable('rated', 0) === 1);
+		$draw = $this->discussion->draw();
+		if ($draw)
+		{
+			list($pic, $cat) = $draw;
+			$id = (int) $pic['pic_id'];
+			$status = $this->discussion->honour_status($pic, $cat);
+			if ($status === 'open') { add_form_key('plus_album_hot_' . $id); }
+			$rate = (int) $this->access->setting('rate', 1) === 1;
+			$comments = (int) $this->access->setting('comment', 1) === 1;
+			if ($comments)
+			{
+				$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'comments WHERE pic_id=' . $id);
+				$this->template->assign_var('ALBUM_COMMENTS_COUNT', (int) $this->db->sql_fetchfield('count'));
+				$this->db->sql_freeresult($result);
+			}
+			$this->template->assign_vars(array('ALBUM_ID' => $id, 'ALBUM_TITLE' => $pic['title'], 'ALBUM_DESCRIPTION' => $pic['description'],
+				'ALBUM_CATEGORY' => $cat['title'], 'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $cat['cat_id'])),
+				'ALBUM_AUTHOR' => $this->byline->display($pic), 'ALBUM_DATE' => $this->user->format_date($pic['created_at']),
+				'ALBUM_DATETIME' => gmdate('c', $pic['created_at']), 'ALBUM_VIEWS' => (int) $pic['views'], 'S_ALBUM_COMMENTS' => $comments,
+				'S_ALBUM_RATE_DISPLAY' => $rate, 'ALBUM_RATING' => $rate ? $this->rating_text($id, true) : '', 'ALBUM_SCALE' => $this->discussion->scale(),
+				'ALBUM_VOTE_STATUS' => $status, 'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', array('picture' => $id)),
+				'U_FULL' => $this->helper->route('phpbb2plus_gallery_media', array('picture' => $id, 'size' => 'full'))));
+		}
+		return $this->helper->render('@phpbb2plus_gallery/hot.html', $title);
+	}
+
 	public function picture($picture)
 	{
 		list($pic, $cat) = $this->access->picture($picture);
@@ -262,15 +314,7 @@ class board
 		$link = $this->helper->route('phpbb2plus_gallery_picture', $params + $context);
 		$rate = (int) $this->access->setting('rate', 1) === 1;
 		$comments = (int) $this->access->setting('comment', 1) === 1;
-		if ($rate)
-		{
-			$result = $this->db->sql_query('SELECT COUNT(*) AS votes,AVG(points) AS rating FROM ' . $this->prefix . 'ratings WHERE points>0 AND pic_id=' . $id);
-			$rating = $this->db->sql_fetchrow($result);
-			$this->db->sql_freeresult($result);
-			if ($rating['votes']) { $this->template->assign_var('ALBUM_RATING', $this->language->lang('PLUS_ALBUM_RATING',
-				number_format((float) $rating['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), ''),
-				(int) $this->access->setting('rate_scale', 10), $this->language->lang('PLUS_ALBUM_VOTES', (int) $rating['votes']))); }
-		}
+		if ($rate) { $this->template->assign_var('ALBUM_RATING', $this->rating_text($id, false)); }
 		if ($comments)
 		{
 			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'comments WHERE pic_id=' . $id);
@@ -328,7 +372,7 @@ class board
 		{
 			add_form_key('plus_discussion_' . $id);
 			$this->template->assign_vars(array('U_DISCUSS' => $this->helper->route('phpbb2plus_gallery_discuss', $params),
-				'S_ALBUM_COMMENT' => $may_comment, 'S_ALBUM_RATE' => $may_rate, 'S_ALBUM_HONOUR' => $this->discussion->honours($pic, $cat),
+				'S_ALBUM_COMMENT' => $may_comment, 'S_ALBUM_RATE' => $may_rate, 'S_ALBUM_HONOUR' => $may_rate && $this->discussion->honour_status($pic, $cat) === 'open',
 				'ALBUM_SCALE' => $this->discussion->scale(), 'ALBUM_LIMIT' => $this->discussion->text_limit(),
 				'S_ALBUM_GUEST' => empty($this->user->data['is_registered'])));
 		}

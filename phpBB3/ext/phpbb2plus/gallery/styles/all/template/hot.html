@@ -1,0 +1,29 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_ALBUM_HOT}</h2>
+{% if S_ALBUM_SAVED_VOTE %}<p class="panel" role="status">{L_PLUS_ALBUM_VOTE_SAVED}</p>{% endif %}
+{% if ALBUM_ID %}
+<section class="plus-album-block" aria-labelledby="album-hot-title">
+<h3 class="plus-album-heading" id="album-hot-title">{{ ALBUM_TITLE|e }}</h3>
+<figure class="plus-album-photo"><a href="{U_PICTURE}"><img src="{U_FULL}" alt="{{ ALBUM_TITLE|e }}"></a></figure>
+<dl class="plus-album-metadata">
+<dt>{L_PLUS_ALBUM}</dt><dd><a href="{U_CATEGORY}">{{ ALBUM_CATEGORY|e }}</a></dd>
+<dt>{L_AUTHOR}</dt><dd>{ALBUM_AUTHOR}</dd>
+<dt>{L_PLUS_ALBUM_DATE}</dt><dd><time datetime="{ALBUM_DATETIME}">{ALBUM_DATE}</time></dd>
+<dt>{L_VIEWS}</dt><dd>{ALBUM_VIEWS}</dd>
+{% if ALBUM_DESCRIPTION %}<dt>{L_PLUS_ALBUM_DESCRIPTION}</dt><dd class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</dd>{% endif %}
+{% if S_ALBUM_RATE_DISPLAY %}<dt>{L_PLUS_ALBUM_PORTAL_RATING}</dt><dd id="album-hot-result">{{ ALBUM_RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</dd>{% endif %}
+{% if S_ALBUM_COMMENTS %}<dt>{L_PLUS_ALBUM_COMMENTS}</dt><dd><a href="{U_PICTURE}#album-comments">{ALBUM_COMMENTS_COUNT}</a></dd>{% endif %}
+</dl></section>
+{% if ALBUM_VOTE_STATUS == 'open' %}
+<form class="plus-album-sort" id="album-hot-vote" action="{{ path('phpbb2plus_gallery_hot') }}" method="post">
+<label for="album-hot-score">{L_PLUS_ALBUM_HONOUR}</label>
+<select id="album-hot-score" name="hon_rating">{% for value in 1..ALBUM_SCALE %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+<input type="hidden" name="pic_id" value="{ALBUM_ID}">{S_FORM_TOKEN}
+<button class="button1" type="submit">{L_SUBMIT}</button></form>
+{% elseif S_ALBUM_RATE_DISPLAY %}
+<p>{{ ALBUM_VOTE_STATUS == 'rated' ? lang('PLUS_ALBUM_ALREADY_RATED') : lang('PLUS_ALBUM_VOTE_UNAVAILABLE') }}</p>
+{% endif %}
+<div class="action-bar"><a class="button" href="{{ path('phpbb2plus_gallery_hot') }}">{L_PLUS_ALBUM_DRAW_AGAIN}</a></div>
+{% else %}<p class="panel plus-album-empty">{L_PLUS_ALBUM_HOT_EMPTY}</p>{% endif %}
+<!-- INCLUDE overall_footer.html -->

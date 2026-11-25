@@ -143,7 +143,7 @@ class hierarchy
 		{
 			$dest = (int) $dest;
 			$this->db->sql_query('UPDATE ' . $this->prefix . "comments SET cat_id=$dest WHERE pic_id IN (SELECT pic_id FROM $photos WHERE cat_id=$id)");
-			$this->db->sql_query("UPDATE $photos SET cat_id=$dest WHERE cat_id=$id");
+			$this->db->sql_query("UPDATE $photos SET cat_id=$dest,legacy_uncategorized=0 WHERE cat_id=$id");
 		}
 		$this->db->sql_query("UPDATE $table SET parent_id=$parent WHERE owner_id=$owner AND parent_id=$id");
 		$this->db->sql_query('DELETE FROM ' . $this->prefix . "grants WHERE cat_id=$id");

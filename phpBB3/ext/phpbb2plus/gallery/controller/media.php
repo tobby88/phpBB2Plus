@@ -2,6 +2,7 @@
 namespace phpbb2plus\gallery\controller;
 
 use phpbb2plus\gallery\service\raster;
+use phpbb2plus\gallery\service\pictures;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
@@ -53,13 +54,9 @@ class media
 	public function show($picture, $size)
 	{
 		list($pic) = $this->access->picture($picture);
-		if (!in_array($size, array('small','medium','full'), true) || !preg_match('/^gallery_[a-f0-9]{64}$/D', $pic['storage_name']))
-		{
-			throw new NotFoundHttpException();
-		}
 		$directory = realpath($this->root . $this->config['upload_path']);
-		$source = $directory . DIRECTORY_SEPARATOR . $pic['storage_name'];
-		if (!$directory || !is_file($source) || is_link($source)) { throw new NotFoundHttpException(); }
+		$source = pictures::original_path($directory, $pic['storage_name']);
+		if (!$source || !in_array($size, array('small','medium','full'), true)) { throw new NotFoundHttpException(); }
 		$mime = $pic['media_type'];
 		$decoders = array('image/jpeg' => 'imagecreatefromjpeg', 'image/png' => 'imagecreatefrompng', 'image/gif' => 'imagecreatefromgif');
 		if (!isset($decoders[$mime])) { throw new NotFoundHttpException(); }

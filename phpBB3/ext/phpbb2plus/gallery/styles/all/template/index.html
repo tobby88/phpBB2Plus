@@ -2,9 +2,9 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{{ ALBUM_TITLE|e }}</h2>
 <!-- INCLUDE @phpbb2plus_gallery/search_form.html -->
-{% if U_ALBUM_UPLOAD or U_ALBUM_PERSONAL %}<div class="action-bar">
+<div class="action-bar"><a class="button" href="{{ path('phpbb2plus_gallery_hot') }}">{L_PLUS_ALBUM_HOT}</a>
 {% if U_ALBUM_UPLOAD %}<a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a>{% endif %}
-{% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>{% endif %}
+{% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
 {% if loops.album_categories %}
 <section class="plus-album-block" aria-labelledby="album-categories">

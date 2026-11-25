@@ -29,6 +29,13 @@ class pictures
 		return $action === 'move';
 	}
 
+	public static function original_path($directory, $name)
+	{
+		if (!$directory || !preg_match('/^gallery_[a-f0-9]{64}$/D', $name)) { return false; }
+		$path = $directory . DIRECTORY_SEPARATOR . $name;
+		return is_file($path) && !is_link($path) ? $path : false;
+	}
+
 	public function context($picture, $action)
 	{
 		list($pic, $cat) = $this->access->picture($picture);
@@ -81,7 +88,7 @@ class pictures
 			{
 				$to = $this->access->category($destination);
 				if (!$this->can_receive($cat, $to)) { throw new NotFoundHttpException(); }
-				$fields = array('cat_id' => (int) $to['cat_id']);
+				$fields = array('cat_id' => (int) $to['cat_id'], 'legacy_uncategorized' => 0);
 				$this->db->sql_query('UPDATE ' . $this->prefix . 'comments SET cat_id=' . (int) $to['cat_id'] . $where);
 			}
 			elseif ($action === 'lock' || $action === 'unlock') { $fields = array('locked' => $action === 'lock' ? 1 : 0); }

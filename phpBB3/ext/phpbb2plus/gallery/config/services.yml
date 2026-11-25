@@ -61,7 +61,7 @@ services:
         arguments: ['@phpbb2plus.gallery.uploads', '@request', '@template', '@controller.helper', '@language', '@user']
     phpbb2plus.gallery.discussion:
         class: phpbb2plus\gallery\service\discussion
-        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '%core.table_prefix%plus_album_', '%core.root_path%']
+        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '%core.table_prefix%plus_album_', '%core.root_path%', '@config']
     phpbb2plus.gallery.comments:
         class: phpbb2plus\gallery\controller\comments
         arguments: ['@phpbb2plus.gallery.discussion', '@request', '@controller.helper', '@language', '@template']

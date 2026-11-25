@@ -224,6 +224,11 @@ function plus_gallery_file_field($id, $filename, $thumbnail, $field)
 	return $info[$field];
 }
 
+function plus_gallery_uncategorized($source_category)
+{
+	return (int) $source_category <= 0 ? 1 : 0;
+}
+
 function plus_gallery_schema($prefix, $truncate)
 {
 	$t = $prefix . 'plus_album_';
@@ -251,6 +256,7 @@ function plus_gallery_schema($prefix, $truncate)
 	$pictures = array('target' => $t . 'pics', 'primary' => 'album.pic_id', 'autoincrement' => 'pic_id',
 		'query_first' => array('target', $truncate . $t . 'pics'),
 		array('pic_id','album.pic_id','intval'), array('cat_id',array('album.pic_cat_id','album.pic_user_id'),'plus_gallery_category'),
+		array('legacy_uncategorized','album.pic_cat_id','plus_gallery_uncategorized'),
 		array('author_id','album.pic_user_id','plus_existing_author'), array('author_name','album.pic_username','plus_gallery_text'),
 		array('author_removed',array('album.pic_user_id','album.pic_username'),'plus_removed_author'),
 		array('author_ip','album.pic_user_ip','plus_registration_ip'), array('title','album.pic_title','plus_gallery_text'),

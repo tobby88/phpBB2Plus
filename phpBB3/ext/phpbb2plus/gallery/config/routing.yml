@@ -6,6 +6,10 @@ phpbb2plus_gallery_search:
     path: /album/search
     defaults: { _controller: phpbb2plus.gallery.search:find }
     methods: [GET, HEAD, POST]
+phpbb2plus_gallery_hot:
+    path: /album/hot-or-not
+    defaults: { _controller: phpbb2plus.gallery.board:hot }
+    methods: [GET, HEAD, POST]
 phpbb2plus_gallery_personal:
     path: /album/member/{owner}
     defaults: { _controller: phpbb2plus.gallery.personal_controller:index }

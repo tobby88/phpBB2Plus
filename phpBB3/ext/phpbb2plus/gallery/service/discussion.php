@@ -10,22 +10,80 @@ class discussion
 	private $user;
 	private $prefix;
 	private $root;
+	private $config;
 
-	public function __construct($access, $db, $user, $prefix, $root)
+	public function __construct($access, $db, $user, $prefix, $root, $config)
 	{
 		$this->access = $access;
 		$this->db = $db;
 		$this->user = $user;
 		$this->prefix = $prefix;
 		$this->root = $root;
+		$this->config = $config;
 	}
 
-	public function honours($pic, $cat)
+	private function honour_categories()
 	{
-		if (!$this->access->may_discuss($pic, $cat, 'rate') ||
-			(empty($this->user->data['is_registered']) && !(int) $this->access->setting('hon_rate_users', 1, 'sp'))) { return false; }
-		$categories = preg_split('/[^0-9]+/', $this->access->setting('hon_rate_where', '', 'sp'), -1, PREG_SPLIT_NO_EMPTY);
-		return !$categories || in_array((int) $cat['cat_id'], array_map('intval', $categories), true);
+		$ids = preg_split('/[^0-9]+/', $this->access->setting('hon_rate_where', '', 'sp'), -1, PREG_SPLIT_NO_EMPTY);
+		return array_flip(array_filter(array_map('intval', $ids)));
+	}
+
+	private function rating_field($honour)
+	{
+		return $honour && (int) $this->access->setting('hon_rate_sep', 1, 'sp') ? 'honour_points' : 'points';
+	}
+
+	private function repeat_honours()
+	{
+		return empty($this->user->data['is_registered']) || (int) $this->access->setting('hon_rate_times', 1, 'sp');
+	}
+
+	private function eligible($pic, $cat)
+	{
+		$categories = $this->honour_categories();
+		return !$pic['legacy_uncategorized'] && (!$categories || isset($categories[$cat['cat_id']])) &&
+			$this->access->may_discuss($pic, $cat, 'rate') &&
+			(!empty($this->user->data['is_registered']) || (int) $this->access->setting('hon_rate_users', 1, 'sp')) &&
+			pictures::original_path(realpath($this->root . $this->config['upload_path']), $pic['storage_name']);
+	}
+
+	public function honour_status($pic, $cat)
+	{
+		if (!$this->eligible($pic, $cat)) { return 'unavailable'; }
+		if (!$this->repeat_honours())
+		{
+			$field = $this->rating_field(true);
+			$row = $this->ballot($pic['pic_id'], $field);
+			if ($row && (int) $row[$field] > 0) { return 'rated'; }
+		}
+		return 'open';
+	}
+
+	public function draw()
+	{
+		$categories = $this->access->portal_categories(true, $this->honour_categories());
+		$where = $this->access->picture_filter($categories) . " AND p.legacy_uncategorized=0 AND p.storage_name<>''";
+		$from = ' FROM ' . $this->prefix . 'pics p WHERE ' . $where;
+		$result = $this->db->sql_query('SELECT COUNT(*) AS count' . $from);
+		$count = (int) $this->db->sql_fetchfield('count');
+		$this->db->sql_freeresult($result);
+		if (!$count) { return null; }
+		$result = $this->db->sql_query_limit('SELECT p.*,u.username,u.user_colour FROM ' . $this->prefix . 'pics p
+			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=p.author_id WHERE ' . $where . ' ORDER BY p.pic_id', 1, random_int(0, $count - 1));
+		$pic = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		if (!$pic) { return null; }
+		if (!pictures::original_path(realpath($this->root . $this->config['upload_path']), $pic['storage_name'])) { throw new NotFoundHttpException(); }
+		return array($pic, $this->access->category($pic['cat_id']));
+	}
+
+	public function rating($id, $honour)
+	{
+		$field = $this->rating_field($honour);
+		$result = $this->db->sql_query("SELECT COUNT(*) AS votes, AVG($field) AS rating FROM " . $this->prefix . "ratings WHERE $field>0 AND pic_id=" . (int) $id);
+		$row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		return $row;
 	}
 
 	public function scale()
@@ -43,20 +101,25 @@ class discussion
 		if ($body === '' || utf8_strlen($body) > $this->text_limit()) { throw new \DomainException('PLUS_ALBUM_COMMENT_LENGTH'); }
 	}
 
-	private function vote($id, $points, $honour)
+	private function ballot($id, $field)
 	{
-		if ($points < 1 || $points > $this->scale()) { throw new \DomainException('PLUS_ALBUM_BAD_RATING'); }
-		$separate = $honour && (int) $this->access->setting('hon_rate_sep', 1, 'sp');
-		$field = $separate ? 'honour_points' : 'points';
-		$repeat = $honour && (empty($this->user->data['is_registered']) || (int) $this->access->setting('hon_rate_times', 1, 'sp'));
 		$uid = (int) $this->user->data['user_id'];
-		$ip = $this->user->ip;
 		$where = 'pic_id=' . (int) $id . ' AND user_id=' . $uid;
-		if ($uid === ANONYMOUS) { $where .= " AND user_ip='" . $this->db->sql_escape($ip) . "'"; }
+		if ($uid === ANONYMOUS) { $where .= " AND user_ip='" . $this->db->sql_escape($this->user->ip) . "'"; }
 		$table = $this->prefix . 'ratings';
 		$result = $this->db->sql_query_limit("SELECT rating_id,$field FROM $table WHERE $where ORDER BY $field DESC, rating_id", 1);
 		$row = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
+		return $row;
+	}
+
+	private function vote($id, $points, $honour)
+	{
+		if ($points < 1 || $points > $this->scale()) { throw new \DomainException('PLUS_ALBUM_BAD_RATING'); }
+		$field = $this->rating_field($honour);
+		$repeat = $honour && $this->repeat_honours();
+		$table = $this->prefix . 'ratings';
+		$row = $this->ballot($id, $field);
 		if ($row)
 		{
 			if (!$repeat && (int) $row[$field] > 0) { throw new \DomainException('PLUS_ALBUM_ALREADY_RATED'); }
@@ -65,7 +128,8 @@ class discussion
 		else
 		{
 			$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', array('pic_id' => (int) $id,
-				'user_ip' => $ip, 'user_id' => $uid, 'points' => $separate ? 0 : $points, 'honour_points' => $separate ? $points : 0)));
+				'user_ip' => $this->user->ip, 'user_id' => (int) $this->user->data['user_id'], 'points' => $field === 'points' ? $points : 0,
+				'honour_points' => $field === 'honour_points' ? $points : 0)));
 		}
 	}
 
@@ -76,7 +140,7 @@ class discussion
 			list($pic, $cat) = $this->access->picture($id);
 			if ($honour)
 			{
-				if (!$this->honours($pic, $cat)) { throw new NotFoundHttpException(); }
+				if (!$this->eligible($pic, $cat)) { throw new NotFoundHttpException(); }
 				$this->vote($id, $points, true);
 				return 0;
 			}
