@@ -41,6 +41,7 @@ class listener implements EventSubscriberInterface
 		$permissions['a_plus_dl_perms'] = array('lang'=>'ACL_A_PLUS_DL_PERMS', 'cat'=>'misc');
 		$permissions['a_plus_dl_licenses'] = array('lang'=>'ACL_A_PLUS_DL_LICENSES', 'cat'=>'misc');
 		$permissions['a_plus_dl_fields'] = array('lang'=>'ACL_A_PLUS_DL_FIELDS', 'cat'=>'misc');
+		$permissions['a_plus_dl_mirrors'] = array('lang'=>'ACL_A_PLUS_DL_MIRRORS', 'cat'=>'misc');
 		$event['permissions'] = $permissions;
 	}
 

@@ -3,6 +3,7 @@ namespace phpbb2plus\downloads\controller;
 
 use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\field_data;
+use phpbb2plus\downloads\service\mirrors;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class library
@@ -148,7 +149,7 @@ class library
 				"mirrors WHERE file_id=$id AND asset_status IN ('ready','remote') ORDER BY mirror_id");
 			while ($r = $this->db->sql_fetchrow($result))
 			{
-				$label = access::raw_text($r,'location','mirror_location','plus_mirror_escaped');
+				$label = mirrors::label($r);
 				$this->template->assign_block_vars('dl_mirrors',array('LABEL'=>trim($label) === '' ?
 					$this->language->lang('PLUS_DL_MIRROR_NUMBER',(int) $r['mirror_id']) : $label,
 					'URL'=>$this->helper->route('phpbb2plus_downloads_media',array('file'=>$id,'mirror'=>(int) $r['mirror_id']))));

@@ -3,6 +3,7 @@ namespace phpbb2plus\downloads\controller;
 
 use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\license_text;
+use phpbb2plus\downloads\service\mirrors;
 use phpbb\request\request_interface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -129,14 +130,14 @@ class delivery
 		$target = json_decode($selected['source_json'], true) ?: array();
 		if ($selected['asset_status'] === 'remote')
 		{
-			$url = access::external($target['file_dlurl'] ?? '');
+			$url = access::external(isset($selected['mirror_id']) ? mirrors::remote($target) : ($target['file_dlurl'] ?? ''));
 			if ($url === '') { throw new NotFoundHttpException(); }
 			return new RedirectResponse($url, 302);
 		}
 		$path = $this->local_path($selected['storage_name']);
 		if ((string) filesize($path) !== (string) $selected['file_bytes']) { throw new NotFoundHttpException(); }
 		$metadata = json_decode($file['source_json'], true) ?: array();
-		$name = basename(str_replace('\\','/', (string) (($metadata['real_name'] ?? '') ?: ($target['unique_name'] ?? 'download'))));
+		$name = basename(str_replace('\\','/', (string) (($metadata['real_name'] ?? '') ?: mirrors::filename($target))));
 		$name = preg_replace('/[\x00-\x1f\x7f]/u', '', $name);
 		if ($name === '' || $name === '.' || $name === '..') { $name = 'download'; }
 		$fallback = preg_replace('/[^A-Za-z0-9._-]/', '_', $name);

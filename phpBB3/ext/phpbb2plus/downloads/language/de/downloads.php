@@ -26,6 +26,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_DOWNLOAD_SOURCES'=>'Downloadquellen','PLUS_DL_PRIMARY_SOURCE'=>'Originaldatei','PLUS_DL_MIRROR_NUMBER'=>'Spiegelserver %d',
 	'PLUS_DL_FIELDS_CHANGED'=>'Die Zusatzfelder wurden inzwischen geändert. Prüfe die angezeigten Angaben vor dem erneuten Absenden.',
 	'ACL_A_PLUS_DL_FIELDS'=>'Kann Zusatzfelder für Downloads verwalten',
+	'ACL_A_PLUS_DL_MIRRORS'=>'Kann Download-Spiegelserver im Administrationsbereich verwalten',
 	'PLUS_DL_BAD_URL'=>'Gib einen gültigen HTTP- oder HTTPS-Link an.', 'PLUS_DL_BAD_LICENSE'=>'Wähle eine vorhandene Lizenz.',
 	'PLUS_DL_CHOOSE_SOURCE'=>'Wähle eine lokale Datei oder einen Downloadlink. Auch das Vorschaubild benötigt nur eine Quelle.',
 	'PLUS_DL_SUBMISSION_GONE'=>'Dieser eingereichte Download wurde bereits entfernt.',

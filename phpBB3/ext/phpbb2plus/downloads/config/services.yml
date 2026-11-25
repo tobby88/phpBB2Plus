@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.downloads.mirrors:
+        class: phpbb2plus\downloads\service\mirrors
+        arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@phpbb2plus.downloads.media', '@user', '@log', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.fields:
         class: phpbb2plus\downloads\service\fields
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@user', '@log', '%core.table_prefix%plus_dl_']

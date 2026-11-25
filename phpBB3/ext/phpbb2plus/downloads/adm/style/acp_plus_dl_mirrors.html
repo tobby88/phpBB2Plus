@@ -1,0 +1,39 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_DL_MIRRORS}</h1>
+{% if DL_LIST %}
+<form id="dl-mirror-search" method="post" action="{U_DL_SEARCH}"><fieldset class="display-options">
+<label for="dl-lookup">{L_ACP_PLUS_DL_MIRROR_SEARCH}</label> <input id="dl-lookup" class="text medium" name="q" value="{{ DL_QUERY|e('html_attr') }}"> <button class="button2">{L_SEARCH}</button>{S_FORM_TOKEN}</fieldset></form>
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_DL_MIRROR_FILE}</th><th>{L_ACP_PLUS_DL_MIRROR_CATEGORY_NAME}</th><th>{L_ACP_PLUS_DL_MIRROR_COUNT}</th></tr></thead><tbody>
+{% for f in loops.dl_files %}<tr><td><a href="{{ f.URL }}">{{ f.TITLE|e }}</a> (#{{ f.ID }}){% if not f.APPROVED %} · {L_ACP_PLUS_DL_MIRROR_PENDING}{% endif %}</td><td>{{ f.CATEGORY|e }}</td><td>{{ f.COUNT }}</td></tr>
+{% else %}<tr><td colspan="3">{L_ACP_PLUS_DL_MIRROR_NO_FILES}</td></tr>{% endfor %}</tbody></table>
+{% if U_DL_PREV or U_DL_NEXT %}<p>{% if U_DL_PREV %}<a href="{U_DL_PREV}">{L_PREVIOUS}</a>{% endif %} {% if U_DL_NEXT %}<a href="{U_DL_NEXT}">{L_NEXT}</a>{% endif %}</p>{% endif %}
+{% elseif DL_FILE %}
+<p><a href="{U_BACK}">{L_BACK}</a></p><h2>{{ DL_TITLE|e }}</h2>
+{% if DL_SAVED %}<div class="successbox"><p>{L_CONFIG_UPDATED}</p></div>{% endif %}
+{% if DL_ELIGIBLE %}<p><a class="button2" href="{U_DL_NEW}">{L_ACP_PLUS_DL_MIRROR_CREATE}</a></p>{% else %}<p>{L_ACP_PLUS_DL_MIRROR_CATEGORY}</p>{% endif %}
+<form id="dl-mirror-list" action="{U_DL_SELECT}" method="post"><table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_DL_MIRROR_LOCATION}</th><th>{L_ACP_PLUS_DL_MIRROR_CURRENT}</th><th>{L_ACP_PLUS_DL_ACTIONS}</th><th>{L_SELECT}</th></tr></thead><tbody>
+{% for m in loops.dl_mirrors %}<tr><td>{{ m.TITLE|e }}</td><td>{{ m.STATUS|e }}{% if m.CURRENT %}<br>{{ m.CURRENT|e }}{% endif %}</td>
+<td>{% if m.U_EDIT %}<a href="{{ m.U_EDIT }}">{L_EDIT}</a> · {% endif %}<a href="{{ m.U_DELETE }}">{L_DELETE}</a></td><td><input type="checkbox" name="selected[]" value="{{ m.ID }}" aria-label="{{ m.TITLE|e('html_attr') }}"></td></tr>
+{% else %}<tr><td colspan="4">{L_ACP_PLUS_DL_MIRROR_EMPTY}</td></tr>{% endfor %}</tbody></table>
+<fieldset class="submit-buttons">{% if loops.dl_mirrors %}{% if DL_ELIGIBLE %}<button class="button2" name="operation" value="edit">{L_ACP_PLUS_DL_MIRROR_EDIT}</button>{% endif %}
+<button class="button2" name="operation" value="delete">{L_ACP_PLUS_DL_MIRROR_DELETE}</button>{% endif %}<input type="hidden" name="complete" value="1">{S_FORM_TOKEN}</fieldset></form>
+{% else %}
+<p><a href="{U_BACK}">{{ DL_TITLE|e }}</a></p>
+<form id="dl-mirror-admin" enctype="multipart/form-data" method="post" action="{U_DL_SAVE}">
+{% if DL_ERROR %}<div class="errorbox"><p>{{ DL_ERROR|e }}</p></div>{% endif %}
+{% if DL_ACTION == 'delete' %}
+<fieldset><legend>{{ DL_LABEL|e }}</legend><p>{L_ACP_PLUS_DL_MIRROR_REMOVE_HELP}</p><ul>{% for m in loops.dl_selected %}<li>{{ m.TITLE|e }}{% if m.CURRENT %} · {{ m.CURRENT|e }}{% endif %}</li>{% endfor %}</ul>
+<p><label><input type="checkbox" name="confirm" value="1" required> {L_ACP_PLUS_DL_MIRROR_CONFIRM}</label></p></fieldset>
+{% else %}
+{% for m in loops.dl_selected %}<fieldset><legend>{% if m.ID %}{{ m.TITLE|e }}{% else %}{{ DL_LABEL|e }}{% endif %}</legend>
+{% if m.ID %}<dl><dt>{L_ACP_PLUS_DL_MIRROR_CURRENT}</dt><dd>{{ m.STATUS|e }}{% if m.CURRENT %} · {{ m.CURRENT|e }}{% endif %}</dd></dl>{% endif %}
+<dl><dt><label for="location_{{ m.ID }}">{L_ACP_PLUS_DL_MIRROR_LOCATION}</label></dt><dd><input class="text medium" id="location_{{ m.ID }}" name="location_{{ m.ID }}" value="{{ m.LOCATION|e('html_attr') }}"{% if not m.ID %} required{% endif %}></dd></dl>
+<dl><dt><label for="source_{{ m.ID }}">{L_ACP_PLUS_DL_MIRROR_SOURCE}</label></dt><dd><select id="source_{{ m.ID }}" name="source_{{ m.ID }}">
+{% if m.ID %}<option value="keep"{% if m.SOURCE == 'keep' %} selected{% endif %}>{L_ACP_PLUS_DL_MIRROR_KEEP}</option>{% endif %}
+<option value="local"{% if m.SOURCE == 'local' %} selected{% endif %}>{L_ACP_PLUS_DL_MIRROR_LOCAL}</option><option value="remote"{% if m.SOURCE == 'remote' %} selected{% endif %}>{L_ACP_PLUS_DL_MIRROR_REMOTE}</option></select></dd></dl>
+<dl><dt><label for="upload_{{ m.ID }}">{L_ACP_PLUS_DL_MIRROR_LOCAL}</label></dt><dd><input type="file" id="upload_{{ m.ID }}" name="upload_{{ m.ID }}"></dd></dl>
+<dl><dt><label for="url_{{ m.ID }}">{L_ACP_PLUS_DL_MIRROR_REMOTE}</label></dt><dd><input type="url" class="text medium" id="url_{{ m.ID }}" name="url_{{ m.ID }}" value="{{ m.URL|e('html_attr') }}"></dd></dl>
+</fieldset>{% endfor %}{% endif %}
+<fieldset class="submit-buttons"><button class="button1" type="submit">{{ DL_LABEL|e }}</button> <a href="{U_BACK}">{L_CANCEL}</a>
+<input type="hidden" name="state" value="{DL_STATE}"><input type="hidden" name="complete" value="1">{S_FORM_TOKEN}</fieldset></form>
+{% endif %}<!-- INCLUDE overall_footer.html -->
