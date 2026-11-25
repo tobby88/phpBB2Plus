@@ -146,9 +146,15 @@ def browse(administrator, member, applicant, guest, check):
         image = re.search(r'<a href="([^"]*/album/picture/28004/full(?:\?[^"]*)?)" target="_blank" rel="noopener noreferrer">', popup_grid)
         if not image or not guest.fetch(unescape(image[1]), raw=True).startswith(b"\x89PNG\r\n\x1a\n"):
             raise RuntimeError("A normal gallery thumbnail did not open its full image")
+        check("missing_file")
+        row = rows(guest, 880)[881]
+        picture, target, _ = latest(row, "picture")
+        if (picture != 28004 or "/full" in target or 'target="_blank"' in row or 'plus-album-index-thumb' in row or
+                "Grüne Ansicht – fünf" not in guest.fetch(target)):
+            raise RuntimeError("An unavailable original did not fall back to its accessible picture page")
         check("minimal")
         inline_grid = category_grid(guest.fetch(grid_url))
-        if 'target="_blank"' in inline_grid or not re.search(r'<a href="[^"]*/album/picture/28004(?:\?[^"]*)?">', inline_grid):
+        if 'target="_blank"' in inline_grid or not re.search(r'<a href="[^"]*/album/picture/28002(?:\?[^"]*)?">', inline_grid):
             raise RuntimeError("Disabling the full-image popup did not restore the picture page")
         row = rows(guest, 880)[881]
         if children(row) or any(key in row for key in ("plus-album-moderators", "data-album-new", "data-album-count", "plus-album-index-thumb", "data-album-last-")):

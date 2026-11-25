@@ -158,14 +158,15 @@ class board
 		if (!$row) { return array(); }
 		$params = array('picture' => (int) $row['pic_id']);
 		$title = $row['title'];
+		$full = !$is_comment && $popup && $row['storage_name'] !== '';
 		if ($is_comment) { $link = $this->helper->route('phpbb2plus_gallery_comment_legacy', array('comment' => (int) $row['event_id'])); }
 		else
 		{
-			$link = $popup ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')) : $this->helper->route('phpbb2plus_gallery_picture', $params);
+			$link = $full ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')) : $this->helper->route('phpbb2plus_gallery_picture', $params);
 			$length = max(1, min(200, (int) $this->access->setting('last_pic_title_length', 25)));
 			if (utf8_strlen($title) > $length) { $title = utf8_substr($title, 0, $length) . '…'; }
 		}
-		return array('ID' => (int) $row['event_id'], 'TITLE' => $title, 'URL' => $link, 'AUTHOR' => $this->byline->display($row),
+		return array('ID' => (int) $row['event_id'], 'TITLE' => $title, 'URL' => $link, 'FULL' => $full, 'AUTHOR' => $this->byline->display($row),
 			'TIME' => $this->user->format_date($row['created_at']), 'DATETIME' => gmdate('c', $row['created_at']),
 			'THUMB' => !$is_comment && $row['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small')) : '');
 	}

@@ -128,6 +128,10 @@ elseif ($argv[2] === 'cleanup')
 	{ $db->sql_query("INSERT INTO {$g}settings " . $db->sql_build_array('INSERT', array('scope' => 'album') + $row)); }
 	$db->sql_query("DELETE FROM {$g}settings WHERE scope='idxtest'");
 }
+elseif ($argv[2] === 'missing_file')
+{
+	$db->sql_query("UPDATE {$g}pics SET storage_name='' WHERE pic_id=28004 AND cat_id=883");
+}
 else
 {
 	$modes = array('month' => array('new_pic_check_interval' => '1hm'),
