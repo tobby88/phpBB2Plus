@@ -240,12 +240,16 @@ def main():
                 legacy_links.browse(base, member, media["member"])
                 credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
-                news.administration(base, member)
-                banners.administration(base, member, web)
-                colours.administration(member, media["member"])
-                portal.administration(base, member)
-                custom_profiles.administration(member)
-                credits.administration(member)
+                # The calendar test reauthenticates the founder. Credit edits have
+                # their own table and can share the other ACP tests' form wait times.
+                with ThreadPoolExecutor(max_workers=1) as worker:
+                    credit_run = worker.submit(credits.administration, member.separate_client())
+                    news.administration(base, member)
+                    banners.administration(base, member, web)
+                    colours.administration(member, media["member"])
+                    portal.administration(base, member)
+                    custom_profiles.administration(member)
+                    credit_run.result()
                 warning_cards.exercise(member, media["member"], os.environ["PLUS_TEST_MODERN_PASSWORD"], lambda step: php(fixture, step, target))
                 def delegation_fixture(operation):
                     php(ROOT / "tests/phpbb3/delegation_management.php", target, operation, cwd=web)
