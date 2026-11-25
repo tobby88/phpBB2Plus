@@ -179,8 +179,16 @@ class catalog
 	public function media($id)
 	{
 		$b = $this->item($id);
+		$uploads = $this->root . trim($this->config['upload_path'], '/');
+		if (strpos($b['asset_name'],'library/') === 0)
+		{
+			$name = substr($b['asset_name'],8);
+			$art = artwork::inspect($uploads,$name);
+			if (!$art || $art['asset_mime'] !== $b['asset_mime']) { throw new NotFoundHttpException(); }
+			return array($uploads . '/plus_banner_artwork/' . $name, $art['asset_mime']);
+		}
 		if (!preg_match('/^banner_[a-f0-9]{64}$/D', $b['asset_name'])) { throw new NotFoundHttpException(); }
-		$path = $this->root . trim($this->config['upload_path'], '/') . '/' . $b['asset_name'];
+		$path = $uploads . '/' . $b['asset_name'];
 		if (is_link($path) || !is_file($path) || (string) filesize($path) !== (string) $b['asset_bytes']) { throw new NotFoundHttpException(); }
 		return array($path, $b['asset_mime']);
 	}

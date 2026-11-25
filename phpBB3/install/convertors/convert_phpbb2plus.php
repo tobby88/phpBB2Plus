@@ -48,6 +48,7 @@ if (!$get_info)
 	$convertor['schema'][0]['execute_first'] = ($convertor['schema'][0]['execute_first'] ?? '') . ' plus_import_post_icons();';
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_media_issues');
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
+	$convertor['execute_last'][] = 'plus_banner_next_id();';
 	$convertor['execute_last'][] = 'plus_enable_post_icons();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';

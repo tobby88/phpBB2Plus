@@ -15,3 +15,6 @@ services:
     phpbb2plus.banners.delivery:
         class: phpbb2plus\banners\controller\delivery
         arguments: ['@phpbb2plus.banners.catalog', '@dbal.conn', '@config', '@user', '@request', '%core.table_prefix%plus_banner']
+    phpbb2plus.banners.management:
+        class: phpbb2plus\banners\service\management
+        arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_banner']

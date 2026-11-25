@@ -11,7 +11,8 @@ function seed_banners($db)
 		(21,'Abgelaufener Hinweis',2,0,'Termin','https://example.invalid/past',1,6,0,2359,19980101,19980102,-1,2,2,0,0),
 		(22,'Mitgliederlink',4,0,'Mitglieder','https://example.invalid/members',1,0,0,0,0,0,0,2,2,0,0),
 		(23,'games/puzzle/puzzle.swf',15,7,'Clubfilm','https://example.invalid/movie',1,0,0,0,0,0,-1,2,6,160,120)");
-	$db->query("INSERT INTO phpbb_banner_stats VALUES (5,10000,'c0000205',1,19),(5,10000,'c0000205',1,19)");
+	$db->query("INSERT INTO phpbb_banner_stats VALUES (5,10000,'c0000205',1,19),(5,10000,'c0000205',1,19),(90,10000,'c0000205',1,3)");
+	$db->query('ALTER TABLE phpbb_banner AUTO_INCREMENT=120');
 }
 
 function verify_banners($db, $member)
@@ -38,4 +39,6 @@ function verify_banners($db, $member)
 	check_fixture((int) $db->query("SELECT COUNT(*) FROM p3_plus_banner_hits WHERE banner_id=5 AND hit_time=10000
 		AND user_id=" . (int) $member . " AND source_user=1 AND ip='192.0.2.5' AND duration=19")->fetch_row()[0] === 2,
 		'A historical banner click disappeared or changed owner');
+	$next = $db->query("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='p3_plus_banners'")->fetch_row();
+	check_fixture((int) $next[0] >= 120,'Conversion lost the banner allocation floor');
 }

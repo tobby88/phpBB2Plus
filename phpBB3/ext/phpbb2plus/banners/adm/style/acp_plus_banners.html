@@ -1,0 +1,62 @@
+<!-- INCLUDE overall_header.html -->
+{% macro select(name, options) %}
+<select id="bn-{{ name }}" name="{{ name }}">{% for option in options %}
+<option value="{{ option.KEY|e }}"{% if option.SELECTED %} selected{% endif %}>{{ option.LABEL|e }}</option>{% endfor %}</select>
+{% endmacro %}
+{% import _self as fields %}
+<h1>{L_ACP_PLUS_BANNERS}</h1>
+{% if S_EDITOR %}
+<p><a href="{U_LIST}">{L_BACK}</a></p>
+<form id="plus-banner-edit" method="post" action="{U_SAVE}">
+<fieldset><legend>{L_PLUS_BN_PLACEMENT}</legend>
+<dl><dt><label for="bn-spot">{L_PLUS_BN_PLACEMENT}</label></dt><dd>{{ fields.select('spot', loops.spots) }}</dd></dl>
+<dl><dt><label for="bn-forum_id">{L_FORUM}</label></dt><dd>{{ fields.select('forum_id', loops.forums) }}</dd></dl>
+<dl><dt><label for="bn-active">{L_PLUS_BN_ACTIVE}</label></dt><dd><input type="checkbox" id="bn-active" name="active" value="1"{% if ACTIVE %} checked{% endif %}></dd></dl>
+<dl><dt><label for="bn-weight">{L_PLUS_BN_WEIGHT}</label></dt><dd><input type="number" id="bn-weight" name="weight" min="0" max="2147483647" value="{WEIGHT}" required></dd></dl>
+<dl><dt><label for="bn-owner">{L_PLUS_BN_OWNER}</label></dt><dd><input id="bn-owner" type="text" name="owner" value="{{ OWNER|e }}"></dd></dl>
+<dl><dt><label for="bn-audience">{L_PLUS_BN_AUDIENCE}</label></dt><dd>{{ fields.select('audience', loops.levels) }}</dd></dl>
+<dl><dt><label for="bn-audience_mode">{L_PLUS_BN_MATCH}</label></dt><dd>{{ fields.select('audience_mode', loops.matches) }}</dd></dl>
+</fieldset>
+<fieldset><legend>{L_PLUS_BN_FORMAT}</legend>
+<dl><dt><label for="bn-media_type">{L_PLUS_BN_FORMAT}</label></dt><dd>{{ fields.select('media_type', loops.formats) }}</dd></dl>
+<dl><dt><label for="bn-name">{L_PLUS_BN_LABEL}</label></dt><dd><input class="inputbox" type="text" id="bn-name" name="display_name" value="{{ DISPLAY_NAME|e }}"></dd></dl>
+<dl><dt><label for="bn-artwork">{L_PLUS_BN_ART}</label><br><span>{L_PLUS_BN_ART_HELP}</span></dt><dd>{{ fields.select('artwork', loops.artworks) }}</dd></dl>
+<dl><dt><label for="bn-target">{L_PLUS_BN_TARGET}</label></dt><dd><input type="url" class="inputbox" id="bn-target" name="target_url" value="{{ TARGET_URL|e }}" required></dd></dl>
+<dl><dt><label for="bn-desc">{L_PLUS_BN_DESC}</label></dt><dd><input class="inputbox" type="text" id="bn-desc" name="description" value="{{ DESCRIPTION|e }}"></dd></dl>
+<dl><dt>{L_PLUS_BN_SIZE}</dt><dd><label>{L_PLUS_BN_WIDTH} <input type="number" min="0" max="4096" name="width" value="{WIDTH}" required></label>
+<label>{L_PLUS_BN_HEIGHT} <input type="number" min="0" max="4096" name="height" value="{HEIGHT}" required></label></dd></dl>
+<dl><dt><label for="bn-notes">{L_PLUS_BN_NOTES}</label></dt><dd><textarea id="bn-notes" name="notes" rows="3">{{ NOTES|e }}</textarea></dd></dl>
+</fieldset>
+<fieldset><legend>{L_PLUS_BN_SCHEDULE}</legend>
+<dl><dt><label for="bn-time_mode">{L_PLUS_BN_SCHEDULE}</label></dt><dd>{{ fields.select('time_mode', loops.schedules) }}</dd></dl>
+<dl><dt>{L_PLUS_BN_HOURS}</dt><dd><label>{L_FROM} <input type="time" name="time_begin" value="{{ TIME_BEGIN|e }}"></label>
+<label>{L_PLUS_BN_UNTIL} <input type="time" name="time_end" value="{{ TIME_END|e }}"></label></dd></dl>
+<dl><dt>{L_PLUS_BN_WEEK}</dt><dd><label>{L_FROM} {{ fields.select('week_begin', loops.begin_days) }}</label>
+<label>{L_PLUS_BN_UNTIL} {{ fields.select('week_end', loops.end_days) }}</label></dd></dl>
+<dl><dt>{L_PLUS_BN_DATES}</dt><dd><label>{L_FROM} <input type="date" name="date_begin" value="{{ DATE_BEGIN|e }}"></label>
+<label>{L_PLUS_BN_UNTIL} <input type="date" name="date_end" value="{{ DATE_END|e }}"></label></dd></dl>
+</fieldset>
+<fieldset><legend>{L_PLUS_BN_COUNTERS}</legend>
+<dl><dt><label for="bn-filter">{L_PLUS_BN_CLICK_FILTER}</label></dt><dd><input id="bn-filter" type="checkbox" name="filter_clicks" value="1"{% if FILTER_CLICKS %} checked{% endif %}></dd></dl>
+<dl><dt><label for="bn-seconds">{L_PLUS_BN_SECONDS}</label></dt><dd><input id="bn-seconds" type="number" min="0" max="2147483647" name="filter_seconds" value="{FILTER_SECONDS}" required></dd></dl>
+<dl><dt><label for="bn-views">{L_PLUS_BN_VIEWS}</label></dt><dd><input id="bn-views" name="views" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" value="{VIEWS}" required></dd></dl>
+<dl><dt><label for="bn-clicks">{L_PLUS_BN_CLICKS}</label></dt><dd><input id="bn-clicks" name="clicks" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" value="{CLICKS}" required></dd></dl>
+</fieldset>
+<fieldset class="submit-buttons">
+<input type="hidden" name="revision" value="{REVISION}"><input type="hidden" name="submission" value="{SUBMISSION}">
+<input type="hidden" name="original_clicks" value="{CLICKS}"><input type="hidden" name="original_views" value="{VIEWS}">
+<input class="button1" type="submit" name="save" value="{L_SUBMIT}">
+{% if S_EXISTING %}<input class="button2" type="submit" name="remove" value="{L_DELETE}" formnovalidate>{% endif %}
+{S_FORM_TOKEN}</fieldset></form>
+{% else %}
+<form id="plus-banner-display" action="{U_LIST}" method="post">
+<fieldset><legend>{L_SETTINGS}</legend><label><input type="checkbox" name="enabled" value="1"{% if ENABLED %} checked{% endif %}> {L_PLUS_BN_ENABLED}</label>
+<input class="button2" type="submit" name="display" value="{L_SUBMIT}">{S_FORM_TOKEN}</fieldset>
+</form>
+<p><a class="button1" href="{U_NEW}">{L_PLUS_BN_NEW}</a></p>
+<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_BN_NAME}</th><th>{L_PLUS_BN_PLACEMENT}</th><th>{L_STATUS}</th><th>{L_PLUS_BN_VIEWS}</th><th>{L_PLUS_BN_CLICKS}</th></tr></thead>
+<tbody>{% for banner in loops.banners %}<tr><td><a href="{{ banner.URL }}">{{ banner.TITLE|e }}</a></td><td>{{ banner.SPOT|e }}</td>
+<td>{% if banner.ACTIVE %}{L_ENABLED}{% else %}{L_DISABLED}{% endif %}</td><td>{{ banner.VIEWS }}</td><td>{{ banner.CLICKS }}</td></tr>{% endfor %}</tbody></table>
+{% if U_PREV %}<a href="{U_PREV}">{L_PREVIOUS}</a>{% endif %} {% if U_NEXT %}<a href="{U_NEXT}">{L_NEXT}</a>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

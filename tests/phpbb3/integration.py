@@ -180,6 +180,7 @@ def main():
                 legacy_links.browse(base, member, media["member"])
                 topic_calendar.browse(base, member, ordinary, pending)
                 news.administration(base, member)
+                banners.administration(base, member, web)
                 colours.administration(member, media["member"])
                 portal.administration(base, member)
                 custom_profiles.administration(member)

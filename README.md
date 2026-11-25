@@ -23,6 +23,10 @@ Shadow as a child of prosilver and selects it for a new board. The installer’s
 Convert tab then offers **phpBB2
 Plus (UTF-8)**. The assembled board includes the self-hosted Ruffle player.
 The Arcade converter imports game files from the separate source board.
+Administrators manage the four portal links and other banner positions under
+**General → Board configuration → Banner and portal links**. To add local banner
+artwork, put the file in the **plus_banner_artwork/** subdirectory of the
+board’s protected upload directory. The editor lists supported images and SWF files.
 After changing extensions through the CLI, run `php bin/phpbbcli.php cache:purge`
 in the assembled board so its compiled templates use the current extension list.
 If the web PHP process caches generated PHP indefinitely, exclude the assembled

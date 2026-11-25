@@ -44,7 +44,8 @@ function plus_banner_schema($prefix, $truncate)
 {
 	$table = $prefix . 'plus_banners';
 	$banner = array('target'=>$table, 'primary'=>'banner.banner_id', 'autoincrement'=>'banner_id',
-		'query_first'=>array(array('target', $truncate . $table), array('target', $truncate . $prefix . 'plus_banner_receipts')));
+		'query_first'=>array(array('target', $truncate . $table), array('target', $truncate . $prefix . 'plus_banner_receipts'),
+			array('target', $truncate . $prefix . 'plus_banner_forms')));
 	$fields = array('banner_id'=>'banner_id', 'display_name'=>'banner_name', 'description'=>'banner_description', 'target_url'=>'banner_url',
 		'spot'=>'banner_spot','forum_id'=>'banner_forum','owner_id'=>'banner_owner','source_owner'=>'banner_owner','clicks'=>'banner_click',
 		'views'=>'banner_view','weight'=>'banner_weigth','active'=>'banner_active','time_mode'=>'banner_timetype','time_begin'=>'time_begin',
@@ -70,4 +71,14 @@ function plus_banner_schema($prefix, $truncate)
 		array('banner_id','banner_stats.banner_id','intval'), array('hit_time','banner_stats.click_date','intval'),
 		array('source_user','banner_stats.click_user','intval'), array('user_id','banner_stats.click_user','plus_existing_author'),
 		array('ip','banner_stats.click_ip','plus_registration_ip'), array('duration','banner_stats.user_duration','intval')));
+}
+
+function plus_banner_next_id()
+{
+	global $src_db, $convert, $db, $table_prefix;
+	$r = $src_db->sql_query("SELECT AUTO_INCREMENT AS next_id FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" .
+		$src_db->sql_escape($convert->src_table_prefix . 'banner') . "'");
+	$next = (int) $src_db->sql_fetchfield('next_id');
+	$src_db->sql_freeresult($r);
+	\phpbb2plus\banners\service\management::reserve_legacy_ids($db,$table_prefix . 'plus_banner',$next);
 }

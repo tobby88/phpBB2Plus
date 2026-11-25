@@ -1,11 +1,14 @@
 """Follow converted portal banners and inspect external redirects without leaving loopback."""
 from http.client import HTTPConnection
+from html import unescape
+from html.parser import HTMLParser
 from pathlib import Path
 import re
+import time
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPCookieProcessor, Request
 from arcade import movie
-from http_board import Browser
+from http_board import Browser, Page, admin_url
 from legacy_links import link
 
 
@@ -58,3 +61,122 @@ def browse(base, founder, member):
     click(guest, target, "GET")
     if "Archiv &amp; Freunde" in guest.fetch("app.php/portal") or "Archiv &amp; Freunde" not in member.fetch("app.php/portal"):
         raise RuntimeError("Clicking a filtered link did not hide it for exactly that viewer")
+
+
+class Editor(HTMLParser):
+    """Read the successful controls as the displayed browser form would submit them."""
+    def __init__(self, html):
+        super().__init__(convert_charrefs=True)
+        self.values = {}
+        self.inside = False
+        self.select = self.textarea = None
+        self.feed(html)
+
+    def handle_starttag(self, tag, pairs):
+        attrs = dict(pairs)
+        name = attrs.get("name")
+        if tag == "form":
+            self.inside = attrs.get("id") == "plus-banner-edit"
+        if not self.inside:
+            return
+        if tag == "input" and name and attrs.get("type") not in {"submit", "button"}:
+            if attrs.get("type") != "checkbox" or "checked" in attrs:
+                self.values[name] = attrs.get("value", "")
+        elif tag == "select":
+            self.select = name
+        elif tag == "option" and self.select and ("selected" in attrs or self.select not in self.values):
+            self.values[self.select] = attrs.get("value", "")
+        elif tag == "textarea":
+            self.textarea = name
+            self.values[name] = ""
+
+    def handle_endtag(self, tag):
+        if tag == "form":
+            self.inside = False
+        elif tag == "select":
+            self.select = None
+        elif tag == "textarea":
+            self.textarea = None
+
+    def handle_data(self, text):
+        if self.textarea:
+            self.values[self.textarea] += text
+
+
+def administration(base, owner, web):
+    guest = Browser(base)
+    entry = admin_url(owner)
+    menu = owner.fetch(entry + "&i=acp_board&mode=settings")
+    match = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Banner und Portal-Links</span>', menu)
+    if not match:
+        raise RuntimeError("Banner and portal link administration is missing from board configuration")
+    panel = urljoin(entry, unescape(match.group(1)))
+    art = (Path(__file__).resolve().parents[2] / "phpBB2/images/banner/phpbb2_de_logo.gif").read_bytes()
+    library = web / "files/plus_banner_artwork"
+    library.mkdir(exist_ok=True)
+    (library / "Partner Grüße.gif").write_bytes(art)
+
+    def link_to(label):
+        link = re.search(r'<a\b[^>]*\bhref="([^"]+)"[^>]*>' + re.escape(label) + r'</a>', owner.fetch(panel))
+        if not link:
+            raise RuntimeError("Missing placement in banner administration: " + label)
+        return urljoin(panel, unescape(link.group(1)))
+
+    def submit(url, page, form, changes):
+        action, hidden = Page(page).forms[form]
+        fields = Editor(page).values if form == "plus-banner-edit" else hidden
+        fields.update(changes)
+        if "creation_time" in fields:
+            time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+        return owner.fetch(urljoin(url, unescape(action)), fields)
+
+    form = "plus-banner-edit"
+    new = link_to("Banner oder Portal-Link anlegen")
+    initial = owner.fetch(new)
+    title = "Archivgruppe &amp; Gäste"
+    values = dict(save="1", display_name="Archivgruppe & Gäste", spot="6", target_url="https://example.invalid/new",
+                  views="9007199254740993", owner="HistoricMember")
+    submit(new, initial, form, values)
+    submit(new, initial, form, values)
+    if owner.fetch(panel).count(">" + title + "</a>") != 1:
+        raise RuntimeError("Submitting the same creation form twice did not create exactly one placement")
+    edit = link_to(title)
+    first = owner.fetch(edit)
+    if Editor(first).values["owner"] != "HistoricMember" or title not in guest.fetch("index.php"):
+        raise RuntimeError("The editor lost the owner or the new header link")
+    submit(edit, first, form, {"save":"1", "notes":"Interner Vermerk"})
+    page = owner.fetch(edit)
+    fields = Editor(page).values
+    if fields["views"] != "9007199254740994" or fields["notes"] != "Interner Vermerk":
+        raise RuntimeError("Saving the placement overwrote a view recorded while the form was open")
+    guest.fetch("index.php")
+    conflict = submit(edit, page, form, {"save":"1", "views":"55"})
+    if "zwischenzeitlich geändert" not in conflict or Editor(owner.fetch(edit)).values["views"] != "9007199254740995":
+        raise RuntimeError("A conflicting manual counter change was accepted")
+    submit(edit, owner.fetch(edit), form, {"save":"1","media_type":"0","artwork":"Partner Grüße.gif","description":"Partnerbild",
+           "time_mode":"6","date_begin":"1998-01-01","date_end":"1998-01-02","time_begin":"00:00","time_end":"23:59"})
+    if "Partnerbild" in guest.fetch("index.php"):
+        raise RuntimeError("A retired banner continued to appear")
+    page = owner.fetch(edit)
+    if Editor(page).values.get("artwork") != "keep" or Editor(page).values["date_end"] != "1998-01-02":
+        raise RuntimeError("The ACP did not retain the selected artwork or dates")
+    submit(edit, page, form, {"save":"1","time_mode":"2","time_begin":"00:00","time_end":"23:59"})
+    header = guest.fetch("index.php")
+    image = re.search(r'<a data-plus-spot="6"[^>]*>.*?<img src="([^"]+)" alt="Partnerbild"', header, re.S)
+    if not image or guest.fetch(unescape(image.group(1)), raw=True) != art or "Interner Vermerk" in header:
+        raise RuntimeError("The assigned local artwork or its public description changed")
+    prompt = submit(edit, owner.fetch(edit), form, {"remove":"1"})
+    confirm = next((key for key, (_, fields) in Page(prompt).forms.items() if "confirm_uid" in fields), None)
+    if not confirm or "Partnerbild" not in guest.fetch("index.php"):
+        raise RuntimeError("Removing a placement skipped confirmation")
+    submit(edit, prompt, confirm, {"confirm":"Ja"})
+    submit(new, initial, form, values)
+    if "Partnerbild" in owner.fetch(panel) or title in owner.fetch(panel):
+        raise RuntimeError("A removed placement reappeared after replaying the original form")
+    switch = "plus-banner-display"
+    submit(panel, owner.fetch(panel), switch, {"display":"1"})
+    if 'class="panel plus-portal-links"' in guest.fetch("app.php/portal"):
+        raise RuntimeError("The display switch left portal banners active")
+    submit(panel, owner.fetch(panel), switch, {"display":"1", "enabled":"1"})
+    if 'class="panel plus-portal-links"' not in guest.fetch("app.php/portal"):
+        raise RuntimeError("The display switch lost existing portal placements")
