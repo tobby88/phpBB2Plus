@@ -71,6 +71,7 @@ function plus_jr_registry()
 		'admin_pa_custom.php' => '9237b12da9f50adbc87ff38da3b3550063a92d017dc628b410ee65a69927350b',
 		'admin_album_personal.php' => 'd97d4e085e90eac081030134f6894b60b3e4824ee6d1ef88ad82bd1fd36f5d87',
 		'admin_album_clearcache.php' => 'd84fe34e3710e149884660098985a99d796695ec1ea0f0424d0802bcd8330b3a',
+		'admin_cracker_tracker.php' => '69cb6fe1cc40cf20c5cf0a09fb3d4ca40d849c40d27d83d537db4d0a0d0483eb',
 		'admin_words.php' => '5d8a246e3aa046ed04b6e9346336e66ca0a79031ad0c2a8aa81f4b8d8a257e59',
 		'admin_disallow.php' => '5da99a11b96be1a5020ceca18693aaa0e6339e10ba40f91f18405b71ae7fc8fd',
 		'admin_ranks.php' => 'ae0f662dc79f4e9a203a32e4193d983c33db4666f76e684aa81fc12296fcfd1e',
@@ -102,6 +103,17 @@ function plus_jr_registry()
 		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 	);
 	$dependencies = array(
+		'admin_cracker_tracker.php?modu=9' => array(
+			'ctracker/admin/acp_module_settings.php' => '644f5fffd4e82bda03c2461574577ca1de105d5d1ca18b5a90e9c78ef225bf58',
+			'ctracker/classes/class_ct_adminfunctions.php' => '5b477176fb5b1ff7120da693755695995e943bf22456103f8b533500da133fa6',
+			'ctracker/classes/class_ct_database.php' => 'cf7d05a8520da871abd7a34e20153f53e2d1a0f04466d1549be4e2f9510f8360',
+			'ctracker/classes/class_settings_storage.php' => '12f33ae9212e04652e8451bb3512c0637ce8f94ccd3e4da644702ecc37f00058',
+			'ctracker/classes/class_configuration_storage.php' => 'b00675f780f1085097bec974e9d8cbaaa3ff2de4a8f473dd34a078f5f9b0b7e0',
+			'ctracker/classes/class_acp_storage.php' => 'c64b0d532650bd92f87a5b9060351078e8e0dc7811b886d989fbd417502e470b',
+			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+			'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
+		),
 		'admin_pa_settings.php' => $download_writes + array(
 			'pafiledb/includes/functions_settings_storage.php' => '840e087ee3913ebf75a0b98382742926e4840b57f69dccd4ba6b37120b536334',
 		),
@@ -158,7 +170,7 @@ function plus_jr_registry()
 			if ($map && $file === explode('?', $route, 2)[0] && $category === $map[0] && $label === $map[1])
 			{
 				if (isset($reviewed[$file]) && plus_jr_source_matches($source, $reviewed[$file])
-					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$file] ?? array()))
+					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$route] ?? $dependencies[$file] ?? array()))
 				{
 					$options = array_keys($map[2]);
 					if (count($options) === 1) { $record['option'] = $options[0]; }

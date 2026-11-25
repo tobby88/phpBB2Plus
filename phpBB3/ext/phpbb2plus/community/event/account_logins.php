@@ -25,7 +25,7 @@ class account_logins implements EventSubscriberInterface
 	{
 		return array('core.auth_login_session_create_before' => 'authenticate',
 			'core.session_create_after' => array('started', -100),
-			'core.delete_user_before' => 'remove', 'core.page_header' => 'notice', 'core.acp_board_config_edit_add' => 'settings');
+			'core.delete_user_before' => 'remove', 'core.page_header' => 'notice');
 	}
 
 	public function authenticate($event)
@@ -60,24 +60,4 @@ class account_logins implements EventSubscriberInterface
 		));
 	}
 
-	public function settings($event)
-	{
-		if ($event['mode'] !== 'security') { return; }
-		$this->language->add_lang('info_ucp_logins', 'phpbb2plus/community');
-		$display = $event['display_vars'];
-		$controls = array();
-		foreach ($display['vars'] as $key => $value)
-		{
-			if ($value === 'ACP_SUBMIT_CHANGES')
-			{
-				$controls['legend_plus_logins'] = 'PLUS_LOGIN_SETTINGS';
-				$controls['plus_login_history'] = array('lang' => 'PLUS_LOGIN_RECORD', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => true);
-				$controls['plus_login_limit'] = array('lang' => 'PLUS_LOGIN_LIMIT', 'validate' => 'int:1:60', 'type' => 'number:1:60', 'explain' => true);
-				$controls['plus_login_network_check'] = array('lang' => 'PLUS_LOGIN_NETWORK', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => true);
-			}
-			$controls[$key] = $value;
-		}
-		$display['vars'] = $controls;
-		$event['display_vars'] = $display;
-	}
 }

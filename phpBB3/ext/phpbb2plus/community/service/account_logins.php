@@ -3,6 +3,7 @@ namespace phpbb2plus\community\service;
 
 class account_logins
 {
+	public const SETTINGS = array('plus_login_history' => array(0,1), 'plus_login_limit' => array(1,60), 'plus_login_network_check' => array(0,1));
 	private $db;
 	private $config;
 	private $table;
@@ -32,12 +33,12 @@ class account_logins
 		return $binding;
 	}
 
-	private function policy()
+	public function policy($lock = 'read')
 	{
 		// A login already in flight must honour a change to the board's collection policy.
-		$names = array('plus_login_history', 'plus_login_limit', 'plus_login_network_check');
+		$suffix = array('read' => '', 'shared' => ' LOCK IN SHARE MODE', 'write' => ' FOR UPDATE');
 		$result = $this->db->sql_query('SELECT config_name,config_value FROM ' . CONFIG_TABLE . ' WHERE ' .
-			$this->db->sql_in_set('config_name', $names) . ' ORDER BY config_name LOCK IN SHARE MODE');
+			$this->db->sql_in_set('config_name', array_keys(self::SETTINGS)) . ' ORDER BY config_name' . $suffix[$lock]);
 		$values = array();
 		while ($row = $this->db->sql_fetchrow($result)) { $values[$row['config_name']] = (int) $row['config_value']; }
 		$this->db->sql_freeresult($result);
@@ -53,7 +54,7 @@ class account_logins
 		$db->sql_transaction('begin');
 		try
 		{
-			$settings = $this->policy();
+			$settings = $this->policy('shared');
 			$account = $this->account($id);
 			if ($account && $settings['plus_login_history'])
 			{
@@ -126,7 +127,7 @@ class account_logins
 		$db->sql_transaction('begin');
 		try
 		{
-			$settings = $this->policy();
+			$settings = $this->policy('shared');
 			$account = $this->account($id);
 			$saved = false;
 			if ($account && $settings['plus_login_network_check'])

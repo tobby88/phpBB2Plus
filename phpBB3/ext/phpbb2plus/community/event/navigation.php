@@ -27,10 +27,12 @@ class navigation implements EventSubscriberInterface
 	{
 		$this->language->add_lang('community', 'phpbb2plus/community');
 		$this->language->add_lang('info_acp_statistics', 'phpbb2plus/community');
+		$this->language->add_lang('info_acp_tracker', 'phpbb2plus/community');
 		$permissions = $event['permissions'];
 		$permissions['u_plus_shout'] = array('lang' => 'ACL_U_PLUS_SHOUT', 'cat' => 'post');
 		$permissions['m_plus_shout'] = array('lang' => 'ACL_M_PLUS_SHOUT', 'cat' => 'misc');
 		$permissions['a_plus_credits'] = array('lang' => 'ACL_A_PLUS_CREDITS', 'cat' => 'misc');
+		$permissions['a_plus_ct_settings'] = array('lang' => 'ACL_A_PLUS_CT_SETTINGS', 'cat' => 'misc');
 		$permissions['a_plus_stats_private'] = array('lang' => 'ACL_A_PLUS_STATS_PRIVATE', 'cat' => 'misc');
 		foreach (\phpbb2plus\community\service\statistics_admin::RIGHTS as $right)
 		{

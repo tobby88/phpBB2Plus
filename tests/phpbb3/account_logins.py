@@ -3,6 +3,7 @@ import os
 import re
 from html import unescape
 
+from delegation import authenticate
 from http_board import Browser, FormFields, Page, admin_url, login, submit_form
 
 
@@ -56,16 +57,33 @@ def browse(base, member, admin, fixture):
     if ack not in Page(member.fetch(BOOKMARK)).forms:
         raise RuntimeError("The member could not re-enable the notice")
 
-    panel = admin_url(admin) + "&i=acp_board&mode=security"
-    form = "acp_board"
+    route = "&i=-phpbb2plus-community-acp-tracker_settings_module&mode=manage"
+    panel = admin_url(admin) + route
+    form = "plus-tracker-settings"
     def settings(history, network):
         page = admin.fetch(panel)
         fields = FormFields(page, form).values
         if fields.get("config[plus_login_limit]") != "3":
-            raise RuntimeError("The native ACP security form lost the imported login limit")
+            raise RuntimeError("The CrackerTracker settings form lost the imported login limit")
         submit_form(admin, panel, page, form, {"submit": "1", "config[plus_login_history]": str(history),
                                               "config[plus_login_network_check]": str(network)})
     try:
+        delegate, entry = authenticate(base, "TrackerSettingsJunior")
+        delegated_panel = entry + route
+        initial = delegate.fetch(delegated_panel)
+        denied = delegate.fetch(entry + "&i=acp_board&mode=security", expected_status=503)
+        if form not in Page(initial).forms or "Module not accessible" not in denied or "acp_board" in Page(denied).forms:
+            raise RuntimeError("The historical tracker module was lost or opened the general server settings")
+        submit_form(delegate, delegated_panel, initial, form, {"config[plus_login_limit]": "4"})
+        submit_form(delegate, delegated_panel, initial, form, {"config[plus_login_limit]": "2"})
+        current = delegate.fetch(delegated_panel)
+        if FormFields(current, form).values.get("config[plus_login_limit]") != "4":
+            raise RuntimeError("A stale tracker settings form replaced a later policy")
+        submit_form(delegate, delegated_panel, current, form, {"config[plus_login_limit]": "61", "config[plus_login_history]": "0"})
+        fields = FormFields(delegate.fetch(delegated_panel), form).values
+        if fields.get("config[plus_login_limit]") != "4" or fields.get("config[plus_login_history]") != "1":
+            raise RuntimeError("One invalid tracker setting partially changed the board policy")
+        submit_form(delegate, delegated_panel, delegate.fetch(delegated_panel), form, {"config[plus_login_limit]": "3"})
         settings(0, 1)
         fixture("network-only")
         page = member.fetch(BOOKMARK)

@@ -24,6 +24,7 @@ function delegation_fixture_roles()
 			array('a_plus_dl_edit', 'a_plus_dl_approval', 'a_plus_dl_delete', 'a_plus_dl_mirrors')),
 		57 => array('DownloadSettingsJunior', 'DownloadSettingsadmin_pa_settings.php', 'a_plus_dl_settings'),
 		58 => array('AlbumCacheJunior', 'Photo_AlbumClear_Cacheadmin_album_clearcache.php', 'a_plus_album_cache'),
+		59 => array('TrackerSettingsJunior', 'ctracker_module_categoryctracker_module_9admin_cracker_tracker.php?modu=9', 'a_plus_ct_settings'),
 	);
 }
 
