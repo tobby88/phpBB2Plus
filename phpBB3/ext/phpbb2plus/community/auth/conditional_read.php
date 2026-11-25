@@ -13,11 +13,48 @@ class conditional_read extends \phpbb\auth\auth
 	private $text;
 	private $forums;
 	private $building_native_cache = false;
+	private $delegation;
+	private $delegated = array();
 
-	public function __construct($config,$text)
+	public function __construct($config,$text,$delegation)
 	{
 		$this->board_config = $config;
 		$this->text = $text;
+		$this->delegation = $delegation;
+	}
+
+	public function has_delegated_acp() { return (bool) $this->delegated; }
+
+	public function delegated_module($basename, $mode)
+	{
+		foreach (junior_admin::MODULES as $registration)
+		{
+			if (isset($this->delegated[$registration[2]]) && ltrim($basename, '\\') === $registration[3] && $mode === $registration[4]) { return true; }
+		}
+		return false;
+	}
+
+	public function native_module($expression)
+	{
+		if (!parent::acl_get('a_')) { return false; }
+		$delegated = $this->delegated;
+		$this->delegated = array();
+		try { return \p_master::module_auth($expression, 0); }
+		finally { $this->delegated = $delegated; }
+	}
+
+	public function acl_get($opt, $f = 0)
+	{
+		if ($this->delegated && !$f)
+		{
+			$negate = strpos($opt, '!') === 0;
+			$name = $negate ? substr($opt, 1) : $opt;
+			// ADMIN_START is defined by the native ACP entry point before reauthentication.
+			// Only the article review right also applies when opening its public article link.
+			if ((defined('ADMIN_START') && (($name === 'a_' && !defined('IN_ADMIN')) || isset($this->delegated[$name]))) ||
+				($name === 'a_plus_kb_articles' && isset($this->delegated[$name]))) { return !$negate; }
+		}
+		return parent::acl_get($opt, $f);
 	}
 
 	private function scopes()
@@ -69,7 +106,9 @@ class conditional_read extends \phpbb\auth\auth
 
 	public function acl(&$userdata)
 	{
+		$this->delegated = array();
 		parent::acl($userdata);
+		$this->delegated = $this->delegation->options($userdata, $this);
 		$keys = $this->acl_options['local'];
 		if (!isset($keys[self::CONDITIONAL])) { return; }
 		$candidates = array();

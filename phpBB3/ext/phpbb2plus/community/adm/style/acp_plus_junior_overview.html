@@ -1,0 +1,10 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_PLUS_JR_OVERVIEW}</h1>
+{% if JR_START or JR_UPDATE %}
+<dl>
+	{% if JR_START %}<dt>{L_PLUS_JR_START}</dt><dd>{{ JR_START|e }}</dd>{% endif %}
+	{% if JR_UPDATE %}<dt>{L_PLUS_JR_UPDATE}</dt><dd>{{ JR_UPDATE|e }}</dd>{% endif %}
+</dl>
+{% endif %}
+{% if JR_NOTE %}<h2>{L_PLUS_JR_NOTE}</h2><p style="white-space: pre-wrap">{{ JR_NOTE|e }}</p>{% endif %}
+<!-- INCLUDE overall_footer.html -->
