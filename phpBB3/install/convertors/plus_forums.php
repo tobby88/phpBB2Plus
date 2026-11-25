@@ -1,6 +1,55 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
+/** Stage one posting forum per source ID for native permission conversion. The final Plus tree is restored afterwards. */
+function plus_insert_forums()
+{
+	global $src_db, $db, $convert, $user;
+	$prefix = $convert->src_table_prefix;
+	// Read the original UTF-8 bytes even when the converter shares a connection with a three-byte destination.
+	$result = $src_db->sql_query('SELECT f.forum_id,CAST(f.forum_name AS BINARY) AS forum_name,CAST(f.forum_desc AS BINARY) AS forum_desc,
+		f.forum_status,f.prune_enable,f.prune_next,
+		p.rule_count,p.prune_days,p.prune_freq FROM ' . $prefix . 'forums f LEFT JOIN
+		(SELECT forum_id,COUNT(*) AS rule_count,MIN(prune_days) AS prune_days,MIN(prune_freq) AS prune_freq
+		FROM ' . $prefix . 'forum_prune GROUP BY forum_id) p ON p.forum_id=f.forum_id ORDER BY f.forum_id');
+	$forums = $src_db->sql_fetchrowset($result);
+	$src_db->sql_freeresult($result);
+	$enabled = (string) get_config_value('prune_enable') === '1';
+	$parent = $forums ? (int) end($forums)['forum_id'] + 1 : 1;
+	$db->sql_query($convert->truncate_statement . FORUMS_TABLE);
+	$db->sql_transaction('begin');
+	try
+	{
+		// The native ACL step grants broader rights to rows with no parent.
+		// Keep every source forum below a temporary category until its own ACLs are in place.
+		$category = array('forum_id' => $parent, 'forum_type' => FORUM_CAT, 'forum_name' => $user->lang['CATEGORY'],
+			'forum_desc' => '', 'forum_rules' => '', 'forum_parents' => '', 'left_id' => 1, 'right_id' => 2 * count($forums) + 2);
+		$db->sql_query('INSERT INTO ' . FORUMS_TABLE . ' ' . $db->sql_build_array('INSERT', $category));
+		$left = 2;
+		foreach (array_chunk($forums, 100) as $chunk)
+		{
+			$rows = array();
+			foreach ($chunk as $forum)
+			{
+				$unique = (int) $forum['rule_count'] === 1;
+				$days = $unique ? (int) $forum['prune_days'] : 0;
+				$frequency = $unique ? (int) $forum['prune_freq'] : 0;
+				$rows[] = array('forum_id' => (int) $forum['forum_id'], 'parent_id' => $parent, 'left_id' => $left, 'right_id' => $left + 1,
+					'forum_type' => FORUM_POST, 'forum_name' => utf8_encode_ucr(htmlspecialchars($forum['forum_name'], ENT_COMPAT, 'UTF-8')),
+					'forum_desc' => utf8_encode_ucr(htmlspecialchars($forum['forum_desc'], ENT_COMPAT, 'UTF-8')),
+					'forum_status' => is_item_locked($forum['forum_status']), 'forum_parents' => '', 'forum_rules' => '',
+					'forum_flags' => phpbb_forum_flags(), 'forum_options' => 0, 'enable_icons' => 0,
+					'enable_prune' => (int) ($enabled && (string) $forum['prune_enable'] === '1' && $days && $frequency),
+					'prune_next' => (int) $forum['prune_next'], 'prune_days' => $days, 'prune_viewed' => 0, 'prune_freq' => $frequency);
+				$left += 2;
+			}
+			$db->sql_multi_insert(FORUMS_TABLE, $rows);
+		}
+		$db->sql_transaction('commit');
+	}
+	catch (\Throwable $error) { $db->sql_transaction('rollback'); throw $error; }
+}
+
 /** Allocate non-overlapping IDs and validate the entire tree before changing any target rows. */
 function plus_forum_layout($categories, $forums)
 {
@@ -76,8 +125,8 @@ function plus_restore_forum_tree()
 	$db->sql_transaction('begin');
 	try
 	{
-		// The standard converter creates flat categories, including a fallback
-		// category for forums nested below other forums. Rebuild only these rows.
+		// Discard provisional categories and their native grants, including
+		// flat categories from a conversion started with an older preview.
 		$result = $db->sql_query('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE forum_type = ' . FORUM_CAT);
 		$flat = $db->sql_fetchrowset($result);
 		$db->sql_freeresult($result);
@@ -120,8 +169,7 @@ function plus_restore_forum_tree()
 				// Unlike stock phpBB2, Plus age pruning protects polls and announcements
 				// and treats a sticky topic like an ordinary topic of the same age.
 				$fields['forum_flags'] = (phpbb_forum_flags() & ~(FORUM_FLAG_PRUNE_POLL | FORUM_FLAG_PRUNE_ANNOUNCE)) | FORUM_FLAG_PRUNE_STICKY;
-				// The native importer groups identical schedule rows. Plus only
-				// ran an automatic rule when exactly one source row existed.
+				// Plus ran an automatic rule only when exactly one source row existed.
 				if ((int) $row['prune_rules'] !== 1) { $fields['enable_prune'] = 0; }
 			}
 			$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $fields) . ' WHERE forum_id=' . $node['id']);

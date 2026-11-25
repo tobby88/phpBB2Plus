@@ -44,7 +44,8 @@ if (!$get_info)
 	}
 	$src_db->sql_freeresult($result);
 	$convertor['test_file'] = $test_file;
-	$convertor['execute_first'] = str_replace('import_avatar_gallery();', 'plus_import_avatar_gallery();', $convertor['execute_first']);
+	$convertor['execute_first'] = str_replace(array('import_avatar_gallery();', 'phpbb_insert_forums();'),
+		array('plus_import_avatar_gallery();', 'plus_insert_forums();'), $convertor['execute_first']);
 	// Schema hooks run after the wizard resets the destination media issue report.
 	$convertor['schema'][0]['execute_first'] = ($convertor['schema'][0]['execute_first'] ?? '') . ' plus_import_post_icons();';
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_media_issues');
