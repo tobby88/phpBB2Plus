@@ -22,6 +22,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_BAD_UPLOAD'=>'Choose a readable file with a valid filename.', 'PLUS_DL_BAD_SIZE'=>'The file is empty or exceeds the permitted size.',
 	'PLUS_DL_BAD_EXTENSION'=>'This file extension is unavailable for uploads.', 'PLUS_DL_BAD_PREVIEW'=>'Choose a GIF, JPEG or PNG screenshot.',
 	'PLUS_DL_BAD_SUBMISSION'=>'Check the title, description and length of the submitted details.', 'PLUS_DL_BAD_FIELD'=>'Check the additional download fields.',
+	'PLUS_DL_SAVE_FILE'=>'Save changes',
 	'PLUS_DL_BAD_URL'=>'Enter a valid HTTP or HTTPS link.', 'PLUS_DL_BAD_LICENSE'=>'Choose an existing licence.',
 	'PLUS_DL_CHOOSE_SOURCE'=>'Choose a local file or a download link. A screenshot also needs only one source.',
 	'PLUS_DL_SUBMISSION_GONE'=>'This submission has already been removed.',

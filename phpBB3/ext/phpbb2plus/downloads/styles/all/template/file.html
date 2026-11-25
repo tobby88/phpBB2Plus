@@ -10,7 +10,7 @@
 {% if U_DL_PREVIEW %}<p><a href="{U_DL_PREVIEW}"><img class="postimage" src="{U_DL_PREVIEW}" alt="{L_PLUS_DL_PREVIEW}"></a></p>{% elseif U_DL_REMOTE_PREVIEW %}<p><a href="{U_DL_REMOTE_PREVIEW}" rel="noreferrer">{L_PLUS_DL_PREVIEW}</a></p>{% endif %}
 <dl class="details">{% if DL_CREATOR %}<dt>{L_AUTHOR}</dt><dd>{{ DL_CREATOR|e }}</dd>{% endif %}{% if DL_VERSION %}<dt>{L_PLUS_DL_VERSION}</dt><dd>{{ DL_VERSION|e }}</dd>{% endif %}
 <dt>{L_DATE}</dt><dd>{DL_DATE}</dd><dt>{L_PLUS_DL_COUNT}</dt><dd>{{ DL_COUNT }}</dd>{% if DL_BYTES %}<dt>{L_FILESIZE}</dt><dd>{{ DL_BYTES }} B</dd>{% endif %}
-{% if DL_VOTES %}<dt id="rating">{L_PLUS_DL_RATING}</dt><dd>{{ DL_AVERAGE }} ({{ DL_VOTES }})</dd>{% endif %}{% for field in loops.dl_fields %}<dt>{{ field.TITLE|e }}</dt><dd>{{ field.VALUE|e }}</dd>{% endfor %}</dl>
+{% if DL_VOTES %}<dt id="rating">{L_PLUS_DL_RATING}</dt><dd>{{ DL_AVERAGE }} ({{ DL_VOTES }})</dd>{% endif %}{% for field in loops.dl_fields %}<dt>{{ field.TITLE|e }}</dt><dd>{% if field.MULTILINE %}{{ field.VALUE|e|nl2br }}{% else %}{{ field.VALUE|e }}{% endif %}</dd>{% endfor %}</dl>
 {% if U_DL_DOCS %}<p><a href="{U_DL_DOCS}" rel="noreferrer">{L_PLUS_DL_DOCS}</a></p>{% endif %}
 <div id="downloads">{% if U_DL_MAIN %}<a class="button1" href="{U_DL_MAIN}">{L_PLUS_DL_GET}</a>{% elseif DL_UNAVAILABLE %}<p>{L_PLUS_DL_MISSING}</p>{% endif %}
 {% for m in loops.dl_mirrors %}<a class="button2" href="{{ m.URL }}">{{ m.LABEL|e }}</a> {% endfor %}</div>

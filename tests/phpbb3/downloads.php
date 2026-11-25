@@ -22,6 +22,25 @@ function seed_downloads($db)
 	$db->query("INSERT INTO phpbb_pa_custom (custom_id,custom_name,custom_description,data,field_order,field_type,regex)
 		VALUES (81,'Farbauswahl','','a:2:{i:0;s:4:\"Blau\";i:1;s:3:\"Rot\";}',1,4,'')");
 	$db->query("INSERT INTO phpbb_pa_customdata VALUES (50,81,'a:2:{i:0;s:4:\"Blau\";i:1;s:3:\"Rot\";}')");
+	$choice = 'Archiv &amp; 📗';
+	$options = serialize(array(htmlspecialchars($choice,ENT_QUOTES,'UTF-8'),'Aktuell','Weitere'));
+	$labels = array('Kennzeichen','Kommentarzeilen','Variante','Ausgabe','Merkmale','Ausstattung');
+	foreach ($labels as $type=>$label)
+	{
+		$id = 82 + $type;
+		$available = $type >= 2 ? $options : '';
+		$pattern = $type === 0 ? '^(?:PA-[0-9]+)?$' : '';
+		$definition = $db->prepare('INSERT INTO phpbb_pa_custom (custom_id,custom_name,custom_description,data,field_order,field_type,regex) VALUES (?,?,"",?,?,?,?)');
+		$definition->bind_param('issiis',$id,$label,$available,$id,$type,$pattern);
+		$definition->execute();
+		$definition->close();
+		$literal = array('PA-21',"Erste <Zeile>\nZweite 📗 &amp;",$choice,'Aktuell');
+		$value = $type < 4 ? htmlspecialchars($literal[$type],ENT_QUOTES,'UTF-8') : serialize(array($choice,'Vergriffen &amp; 📗','Aktuell'));
+		$stored = $db->prepare('INSERT INTO phpbb_pa_customdata VALUES (53,?,?)');
+		$stored->bind_param('is',$id,$value);
+		$stored->execute();
+		$stored->close();
+	}
 	$db->query("INSERT INTO phpbb_pa_comments (comments_id,file_id,comments_text,comments_title,comments_time,comment_bbcode_uid,poster_id)
 		VALUES (91,50,'Ein [b:fixture]Beispiel[/b:fixture] 🎨 [img:fixture]https://example.invalid/forbidden-preview.png[/img:fixture]','Testkommentar',20005,'fixture',1)");
 	$db->query("INSERT INTO phpbb_pa_votes (user_id,votes_ip,votes_file,rate_point) VALUES (1,'7f000001',50,8),(2,'7f000002',50,10)");
@@ -38,7 +57,7 @@ function verify_downloads($db, $member)
 	check_fixture($f && (int) $f['owner_id'] === $member && $f['asset_status'] === 'ready' && $f['preview_type'] === 'image/png'
 		&& $mirror && $mirror['asset_status'] === 'ready' && $mirror['storage_name'] !== $f['storage_name'] &&
 		strpos(html_entity_decode($conditions, ENT_QUOTES, 'UTF-8'),'🎮') !== false, 'Missing paFileDB media, account or licence text');
-	foreach (array('files'=>5,'mirrors'=>2,'grants'=>3,'comments'=>1,'votes'=>2,'visitors'=>1,'fields'=>1,'field_values'=>1,'licenses'=>1,'import_journal'=>1) as $table=>$count)
+	foreach (array('files'=>5,'mirrors'=>2,'grants'=>3,'comments'=>1,'votes'=>2,'visitors'=>1,'fields'=>7,'field_values'=>7,'licenses'=>1,'import_journal'=>1) as $table=>$count)
 	{
 		check_fixture((int) $db->query("SELECT COUNT(*) FROM p3_plus_dl_$table")->fetch_row()[0] === $count, 'Incomplete download conversion for ' . $table);
 	}

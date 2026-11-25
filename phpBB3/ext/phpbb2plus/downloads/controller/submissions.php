@@ -119,7 +119,7 @@ class submissions
 			}
 			$this->template->assign_vars(array('DL_EDITING'=>true,'DL_REVISION'=>$revision, 'DL_CURRENT_SOURCE'=>$item['asset_status'] === 'remote' ?
 				($raw['file_dlurl'] ?? '') : ($raw['real_name'] ?? ''), 'DL_HAS_PREVIEW'=>($item['preview_name'] || !empty($raw['file_ssurl'])),
-				'DL_REMOVE_PREVIEW'=>$remove_preview));
+				'DL_REMOVE_PREVIEW'=>$remove_preview,'DL_EMPTY_DESCRIPTION'=>($raw['file_longdesc'] ?? '') === ''));
 		}
 		$error = '';
 		$status = 200;

@@ -22,6 +22,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_BAD_UPLOAD'=>'Wähle eine lesbare Datei mit gültigem Dateinamen.', 'PLUS_DL_BAD_SIZE'=>'Die Datei ist leer oder überschreitet die erlaubte Größe.',
 	'PLUS_DL_BAD_EXTENSION'=>'Diese Dateiendung ist beim Hochladen gesperrt.', 'PLUS_DL_BAD_PREVIEW'=>'Wähle ein Vorschaubild im GIF-, JPEG- oder PNG-Format.',
 	'PLUS_DL_BAD_SUBMISSION'=>'Prüfe Titel, Beschreibung und Länge der Angaben.', 'PLUS_DL_BAD_FIELD'=>'Prüfe die zusätzlichen Downloadfelder.',
+	'PLUS_DL_SAVE_FILE'=>'Änderungen speichern',
 	'PLUS_DL_BAD_URL'=>'Gib einen gültigen HTTP- oder HTTPS-Link an.', 'PLUS_DL_BAD_LICENSE'=>'Wähle eine vorhandene Lizenz.',
 	'PLUS_DL_CHOOSE_SOURCE'=>'Wähle eine lokale Datei oder einen Downloadlink. Auch das Vorschaubild benötigt nur eine Quelle.',
 	'PLUS_DL_SUBMISSION_GONE'=>'Dieser eingereichte Download wurde bereits entfernt.',

@@ -2,6 +2,7 @@
 namespace phpbb2plus\downloads\controller;
 
 use phpbb2plus\downloads\service\access;
+use phpbb2plus\downloads\service\field_data;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class library
@@ -151,12 +152,14 @@ class library
 			}
 			$this->db->sql_freeresult($result);
 		}
-		$result = $this->db->sql_query('SELECT d.title,v.values_json FROM ' . $this->prefix . 'fields d JOIN ' . $this->prefix .
+		$result = $this->db->sql_query('SELECT d.title,d.field_type,v.values_json,v.source_json FROM ' . $this->prefix . 'fields d JOIN ' . $this->prefix .
 			"field_values v ON v.field_id=d.field_id WHERE v.file_id=$id ORDER BY d.position,d.field_id,v.row_id");
 		while ($r = $this->db->sql_fetchrow($result))
 		{
-			$values = json_decode($r['values_json'], true) ?: array();
-			$this->template->assign_block_vars('dl_fields', array('TITLE'=>access::plain($r['title']), 'VALUE'=>implode(', ',array_map(array(access::class,'plain'),$values))));
+			$values = field_data::values($r);
+			if ((int) $r['field_type'] > 5 || !$values || $values === array('')) { continue; }
+			$this->template->assign_block_vars('dl_fields', array('TITLE'=>access::plain($r['title']),'VALUE'=>implode(', ',$values),
+				'MULTILINE'=>(int) $r['field_type'] === 1));
 		}
 		$this->db->sql_freeresult($result);
 		$cats = $this->access->categories();

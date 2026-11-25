@@ -37,10 +37,7 @@ class submissions
 		$fields = array();
 		while ($row = $this->db->sql_fetchrow($result))
 		{
-			$source = json_decode($row['source_json'], true) ?: array();
-			$fields[(int) $row['field_id']] = array('type'=>(int) $row['field_type'], 'title'=>access::plain($row['title']),
-				'description'=>access::plain($row['description']), 'pattern'=>$source['regex'] ?? '',
-				'options'=>array_map(array(access::class, 'plain'), json_decode($row['options_json'], true) ?: array()));
+			$fields[(int) $row['field_id']] = field_data::definition($row);
 		}
 		$this->db->sql_freeresult($result);
 		return $fields;
@@ -48,12 +45,13 @@ class submissions
 
 	public function saved_fields($id)
 	{
-		$result = $this->db->sql_query('SELECT field_id,values_json FROM ' . $this->prefix . 'field_values WHERE file_id=' . (int) $id . ' ORDER BY row_id');
+		$result = $this->db->sql_query('SELECT v.field_id,v.values_json,v.source_json,d.field_type FROM ' . $this->prefix .
+			'field_values v JOIN ' . $this->prefix . 'fields d ON d.field_id=v.field_id WHERE v.file_id=' . (int) $id . ' ORDER BY v.row_id');
 		$values = array();
 		while ($row = $this->db->sql_fetchrow($result))
 		{
 			$field = (int) $row['field_id'];
-			$values[$field] = array_merge($values[$field] ?? array(), array_map(array(access::class, 'plain'), json_decode($row['values_json'], true) ?: array()));
+			$values[$field] = array_merge($values[$field] ?? array(),field_data::values($row));
 		}
 		$this->db->sql_freeresult($result);
 		return $values;
@@ -76,6 +74,15 @@ class submissions
 			{
 				$old = $multiple ? $previous[$id] : array_slice($previous[$id], 0, 1);
 				if ($choices === $old) { continue; }
+				if ($multiple)
+				{
+					// A reordered option list changes the browser's POST order even
+					// when the author did not touch the selection.
+					$submitted = $choices;
+					sort($submitted);
+					sort($old);
+					if ($submitted === $old) { continue; }
+				}
 			}
 			if (!array_key_exists($id, $input) && !isset($previous[$id]) && $field['type'] >= 2) { continue; }
 			$values = array();
@@ -84,7 +91,8 @@ class submissions
 				if (!is_string($choice) || strlen($choice) > 65535 || !preg_match('//u', $choice) || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/', $choice))
 				{ throw new \DomainException('PLUS_DL_BAD_FIELD'); }
 				if ($field['type'] >= 2 && $choice === '' && !$multiple) { continue; }
-				if ($field['type'] >= 2 && !in_array($choice, $field['options'], true)) { throw new \DomainException('PLUS_DL_BAD_FIELD'); }
+				if ($field['type'] >= 2 && !in_array($choice,$field['options'],true) && !in_array($choice,$previous[$id] ?? array(),true))
+				{ throw new \DomainException('PLUS_DL_BAD_FIELD'); }
 				if ($field['pattern'] !== '' && @preg_match('#(*LIMIT_MATCH=100000)' . $field['pattern'] . '#siU', $choice) !== 1)
 				{ throw new \DomainException('PLUS_DL_BAD_FIELD'); }
 				$values[] = utf8_htmlspecialchars($choice);
@@ -101,9 +109,12 @@ class submissions
 		return $stored;
 	}
 
-	private function validate($form, $file, $preview, $editing = false, $remove_preview = false, $previous_docs = '')
+	private function validate($form, $file, $preview, $editing = false, $remove_preview = false, $metadata = array())
 	{
-		if ($form['title'] === '' || $form['description'] === '') { throw new \DomainException('PLUS_DL_BAD_SUBMISSION'); }
+		// Some released paFileDB entries have no long description. Their authors
+		// can change a field without having to invent a description for the file.
+		if ($form['title'] === '' || ($form['description'] === '' && (!$editing || ($metadata['file_longdesc'] ?? '') !== '')))
+		{ throw new \DomainException('PLUS_DL_BAD_SUBMISSION'); }
 		foreach ($form as $value)
 		{
 			if (is_string($value) && (strlen($value) > 65535 || !preg_match('//u', $value) || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/', $value)))
@@ -113,7 +124,7 @@ class submissions
 			($remove_preview && ($preview || $form['preview_url'] !== ''))) { throw new \DomainException('PLUS_DL_CHOOSE_SOURCE'); }
 		foreach (array('url','preview_url','documentation') as $key)
 		{
-			if ($key === 'documentation' && $editing && $form[$key] === $previous_docs) { continue; }
+			if ($key === 'documentation' && $editing && $form[$key] === ($metadata['file_docsurl'] ?? '')) { continue; }
 			if ($form[$key] !== '' && (strlen($form[$key]) > 2048 || access::external($form[$key]) === '')) { throw new \DomainException('PLUS_DL_BAD_URL'); }
 		}
 		if ($form['preview_url'] !== '' && !preg_match('/\.(?:jpe?g|png|gif)$/iD', (string) parse_url($form['preview_url'], PHP_URL_PATH)))
@@ -242,7 +253,7 @@ class submissions
 				if ((int) $current['review_revision'] !== $revision) { throw new \DomainException('PLUS_DL_EDIT_CHANGED', 409); }
 				if ((int) $current['cat_id'] !== $category && !$this->access->can_submit($category)) { throw new \DomainException('PLUS_DL_BAD_DESTINATION'); }
 				$metadata = json_decode($current['source_json'], true);
-				$this->validate($form, $assets['file'], $assets['preview'], true, $remove_preview, $metadata['file_docsurl'] ?? '');
+				$this->validate($form, $assets['file'], $assets['preview'], true, $remove_preview, $metadata);
 				if ((int) $current['license_id'] !== $form['license']) { $this->check_license($form['license']); }
 				$fields = $this->field_values($input, $this->saved_fields($id));
 				foreach ($assets as $asset) { $this->media->publish($asset); }
