@@ -92,6 +92,23 @@ setInterval(async () => {
                 raise RuntimeError(f"Browser playback or Plus style check failed: {results or 'no browser response'}")
             print("Chromium played the Ruffle fixture and checked the desktop and mobile Plus style")
         finally:
-            process.terminate()
-            process.wait(timeout=12)
-            probe.unlink(missing_ok=True)
+            try:
+                if process.poll() is None:
+                    if os.name == "nt":
+                        # Popen.terminate() only ends the root on Windows. The
+                        # renderers can still hold the disposable profile open.
+                        try:
+                            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                           creationflags=subprocess.CREATE_NO_WINDOW, timeout=12)
+                        except (OSError, subprocess.TimeoutExpired):
+                            process.terminate()
+                    else:
+                        process.terminate()
+                    try:
+                        process.wait(timeout=8)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=5)
+            finally:
+                probe.unlink(missing_ok=True)
