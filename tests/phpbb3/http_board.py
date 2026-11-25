@@ -65,8 +65,8 @@ class FormFields(HTMLParser):
             self.inside = attrs.get("id") == self.form_id
         if not self.inside:
             return
-        if tag == "input" and name and attrs.get("type") not in {"submit", "button"}:
-            if attrs.get("type") != "checkbox" or "checked" in attrs:
+        if tag == "input" and name and "disabled" not in attrs and attrs.get("type") not in {"submit", "button", "reset", "file"}:
+            if attrs.get("type") not in {"checkbox", "radio"} or "checked" in attrs:
                 self.values[name] = attrs.get("value", "")
         elif tag == "select":
             self.select = name

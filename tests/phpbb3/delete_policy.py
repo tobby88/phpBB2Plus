@@ -1,7 +1,8 @@
 """Use the original board policy in native author and moderator deletion forms."""
 from urllib.parse import urljoin
 
-from http_board import Page
+from http_board import FormFields, Page, submit_form
+from delegation import authenticate
 
 
 def exercise(member, moderator, verify):
@@ -21,10 +22,22 @@ def exercise(member, moderator, verify):
     confirm(member, own, False)
     confirm(moderator, mcp_post, False)
     confirm(moderator, mcp_topic, False)
-    verify("allow")
+    admin, entry = authenticate(moderator.base, "ModernMember")
+    settings = entry + "&i=acp_board&mode=post"
+    option = "config[plus_post_delete_policy]"
+
+    def change_policy(previous, value):
+        page = admin.fetch(settings)
+        if FormFields(page, "acp_board").values.get(option) != previous:
+            raise RuntimeError("Native Posting settings did not show the current Plus deletion policy")
+        submit_form(admin, settings, page, "acp_board", {"submit": "1", option: value})
+        if FormFields(admin.fetch(settings), "acp_board").values.get(option) != value:
+            raise RuntimeError("The administrator's new deletion policy did not persist")
+
+    change_policy("0", "1")
     confirm(moderator, mcp_topic, True)
     action, fields = confirm(member, own, True)
-    verify("restrict")
+    change_policy("1", "0")
     stale = member.fetch(action, dict(fields, confirm="Yes", delete_permanent="1"))
     if "Permanent removal is disabled" not in stale:
         raise RuntimeError("An open deletion form did not follow the updated board setting")
