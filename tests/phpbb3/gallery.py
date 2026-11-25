@@ -37,6 +37,8 @@ def browse(base, moderator, member, applicant):
     guest = Browser(base)
     album = "app.php/album"
     home = guest.fetch(album)
+    if not re.search(r'<a href="[^"]*/album(?:\?[^"]*)?"><i class="icon fa-picture-o ', guest.fetch("index.php")):
+        raise RuntimeError("The ordinary board header has no working photo album link")
     if "Test category" not in home or "/album" not in guest.fetch("app.php/portal"):
         raise RuntimeError("Album root or portal navigation missing")
     club_home, staff_home = member.fetch(album), moderator.fetch(album)
