@@ -102,7 +102,15 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			}
 			break;
 		case 'shoutbox': case 'shoutbox_view': case 'shoutbox_max': $path = 'shoutbox'; break;
-		case 'album': $path = 'album'; break;
+		case 'album': case 'album_personal':
+			$source = $query['user_id'] ?? '0';
+			if ($entry === 'album' && ($cat = $positive('cat_id'))) { $path = 'album/category/' . $cat; }
+			elseif ($entry === 'album' && $source === '0') { $path = 'album'; }
+			elseif ($source === '-1' || $source === '0' || $positive('user_id'))
+			{
+				$path = 'album/legacy/member/' . ($entry === 'album' && $source === '-1' ? '0' : $source);
+			}
+			break;
 		case 'album_cat': case 'album_upload':
 			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . ($entry === 'album_upload' ? '/upload' : ''); }
 			break;
@@ -125,6 +133,16 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			switch ($parts[0])
 			{
 				case 'main': case 'viewall': $path = 'downloads'; break;
+				case 'user_upload':
+					$file = $positive('file_id');
+					$cat = $positive('cat_id');
+					if ($file) { $path = 'downloads/file/' . $file; }
+					elseif (!isset($query['file_id']) && (!isset($query['cat_id']) || $cat) && empty($query['do']) && empty($query['mode']) && !isset($parts[1]))
+					{ $path = $cat ? 'downloads/category/' . $cat . '/submit' : 'downloads/submit'; }
+					break;
+				case 'mcp':
+					if ($cat = $positive('cat_id')) { $path = 'downloads/category/' . $cat . '/review'; }
+					break;
 				case 'search':
 					$path = 'downloads';
 					if (isset($query['search_keywords']) && is_string($query['search_keywords'])) { $extra['q'] = $query['search_keywords']; }

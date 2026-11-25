@@ -26,6 +26,16 @@ def link(base, path, expected_path, query, fragment="", method="GET"):
 
 def browse(base, owner, historic_id):
     cases = (
+        ("album.php?user_id=0", "app.php/album", {}, ""),
+        ("album.php?user_id=-1", "app.php/album/legacy/member/0", {}, ""),
+        ("album.php?user_id=1&cat_id=11", "app.php/album/category/11", {}, ""),
+        ("album_personal.php", "app.php/album/legacy/member/0", {}, ""),
+        ("album.php?user_id=1", "app.php/album/legacy/member/1", {}, ""),
+        ("album_personal.php?user_id=-1", "app.php/album/legacy/member/-1", {}, ""),
+        ("dload.php?action=user_upload", "app.php/downloads/submit", {}, ""),
+        ("dload.php?action=user_upload&cat_id=2", "app.php/downloads/category/2/submit", {}, ""),
+        ("dload.php?action=user_upload&do=delete&file_id=50", "app.php/downloads/file/50", {}, ""),
+        ("dload.php?action=mcp&cat_id=2", "app.php/downloads/category/2/review", {}, ""),
         ("forums.html", "index.php", {}, ""),
         ("forum1,public-board.html", "viewforum.php", {"f": 1}, ""),
         ("app.php/viewforum1-7-20.html", "viewforum.php", {"f": 1, "st": 7, "start": 20}, ""),

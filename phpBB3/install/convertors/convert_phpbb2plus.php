@@ -56,6 +56,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
+	$convertor['execute_last'][] = 'plus_gallery_personal_permissions();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
 	{
