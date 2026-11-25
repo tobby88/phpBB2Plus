@@ -53,6 +53,7 @@ import rank_overview
 import topic_calendar
 import gallery
 import gallery_navigation
+import gallery_previews
 import gallery_personal
 import knowledgebase
 from ruffle_browser import playback
@@ -362,10 +363,16 @@ def main():
                 delegation.verify_report(php, web)
                 # The gallery checks briefly change its display options. Keep them
                 # away from other gallery requests, including the Chromium check.
+                def gallery_views():
+                    admin, reader, applicant = (actor.separate_client() for actor in (member, ordinary, pending))
+                    guest = Browser(base)
+                    gallery_navigation.browse(admin, reader, guest, lambda phase: php(
+                        ROOT / "tests/phpbb3/gallery_navigation.php", target, phase, cwd=web, capture=True))
+                    gallery_previews.browse(admin, reader, applicant, guest, lambda phase: php(
+                        ROOT / "tests/phpbb3/gallery_previews.php", target, phase, cwd=web, capture=True))
+
                 with ThreadPoolExecutor(max_workers=1) as worker:
-                    navigation = worker.submit(gallery_navigation.browse, member.separate_client(), ordinary.separate_client(),
-                                               Browser(base), lambda phase: php(ROOT / "tests/phpbb3/gallery_navigation.php",
-                                                                               target, phase, cwd=web, capture=True))
+                    navigation = worker.submit(gallery_views)
                     knowledgebase.browse(base, member, ordinary, pending)
                     knowledgebase.reply_preferences(base, member, lambda phase: php(fixture, phase, target))
                     php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
