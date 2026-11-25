@@ -1,6 +1,8 @@
 """Install the built distribution in a fresh, disposable MySQL/MariaDB database."""
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from itertools import islice
 import json
 import os
 from pathlib import Path
@@ -95,15 +97,18 @@ def install(web, settings_dir, name):
 
 def verify_upstream(web, cache):
     count = 0
-    for url, _, prefix in PACKAGES:
-        with zipfile.ZipFile(cache / url.rsplit("/", 1)[1]) as source:
-            for info in source.infolist():
-                if info.is_dir():
-                    continue
-                relative = Path(info.filename).relative_to(prefix or ".")
-                if source.read(info) != (web / relative).read_bytes():
-                    raise ValueError(f"Modified upstream file: {relative}")
-                count += 1
+    # Independent reads of recently extracted files can wait on filesystem filters.
+    # Bound outstanding reads and keep the shared ZIP reader on this thread.
+    with ThreadPoolExecutor(max_workers=8) as readers:
+        for url, _, prefix in PACKAGES:
+            with zipfile.ZipFile(cache / url.rsplit("/", 1)[1]) as source:
+                files = (info for info in source.infolist() if not info.is_dir())
+                while batch := list(islice(files, 32)):
+                    paths = [web / Path(info.filename).relative_to(prefix or ".") for info in batch]
+                    for info, content in zip(batch, readers.map(Path.read_bytes, paths)):
+                        if source.read(info) != content:
+                            raise ValueError(f"Modified upstream file: {info.filename}")
+                        count += 1
     return count
 
 

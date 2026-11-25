@@ -50,6 +50,7 @@ def archive(url, checksum, cache, offline):
 
 
 def unpack(package, prefix, root):
+    directories = {root}
     with zipfile.ZipFile(package) as source:
         for item in source.infolist():
             path = PurePosixPath(item.filename)
@@ -57,17 +58,21 @@ def unpack(package, prefix, root):
                 raise ValueError(f"Unexpected release path: {item.filename}")
             if prefix:
                 path = path.relative_to(prefix)
-            if item.is_dir():
-                (root / path).mkdir(parents=True, exist_ok=True)
-                continue
             target = root / path
-            target.parent.mkdir(parents=True, exist_ok=True)
-            # Language packs may repeat directory index files from the core.
-            if target.exists():
+            directory = target if item.is_dir() else target.parent
+            if directory not in directories:
+                directory.mkdir(parents=True, exist_ok=True)
+                directories.add(directory)
+            if item.is_dir():
+                continue
+            try:
+                out = target.open("xb")
+            except FileExistsError:
+                # Language packs may repeat identical directory index files from the core.
                 if target.read_bytes() != source.read(item):
                     raise ValueError(f"Upstream packages disagree on {path}")
                 continue
-            with source.open(item) as inp, target.open("xb") as out:
+            with out, source.open(item) as inp:
                 shutil.copyfileobj(inp, out)
             if item.external_attr >> 16 & 0o111:
                 target.chmod(0o755)
