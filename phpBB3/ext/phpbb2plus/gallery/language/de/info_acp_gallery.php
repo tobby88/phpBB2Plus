@@ -80,4 +80,9 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_CFG_YES' => 'Ja', 'PLUS_ALBUM_CFG_NO' => 'Nein', 'PLUS_ALBUM_CFG_IMPORTED' => 'Übernommener Wert (%s)',
 	'PLUS_ALBUM_CONFIG_INVALID' => 'Prüfe den Wert für „%s“.',
 	'PLUS_ALBUM_CONFIG_CHANGED' => 'Die Album-Einstellungen wurden inzwischen geändert. Prüfe die aktuellen Werte vor dem Speichern.',
+	'ACP_PLUS_ALBUM_CACHE' => 'Album-Vorschaucache leeren',
+	'PLUS_ALBUM_CACHE_EXPLAIN' => 'Die Galerie kann Vorschauen und Kopien mit Wasserzeichen aus den Originalbildern neu erstellen. Manuell hochgeladene Vorschaubilder und Originale bleiben erhalten.',
+	'PLUS_ALBUM_CACHE_CONFIRM' => 'Sollen die Vorschauen beim nächsten Aufruf neu erstellt werden? Damit laufende Downloads fertig werden, entfernt die geplante Bereinigung veraltete Kopien frühestens nach einer Stunde.',
+	'PLUS_ALBUM_CACHE_CLEARED' => 'Das Album erstellt seine Vorschaubilder beim nächsten Aufruf neu.',
+	'LOG_PLUS_ALBUM_CACHE' => '<strong>Album-Vorschaucache geleert</strong>',
 ));

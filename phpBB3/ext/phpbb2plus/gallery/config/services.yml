@@ -87,8 +87,11 @@ services:
             - { name: event.listener }
     phpbb2plus.gallery.cleanup:
         class: phpbb2plus\gallery\cron\cleanup
-        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_album_', '%core.root_path%', '@phpbb2plus.gallery.access']
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_album_', '%core.root_path%', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.preview_cache']
         calls:
             - [set_name, [phpbb2plus.gallery.cleanup]]
         tags:
             - { name: cron.task }
+    phpbb2plus.gallery.preview_cache:
+        class: phpbb2plus\gallery\service\preview_cache
+        arguments: ['@dbal.conn', '@config', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.admin_access', '@user', '@log']

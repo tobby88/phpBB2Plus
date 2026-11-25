@@ -109,9 +109,10 @@ elseif ($argv[2] === 'resize_rendered')
 		}
 	}
 }
-elseif (preg_match('/^(category|grants|personal_rules)_(delegate|revoke)$/D', $argv[2], $match))
+elseif (preg_match('/^(category|grants|personal_rules|preview_cache)_(delegate|revoke)$/D', $argv[2], $match))
 {
-	$options = array('category' => 'a_plus_album_categories', 'grants' => 'a_plus_album_auth', 'personal_rules' => 'a_plus_album_personal_auth');
+	$options = array('category' => 'a_plus_album_categories', 'grants' => 'a_plus_album_auth', 'personal_rules' => 'a_plus_album_personal_auth',
+		'preview_cache' => 'a_plus_album_cache');
 	$name = $options[$match[1]];
 	$option = (int) album_fixture_value('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='$name'");
 	if (!$option) { throw new RuntimeException('The narrow native gallery permission is unavailable'); }

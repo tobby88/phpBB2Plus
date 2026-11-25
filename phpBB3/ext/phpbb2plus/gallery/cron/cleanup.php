@@ -1,6 +1,8 @@
 <?php
 namespace phpbb2plus\gallery\cron;
 
+use phpbb2plus\gallery\service\preview_cache;
+
 class cleanup extends \phpbb\cron\task\base
 {
 	private $db;
@@ -8,14 +10,16 @@ class cleanup extends \phpbb\cron\task\base
 	private $prefix;
 	private $root;
 	private $access;
+	private $cache;
 
-	public function __construct($db, $config, $prefix, $root, $access)
+	public function __construct($db, $config, $prefix, $root, $access, $cache)
 	{
 		$this->db = $db;
 		$this->config = $config;
 		$this->prefix = $prefix;
 		$this->root = $root;
 		$this->access = $access;
+		$this->cache = $cache;
 	}
 
 	public function should_run()
@@ -36,6 +40,7 @@ class cleanup extends \phpbb\cron\task\base
 		{
 			$this->access->write(function () use ($dir, $cut, $item) { $this->collect($dir, $cut, $item['storage_name']); });
 		}
+		$this->cache->collect($dir);
 		$lifetime = (int) $this->config['form_token_lifetime'];
 		if ($lifetime > 0)
 		{
@@ -66,8 +71,8 @@ class cleanup extends \phpbb\cron\task\base
 			foreach ($cached as $path)
 			{
 				$file = basename($path);
-				if (!in_array($file, $owned, true) && !preg_match('/^' . $prefix . '[a-f0-9]{64}$/D', $file)) { continue; }
-				if (is_link($path) || (file_exists($path) && (!is_file($path) || !@unlink($path)))) { return; }
+				if (!in_array($file, $owned, true) && preview_cache::generation($file, $match[1]) === null) { continue; }
+				if (!preview_cache::remove_regular($path)) { return; }
 			}
 		}
 		$this->db->sql_query("DELETE FROM $table WHERE storage_name='$name'");

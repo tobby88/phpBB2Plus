@@ -20,7 +20,7 @@ class admin_access
 	public function authorize($module, $write = false)
 	{
 		$options = array('categories' => 'a_plus_album_categories', 'permissions' => 'a_plus_album_auth',
-			'personal_permissions' => 'a_plus_album_personal_auth', 'settings' => 'a_plus_gallery');
+			'personal_permissions' => 'a_plus_album_personal_auth', 'cache' => 'a_plus_album_cache', 'settings' => 'a_plus_gallery');
 		$option = $options[$module];
 		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) ||
 			empty($this->user->data['session_admin']) || !empty($this->user->data['user_perm_from']) ||

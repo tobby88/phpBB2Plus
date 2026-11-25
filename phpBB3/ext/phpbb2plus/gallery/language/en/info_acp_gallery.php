@@ -80,4 +80,9 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_CFG_YES' => 'Yes', 'PLUS_ALBUM_CFG_NO' => 'No', 'PLUS_ALBUM_CFG_IMPORTED' => 'Imported value (%s)',
 	'PLUS_ALBUM_CONFIG_INVALID' => 'Check the value for “%s”.',
 	'PLUS_ALBUM_CONFIG_CHANGED' => 'The album settings have changed. Review the current values before saving.',
+	'ACP_PLUS_ALBUM_CACHE' => 'Clear album preview cache',
+	'PLUS_ALBUM_CACHE_EXPLAIN' => 'The gallery can regenerate thumbnails and watermarked copies from the originals. Manually supplied thumbnails and original images are kept.',
+	'PLUS_ALBUM_CACHE_CONFIRM' => 'Regenerate cached pictures the next time they are opened? To allow downloads in progress to finish, scheduled cleanup removes obsolete copies after at least one hour.',
+	'PLUS_ALBUM_CACHE_CLEARED' => 'The album will generate fresh previews on the next request.',
+	'LOG_PLUS_ALBUM_CACHE' => '<strong>Cleared the album preview cache</strong>',
 ));
