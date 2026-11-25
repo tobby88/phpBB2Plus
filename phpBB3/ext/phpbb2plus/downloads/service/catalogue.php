@@ -99,19 +99,7 @@ class catalogue
 			}
 			if ($action === 'delete')
 			{
-				// A newly contributed comment, rating or mirror also merits a fresh removal confirmation.
-				foreach (array_chunk($affected,200) as $batch)
-				{
-					$where = ' WHERE ' . $this->db->sql_in_set('file_id',$batch);
-					foreach (array('comments'=>array('comment_id','file_id,owner_id,posted_at'), 'votes'=>array('row_id','file_id,points'),
-						'mirrors'=>array('mirror_id','file_id,location,storage_name,asset_status,source_json')) as $name=>$details)
-					{
-						list($key,$columns) = $details;
-						$result = $this->db->sql_query("SELECT $key,$columns FROM " . $this->prefix . $name . $where . " ORDER BY $key" . $current);
-						while ($item = $this->db->sql_fetchrow($result)) { hash_update($hash,serialize($item)); }
-						$this->db->sql_freeresult($result);
-					}
-				}
+				$this->submissions->removal_details($affected,$hash,$lock);
 			}
 			// The administrator can choose any surviving destination on this form.
 			$result = $this->db->sql_query('SELECT row_id,cat_id,subject_id,subject_type,allowed FROM ' . $this->prefix .

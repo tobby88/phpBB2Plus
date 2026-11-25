@@ -1,6 +1,20 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_FILE_ACTIONS'=>'Download-Dateien verwalten','ACP_PLUS_DL_FILE_FILTER_ALL'=>'Alle Dateien',
+	'ACP_PLUS_DL_FILE_STATUS'=>'Status','ACP_PLUS_DL_FILE_ALL_CATEGORIES'=>'Alle Kategorien',
+	'ACP_PLUS_DL_FILE_FILTER_APPROVED'=>'Freigegeben','ACP_PLUS_DL_FILE_FILTER_PENDING'=>'Wartet auf Freigabe','ACP_PLUS_DL_FILE_FILTER_BROKEN'=>'Als defekt gemeldet',
+	'ACP_PLUS_DL_FILES_APPROVE'=>'Dateien freigeben','ACP_PLUS_DL_FILES_WITHDRAW'=>'Freigabe zurücknehmen','ACP_PLUS_DL_FILES_DELETE'=>'Dateien löschen',
+	'ACP_PLUS_DL_FILES_EFFECT'=>'Die Aktion ändert %1$d von %2$d ausgewählten Dateien.',
+	'ACP_PLUS_DL_FILES_REMOVAL'=>'Mitgelöscht werden Spiegelserver (%1$d), Kommentare (%2$d), Bewertungen (%3$d), Zusatzfeldwerte (%4$d) und die zugehörigen Besuchsprotokolle. Lokale Dateien und Vorschaubilder werden entfernt, sobald kein anderer Download sie verwendet.',
+	'ACP_PLUS_DL_FILE_CONFIRM'=>'Ich bestätige die Aktion für die angezeigten Dateien.',
+	'ACP_PLUS_DL_FILE_CONFIRM_REQUIRED'=>'Bitte bestätige die angezeigte Aktion.',
+	'ACP_PLUS_DL_FILE_SELECTION'=>'Wähle mindestens eine Datei aus.',
+	'ACP_PLUS_DL_FILE_CHANGED'=>'Die Auswahl oder ihre Inhalte haben sich inzwischen geändert. Prüfe die Dateien erneut.',
+	'ACP_PLUS_DL_FILES_DONE'=>'Geänderte Dateien: %d',
+	'LOG_PLUS_DL_FILES_APPROVE'=>'<strong>Downloads freigegeben</strong><br>» %s',
+	'LOG_PLUS_DL_FILES_WITHDRAW'=>'<strong>Download-Freigabe zurückgenommen</strong><br>» %s',
+	'LOG_PLUS_DL_FILES_DELETE'=>'<strong>Download-Dateien gelöscht</strong><br>» %s',
 	'ACP_PLUS_DL_MIRRORS'=>'Download-Spiegelserver verwalten','ACP_PLUS_DL_MIRROR_SEARCH'=>'Dateititel oder Datei-ID',
 	'ACP_PLUS_DL_MIRROR_FILE'=>'Datei','ACP_PLUS_DL_MIRROR_COUNT'=>'Spiegelserver','ACP_PLUS_DL_MIRROR_PENDING'=>'Wartet auf Freigabe',
 	'ACP_PLUS_DL_MIRROR_CATEGORY_NAME'=>'Kategorie',

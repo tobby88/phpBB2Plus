@@ -4,6 +4,7 @@ namespace phpbb2plus\downloads\acp;
 use phpbb\request\request_interface;
 use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\catalogue_selection;
+use phpbb2plus\downloads\service\file_list;
 use phpbb2plus\downloads\service\mirrors;
 
 class mirrors_module
@@ -22,12 +23,12 @@ class mirrors_module
 			($ids ? '&amp;ids=' . implode(',',$ids) : '');
 	}
 
-	private function listing()
+	private function listing($files)
 	{
 		$query = htmlspecialchars_decode($this->request->variable('q','',true,request_interface::GET),ENT_QUOTES);
 		$start = max(0,$this->request->variable('start',0,false,request_interface::GET));
-		$rows = $this->manager->files($query,$start);
-		foreach (array_slice($rows,0,mirrors::PAGE_SIZE) as $row)
+		$rows = $files->page($query,$start,'all',0,true);
+		foreach (array_slice($rows,0,file_list::PAGE_SIZE) as $row)
 		{
 			$this->template->assign_block_vars('dl_files',array('ID'=>$row['file_id'],'TITLE'=>access::plain($row['title']),
 				'CATEGORY'=>access::plain($row['category'] ?? ''),'APPROVED'=>(bool) $row['approved'],'COUNT'=>$row['copies'],
@@ -35,8 +36,8 @@ class mirrors_module
 		}
 		$url = $this->u_action . '&amp;q=' . rawurlencode($query) . '&amp;start=';
 		$this->template->assign_vars(array('DL_LIST'=>true,'DL_QUERY'=>$query,'U_DL_SEARCH'=>$this->link('find'),
-			'U_DL_PREV'=>$start ? $url . max(0,$start-mirrors::PAGE_SIZE) : '',
-			'U_DL_NEXT'=>count($rows)>mirrors::PAGE_SIZE ? $url . ($start+mirrors::PAGE_SIZE) : ''));
+			'U_DL_PREV'=>$start ? $url . max(0,$start-file_list::PAGE_SIZE) : '',
+			'U_DL_NEXT'=>count($rows)>file_list::PAGE_SIZE ? $url . ($start+file_list::PAGE_SIZE) : ''));
 		add_form_key('plus_dl_mirror_search');
 	}
 
@@ -83,7 +84,7 @@ class mirrors_module
 		$posted = $this->request->server('REQUEST_METHOD') === 'POST';
 		try
 		{
-			if ($action === '' && !$posted) { $this->listing(); return; }
+			if ($action === '' && !$posted) { $this->listing($phpbb_container->get('phpbb2plus.downloads.file_list')); return; }
 			if ($action === 'find' && $posted && check_form_key('plus_dl_mirror_search'))
 			{
 				$q = htmlspecialchars_decode($this->request->variable('q','',true,request_interface::POST),ENT_QUOTES);

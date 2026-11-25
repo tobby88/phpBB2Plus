@@ -1,0 +1,30 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_DL_FILE_ACTIONS}</h1>
+{% if DL_LIST %}
+{% if DL_DONE %}<div class="successbox"><p>{{ DL_RESULT|e }}</p></div>{% endif %}
+<form id="dl-files-filter" method="post" action="{U_DL_SEARCH}"><fieldset class="display-options">
+<label for="dl-files-q">{L_ACP_PLUS_DL_MIRROR_SEARCH}</label> <input id="dl-files-q" class="text medium" name="q" value="{{ DL_QUERY|e('html_attr') }}">
+<label for="dl-files-filter-status">{L_ACP_PLUS_DL_FILE_STATUS}</label> <select id="dl-files-filter-status" name="filter">{% for s in loops.dl_filters %}<option value="{{ s.VALUE }}"{% if s.VALUE == DL_FILTER %} selected{% endif %}>{{ s.NAME|e }}</option>{% endfor %}</select>
+<label for="dl-files-category">{L_ACP_PLUS_DL_MIRROR_CATEGORY_NAME}</label> <select id="dl-files-category" name="category"><option value="0">{L_ACP_PLUS_DL_FILE_ALL_CATEGORIES}</option>{% for c in loops.dl_categories %}<option value="{{ c.ID }}"{% if c.ID == DL_CATEGORY %} selected{% endif %}>{{ c.NAME|e }} (#{{ c.ID }})</option>{% endfor %}</select>
+<button class="button2">{L_SEARCH}</button>{S_FORM_TOKEN}</fieldset></form>
+<form id="dl-files-select" method="post" action="{U_DL_SELECT}">
+{% else %}
+<p><a href="{U_BACK}">{L_BACK}</a></p><h2>{{ DL_TITLE|e }}</h2>
+{% if DL_ERROR %}<div class="errorbox"><p>{{ DL_ERROR|e }}</p></div>{% endif %}
+<p>{{ DL_EFFECT|e }}</p>{% if DL_REMOVAL %}<p>{{ DL_REMOVAL|e }}</p>{% endif %}
+<form id="dl-files-confirm" method="post" action="{U_DL_SAVE}">
+{% endif %}
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_DL_MIRROR_FILE}</th><th>{L_ACP_PLUS_DL_MIRROR_CATEGORY_NAME}</th><th>{L_ACP_PLUS_DL_FILE_STATUS}</th>{% if DL_LIST %}<th>{L_SELECT}</th>{% endif %}</tr></thead><tbody>
+{% for f in loops.dl_files %}<tr><td>{{ f.TITLE|e }} (#{{ f.ID }})</td><td>{{ f.CATEGORY|e }} (#{{ f.CAT_ID }})</td><td>{% if f.APPROVED %}{L_ACP_PLUS_DL_FILE_FILTER_APPROVED}{% else %}{L_ACP_PLUS_DL_FILE_FILTER_PENDING}{% endif %}{% if f.BROKEN %} · {L_ACP_PLUS_DL_FILE_FILTER_BROKEN}{% endif %}</td>
+{% if DL_LIST %}<td><input type="checkbox" name="selected[]" value="{{ f.ID }}" aria-label="{{ f.TITLE|e('html_attr') }}"></td>{% endif %}</tr>
+{% else %}<tr><td colspan="4">{L_ACP_PLUS_DL_MIRROR_NO_FILES}</td></tr>{% endfor %}</tbody></table>
+<fieldset class="submit-buttons">
+{% if DL_LIST %}
+{% if loops.dl_files %}{% if DL_APPROVAL %}<button class="button2" name="operation" value="approve">{L_ACP_PLUS_DL_FILES_APPROVE}</button> <button class="button2" name="operation" value="withdraw">{L_ACP_PLUS_DL_FILES_WITHDRAW}</button>{% endif %}
+{% if DL_DELETE %}<button class="button2" name="operation" value="delete">{L_ACP_PLUS_DL_FILES_DELETE}</button>{% endif %}{% endif %}
+{% else %}
+<input type="hidden" name="state" value="{{ DL_STATE }}"><label><input type="checkbox" name="confirm" value="1"> {L_ACP_PLUS_DL_FILE_CONFIRM}</label> <button class="button1">{L_SUBMIT}</button>
+{% endif %}
+<input type="hidden" name="complete" value="1">{S_FORM_TOKEN}</fieldset></form>
+{% if U_DL_PREV or U_DL_NEXT %}<p>{% if U_DL_PREV %}<a href="{U_DL_PREV}">{L_PREVIOUS}</a>{% endif %} {% if U_DL_NEXT %}<a href="{U_DL_NEXT}">{L_NEXT}</a>{% endif %}</p>{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -1,4 +1,10 @@
 services:
+    phpbb2plus.downloads.file_list:
+        class: phpbb2plus\downloads\service\file_list
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_dl_']
+    phpbb2plus.downloads.file_actions:
+        class: phpbb2plus\downloads\service\file_actions
+        arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@phpbb2plus.downloads.submissions', '@user', '@log', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.mirrors:
         class: phpbb2plus\downloads\service\mirrors
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@phpbb2plus.downloads.media', '@user', '@log', '%core.table_prefix%plus_dl_']

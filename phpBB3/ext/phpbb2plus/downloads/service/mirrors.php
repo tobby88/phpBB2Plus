@@ -3,7 +3,6 @@ namespace phpbb2plus\downloads\service;
 
 class mirrors
 {
-	const PAGE_SIZE = 25;
 	private $db;
 	private $access;
 	private $media;
@@ -19,25 +18,6 @@ class mirrors
 		$this->user = $user;
 		$this->log = $log;
 		$this->p = $prefix;
-	}
-
-	public function files($query, $start)
-	{
-		$filter = array();
-		if ($query !== '')
-		{
-			$wild = $this->db->get_any_char();
-			foreach (array_unique(array($query,utf8_htmlspecialchars($query))) as $text)
-			{ $filter[] = 'f.title ' . $this->db->sql_like_expression($wild . utf8_encode_ucr($text) . $wild); }
-			if (ctype_digit($query) && $query<=4294967295) { $filter[] = 'f.file_id=' . (int) $query; }
-		}
-		$result = $this->db->sql_query_limit('SELECT f.file_id,f.title,f.approved,c.title AS category,(SELECT COUNT(*) FROM ' .
-			$this->p . 'mirrors m WHERE m.file_id=f.file_id) AS copies FROM ' . $this->p . 'files f LEFT JOIN ' . $this->p .
-			'categories c ON c.cat_id=f.cat_id' . ($filter ? ' WHERE (' . implode(' OR ',$filter) . ')' : '') .
-			' ORDER BY f.title,f.file_id',self::PAGE_SIZE+1,max(0,$start));
-		$rows = $this->db->sql_fetchrowset($result);
-		$this->db->sql_freeresult($result);
-		return $rows;
 	}
 
 	public function file($id)

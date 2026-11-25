@@ -1,6 +1,20 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_FILE_ACTIONS'=>'Manage download files','ACP_PLUS_DL_FILE_FILTER_ALL'=>'All files',
+	'ACP_PLUS_DL_FILE_STATUS'=>'Status','ACP_PLUS_DL_FILE_ALL_CATEGORIES'=>'All categories',
+	'ACP_PLUS_DL_FILE_FILTER_APPROVED'=>'Approved','ACP_PLUS_DL_FILE_FILTER_PENDING'=>'Awaiting approval','ACP_PLUS_DL_FILE_FILTER_BROKEN'=>'Reported broken',
+	'ACP_PLUS_DL_FILES_APPROVE'=>'Approve files','ACP_PLUS_DL_FILES_WITHDRAW'=>'Withdraw approval','ACP_PLUS_DL_FILES_DELETE'=>'Delete files',
+	'ACP_PLUS_DL_FILES_EFFECT'=>'This action changes %1$d of the %2$d selected files.',
+	'ACP_PLUS_DL_FILES_REMOVAL'=>'Removal includes mirrors (%1$d), comments (%2$d), ratings (%3$d), custom field values (%4$d) and the associated visit records. Local files and previews are removed when no other download uses them.',
+	'ACP_PLUS_DL_FILE_CONFIRM'=>'I confirm this action for the files shown.',
+	'ACP_PLUS_DL_FILE_CONFIRM_REQUIRED'=>'Please confirm the action shown.',
+	'ACP_PLUS_DL_FILE_SELECTION'=>'Select at least one file.',
+	'ACP_PLUS_DL_FILE_CHANGED'=>'The selected files or their contents have changed. Review the current selection.',
+	'ACP_PLUS_DL_FILES_DONE'=>'Files changed: %d',
+	'LOG_PLUS_DL_FILES_APPROVE'=>'<strong>Approved download files</strong><br>» %s',
+	'LOG_PLUS_DL_FILES_WITHDRAW'=>'<strong>Withdrew download approval</strong><br>» %s',
+	'LOG_PLUS_DL_FILES_DELETE'=>'<strong>Deleted download files</strong><br>» %s',
 	'ACP_PLUS_DL_MIRRORS'=>'Manage download mirrors','ACP_PLUS_DL_MIRROR_SEARCH'=>'File title or file ID',
 	'ACP_PLUS_DL_MIRROR_FILE'=>'File','ACP_PLUS_DL_MIRROR_COUNT'=>'Mirrors','ACP_PLUS_DL_MIRROR_PENDING'=>'Awaiting approval',
 	'ACP_PLUS_DL_MIRROR_CATEGORY_NAME'=>'Category',

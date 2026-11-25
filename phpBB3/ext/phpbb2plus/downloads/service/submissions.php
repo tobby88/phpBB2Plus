@@ -278,6 +278,46 @@ class submissions
 		$this->purge($ids);
 	}
 
+	// Include contributions and attached records in a removal confirmation. Routine
+	// downloads and anonymous visit counts do not change the content being reviewed.
+	public function removal_details($ids, $hash, $lock)
+	{
+		$tables = array('comments'=>array('comment_id','owner_id,posted_at,title,body'),
+			'votes'=>array('row_id','owner_id,points'),'mirrors'=>array('mirror_id','location,storage_name,asset_status,source_json'),
+			'field_values'=>array('row_id','field_id,values_json'));
+		$counts = array_fill_keys(array_keys($tables),0);
+		$current = $lock && in_array($this->db->get_sql_layer(),array('mysql','mysqli'),true) ? ' FOR UPDATE' : '';
+		foreach (array_chunk($ids,200) as $batch)
+		{
+			$where = ' WHERE ' . $this->db->sql_in_set('file_id',$batch);
+			foreach ($tables as $name=>$columns)
+			{
+				list($key,$fields) = $columns;
+				hash_update($hash,$name);
+				$result = $this->db->sql_query("SELECT $key,file_id,$fields FROM " . $this->prefix . $name . $where . " ORDER BY $key" . $current);
+				while ($row = $this->db->sql_fetchrow($result)) { hash_update($hash,serialize($row)); ++$counts[$name]; }
+				$this->db->sql_freeresult($result);
+			}
+		}
+		return $counts;
+	}
+
+	public function apply_file_action($action, $ids)
+	{
+		if (!$this->db->get_transaction() || !$this->access->file_admin($action)) { throw new \DomainException('NO_AUTH_OPERATION'); }
+		if ($action === 'delete') { $this->purge($ids); }
+		else { $this->set_approval($ids,$action === 'approve'); }
+	}
+
+	private function set_approval($ids, $approved)
+	{
+		foreach (array_chunk($ids,200) as $batch)
+		{
+			$this->db->sql_query('UPDATE ' . $this->prefix . 'files SET approved=' . (int) $approved .
+				',review_revision=review_revision+1 WHERE ' . $this->db->sql_in_set('file_id',$batch) . ' AND approved<>' . (int) $approved);
+		}
+	}
+
 	private function purge($ids)
 	{
 		foreach (array_chunk($ids, 200) as $batch)
@@ -295,6 +335,7 @@ class submissions
 			foreach (array_chunk($queue,200) as $group) { $this->db->sql_multi_insert($this->prefix . 'media_queue',$group); }
 			foreach (array('mirrors','field_values','comments','votes','visitors','files') as $table)
 			{ $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . $where); }
+			if ((int) $this->db->sql_affectedrows() !== count($batch)) { throw new \RuntimeException('The complete file selection could not be removed.'); }
 		}
 		// Keep submission receipts through their form lifetime so a retry cannot recreate a removed item.
 	}
@@ -317,11 +358,9 @@ class submissions
 			if (!$this->access->can_review($cat)) { throw new NotFoundHttpException(); }
 			if ((int) $file['review_revision'] !== $revision || (($action === 'withdraw') !== (bool) $file['approved']))
 			{ throw new \DomainException('PLUS_DL_REVIEW_CHANGED'); }
-			$where = ' WHERE file_id=' . $id;
 			if ($action !== 'reject')
 			{
-				$this->db->sql_query('UPDATE ' . $this->prefix . 'files SET approved=' . ($action === 'approve' ? 1 : 0) .
-					',review_revision=review_revision+1' . $where);
+				$this->set_approval(array($id),$action === 'approve');
 				return $cat;
 			}
 			$this->purge(array($id));

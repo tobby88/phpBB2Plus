@@ -85,6 +85,12 @@ class access
 		return $this->acp_admin('a_plus_dl_mirrors',$fresh);
 	}
 
+	public function file_admin($action, $fresh = false)
+	{
+		if ($action === 'delete') { return $this->acp_admin('a_plus_dl_delete',$fresh); }
+		return in_array($action,array('approve','withdraw'),true) && $this->acp_admin('a_plus_dl_approval',$fresh);
+	}
+
 	private function acp_admin($permission, $fresh)
 	{
 		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) || empty($this->user->data['session_admin']) ||
