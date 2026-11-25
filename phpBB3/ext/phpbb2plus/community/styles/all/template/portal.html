@@ -5,19 +5,24 @@
 <nav class="panel" aria-label="{L_QUICK_LINKS}"><div class="inner"><h3>{L_QUICK_LINKS}</h3><ul class="menu">
 	<li><a href="{U_INDEX}">{L_INDEX}</a></li>
 	<!-- IF S_DISPLAY_SEARCH --><li><a href="{U_SEARCH}">{L_SEARCH}</a></li><!-- ENDIF -->
-	<!-- IF U_MEMBERLIST --><li><a href="{U_MEMBERLIST}">{L_MEMBERLIST}</a></li><!-- ENDIF -->
+	<!-- IF S_DISPLAY_MEMBERLIST --><li><a href="{U_MEMBERLIST}">{L_MEMBERLIST}</a></li><!-- ENDIF -->
 	<li><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></li>
 	<!-- EVENT phpbb2plus_community_portal_navigation -->
+	<li><a href="{U_FAQ}">{L_FAQ}</a></li>
+	<!-- IF U_TEAM --><li><a href="{U_TEAM}">{L_THE_TEAM}</a></li><!-- ENDIF -->
 </ul></div></nav>
 <section aria-label="{L_PLUS_RECENT_TOPICS}">
-<div class="forabg"><div class="inner">
-	<ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_RECENT_TOPICS}</div></dt><dd class="lastpost">{L_LAST_POST}</dd></dl></li></ul>
-	<ul class="topiclist topics">
-		<!-- BEGIN plus_topics -->
-		<li class="row"><dl><dt><div class="list-inner"><a class="topictitle" href="{plus_topics.U_TOPIC}">{plus_topics.TITLE}</a><br><a href="{plus_topics.U_FORUM}">{plus_topics.FORUM}</a></div></dt><dd class="lastpost"><span>{plus_topics.LAST_POST}</span></dd></dl></li>
-		<!-- BEGINELSE --><li class="row"><p class="responsive-center">{L_NO_TOPICS}</p></li><!-- END plus_topics -->
-	</ul>
-</div></div>
+<div class="forabg"><table class="plus-recent">
+	<thead><tr><th scope="col">{L_PLUS_RECENT_TOPICS}</th><th scope="col">{L_LAST_POST}</th></tr></thead>
+	<tbody>
+	<!-- BEGIN plus_topics -->
+	<tr class="<!-- IF plus_topics.S_ROW_COUNT is even -->bg1<!-- ELSE -->bg2<!-- ENDIF -->">
+		<td><a class="topictitle" href="{plus_topics.U_TOPIC}">{plus_topics.TITLE}</a><br><a href="{plus_topics.U_FORUM}">{plus_topics.FORUM}</a></td>
+		<td>{plus_topics.LAST_POST}</td>
+	</tr>
+	<!-- BEGINELSE --><tr class="bg1"><td colspan="2">{L_NO_TOPICS}</td></tr><!-- END plus_topics -->
+	</tbody>
+</table></div>
 </section>
 <aside class="panel"><div class="inner"><h3><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></h3>
 	<!-- BEGIN plus_shouts --><div class="plus-shout"><strong>{plus_shouts.AUTHOR}</strong> &middot; {plus_shouts.TIME}

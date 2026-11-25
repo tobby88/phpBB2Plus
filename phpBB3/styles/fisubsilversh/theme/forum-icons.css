@@ -1,0 +1,28 @@
+/* Match native phpBB read states to the historical FI Subsilver Shadow images. */
+.forum_link { background-image: url("images/link_folder.gif"); }
+.forum_read, .forum_read_subforum, .topic_read { background-image: url("images/folder.gif"); }
+.forum_unread, .forum_unread_subforum, .topic_unread { background-image: url("images/folder_new.gif"); }
+.topic_read_mine { background-image: url("images/folder_own.gif"); }
+.topic_unread_mine { background-image: url("images/folder_new_own.gif"); }
+.topic_read_hot { background-image: url("images/folder_hot.gif"); }
+.topic_unread_hot { background-image: url("images/folder_new_hot.gif"); }
+.topic_read_hot_mine { background-image: url("images/folder_hot_own.gif"); }
+.topic_unread_hot_mine { background-image: url("images/folder_new_hot_own.gif"); }
+.forum_read_locked, .topic_read_locked { background-image: url("images/folder_lock.gif"); }
+.forum_unread_locked, .topic_unread_locked { background-image: url("images/folder_lock_new.gif"); }
+.topic_read_locked_mine { background-image: url("images/folder_lock_own.gif"); }
+.topic_unread_locked_mine { background-image: url("images/folder_lock_new_own.gif"); }
+.topic_moved { background-image: url("images/folder_moved.gif"); }
+.sticky_read { background-image: url("images/folder_sticky.gif"); }
+.sticky_unread { background-image: url("images/folder_sticky_new.gif"); }
+.sticky_read_mine { background-image: url("images/folder_sticky_own.gif"); }
+.sticky_unread_mine { background-image: url("images/folder_sticky_new_own.gif"); }
+.announce_read { background-image: url("images/folder_announce.gif"); }
+.announce_unread { background-image: url("images/folder_announce_new.gif"); }
+.announce_read_mine { background-image: url("images/folder_announce_own.gif"); }
+.announce_unread_mine { background-image: url("images/folder_announce_new_own.gif"); }
+.global_read { background-image: url("images/folder_global_announce.gif"); }
+.global_unread { background-image: url("images/folder_global_announce_new.gif"); }
+.global_read_mine { background-image: url("images/folder_global_announce_own.gif"); }
+.global_unread_mine { background-image: url("images/folder_global_announce_new_own.gif"); }
+/* prosilver supplies the combined locked announcement and sticky states. */

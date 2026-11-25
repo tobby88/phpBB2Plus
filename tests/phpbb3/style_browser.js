@@ -1,0 +1,56 @@
+// Reuse the synthetic board and Chromium process already opened for the Arcade.
+async function checkPlusStyle(frame) {
+    async function page(path, width) {
+        frame.style.cssText = "border:0;height:760px;width:" + width + "px";
+        await new Promise(resolve => {
+            frame.addEventListener("load", resolve, {once: true});
+            frame.src = path;
+        });
+        return frame.contentDocument;
+    }
+    function luminance(rgb) {
+        const parts = rgb.match(/\d+(?:\.\d+)?/g).slice(0, 3).map(n => {
+            const v = Number(n) / 255;
+            return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
+        });
+        return parts[0] * .2126 + parts[1] * .7152 + parts[2] * .0722;
+    }
+    for (const width of [1180, 390]) {
+        const desktop = width > 700;
+        const portal = await page("app.php/portal", width);
+        const win = portal.defaultView;
+        const logo = portal.querySelector("#logo .site_logo").getBoundingClientRect();
+        const home = portal.querySelector(".plus-brand-portal");
+        if (!home || !new URL(home.href).pathname.endsWith("/portal") || home.getBoundingClientRect().width < 45 ||
+            (desktop ? logo.width !== 240 || logo.height !== 110 : logo.width < 88 || logo.width > 155)) {
+            throw Error("The Plus header lost its linked logos at " + width + "px");
+        }
+        const recent = portal.querySelector(".plus-recent");
+        const row = recent.tBodies[0].rows[0];
+        const title = row.querySelector("a.topictitle");
+        const ink = luminance(win.getComputedStyle(title).color);
+        const fill = luminance(win.getComputedStyle(row).backgroundColor);
+        if ((Math.max(ink, fill) + .05) / (Math.min(ink, fill) + .05) < 4.5 ||
+            row.cells[0].offsetWidth < recent.offsetWidth / 2 || row.cells[1].offsetWidth < 50 ||
+            portal.documentElement.scrollWidth > win.innerWidth + 1) {
+            throw Error("The recent topics or last-post column is unreadable at " + width + "px");
+        }
+        const topic = await page("viewtopic.php?t=1", width);
+        const author = topic.querySelector(".post .postprofile").getBoundingClientRect();
+        const body = topic.querySelector(".post .postbody").getBoundingClientRect();
+        if ((desktop ? author.right > body.left + 1 : author.bottom > body.top + 1) ||
+            topic.documentElement.scrollWidth > topic.defaultView.innerWidth + 1) {
+            throw Error("The author column overlaps the post at " + width + "px");
+        }
+    }
+    const forums = await page("index.php", 1180);
+    const folder = forums.querySelector(".forum_read_subforum, .forum_read");
+    const background = folder && forums.defaultView.getComputedStyle(folder).backgroundImage;
+    if (!background || !background.includes("/fisubsilversh/theme/images/folder.gif")) {
+        throw Error("The forum read state lost its FI Subsilver folder image");
+    }
+    const graphic = new Image();
+    graphic.src = background.slice(5, -2);
+    await graphic.decode();
+    if (graphic.naturalWidth !== 25) throw Error("The original folder image could not be decoded");
+}

@@ -17,7 +17,7 @@ PACKAGES = (
     ("https://downloads.phpbb.de/pakete/deutsch/3.3/3.3.19/phpBB_lang_de-3.3.19.zip",
      "3c95828a1d6ad4c86248e0fedb6153f59c57d211adbded1c507b169db54beef0", ""),
 )
-STYLE_IMAGES = ("cellpic1.gif", "cellpic3.gif", "cellpic_bkg.jpg", "cellpic_nav.gif",
+STYLE_IMAGES = ("arrow.gif", "link_folder.gif", "cellpic1.gif", "cellpic3.gif", "cellpic_bkg.jpg", "cellpic_nav.gif",
                 "phpbb2_logo.jpg", "phpbb2_logor.jpg")
 
 
@@ -131,9 +131,11 @@ def assemble(output, cache, offline=False):
             for file in files:
                 shutil.copyfile(file, player / file.name)
         images.mkdir(parents=True, exist_ok=True)
-        for name in STYLE_IMAGES:
-            with (images / name).open("xb") as out:
-                out.write((ROOT / "phpBB2/templates/fisubsilversh/images" / name).read_bytes())
+        old_images = ROOT / "phpBB2/templates/fisubsilversh/images"
+        style_images = [old_images / name for name in STYLE_IMAGES] + sorted(old_images.glob("folder*.gif"))
+        for source in style_images:
+            with (images / source.name).open("xb") as out:
+                out.write(source.read_bytes())
         # phpBB inherits templates. Several native templates address theme files
         # directly under the active style, including the localized online marker.
         base_theme = web / "styles/prosilver/theme"

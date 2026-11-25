@@ -1,4 +1,10 @@
-.plus-portal { display: grid; grid-template-columns: minmax(10em, 1fr) minmax(0, 3fr) minmax(14em, 1.4fr); gap: 8px; align-items: start; }
+.plus-portal { display: grid; grid-template-columns: minmax(12em, 15fr) minmax(0, 64fr) minmax(17em, 21fr); gap: 8px; align-items: start; }
+.plus-portal > * { min-width: 0; }
+.plus-recent { width: 100%; table-layout: fixed; border-spacing: 0; }
+.plus-recent th, .plus-recent td { padding: .5em; text-align: start; overflow-wrap: anywhere; }
+.plus-recent th { color: white; }
+.plus-recent th:first-child { width: 63%; }
+.plus-recent td { border: 1px solid white; vertical-align: top; }
 .plus-portal .panel { margin: 0 0 8px; }
 .plus-portal .panel h3 { margin-top: 0; }
 .plus-portal ul.menu { list-style: none; padding: 0; }

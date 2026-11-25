@@ -40,9 +40,11 @@ def playback(web, base, root):
         receiver.timeout = 0.35
         probe = Path(web) / ("renderer-" + token + ".html")
         callback = f"http://127.0.0.1:{receiver.server_port}/{token}"
+        style_checks = Path(__file__).with_name("style_browser.js").read_text(encoding="utf-8")
         probe.write_text("""<!doctype html><html><body><iframe title="Arcade fixture"></iframe><script>
+STYLE_CHECKS
 const frame = document.querySelector("iframe");
-let started = false, reported = false;
+let started = false, reported = false, checkingStyle = false;
 function report(message) {
     if (reported) return;
     reported = true;
@@ -56,17 +58,21 @@ frame.addEventListener("load", () => {
     }
 });
 frame.src = "app.php/arcade/game/60";
-setInterval(() => {
+setInterval(async () => {
+    if (checkingStyle) return;
     const container = frame.contentDocument.getElementById("plus-arc-player");
     const player = container && container.firstElementChild;
     if (player && typeof player.ruffle === "function") {
         const api = player.ruffle(1), meta = api.metadata;
         if (meta && api.readyState === 2) {
-            report(JSON.stringify([meta.width, meta.height, meta.frameRate, meta.numFrames]));
+            checkingStyle = true;
+            const movie = [meta.width, meta.height, meta.frameRate, meta.numFrames];
+            try { await checkPlusStyle(frame); report(JSON.stringify(movie)); }
+            catch (error) { report(String(error).slice(0, 220)); }
         }
     } else if (container && !player) { report(container.textContent.slice(0, 120)); }
 }, 100);
-</script></body></html>""".replace("CALLBACK", json.dumps(callback)), encoding="utf-8")
+</script></body></html>""".replace("CALLBACK", json.dumps(callback)).replace("STYLE_CHECKS", style_checks), encoding="utf-8")
         profile = Path(root) / ("chromium-" + token)
         args = [browser, "--headless", "--disable-background-networking", "--disable-component-update", "--disable-sync",
                 "--no-first-run", "--no-default-browser-check", "--autoplay-policy=no-user-gesture-required",
@@ -78,8 +84,8 @@ setInterval(() => {
             while not results and time.monotonic() < deadline and process.poll() is None:
                 receiver.handle_request()
             if not results or results[0] != "[80,45,24,1]":
-                raise RuntimeError(f"Ruffle did not decode the 80×45, 24fps test movie: {results or 'no browser response'}")
-            print("Chromium played the self-hosted Ruffle fixture")
+                raise RuntimeError(f"Browser playback or Plus style check failed: {results or 'no browser response'}")
+            print("Chromium played the Ruffle fixture and checked the desktop and mobile Plus style")
         finally:
             process.terminate()
             process.wait(timeout=12)
