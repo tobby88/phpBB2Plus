@@ -63,7 +63,7 @@ class tournaments
 	{
 		$id = (int) $entry['tour_id'];
 		$status = $this->tours->join_status($entry);
-		$states = array('PLUS_ARC_TOUR_WAITING', 'PLUS_ARC_TOUR_INACTIVE', 'PLUS_ARC_TOUR_OPEN', 'PLUS_ARC_TOUR_FINISHED');
+		$states = \phpbb2plus\arcade\service\tournaments::STATES;
 		return array('ID'=>$id, 'NAME'=>(string) $entry['tour_name'], 'DESCRIPTION'=>(string) $entry['tour_desc'],
 			'PLAYERS'=>(int) $entry['players'], 'CAPACITY'=>(int) $entry['tour_max_players'], 'INVITED'=>(bool) $entry['invited'],
 			'STATE'=>$this->language->lang($states[(int) $entry['tour_active']] ?? $states[0]), 'CAN_JOIN'=>$status === '',

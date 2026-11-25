@@ -6,6 +6,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class tournaments
 {
+	const STATES = array('PLUS_ARC_TOUR_WAITING', 'PLUS_ARC_TOUR_INACTIVE', 'PLUS_ARC_TOUR_OPEN', 'PLUS_ARC_TOUR_FINISHED');
 	private $db;
 	private $catalog;
 	private $user;
@@ -60,6 +61,16 @@ class tournaments
 	public function listing($start, $limit)
 	{
 		return $this->rows($this->entries() . ' WHERE t.tour_active<>3 ORDER BY t.tour_active DESC,t.tour_id', $limit, $start);
+	}
+
+	public function administration($start, $limit)
+	{
+		return $this->rows($this->entries() . ' ORDER BY t.tour_active,t.tour_id DESC', $limit, $start);
+	}
+
+	public function count_all()
+	{
+		return (int) $this->rows('SELECT COUNT(*) AS n FROM ' . $this->prefix . 'tours')[0]['n'];
 	}
 
 	public function champions($start, $limit)
@@ -215,6 +226,12 @@ class tournaments
 		$owner = (int) $this->user->data['user_id'];
 		$actors = $this->rows('SELECT user_type,user_rank,user_posts FROM ' . USERS_TABLE . " WHERE user_id=$owner LOCK IN SHARE MODE");
 		if (!$actors || !$this->eligible($actors[0])) { throw new AccessDeniedHttpException(); }
+		return $this->identity();
+	}
+
+	public function identity()
+	{
+		$owner = (int) $this->user->data['user_id'];
 		return array('owner_id'=>$owner, 'user_id'=>(int) ($this->user->data['plus_legacy_id'] ?? 0) ?: $owner);
 	}
 

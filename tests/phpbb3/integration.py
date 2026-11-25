@@ -219,6 +219,7 @@ def main():
                 arcade.comments(base, member, ordinary, pending)
                 arcade.tournament_play(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
                 arcade_administration.exercise(member, ordinary, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "proposal", cwd=web))
+                arcade_administration.control(member, ordinary, pending, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "control", cwd=web))
                 downloads.browse(base, member, ordinary, pending)
                 php(fixture, "downloaded", target)
                 playback(web, base, root)

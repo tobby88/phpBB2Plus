@@ -1,10 +1,13 @@
 services:
     phpbb2plus.arcade.tournament_management:
         class: phpbb2plus\arcade\service\tournament_management
-        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.tournaments', '%core.table_prefix%plus_arc_']
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.tournaments', '%core.table_prefix%plus_arc_', '@log', '@user']
     phpbb2plus.arcade.settings:
         class: phpbb2plus\arcade\service\settings
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '%core.table_prefix%plus_arc_settings']
+    phpbb2plus.arcade.tournament_games:
+        class: phpbb2plus\arcade\service\tournament_games
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.tournaments', '@phpbb2plus.arcade.tournament_management', '%core.table_prefix%plus_arc_']
     phpbb2plus.arcade.tournaments:
         class: phpbb2plus\arcade\service\tournaments
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@user', '%core.table_prefix%plus_arc_']

@@ -1,0 +1,38 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{{ lang('ACP_PLUS_ARCADE_TOURNAMENTS') }}</h1>
+{% if ARC_ERROR %}<div class="errorbox"><p>{{ ARC_ERROR }}</p></div>{% elseif S_SAVED %}<div class="successbox"><p>{{ lang('CONFIG_UPDATED') }}</p></div>{% endif %}
+{% if not S_EDITOR %}
+<p><a href="{{ U_NEW }}">{{ lang('PLUS_ARC_EVENT_NEW') }}</a></p>
+<table class="table1"><thead><tr><th>{{ lang('PLUS_ARC_TOUR_NAME') }}</th><th>{{ lang('PLUS_ARC_TOUR_STATE') }}</th><th>{{ lang('PLUS_ARC_TOUR_PLAYERS') }}</th></tr></thead>
+<tbody>{% for row in loops.events %}<tr><td><a href="{{ row.URL }}">{{ row.NAME|e }}</a></td><td>{{ row.STATE }}</td><td>{{ row.PLAYERS }} / {{ row.CAPACITY }}</td></tr>
+{% else %}<tr><td colspan="3">{{ lang('PLUS_ARC_EMPTY') }}</td></tr>{% endfor %}</tbody></table>
+{% if U_PREV %}<a href="{{ U_PREV }}">{{ lang('PREVIOUS') }}</a>{% endif %} {% if U_NEXT %}<a href="{{ U_NEXT }}">{{ lang('NEXT') }}</a>{% endif %}
+{% else %}
+<p><a href="{{ U_LIST }}">{{ lang('BACK_TO_PREV') }}</a></p>
+{% if S_FINISHED %}<h2>{{ EVENT.name|e }}</h2><p>{{ lang('PLUS_ARC_TOUR_FINISHED') }}</p><p>{{ EVENT.description|e|nl2br }}</p>
+{% else %}
+<form id="arc-event-edit" action="{{ U_EDIT }}" method="post"><fieldset><legend>{{ lang('PLUS_ARC_TOUR') }}</legend>
+<dl><dt><label for="event-name">{{ lang('PLUS_ARC_TOUR_NAME') }}</label></dt><dd><input id="event-name" name="name" maxlength="25" value="{{ EVENT.name|e }}" required></dd></dl>
+<dl><dt><label for="event-desc">{{ lang('PLUS_ARC_TOUR_DESCRIPTION') }}</label></dt><dd><textarea id="event-desc" name="description" rows="3" cols="48">{{ EVENT.description|e }}</textarea></dd></dl>
+<dl><dt><label for="event-state">{{ lang('PLUS_ARC_TOUR_STATE') }}</label></dt><dd><select id="event-state" name="state">
+{% for state in loops.states %}<option value="{{ state.VALUE }}"{% if state.SELECTED %} selected{% endif %}>{{ state.LABEL }}</option>{% endfor %}</select></dd></dl>
+<dl><dt><label for="event-players">{{ lang('PLUS_ARC_TOUR_CAPACITY') }}</label></dt><dd><input id="event-players" name="players" type="number" min="2" max="{{ MAX_PLAYERS }}" value="{{ EVENT.players|e }}" required></dd></dl>
+<dl><dt><label for="event-turns">{{ lang('PLUS_ARC_TOUR_ALLOWANCE') }}</label></dt><dd><input id="event-turns" name="turns" type="number" min="1" max="10000" value="{{ EVENT.turns|e }}" required></dd></dl>
+<dl><dt><label for="event-reserve">{{ lang('PLUS_ARC_TOUR_RESERVE') }}</label></dt><dd><input id="event-reserve" name="reserve" type="checkbox" value="1"{% if EVENT.reserve %} checked{% endif %}></dd></dl>
+<input type="hidden" name="save" value="1"><input type="hidden" name="revision" value="{{ REVISION }}"><input type="hidden" name="nonce" value="{{ NONCE|e }}">{{ S_FORM_TOKEN }}
+<p class="submit-buttons"><button class="button1" type="submit">{{ lang('SUBMIT') }}</button></p></fieldset></form>{% endif %}
+{% if S_EXISTING %}
+<h2>{{ lang('PLUS_ARC_EVENT_ASSIGNED') }}</h2>
+{% if loops.assigned %}<ul>{% for item in loops.assigned %}<li>{{ item.NAME|e }}</li>{% endfor %}</ul>{% else %}<p>{{ lang('PLUS_ARC_EMPTY') }}</p>{% endif %}
+{% if U_ASSIGNED_PREV %}<a href="{{ U_ASSIGNED_PREV }}">{{ lang('PREVIOUS') }}</a>{% endif %} {% if U_ASSIGNED_NEXT %}<a href="{{ U_ASSIGNED_NEXT }}">{{ lang('NEXT') }}</a>{% endif %}
+{% if not S_FINISHED %}
+<h2>{{ lang('PLUS_ARC_EVENT_ADD_GAMES') }}</h2>
+<form id="arc-event-search" action="{{ U_EDIT }}" method="post"><fieldset class="quick"><label for="game-search">{{ lang('SEARCH') }}</label>
+<input type="search" id="game-search" name="game_search" maxlength="100" value="{{ GAME_SEARCH|e }}"><button class="button2" type="submit">{{ lang('SEARCH') }}</button></fieldset></form>
+{% if loops.choices %}<form id="arc-event-games" action="{{ U_EDIT }}" method="post"><fieldset><legend>{{ lang('PLUS_ARC_GAMES') }}</legend>
+{% for item in loops.choices %}<p><label><input name="games[]" type="checkbox" value="{{ item.TOKEN }}"> {{ item.NAME|e }} ({{ item.GAME_KEY|e }})</label></p>{% endfor %}
+<input type="hidden" name="revision" value="{{ REVISION }}"><input type="hidden" name="add_games" value="1">{{ S_FORM_TOKEN }}
+<p class="submit-buttons"><button class="button1" type="submit">{{ lang('PLUS_ARC_EVENT_ADD_GAMES') }}</button></p></fieldset></form>{% else %}<p>{{ lang('PLUS_ARC_EMPTY') }}</p>{% endif %}
+{% if U_GAMES_PREV %}<a href="{{ U_GAMES_PREV }}">{{ lang('PREVIOUS') }}</a>{% endif %} {% if U_GAMES_NEXT %}<a href="{{ U_GAMES_NEXT }}">{{ lang('NEXT') }}</a>{% endif %}
+{% endif %}{% endif %}{% endif %}
+<!-- INCLUDE overall_footer.html -->

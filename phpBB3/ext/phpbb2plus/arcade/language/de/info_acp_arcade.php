@@ -2,6 +2,17 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ARCADE_SETTINGS' => 'Spielhallen-Einstellungen',
+	'ACP_PLUS_ARCADE_TOURNAMENTS' => 'Spielhallen-Turniere',
+	'LOG_PLUS_ARC_TOUR_CREATE' => 'Spielhallen-Turnier %d angelegt',
+	'LOG_PLUS_ARC_TOUR_EDIT' => 'Spielhallen-Turnier %d bearbeitet',
+	'LOG_PLUS_ARC_TOUR_ADD_GAMES' => 'Spiele zu Spielhallen-Turnier %d hinzugefügt',
+	'PLUS_ARC_EVENT_NEW' => 'Turnier anlegen',
+	'PLUS_ARC_EVENT_ASSIGNED' => 'Spiele in diesem Turnier',
+	'PLUS_ARC_EVENT_ADD_GAMES' => 'Spiele hinzufügen',
+	'PLUS_ARC_EVENT_SELECT' => 'Wähle mindestens ein Spiel auf dieser Seite aus.',
+	'PLUS_ARC_EVENT_CHANGED' => 'Das Turnier oder ein ausgewähltes Spiel wurde zwischenzeitlich geändert. Prüfe den aktuellen Stand.',
+	'PLUS_ARC_EVENT_CAPACITY' => 'Die Teilnehmerzahl muss alle bereits angemeldeten Spieler umfassen und innerhalb des eingestellten Limits liegen.',
+	'PLUS_ARC_EVENT_GAME_LIMIT' => 'Mit dieser Auswahl würde die Höchstzahl der Spiele pro Turnier überschritten.',
 	'LOG_PLUS_ARCADE_SETTINGS' => 'Spielhallen-Einstellungen geändert',
 	'PLUS_ARC_CONFIG_ACCESS' => 'Zugang',
 	'PLUS_ARC_CONFIG_CATALOGUE' => 'Spieleübersicht und Bestenlisten',

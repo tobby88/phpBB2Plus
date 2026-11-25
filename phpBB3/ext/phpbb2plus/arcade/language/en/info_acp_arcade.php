@@ -2,6 +2,17 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ARCADE_SETTINGS' => 'Arcade settings',
+	'ACP_PLUS_ARCADE_TOURNAMENTS' => 'Arcade tournaments',
+	'LOG_PLUS_ARC_TOUR_CREATE' => 'Created arcade tournament %d',
+	'LOG_PLUS_ARC_TOUR_EDIT' => 'Edited arcade tournament %d',
+	'LOG_PLUS_ARC_TOUR_ADD_GAMES' => 'Added games to arcade tournament %d',
+	'PLUS_ARC_EVENT_NEW' => 'Create a tournament',
+	'PLUS_ARC_EVENT_ASSIGNED' => 'Games in this tournament',
+	'PLUS_ARC_EVENT_ADD_GAMES' => 'Add games',
+	'PLUS_ARC_EVENT_SELECT' => 'Select at least one game on this page.',
+	'PLUS_ARC_EVENT_CHANGED' => 'The tournament or a selected game has changed. Review the current details.',
+	'PLUS_ARC_EVENT_CAPACITY' => 'The capacity must accommodate everyone already registered and fit within the configured limit.',
+	'PLUS_ARC_EVENT_GAME_LIMIT' => 'This selection would exceed the limit on games per tournament.',
 	'LOG_PLUS_ARCADE_SETTINGS' => 'Updated arcade settings',
 	'PLUS_ARC_CONFIG_ACCESS' => 'Access',
 	'PLUS_ARC_CONFIG_CATALOGUE' => 'Game catalogue and rankings',

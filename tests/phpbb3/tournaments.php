@@ -4,8 +4,25 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 $phpEx = 'php';
 require './common.php';
-if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1] || !in_array($argv[2], array('enable','disable','reserve','pause','turns','proposal'), true)) { exit(2); }
+if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1] || !in_array($argv[2], array('enable','disable','reserve','pause','turns','proposal','control'), true)) { exit(2); }
 $p = $table_prefix . 'plus_arc_';
+if ($argv[2] === 'control')
+{
+	$result = $db->sql_query("SELECT t.tour_name,t.tour_active,(SELECT COUNT(*) FROM {$p}tour_games d WHERE d.tour_id=t.tour_id) AS games,
+		(SELECT COUNT(*) FROM {$p}tour_plays p WHERE p.tour_id=t.tour_id) AS players FROM {$p}tours t WHERE t.tour_id>34 ORDER BY t.tour_id");
+	$rows = array();
+	while ($row = $db->sql_fetchrow($result)) { $rows[] = array($row['tour_name'], (int) $row['tour_active'], (int) $row['games'], (int) $row['players']); }
+	$db->sql_freeresult($result);
+	if ($rows !== array(array('Früh & Spät',1,2,3), array('Herbstpokal',2,0,0))) { throw new RuntimeException('The edited tournament lost a game or a participant'); }
+	$result = $db->sql_query('SELECT log_operation,COUNT(*) AS n FROM ' . LOG_TABLE . " WHERE log_operation IN
+		('LOG_PLUS_ARC_TOUR_CREATE','LOG_PLUS_ARC_TOUR_EDIT','LOG_PLUS_ARC_TOUR_ADD_GAMES') GROUP BY log_operation ORDER BY log_operation");
+	$counts = array();
+	while ($row = $db->sql_fetchrow($result)) { $counts[$row['log_operation']] = (int) $row['n']; }
+	$db->sql_freeresult($result);
+	if ($counts !== array('LOG_PLUS_ARC_TOUR_ADD_GAMES'=>1, 'LOG_PLUS_ARC_TOUR_CREATE'=>1, 'LOG_PLUS_ARC_TOUR_EDIT'=>2))
+	{ throw new RuntimeException('The native admin log lost or duplicated a tournament action'); }
+	return;
+}
 if ($argv[2] === 'proposal')
 {
 	$result = $db->sql_query("SELECT t.tour_id,t.tour_name,t.tour_active,t.start_id,t.tour_player_turns,t.block_plays,
