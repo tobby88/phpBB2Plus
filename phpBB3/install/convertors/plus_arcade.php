@@ -120,6 +120,10 @@ function plus_arcade_copy_group($short, $column, $value)
 	$db->sql_transaction('begin');
 	try
 	{
+		if ($short === 'tour_play')
+		{
+			$db->sql_query('DELETE FROM ' . $table_prefix . "plus_arc_turns WHERE participant_id IN (SELECT row_id FROM $target WHERE " . $match($db) . ')');
+		}
 		$db->sql_query("DELETE FROM $target WHERE " . $match($db));
 		$batch = array();
 		while ($row = $src_db->sql_fetchrow($result))
@@ -150,6 +154,10 @@ function plus_arcade_copy_group($short, $column, $value)
 			if (count($batch) === 64) { $db->sql_multi_insert($target, $batch); $batch = array(); }
 		}
 		if ($batch) { $db->sql_multi_insert($target, $batch); }
+		if ($short === 'tour_play')
+		{
+			do { $done = \phpbb2plus\arcade\service\tournament_turns::import_batch($db, $table_prefix . 'plus_arc_', $value); } while (!$done);
+		}
 		$db->sql_transaction('commit');
 	}
 	catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
@@ -175,6 +183,10 @@ function plus_arcade_schema($prefix, $truncate)
 		if ($short === 'games')
 		{
 			$section['query_first'] = array(array('target', $truncate . $target), array('target', $truncate . $prefix . 'plus_arc_launches'));
+		}
+		elseif ($short === 'tour_play')
+		{
+			$section['query_first'] = array(array('target', $truncate . $target), array('target', $truncate . $prefix . 'plus_arc_turns'));
 		}
 		if ($key && $short !== 'data') { $section['autoincrement'] = $key; }
 		$sections[] = $section;

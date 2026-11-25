@@ -107,17 +107,38 @@ class tournaments
 		$entry = $this->tours->entry($id);
 		$view = $this->display($entry);
 		$start = $this->start('phpbb2plus_arcade_tournament', $params, $view['PLAYERS']);
-		foreach ($this->tours->participants($id, $start, 25) as $row)
+		$participants = $this->tours->participants($id, $start, 25);
+		$history = $this->tours->participant_games($participants);
+		foreach ($participants as $row)
 		{
 			$this->template->assign_block_vars('tour_players', array('NAME'=>$this->player($row)));
+			foreach ($history[$row['row_id']] ?? array() as $played)
+			{
+				$this->template->assign_block_vars('tour_players.plays', array('NAME'=>$played['name'], 'SHOW_COUNT'=>$played['played'] !== null,
+					'COUNT'=>$played['played'], 'SHOW_SCORE'=>$played['score'] !== null,
+					'SCORE'=>$played['score'] === null ? '' : score::display($played['score'], $this->language->lang('PLUS_ARC_DECIMAL'))));
+			}
 		}
+		$has_start = false;
 		foreach ($this->tours->games($id) as $game)
 		{
 			$recorded = $game['score_units'] !== null;
-			$this->template->assign_block_vars('tour_games', array('NAME'=>catalog::plain($game['game_desc'] ?: $game['game_name']),
-				'URL'=>$this->helper->route('phpbb2plus_arcade_game', array('game'=>(int) $game['game_id'])),
+			$can_start = $this->tours->can_start($entry, $game);
+			$has_start = $has_start || $can_start;
+			$game_params = array('game'=>(int) $game['game_id']);
+			$this->template->assign_block_vars('tour_games', array('ID'=>(int) $game['game_id'], 'NAME'=>catalog::plain($game['game_desc'] ?: $game['game_name']),
+				'URL'=>$this->helper->route('phpbb2plus_arcade_game', $game_params),
+				'START'=>$can_start ? $this->helper->route('phpbb2plus_arcade_tournament_start', $game_params + array('tour'=>(int) $id)) : '',
+				'NONCE'=>$can_start ? bin2hex(random_bytes(16)) : '', 'MEMBER'=>(bool) $entry['is_member'],
+				'READABLE'=>(int) $game['turns_state'] === 1, 'REMAINING'=>max(0, (int) $entry['tour_player_turns'] - (int) $game['played']),
+				'OWN_SCORE'=>$game['own_units'] !== null ? score::display($game['own_units'], $this->language->lang('PLUS_ARC_DECIMAL')) : '',
 				'RECORDED'=>$recorded, 'POINTS'=>$recorded ? score::display($game['score_units'], $this->language->lang('PLUS_ARC_DECIMAL')) : '',
 				'PLAYER'=>$recorded ? $this->player($game) : ''));
+		}
+		if ($has_start)
+		{
+			add_form_key('plus_arc_tour_play_' . (int) $id);
+			$this->template->assign_var('ARC_TURN_TOKEN', $this->template->retrieve_var('S_FORM_TOKEN'));
 		}
 		if ($view['CAN_JOIN'])
 		{

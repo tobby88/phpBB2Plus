@@ -7,10 +7,18 @@
 <button type="submit" class="button1">{{ lang('PLUS_ARC_TOUR_JOIN') }}</button></fieldset></form>{% endif %}
 <div class="forumbg"><div class="inner"><table class="table1">
 <thead><tr><th>{{ lang('PLUS_ARC_GAMES') }}</th><th>{{ lang('PLUS_ARC_POINTS') }}</th><th>{{ lang('PLUS_ARC_TOUR_LEADER') }}</th></tr></thead>
-<tbody>{% for game in loops.tour_games %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td><a href="{{ game.URL }}">{{ game.NAME|e }}</a></td>
+<tbody>{% for game in loops.tour_games %}<tr id="game-{{ game.ID }}" class="bg{{ loop.index is odd ? '1' : '2' }}"><td><a href="{{ game.URL }}">{{ game.NAME|e }}</a>
+{% if game.MEMBER %}<br>{% if game.READABLE %}{{ lang('PLUS_ARC_TOUR_REMAINING',game.REMAINING) }}
+{% if game.OWN_SCORE is not same as('') %} · {{ lang('PLUS_ARC_TOUR_PERSONAL_SCORE',game.OWN_SCORE) }}{% endif %}
+{% else %}{{ lang('PLUS_ARC_TOUR_UNREADABLE') }}{% endif %}{% endif %}
+{% if game.START %}<form id="arcade-turn-{{ game.ID }}" method="post" action="{{ game.START }}">{{ ARC_TURN_TOKEN }}
+<input type="hidden" name="play_nonce" value="{{ game.NONCE }}"><button class="button2" type="submit">{{ lang('PLUS_ARC_TOUR_PLAY') }}</button></form>{% endif %}</td>
 {% if game.RECORDED %}<td>{{ game.POINTS }}</td><td>{{ game.PLAYER }}</td>{% else %}<td colspan="2">{{ lang('PLUS_ARC_NO_SCORES') }}</td>{% endif %}</tr>
 {% else %}<tr><td colspan="3">{{ lang('PLUS_ARC_EMPTY') }}</td></tr>{% endfor %}</tbody></table></div></div>
 <h3>{{ lang('PLUS_ARC_TOUR_PLAYERS') }}</h3>
-{% if loops.tour_players %}<ul>{% for player in loops.tour_players %}<li>{{ player.NAME }}</li>{% endfor %}</ul>{% else %}<p>{{ lang('PLUS_ARC_TOUR_NO_PLAYERS') }}</p>{% endif %}
+{% if loops.tour_players %}<ul>{% for player in loops.tour_players %}<li>{{ player.NAME }}
+{% if player.plays %}<ul>{% for item in player.plays %}<li>{{ item.NAME|e }}
+{% if item.SHOW_COUNT %} · {{ lang('PLUS_ARC_TOUR_PLAYED',item.COUNT) }}{% endif %}{% if item.SHOW_SCORE %} · {{ item.SCORE }}{% endif %}</li>{% endfor %}</ul>{% endif %}</li>{% endfor %}</ul>
+{% else %}<p>{{ lang('PLUS_ARC_TOUR_NO_PLAYERS') }}</p>{% endif %}
 {% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
 <!-- INCLUDE overall_footer.html -->

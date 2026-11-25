@@ -40,10 +40,15 @@ function seed_arcade($db)
 		(33,'Archivpokal','Abgeschlossen',98,11022,2,1,3),(34,'Abendrunde','Mehrfachanmeldung',2,11023,3,1,2)");
 	$db->query('UPDATE phpbb_ina_tour SET champion=98,end_date=11080 WHERE tour_id=33');
 	$db->query("INSERT INTO phpbb_ina_tour_data (tour_id,game_name,top_score,top_player) VALUES
-		(31,'puzzle',95.1234,1),(31,'timer',NULL,NULL),(32,'puzzle',0,1),(32,'personal',-2.1250,98),(34,'timer',NULL,NULL)");
+		(31,'puzzle',95.1234,1),(31,'timer',NULL,NULL),(32,'puzzle',0,1),(32,'personal',-2.1250,98),
+		(32,'private',NULL,NULL),(34,'timer',9.5001,2)");
 	$db->query("INSERT INTO phpbb_ina_tour_invite VALUES (31,2),(32,2)");
 	$db->query("INSERT INTO phpbb_ina_tour_play (tour_id,user_id,last_played_time,last_played_game,gamedata)
-		VALUES (31,1,11010,'puzzle','a:0:{}'),(32,1,11021,'puzzle','a:0:{}')");
+		VALUES (31,1,11010,'puzzle','a:0:{}'),(32,1,11021,'puzzle','a:0:{}'),(34,87,11022,NULL,'Incomplete historic record')");
+	$turns = array(4=>array('game_name'=>'puzzle','played'=>1,'score'=>-3.1251,'original_note'=>'Frühlingsrunde'),
+		8=>array('game_name'=>'personal','played'=>2,'score'=>0,'score_recorded'=>true));
+	$stored = $db->real_escape_string(addslashes(serialize($turns)));
+	$db->query("UPDATE phpbb_ina_tour_play SET gamedata='$stored' WHERE tour_id=32 AND user_id=1");
 	$db->query("INSERT INTO phpbb_ina_user_data (user_id,first_places,first_list,user_game_time) VALUES (1,2,'puzzle|timer|',39)");
 	$db->query("INSERT INTO phpbb_ina_log (record_no,user_id,name,value,date) VALUES (91,1,'Fixture','Historisches Ereignis',11011)");
 	$db->query("INSERT INTO phpbb_ina_banned (username,user_id,game,score,date) VALUES ('Ehemaliger',98,'puzzle',3,'11012')");
@@ -56,7 +61,7 @@ function verify_arcade($db, $member)
 	check_fixture(count($currencies) === 2 && $currencies[0]['balance_text'] === '18446744073709551615' &&
 		$currencies[1]['balance_text'] === '9007199254740993.12345678', 'Balances lost precision during conversion');
 	foreach (array('categories'=>4,'games'=>5,'scores'=>8,'all_scores'=>8,'monthly'=>1,'comments'=>1,'ratings'=>1,'favorites'=>4,'saves'=>1,
-		'tours'=>4,'tour_games'=>5,'invites'=>2,'tour_plays'=>2,'players'=>1,'log'=>1,'bans'=>1,'grants'=>2) as $table => $count)
+		'tours'=>4,'tour_games'=>6,'invites'=>2,'tour_plays'=>3,'turns'=>2,'players'=>1,'log'=>1,'bans'=>1,'grants'=>2) as $table => $count)
 	{
 		$actual = $db->query("SELECT COUNT(*) FROM $p$table")->fetch_row()[0];
 		check_fixture((int) $actual === $count, 'Incomplete Arcade conversion for ' . $table);
@@ -64,7 +69,10 @@ function verify_arcade($db, $member)
 	$first = $db->query("SELECT owner_id,game_data,score_units FROM {$p}scores WHERE game_name='puzzle' AND player_id=1")->fetch_assoc();
 	check_fixture((int) $first['owner_id'] === $member && $first['game_data'] === 'state:α' && $first['score_units'] === '951234', 'Arcade score precision, player or legacy state changed');
 	$highest = $db->query("SELECT MAX(score_units) FROM {$p}all_scores")->fetch_row()[0];
-	$missing = $db->query("SELECT score_units,winner_id FROM {$p}tour_games WHERE game_name='timer'")->fetch_assoc();
+	$missing = $db->query("SELECT score_units,winner_id FROM {$p}tour_games WHERE tour_id=31 AND game_name='timer'")->fetch_assoc();
+	$turn = $db->query("SELECT s.played,s.score_units,p.turns_state,p.gamedata FROM {$p}turns s JOIN {$p}tour_plays p ON p.row_id=s.participant_id WHERE p.tour_id=32 AND p.owner_id=$member AND s.game_name='puzzle'")->fetch_assoc();
+	check_fixture($turn && (int) $turn['played'] === 1 && $turn['score_units'] === '-31251' && (int) $turn['turns_state'] === 1 &&
+		strpos($turn['gamedata'],'original_note') !== false, 'An escaped historical tournament score, turn, source record or player was lost');
 	$saved = $db->query("SELECT owner_id,game_data,save_encoded FROM {$p}saves WHERE game_id=60")->fetch_assoc();
 	check_fixture($highest === '99999999999999' && $missing['score_units'] === null && !(int) $missing['winner_id'] &&
 		(int)$saved['owner_id'] === $member && $saved['save_encoded'] && base64_decode($saved['game_data'],true) === 'Spielstand ü=7 🎮', 'Lost score precision, missing tournament score, or saved game');

@@ -37,11 +37,25 @@ class catalog
 
 	public function refresh() { $this->settings = $this->groups = $this->categories = null; }
 
-	public function can_play($game)
+	public function can_play($game, $in_tournament = false)
 	{
 		return empty($this->user->data['is_bot']) && $game['game_avail'] && $game['asset_status'] === 'ready' &&
 			(!empty($this->user->data['is_registered']) || $game['allow_guest']) &&
-			(int) $this->user->data['user_posts'] >= (int) $this->setting('games_posts_required', 0);
+			(int) $this->user->data['user_posts'] >= (int) $this->setting('games_posts_required', 0) &&
+			($in_tournament || $this->normal_play_allowed($game));
+	}
+
+	private function normal_play_allowed($game)
+	{
+		if (!(int) $this->setting('games_tournament_mode', 0)) { return true; }
+		$p = $this->prefix;
+		$member = empty($this->user->data['is_registered']) ? '' : " AND NOT EXISTS
+			(SELECT 1 FROM {$p}tour_plays p WHERE p.tour_id=t.tour_id AND p.owner_id=" . (int) $this->user->data['user_id'] . ')';
+		$result = $this->db->sql_query_limit("SELECT t.tour_id FROM {$p}tour_games d JOIN {$p}tours t ON t.tour_id=d.tour_id
+			WHERE t.tour_active=2 AND t.block_plays=1 AND d.game_name='" . $this->db->sql_escape($game['game_name']) . "'" . $member, 1);
+		$allowed = $this->db->sql_fetchrow($result) === false;
+		$this->db->sql_freeresult($result);
+		return $allowed;
 	}
 
 	public function staff()

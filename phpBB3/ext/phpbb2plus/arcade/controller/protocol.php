@@ -63,8 +63,12 @@ class protocol
 		return new Response($text, $status, array('Content-Type' => 'text/plain; charset=UTF-8'));
 	}
 
-	private function scoreboard($game)
+	private function scoreboard($game, $launch)
 	{
+		if ((int) $launch['tour_id'])
+		{
+			return new RedirectResponse($this->helper->route('phpbb2plus_arcade_tournament', array('id'=>(int) $launch['tour_id']), false) . '#game-' . (int) $game['game_id'], 303);
+		}
 		return new RedirectResponse($this->helper->route('phpbb2plus_arcade_scores', array('game' => (int) $game['game_id'], 'board' => 'current'), false), 303);
 	}
 
@@ -82,7 +86,7 @@ class protocol
 		{ throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
 		if ($type === 4 || ($ib !== null && $wire === null)) { $wire = $ib; }
 		$this->results->submit($game, $launch, score::from_wire($wire), 'standard');
-		return $this->scoreboard($game);
+		return $this->scoreboard($game, $launch);
 	}
 
 	private function command($endpoint, $game, $launch, $path)
@@ -119,7 +123,7 @@ class protocol
 				(string) (((int) ((float) $units * (int) $launch['rand_one'] / 10000)) ^ (int) $launch['rand_two']) !== $encoded)
 			{ throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
 			$this->results->submit($game, $launch, $units, 'standard');
-			return $this->scoreboard($game);
+			return $this->scoreboard($game, $launch);
 		}
 		if ($endpoint === 'arcade.php' && in_array((int) $game['score_type'], array(0,5,7), true))
 		{
@@ -134,7 +138,7 @@ class protocol
 					$units = score::from_wire($parts[0]);
 					if ($units <= 0) { throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
 					$this->results->submit($game, $launch, $units, 'standard');
-					return $this->scoreboard($game);
+					return $this->scoreboard($game, $launch);
 			}
 		}
 		throw new \DomainException('PLUS_ARC_INVALID_SCORE');
@@ -158,7 +162,7 @@ class protocol
 			{ return new RedirectResponse($this->helper->route('phpbb2plus_arcade_index', array(), false)); }
 			$token = $this->token($launch);
 			$response = $this->sessions->locked(function () use ($token, $game, $endpoint, $launch) {
-				list($entry, $receipt) = $this->sessions->find($token, $game);
+				list($entry, $receipt) = $this->sessions->find($token, $game, true);
 				return $this->command($endpoint, $entry, $receipt, $launch);
 			});
 		}

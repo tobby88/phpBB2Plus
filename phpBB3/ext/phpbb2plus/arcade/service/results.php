@@ -9,8 +9,9 @@ class results
 	private $config;
 	private $prefix;
 	private $wallet;
+	private $tournaments;
 
-	public function __construct($db, $catalog, $user, $config, $prefix, $wallet)
+	public function __construct($db, $catalog, $user, $config, $prefix, $wallet, $tournaments)
 	{
 		$this->db = $db;
 		$this->catalog = $catalog;
@@ -18,6 +19,7 @@ class results
 		$this->config = $config;
 		$this->prefix = $prefix;
 		$this->wallet = $wallet;
+		$this->tournaments = $tournaments;
 	}
 
 	private function first($select)
@@ -116,6 +118,7 @@ class results
 			return;
 		}
 		$now = time();
+		if ((int) $launch['tour_id']) { $this->tournaments->finish_turn($game, $launch, $units, $now); }
 		$current = $this->board($game, $launch, $units, $now, false);
 		if ($id !== ANONYMOUS)
 		{

@@ -216,6 +216,7 @@ def main():
                 php(fixture, "scored", target)
                 arcade.community(base, member, ordinary, pending)
                 arcade.comments(base, member, ordinary, pending)
+                arcade.tournament_play(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
                 downloads.browse(base, member, ordinary, pending)
                 php(fixture, "downloaded", target)
                 playback(web, base, root)

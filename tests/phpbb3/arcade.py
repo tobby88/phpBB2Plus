@@ -23,10 +23,10 @@ def tournaments(base, founder, member, pending, verify):
         raise RuntimeError("The champions directory lost a completed tournament or reassigned its retired winner")
     page = founder.fetch("arcade_tournament.php?mode=tour&id=32")
     if ("Du bist eingeladen" not in page or "HistoricMember" not in page or "Persönliche Spielprobe" not in page
-            or ">-2,125<" not in page or ">0<" not in page):
+            or ">-2,125<" not in page or ">0<" not in page or "Ein Versuch gespielt" not in page or "-3,1251" not in page):
         raise RuntimeError("Tournament invitation, roster or signed and zero records changed")
     waiting = pending.fetch(detail)
-    if "Persönliche Spielprobe" in waiting or "Du bist eingeladen" in waiting:
+    if "Persönliche Spielprobe" in waiting or "Du bist eingeladen" in waiting or "-3,1251" in waiting or "Ein Versuch gespielt" in waiting:
         raise RuntimeError("Tournament listing revealed a restricted game or another user's invitation")
     if "arcade-join-tour" in member.fetch(detail) or "arcade-join-tour" in founder.fetch("app.php/arcade/tournament/31"):
         raise RuntimeError("An existing participant or a closed tournament offered a new seat")
@@ -50,6 +50,62 @@ def tournaments(base, founder, member, pending, verify):
     member.fetch(detail, expected_status=404)
     founder.fetch(action, data, expected_status=404)
     verify("enable")
+
+
+def tournament_play(base, founder, member, pending, verify):
+    detail = "app.php/arcade/tournament/32"
+    evening = "app.php/arcade/tournament/34"
+    old_game = "arcade_tournament.php?mode=game&id=32&game_id=60"
+    initial = member.fetch(old_game)
+    if "One turn left" not in initial or "Your best score is -3.1251" not in initial:
+        raise RuntimeError("The old game bookmark lost the player's imported turns and score")
+    unreadable = pending.fetch(evening)
+    if "arcade-turn-61" in unreadable or "Deine bisherigen Versuche konnten nicht gelesen werden." not in unreadable:
+        raise RuntimeError("Unreadable player history provided a fresh set of tournament turns")
+    standard_game = "app.php/arcade/game/60"
+    stale, fields = Page(pending.fetch(standard_game)).forms["arcade-play"]
+    verify("reserve")
+    for outsider in (pending, Browser(base)):
+        normal = outsider.fetch(standard_game)
+        if "arcade-play" in Page(normal).forms or "für seine Teilnehmer reserviert" not in normal:
+            raise RuntimeError("A game reserved by an open event offered a regular launch to a nonparticipant")
+    if "arcade-play" not in Page(member.fetch(standard_game)).forms:
+        raise RuntimeError("A participant could not use a reserved game")
+    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+    pending.fetch(stale, fields, expected_status=404)
+
+    def play(actor, form):
+        action, fields = form
+        time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+        page = actor.fetch(action, fields)
+        source = re.search(r'id="plus-arc-player" data-source="([^"]+)"', page)
+        if not source or '/arcade/tournament/' not in page:
+            raise RuntimeError("The tournament launch lost its game or return link")
+        return urljoin(base, unescape(source[1]))
+
+    last = Page(initial).forms["arcade-turn-60"]
+    other_tab = Page(member.fetch(detail)).forms["arcade-turn-60"]
+    source = play(member, last)
+    if play(member, last) != source or member.fetch(source, raw=True) != movie():
+        raise RuntimeError("Retrying the last tournament turn consumed another turn")
+    time.sleep(max(0, int(other_tab[1]["creation_time"]) + 1.05 - time.time()))
+    member.fetch(other_tab[0], other_tab[1], expected_status=422)
+    points = {"score": "81.0123", "game_name": "puzzle"}
+    for _ in range(2):
+        result = member.fetch(urljoin(source, "newscore.php"), points)
+        if ("Your best score is 81.0123" not in result or ">81.0123<" not in result or "arcade-turn-60" in result):
+            raise RuntimeError("Tournament score submission lost its player, leaderboard or remaining attempts")
+    clock_game = play(member, Page(member.fetch(evening)).forms["arcade-turn-61"])
+    response = member.fetch(urljoin(clock_game, "pnFlashGames.php"), {"func": "storeScore", "score": "7.1256"})
+    if "opSuccess=true" not in response or ">7.1256<" not in member.fetch(evening):
+        raise RuntimeError("A lower-is-better tournament lost a score submitted by the game")
+    # The founder has fewer credits than this game's normal admission price.
+    private_game = play(founder, Page(founder.fetch(detail)).forms["arcade-turn-62"])
+    verify("pause")
+    founder.fetch(urljoin(private_game, "newscore.php"), {"game_name": "private", "score": "12"}, expected_status=404)
+    if "arcade-play" not in Page(pending.fetch(standard_game)).forms:
+        raise RuntimeError("An inactive tournament retained its game reservation")
+    verify("turns")
 
 
 def awards(founder, member, pending):
@@ -195,6 +251,7 @@ def source_media(legacy):
     (folder / "levels").mkdir(parents=True, exist_ok=True)
     (folder / "club").mkdir(exist_ok=True)
     (folder / "puzzle.swf").write_bytes(movie())
+    (folder.parent / "timer.swf").write_bytes(movie())
     (folder / "levels/two.txt").write_text("Spielstufe zwei", encoding="utf-8")
     (folder / "club/private.swf").write_bytes(movie())
 

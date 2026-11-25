@@ -12,8 +12,9 @@ class sessions
 	private $prefix;
 	private $root;
 	private $wallet;
+	private $tournaments;
 
-	public function __construct($catalog, $db, $user, $config, $prefix, $root, $wallet)
+	public function __construct($catalog, $db, $user, $config, $prefix, $root, $wallet, $tournaments)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -22,6 +23,7 @@ class sessions
 		$this->prefix = $prefix;
 		$this->root = $root;
 		$this->wallet = $wallet;
+		$this->tournaments = $tournaments;
 	}
 
 	private function session_key()
@@ -60,7 +62,7 @@ class sessions
 		return $asset;
 	}
 
-	public function find($token, $id = 0)
+	public function find($token, $id = 0, $lock = false)
 	{
 		if (!is_string($token) || !preg_match('/^[a-f0-9]{32}$/D', $token)) { throw new NotFoundHttpException(); }
 		$key = hash('sha256', $token);
@@ -70,7 +72,14 @@ class sessions
 		$this->db->sql_freeresult($result);
 		if (!$launch || ($id && (int) $id !== (int) $launch['game_id'])) { throw new NotFoundHttpException(); }
 		$game = $this->catalog->game($launch['game_id']);
-		if (!$this->catalog->can_play($game)) { throw new NotFoundHttpException(); }
+		if (!$this->catalog->can_play($game, (int) $launch['tour_id'] > 0)) { throw new NotFoundHttpException(); }
+		if ((int) $launch['tour_id'])
+		{
+			$turn = $this->tournaments->play_state($launch['tour_id'], $game, $lock);
+			if ((int) $turn['participant_id'] !== (int) $launch['tour_participant'] || (int) $turn['entry_id'] !== (int) $launch['tour_entry']
+				|| (int) $turn['played'] < 1) { throw new NotFoundHttpException(); }
+			$launch['turn'] = $turn;
+		}
 		return array($game, $launch);
 	}
 
@@ -100,17 +109,19 @@ class sessions
 		else { $this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $activity + array('user_id' => $user, 'owner_id' => $user))); }
 	}
 
-	public function start($id, $nonce)
+	public function start($id, $nonce, $tour = 0)
 	{
 		if (!preg_match('/^[a-f0-9]{32}$/D', $nonce)) { throw new \DomainException('FORM_INVALID'); }
 		$id = (int) $id;
 		$user = (int) $this->user->data['user_id'];
 		$session = $this->session_key();
-		$token = substr(hash_hmac('sha256', implode(':', array($session,$user,$id,$nonce)), $this->config['plus_arc_media_key']), 0, 32);
-		$this->locked(function () use ($id, $token, $user, $session)
+		$tour = (int) $tour;
+		$identity = implode(':', array($session,$user,$id,$nonce)) . ($tour ? ':tour:' . $tour : '');
+		$token = substr(hash_hmac('sha256', $identity, $this->config['plus_arc_media_key']), 0, 32);
+		$this->locked(function () use ($id, $token, $user, $session, $tour)
 		{
 			$game = $this->catalog->game($id);
-			if (!$this->catalog->can_play($game)) { throw new NotFoundHttpException(); }
+			if (!$this->catalog->can_play($game, $tour > 0)) { throw new NotFoundHttpException(); }
 			$this->asset($id, $game['main_asset']);
 			$table = $this->prefix . 'launches';
 			$key = hash('sha256', $token);
@@ -119,8 +130,9 @@ class sessions
 			$this->db->sql_freeresult($result);
 			if ($existing !== false) { if ((int) $existing <= time()) { throw new \DomainException('FORM_INVALID'); } return; }
 			$now = time();
-			$this->wallet->charge($game, $user);
 			$row = array('token_key' => $key, 'session_key' => $session, 'user_id' => $user, 'game_id' => $id, 'started_at' => $now, 'expires_at' => $now + 86400);
+			if ($tour) { $row += $this->tournaments->begin_turn($tour, $game, $now); }
+			else { $this->wallet->charge($game, $user); }
 			$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $row));
 			$this->record_play($game, $now);
 			// Keep receipts longer than an accepted form token, including unlimited form lifetimes.

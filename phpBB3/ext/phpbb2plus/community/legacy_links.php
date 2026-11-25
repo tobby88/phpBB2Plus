@@ -24,6 +24,11 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if ($mode === '') { $path = 'arcade/tournaments'; }
 			elseif ($mode === 'champions') { $path = 'arcade/tournaments/champions'; }
 			elseif ($mode === 'tour' && ($id = $positive('id'))) { $path = 'arcade/tournament/' . $id; }
+			elseif ($mode === 'game' && ($id = $positive('id')) && ($game = $positive('game_id')))
+			{
+				$path = 'arcade/tournament/' . $id;
+				$anchor = '#game-' . $game;
+			}
 			break;
 		case 'activity':
 			$mode = $query['mode'] ?? '';

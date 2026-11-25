@@ -28,18 +28,19 @@ class player
 		$this->config = $config;
 	}
 
-	public function start($game)
+	public function start($game, $tour = 0)
 	{
 		$this->language->add_lang('arcade', 'phpbb2plus/arcade');
-		if (!check_form_key('plus_arc_play_' . (int) $game)) { throw new AccessDeniedHttpException(); }
-		try { $token = $this->sessions->start($game, $this->request->variable('play_nonce', '', false, request_interface::POST)); }
+		$key = $tour ? 'plus_arc_tour_play_' . (int) $tour : 'plus_arc_play_' . (int) $game;
+		if (!check_form_key($key)) { throw new AccessDeniedHttpException(); }
+		try { $token = $this->sessions->start($game, $this->request->variable('play_nonce', '', false, request_interface::POST), $tour); }
 		catch (\DomainException $e) { return $this->helper->message($e->getMessage(), array(), 'INFORMATION', 422); }
 		return new RedirectResponse($this->helper->route('phpbb2plus_arcade_play', array('game'=>(int) $game,'launch'=>$token), false), 303);
 	}
 
 	public function page($game, $launch)
 	{
-		list($g) = $this->sessions->find($launch, $game);
+		list($g, $receipt) = $this->sessions->find($launch, $game);
 		$this->language->add_lang('arcade', 'phpbb2plus/arcade');
 		$asset = $this->sessions->asset($game, $g['main_asset']);
 		$params = array('game'=>(int) $game,'launch'=>$launch,'name'=>$asset['relative_name']);
@@ -53,6 +54,10 @@ class player
 		}
 		$src .= (strpos($src,'?') === false ? '?' : '&') . http_build_query($vars, '', '&', PHP_QUERY_RFC3986);
 		$title = catalog::plain($g['game_desc'] ?: $g['game_name']);
+		if ((int) $receipt['tour_id'])
+		{
+			$this->template->assign_var('U_ARC_TOUR', $this->helper->route('phpbb2plus_arcade_tournament', array('id'=>(int) $receipt['tour_id'])));
+		}
 		$type = $asset['mime_type'] === 'application/x-shockwave-flash' ? 'swf' : explode('/', $asset['mime_type'])[0];
 		$this->template->assign_vars(array('ARC_TITLE'=>$title, 'ARC_TYPE'=>$type, 'ARC_SOURCE'=>$src,
 			'ARC_WIDTH'=>max(1, min(4096, (int) $g['win_width'] ?: 550)), 'ARC_HEIGHT'=>max(1, min(4096, (int) $g['win_height'] ?: 450)),

@@ -1,5 +1,6 @@
 <!-- INCLUDE overall_header.html -->
 <h2><a href="{U_ARC_GAME}">{{ ARC_TITLE|e }}</a></h2>
+{% if U_ARC_TOUR %}<p><a href="{{ U_ARC_TOUR }}">{{ lang('PLUS_ARC_TOUR_BACK') }}</a></p>{% endif %}
 <div class="panel"><div class="inner">
 {% if ARC_TYPE == 'swf' %}
 <div id="plus-arc-player" data-source="{{ ARC_SOURCE|e }}" data-title="{{ ARC_TITLE|e }}" data-width="{ARC_WIDTH}" data-height="{ARC_HEIGHT}" data-error="{L_PLUS_ARC_PLAYER_ERROR}"><p>{L_PLUS_ARC_LOADING}</p></div>
