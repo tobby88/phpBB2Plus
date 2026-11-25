@@ -33,6 +33,7 @@ import announcement_duration
 import legacy_links
 import downloads
 import download_categories
+import download_permissions
 import delegation
 import delegation_administration
 import historical_actions
@@ -131,10 +132,17 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
     def download_checks(gallery_run, admin, historical, applicant):
         downloads.browse(base, admin, historical, applicant)
         php(fixture, "downloaded", target)
-        # The storage-failure case temporarily switches the board's upload directory.
-        gallery_run.result()
-        downloads.submissions(base, admin, historical, applicant,
-                              lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
+        # Permission edits use their own category tree. Complete them before the
+        # category manager takes a snapshot of destinations and grants.
+        with ThreadPoolExecutor(max_workers=1) as worker:
+            permissions = worker.submit(download_permissions.administration,
+                                        *(actor.separate_client() for actor in (admin, historical, applicant)),
+                                        lambda phase: php(ROOT / "tests/phpbb3/download_permissions.php", target, phase, cwd=web))
+            # The storage-failure case temporarily switches the board's upload directory.
+            gallery_run.result()
+            downloads.submissions(base, admin, historical, applicant,
+                                  lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
+            permissions.result()
         download_categories.administration(admin, lambda phase: php(ROOT / "tests/phpbb3/download_categories.php", target, phase, cwd=web))
 
     def gallery_checks(admin, historical, applicant):
