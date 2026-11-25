@@ -1,6 +1,18 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_LICENSES'=>'Downloadlizenzen verwalten', 'ACP_PLUS_DL_LICENSE_NAME'=>'Lizenzname', 'ACP_PLUS_DL_LICENSE_TERMS'=>'Lizenztext',
+	'ACP_PLUS_DL_LICENSE_CREATE'=>'Lizenz anlegen', 'ACP_PLUS_DL_LICENSE_EDIT'=>'Lizenz bearbeiten', 'ACP_PLUS_DL_LICENSE_DELETE'=>'Lizenz entfernen',
+	'ACP_PLUS_DL_LICENSE_DELETE_SELECTED'=>'Ausgewählte Lizenzen entfernen', 'ACP_PLUS_DL_LICENSE_EMPTY'=>'Es gibt noch keine Downloadlizenzen.',
+	'ACP_PLUS_DL_LICENSE_FORMAT'=>'Zeilenumbrüche und HTML für Dokumente (Absätze, Listen, Tabellen und Links) sind möglich.',
+	'ACP_PLUS_DL_LICENSE_EDIT_HELP'=>'Bereits geöffnete Downloadformulare zeigen nach einer Änderung die aktuelle Fassung zur erneuten Bestätigung.',
+	'ACP_PLUS_DL_LICENSE_DETACH'=>'Die zugeordneten Downloads bleiben erhalten. Nach dem Entfernen dieser Lizenzen lassen sie sich ohne diese Lizenzbestätigung herunterladen. Ihre Kategorie- und Freigaberegeln gelten weiterhin.',
+	'ACP_PLUS_DL_LICENSE_CONFIRM'=>'Ich bestätige das Entfernen der ausgewählten Lizenzen und ihrer Dateizuordnungen.',
+	'ACP_PLUS_DL_LICENSE_CHANGED'=>'Die Lizenzen oder ihre Dateizuordnungen haben sich inzwischen geändert. Öffne die aktuelle Auswahl erneut.',
+	'ACP_PLUS_DL_LICENSE_SELECTION'=>'Wähle zwischen einer und 500 vorhandenen Lizenzen.',
+	'ACP_PLUS_DL_LICENSE_INVALID'=>'Prüfe den Lizenznamen und den Text. Beide Felder dürfen jeweils bis zu 65.535 UTF-8-Bytes enthalten.',
+	'LOG_PLUS_DL_LICENSE_CREATE'=>'<strong>Downloadlizenz angelegt</strong><br>» %s', 'LOG_PLUS_DL_LICENSE_EDIT'=>'<strong>Downloadlizenz geändert</strong><br>» %s',
+	'LOG_PLUS_DL_LICENSE_DELETE'=>'<strong>Downloadlizenzen und ihre Dateizuordnungen entfernt</strong><br>» %s',
 	'ACP_PLUS_DL_PERMISSIONS'=>'Downloadberechtigungen', 'ACP_PLUS_DL_CATEGORY_LEVELS'=>'Zugriffsstufen der Kategorien',
 	'ACP_PLUS_DL_USER_GRANTS'=>'Freigaben für einen Benutzer', 'ACP_PLUS_DL_GROUP_GRANTS'=>'Freigaben für eine Gruppe',
 	'ACP_PLUS_DL_SCOPE'=>'Geltungsbereich', 'ACP_PLUS_DL_GLOBAL'=>'Gesamte Downloadbibliothek',

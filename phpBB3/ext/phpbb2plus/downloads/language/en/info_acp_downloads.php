@@ -1,6 +1,18 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_LICENSES'=>'Manage download licences', 'ACP_PLUS_DL_LICENSE_NAME'=>'Licence name', 'ACP_PLUS_DL_LICENSE_TERMS'=>'Licence terms',
+	'ACP_PLUS_DL_LICENSE_CREATE'=>'Create licence', 'ACP_PLUS_DL_LICENSE_EDIT'=>'Edit licence', 'ACP_PLUS_DL_LICENSE_DELETE'=>'Remove licence',
+	'ACP_PLUS_DL_LICENSE_DELETE_SELECTED'=>'Remove selected licences', 'ACP_PLUS_DL_LICENSE_EMPTY'=>'There are no download licences yet.',
+	'ACP_PLUS_DL_LICENSE_FORMAT'=>'Line breaks and document HTML (paragraphs, lists, tables and links) are supported.',
+	'ACP_PLUS_DL_LICENSE_EDIT_HELP'=>'Download forms already open when the terms change will present the current version for fresh consent.',
+	'ACP_PLUS_DL_LICENSE_DETACH'=>'Assigned files remain available. Removing these licences lets those files be downloaded without this agreement. Their category access and approval rules still apply.',
+	'ACP_PLUS_DL_LICENSE_CONFIRM'=>'I confirm removal of the selected licences and their file assignments.',
+	'ACP_PLUS_DL_LICENSE_CHANGED'=>'The licences or their file assignments have changed. Reopen the current selection.',
+	'ACP_PLUS_DL_LICENSE_SELECTION'=>'Select between one and 500 existing licences.',
+	'ACP_PLUS_DL_LICENSE_INVALID'=>'Check the licence name and terms. Each field may contain up to 65,535 UTF-8 bytes.',
+	'LOG_PLUS_DL_LICENSE_CREATE'=>'<strong>Created download licence</strong><br>» %s', 'LOG_PLUS_DL_LICENSE_EDIT'=>'<strong>Updated download licence</strong><br>» %s',
+	'LOG_PLUS_DL_LICENSE_DELETE'=>'<strong>Removed download licences and their file assignments</strong><br>» %s',
 	'ACP_PLUS_DL_PERMISSIONS'=>'Download permissions', 'ACP_PLUS_DL_CATEGORY_LEVELS'=>'Category access levels',
 	'ACP_PLUS_DL_USER_GRANTS'=>'User grants', 'ACP_PLUS_DL_GROUP_GRANTS'=>'Group grants',
 	'ACP_PLUS_DL_SCOPE'=>'Scope', 'ACP_PLUS_DL_GLOBAL'=>'Entire download library',

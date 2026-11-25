@@ -35,4 +35,5 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_MISSING_LICENSE'=>'Bisherige Lizenz Nr. %d (nicht verfügbar)',
 	'ACL_A_PLUS_DL_CATEGORIES'=>'Kann Downloadkategorien verwalten',
 	'ACL_A_PLUS_DL_PERMS'=>'Kann die Zugriffsrechte der Downloadbibliothek verwalten',
+	'ACL_A_PLUS_DL_LICENSES'=>'Kann Downloadlizenzen verwalten',
 ));

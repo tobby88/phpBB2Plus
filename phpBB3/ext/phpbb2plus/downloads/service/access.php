@@ -70,6 +70,11 @@ class access
 		return $this->acp_admin('a_plus_dl_perms',$fresh);
 	}
 
+	public function license_admin($fresh = false)
+	{
+		return $this->acp_admin('a_plus_dl_licenses',$fresh);
+	}
+
 	private function acp_admin($permission, $fresh)
 	{
 		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) || empty($this->user->data['session_admin']) ||
