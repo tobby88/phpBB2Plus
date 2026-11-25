@@ -75,13 +75,13 @@ class age_pruning
 
 	public function manual($forum, $locked = false)
 	{
-		if (!defined('IN_ADMIN') || empty($this->user->data['session_admin'])) { return false; }
+		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['session_admin']) || !empty($this->user->data['user_perm_from'])) { return false; }
 		if ($locked)
 		{
 			$id = (int) $this->user->data['user_id'];
 			$sid = $this->db->sql_escape($this->user->session_id);
 			$rows = $this->rows('SELECT u.* FROM ' . USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE . " s ON s.session_user_id=u.user_id
-				WHERE u.user_id=$id AND s.session_id='$sid' AND s.session_admin=1 AND u.user_type IN (" .
+				WHERE u.user_id=$id AND s.session_id='$sid' AND s.session_admin=1 AND u.user_perm_from=0 AND u.user_type IN (" .
 				USER_NORMAL . ',' . USER_FOUNDER . ') LOCK IN SHARE MODE');
 			if (!$rows) { return false; }
 			$rows[0]['is_registered'] = true;

@@ -10,7 +10,7 @@ class age_pruning implements EventSubscriberInterface
 	private $language;
 	private $selections = array();
 	private $counts = array();
-	private $opened = array();
+	private $viewed_followups = array();
 
 	public function __construct($pruning, $template, $language)
 	{
@@ -78,11 +78,21 @@ class age_pruning implements EventSubscriberInterface
 			if ($automatic)
 			{
 				$schedule = $this->pruning->schedule($forum, $mode, $cutoff, $flags);
-				// phpBB can run the viewed rule immediately after the posted rule,
-				// which may already have advanced this forum's next due date.
-				if (!$schedule || ((int) $forum['prune_next'] >= time() && empty($this->opened[$id]))) { continue; }
+				if (!$schedule) { continue; }
+				// phpBB advances the next due date between the posted and viewed
+				// rules of one run. Only that specific follow-up shares the first rule's due date.
+				$followup = $this->viewed_followups[$id] ?? null;
+				if ($mode === 'viewed') { unset($this->viewed_followups[$id]); }
+				if ((int) $forum['prune_next'] >= time() && !($mode === 'viewed' && $followup &&
+					$flags === $followup['flags'] && $schedule['days'] === $followup['days'] &&
+					$schedule['frequency'] === $followup['frequency'] && (int) $forum['prune_next'] >= $followup['next'] &&
+					(int) $forum['prune_next'] <= $followup['next'] + 1)) { continue; }
 				$forums[$id] = $schedule;
-				$this->opened[$id] = true;
+				if ($mode === 'posted' && (int) $forum['prune_viewed'] > 0)
+				{
+					$this->viewed_followups[$id] = array('flags' => $flags, 'days' => (int) $forum['prune_viewed'],
+						'frequency' => $schedule['frequency'], 'next' => $cutoff + ($schedule['days'] + $schedule['frequency']) * 86400);
+				}
 			}
 			elseif ($this->pruning->manual($id) && $cutoff <= time() - 86400 && $cutoff > time() - 36501 * 86400)
 			{
