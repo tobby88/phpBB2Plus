@@ -21,7 +21,8 @@ class bylines implements EventSubscriberInterface
 
 	static public function getSubscribedEvents()
 	{
-		return array('core.viewtopic_modify_post_data' => 'show_bylines', 'core.viewtopic_modify_post_row' => 'show_editor');
+		return array('core.viewtopic_modify_post_data'=>'show_bylines', 'phpbb2plus.news.preview_bylines'=>'show_bylines',
+			'core.viewtopic_modify_post_row'=>'show_editor');
 	}
 
 	public function show_bylines($event)
@@ -41,7 +42,7 @@ class bylines implements EventSubscriberInterface
 			{
 				$rows[$id]['post_username'] = $this->names->hidden() ? $this->names->label() : $byline['author_name'];
 			}
-			if (isset($rows[$id]) && $byline['editor_name'] !== '' && (int) $rows[$id]['post_edit_user'] <= ANONYMOUS)
+			if (isset($rows[$id]['post_edit_user']) && $byline['editor_name'] !== '' && (int) $rows[$id]['post_edit_user'] <= ANONYMOUS)
 			{
 				$this->editors[$id] = $byline['editor_name'];
 			}

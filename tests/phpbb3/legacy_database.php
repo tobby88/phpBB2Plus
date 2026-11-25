@@ -13,6 +13,7 @@ function check_fixture($ok, $message)
 	if (!$ok) { throw new RuntimeException($message); }
 }
 require __DIR__ . '/native_data.php';
+require __DIR__ . '/news.php';
 require __DIR__ . '/profile_media.php';
 require __DIR__ . '/custom_profiles.php';
 require __DIR__ . '/gallery.php';
@@ -68,6 +69,7 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 	seed_native_content($db);
+	seed_news($db);
 	$db->query("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email,user_posts)
 		VALUES (87,'DepartingFixture','" . $db->real_escape_string($modern) . "','german','departing@example.invalid',1)");
 	$db->query("INSERT INTO phpbb_removed_author_names (author_user_id,author_name_hash,author_name,recorded_at)
@@ -121,6 +123,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	$origin = $db->query("SELECT user_id,plus_legacy_id FROM p3_users WHERE user_id IN (1,2,$historic_id) ORDER BY user_id")->fetch_all(MYSQLI_ASSOC);
 	check_fixture(array_map('intval', array_column($origin, 'plus_legacy_id')) === array(0,2,1), 'Wrong original profile IDs after conversion');
 	verify_native_content($db, (int) $users[0]['user_id']);
+	verify_news($db);
 	verify_custom_profiles($db);
 	verify_gallery($db, (int) $users[0]['user_id']);
 	verify_knowledgebase($db, (int) $users[0]['user_id']);

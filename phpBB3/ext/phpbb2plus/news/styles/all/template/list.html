@@ -1,0 +1,12 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_NEWS_ARCHIVE}</h2>
+<p><a href="{U_NEWS_CATEGORIES}">{L_PLUS_NEWS_CATEGORIES}</a><!-- IF U_NEWS_FEED --> &middot; <a href="{U_NEWS_FEED}">{L_PLUS_NEWS_FEED}</a><!-- ENDIF --></p>
+<form class="panel plus-news-filter" method="get" action="{NEWS_ACTION}">
+<label>{L_YEAR} <input class="inputbox autowidth" type="number" min="1970" max="9999" name="year" value="{NEWS_YEAR}"></label>
+<label>{L_MONTH} <input class="inputbox autowidth" type="number" min="1" max="12" name="month" value="{NEWS_MONTH}"></label>
+<label>{L_DAY} <input class="inputbox autowidth" type="number" min="1" max="31" name="day" value="{NEWS_DAY}"></label>
+<label>{L_SEARCH} <input class="inputbox autowidth" type="search" name="q" maxlength="100" value="{NEWS_QUERY}"></label>
+<button class="button2" type="submit">{L_PLUS_NEWS_FILTER}</button></form>
+<!-- IF .plus_news --><!-- INCLUDE @phpbb2plus_news/cards.html --><!-- ELSE --><div class="panel">{L_PLUS_NEWS_EMPTY}</div><!-- ENDIF -->
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->

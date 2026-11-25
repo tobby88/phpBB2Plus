@@ -11,4 +11,4 @@
 .plus-portal .menu li { margin-bottom: .45em; }
 .plus-portal .content { overflow-wrap: anywhere; }
 .plus-portal .plus-shout { padding: .5em 0; border-bottom: 1px solid #bcc9d5; }
-@media (max-width: 850px) { .plus-portal { grid-template-columns: 1fr; } .plus-portal > section { grid-row: 1; } }
+@media (max-width: 850px) { .plus-portal { grid-template-columns: 1fr; } .plus-portal-main { grid-row: 1; } }

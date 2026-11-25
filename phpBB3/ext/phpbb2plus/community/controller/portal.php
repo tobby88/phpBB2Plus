@@ -13,8 +13,9 @@ class portal
 	private $root;
 	private $extension;
 	private $shouts;
+	private $dispatcher;
 
-	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension, $shouts)
+	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension, $shouts, $dispatcher)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -26,6 +27,7 @@ class portal
 		$this->root = $root;
 		$this->extension = $extension;
 		$this->shouts = $shouts;
+		$this->dispatcher = $dispatcher;
 	}
 
 	public function handle()
@@ -58,6 +60,7 @@ class portal
 			$this->template->assign_block_vars('plus_shouts', $shout);
 		}
 		$this->template->assign_var('U_PLUS_SHOUTBOX', $this->helper->route('phpbb2plus_community_shouts'));
+		$this->dispatcher->trigger_event('phpbb2plus.community.portal_content', array('forums'=>$forums));
 		return $this->helper->render('@phpbb2plus_community/portal.html', $this->language->lang('PLUS_PORTAL'));
 	}
 }

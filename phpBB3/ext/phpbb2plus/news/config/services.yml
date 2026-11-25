@@ -1,0 +1,12 @@
+services:
+    phpbb2plus.news.articles:
+        class: phpbb2plus\news\service\articles
+        arguments: ['@dbal.conn', '@config', '@user', '@auth', '@content.visibility', '@controller.helper', '@path_helper', '@feed.helper', '@dispatcher', '%core.table_prefix%plus_news_cats', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.news.board:
+        class: phpbb2plus\news\controller\board
+        arguments: ['@phpbb2plus.news.articles', '@config', '@request', '@controller.helper', '@template', '@language', '@pagination', '@feed.helper']
+    phpbb2plus.news.portal:
+        class: phpbb2plus\news\event\portal
+        arguments: ['@phpbb2plus.news.articles', '@template', '@language', '@controller.helper', '@config']
+        tags:
+            - { name: event.listener }

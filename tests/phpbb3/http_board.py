@@ -141,6 +141,10 @@ def source_files(source, target):
     for directory in ("images/smiles", "images/ranks", "images/avatars/gallery", "images/flags"):
         if (source / directory).is_dir():
             shutil.copytree(source / directory, target / directory)
+    news = Path("templates/fisubsilversh/images/news")
+    (target / news).mkdir(parents=True, exist_ok=True)
+    for name in ("topicnews.gif", "announcements.gif"):
+        shutil.copyfile(source / news / name, target / news / name)
     marker = Path("includes/functions_post_author.php")
     (target / marker.parent).mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source / marker, target / marker)

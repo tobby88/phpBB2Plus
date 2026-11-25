@@ -1,0 +1,10 @@
+<!-- INCLUDECSS @phpbb2plus_news/news.css -->
+<!-- BEGIN plus_news -->
+<article class="panel plus-news-card" data-news-topic="{plus_news.ID}">
+<h3><a href="{plus_news.U_TOPIC}">{plus_news.TITLE}</a></h3>
+<p class="author">{plus_news.AUTHOR} &middot; {plus_news.DATE} &middot; <a href="{plus_news.U_CATEGORY}">{plus_news.CATEGORY}</a></p>
+<!-- IF plus_news.IMAGE --><a class="plus-news-icon" href="{plus_news.U_CATEGORY}" title="{plus_news.CATEGORY}"><img src="{plus_news.IMAGE}" alt="{plus_news.CATEGORY}"></a><!-- ENDIF -->
+<div class="content">{plus_news.BODY}</div>
+<p class="plus-news-comments"><a href="{plus_news.U_TOPIC}">{L_PLUS_NEWS_COMMENTS} ({plus_news.REPLIES})</a></p>
+</article>
+<!-- END plus_news -->

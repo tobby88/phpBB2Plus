@@ -1,0 +1,25 @@
+<?php
+function seed_news($db)
+{
+	$db->query("UPDATE phpbb_config SET config_value='images/plusnews/topicnews.gif' WHERE config_name='news_rss_image'");
+	$db->query("UPDATE phpbb_config SET config_value='Forum &amp; News' WHERE config_name='news_rss_image_desc'");
+	$db->query("INSERT INTO phpbb_news VALUES (74,'Private desk','announcements.gif')");
+	$db->query("UPDATE phpbb_topics SET news_id=1 WHERE topic_id=1");
+	$db->query("UPDATE phpbb_topics SET news_id=74 WHERE topic_id=7");
+	$db->query("UPDATE phpbb_topics SET news_id=999 WHERE topic_id=601");
+	$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id,news_id)
+		VALUES (695,1,'Withdrawn news fixture',2,1084742470,695,695,1)");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time,post_deleted,post_deleted_time,post_deleted_by)
+		VALUES (695,695,1,2,'c0000203',1084742470,1,1084742490,2)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (695,'Withdrawn news fixture','Withdrawn article body')");
+}
+function verify_news($db)
+{
+	$rows = $db->query('SELECT category_id,name,image,active FROM p3_plus_news_cats ORDER BY category_id')->fetch_all(MYSQLI_ASSOC);
+	$cats = array_column($rows,null,'category_id');
+	check_fixture(count($cats) === 4 && $cats[2]['name'] === 'Announcements' && $cats[74]['image'] === $cats[2]['image'] &&
+		preg_match('/^[0-9a-f]{64}\.gif$/D',$cats[2]['image']) && (int) $cats[999]['active'] === 0,
+		'Missing original news category, verified image or retired category ID');
+	$topics = $db->query('SELECT topic_id,plus_news_cat FROM p3_topics WHERE topic_id IN (1,2,7,601) ORDER BY topic_id')->fetch_all();
+	check_fixture(array_map('intval',array_column($topics,1)) === array(1,2,74,999),'Native topics lost their news classifications');
+}

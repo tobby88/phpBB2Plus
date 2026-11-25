@@ -34,7 +34,23 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 					: array('mode'=>$mode === 'activate' ? 'resend_act' : $mode);
 			}
 			break;
-		case 'portal': $path = 'portal'; break;
+		case 'news_cats': $path = 'news/categories'; break;
+		case 'news_rss':
+			$path = 'news/feed';
+			if ($cat = $positive('cat_id')) { $extra['category'] = $cat; }
+			break;
+		case 'portal': case 'news_index':
+			if (($query['news'] ?? '') === 'categories') { $path = 'news/categories'; }
+			elseif (($query['news'] ?? '') === 'archives')
+			{
+				$path = 'news';
+				foreach (array('year','month','day') as $unit) { if ($n = $positive($unit)) { $extra[$unit] = $n; } }
+				if (isset($query['key']) && is_string($query['key'])) { $extra['q'] = $query['key']; }
+			}
+			elseif ($topic = $positive('topic_id') ?: $positive('news_id')) { $base = './'; $path = 'viewtopic.php'; $extra['t'] = $topic; }
+			elseif ($cat = $positive('cat_id')) { $path = 'news/category/' . $cat; }
+			else { $path = $entry === 'portal' ? 'portal' : 'news'; }
+			break;
 		case 'calendar': case 'calendar_scheduler':
 			$path = 'calendar';
 			$fid = $query['fid'] ?? 'Root';

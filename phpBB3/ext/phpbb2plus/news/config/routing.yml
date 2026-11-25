@@ -1,0 +1,17 @@
+phpbb2plus_news_home:
+    path: /news
+    defaults: { _controller: phpbb2plus.news.board:show, category: 0 }
+    methods: [GET, HEAD]
+phpbb2plus_news_category:
+    path: /news/category/{category}
+    requirements: { category: '[1-9][0-9]{0,9}' }
+    defaults: { _controller: phpbb2plus.news.board:show }
+    methods: [GET, HEAD]
+phpbb2plus_news_categories:
+    path: /news/categories
+    defaults: { _controller: phpbb2plus.news.board:categories }
+    methods: [GET, HEAD]
+phpbb2plus_news_feed:
+    path: /news/feed
+    defaults: { _controller: phpbb2plus.news.board:feed }
+    methods: [GET, HEAD]

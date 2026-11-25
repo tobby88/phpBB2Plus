@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 import arcade
 import attachments
+import news
 import custom_profiles
 import legacy_links
 import downloads
@@ -83,7 +84,7 @@ def install(web, settings_dir, name):
     report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
     if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
         raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
-    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads", "calendar"):
+    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads", "calendar", "news"):
         if "Successfully enabled extension phpbb2plus/" + extension not in report:
             raise RuntimeError(f"The installer did not activate {extension}: " + report[-3500:])
     php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
@@ -152,6 +153,7 @@ def main():
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
+                news.browse(base, member)
                 custom_profiles.exercise(base, pending)
                 media = json.loads(php(fixture, "profile-media", target, capture=True))
                 profile_media.browse(ordinary, member, media)

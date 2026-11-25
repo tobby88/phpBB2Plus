@@ -132,6 +132,10 @@ def assemble(output, cache, offline=False):
                 shutil.copyfile(file, player / file.name)
         images.mkdir(parents=True, exist_ok=True)
         old_images = ROOT / "phpBB2/templates/fisubsilversh/images"
+        news_images = web / "images/plusnews"
+        news_images.mkdir()
+        for name in ("topicnews.gif", "announcements.gif"):
+            shutil.copyfile(old_images / "news" / name, news_images / name)
         style_images = [old_images / name for name in STYLE_IMAGES] + sorted(old_images.glob("folder*.gif"))
         for source in style_images:
             with (images / source.name).open("xb") as out:

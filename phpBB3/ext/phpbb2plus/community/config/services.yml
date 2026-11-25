@@ -24,7 +24,7 @@ services:
             - { name: passwords.driver }
     phpbb2plus.community.portal:
         class: phpbb2plus\community\controller\portal
-        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox']
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox', '@dispatcher']
     phpbb2plus.community.navigation:
         class: phpbb2plus\community\event\navigation
         arguments: ['@controller.helper', '@template', '@language', '@request']

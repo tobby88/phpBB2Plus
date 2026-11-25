@@ -1,0 +1,8 @@
+.plus-news-card { overflow-wrap: anywhere; }
+.plus-news-card h3 { margin-top: 0; }
+.plus-news-icon { float: inline-start; margin: 0 .8em .5em; }
+.plus-news-icon img { max-width: 80px; max-height: 80px; }
+.plus-news-card .content { padding: .4em .75em; }
+.plus-news-card .author, .plus-news-comments { margin: .5em .75em; }
+.plus-news-comments { clear: both; }
+.plus-news-filter { display: flex; flex-wrap: wrap; align-items: center; gap: .6em; }

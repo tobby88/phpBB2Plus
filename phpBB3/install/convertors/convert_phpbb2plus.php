@@ -3,8 +3,9 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	foreach (array('phpbb2plus/community', 'phpbb2plus/gallery', 'phpbb2plus/knowledgebase', 'phpbb2plus/arcade', 'phpbb2plus/downloads', 'phpbb2plus/calendar') as $extension)
+	foreach (array('community','gallery','knowledgebase','arcade','downloads','calendar','news') as $module)
 	{
+		$extension = 'phpbb2plus/' . $module;
 		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
 		$enabled = $db->sql_fetchfield('ext_active');
 		$db->sql_freeresult($result);
@@ -20,6 +21,7 @@ $convertor_data['forum_name'] = 'phpBB2 Plus (UTF-8)';
 $convertor_data['version'] = '0.1.0';
 $test_file = 'includes/functions_post_author.php';
 $tables[] = 'bookmarks';
+$tables[] = 'news';
 
 if (!$get_info)
 {
@@ -44,8 +46,16 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	$convertor['execute_last'][] = 'plus_calendar_permissions();';
 	$convertor['execute_last'][] = 'plus_guest_poll_permissions();';
+	$convertor['execute_last'][] = 'plus_news_orphans();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
+	foreach (array('publish'=>'allow_news','page_size'=>'news_item_num','trim'=>'news_item_trim','title_trim'=>'news_title_trim',
+		'feed'=>'allow_rss','feed_limit'=>'news_rss_item_count','feed_abstract'=>'news_rss_show_abstract',
+		'feed_description'=>'news_rss_desc','feed_language'=>'news_rss_language','feed_ttl'=>'news_rss_ttl','feed_category'=>'news_rss_cat',
+		'feed_image'=>'news_rss_image','feed_image_desc'=>'news_rss_image_desc') as $new=>$old)
+	{
+		$config_schema['settings']['plus_news_' . $new] = $old;
+	}
 	foreach (\phpbb2plus\calendar\service\settings::MEMBER + \phpbb2plus\calendar\service\settings::BOARD as $name=>$default)
 	{
 		$config_schema['settings']['plus_cal_' . $name] = 'calendar_' . $name;
@@ -156,6 +166,7 @@ if (!$get_info)
 		}
 		if ($section['target'] === TOPICS_TABLE)
 		{
+			$section[] = array('plus_news_cat','topics.news_id','intval');
 			$section[] = array('plus_cal_start','topics.topic_calendar_time','intval');
 			$section[] = array('plus_cal_end',array('topics.topic_calendar_time','topics.topic_calendar_duration'),'plus_calendar_end');
 		}
@@ -179,6 +190,10 @@ if (!$get_info)
 		}
 	}
 	unset($section);
+	$convertor['schema'][] = array('target'=>$table_prefix . 'plus_news_cats', 'primary'=>'news.news_id', 'autoincrement'=>'category_id',
+		'query_first'=>array('target',$convert->truncate_statement . $table_prefix . 'plus_news_cats'),
+		array('category_id','news.news_id','intval'), array('name','news.news_category','plus_convert_byline'),
+		array('image',array('news.news_id','news.news_image'),'plus_news_image'), array('active',1,''));
 	if (defined('MOD_ATTACHMENT'))
 	{
 		$convertor['schema'][] = array(

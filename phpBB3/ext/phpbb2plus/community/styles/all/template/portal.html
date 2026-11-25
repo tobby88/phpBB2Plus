@@ -11,6 +11,8 @@
 	<li><a href="{U_FAQ}">{L_FAQ}</a></li>
 	<!-- IF U_TEAM --><li><a href="{U_TEAM}">{L_THE_TEAM}</a></li><!-- ENDIF -->
 </ul></div></nav>
+<div class="plus-portal-main">
+<!-- EVENT phpbb2plus_community_portal_main_before -->
 <section aria-label="{L_PLUS_RECENT_TOPICS}">
 <div class="forabg"><table class="plus-recent">
 	<thead><tr><th scope="col">{L_PLUS_RECENT_TOPICS}</th><th scope="col">{L_LAST_POST}</th></tr></thead>
@@ -23,7 +25,7 @@
 	<!-- BEGINELSE --><tr class="bg1"><td colspan="2">{L_NO_TOPICS}</td></tr><!-- END plus_topics -->
 	</tbody>
 </table></div>
-</section>
+</section></div>
 <aside class="panel"><div class="inner"><h3><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></h3>
 	<!-- BEGIN plus_shouts --><div class="plus-shout"><strong>{plus_shouts.AUTHOR}</strong> &middot; {plus_shouts.TIME}
 		<div class="content">{plus_shouts.MESSAGE}</div></div>

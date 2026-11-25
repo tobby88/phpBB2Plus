@@ -1,0 +1,8 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_NEWS_CATEGORIES}</h2>
+<p><a href="{U_PLUS_NEWS}">{L_PLUS_NEWS_ARCHIVE}</a></p>
+<ul class="topiclist forums">
+<!-- BEGIN news_categories --><li class="row"><div class="list-inner"><a class="forumtitle" href="{news_categories.U_CATEGORY}">{news_categories.CATEGORY}</a> ({news_categories.COUNT})</div></li>
+<!-- BEGINELSE --><li class="row">{L_PLUS_NEWS_EMPTY}</li><!-- END news_categories -->
+</ul>
+<!-- INCLUDE overall_footer.html -->
