@@ -2,6 +2,8 @@
 namespace phpbb2plus\downloads\controller;
 
 use phpbb2plus\downloads\service\access;
+use phpbb2plus\downloads\service\license_text;
+use phpbb\request\request_interface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -20,8 +22,9 @@ class delivery
 	private $config;
 	private $prefix;
 	private $root;
+	private $paths;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $http, $config, $prefix, $root)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $http, $config, $prefix, $root, $paths)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -34,6 +37,7 @@ class delivery
 		$this->config = $config;
 		$this->prefix = $prefix;
 		$this->root = $root;
+		$this->paths = $paths;
 	}
 
 	private function local_path($name)
@@ -92,7 +96,7 @@ class delivery
 		$license = null;
 		if ($f['license_id'])
 		{
-			$result = $this->db->sql_query('SELECT title,terms FROM ' . $this->prefix . 'licenses WHERE license_id=' . (int) $f['license_id']);
+			$result = $this->db->sql_query('SELECT title,terms,source_json FROM ' . $this->prefix . 'licenses WHERE license_id=' . (int) $f['license_id']);
 			$license = $this->db->sql_fetchrow($result);
 			$this->db->sql_freeresult($result);
 			if (!$license) { throw new NotFoundHttpException(); }
@@ -100,9 +104,24 @@ class delivery
 		return array($f,$selected,$license);
 	}
 
-	private function form_key($f, $mirror, $terms)
+	private function revision($f, $terms)
 	{
-		return 'plus_dl_license_' . $f['file_id'] . '_' . $mirror . '_' . hash('sha256', $f['license_id'] . "\n" . $terms['title'] . "\n" . $terms['terms']);
+		return hash('sha256',serialize(array((int) $f['license_id'],license_text::raw($terms,'title'),license_text::raw($terms,'terms'))));
+	}
+
+	private function form_key($file, $mirror, $revision) { return 'plus_dl_license_' . $file . '_' . $mirror . '_' . $revision; }
+
+	private function agreement($f, $mirror, $license, $changed)
+	{
+		$id = (int) $f['file_id'];
+		$revision = $this->revision($f,$license);
+		add_form_key($this->form_key($id,$mirror,$revision));
+		$this->template->assign_vars(array('DL_TITLE'=>access::plain($f['title']),'DL_LICENSE'=>license_text::raw($license,'title'),
+			'DL_TERMS'=>license_text::render(license_text::raw($license,'terms'),$this->paths->get_web_root_path()),
+			'DL_LICENSE_REVISION'=>$revision,'DL_LICENSE_CHANGED'=>$changed,
+			'U_DL_FILE'=>$this->helper->route('phpbb2plus_downloads_file',array('file'=>$id)),
+			'U_DL_ACCEPT'=>$this->helper->route('phpbb2plus_downloads_media',array('file'=>$id,'mirror'=>$mirror))));
+		return $this->private_response($this->helper->render('@phpbb2plus_downloads/license.html',$this->language->lang('PLUS_DL_LICENSE'),$changed ? 409 : 200));
 	}
 
 	private function content($file, $selected)
@@ -169,20 +188,26 @@ class delivery
 		$this->language->add_lang('downloads', 'phpbb2plus/downloads');
 		if ($license && !$this->http->isMethod('POST'))
 		{
-			add_form_key($this->form_key($f,$mirror,$license));
-			$this->template->assign_vars(array('DL_TITLE'=>access::plain($f['title']), 'DL_LICENSE'=>access::plain($license['title']),
-				'DL_TERMS'=>access::plain($license['terms']), 'U_DL_FILE'=>$this->helper->route('phpbb2plus_downloads_file',array('file'=>$id)),
-				'U_DL_ACCEPT'=>$this->helper->route('phpbb2plus_downloads_media',array('file'=>$id,'mirror'=>$mirror))));
-			return $this->private_response($this->helper->render('@phpbb2plus_downloads/license.html',$this->language->lang('PLUS_DL_LICENSE')));
+			return $this->agreement($f,$mirror,$license,false);
 		}
 		if ($this->http->isMethod('HEAD')) { return $this->private_response($this->content($f,$selected)); }
 		$response = $this->access->write($id, function ($f) use ($id,$mirror) {
 			list(,$selected,$license) = $this->choice($id,$mirror,$f);
-			if ($license && (!$this->request->is_set_post('accept') || !check_form_key($this->form_key($f,$mirror,$license)))) { throw new AccessDeniedHttpException(); }
+			if ($license)
+			{
+				if (!$this->http->isMethod('POST')) { return array($f,$license); }
+				if ($this->request->variable('accept','',false,request_interface::POST) !== '1') { throw new AccessDeniedHttpException(); }
+				$seen = $this->request->variable('license_revision','',false,request_interface::POST);
+				// Forms opened on an earlier release also get a fresh agreement.
+				if ($seen === '') { return array($f,$license); }
+				if (!preg_match('/^[a-f0-9]{64}$/D',$seen) || !check_form_key($this->form_key($id,$mirror,$seen))) { throw new AccessDeniedHttpException(); }
+				if (!hash_equals($this->revision($f,$license),$seen)) { return array($f,$license); }
+			}
 			$response = $this->content($f,$selected);
 			$this->record($id);
 			return $response;
 		});
+		if (is_array($response)) { return $this->agreement($response[0],$mirror,$response[1],true); }
 		return $this->private_response($response);
 	}
 }

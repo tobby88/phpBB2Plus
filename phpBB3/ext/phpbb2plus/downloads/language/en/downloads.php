@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_LICENSE_CHANGED'=>'Please review and accept the current licence terms to start the download.',
 	'PLUS_DL_RECENT'=>'Recent downloads',
     'PLUS_DL'=>'Downloads', 'PLUS_DL_SEARCH'=>'Search downloads', 'PLUS_DL_CATEGORIES'=>'Categories', 'PLUS_DL_FILES'=>'Files',
     'PLUS_DL_EMPTY'=>'No files are available here.', 'PLUS_DL_COUNT'=>'Downloads', 'PLUS_DL_PENDING'=>'This file is awaiting approval.',

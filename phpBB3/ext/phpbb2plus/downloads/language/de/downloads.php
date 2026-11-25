@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_LICENSE_CHANGED'=>'Bitte prüfe die aktuelle Lizenzfassung und bestätige sie, um den Download zu starten.',
 	'PLUS_DL_RECENT'=>'Neue Downloads',
     'PLUS_DL'=>'Downloads', 'PLUS_DL_SEARCH'=>'Dateien durchsuchen', 'PLUS_DL_CATEGORIES'=>'Kategorien', 'PLUS_DL_FILES'=>'Dateien',
     'PLUS_DL_EMPTY'=>'Hier sind keine Dateien verfügbar.', 'PLUS_DL_COUNT'=>'Downloads', 'PLUS_DL_PENDING'=>'Diese Datei wartet auf Freigabe.',

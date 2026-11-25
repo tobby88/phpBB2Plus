@@ -24,9 +24,9 @@ class submissions
 
 	public function licenses()
 	{
-		$result = $this->db->sql_query('SELECT license_id,title FROM ' . $this->prefix . 'licenses ORDER BY title,license_id');
+		$result = $this->db->sql_query('SELECT license_id,title,source_json FROM ' . $this->prefix . 'licenses ORDER BY title,license_id');
 		$rows = array();
-		while ($r = $this->db->sql_fetchrow($result)) { $rows[(int) $r['license_id']] = access::plain($r['title']); }
+		while ($r = $this->db->sql_fetchrow($result)) { $rows[(int) $r['license_id']] = license_text::raw($r,'title'); }
 		$this->db->sql_freeresult($result);
 		return $rows;
 	}

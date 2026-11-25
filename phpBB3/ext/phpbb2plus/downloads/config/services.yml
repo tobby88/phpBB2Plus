@@ -40,7 +40,7 @@ services:
         arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.feedback', '@request', '@controller.helper', '@language', '@template']
     phpbb2plus.downloads.delivery:
         class: phpbb2plus\downloads\controller\delivery
-        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@symfony_request', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%']
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@symfony_request', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%', '@path_helper']
     phpbb2plus.downloads.events:
         class: phpbb2plus\downloads\event\listener
         arguments: ['@controller.helper', '@template', '@language', '@dbal.conn', '%core.table_prefix%plus_dl_']
