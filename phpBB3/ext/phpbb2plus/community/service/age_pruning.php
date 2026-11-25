@@ -59,7 +59,7 @@ class age_pruning
 	public function forum($id, $locked = false)
 	{
 		$rows = $this->rows('SELECT forum_id,forum_name,forum_type,enable_prune,prune_next,prune_days,prune_viewed,prune_freq,forum_flags
-			FROM ' . FORUMS_TABLE . ' WHERE forum_id=' . (int) $id . ($locked ? ' LOCK IN SHARE MODE' : ''));
+			FROM ' . FORUMS_TABLE . ' WHERE forum_id=' . (int) $id . ($locked ? ' FOR UPDATE' : ''));
 		return $rows ? $rows[0] : null;
 	}
 

@@ -68,6 +68,9 @@ function plus_restore_forum_tree()
 	$forums = $src_db->sql_fetchrowset($result);
 	$src_db->sql_freeresult($result);
 	$nodes = plus_forum_layout($categories, $forums);
+	$result = $src_db->sql_query('SELECT config_value FROM ' . $convert->src_table_prefix . "config WHERE config_name='prune_enable'");
+	$prune_enabled = (string) $src_db->sql_fetchfield('config_value') === '1';
+	$src_db->sql_freeresult($result);
 
 	$db->sql_transaction('begin');
 	try
@@ -119,7 +122,9 @@ function plus_restore_forum_tree()
 			}
 			$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $fields) . ' WHERE forum_id=' . $node['id']);
 		}
-		$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET enable_prune=0 WHERE enable_prune<>0 AND (forum_type<>' . FORUM_POST . ' OR prune_days=0 OR prune_freq=0)');
+		$invalid_rule = 'enable_prune<>1 OR forum_type<>' . FORUM_POST . ' OR prune_days=0 OR prune_freq=0';
+		$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET enable_prune=0 WHERE enable_prune<>0' .
+			($prune_enabled ? ' AND (' . $invalid_rule . ')' : ''));
 		// Categories are containers. Grant list access to groups and individual
 		// users with a listable descendant. Posting forum permissions stay native.
 		foreach ($nodes as $node)
