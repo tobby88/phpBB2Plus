@@ -28,6 +28,7 @@ def browse(base, owner, historic_id):
     cases = (
         ("hacks_list.php", "app.php/credits", {}, ""),
         ("staff.php", "memberlist.php", {"mode": "team"}, ""),
+        ("download.php?id=50&thumb=1", "app.php/legacy/attachment/50/thumb", {}, ""),
         ("groupcp.php", "ucp.php", {"i": "ucp_groups", "mode": "membership"}, ""),
         ("groupcp.php?g=73&start=25", "app.php/legacy/group/73/members/25", {}, ""),
         ("groupcp.php?g=79&validate=true", "app.php/legacy/group/79/requests/0", {}, ""),

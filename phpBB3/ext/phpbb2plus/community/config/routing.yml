@@ -31,6 +31,11 @@ phpbb2plus_community_legacy_savebox:
     defaults: { _controller: phpbb2plus.community.legacy:savebox }
     requirements: { start: '[0-9]{1,10}' }
     methods: [GET, HEAD]
+phpbb2plus_community_legacy_attachment:
+    path: /legacy/attachment/{source}/{format}
+    defaults: { _controller: phpbb2plus.community.legacy_attachment:show }
+    requirements: { source: '[1-9][0-9]{0,9}', format: 'file|thumb' }
+    methods: [GET, HEAD]
 phpbb2plus_community_credits:
     path: /credits
     defaults: { _controller: phpbb2plus.community.credits:show }

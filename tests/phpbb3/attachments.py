@@ -1,6 +1,7 @@
 """Exercise shared post/PM attachments with harmless synthetic media."""
 from base64 import b64decode
 import json
+from http_board import Browser
 
 GIF = b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
 PNG = b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAKb7a34AAAAASUVORK5CYII=")
@@ -47,3 +48,24 @@ def downloads(member):
             raise RuntimeError(f"Missing native download on {parent}")
         if member.fetch(f"download/file.php?id={ident}", raw=True) != content:
             raise RuntimeError("The attachment download differs from the imported file")
+
+
+def bookmarks(base, founder, member, outsider, change):
+    post = "download.php?id=50"
+    private = "download.php?id=63"
+    guest = Browser(base)
+    if member.fetch(post, raw=True) != GIF or member.fetch(post + "&thumb=1", raw=True) != GIF:
+        raise RuntimeError("The old post attachment or thumbnail link lost its file")
+    for reader in (founder, member):
+        if reader.fetch(private, raw=True) != PNG:
+            raise RuntimeError("The attachment of the member's own conversation could not be downloaded")
+    for reader in (guest, outsider):
+        reader.fetch(private, expected_status=404)
+    founder.fetch("download.php?id=80", expected_status=404)
+    change("attachment-bookmark-detach")
+    try:
+        if founder.fetch(post, raw=True) != GIF:
+            raise RuntimeError("A second accessible post association was ignored")
+        guest.fetch(post, expected_status=404)
+    finally:
+        change("attachment-bookmark-restore")

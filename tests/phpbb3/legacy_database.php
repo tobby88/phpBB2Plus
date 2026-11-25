@@ -216,6 +216,13 @@ elseif ($argv[1] === 'banner-clicks')
 	check_fixture($row['views'] === '18446744073709551615.00' && (int) $db->query('SELECT views FROM p3_plus_banners WHERE banner_id=21')->fetch_row()[0] === 0,
 		'Banner views overflowed the original counter or counted a placement outside its schedule');
 }
+elseif (in_array($argv[1], array('attachment-bookmark-detach', 'attachment-bookmark-restore'), true))
+{
+	$orphan = (int) ($argv[1] === 'attachment-bookmark-detach');
+	$db->query("UPDATE p3_attachments a JOIN p3_plus_attach_refs r ON r.attach_id=a.attach_id SET a.is_orphan=$orphan
+		WHERE r.source_id=50 AND r.in_message=0 AND r.parent_id=32");
+	check_fixture($db->affected_rows === 1, 'The shared attachment fixture did not change exactly one post association');
+}
 elseif ($argv[1] === 'group-bookmarks')
 {
 	$groups = $db->query("SELECT group_name,plus_legacy_group FROM p3_groups WHERE group_name IN ('Archive Club','Approved leader','REGISTERED')")->fetch_all(MYSQLI_ASSOC);

@@ -61,6 +61,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 				$path = 'legacy/group/' . $group . '/' . (isset($query['validate']) ? 'requests' : 'members') . '/' . $positive('start');
 			}
 			break;
+		case 'download':
+			if ($id = $positive('id')) { $path = 'legacy/attachment/' . $id . '/' . ($positive('thumb') ? 'thumb' : 'file'); }
+			break;
 		case 'profile':
 			$mode = $query['mode'] ?? '';
 			if (in_array($mode, array('viewprofile','email'), true))

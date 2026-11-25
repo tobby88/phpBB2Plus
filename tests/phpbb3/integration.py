@@ -298,6 +298,7 @@ def main():
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
                 attachment_quotas.administration(member, lambda phase: php(ROOT / "tests/phpbb3/attachment_quotas.php", target, phase, cwd=web))
                 attachments.downloads(ordinary)
+                attachments.bookmarks(base, member, ordinary, pending, lambda phase: php(fixture, phase, target))
                 arcade.awards(member, ordinary, pending)
                 arcade.tournaments(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
                 game_source = arcade.browse(base, member, ordinary, pending)
