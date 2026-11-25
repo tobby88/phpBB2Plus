@@ -24,6 +24,7 @@ require __DIR__ . '/banners.php';
 require __DIR__ . '/delegation.php';
 require __DIR__ . '/historical_actions.php';
 require __DIR__ . '/credits.php';
+require __DIR__ . '/warning_cards.php';
 
 if ($argv[1] === 'seed')
 {
@@ -167,6 +168,20 @@ if ($argv[1] === 'seed')
 	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (75,89,0)');
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_mod) VALUES (75,12,1)');
 	seed_forum_access($db);
+	seed_warning_cards($db);
+}
+elseif ($argv[1] === 'cards-reset')
+{
+	$historic = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
+	verify_warning_cards($db, $historic, true);
+}
+elseif ($argv[1] === 'cards-exempt' || $argv[1] === 'cards-unexempt')
+{
+	if ($argv[1] === 'cards-exempt')
+	{
+		$db->query("INSERT INTO p3_banlist (ban_userid,ban_exclude,ban_reason) VALUES (63,1,'Fixture exemption'),(66,1,'Fixture exemption')");
+	}
+	else { $db->query("DELETE FROM p3_banlist WHERE plus_card_legacy=0 AND ban_exclude=1 AND ban_reason='Fixture exemption'"); }
 }
 elseif ($argv[1] === 'installed-flags')
 {
@@ -214,6 +229,7 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
 	if ($argv[1] !== 'converted') { return; }
 	verify_delegation($db);
+	verify_warning_cards($db, (int) $users[0]['user_id']);
 	$historic_id = (int) $users[0]['user_id'];
 	$icon = $db->query('SELECT i.plus_icon_id,i.icons_width,i.icons_height FROM p3_posts p JOIN p3_icons i ON i.icons_id=p.icon_id WHERE p.post_id=1')->fetch_row();
 	$topic_icon = $db->query('SELECT i.plus_icon_id FROM p3_topics t JOIN p3_icons i ON i.icons_id=t.icon_id WHERE t.topic_id=2')->fetch_row();

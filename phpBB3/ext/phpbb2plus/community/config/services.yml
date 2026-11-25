@@ -1,4 +1,14 @@
 services:
+    phpbb2plus.community.card_bans:
+        class: phpbb2plus\community\event\card_bans
+        arguments: ['@dbal.conn', '@user', '@config']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.warning_cards:
+        class: phpbb2plus\community\event\warning_cards
+        arguments: ['@dbal.conn', '@config', '@auth', '@user', '@language', '@template', '@request', '@log']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.conditional_read:
         class: phpbb2plus\community\auth\conditional_read
         decorates: auth

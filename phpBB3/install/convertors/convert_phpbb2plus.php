@@ -62,6 +62,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_gallery_personal_permissions();';
 	$convertor['execute_last'][] = 'plus_jr_finish();';
 	$convertor['execute_last'][] = 'plus_finish_action_log();';
+	$convertor['execute_last'][] = 'plus_card_finish();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
 	{
@@ -78,6 +79,7 @@ if (!$get_info)
 	}
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
+	$config_schema['settings']['plus_card_threshold'] = 'plus_card_threshold(max_user_bancard)';
 	$config_schema['settings']['plus_announce_default'] = 'announcement_duration';
 	$config_schema['settings']['plus_announce_sticky'] = 'announcement_prune_strategy';
 	foreach (array('publish'=>'allow_news','page_size'=>'news_item_num','trim'=>'news_item_trim','title_trim'=>'news_title_trim',
@@ -101,6 +103,11 @@ if (!$get_info)
 	$schema = array();
 	foreach ($convertor['schema'] as $section)
 	{
+		if ($section['target'] === BANLIST_TABLE)
+		{
+			if (isset($section['query_first'])) { $schema = array_merge($schema, plus_card_ban_schema($section)); }
+			continue;
+		}
 		if ($section['target'] === USER_GROUP_TABLE)
 		{
 			foreach (plus_membership_sections($section) as $members) { $schema[] = $members; }
@@ -201,6 +208,7 @@ if (!$get_info)
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
+			$section[] = array('plus_card_count', array('users.user_id', 'users.user_warnings'), 'plus_card_count');
 			foreach (\phpbb2plus\calendar\service\settings::MEMBER as $name=>$default)
 			{
 				$section[] = array('plus_cal_' . $name, 'users.user_calendar_' . $name, 'intval');

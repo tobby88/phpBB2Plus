@@ -153,10 +153,13 @@ def assemble(output, cache, offline=False):
                 raise ValueError(f"Plus file would replace upstream: {source.relative_to(overlay)}")
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
-        junior_parser = web / "install/convertors/plus_jr_registrations.php"
-        if junior_parser.exists():
-            raise ValueError("The Junior Admin parser would replace an existing converter file")
-        shutil.copyfile(ROOT / "phpBB2/includes/functions_jr_admin_auth.php", junior_parser)
+        for name, module in (("install/convertors/plus_jr_registrations.php", "functions_jr_admin_auth.php"),
+                             ("ext/phpbb2plus/community/legacy/address_bans.php", "functions_ban.php")):
+            helper = web / name
+            if helper.exists():
+                raise ValueError(f"The Plus helper would replace an existing converter file: {name}")
+            helper.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / "phpBB2/includes" / module, helper)
         images = web / "styles" / "fisubsilversh" / "theme" / "images"
         bundle_flags(web)
         bundle_post_icons(web)

@@ -37,6 +37,7 @@ import delegation
 import delegation_administration
 import historical_actions
 import credits
+import warning_cards
 import profile_media
 import topic_calendar
 import gallery
@@ -237,6 +238,7 @@ def main():
                 portal.administration(base, member)
                 custom_profiles.administration(member)
                 credits.administration(member)
+                warning_cards.exercise(member, media["member"], os.environ["PLUS_TEST_MODERN_PASSWORD"], lambda step: php(fixture, step, target))
                 def delegation_fixture(operation):
                     php(ROOT / "tests/phpbb3/delegation_management.php", target, operation, cwd=web)
                 delegation_fixture("backfill")

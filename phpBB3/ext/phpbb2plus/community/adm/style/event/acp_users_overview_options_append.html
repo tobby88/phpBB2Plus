@@ -1,0 +1,5 @@
+{% if PLUS_CARD_COUNT %}
+<dl><dt>{{ lang('PLUS_CARDS_COUNT') }}{{ lang('COLON') }}</dt>
+<dd><strong>{{ PLUS_CARD_COUNT }}</strong><br><span>{{ lang('PLUS_CARDS_SOURCE') }}</span>
+{% if PLUS_CARD_THRESHOLD %}<br><span>{{ lang('PLUS_CARDS_THRESHOLD', PLUS_CARD_THRESHOLD) }}</span>{% endif %}</dd></dl>
+{% endif %}
