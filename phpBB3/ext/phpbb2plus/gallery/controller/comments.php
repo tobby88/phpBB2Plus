@@ -27,10 +27,21 @@ class comments
 		return htmlspecialchars_decode($this->request->variable($name, '', true, request_interface::POST), ENT_QUOTES);
 	}
 
-	private function back($picture, $comment = 0)
+	private function picture_parameters($picture)
 	{
 		$params = array('picture' => (int) $picture);
-		if ($comment) { $params['start'] = $this->discussion->page_start($picture, $comment); }
+		if ($this->request->variable('sort_order', '') === 'DESC') { $params['sort_order'] = 'DESC'; }
+		return $params;
+	}
+
+	private function back($picture, $comment = 0)
+	{
+		$params = $this->picture_parameters($picture);
+		if ($comment)
+		{
+			$offset = $this->discussion->page_start($picture, $comment, $params['sort_order'] ?? 'ASC');
+			if ($offset) { $params['start'] = $offset; }
+		}
 		$url = $this->helper->route('phpbb2plus_gallery_picture', $params, false);
 		return new RedirectResponse($url . ($comment ? '#comment-' . (int) $comment : ''), 303);
 	}
@@ -65,10 +76,11 @@ class comments
 			catch (\DomainException $e) { return $this->helper->message($e->getMessage(), array(), 'INFORMATION', 422); }
 		}
 		add_form_key($key);
+		$params = $this->picture_parameters($picture);
 		$this->template->assign_vars(array('ALBUM_ACTION_TITLE' => $this->language->lang($title), 'S_COMMENT_DELETE' => $mode === 'delete',
 			'ALBUM_BODY' => $row['body'], 'ALBUM_LIMIT' => $this->discussion->text_limit(),
-			'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', array('picture' => $picture)),
-			'U_ACTION' => $this->helper->route('phpbb2plus_gallery_comment', array('picture' => $picture, 'comment' => $comment, 'mode' => $mode))));
+			'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params),
+			'U_ACTION' => $this->helper->route('phpbb2plus_gallery_comment', $params + array('comment' => $comment, 'mode' => $mode))));
 		return $this->helper->render('@phpbb2plus_gallery/comment_edit.html', $this->language->lang($title));
 	}
 }

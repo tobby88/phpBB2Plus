@@ -1,8 +1,12 @@
 """Visible category sorting, picture neighbours and legacy comment bookmarks."""
 from html.parser import HTMLParser
+from html import unescape
 import json
 import re
 from urllib.parse import parse_qs, urlencode, urlsplit
+from urllib.request import Request
+
+from http_board import submit_form
 
 
 class AlbumPage(HTMLParser):
@@ -48,6 +52,26 @@ class AlbumPage(HTMLParser):
             self.grid = ""
         elif tag == "select":
             self.select = ""
+
+
+def saved_comment(actor, path, html, form, text):
+    class Submission:
+        base = actor.base
+
+        def fetch(self, url, fields, expected_status):
+            if urlsplit(url).netloc != urlsplit(self.base).netloc:
+                raise RuntimeError("The synthetic comment form left the local board")
+            with actor.opener.open(Request(url, data=urlencode(fields).encode()), timeout=20) as response:
+                if response.status != expected_status:
+                    raise RuntimeError("Saving the picture comment did not complete")
+                return urlsplit(response.geturl()), response.read().decode("utf-8")
+
+    location, page = submit_form(Submission(), path, html, form, {"body": text})
+    ids = AlbumPage(page).comments
+    if (not re.fullmatch(r"comment-\d+", location.fragment) or int(location.fragment[8:]) not in ids or
+            text not in page or not location.path.endswith("/album/picture/7010")):
+        raise RuntimeError("Saving the picture comment did not land on the page containing its fragment")
+    return parse_qs(location.query), ids
 
 
 def sequence(actor, method, order):
@@ -140,6 +164,23 @@ def browse(administrator, member, guest, check):
         ordinary = guest.fetch(album + "/picture/7010?picture_sort=pic_title&picture_order=ASC&sort_order=DESC")
         if AlbumPage(ordinary).comments[:2] != [9000 + limit + 3, 9000 + limit + 2] or 'id="album-comment-sort"' not in ordinary:
             raise RuntimeError("The comment order was replaced by the picture order")
+        # The converted board has 15 comments per page, and fixture timestamps run opposite to comment IDs.
+        thread = album + "/picture/7010"
+        query, comments = saved_comment(member, thread, member.fetch(thread), "album-discuss", "New comment in ascending order")
+        if int(query.get("start", ["0"])[0]) != (limit + 4) // limit * limit or comments != sorted(comments):
+            raise RuntimeError("A newly posted comment used a fixed page size or lost ascending order")
+        descending = thread + "?sort_order=DESC"
+        query, comments = saved_comment(member, descending, member.fetch(descending), "album-discuss", "New comment in descending order")
+        if query.get("sort_order") != ["DESC"] or "start" in query or comments != sorted(comments, reverse=True):
+            raise RuntimeError("Saving from the newest-first listing did not return its first page")
+        tail = administrator.fetch(descending + f"&start={limit}")
+        edit = re.search(r'href="([^"]*/album/picture/7010/comment/9001/edit[^"]*)"', tail)
+        if not edit:
+            raise RuntimeError("The test comment cannot be edited from its displayed descending page")
+        edit_url = unescape(edit[1])
+        query, comments = saved_comment(administrator, edit_url, administrator.fetch(edit_url), "album-comment-edit", "Edited comment with an out-of-order timestamp")
+        if query.get("sort_order") != ["DESC"] or query.get("start") != [str(limit)] or 9001 not in comments:
+            raise RuntimeError("Editing an existing comment used its old timestamp or lost the selected order")
         check("controls-off")
         off = AlbumPage(guest.fetch(album + "/category/601?sort_method=rating&sort_order=ASC"))
         if {"rating", "comments", "new_comment"} & set(off.methods) or list(off.pictures) != sorted(allowed)[:12]:

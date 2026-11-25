@@ -223,11 +223,6 @@ class board
 		return $this->request->variable('sort_order', '') === 'DESC' ? 'DESC' : 'ASC';
 	}
 
-	private function comments_per_page()
-	{
-		return max(1, min(9999, (int) $this->config['posts_per_page']));
-	}
-
 	public function comment_bookmark($comment)
 	{
 		$id = (int) $comment;
@@ -237,14 +232,10 @@ class board
 		$this->db->sql_freeresult($result);
 		$this->access->picture($picture);
 		$direction = $this->comment_order();
-		$result = $this->db->sql_query('SELECT COUNT(*) AS total FROM ' . $this->prefix . 'comments WHERE pic_id=' . $picture .
-			' AND comment_id' . ($direction === 'DESC' ? '>' : '<') . $id);
-		$before = (int) $this->db->sql_fetchfield('total');
-		$this->db->sql_freeresult($result);
-		$limit = $this->comments_per_page();
+		$start = $this->discussion->page_start($picture, $id, $direction);
 		$params = array('picture' => $picture);
 		if ($direction === 'DESC') { $params['sort_order'] = $direction; }
-		if ($before >= $limit) { $params['start'] = intdiv($before, $limit) * $limit; }
+		if ($start) { $params['start'] = $start; }
 		return new RedirectResponse($this->helper->route('phpbb2plus_gallery_picture', $params, false) . '#comment-' . $id);
 	}
 
@@ -388,6 +379,7 @@ class board
 		if ($this->request->variable('full', 0)) { $context['full'] = 1; }
 		$comment_order = $this->comment_order();
 		if ($comment_order === 'DESC') { $context['sort_order'] = $comment_order; }
+		$comment_params = $params + ($comment_order === 'DESC' ? array('sort_order' => $comment_order) : array());
 		$neighbours = $this->navigation->neighbours($pic, $cat, $sort);
 		$mode = $this->request->variable('mode', '');
 		if (isset($neighbours[$mode]))
@@ -408,7 +400,7 @@ class board
 			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'comments WHERE pic_id=' . $id);
 			$total = (int) $this->db->sql_fetchfield('count');
 			$this->db->sql_freeresult($result);
-			$limit = $this->comments_per_page();
+			$limit = $this->discussion->per_page();
 			$start = $this->page($link, $total, $limit);
 			$result = $this->db->sql_query_limit('SELECT c.*,u.username,u.user_colour,e.username AS editor_name,e.user_colour AS editor_colour
 				FROM ' . $this->prefix . 'comments c LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.author_id
@@ -431,7 +423,7 @@ class board
 				{
 					if ($this->access->allows($cat, 'comment') && $this->access->may_change($cat, $comment['author_id'], $mode))
 					{
-						$links['U_' . strtoupper($mode)] = $this->helper->route('phpbb2plus_gallery_comment', $params + array('comment' => $comment['comment_id'], 'mode' => $mode));
+						$links['U_' . strtoupper($mode)] = $this->helper->route('phpbb2plus_gallery_comment', $comment_params + array('comment' => $comment['comment_id'], 'mode' => $mode));
 					}
 				}
 				$this->template->assign_block_vars('album_comments', $links + array('ID' => $comment['comment_id'], 'AUTHOR' => $this->byline->display($comment),
@@ -459,7 +451,7 @@ class board
 		if ($may_rate || $may_comment)
 		{
 			add_form_key('plus_discussion_' . $id);
-			$this->template->assign_vars(array('U_DISCUSS' => $this->helper->route('phpbb2plus_gallery_discuss', $params),
+			$this->template->assign_vars(array('U_DISCUSS' => $this->helper->route('phpbb2plus_gallery_discuss', $comment_params),
 				'S_ALBUM_COMMENT' => $may_comment, 'S_ALBUM_RATE' => $may_rate, 'S_ALBUM_HONOUR' => $may_rate && $this->discussion->honour_status($pic, $cat) === 'open',
 				'ALBUM_SCALE' => $this->discussion->scale(), 'ALBUM_LIMIT' => $this->discussion->text_limit(),
 				'S_ALBUM_GUEST' => empty($this->user->data['is_registered'])));

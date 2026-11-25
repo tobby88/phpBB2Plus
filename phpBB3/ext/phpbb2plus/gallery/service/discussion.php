@@ -196,13 +196,18 @@ class discussion
 		});
 	}
 
-	public function page_start($picture, $id)
+	public function per_page()
 	{
-		$result = $this->db->sql_query('SELECT COUNT(*) AS earlier FROM ' . $this->prefix . 'comments c JOIN ' . $this->prefix . 'comments target
-			ON target.pic_id=c.pic_id WHERE target.pic_id=' . (int) $picture . ' AND target.comment_id=' . (int) $id . '
-			AND (c.created_at<target.created_at OR (c.created_at=target.created_at AND c.comment_id<target.comment_id))');
+		return max(1, min(9999, (int) $this->config['posts_per_page']));
+	}
+
+	public function page_start($picture, $id, $order = 'ASC')
+	{
+		$result = $this->db->sql_query('SELECT COUNT(*) AS earlier FROM ' . $this->prefix . 'comments WHERE pic_id=' . (int) $picture .
+			' AND comment_id' . ($order === 'DESC' ? '>' : '<') . (int) $id);
 		$count = (int) $this->db->sql_fetchfield('earlier');
 		$this->db->sql_freeresult($result);
-		return intdiv($count, 20) * 20;
+		$limit = $this->per_page();
+		return intdiv($count, $limit) * $limit;
 	}
 }
