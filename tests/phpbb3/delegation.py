@@ -90,7 +90,7 @@ def module_roles(base):
 
     def exercise(roles):
         for username in roles:
-            browser, acp = authenticate(base, username)
+            browser, acp = sessions[username].result()
             for owner, (module, query, form, field, new_value) in modules.items():
                 url = acp + "&i=" + module + "&mode=manage&" + query
                 if owner != username:
@@ -114,9 +114,10 @@ def module_roles(base):
                     if "form_token" not in controls or controls.get(field) != value:
                         raise RuntimeError(f"{username} could not save its mapped {field} in {module}")
 
-    # Each catalogue shares its write lock and revisions. Keep edits within it
-    # sequential while testing the independent download, album and credit stores.
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    # Each member can log in and reauthenticate independently. Edits within
+    # one catalogue still run in order because they share its write revision.
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        sessions = {name: pool.submit(authenticate, base, name) for name in modules}
         list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior", "DownloadFieldsJunior"),
                                  ("AlbumCategoryJunior", "AlbumAccessJunior", "AlbumPersonalJunior"), ("CreditsJunior",))))
 
