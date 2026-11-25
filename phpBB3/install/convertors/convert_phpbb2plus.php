@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	foreach (array('community','gallery','knowledgebase','arcade','downloads','calendar','news') as $module)
+	foreach (array('community','gallery','knowledgebase','arcade','downloads','calendar','news','colours') as $module)
 	{
 		$extension = 'phpbb2plus/' . $module;
 		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
@@ -24,6 +24,7 @@ $tables[] = 'bookmarks';
 $tables[] = 'news';
 $tables[] = 'portal';
 $tables[] = 'plus';
+$tables[] = 'color_groups';
 
 if (!$get_info)
 {
@@ -51,6 +52,13 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_guest_poll_permissions();';
 	$convertor['execute_last'][] = 'plus_finish_news();';
 	$convertor['execute_last'][] = 'plus_portal_settings();';
+	$convertor['execute_last'][] = 'plus_finish_colours();';
+	// The native converter resets default-group colours after all execute_last callbacks.
+	// Apply the imported priorities when its next, resumable forum-sync stage opens.
+	if (!empty($config['plus_convert_colours_due']) && $request->variable('jump',0) === 2)
+	{
+		plus_apply_converted_colours();
+	}
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 	foreach (array('publish'=>'allow_news','page_size'=>'news_item_num','trim'=>'news_item_trim','title_trim'=>'news_title_trim',
@@ -160,6 +168,7 @@ if (!$get_info)
 		}
 		if ($section['target'] === USERS_TABLE)
 		{
+			$section[] = array('plus_colour_id','users.user_color_group','intval');
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
@@ -167,6 +176,10 @@ if (!$get_info)
 			{
 				$section[] = array('plus_cal_' . $name, 'users.user_calendar_' . $name, 'intval');
 			}
+		}
+		if ($section['target'] === GROUPS_TABLE)
+		{
+			$section[] = array('plus_colour_id','groups.group_color_group','intval');
 		}
 		if ($section['target'] === TOPICS_TABLE)
 		{
@@ -194,6 +207,11 @@ if (!$get_info)
 		}
 	}
 	unset($section);
+	$convertor['schema'][] = array('target'=>$table_prefix . 'plus_colours', 'primary'=>'color_groups.group_id', 'autoincrement'=>'colour_id',
+		'query_first'=>array('target',$convert->truncate_statement . $table_prefix . 'plus_colours'),
+		array('colour_id','color_groups.group_id','intval'),array('name','color_groups.group_name','plus_convert_byline'),
+		array('colour','color_groups.group_color','plus_colour_value'),array('in_legend','color_groups.hidden','plus_colour_legend'),
+		array('position','color_groups.order_num','intval'));
 	$convertor['schema'][] = array('target'=>$table_prefix . 'plus_news_cats', 'primary'=>'news.news_id', 'autoincrement'=>'category_id',
 		'query_first'=>array('target',$convert->truncate_statement . $table_prefix . 'plus_news_cats'),
 		array('category_id','news.news_id','intval'), array('name','news.news_category','plus_convert_byline'),

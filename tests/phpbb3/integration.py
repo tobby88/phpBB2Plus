@@ -85,7 +85,7 @@ def install(web, settings_dir, name):
     report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
     if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
         raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
-    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads", "calendar", "news"):
+    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads", "calendar", "news", "colours"):
         if "Successfully enabled extension phpbb2plus/" + extension not in report:
             raise RuntimeError(f"The installer did not activate {extension}: " + report[-3500:])
     php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
@@ -152,6 +152,11 @@ def main():
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
                 public_pages(base, member)
+                legend = member.fetch("index.php")
+                if ('#5A769B">Redaktion &amp; Gäste</span>' not in legend or 'Hidden palette' in legend
+                        or 'plus-colour-legend">Invalid colour</span>' not in legend):
+                    raise RuntimeError("The index lost a custom colour, double-escaped its name or revealed a hidden legend entry")
+                php(ROOT / "tests/phpbb3/colour_membership.php", target, cwd=web)
                 portal.browse(base, member)
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
@@ -167,7 +172,9 @@ def main():
                 custom_profiles.administration(member)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)
+                    php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/colours", "--no-interaction", cwd=web)
                     php("bin/phpbbcli.php", "cache:purge", "--no-interaction", cwd=web)
+                    php(fixture, "colours-" + action, target)
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
                 native_content(base, member, ordinary)

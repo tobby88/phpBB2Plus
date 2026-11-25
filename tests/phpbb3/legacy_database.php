@@ -80,6 +80,14 @@ if ($argv[1] === 'seed')
 		VALUES (42,1,1,87,'7f000001',1234501000)");
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (42,'Account fixture','Account removal fixture')");
 	seed_gallery($db);
+	$db->query("INSERT INTO phpbb_color_groups (group_id,group_name,group_color,hidden,order_num)
+		VALUES (6,'Redaktion &amp; Gäste','#5a769B',0,8),(7,'Hidden palette','navy',1,-2),(8,'Invalid colour','not-a-colour',0,9)");
+	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user,group_color_group)
+		VALUES (73,2,'Archive Club','',0,6)");
+	$db->query("UPDATE phpbb_groups SET group_color_group=7 WHERE group_id=71");
+	$db->query("UPDATE phpbb_groups SET group_color_group=1 WHERE group_id=72");
+	$db->query("INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (73,1,0)");
+	$db->query("UPDATE phpbb_users SET user_color_group=99 WHERE user_id=87");
 	seed_knowledgebase($db);
 	seed_arcade($db);
 	seed_downloads($db);
@@ -115,6 +123,15 @@ elseif ($argv[1] === 'profile-media')
 	$id = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
 	echo json_encode(verify_profile_media($db, $id));
 }
+elseif (in_array($argv[1],array('colours-disable','colours-enable'),true))
+{
+	$enabled = $argv[1] === 'colours-enable';
+	$row = $db->query("SELECT u.user_colour,u.plus_colour_id,u.plus_colour_applied,g.group_colour,t.topic_first_poster_colour
+		FROM p3_users u JOIN p3_groups g ON g.group_id=u.group_id JOIN p3_topics t ON t.topic_id=601 WHERE u.user_id=2")->fetch_assoc();
+	$wanted = $enabled ? 'FF0000' : $row['group_colour'];
+	check_fixture((int) $row['plus_colour_id'] === 1 && (bool) $row['plus_colour_applied'] === $enabled
+		&& $row['user_colour'] === $wanted && $row['topic_first_poster_colour'] === $wanted,'Toggling the extension lost a selection or left a stale colour');
+}
 elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), true))
 {
 	$users = $db->query("SELECT user_id,username,user_password,user_lang FROM p3_users
@@ -128,6 +145,14 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
 	if ($argv[1] !== 'converted') { return; }
 	$historic_id = (int) $users[0]['user_id'];
+	$colours = $db->query("SELECT user_id,user_colour,plus_colour_applied,plus_colour_id FROM p3_users WHERE user_id IN (2,87,$historic_id)")->fetch_all(MYSQLI_ASSOC);
+	$by_user = array_column($colours,null,'user_id');
+	check_fixture($by_user[2]['user_colour']==='FF0000' && $by_user[$historic_id]['user_colour']==='000080'
+		&& (int) $by_user[87]['plus_colour_id']===0 && (int) $by_user[87]['plus_colour_applied']===0,
+		'Personal, ordered membership or pending colour was converted incorrectly');
+	$topic_colour = $db->query('SELECT topic_first_poster_colour,topic_last_poster_colour FROM p3_topics WHERE topic_id=601')->fetch_row();
+	$forum_colour = $db->query('SELECT forum_last_poster_colour FROM p3_forums WHERE forum_id=14')->fetch_row();
+	check_fixture($topic_colour===array('FF0000','FF0000') && $forum_colour[0]==='FF0000','Native topic and forum author colours were not refreshed');
 	$origin = $db->query("SELECT user_id,plus_legacy_id FROM p3_users WHERE user_id IN (1,2,$historic_id) ORDER BY user_id")->fetch_all(MYSQLI_ASSOC);
 	check_fixture(array_map('intval', array_column($origin, 'plus_legacy_id')) === array(0,2,1), 'Wrong original profile IDs after conversion');
 	verify_native_content($db, (int) $users[0]['user_id']);

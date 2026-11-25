@@ -1,0 +1,9 @@
+services:
+    phpbb2plus.colours.palette:
+        class: phpbb2plus\colours\service\palette
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_colours']
+    phpbb2plus.colours.listener:
+        class: phpbb2plus\colours\event\listener
+        arguments: ['@phpbb2plus.colours.palette', '@template']
+        tags:
+            - { name: event.listener }
