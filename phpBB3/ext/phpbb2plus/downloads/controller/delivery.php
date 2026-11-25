@@ -1,6 +1,8 @@
 <?php
 namespace phpbb2plus\downloads\controller;
 
+use phpbb2plus\downloads\service\client_family;
+
 use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\license_text;
 use phpbb2plus\downloads\service\mirrors;
@@ -158,10 +160,9 @@ class delivery
 		if (!$exists)
 		{
 			$agent = $this->http->headers->get('User-Agent', '');
-			preg_match('~(Edg|Firefox|Chrome|Version)/([0-9.]{1,32})~', $agent, $browser);
-			preg_match('~Android|iPhone|iPad|Windows|Mac OS|Linux~i', $agent, $os);
-			$row = array('file_id'=>$id,'owner_id'=>$owner,'ip_address'=>$ip,'source_json'=>json_encode(array('downloader_browser'=>$browser[1] ?? '',
-				'browser_version'=>$browser[2] ?? '', 'downloader_os'=>$os[0] ?? '')));
+			$family = client_family::observed($agent,$version);
+			$row = $family + array('file_id'=>$id,'owner_id'=>$owner,'ip_address'=>$ip,'source_json'=>json_encode(array(
+				'downloader_browser'=>$family['client_browser'],'downloader_os'=>$family['client_os'],'browser_version'=>$version)));
 			$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $row));
 		}
 		$this->db->sql_query('UPDATE ' . $this->prefix . 'files SET downloads=CASE WHEN downloads<4294967295 THEN downloads+1 ELSE downloads END,last_download=' . time() . " WHERE file_id=$id");

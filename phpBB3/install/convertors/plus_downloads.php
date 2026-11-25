@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { exit; }
 
 use phpbb2plus\downloads\service\access as plus_dl_access;
+use phpbb2plus\downloads\service\client_family as plus_dl_client;
 
 function plus_dl_layout()
 {
@@ -200,8 +201,10 @@ function plus_dl_rows($short, $r, $subjects)
 			$data = array('comment_id'=>$r['comments_id'], 'file_id'=>$r['file_id'], 'owner_id'=>$id($r['poster_id']), 'posted_at'=>$r['comments_time'],
 				'title'=>plus_dl_text($r['comments_title']), 'body'=>plus_convert_message($r['comments_text']));
 			break;
-		case 'votes': $data = array('file_id'=>$r['votes_file'], 'owner_id'=>$id($r['user_id']), 'ip_address'=>plus_registration_ip($r['votes_ip']), 'points'=>(int) $r['rate_point']); break;
-		case 'download_info': $data = array('file_id'=>$r['file_id'], 'owner_id'=>$id($r['user_id']), 'ip_address'=>plus_registration_ip($r['downloader_ip'])); break;
+		case 'votes': $data = array('file_id'=>$r['votes_file'], 'owner_id'=>$id($r['user_id']), 'ip_address'=>plus_registration_ip($r['votes_ip']),
+			'points'=>(int) $r['rate_point']) + plus_dl_client::imported($r,'voter'); break;
+		case 'download_info': $data = array('file_id'=>$r['file_id'], 'owner_id'=>$id($r['user_id']),
+			'ip_address'=>plus_registration_ip($r['downloader_ip'])) + plus_dl_client::imported($r,'downloader'); break;
 		case 'file_journal': $data = array('operation_id'=>$r['operation_id'], 'item_index'=>$r['item_index'], 'item_state'=>$r['item_state']); break;
 		default: throw new \LogicException('Unknown download conversion table.');
 	}

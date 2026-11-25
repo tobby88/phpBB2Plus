@@ -1,6 +1,17 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_STATS'=>'Download-Statistik','PLUS_DL_TOPLIST'=>'Download-Bestenlisten','PLUS_DL_RECORDS'=>'Rekorde','PLUS_DL_DECIMAL'=>',',
+	'PLUS_DL_TOTAL_FILES'=>'Veröffentlichte Dateien','PLUS_DL_TOTAL_CATEGORIES'=>'Kategorien','PLUS_DL_TOTAL_DOWNLOADS'=>'Downloads insgesamt',
+	'PLUS_DL_TOTAL_MEAN_DOWNLOADS'=>'Durchschnittliche Downloads je Datei','PLUS_DL_TOTAL_MEAN_RATING'=>'Durchschnittliche Dateibewertung',
+	'PLUS_DL_RECORD_NEWEST'=>'Neueste Datei','PLUS_DL_RECORD_OLDEST'=>'Älteste Datei','PLUS_DL_RECORD_BEST'=>'Am besten bewertete Datei',
+	'PLUS_DL_RECORD_LOWEST'=>'Am niedrigsten bewertete Datei','PLUS_DL_RECORD_MOST'=>'Am häufigsten heruntergeladene Datei','PLUS_DL_RECORD_LEAST'=>'Am seltensten heruntergeladene Datei',
+	'PLUS_DL_CLIENT_EXPLAIN'=>'Für Browser und Betriebssystem wird je Datei ein Eintrag pro erfasstem Downloader und ein Eintrag pro Bewertung gezählt.',
+	'PLUS_DL_CLIENT_DOWNLOADS'=>'Erfasste Downloader','PLUS_DL_CLIENT_VOTES'=>'Bewertungen','PLUS_DL_CLIENT_OS'=>'Betriebssystem','PLUS_DL_CLIENT_BROWSER'=>'Browser',
+	'PLUS_DL_OTHER'=>'Sonstige oder unbekannt','PLUS_DL_MODE_NEWEST'=>'Neue Dateien','PLUS_DL_MODE_DOWNLOADS'=>'Am häufigsten heruntergeladen','PLUS_DL_MODE_RATING'=>'Am besten bewertet',
+	'PLUS_DL_LAST_WEEK'=>'Neue Dateien in den letzten 7 Tagen','PLUS_DL_LAST_MONTH'=>'Neue Dateien in den letzten 30 Tagen','PLUS_DL_DAYS'=>'%d Tage',
+	'PLUS_DL_TOP_PERCENT'=>'Beste %1$d %% von %2$d Dateien','PLUS_DL_TOP_NUMBER'=>'Beste %1$d von %2$d Dateien','PLUS_DL_SHOW_TOP'=>'Anzahl der Ergebnisse',
+	'PLUS_DL_UNRATED'=>'Ohne Bewertung','PLUS_DL_CATEGORY'=>'Kategorie','PLUS_DL_DATE'=>'Hinzugefügt am','PLUS_DL_PUBLISHER'=>'Eingereicht von','PLUS_DL_PINNED'=>'Angeheftet',
 	'PLUS_DL_LICENSE_CHANGED'=>'Bitte prüfe die aktuelle Lizenzfassung und bestätige sie, um den Download zu starten.',
 	'PLUS_DL_RECENT'=>'Neue Downloads',
     'PLUS_DL'=>'Downloads', 'PLUS_DL_SEARCH'=>'Dateien durchsuchen', 'PLUS_DL_CATEGORIES'=>'Kategorien', 'PLUS_DL_FILES'=>'Dateien',

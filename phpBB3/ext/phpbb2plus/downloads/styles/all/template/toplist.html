@@ -1,0 +1,19 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_DL_TOPLIST}</h2>
+<!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
+<div class="panel"><div class="inner"><p>{% for tab in loops.modes %}{% if not loop.first %} &middot; {% endif %}{% if tab.CURRENT %}<strong>{{ tab.LABEL|e }}</strong>{% else %}<a href="{{ tab.URL }}">{{ tab.LABEL|e }}</a>{% endif %}{% endfor %}</p>
+{% if DL_RECENT %}<p>{L_PLUS_DL_LAST_WEEK} <strong>{{ DL_WEEK }}</strong> &middot; {L_PLUS_DL_LAST_MONTH} <strong>{{ DL_MONTH }}</strong></p>
+<p>{% for item in loops.periods %}{% if not loop.first %} &middot; {% endif %}<a href="{{ item.URL }}">{{ item.LABEL|e }}</a>{% endfor %}</p>{% endif %}
+{% if loops.limits %}<p>{L_PLUS_DL_SHOW_TOP} {% for item in loops.limits %}{% if not loop.first %} &middot; {% endif %}<a href="{{ item.URL }}">{{ item.LABEL|e }}</a>{% endfor %}</p>{% endif %}</div></div>
+{% if loops.days %}<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{L_PLUS_DL_DATE}</th><th>{L_PLUS_DL_FILES}</th></tr></thead><tbody>
+{% for day in loops.days %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td><a href="{{ day.URL }}">{{ day.DATE|e }}</a></td><td>{{ day.COUNT }}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
+{% if DL_FILE_LIST %}<h3>{{ DL_CAPTION|e }}</h3>
+{% if loops.ranked %}<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{L_PLUS_DL_TITLE}</th><th>{L_PLUS_DL_CATEGORY}</th>
+<th>{L_PLUS_DL_PUBLISHER}</th><th>{L_PLUS_DL_DATE}</th><th>{L_PLUS_DL_COUNT}</th><th>{L_PLUS_DL_RATING}</th></tr></thead><tbody>
+{% for file in loops.ranked %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td>{% if file.ICON %}<img src="{{ file.ICON }}" alt=""> {% endif %}
+<a href="{{ file.URL }}">{{ file.TITLE|e }}</a>{% if file.RECENT %} <strong>{L_PLUS_DL_NEW_FILE}</strong>{% endif %}{% if file.PINNED %} <span>({L_PLUS_DL_PINNED})</span>{% endif %}
+{% if file.SUMMARY %}<br>{{ file.SUMMARY|e }}{% endif %}</td><td><a href="{{ file.CATEGORY_URL }}">{{ file.CATEGORY|e }}</a></td><td>{{ file.PUBLISHER }}</td>
+<td>{{ file.DATE|e }}</td><td>{{ file.COUNT }}</td><td>{{ file.SCORE|e }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% else %}<p>{L_PLUS_DL_EMPTY}</p>{% endif %}{% endif %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

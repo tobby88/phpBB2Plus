@@ -11,8 +11,9 @@ class feedback
 	private $config;
 	private $renderer;
 	private $prefix;
+	private $http;
 
-	public function __construct($access, $db, $user, $config, $renderer, $prefix)
+	public function __construct($access, $db, $user, $config, $renderer, $prefix, $http)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -20,6 +21,7 @@ class feedback
 		$this->config = $config;
 		$this->renderer = $renderer;
 		$this->prefix = $prefix;
+		$this->http = $http;
 	}
 
 	public function can($f, $operation)
@@ -84,7 +86,9 @@ class feedback
 		$already = $this->db->sql_fetchfield('row_id') !== false;
 		$this->db->sql_freeresult($result);
 		if ($already) { throw new \DomainException('PLUS_DL_ALREADY_VOTED'); }
-		$row = array('file_id'=>$id,'owner_id'=>$owner,'points'=>$points,'ip_address'=>$ip,'source_json'=>'{}');
+		$family = client_family::observed($this->http->headers->get('User-Agent',''));
+		$row = $family + array('file_id'=>$id,'owner_id'=>$owner,'points'=>$points,'ip_address'=>$ip,'source_json'=>json_encode(array(
+			'voter_os'=>$family['client_os'],'voter_browser'=>$family['client_browser'])));
 		$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT',$row));
 	}
 

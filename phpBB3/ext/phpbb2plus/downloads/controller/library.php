@@ -43,6 +43,11 @@ class library
 		$this->language->add_lang('downloads', 'phpbb2plus/downloads');
 		$this->template->assign_block_vars('navlinks', array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),
 			'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_index')));
+		foreach (array('stats','toplist') as $report)
+		{
+			if ($this->access->allows(0,$report))
+			{ $this->template->assign_var('U_DL_' . strtoupper($report),$this->helper->route('phpbb2plus_downloads_' . $report)); }
+		}
 		if (!$category) { return; }
 		if (!$this->access->visible($category)) { throw new NotFoundHttpException(); }
 		$cats = $this->access->categories();

@@ -79,7 +79,7 @@ switch ($phase)
 			$rows($grant_sql)!==$grants || $values['validator']!=='historic_mode' || $values['tpl_php']!==$before['tpl_php'] ||
 			($phase==='unchanged' && ($values['settings_dbname']!==$before['settings_dbname'] || isset($values['no_comment_image_message']) ||
 				$values['settings_newdays']!=='2000000')) || ($phase==='saved' && ($values['forbidden_extensions']!=='abc, xyz' ||
-				$values['auth_search']!=='1' || $values['max_file_size']!=='32' || $values['settings_newdays']!=='1' ||
+				$values['auth_search']!=='1' || $values['max_file_size']!=='32' || $values['settings_newdays']!=='1' || $values['settings_topnumber']!=='1' ||
 				\phpbb2plus\downloads\service\access::plain($values['no_comment_image_message'])!=='Archivbild & Hinweis 📷')))
 		{ throw new RuntimeException('Changing settings lost a historic value or membership, introduced a missing default, or partially saved'); }
 		break;

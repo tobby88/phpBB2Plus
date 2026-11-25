@@ -1,4 +1,10 @@
 services:
+    phpbb2plus.downloads.report_data:
+        class: phpbb2plus\downloads\service\report_data
+        arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '%core.table_prefix%plus_dl_']
+    phpbb2plus.downloads.reports:
+        class: phpbb2plus\downloads\controller\reports
+        arguments: ['@phpbb2plus.downloads.report_data', '@phpbb2plus.downloads.access', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@path_helper']
     phpbb2plus.downloads.settings:
         class: phpbb2plus\downloads\service\settings
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@user', '@log', '%core.table_prefix%plus_dl_']
@@ -52,7 +58,7 @@ services:
         arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@phpbb2plus.downloads.feedback', '%core.table_prefix%plus_dl_', '@path_helper']
     phpbb2plus.downloads.feedback:
         class: phpbb2plus\downloads\service\feedback
-        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@config', '@text_formatter.renderer', '%core.table_prefix%plus_dl_']
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@config', '@text_formatter.renderer', '%core.table_prefix%plus_dl_', '@symfony_request']
     phpbb2plus.downloads.actions:
         class: phpbb2plus\downloads\controller\actions
         arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.feedback', '@request', '@controller.helper', '@language', '@template']

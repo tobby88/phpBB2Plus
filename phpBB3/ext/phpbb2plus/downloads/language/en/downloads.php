@@ -1,6 +1,17 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_STATS'=>'Download statistics','PLUS_DL_TOPLIST'=>'Download rankings','PLUS_DL_RECORDS'=>'Records','PLUS_DL_DECIMAL'=>'.',
+	'PLUS_DL_TOTAL_FILES'=>'Published files','PLUS_DL_TOTAL_CATEGORIES'=>'Categories','PLUS_DL_TOTAL_DOWNLOADS'=>'Total downloads',
+	'PLUS_DL_TOTAL_MEAN_DOWNLOADS'=>'Average downloads per file','PLUS_DL_TOTAL_MEAN_RATING'=>'Average file rating',
+	'PLUS_DL_RECORD_NEWEST'=>'Newest file','PLUS_DL_RECORD_OLDEST'=>'Oldest file','PLUS_DL_RECORD_BEST'=>'Highest rated file',
+	'PLUS_DL_RECORD_LOWEST'=>'Lowest rated file','PLUS_DL_RECORD_MOST'=>'Most downloaded file','PLUS_DL_RECORD_LEAST'=>'Least downloaded file',
+	'PLUS_DL_CLIENT_EXPLAIN'=>'The browser and operating system counts use one recorded downloader per file and one entry per rating.',
+	'PLUS_DL_CLIENT_DOWNLOADS'=>'Recorded downloaders','PLUS_DL_CLIENT_VOTES'=>'Ratings','PLUS_DL_CLIENT_OS'=>'Operating system','PLUS_DL_CLIENT_BROWSER'=>'Browser',
+	'PLUS_DL_OTHER'=>'Other or unknown','PLUS_DL_MODE_NEWEST'=>'New files','PLUS_DL_MODE_DOWNLOADS'=>'Most downloaded','PLUS_DL_MODE_RATING'=>'Highest rated',
+	'PLUS_DL_LAST_WEEK'=>'Files added in the last 7 days','PLUS_DL_LAST_MONTH'=>'Files added in the last 30 days','PLUS_DL_DAYS'=>'%d days',
+	'PLUS_DL_TOP_PERCENT'=>'Top %1$d%% of %2$d files','PLUS_DL_TOP_NUMBER'=>'Top %1$d of %2$d files','PLUS_DL_SHOW_TOP'=>'List size',
+	'PLUS_DL_UNRATED'=>'Unrated','PLUS_DL_CATEGORY'=>'Category','PLUS_DL_DATE'=>'Date added','PLUS_DL_PUBLISHER'=>'Submitted by','PLUS_DL_PINNED'=>'Pinned',
 	'PLUS_DL_LICENSE_CHANGED'=>'Please review and accept the current licence terms to start the download.',
 	'PLUS_DL_RECENT'=>'Recent downloads',
     'PLUS_DL'=>'Downloads', 'PLUS_DL_SEARCH'=>'Search downloads', 'PLUS_DL_CATEGORIES'=>'Categories', 'PLUS_DL_FILES'=>'Files',

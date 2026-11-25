@@ -37,7 +37,8 @@ def administration(owner, member, verify):
                            "sort_order": "DESC", "settings_newdays": "1", "max_file_size": "32",
                            "forbidden_extensions": ".ABC, xyz, abc", "max_comment_chars": "20", "allow_comment_images": "0",
                            "no_comment_image_message": "Archivbild & Hinweis 📷", "auth_search": "1",
-                           "hotlink_prevent": "1", "hotlink_allowed": "https://downloads.example.invalid, club.example.invalid"})
+                           "hotlink_prevent": "1", "hotlink_allowed": "https://downloads.example.invalid, club.example.invalid",
+                           "auth_toplist": "0", "settings_topnumber": "1"})
     if 'class="successbox"' not in saved:
         raise RuntimeError("The valid settings form did not save")
     verify("saved")
@@ -52,6 +53,9 @@ def administration(owner, member, verify):
         raise RuntimeError("The converted catalogue ignored rating, pins, the new marker or the page size")
     if "Zulu oldest</a>" not in guest.fetch(root + "/category/10630?start=2"):
         raise RuntimeError("The changed page size made the older file unreachable")
+    ranked = guest.fetch(root + "/toplist?mode=downloads")
+    if len(re.findall(r'<td><a href="[^"]*/downloads/category/\d+[^"]*">', ranked)) != 1:
+        raise RuntimeError("The ACP top list length did not limit the default public ranking")
     if "Archivbild & Hinweis 📷" not in unescape(guest.fetch(root + "/file/50")):
         raise RuntimeError("Stored comment image replacement text was not applied")
     referred = Browser(owner.base)

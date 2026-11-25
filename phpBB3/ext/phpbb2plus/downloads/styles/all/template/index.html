@@ -1,5 +1,6 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{{ DL_TITLE|e }}</h2>
+<!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 {% if U_DL_SUBMIT or U_DL_QUEUE %}<div class="action-bar">
 {% if U_DL_SUBMIT %}<a class="button" href="{U_DL_SUBMIT}">{L_PLUS_DL_SUBMIT}</a>{% endif %}
 {% if U_DL_QUEUE %}<a class="button" href="{U_DL_QUEUE}">{L_PLUS_DL_REVIEW}</a>{% endif %}
