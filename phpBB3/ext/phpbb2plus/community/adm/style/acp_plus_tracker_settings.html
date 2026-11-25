@@ -11,6 +11,13 @@
 			<label><input id="plus-login-network" class="radio" type="radio" name="config[plus_login_network_check]" value="1"{% if S_NETWORK %} checked{% endif %}> {{ lang('YES') }}</label>
 			<label><input class="radio" type="radio" name="config[plus_login_network_check]" value="0"{% if not S_NETWORK %} checked{% endif %}> {{ lang('NO') }}</label></dd></dl>
 	</fieldset>
+	<fieldset><legend>{{ lang('PLUS_PW_REMINDER') }}</legend>
+		<dl><dt><label for="plus-pw-reminder">{{ lang('PLUS_PW_REMINDER_ENABLE') }}</label><br><span>{{ lang('PLUS_PW_REMINDER_EXPLAIN') }}</span></dt><dd>
+			<label><input id="plus-pw-reminder" class="radio" type="radio" name="config[plus_pw_reminder]" value="1"{% if S_PW_REMINDER %} checked{% endif %}> {{ lang('YES') }}</label>
+			<label><input class="radio" type="radio" name="config[plus_pw_reminder]" value="0"{% if not S_PW_REMINDER %} checked{% endif %}> {{ lang('NO') }}</label></dd></dl>
+		<dl><dt><label for="plus-pw-days">{{ lang('PLUS_PW_REMINDER_DAYS') }}</label></dt>
+			<dd><input id="plus-pw-days" type="number" name="config[plus_pw_reminder_days]" min="6" max="365" value="{{ PW_DAYS }}"> {{ lang('DAYS') }}</dd></dl>
+	</fieldset>
 	<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ REVISION }}">
 	<input type="submit" class="button1" value="{{ lang('SUBMIT') }}">{{ S_FORM_TOKEN }}</fieldset>
 </form>

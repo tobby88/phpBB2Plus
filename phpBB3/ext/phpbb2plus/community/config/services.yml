@@ -241,6 +241,6 @@ services:
         arguments: ['@dbal.conn', '@config', '%core.table_prefix%']
     phpbb2plus.community.account_login_events:
         class: phpbb2plus\community\event\account_logins
-        arguments: ['@phpbb2plus.community.account_logins', '@config', '@user', '@language', '@template']
+        arguments: ['@phpbb2plus.community.account_logins', '@config', '@user', '@language', '@template', '@auth']
         tags:
             - { name: event.listener }

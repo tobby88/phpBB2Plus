@@ -17,4 +17,10 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_LOGIN_LIMIT_EXPLAIN' => '1 bis 60 Einträge. Bei der nächsten Anmeldung des Mitglieds werden ältere Einträge über diesem Limit entfernt.',
 	'PLUS_LOGIN_NETWORK' => 'Hinweis bei Netzwechsel ermöglichen',
 	'PLUS_LOGIN_NETWORK_EXPLAIN' => 'Vergleicht die IP-Netze der letzten beiden Anmeldungen. Mitglieder können den Hinweis im persönlichen Bereich ein- oder ausschalten.',
+	'PLUS_PW_REMINDER' => 'Passwort-Erinnerung',
+	'PLUS_PW_REMINDER_ENABLE' => 'Mitglieder an den Passwortwechsel erinnern',
+	'PLUS_PW_REMINDER_EXPLAIN' => 'Zeigt einen Hinweis, wenn die letzte bekannte Änderung länger zurückliegt. Das Mitglied kann das Forum weiterhin nutzen.',
+	'PLUS_PW_REMINDER_DAYS' => 'Erinnern nach',
+	'PLUS_PW_REMINDER_NOTICE' => 'Du verwendest dein Forenpasswort seit mehr als %d Tagen.',
+	'PLUS_PW_REMINDER_CHANGE' => 'Passwort ändern',
 ));

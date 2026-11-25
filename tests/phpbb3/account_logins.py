@@ -1,6 +1,7 @@
 """Read the migrated member's private history and exercise the two independent board settings."""
 import os
 import re
+import secrets
 from html import unescape
 
 from delegation import authenticate
@@ -19,13 +20,35 @@ def disabled(base, member):
     page = member.fetch(BOOKMARK)
     if "Login history is turned off" not in page or addresses(page) or "plus-login-preferences" in Page(page).forms:
         raise RuntimeError("A disabled source collection policy changed on the private account page")
-    if 'id="plus-login-notice"' in member.fetch("index.php"):
-        raise RuntimeError("The disabled network notice became visible")
+    index = member.fetch("index.php")
+    if 'id="plus-login-notice"' in index or 'id="plus-password-reminder"' in index:
+        raise RuntimeError("A disabled source notice became visible")
+
+
+def change_reminded_password(base, actor):
+    # Follow the actual reminder link and change this fixture's own password in phpBB.
+    marker = 'id="plus-password-reminder"'
+    link = re.search(r'id="plus-password-reminder".*?<a href="([^"]+)"', actor.fetch("index.php"), re.S)
+    if not link:
+        raise RuntimeError("The member's password reminder lost the native account settings link")
+    native = unescape(link[1])
+    old = os.environ["PLUS_TEST_MODERN_PASSWORD"]
+    new = "A1-" + secrets.token_hex(14)
+    def change(browser, current, replacement):
+        return submit_form(browser, native, browser.fetch(native), "ucp", {"submit": "1", "cur_password": current,
+                           "new_password": replacement, "password_confirm": replacement})
+    change(actor, old, new)
+    signed_in = login(base, "TrackerSettingsJunior", new)
+    if marker in signed_in.fetch("index.php"):
+        raise RuntimeError("A native password change did not clear the reminder")
+    if "Your profile has been updated." not in change(signed_in, new, old):
+        raise RuntimeError("The native password form did not restore the fixture's original sign-in")
 
 
 def browse(base, member, admin, fixture):
     guest_page = Browser(base).fetch(BOOKMARK)
-    if "login" not in Page(guest_page).forms or addresses(guest_page):
+    reminder = 'id="plus-password-reminder"'
+    if "login" not in Page(guest_page).forms or addresses(guest_page) or reminder in guest_page:
         raise RuntimeError("A guest bookmark did not lead to the native login")
     page = member.fetch(BOOKMARK + "?u=2")
     if addresses(page) != ["127.0.0.1", "2001:db8:11::82", "2001:db8:11::81"]:
@@ -34,9 +57,12 @@ def browse(base, member, admin, fixture):
     if admin_history != ["127.0.0.1", "127.0.0.1", "Alt & <Netz> 📷"]:
         raise RuntimeError("The native login and ACP reauthentication did not each record one login for their own account")
     banner = member.fetch("index.php")
+    admin_index = admin.fetch("index.php")
     if ('id="plus-login-notice"' not in banner or "2001:db8:33::/48" not in banner or
-            "127.0.x.x" not in banner or "2001:db8:33::4" in banner or 'id="plus-login-notice"' in admin.fetch("index.php")):
+            "127.0.x.x" not in banner or "2001:db8:33::4" in banner or 'id="plus-login-notice"' in admin_index):
         raise RuntimeError("The network notice did not respect the account preference and masked networks")
+    if reminder not in banner or "more than 90 days" not in banner or reminder in admin_index:
+        raise RuntimeError("The reminder used the wrong account, reset-request date or password policy")
     f = "plus-login-preferences"
     ack = "plus-login-acknowledge"
     if FormFields(page, f).values.get("network_warning") != "1" or ack not in Page(page).forms:
@@ -60,13 +86,14 @@ def browse(base, member, admin, fixture):
     route = "&i=-phpbb2plus-community-acp-tracker_settings_module&mode=manage"
     panel = admin_url(admin) + route
     form = "plus-tracker-settings"
-    def settings(history, network):
+    def settings(history, network, remind=1, days=90):
         page = admin.fetch(panel)
         fields = FormFields(page, form).values
         if fields.get("config[plus_login_limit]") != "3":
             raise RuntimeError("The CrackerTracker settings form lost the imported login limit")
         submit_form(admin, panel, page, form, {"submit": "1", "config[plus_login_history]": str(history),
-                                              "config[plus_login_network_check]": str(network)})
+                                              "config[plus_login_network_check]": str(network),
+                                              "config[plus_pw_reminder]": str(remind), "config[plus_pw_reminder_days]": str(days)})
     try:
         delegate, entry = authenticate(base, "TrackerSettingsJunior")
         delegated_panel = entry + route
@@ -84,18 +111,21 @@ def browse(base, member, admin, fixture):
         if fields.get("config[plus_login_limit]") != "4" or fields.get("config[plus_login_history]") != "1":
             raise RuntimeError("One invalid tracker setting partially changed the board policy")
         submit_form(delegate, delegated_panel, delegate.fetch(delegated_panel), form, {"config[plus_login_limit]": "3"})
-        settings(0, 1)
+        settings(0, 1, days=365)
         fixture("network-only")
         page = member.fetch(BOOKMARK)
-        if "Login history is turned off" not in page or addresses(page) or ack not in Page(page).forms:
+        if "Login history is turned off" not in page or addresses(page) or ack not in Page(page).forms or reminder in page:
             raise RuntimeError("The network-only policy did not hide the history and keep the notice")
-        settings(1, 0)
+        settings(1, 0, remind=0, days=6)
         fixture("history-only")
         page = member.fetch(BOOKMARK)
-        if not addresses(page) or addresses(page)[0] != "198.51.100.41" or f in Page(page).forms or ack in Page(page).forms:
+        if not addresses(page) or addresses(page)[0] != "198.51.100.41" or f in Page(page).forms or ack in Page(page).forms or reminder in page:
             raise RuntimeError("The history-only policy did not preserve the log and disable network comparison")
     finally:
         settings(1, 1)
+    change_reminded_password(base, delegate)
+    if reminder not in member.fetch("index.php"):
+        raise RuntimeError("Another member's password change dismissed the original reminder")
 
     remembered = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], remember=True)
     before = addresses(remembered.fetch(BOOKMARK))

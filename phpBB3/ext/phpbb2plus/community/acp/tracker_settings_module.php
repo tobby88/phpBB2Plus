@@ -2,7 +2,7 @@
 namespace phpbb2plus\community\acp;
 
 use phpbb\request\request_interface;
-use phpbb2plus\community\service\account_logins;
+use phpbb2plus\community\service\tracker_settings;
 
 class tracker_settings_module
 {
@@ -44,17 +44,15 @@ class tracker_settings_module
 		$language->add_lang('info_acp_tracker', 'phpbb2plus/community');
 		$language->add_lang('info_ucp_logins', 'phpbb2plus/community');
 		if (!$this->permitted(false)) { send_status_line(403, 'Forbidden'); trigger_error('NO_AUTH_OPERATION', E_USER_WARNING); }
-		$history = $phpbb_container->get('phpbb2plus.community.account_logins');
 		$return = adm_back_link($this->u_action);
 		if ($request->server('REQUEST_METHOD') === 'POST')
 		{
 			if (!check_form_key('plus_tracker_settings')) { trigger_error($language->lang('FORM_INVALID') . $return, E_USER_WARNING); }
 			$values = $request->variable('config', array('' => ''), false, request_interface::POST);
-			if (count($values) !== count(account_logins::SETTINGS)) { trigger_error($language->lang('FORM_INVALID') . $return, E_USER_WARNING); }
-			foreach (account_logins::SETTINGS as $key => $range)
+			if (count($values) !== count(tracker_settings::RANGES)) { trigger_error($language->lang('FORM_INVALID') . $return, E_USER_WARNING); }
+			foreach ($values as $key => $value)
 			{
-				$value = $values[$key] ?? '';
-				if (!preg_match('/^(?:0|[1-9][0-9]?)$/D', $value) || (int) $value < $range[0] || (int) $value > $range[1])
+				if (!tracker_settings::accepts($key, $value))
 				{
 					trigger_error($language->lang('FORM_INVALID') . $return, E_USER_WARNING);
 				}
@@ -62,7 +60,7 @@ class tracker_settings_module
 			$db->sql_transaction('begin');
 			try
 			{
-				$current = $history->policy('write');
+				$current = tracker_settings::read($db, 'write');
 				if (!$this->permitted(true)) { throw new \DomainException('NO_AUTH_OPERATION'); }
 				if (!hash_equals(hash('sha256', serialize($current)), $request->variable('revision', '', false, request_interface::POST)))
 				{
@@ -82,10 +80,11 @@ class tracker_settings_module
 			$phpbb_container->get('cache.driver')->destroy('config');
 			trigger_error($language->lang('CONFIG_UPDATED') . $return);
 		}
-		$current = $history->policy();
+		$current = tracker_settings::read($db);
 		add_form_key('plus_tracker_settings');
 		$template->assign_vars(array('U_ACTION' => $this->u_action, 'REVISION' => hash('sha256', serialize($current)),
 			'S_HISTORY' => (bool) $current['plus_login_history'], 'LOGIN_LIMIT' => $current['plus_login_limit'],
-			'S_NETWORK' => (bool) $current['plus_login_network_check']));
+			'S_NETWORK' => (bool) $current['plus_login_network_check'], 'S_PW_REMINDER' => (bool) $current['plus_pw_reminder'],
+			'PW_DAYS' => $current['plus_pw_reminder_days']));
 	}
 }

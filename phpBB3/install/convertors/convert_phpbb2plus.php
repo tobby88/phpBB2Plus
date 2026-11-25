@@ -219,6 +219,15 @@ if (!$get_info)
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
+			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_passwd_change'))
+			{
+				$section[] = array('user_passchg', 'users.user_passwd_change', 'plus_password_change_time');
+				$section[] = array('plus_pw_native_origin', 'users.user_passwd_change', 'plus_password_change_time');
+			}
+			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_last_pw_change'))
+			{
+				$section[] = array('plus_pw_notice_change', 'users.ct_last_pw_change', 'plus_password_change_time');
+			}
 			foreach (array('ct_enable_ip_warn' => 'plus_login_warn', 'ct_last_ip' => 'plus_login_previous', 'ct_last_used_ip' => 'plus_login_current') as $old => $new)
 			{
 				if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', $old))

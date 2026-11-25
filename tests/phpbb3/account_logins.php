@@ -3,6 +3,15 @@ function seed_account_logins($db, $enabled)
 {
 	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='" . (int) $enabled . "' WHERE ct_config_name IN ('login_history','login_ip_check')");
 	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='3' WHERE ct_config_name='login_history_count'");
+	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='" . (int) $enabled . "' WHERE ct_config_name='pw_control'");
+	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='90' WHERE ct_config_name='pw_validity'");
+	$now = time();
+	$old = $now - 100 * 86400;
+	// The three dates had independent meanings in Plus. A recent reset request
+	// and a fresh native-age timestamp must not hide the tracker's older reminder.
+	$db->query("UPDATE phpbb_users SET ct_last_pw_change=$old,ct_last_pw_reset=$now,user_passwd_change=$now WHERE user_id=1");
+	$db->query("UPDATE phpbb_users SET ct_last_pw_change=$old,ct_last_pw_reset=$now,user_passwd_change=-9999 WHERE user_id=59");
+	$db->query("UPDATE phpbb_users SET ct_last_pw_change=0,ct_last_pw_reset=$old,user_passwd_change=$old WHERE user_id=2");
 	$db->query("UPDATE phpbb_users SET ct_enable_ip_warn=1,ct_last_ip='2001:db8:22::3',ct_last_used_ip='2001:db8:33::4' WHERE user_id=1");
 	$db->query("UPDATE phpbb_users SET ct_enable_ip_warn=0 WHERE user_id=2");
 	$missing = (int) $db->query('SELECT MAX(user_id)+1 FROM phpbb_users')->fetch_row()[0];
@@ -26,4 +35,9 @@ function check_imported_logins($db, $member)
 	$owner = $db->query("SELECT plus_login_warn,plus_login_previous,plus_login_current FROM p3_users WHERE user_id=$member")->fetch_row();
 	check_fixture((int) $owner[0] === 1 && $owner[1] === '2001:db8:22::3' && $owner[2] === '2001:db8:33::4', 'Lost the account network preference or IP pair');
 	check_fixture((int) $db->query('SELECT plus_login_warn FROM p3_users WHERE user_id=2')->fetch_row()[0] === 0, 'The other member should not see network notices');
+	$dates = $db->query("SELECT user_passchg,plus_pw_native_origin,plus_pw_notice_change FROM p3_users WHERE user_id=$member")->fetch_row();
+	check_fixture((int) $dates[0] === (int) $dates[1] && (int) $dates[0] - (int) $dates[2] === 100 * 86400,
+		'The independent native renewal and tracker reminder dates changed during conversion');
+	check_fixture((int) $db->query('SELECT user_passchg FROM p3_users WHERE user_id=59')->fetch_row()[0] === 0,
+		'The negative source sentinel became a native password change date');
 }

@@ -25,7 +25,8 @@ elseif ($argv[2] === 'upgraded')
 {
 	if (!$phpbb_container->get('dbal.tools')->sql_table_exists($table) || !$config->offsetExists('plus_login_history') ||
 		!$config->offsetExists('plus_login_network_check') || (int) $config['plus_login_history'] !== 0 ||
-		(int) $config['plus_login_network_check'] !== 0 || (int) $config['plus_login_limit'] !== 10 || $count('1=1') !== 0)
+		(int) $config['plus_login_network_check'] !== 0 || (int) $config['plus_login_limit'] !== 10 || $count('1=1') !== 0 ||
+		!$config->offsetExists('plus_pw_reminder') || (int) $config['plus_pw_reminder'] !== 0 || (int) $config['plus_pw_reminder_days'] !== 30)
 	{
 		throw new RuntimeException('An earlier conversion started collecting login data without its original board policy');
 	}

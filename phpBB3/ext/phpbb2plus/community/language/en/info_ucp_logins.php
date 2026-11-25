@@ -17,4 +17,10 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_LOGIN_LIMIT_EXPLAIN' => 'Between 1 and 60 entries. The next login for each member removes older entries above this limit.',
 	'PLUS_LOGIN_NETWORK' => 'Allow network change notices',
 	'PLUS_LOGIN_NETWORK_EXPLAIN' => 'Compare the IP networks of the two most recent logins. Members can turn notices on or off in their User Control Panel.',
+	'PLUS_PW_REMINDER' => 'Password reminder',
+	'PLUS_PW_REMINDER_ENABLE' => 'Remind members to change their password',
+	'PLUS_PW_REMINDER_EXPLAIN' => 'Show a notice when the last known password change is older than the interval. Members can continue using the board.',
+	'PLUS_PW_REMINDER_DAYS' => 'Remind after',
+	'PLUS_PW_REMINDER_NOTICE' => 'You have used your board password for more than %d days.',
+	'PLUS_PW_REMINDER_CHANGE' => 'Change password',
 ));

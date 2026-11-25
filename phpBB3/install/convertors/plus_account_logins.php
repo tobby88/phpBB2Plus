@@ -12,11 +12,19 @@ function plus_login_address($value)
 	return filter_var($ip, FILTER_VALIDATE_IP) !== false ? $ip : '';
 }
 
+function plus_password_change_time($value)
+{
+	// The old enforced-renewal field also used a negative sentinel.
+	return max(0, (int) $value);
+}
+
 function plus_login_settings()
 {
 	global $config, $convert, $src_db;
 	$table = $convert->src_table_prefix . 'ctracker_config';
-	$settings = array('login_history' => '0', 'login_history_count' => '10', 'login_ip_check' => '0');
+	$keys = array('login_history' => 'plus_login_history', 'login_history_count' => 'plus_login_limit',
+		'login_ip_check' => 'plus_login_network_check', 'pw_control' => 'plus_pw_reminder', 'pw_validity' => 'plus_pw_reminder_days');
+	$settings = array('login_history' => '0', 'login_history_count' => '10', 'login_ip_check' => '0', 'pw_control' => '0', 'pw_validity' => '30');
 	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($table))
 	{
 		// The installed tracker supplied defaults for missing or invalid numeric settings.
@@ -27,16 +35,14 @@ function plus_login_settings()
 		{
 			$name = $row['ct_config_name'];
 			$value = (string) $row['ct_config_value'];
-			if ($name === 'login_history_count' ? (preg_match('/^[1-9][0-9]?$/D', $value) && (int) $value <= 60) : in_array($value, array('0','1'), true))
+			if (isset($keys[$name]) && \phpbb2plus\community\service\tracker_settings::accepts($keys[$name], $value))
 			{
 				$settings[$name] = $value;
 			}
 		}
 		$src_db->sql_freeresult($result);
 	}
-	$config->set('plus_login_history', (int) $settings['login_history']);
-	$config->set('plus_login_limit', (int) $settings['login_history_count']);
-	$config->set('plus_login_network_check', (int) $settings['login_ip_check']);
+	foreach ($keys as $source => $target) { $config->set($target, (int) $settings[$source]); }
 }
 
 function plus_import_account_logins($source_user)

@@ -10,15 +10,17 @@ class account_logins implements EventSubscriberInterface
 	private $user;
 	private $language;
 	private $template;
+	private $auth;
 	private $pending_user = 0;
 
-	public function __construct($history, $config, $user, $language, $template)
+	public function __construct($history, $config, $user, $language, $template, $auth)
 	{
 		$this->history = $history;
 		$this->config = $config;
 		$this->user = $user;
 		$this->language = $language;
 		$this->template = $template;
+		$this->auth = $auth;
 	}
 
 	public static function getSubscribedEvents()
@@ -50,7 +52,24 @@ class account_logins implements EventSubscriberInterface
 	public function notice($event)
 	{
 		global $phpbb_root_path, $phpEx;
-		if (empty($this->user->data['is_registered']) || empty($this->config['plus_login_network_check'])) { return; }
+		if (empty($this->user->data['is_registered'])) { return; }
+		if (!empty($this->config['plus_pw_reminder']))
+		{
+			$days = (int) $this->config['plus_pw_reminder_days'];
+			$row = $this->user->data;
+			// The two source clocks can disagree. Only a subsequent native change
+			// supersedes the tracker's own date, including its "unknown" value.
+			$native = (int) $row['user_passchg'];
+			$changed = $native === (int) $row['plus_pw_native_origin'] ? (int) $row['plus_pw_notice_change'] : $native;
+			if ($changed > 0 && $days >= 6 && $days <= 365 && time() > $changed + $days * 86400)
+			{
+				$this->language->add_lang('info_ucp_logins', 'phpbb2plus/community');
+				$this->template->assign_vars(array('PLUS_PW_REMINDER' => $this->language->lang('PLUS_PW_REMINDER_NOTICE', $days),
+					'U_PLUS_CHANGE_PASSWORD' => $this->auth->acl_get('u_chgpasswd')
+						? append_sid($phpbb_root_path . 'ucp.' . $phpEx, 'i=ucp_profile&amp;mode=reg_details') : ''));
+			}
+		}
+		if (empty($this->config['plus_login_network_check'])) { return; }
 		$notice = $this->history->notice($this->user->data);
 		if (!$notice) { return; }
 		$this->language->add_lang('info_ucp_logins', 'phpbb2plus/community');
