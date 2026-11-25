@@ -54,10 +54,31 @@ from shoutbox import exercise as exercise_shoutbox
 
 
 def php(*args, cwd=None, capture=False):
-    result = subprocess.run([os.environ.get("PLUS_TEST_PHP", "php"), "-d", "disable_functions=mail",
-                             *map(str, args)], cwd=cwd, text=True, encoding="utf-8",
-                            errors="replace", stdout=subprocess.PIPE if capture else None,
-                            stderr=subprocess.STDOUT if capture else None, check=True)
+    script = Path(args[0])
+    fixture_dir = ROOT / "tests/phpbb3"
+    fixture = script.parent == fixture_dir
+    command = [os.environ.get("PLUS_TEST_PHP", "php"), "-d", "disable_functions=mail"]
+    if fixture:
+        # phpBB can render a fatal error page and exit with status zero. PHP only
+        # runs auto_append_file when the fixture reaches a normal end or return.
+        marker_file = (fixture_dir / "fixture_completed.php").as_posix().replace('"', '\\"')
+        command.extend(["-d", f'auto_append_file="{marker_file}"'])
+    result = subprocess.run([*command, *map(str, args)], cwd=cwd, text=True, encoding="utf-8",
+                            errors="replace", stdout=subprocess.PIPE if fixture or capture else None,
+                            stderr=subprocess.PIPE if fixture else subprocess.STDOUT if capture else None)
+    if fixture:
+        marker = "phpBB Plus fixture completed"
+        lines = result.stderr.splitlines()
+        for line in lines:
+            if line != marker:
+                print(line, file=sys.stderr)
+        result.check_returncode()
+        if marker not in lines:
+            raise RuntimeError(f"{script.name} stopped before completing its checks")
+        if not capture and result.stdout:
+            print(result.stdout, end="", flush=True)
+    else:
+        result.check_returncode()
     return result.stdout if capture else None
 
 
