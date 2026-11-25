@@ -27,6 +27,17 @@ def link(base, path, expected_path, query, fragment="", method="GET"):
 def browse(base, owner, historic_id):
     cases = (
         ("hacks_list.php", "app.php/credits", {}, ""),
+        ("staff.php", "memberlist.php", {"mode": "team"}, ""),
+        ("profile_options.php", "ucp.php", {"i": "ucp_prefs", "mode": "personal"}, ""),
+        ("privmsg.php?mode=newpm", "ucp.php", {"i": "pm", "mode": "view", "folder": "inbox"}, ""),
+        ("privmsg.php?folder=sentbox&start=10", "ucp.php", {"i": "pm", "mode": "view", "folder": "sentbox", "start": 10}, ""),
+        ("privmsg.php?mode=post", "ucp.php", {"i": "pm", "mode": "compose"}, ""),
+        ("privmsg.php?mode=post&u=1", "app.php/legacy/pm/post/1", {}, ""),
+        ("privmsg.php?folder=savebox&start=10", "app.php/legacy/pm/savebox/10", {}, ""),
+        ("privmsg.php?folder=savebox&mode=read&p=113", "app.php/legacy/pm/read/113", {}, ""),
+        ("privmsg.php?mode=reply&p=110", "app.php/legacy/pm/reply/110", {}, ""),
+        ("privmsg.php?mode=quote&p=110", "app.php/legacy/pm/quote/110", {}, ""),
+        ("privmsg.php?mode=edit&p=110", "app.php/legacy/pm/edit/110", {}, ""),
         ("kb.php?mode=stats&stats=toprated&start=12", "app.php/knowledge/statistics/toprated", {"start": 12}, ""),
         ("album.php?user_id=0", "app.php/album", {}, ""),
         ("album.php?user_id=-1", "app.php/album/legacy/member/0", {}, ""),

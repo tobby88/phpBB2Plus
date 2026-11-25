@@ -92,4 +92,44 @@ class legacy
 		if (!$id) { throw new NotFoundHttpException(); }
 		return $this->destination('memberlist', array('mode'=>$mode, 'u'=>$id));
 	}
+
+	private function mail_login($query)
+	{
+		return $this->destination('ucp', array('mode' => 'login', 'redirect' => 'privmsg.' . $this->ext . '?' . $query));
+	}
+
+	public function message($mode, $source)
+	{
+		$source = (int) $source;
+		if (empty($this->user->data['is_registered'])) { return $this->mail_login('mode=' . $mode . ($mode === 'post' ? '&u=' : '&p=') . $source); }
+		if ($mode === 'post')
+		{
+			if (!$this->auth->acl_get('u_sendpm')) { throw new AccessDeniedHttpException(); }
+			$member = $this->member_id($source);
+			if (!$member) { throw new NotFoundHttpException(); }
+			return $this->destination('ucp', array('i' => 'pm', 'mode' => 'compose', 'u' => $member));
+		}
+		$result = $this->db->sql_query('SELECT p.msg_id FROM ' . PRIVMSGS_TABLE . ' p JOIN ' . PRIVMSGS_TO_TABLE . " t ON t.msg_id=p.msg_id
+			WHERE p.msg_id=$source AND p.plus_legacy_pm=1 AND t.pm_deleted=0 AND t.user_id=" . (int) $this->user->data['user_id']);
+		$found = $this->db->sql_fetchfield('msg_id');
+		$this->db->sql_freeresult($result);
+		if (!$found) { throw new NotFoundHttpException(); }
+		$params = $mode === 'read' ? array('i' => 'pm', 'mode' => 'view') : array('i' => 'pm', 'mode' => 'compose', 'action' => $mode);
+		$params['p'] = $source;
+		return $this->destination('ucp', $params);
+	}
+
+	public function savebox($start)
+	{
+		$start = (int) $start;
+		if (empty($this->user->data['is_registered'])) { return $this->mail_login('folder=savebox&start=' . $start); }
+		$result = $this->db->sql_query('SELECT folder_id FROM ' . PRIVMSGS_FOLDER_TABLE . ' WHERE plus_legacy_savebox=1 AND user_id=' .
+			(int) $this->user->data['user_id']);
+		$folder = (int) $this->db->sql_fetchfield('folder_id');
+		$this->db->sql_freeresult($result);
+		// The member may have deleted their converted folder and created new ones.
+		$params = array('i' => 'pm', 'mode' => 'view');
+		if ($folder) { $params['folder'] = $folder; if ($start) { $params['start'] = $start; } }
+		return $this->destination('ucp', $params);
+	}
 }

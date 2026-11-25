@@ -68,6 +68,31 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 		case 'news_cats': $path = 'news/categories'; break;
 		case 'hacks_list': $path = 'credits'; break;
+		case 'staff': $base = './'; $path = 'memberlist.php'; $extra = array('mode' => 'team'); break;
+		case 'profile_options': $base = './'; $path = 'ucp.php'; $extra = array('i' => 'ucp_prefs', 'mode' => 'personal'); break;
+		case 'privmsg':
+			$mode = $query['mode'] ?? '';
+			$folder = $query['folder'] ?? 'inbox';
+			if ($mode === '' || $mode === 'newpm')
+			{
+				if ($mode === 'newpm') { $folder = 'inbox'; }
+				if ($folder === 'savebox') { $path = 'legacy/pm/savebox/' . $positive('start'); }
+				elseif (in_array($folder, array('inbox', 'outbox', 'sentbox'), true))
+				{
+					$base = './'; $path = 'ucp.php'; $extra = array('i' => 'pm', 'mode' => 'view', 'folder' => $folder);
+					if ($start = $positive('start')) { $extra['start'] = $start; }
+				}
+			}
+			elseif ($mode === 'post')
+			{
+				if (!isset($query['u'])) { $base = './'; $path = 'ucp.php'; $extra = array('i' => 'pm', 'mode' => 'compose'); }
+				elseif ($id = $positive('u')) { $path = 'legacy/pm/post/' . $id; }
+			}
+			elseif (in_array($mode, array('read', 'reply', 'quote', 'edit'), true) && ($id = $positive('p')))
+			{
+				$path = 'legacy/pm/' . $mode . '/' . $id;
+			}
+			break;
 		case 'news_rss':
 			$path = 'news/feed';
 			if ($cat = $positive('cat_id')) { $extra['category'] = $cat; }
@@ -188,7 +213,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 	}
 	if ($path === '') { http_response_code(404); return; }
-	if (!in_array($entry, array('calendar','profile'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	header('Location: ' . $base . $path . $search . $anchor, true, 302);
 }

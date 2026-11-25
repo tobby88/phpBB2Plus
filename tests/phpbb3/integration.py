@@ -31,6 +31,7 @@ import post_icons
 import removed_posts
 import announcement_duration
 import legacy_links
+import mail_links
 import downloads
 import download_categories
 import download_permissions
@@ -270,6 +271,7 @@ def main():
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
                 native_content(base, member, ordinary)
+                mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 attachment_quotas.messages(member, ordinary, media["member"])
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
                 attachment_quotas.administration(member, lambda phase: php(ROOT / "tests/phpbb3/attachment_quotas.php", target, phase, cwd=web))

@@ -216,6 +216,13 @@ elseif ($argv[1] === 'banner-clicks')
 	check_fixture($row['views'] === '18446744073709551615.00' && (int) $db->query('SELECT views FROM p3_plus_banners WHERE banner_id=21')->fetch_row()[0] === 0,
 		'Banner views overflowed the original counter or counted a placement outside its schedule');
 }
+elseif (in_array($argv[1], array('mail-bookmarks-off','mail-bookmarks-on'), true))
+{
+	$state = (int) ($argv[1] === 'mail-bookmarks-on');
+	$db->query("UPDATE p3_privmsgs SET plus_legacy_pm=$state WHERE msg_id=113 AND message_subject='Postfachprobe 113'");
+	$db->query("UPDATE p3_privmsgs_folder f JOIN p3_privmsgs_to r ON r.user_id=f.user_id AND r.folder_id=f.folder_id
+		SET f.plus_legacy_savebox=$state WHERE r.msg_id=113");
+}
 elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), true))
 {
 	$users = $db->query("SELECT user_id,username,user_password,user_lang FROM p3_users

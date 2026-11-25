@@ -121,9 +121,12 @@ function verify_native_content($db, $recipient)
 		'Sent or outbox PM lost');
 	foreach (array($recipient => 113, 2 => 114) as $owner => $id)
 	{
-		$folder = $db->query("SELECT folder_id,pm_count FROM p3_privmsgs_folder WHERE user_id=$owner")->fetch_assoc();
-		check_fixture((int) $folder['folder_id'] === $boxes[$owner][$id]['folder_id'] && (int) $folder['pm_count'] === 1, 'Saved folder ownership or count');
+		$folder = $db->query("SELECT folder_id,pm_count,plus_legacy_savebox FROM p3_privmsgs_folder WHERE user_id=$owner")->fetch_assoc();
+		check_fixture((int) $folder['folder_id'] === $boxes[$owner][$id]['folder_id'] && (int) $folder['pm_count'] === 1 &&
+			(int) $folder['plus_legacy_savebox'] === 1, 'Saved folder ownership, converted identity or count');
 	}
+	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_privmsgs WHERE msg_id BETWEEN 110 AND 115 AND plus_legacy_pm=1')->fetch_row()[0] === 6,
+		'The six converted messages lost their original bookmark identities');
 	$counts = $db->query("SELECT user_new_privmsg,user_unread_privmsg FROM p3_users WHERE user_id=$recipient")->fetch_row();
 	check_fixture((int) $counts[0] === 1 && (int) $counts[1] === 2, 'Incoming PM counts stale');
 	$body = $db->query("SELECT message_text,to_address FROM p3_privmsgs WHERE msg_id=111")->fetch_assoc();

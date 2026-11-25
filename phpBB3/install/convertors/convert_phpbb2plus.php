@@ -214,6 +214,8 @@ if (!$get_info)
 				$section[] = array('plus_cal_' . $name, 'users.user_calendar_' . $name, 'intval');
 			}
 		}
+		if ($section['target'] === PRIVMSGS_TABLE) { $section[] = array('plus_legacy_pm', 1, ''); }
+		if ($section['target'] === PRIVMSGS_FOLDER_TABLE) { $section[] = array('plus_legacy_savebox', 1, ''); }
 		if ($section['target'] === GROUPS_TABLE)
 		{
 			$section[] = array('plus_colour_id','groups.group_color_group','intval');
