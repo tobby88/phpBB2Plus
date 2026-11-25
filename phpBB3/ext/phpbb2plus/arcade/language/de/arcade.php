@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ARC_FAVOURITES'=>'Meine Lieblingsspiele',
+	'PLUS_ARC_FAV_ADD'=>'Zu den Favoriten hinzufügen','PLUS_ARC_FAV_REMOVE'=>'Aus den Favoriten entfernen',
+	'PLUS_ARC_RATING'=>'Spielbewertung','PLUS_ARC_RATE'=>'Spiel bewerten','PLUS_ARC_RATING_EMPTY'=>'Noch keine Bewertungen.',
+	'PLUS_ARC_RATING_RESULT'=>array(1=>'%2$s von %3$d (%1$d Stimme)',2=>'%2$s von %3$d (%1$d Stimmen)'),
+	'PLUS_ARC_RATING_CHOOSE'=>'Punkte von 1 bis %d','PLUS_ARC_RATING_INVALID'=>'Bitte einen Wert innerhalb der Bewertungsskala wählen.',
 	'PLUS_ARC' => 'Spielhalle',
 	'PLUS_ARC_INVALID_SCORE' => 'Dieses Ergebnis konnte nicht gewertet werden.',
 	'PLUS_ARC_FINISHED' => 'Für diesen Spielstart wurde bereits ein Ergebnis gewertet.',

@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ARC_FAVOURITES'=>'My favourite games',
+	'PLUS_ARC_FAV_ADD'=>'Add to favourites','PLUS_ARC_FAV_REMOVE'=>'Remove from favourites',
+	'PLUS_ARC_RATING'=>'Game rating','PLUS_ARC_RATE'=>'Rate game','PLUS_ARC_RATING_EMPTY'=>'No ratings yet.',
+	'PLUS_ARC_RATING_RESULT'=>array(1=>'%2$s out of %3$d (%1$d vote)',2=>'%2$s out of %3$d (%1$d votes)'),
+	'PLUS_ARC_RATING_CHOOSE'=>'Points from 1 to %d','PLUS_ARC_RATING_INVALID'=>'Choose a value within the rating scale.',
 	'PLUS_ARC' => 'Arcade',
 	'PLUS_ARC_INVALID_SCORE' => 'This score could not be recorded.',
 	'PLUS_ARC_FINISHED' => 'A score has already been recorded for this play.',

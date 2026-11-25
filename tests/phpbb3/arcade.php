@@ -26,7 +26,9 @@ function seed_arcade($db)
 	$db->query("UPDATE phpbb_ina_at_scores SET score=9999999999.9999 WHERE game_name='puzzle' AND player_id=2");
 	$db->query("INSERT INTO phpbb_ina_highscore (highscore_id,highscore_year,highscore_mon,highscore_game,highscore_user_id,highscore_player,highscore_score,highscore_date)
 		VALUES (7,2008,5,'puzzle',1,'AlterSpielname',96.0004,11006)");
-	$db->query("INSERT INTO phpbb_ina_fav (user_id,fav_game_id,fav_game_name) VALUES (1,60,'puzzle')");
+	$db->query("INSERT INTO phpbb_ina_fav (user_id,fav_game_id,fav_game_name)
+		VALUES (1,NULL,'puzzle'),(1,61,'puzzle'),(1,60,'withdrawn'),(87,62,'private')");
+	$db->query("UPDATE phpbb_ina_data SET config_value='10' WHERE config_name='games_default_rate'");
 	$db->query("INSERT INTO phpbb_ina_game_saves (user_id,game_id,game_data,saved_at) VALUES (1,60,'Spielstand ü=7 🎮',11007)");
 	$db->query("INSERT INTO phpbb_ina_comment (comment_id,comment_game_name,comment_user_id,comment_username,comment_time,comment_text,comment_edit_user_id)
 		VALUES (71,'puzzle',1,'AlterSpielname',11008,'Schöne Farben',2)");
@@ -47,7 +49,7 @@ function verify_arcade($db, $member)
 	$currencies = $db->query("SELECT currency_field,balance_text FROM {$p}wallets WHERE owner_id=$member ORDER BY currency_field")->fetch_all(MYSQLI_ASSOC);
 	check_fixture(count($currencies) === 2 && $currencies[0]['balance_text'] === '18446744073709551615' &&
 		$currencies[1]['balance_text'] === '9007199254740993.12345678', 'Balances lost precision during conversion');
-	foreach (array('categories'=>4,'games'=>5,'scores'=>5,'all_scores'=>5,'monthly'=>1,'comments'=>1,'ratings'=>1,'favorites'=>1,'saves'=>1,
+	foreach (array('categories'=>4,'games'=>5,'scores'=>5,'all_scores'=>5,'monthly'=>1,'comments'=>1,'ratings'=>1,'favorites'=>4,'saves'=>1,
 		'tours'=>1,'tour_games'=>2,'invites'=>1,'tour_plays'=>1,'players'=>1,'log'=>1,'bans'=>1,'grants'=>2) as $table => $count)
 	{
 		$actual = $db->query("SELECT COUNT(*) FROM $p$table")->fetch_row()[0];

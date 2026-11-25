@@ -7,6 +7,41 @@ from urllib.parse import parse_qs, urljoin, urlsplit
 from http_board import Browser, Page
 
 
+def community(base, founder, member, pending):
+    guest = Browser(base)
+    listing = "app.php/arcade/favourites"
+    game = "app.php/arcade/game/60"
+    title = "Öffentliches Denkspiel"
+    guest.fetch(listing, expected_status=404)
+    if ("My favourite games" not in member.fetch("app.php/arcade") or "Vertrauliche Spielprobe" in pending.fetch(listing)
+            or member.fetch(listing).count(">" + title + "</a>") != 1 or title in founder.fetch(listing)):
+        raise RuntimeError("Private favourites, name-only imports or duplicate rows changed the list")
+    page = member.fetch(game)
+    if 'id="arcade-rate"' in page or "7.0 out of 10 (1 vote)" not in page or 'id="arcade-favourite"' in guest.fetch(game):
+        raise RuntimeError("The original vote receipt, rating precision or guest controls were lost")
+
+    def send(actor, form, values, html=None, status=200):
+        action, data = Page(html if html is not None else actor.fetch(game)).forms[form]
+        data.update(values)
+        time.sleep(max(0, int(data["creation_time"]) + 1.05 - time.time()))
+        return actor.fetch(urljoin(urljoin(base,game),action),data,expected_status=status)
+
+    send(member, "arcade-favourite", {}, page)
+    if title in member.fetch(listing):
+        raise RuntimeError("Removing a favourite left a duplicate or an unrelated historical name")
+    add = member.fetch(game)
+    send(member, "arcade-favourite", {}, add)
+    send(member, "arcade-favourite", {}, add)
+    if member.fetch(listing).count(">" + title + "</a>") != 1:
+        raise RuntimeError("A repeated favourite form changed the final selection")
+    vote = founder.fetch(game)
+    send(founder, "arcade-rate", {"value": "11"}, vote, 422)
+    send(founder, "arcade-rate", {"value": "9"}, vote)
+    send(founder, "arcade-rate", {"value": "2"}, vote)
+    if "8,0 von 10 (2 Stimmen)" not in founder.fetch(game) or 'id="arcade-rate"' in founder.fetch(game):
+        raise RuntimeError("A repeated vote changed the average or left the voting form active")
+
+
 def movie():
     # A single Flash frame with a coloured background. No ActionScript or third-party content.
     rect = "01100" + "".join(f"{coordinate:012b}" for coordinate in (0, 1600, 0, 900))

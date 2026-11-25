@@ -4,6 +4,20 @@
 {% if U_ARC_START %}<form id="arcade-play" method="post" action="{U_ARC_START}">{S_FORM_TOKEN}<input type="hidden" name="play_nonce" value="{ARC_NONCE}"><input class="button1" type="submit" value="{L_PLUS_ARC_PLAY}"></form>
 {% elseif ARC_NO_FILE %}<p>{L_PLUS_ARC_NO_FILE}</p>{% endif %}
 {% if ARC_INSTRUCTIONS %}<div class="panel"><div class="inner"><p>{{ ARC_INSTRUCTIONS|e|nl2br }}</p></div></div>{% endif %}
+{% if U_ARC_FAVOURITE %}
+<form id="arcade-favourite" action="{{ U_ARC_FAVOURITE }}" method="post" class="action-bar">
+<input type="hidden" name="value" value="{% if ARC_FAVOURITE %}0{% else %}1{% endif %}">
+<button class="button2" type="submit">{% if ARC_FAVOURITE %}{L_PLUS_ARC_FAV_REMOVE}{% else %}{L_PLUS_ARC_FAV_ADD}{% endif %}</button>
+<a href="{{ U_ARC_FAVOURITES }}">{L_PLUS_ARC_FAVOURITES}</a>{{ ARC_ACTIVITY_TOKEN }}</form>
+{% endif %}
+{% if ARC_RATINGS %}<div class="panel"><div class="inner">
+<h3>{L_PLUS_ARC_RATING}</h3>
+{% if ARC_VOTES %}<p>{{ lang('PLUS_ARC_RATING_RESULT', ARC_VOTES, ARC_MEAN, ARC_RATING_SCALE) }}</p>{% else %}<p>{L_PLUS_ARC_RATING_EMPTY}</p>{% endif %}
+{% if U_ARC_RATE %}<form id="arcade-rate" action="{{ U_ARC_RATE }}" method="post">
+<label for="arcade-points">{{ lang('PLUS_ARC_RATING_CHOOSE', ARC_RATING_SCALE) }}</label>
+<input id="arcade-points" type="number" name="value" min="1" max="{{ ARC_RATING_SCALE }}" required>
+<button type="submit" class="button2">{L_PLUS_ARC_RATE}</button>{{ ARC_ACTIVITY_TOKEN }}</form>{% endif %}
+</div></div>{% endif %}
 <div class="action-bar">{% for board in loops.arc_boards %}<a class="button2" href="{{ board.URL }}">{{ board.LABEL }}</a> {% endfor %}</div>
 {% if ARC_BOARD %}<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{L_PLUS_ARC_PLACE}</th><th>{L_USERNAME}</th><th>{L_PLUS_ARC_POINTS}</th><th>{L_DATE}</th></tr></thead>
 <tbody>{% for row in loops.arc_scores %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td>{{ row.POSITION }}</td><td>{{ row.PLAYER }}</td><td>{{ row.POINTS }}</td><td>{% if ARC_MONTH %}{{ row.MONTH }}{% else %}{{ row.TIME }}{% endif %}</td></tr>

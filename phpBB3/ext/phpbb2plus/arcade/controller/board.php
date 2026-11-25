@@ -3,6 +3,8 @@ namespace phpbb2plus\arcade\controller;
 
 use phpbb2plus\arcade\service\catalog;
 use phpbb2plus\arcade\service\score;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class board
@@ -18,8 +20,9 @@ class board
 	private $prefix;
 	private $names;
 	private $wallet;
+	private $activity;
 
-	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $names = null)
+	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $names = null)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -32,6 +35,7 @@ class board
 		$this->prefix = $prefix;
 		$this->names = $names;
 		$this->wallet = $wallet;
+		$this->activity = $activity;
 	}
 
 	private function header()
@@ -48,18 +52,19 @@ class board
 		return $offset;
 	}
 
-	public function index($category = 0)
+	public function index($category = 0, $favourites = false)
 	{
 		$this->header();
 		$reason = $this->catalog->board_access();
 		if ($reason === 'LOGIN') { login_box($this->helper->route('phpbb2plus_arcade_index', array(), false)); }
 		if ($reason !== '') { return $this->helper->message($reason, array(), 'INFORMATION', $reason === 'PLUS_ARC_CLOSED' ? 200 : 403); }
+		if ($favourites && !$this->activity->favourites_enabled()) { throw new NotFoundHttpException(); }
 		$id = (int) $category;
 		$cats = $this->catalog->categories();
 		if ($id && !isset($cats[$id])) { throw new NotFoundHttpException(); }
 		foreach ($cats as $key => $cat)
 		{
-			if ((int) $cat['cat_parent'] !== $id) { continue; }
+			if ($favourites || (int) $cat['cat_parent'] !== $id) { continue; }
 			$link = $cat['cat_type'] === 'l';
 			$url = $link ? catalog::plain($cat['cat_desc']) : $this->helper->route('phpbb2plus_arcade_category', array('category' => $key));
 			if ($link && (!filter_var($url, FILTER_VALIDATE_URL) || !in_array(strtolower(parse_url($url, PHP_URL_SCHEME)), array('http','https'), true))) { continue; }
@@ -69,7 +74,17 @@ class board
 		$where = $this->catalog->game_filter($id);
 		$title = $id ? catalog::plain($cats[$id]['cat_name']) : $this->language->lang('PLUS_ARC');
 		$pagelink = $id ? $this->helper->route('phpbb2plus_arcade_category', array('category' => $id)) : $this->helper->route('phpbb2plus_arcade_index');
-		if ($id || (int) $this->catalog->setting('games_show_all', 1))
+		if ($favourites)
+		{
+			$where .= ' AND ' . $this->activity->favourites_filter();
+			$title = $this->language->lang('PLUS_ARC_FAVOURITES');
+			$pagelink = $this->helper->route('phpbb2plus_arcade_favourites');
+		}
+		elseif ($this->activity->favourites_enabled())
+		{
+			$this->template->assign_var('U_ARC_FAVOURITES',$this->helper->route('phpbb2plus_arcade_favourites'));
+		}
+		if ($favourites || $id || (int) $this->catalog->setting('games_show_all', 1))
 		{
 			$limit = max(1, min(100, (int) $this->catalog->setting('games_per_page', 25) ?: 25));
 			$from = ' FROM ' . $this->prefix . 'games g WHERE ' . $where;
@@ -97,10 +112,50 @@ class board
 		return $s['display_name'] !== null && $s['display_name'] !== '' ? utf8_htmlspecialchars(catalog::plain($s['display_name'])) : $this->language->lang('GUEST');
 	}
 
+	public function feedback($game,$operation)
+	{
+		$this->header();
+		$id = (int) $game;
+		if (!check_form_key('plus_arc_activity_' . $id)) { throw new AccessDeniedHttpException(); }
+		$value = $this->request->variable('value',-1,false,\phpbb\request\request_interface::POST);
+		try { $this->activity->write($id,$operation,$value); }
+		catch (\DomainException $e) { return $this->helper->message($e->getMessage(),array(),'INFORMATION',422); }
+		return new RedirectResponse($this->helper->route('phpbb2plus_arcade_game',array('game'=>$id),false),303);
+	}
+
+	private function activity_forms($game)
+	{
+		$id = (int) $game['game_id'];
+		$params = array('game'=>$id);
+		if ($this->activity->favourites_enabled())
+		{
+			$this->template->assign_vars(array('U_ARC_FAVOURITES'=>$this->helper->route('phpbb2plus_arcade_favourites'),
+				'U_ARC_FAVOURITE'=>$this->helper->route('phpbb2plus_arcade_feedback',$params + array('operation'=>'favourite')),
+				'ARC_FAVOURITE'=>$this->activity->favourite($id)));
+		}
+		$scale = $this->activity->rating_scale();
+		if ($scale)
+		{
+			$votes = $this->activity->votes($id);
+			$this->template->assign_vars(array('ARC_RATINGS'=>true,'ARC_VOTES'=>(int) $votes['total'],'ARC_RATING_SCALE'=>$scale,
+				'ARC_MEAN'=>number_format((float) $votes['mean'],1,$this->language->lang('PLUS_ARC_DECIMAL'),'')));
+			if (!$votes['voted'] && $this->activity->may_vote($game))
+			{
+				$this->template->assign_var('U_ARC_RATE',$this->helper->route('phpbb2plus_arcade_feedback',$params + array('operation'=>'rate')));
+			}
+		}
+		if (!empty($this->user->data['is_registered']))
+		{
+			add_form_key('plus_arc_activity_' . $id);
+			$this->template->assign_var('ARC_ACTIVITY_TOKEN',$this->template->retrieve_var('S_FORM_TOKEN'));
+		}
+	}
+
 	public function game($game, $board = '')
 	{
 		$this->header();
 		$g = $this->catalog->game($game);
+		$this->activity_forms($g);
 		$account = $this->wallet->account((int) $this->user->data['user_id']);
 		if ($account && $account['balance_text'] !== '')
 		{
