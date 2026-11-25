@@ -309,7 +309,8 @@ def player(base, guest, member, root):
         raise RuntimeError("Relative game assets are unavailable")
     member.fetch(urljoin(asset, "club/private.swf"), expected_status=404)
     guest.fetch(asset, expected_status=404)
-    if "arcade-play" in Page(guest.fetch(root + "/game/61")).forms:
+    missing = member.fetch(root + "/game/64")
+    if "arcade-play" in Page(missing).forms or "/game/64/scores/current" not in missing:
         raise RuntimeError("Missing SWFs should keep their rankings without offering a broken launch")
     return urlsplit(asset).path
 
