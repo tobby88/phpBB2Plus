@@ -39,70 +39,108 @@ class quotas
 	public function allowance($id, $pm)
 	{
 		$id = (int) $id;
-		$kind = $pm ? 2 : 1;
-		if (!$this->enabled()) { return '0'; }
-		$type = $this->scalar('SELECT user_type FROM ' . USERS_TABLE . ' WHERE user_id=' . $id,'user_type');
-		if ($type !== false && (int) $type === USER_FOUNDER) { return '0'; }
-		$membership = ' FROM ' . USER_GROUP_TABLE . ' ug JOIN ' . GROUPS_TABLE . " g ON g.group_id=ug.group_id WHERE ug.user_id=$id AND ug.user_pending=0";
-		if ($this->scalar('SELECT g.group_id' . $membership . " AND g.group_type=" . GROUP_SPECIAL . " AND g.group_name='ADMINISTRATORS'",'group_id') !== false) { return '0'; }
-
-		$limits = $this->prefix . 'limits';
-		$sql = 'SELECT l.bytes FROM ' . $this->prefix . "quotas q JOIN $limits l ON l.limit_id=q.limit_id";
-		$value = $this->scalar($sql . " WHERE q.user_id=$id AND q.user_id<>0 AND q.kind=$kind ORDER BY q.assignment_id",'bytes');
-		if ($value === false)
-		{
-			$value = $this->scalar($sql . ' JOIN ' . USER_GROUP_TABLE . " ug ON ug.group_id=q.group_id WHERE q.group_id<>0 AND ug.user_id=$id
-				AND ug.user_pending=0 AND q.kind=$kind ORDER BY l.bytes DESC,q.assignment_id",'bytes');
-		}
-		$global = self::integer($this->config[$pm ? 'max_filesize_pm' : 'attachment_quota']);
-		if ($value === false)
-		{
-			$default = (int) $this->config[$pm ? 'plus_attach_default_pm' : 'plus_attach_default_post'];
-			$value = $default ? $this->scalar("SELECT bytes FROM $limits WHERE limit_id=$default",'bytes') : false;
-		}
-		$limit = $value === false ? $global : self::integer($value);
-		// The board-wide disk limit remains independently enforced by the native uploader.
-		if (!$pm && $global !== '0' && $limit !== '0' && self::larger($limit,$global)) { return $global; }
-		return $limit;
+		return $this->allowances(array($id),$pm)[$id];
 	}
 
-	private function usage_sql($id, $pm, $incoming)
+	private function allowances($ids, $pm)
 	{
-		$id = (int) $id;
+		$allowed = array_fill_keys($ids,'0');
+		if (!$this->enabled() || !$ids) { return $allowed; }
+		$r = $this->db->sql_query('SELECT u.user_id FROM ' . USERS_TABLE . ' u WHERE ' . $this->db->sql_in_set('u.user_id',$ids) .
+			' AND u.user_type<>' . USER_FOUNDER . ' AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug JOIN ' . GROUPS_TABLE .
+			" g ON g.group_id=ug.group_id WHERE ug.user_id=u.user_id AND ug.user_pending=0 AND g.group_type=" . GROUP_SPECIAL . " AND g.group_name='ADMINISTRATORS')");
+		$members = array_column($this->db->sql_fetchrowset($r),'user_id');
+		$this->db->sql_freeresult($r);
+		if (!$members) { return $allowed; }
+		$kind = $pm ? 2 : 1;
+		$limits = $this->prefix . 'limits';
+		$join = ' FROM ' . $this->prefix . "quotas q JOIN $limits l ON l.limit_id=q.limit_id";
+		$personal = array();
+		$r = $this->db->sql_query('SELECT q.user_id,l.bytes' . $join . " WHERE q.kind=$kind AND " .
+			$this->db->sql_in_set('q.user_id',$members) . ' ORDER BY q.assignment_id');
+		while ($row = $this->db->sql_fetchrow($r))
+		{
+			if (!isset($personal[$row['user_id']])) { $personal[$row['user_id']] = self::integer($row['bytes']); }
+		}
+		$this->db->sql_freeresult($r);
+		$rest = array_diff($members,array_keys($personal));
+		if ($rest)
+		{
+			$r = $this->db->sql_query('SELECT ug.user_id,MAX(l.bytes) AS bytes' . $join . ' JOIN ' . USER_GROUP_TABLE .
+				" ug ON ug.group_id=q.group_id WHERE ug.user_pending=0 AND q.kind=$kind AND " . $this->db->sql_in_set('ug.user_id',$rest) . ' GROUP BY ug.user_id');
+			while ($row = $this->db->sql_fetchrow($r)) { $personal[$row['user_id']] = self::integer($row['bytes']); }
+			$this->db->sql_freeresult($r);
+		}
+		$global = self::integer($this->config[$pm ? 'max_filesize_pm' : 'attachment_quota']);
+		$default = $global;
+		$default_id = (int) $this->config[$pm ? 'plus_attach_default_pm' : 'plus_attach_default_post'];
+		if ($default_id && count($personal) < count($members))
+		{
+			$row = $this->scalar("SELECT bytes FROM $limits WHERE limit_id=$default_id",'bytes');
+			if ($row !== false) { $default = self::integer($row); }
+		}
+		foreach ($members as $id)
+		{
+			$limit = $personal[$id] ?? $default;
+			$allowed[$id] = !$pm && $global !== '0' && self::larger($limit,$global) ? $global : $limit;
+		}
+		return $allowed;
+	}
+
+	private function usage_sql($ids, $pm, $incoming)
+	{
 		$message = (int) $pm;
 		$a = ATTACHMENTS_TABLE;
 		$r = $this->prefix . 'refs';
 		$p = $this->prefix . 'payers';
 		$to = PRIVMSGS_TO_TABLE;
 		$payer = $incoming ? 'recipient' : 'sender';
-		$archived = "SELECT MAX(a.filesize) AS bytes FROM $p h JOIN $r r ON r.attach_id=h.attach_id JOIN $a a ON a.attach_id=r.attach_id
-			WHERE h.$payer=$id AND a.in_message=$message AND a.is_orphan=0";
+		$archived = "SELECT h.$payer AS actor,MAX(a.filesize) AS bytes FROM $p h JOIN $r r ON r.attach_id=h.attach_id JOIN $a a ON a.attach_id=r.attach_id
+			WHERE " . $this->db->sql_in_set('h.' . $payer,$ids) . " AND a.in_message=$message AND a.is_orphan=0";
 		if ($pm)
 		{
 			// The old sent-box copy did not consume either correspondent's allowance.
-			$archived .= ' AND h.pm_state>=0 AND h.pm_state<>2';
+			$box = $incoming ? "d.user_id=h.recipient AND d.folder_id NOT IN (" . PRIVMSGS_SENTBOX . ',' . PRIVMSGS_OUTBOX . ')' : 'd.folder_id<>' . PRIVMSGS_SENTBOX;
+			$archived .= " AND h.pm_state>=0 AND h.pm_state<>2 AND (h.pm_state=4 OR EXISTS (SELECT 1 FROM $to d WHERE d.msg_id=a.post_msg_id AND $box))";
 		}
-		$archived .= ' GROUP BY r.source_id';
+		$archived .= " GROUP BY h.$payer,r.source_id";
 
-		$native = "SELECT MAX(a.filesize) AS bytes FROM $a a";
-		if ($incoming) { $native .= " JOIN $to dest ON dest.msg_id=a.post_msg_id AND dest.user_id=$id AND dest.folder_id NOT IN (" . PRIVMSGS_SENTBOX . ',' . PRIVMSGS_OUTBOX . ')'; }
+		$actor = $incoming ? 'dest.user_id' : 'a.poster_id';
+		$native = "SELECT $actor AS actor,MAX(a.filesize) AS bytes FROM $a a";
+		if ($incoming) { $native .= " JOIN $to dest ON dest.msg_id=a.post_msg_id AND dest.folder_id NOT IN (" . PRIVMSGS_SENTBOX . ',' . PRIVMSGS_OUTBOX . ')'; }
 		$native .= " LEFT JOIN $r r ON r.attach_id=a.attach_id LEFT JOIN $p h ON h.attach_id=a.attach_id
-			WHERE a.in_message=$message AND h.attach_id IS NULL AND (r.attach_id IS NULL OR r.parent_id<>0)";
-		if (!$incoming) { $native .= " AND a.poster_id=$id"; }
+			WHERE a.in_message=$message AND h.attach_id IS NULL AND (r.attach_id IS NULL OR r.parent_id<>0) AND " . $this->db->sql_in_set($actor,$ids);
 		if ($incoming) { $native .= ' AND a.is_orphan=0'; }
 		elseif ($pm)
 		{
 			$native .= " AND (a.is_orphan=1 OR EXISTS (SELECT 1 FROM $to dest WHERE dest.msg_id=a.post_msg_id AND dest.folder_id<>" . PRIVMSGS_SENTBOX . '))';
 		}
 		// Imported shared files and native topic copies are billed once per owner and direction.
-		$native .= " GROUP BY r.source_id,CASE WHEN r.source_id IS NULL THEN a.physical_filename ELSE '' END";
+		$native .= " GROUP BY $actor,r.source_id,CASE WHEN r.source_id IS NULL THEN a.physical_filename ELSE '' END";
 		return $archived . ' UNION ALL ' . $native;
 	}
 
 	public function occupied($user, $pm, $incoming = false)
 	{
 		return self::integer($this->scalar('SELECT COALESCE(SUM(bytes),0) AS used_bytes FROM (' .
-			$this->usage_sql($user,$pm,$incoming) . ') usage_rows','used_bytes'));
+			$this->usage_sql(array((int) $user),$pm,$incoming) . ') usage_rows','used_bytes'));
+	}
+
+	public function pm_fits($members,$incoming,$extra)
+	{
+		$extra = max(0,(int) $extra);
+		foreach (array_chunk(array_unique(array_map('intval',$members)),100) as $ids)
+		{
+			$limits = array_filter($this->allowances($ids,true), static function($limit) { return $limit !== '0'; });
+			if (!$limits) { continue; }
+			$needed = array_fill_keys(array_keys($limits),(string) $extra);
+			$r = $this->db->sql_query("SELECT actor,SUM(bytes)+$extra AS needed FROM (" .
+				$this->usage_sql(array_keys($limits),true,$incoming) . ') usage_rows GROUP BY actor');
+			while ($row = $this->db->sql_fetchrow($r)) { $needed[$row['actor']] = self::integer($row['needed']); }
+			$this->db->sql_freeresult($r);
+			foreach ($limits as $member=>$limit) { if (self::larger($needed[$member],$limit)) { return false; } }
+		}
+		return true;
 	}
 
 	public function reserve($user, $pm, $physical, $amount)
@@ -122,7 +160,7 @@ class quotas
 			$allowed = true;
 			if ($limit !== '0')
 			{
-				$sum = $this->usage_sql($id,$pm,false) . " UNION ALL SELECT p.bytes FROM $table p WHERE p.user_id=$id AND p.in_message=$kind
+				$sum = $this->usage_sql(array($id),$pm,false) . " UNION ALL SELECT p.user_id AS actor,p.bytes FROM $table p WHERE p.user_id=$id AND p.in_message=$kind
 					AND p.expires>$now AND NOT EXISTS (SELECT 1 FROM " . ATTACHMENTS_TABLE . " a WHERE a.poster_id=$id AND a.physical_filename=p.physical)";
 				$needed = $this->scalar('SELECT COALESCE(SUM(bytes),0)+' . (int) $amount . ' AS needed FROM (' . $sum . ') usage_rows','needed');
 				$allowed = !self::larger(self::integer($needed),$limit);

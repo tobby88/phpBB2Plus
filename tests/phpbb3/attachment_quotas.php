@@ -52,6 +52,13 @@ if ($argv[2] === 'before')
 	{
 		throw new RuntimeException('A shared file, old sent box or orphan changed attachment usage');
 	}
+	// Enable actual group delivery for the two synthetic PM recipient groups.
+	require_once './includes/acp/auth.php';
+	$writer = new auth_admin();
+	$writer->acl_set('user',0,2,array('u_masspm'=>ACL_YES,'u_masspm_group'=>ACL_YES));
+	$config->set('allow_mass_pm',1);
+	$db->sql_query('UPDATE ' . GROUPS_TABLE . ' SET group_receive_pm=1 WHERE group_id IN (71,74)');
+	$auth->acl_clear_prefetch();
 }
 elseif ($argv[2] === 'after')
 {
@@ -60,6 +67,22 @@ elseif ($argv[2] === 'after')
 			(int) quota_fixture_scalar("SELECT COUNT(*) AS n FROM " . ATTACHMENTS_TABLE . " WHERE real_filename='Quota-replacement.gif'",'n') !== 1)
 	{
 		throw new RuntimeException('A rejected or removed attachment consumed storage');
+	}
+}
+elseif ($argv[2] === 'messages')
+{
+	$result = $db->sql_query("SELECT msg_id FROM " . PRIVMSGS_TABLE . " WHERE message_subject='Anhang mit Kontingent'");
+	$messages = array_column($db->sql_fetchrowset($result),'msg_id');
+	$db->sql_freeresult($result);
+	if (count($messages) !== 1) { throw new RuntimeException('The recipient quota lost or duplicated a delivery'); }
+	$message = (int) $messages[0];
+	$recipients = quota_fixture_scalar('SELECT COUNT(*) AS n FROM ' . PRIVMSGS_TO_TABLE . " WHERE msg_id=$message AND user_id=87",'n');
+	$valid = quota_fixture_scalar('SELECT COUNT(*) AS n FROM ' . PRIVMSGS_TO_TABLE . " WHERE msg_id=$message AND user_id=$id",'n');
+	$blind = quota_fixture_scalar('SELECT bcc_address FROM ' . PRIVMSGS_TABLE . " WHERE msg_id=$message",'bcc_address');
+	$bytes = (int) quota_fixture_scalar('SELECT filesize FROM ' . ATTACHMENTS_TABLE . " WHERE post_msg_id=$message AND in_message=1 AND is_orphan=0",'filesize');
+	if ($recipients || (int) $valid !== 1 || $blind !== 'g_71' || !$bytes || $policy->occupied($id,true,true) !== (string) ($bytes*2))
+	{
+		throw new RuntimeException('Private attachment usage diverged from the actual delivery');
 	}
 }
 else { exit(2); }

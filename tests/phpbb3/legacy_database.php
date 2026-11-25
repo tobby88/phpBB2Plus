@@ -142,6 +142,8 @@ if ($argv[1] === 'seed')
 	$db->query('UPDATE phpbb_forums SET auth_attachments=2,auth_download=1 WHERE forum_id=14');
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_attachments) VALUES (71,14,1) ON DUPLICATE KEY UPDATE auth_attachments=1');
 	$db->query("UPDATE phpbb_attachments_config SET config_value='9' WHERE config_name='default_pm_quota'");
+	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user) VALUES (74,2,'PM quota circle','',0)");
+	$db->query("INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (74,87,0)");
 }
 elseif ($argv[1] === 'installed-flags')
 {

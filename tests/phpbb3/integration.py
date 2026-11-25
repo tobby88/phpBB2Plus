@@ -196,6 +196,8 @@ def main():
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
                 native_content(base, member, ordinary)
+                attachment_quotas.messages(member, ordinary, media["member"])
+                php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
                 attachments.downloads(ordinary)
                 game_source = arcade.browse(base, member, ordinary, pending)
                 php(fixture, "played", target)
