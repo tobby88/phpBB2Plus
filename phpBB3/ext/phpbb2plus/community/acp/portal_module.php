@@ -8,7 +8,8 @@ class portal_module
 	public $u_action;
 	public $tpl_name;
 	public $page_title;
-	private const LIMITS = array('recent'=>100,'last_seen'=>100,'top_posters'=>100,'shouts'=>2,'stats'=>1);
+	private const LIMITS = array('recent'=>100,'last_seen'=>100,'top_posters'=>100,'shouts'=>2,'stats'=>1,'downloads'=>100,
+		'pictures'=>100,'picture_size'=>1024,'picture_personal'=>1,'picture_random'=>1);
 
 	private function snapshot($db, $text, $lock)
 	{
@@ -18,7 +19,7 @@ class portal_module
 		$values = array();
 		while ($r = $db->sql_fetchrow($result)) { $values[$r['config_name']] = (int) $r['config_value']; }
 		$db->sql_freeresult($result);
-		$values += $text->get_array(array('plus_portal_welcome','plus_portal_exclude','plus_portal_poll_forums'));
+		$values += $text->get_array(array('plus_portal_welcome','plus_portal_exclude','plus_portal_poll_forums','plus_portal_picture_categories'));
 		ksort($values);
 		return $values;
 	}
@@ -47,10 +48,14 @@ class portal_module
 			foreach (self::LIMITS as $name=>$max)
 			{
 				$raw = $request->variable($name,'',false,request_interface::POST);
-				if (!ctype_digit($raw) || (int) $raw > $max) { trigger_error('PLUS_PORTAL_LIMIT',E_USER_WARNING); }
+				if (!ctype_digit($raw) || (int) $raw > $max || ($name === 'picture_size' && (int) $raw < 1)) { trigger_error('PLUS_PORTAL_LIMIT',E_USER_WARNING); }
 				$values['plus_portal_' . $name] = (int) $raw;
 			}
 			$long = array('plus_portal_welcome'=>$welcome);
+			$categories = trim($request->variable('picture_categories','',false,request_interface::POST));
+			if ($categories !== '' && (strlen($categories)>8192 || !preg_match('/^[1-9][0-9]{0,8}(?:\s*,\s*[1-9][0-9]{0,8})*$/D',$categories)))
+			{ trigger_error('PLUS_PORTAL_CATEGORY_IDS',E_USER_WARNING); }
+			$long['plus_portal_picture_categories'] = implode(',',array_unique(array_map('trim',explode(',',$categories))));
 			$selectable = get_forum_list('f_list',true,true);
 			foreach (array('exclude','poll_forums') as $name)
 			{
@@ -82,11 +87,13 @@ class portal_module
 
 		$template->assign_vars(array('U_SAVE'=>$this->u_action,'REVISION'=>hash('sha256',serialize($old)),
 			'WELCOME_TEXT'=>utf8_htmlspecialchars((string) $old['plus_portal_welcome']),
-			'SHOUTS'=>(int) $old['plus_portal_shouts'],'STATS'=>(int) $old['plus_portal_stats']));
-		foreach (array('recent','last_seen','top_posters') as $name)
+			'SHOUTS'=>(int) $old['plus_portal_shouts'],'STATS'=>(int) $old['plus_portal_stats'],
+			'PICTURE_CATEGORIES'=>utf8_htmlspecialchars((string) $old['plus_portal_picture_categories']),
+			'PICTURE_PERSONAL'=>(bool) $old['plus_portal_picture_personal'],'PICTURE_RANDOM'=>(bool) $old['plus_portal_picture_random']));
+		foreach (array('recent','last_seen','top_posters','downloads','pictures','picture_size') as $name)
 		{
 			$template->assign_block_vars('counts',array('NAME'=>$name,'LABEL'=>$language->lang('PLUS_PORTAL_' . strtoupper($name)),
-				'VALUE'=>(int) $old['plus_portal_' . $name]));
+				'VALUE'=>(int) $old['plus_portal_' . $name],'MAX'=>self::LIMITS[$name],'MIN'=>$name === 'picture_size' ? 1 : 0));
 		}
 		$forums = get_forum_list('f_list',false,true);
 		foreach (array('exclude','poll_forums') as $name)

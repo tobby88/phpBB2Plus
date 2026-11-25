@@ -2,6 +2,11 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL' => 'Portal',
+	'PLUS_PORTAL_DOWNLOADS'=>'Anzahl neuer Downloads (0 zum Ausblenden)', 'PLUS_PORTAL_PICTURES'=>'Anzahl der Albumbilder (0 zum Ausblenden)',
+	'PLUS_PORTAL_PICTURE_SIZE'=>'Maximale Vorschaugröße in Pixeln', 'PLUS_PORTAL_PICTURE_PERSONAL'=>'Persönliche Alben einbeziehen',
+	'PLUS_PORTAL_PICTURE_RANDOM'=>'Bilder zufällig auswählen', 'PLUS_PORTAL_PICTURE_CATEGORIES'=>'Bilder aus diesen Alben anzeigen',
+	'PLUS_PORTAL_PICTURE_CATEGORIES_HELP'=>'Album-IDs durch Kommas trennen. Ein leeres Feld berücksichtigt alle zugänglichen Alben.',
+	'PLUS_PORTAL_CATEGORY_IDS'=>'Bitte positive Album-IDs durch Kommas getrennt eingeben.',
 	'FIELD_PLUS_MULTI' => 'Mehrfachauswahl',
 	'PLUS_SHOW_ON_MEMBER_PROFILE' => 'Auf der Profilseite des Mitglieds anzeigen',
 	'PLUS_RECENT_TOPICS' => 'Aktuelle Themen',

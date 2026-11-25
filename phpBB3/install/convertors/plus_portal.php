@@ -36,9 +36,16 @@ function plus_portal_settings()
 			case 'welcome_text': $text->set('plus_portal_welcome',\phpbb2plus\community\service\welcome::migrate_images($value,'plus_portal_image')); break;
 			case 'exceptional_forums':
 			case 'poll_forum':
+			case 'cat_id':
 				$ids = array_filter(array_map('trim',explode(',',$value)),static function ($id) { return preg_match('/^[1-9][0-9]{0,8}$/D',$id); });
-				$text->set($row['portal_name'] === 'poll_forum' ? 'plus_portal_poll_forums' : 'plus_portal_exclude',implode(',',array_unique($ids)));
+				$key = array('cat_id'=>'picture_categories','poll_forum'=>'poll_forums','exceptional_forums'=>'exclude');
+				$text->set('plus_portal_' . $key[$row['portal_name']],implode(',',array_unique($ids)));
 				break;
+			case 'number_recent_files': $config->set('plus_portal_downloads',max(0,min(100,(int) $value))); break;
+			case 'pics_number': $config->set('plus_portal_pictures',max(0,min(100,(int) $value))); break;
+			case 'pics_thumbsize': $config->set('plus_portal_picture_size',max(1,min(1024,(int) $value))); break;
+			case 'pics_all': $config->set('plus_portal_picture_personal',(int) (bool) $value); break;
+			case 'pics_sort': $config->set('plus_portal_picture_random',(int) ($value === '1')); break;
 			case 'number_recent_topics': $config->set('plus_portal_recent',max(0,min(100,(int) $value))); break;
 			case 'last_seen': $config->set('plus_portal_last_seen',max(0,min(100,(int) $value))); break;
 			case 'number_top_posters': $config->set('plus_portal_top_posters',max(0,min(100,(int) $value))); break;

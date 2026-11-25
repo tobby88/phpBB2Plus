@@ -5,7 +5,13 @@
 <dl><dt><label for="plus-welcome">{L_PLUS_PORTAL_WELCOME}</label><br><span>{L_PLUS_PORTAL_WELCOME_HELP}</span></dt>
 <dd><textarea id="plus-welcome" name="welcome" rows="7" cols="48">{WELCOME_TEXT}</textarea></dd></dl>
 <!-- BEGIN counts --><dl><dt><label for="plus-count-{counts.NAME}">{counts.LABEL}</label></dt><dd>
-<input id="plus-count-{counts.NAME}" type="number" min="0" max="100" name="{counts.NAME}" value="{counts.VALUE}" required></dd></dl><!-- END counts -->
+<input id="plus-count-{counts.NAME}" type="number" min="{counts.MIN}" max="{counts.MAX}" name="{counts.NAME}" value="{counts.VALUE}" required></dd></dl><!-- END counts -->
+<dl><dt><label for="picture-categories">{L_PLUS_PORTAL_PICTURE_CATEGORIES}</label><br><span>{L_PLUS_PORTAL_PICTURE_CATEGORIES_HELP}</span></dt>
+<dd><input id="picture-categories" type="text" name="picture_categories" value="{PICTURE_CATEGORIES}"></dd></dl>
+<dl><dt><label for="picture-personal">{L_PLUS_PORTAL_PICTURE_PERSONAL}</label></dt><dd><select id="picture-personal" name="picture_personal">
+<option value="0"{% if not PICTURE_PERSONAL %} selected{% endif %}>{L_NO}</option><option value="1"{% if PICTURE_PERSONAL %} selected{% endif %}>{L_YES}</option></select></dd></dl>
+<dl><dt><label for="picture-random">{L_PLUS_PORTAL_PICTURE_RANDOM}</label></dt><dd><select id="picture-random" name="picture_random">
+<option value="0"{% if not PICTURE_RANDOM %} selected{% endif %}>{L_NO}</option><option value="1"{% if PICTURE_RANDOM %} selected{% endif %}>{L_YES}</option></select></dd></dl>
 <!-- BEGIN lists --><dl><dt><label for="plus-list-{lists.NAME}">{lists.LABEL}</label></dt><dd>
 <select id="plus-list-{lists.NAME}" name="{lists.NAME}[]" multiple size="5">
 <!-- BEGIN options --><option value="{lists.options.ID}"<!-- IF lists.options.SELECTED --> selected<!-- ENDIF -->>{lists.options.TITLE}</option><!-- END options -->

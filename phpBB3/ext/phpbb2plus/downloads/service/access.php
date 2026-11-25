@@ -40,9 +40,11 @@ class access
 
 	public function admin() { return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_downloads'); }
 
+	public function enabled() { return !(int) $this->setting('settings_disable', 0) || $this->admin(); }
+
 	public function open()
 	{
-		if ((int) $this->setting('settings_disable', 0) && !$this->admin()) { throw new NotFoundHttpException(); }
+		if (!$this->enabled()) { throw new NotFoundHttpException(); }
 	}
 
 	public function categories()

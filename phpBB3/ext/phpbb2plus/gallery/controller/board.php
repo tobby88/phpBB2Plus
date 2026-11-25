@@ -12,11 +12,11 @@ class board
 	private $request;
 	private $pagination;
 	private $prefix;
-	private $names;
+	private $byline;
 	private $discussion;
 	private $pictures;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $names = null)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -27,7 +27,7 @@ class board
 		$this->request = $request;
 		$this->pagination = $pagination;
 		$this->prefix = $prefix;
-		$this->names = $names;
+		$this->byline = $byline;
 		$this->discussion = $discussion;
 		$this->pictures = $pictures;
 	}
@@ -103,20 +103,6 @@ class board
 		return $this->helper->render('@phpbb2plus_gallery/index.html', utf8_htmlspecialchars($title));
 	}
 
-	private function author($row)
-	{
-		if ((int) $row['author_id'] > ANONYMOUS && $row['username'] !== null)
-		{
-			return get_username_string('full', $row['author_id'], $row['username'], $row['user_colour']);
-		}
-		if (($row['author_removed'] || (int) $row['author_id'] > ANONYMOUS) &&
-			($this->names ? $this->names->hidden() : empty($this->user->data['is_registered'])))
-		{
-			return $this->language->lang('PLUS_ALBUM_FORMER');
-		}
-		return $row['author_name'] !== '' ? utf8_htmlspecialchars($row['author_name']) : $this->language->lang('GUEST');
-	}
-
 	public function picture($picture)
 	{
 		list($pic, $cat) = $this->access->picture($picture);
@@ -154,7 +140,7 @@ class board
 						get_username_string('full', $comment['editor_id'], $comment['editor_name'], $comment['editor_colour']) : $this->language->lang('GUEST');
 					if ($comment['retired_editor'] !== '')
 					{
-						$editor = $this->author(array('author_id' => ANONYMOUS, 'author_name' => $comment['retired_editor'], 'author_removed' => 1));
+						$editor = $this->byline->display(array('author_id' => ANONYMOUS, 'author_name' => $comment['retired_editor'], 'author_removed' => 1));
 					}
 					$edit = $this->language->lang('EDITED_TIMES_TOTAL', (int) $comment['edit_count'], $editor, $this->user->format_date($comment['edited_at']));
 				}
@@ -166,7 +152,7 @@ class board
 						$links['U_' . strtoupper($mode)] = $this->helper->route('phpbb2plus_gallery_comment', $params + array('comment' => $comment['comment_id'], 'mode' => $mode));
 					}
 				}
-				$this->template->assign_block_vars('album_comments', $links + array('ID' => $comment['comment_id'], 'AUTHOR' => $this->author($comment),
+				$this->template->assign_block_vars('album_comments', $links + array('ID' => $comment['comment_id'], 'AUTHOR' => $this->byline->display($comment),
 					'EDITED' => $edit, 'TIME' => $this->user->format_date($comment['created_at']), 'BODY' => censor_text($comment['body'])));
 			}
 			$this->db->sql_freeresult($result);
@@ -193,7 +179,7 @@ class board
 		{
 			$this->db->sql_query('UPDATE ' . $this->prefix . 'pics SET views=views+1 WHERE pic_id=' . $id);
 		}
-		$this->template->assign_vars(array('ALBUM_TITLE' => $pic['title'], 'ALBUM_DESCRIPTION' => $pic['description'], 'ALBUM_AUTHOR' => $this->author($pic),
+		$this->template->assign_vars(array('ALBUM_TITLE' => $pic['title'], 'ALBUM_DESCRIPTION' => $pic['description'], 'ALBUM_AUTHOR' => $this->byline->display($pic),
 			'ALBUM_DATE' => $this->user->format_date($pic['created_at']), 'S_ALBUM_COMMENTS' => $comments,
 			'U_FULL' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')),
 			'U_PREVIEW' => $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => $this->request->variable('full', 0) ? 'full' : 'medium'))));

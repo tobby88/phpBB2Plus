@@ -13,6 +13,9 @@
 .plus-welcome-center { text-align: center; }
 .plus-welcome img { max-width: 100%; height: auto; }
 .plus-portal-side { overflow-wrap: anywhere; }
+.plus-portal-album figure { margin: .65em 0; }
+.plus-portal-album img { max-width: min(100%, var(--plus-preview-size)); max-height: var(--plus-preview-size); height: auto; }
+.plus-portal-album figcaption { margin-top: .2em; }
 .plus-portal-side li { margin: .3em 0; }
 .plus-portal-side ul, .plus-portal-side ol { padding-inline-start: 1.5em; }
 #plus-portal-login label { display: block; margin: .4em 0; }

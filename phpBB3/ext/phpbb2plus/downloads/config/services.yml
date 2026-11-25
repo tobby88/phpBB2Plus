@@ -1,4 +1,9 @@
 services:
+    phpbb2plus.downloads.portal:
+        class: phpbb2plus\downloads\event\portal
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '@template', '@controller.helper', '@language', '%core.table_prefix%plus_dl_files']
+        tags:
+            - { name: event.listener }
     phpbb2plus.downloads.access:
         class: phpbb2plus\downloads\service\access
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_dl_']

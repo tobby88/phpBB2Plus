@@ -161,6 +161,20 @@ class access
 		return false;
 	}
 
+	public function portal_categories($personal, $selected)
+	{
+		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'cats');
+		while ($row = $this->db->sql_fetchrow($result)) { $this->categories[(int) $row['cat_id']] = $row; }
+		$this->db->sql_freeresult($result);
+		$allowed = array();
+		foreach ($this->categories as $id => $category)
+		{
+			if (!$category || (!$personal && ($category['source_owner'] || $category['owner_id'])) || ($selected && !isset($selected[$id]))) { continue; }
+			if ($this->visible($category)) { $allowed[] = $id; }
+		}
+		return $allowed;
+	}
+
 	public function category($id)
 	{
 		$category = $this->category_row($id);

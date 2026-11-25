@@ -2,7 +2,7 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{L_PLUS_PORTAL}</h2>
 <div class="plus-portal">
-<nav class="panel" aria-label="{L_QUICK_LINKS}"><div class="inner"><h3>{L_QUICK_LINKS}</h3><ul class="menu">
+<aside class="plus-portal-side"><nav class="panel" aria-label="{L_QUICK_LINKS}"><div class="inner"><h3>{L_QUICK_LINKS}</h3><ul class="menu">
 	<li><a href="{U_INDEX}">{L_INDEX}</a></li>
 	<!-- IF S_DISPLAY_SEARCH --><li><a href="{U_SEARCH}">{L_SEARCH}</a></li><!-- ENDIF -->
 	<!-- IF S_DISPLAY_MEMBERLIST --><li><a href="{U_MEMBERLIST}">{L_MEMBERLIST}</a></li><!-- ENDIF -->
@@ -10,7 +10,7 @@
 	<!-- EVENT phpbb2plus_community_portal_navigation -->
 	<li><a href="{U_FAQ}">{L_FAQ}</a></li>
 	<!-- IF U_TEAM --><li><a href="{U_TEAM}">{L_THE_TEAM}</a></li><!-- ENDIF -->
-</ul></div></nav>
+</ul></div></nav><!-- EVENT phpbb2plus_community_portal_left --></aside>
 <div class="plus-portal-main">
 <!-- IF PLUS_WELCOME --><section class="panel plus-welcome"><h3>{SITENAME}<!-- IF SITE_DESCRIPTION --> &ndash; {SITE_DESCRIPTION}<!-- ENDIF --></h3>
 <div class="content">{PLUS_WELCOME}</div></section><!-- ENDIF -->

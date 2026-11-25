@@ -113,6 +113,9 @@ if ($argv[1] === 'seed')
 	$db->query("UPDATE phpbb_portal SET portal_value='14' WHERE portal_name='exceptional_forums'");
 	$db->query("UPDATE phpbb_portal SET portal_value='1,7' WHERE portal_name='poll_forum'");
 	$db->query("UPDATE phpbb_portal SET portal_value='2' WHERE portal_name='number_recent_topics'");
+	$db->query("UPDATE phpbb_portal SET portal_value='3' WHERE portal_name='number_recent_files'");
+	$db->query("UPDATE phpbb_portal SET portal_value='6' WHERE portal_name='pics_number'");
+	$db->query("UPDATE phpbb_portal SET portal_value='137' WHERE portal_name='pics_thumbsize'");
 	$db->query("UPDATE phpbb_plus SET config_value='4' WHERE config_name='show_shoutbox'");
 	$db->query("UPDATE phpbb_users SET user_allow_viewonline=0,user_lastlogon=1084742471 WHERE user_id=87");
 	$db->query("UPDATE phpbb_topics SET topic_calendar_time=1206917100,topic_calendar_duration=91799 WHERE topic_id=1");

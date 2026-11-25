@@ -1,10 +1,18 @@
 services:
+    phpbb2plus.gallery.byline:
+        class: phpbb2plus\gallery\service\byline
+        arguments: ['@user', '@language', '@?phpbb2plus.community.former_members']
+    phpbb2plus.gallery.portal:
+        class: phpbb2plus\gallery\event\portal
+        arguments: ['@phpbb2plus.gallery.access', '@phpbb2plus.gallery.byline', '@dbal.conn', '@config', '@config_text', '@template', '@controller.helper', '@language', '@user', '%core.table_prefix%plus_album_']
+        tags:
+            - { name: event.listener }
     phpbb2plus.gallery.access:
         class: phpbb2plus\gallery\service\access
         arguments: ['@dbal.conn', '@user', '@auth', '%core.table_prefix%plus_album_']
     phpbb2plus.gallery.board:
         class: phpbb2plus\gallery\controller\board
-        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@phpbb2plus.gallery.pictures', '@?phpbb2plus.community.former_members']
+        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@phpbb2plus.gallery.pictures', '@phpbb2plus.gallery.byline']
     phpbb2plus.gallery.media:
         class: phpbb2plus\gallery\controller\media
         arguments: ['@phpbb2plus.gallery.access', '@config', '%core.root_path%', '@php_ini']

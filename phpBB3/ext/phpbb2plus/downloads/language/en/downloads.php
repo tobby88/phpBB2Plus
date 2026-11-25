@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_RECENT'=>'Recent downloads',
     'PLUS_DL'=>'Downloads', 'PLUS_DL_SEARCH'=>'Search downloads', 'PLUS_DL_CATEGORIES'=>'Categories', 'PLUS_DL_FILES'=>'Files',
     'PLUS_DL_EMPTY'=>'No files are available here.', 'PLUS_DL_COUNT'=>'Downloads', 'PLUS_DL_PENDING'=>'This file is awaiting approval.',
     'PLUS_DL_BROKEN'=>'A broken download has been reported for this file.', 'PLUS_DL_VERSION'=>'Version', 'PLUS_DL_PREVIEW'=>'Preview',

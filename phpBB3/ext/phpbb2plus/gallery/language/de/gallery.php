@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_PORTAL_RATING'=>'Bewertung', 'PLUS_ALBUM_NOT_RATED'=>'Noch nicht bewertet',
 	'PLUS_ALBUM' => 'Fotoalbum', 'PLUS_ALBUM_CATEGORIES' => 'Alben', 'PLUS_ALBUM_EMPTY' => 'In diesem Album sind keine Bilder sichtbar.',
 	'PLUS_ALBUM_ORIGINAL' => 'Bild in voller Größe öffnen', 'PLUS_ALBUM_COMMENTS' => 'Bildkommentare',
 	'PLUS_ALBUM_NO_COMMENTS' => 'Zu diesem Bild gibt es noch keine Kommentare.', 'PLUS_ALBUM_FORMER' => 'Ehemaliger Nutzer',

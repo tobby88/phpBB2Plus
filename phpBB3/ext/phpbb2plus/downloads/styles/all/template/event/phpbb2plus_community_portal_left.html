@@ -1,0 +1,6 @@
+{% if U_PORTAL_DOWNLOADS %}
+<section class="panel plus-portal-downloads"><h3><a href="{U_PORTAL_DOWNLOADS}">{L_PLUS_DL_RECENT}</a></h3>
+{% if loops.plus_downloads %}<ul class="menu">{% for file in loops.plus_downloads %}
+<li><a href="{{ file.U_FILE }}">{{ file.TITLE|e }}</a></li>
+{% endfor %}</ul>{% else %}<p>{L_PLUS_DL_EMPTY}</p>{% endif %}</section>
+{% endif %}

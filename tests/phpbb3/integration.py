@@ -160,6 +160,7 @@ def main():
                     raise RuntimeError("The index lost a custom colour, double-escaped its name or revealed a hidden legend entry")
                 php(ROOT / "tests/phpbb3/colour_membership.php", target, cwd=web)
                 portal.browse(base, member)
+                portal.media(base, member, ordinary, pending)
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
