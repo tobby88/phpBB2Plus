@@ -1,0 +1,46 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{% if DL_EDITING %}{L_PLUS_DL_EDIT}{% else %}{L_ACP_PLUS_DL_FILE_CREATE}{% endif %}</h1>
+<p><a href="{U_BACK}">{L_BACK}</a>{% if U_DL_MIRRORS %} · <a id="dl-editor-mirrors" href="{U_DL_MIRRORS}">{L_ACP_PLUS_DL_MIRRORS}</a>{% endif %}</p>
+{% if DL_ERROR %}<div class="errorbox"><p>{{ DL_ERROR|e }}{% if DL_STALE %} <a href="{U_DL_SAVE}">{L_PLUS_DL_RELOAD}</a>{% endif %}</p></div>{% endif %}
+{% if DL_SAVED %}<div class="successbox"><p>{L_CONFIG_UPDATED}</p></div>{% endif %}
+<form id="dl-file-editor" method="post" enctype="multipart/form-data" action="{U_DL_SAVE}">
+<fieldset><legend>{L_ACP_PLUS_DL_MIRROR_FILE}</legend>
+<dl><dt><label for="dl-title">{L_PLUS_DL_TITLE}</label></dt><dd><input class="text medium" id="dl-title" name="title" value="{{ DL_TITLE|e('html_attr') }}" required></dd></dl>
+<dl><dt><label for="dl-category">{L_PLUS_DL_CHOOSE_CATEGORY}</label></dt><dd><select id="dl-category" name="category" required><option value="">{L_SELECT}</option>
+{% for c in loops.dl_destinations %}<option value="{{ c.ID }}"{% if c.SELECTED %} selected{% endif %}>{{ c.TITLE|e }} (#{{ c.ID }})</option>{% endfor %}</select></dd></dl>
+<dl><dt><label for="dl-summary">{L_PLUS_DL_SUMMARY}</label></dt><dd><input class="text full" id="dl-summary" name="summary" value="{{ DL_SUMMARY|e('html_attr') }}"></dd></dl>
+<dl><dt><label for="dl-description">{L_PLUS_DL_DESCRIPTION}</label></dt><dd><textarea id="dl-description" name="description" rows="5"{% if not DL_EMPTY_DESCRIPTION %} required{% endif %}>{{ DL_DESCRIPTION|e }}</textarea></dd></dl>
+<dl><dt><label for="dl-author">{L_AUTHOR}</label></dt><dd><input id="dl-author" name="author" value="{{ DL_AUTHOR|e('html_attr') }}"></dd></dl>
+<dl><dt><label for="dl-version">{L_PLUS_DL_VERSION}</label></dt><dd><input id="dl-version" name="version" value="{{ DL_VERSION|e('html_attr') }}"></dd></dl>
+<dl><dt><label for="dl-docs">{L_PLUS_DL_DOCS}</label></dt><dd><input class="text medium" id="dl-docs" name="documentation" value="{{ DL_DOCUMENTATION|e('html_attr') }}"></dd></dl>
+<dl><dt><label for="dl-license">{L_PLUS_DL_LICENSE}</label></dt><dd><select id="dl-license" name="license"><option value="0">{L_PLUS_DL_NO_LICENSE}</option>
+{% for l in loops.dl_licenses %}<option value="{{ l.ID }}"{% if l.SELECTED %} selected{% endif %}>{{ l.TITLE|e }}</option>{% endfor %}</select></dd></dl>
+<dl><dt>{L_ACP_PLUS_DL_ICON}</dt><dd><label><input type="radio" name="icon" value=""{% if not DL_ICON_NAME %} checked{% endif %}> {L_NONE}</label>
+{% for i in loops.dl_icons %}<label><input type="radio" name="icon" value="{{ i.NAME|e('html_attr') }}" aria-label="{{ i.NAME|e('html_attr') }}"{% if i.SELECTED %} checked{% endif %}>
+{% if i.URL %}<img src="{{ i.URL }}" alt="{{ i.NAME|e('html_attr') }}" title="{{ i.NAME|e('html_attr') }}">{% else %}{{ i.NAME|e }}{% endif %}</label> {% endfor %}</dd></dl>
+<dl><dt><label for="dl-pin">{L_ACP_PLUS_DL_PIN}</label></dt><dd><select id="dl-pin" name="pinned"><option value="0">{L_NO}</option><option value="1"{% if DL_PINNED %} selected{% endif %}>{L_YES}</option></select></dd></dl>
+{% if DL_CAN_APPROVE %}<dl><dt><label for="dl-approved">{L_ACP_PLUS_DL_FILE_STATUS}</label></dt><dd><select id="dl-approved" name="approved"><option value="0">{L_ACP_PLUS_DL_FILE_FILTER_PENDING}</option><option value="1"{% if DL_APPROVED %} selected{% endif %}>{L_ACP_PLUS_DL_FILE_FILTER_APPROVED}</option></select></dd></dl>
+{% else %}<dl><dt>{L_ACP_PLUS_DL_FILE_STATUS}</dt><dd>{% if DL_APPROVED %}{L_ACP_PLUS_DL_FILE_FILTER_APPROVED}{% else %}{L_ACP_PLUS_DL_FILE_FILTER_PENDING}{% endif %}</dd></dl>{% endif %}
+<dl><dt><label for="dl-count">{L_PLUS_DL_COUNT}</label></dt><dd><input id="dl-count" name="downloads" type="number" min="0" max="4294967295" value="{{ DL_COUNTER|e('html_attr') }}">
+{% if DL_EDITING %}<label><input type="checkbox" name="set_count" value="1"{% if DL_SET_COUNT %} checked{% endif %}> {L_ACP_PLUS_DL_SET_COUNT}</label>{% endif %}</dd></dl>
+</fieldset>
+{% if loops.dl_custom %}<fieldset><legend>{L_ACP_PLUS_DL_FIELDS}</legend>
+{% for f in loops.dl_custom %}<dl><dt><label{% if f.TYPE not in [2,5] %} for="dl-field-{{ f.ID }}"{% endif %}>{{ f.TITLE|e }}</label>{% if f.SUMMARY %}<br>{{ f.SUMMARY|e }}{% endif %}</dt><dd>
+{% if f.TYPE == 0 %}<input id="dl-field-{{ f.ID }}" name="field[{{ f.ID }}]" value="{{ f.VALUE|e('html_attr') }}">
+{% elseif f.TYPE == 1 %}<textarea id="dl-field-{{ f.ID }}" name="field[{{ f.ID }}]">{{ f.VALUE|e }}</textarea>
+{% elseif f.TYPE in [3,4] %}<select id="dl-field-{{ f.ID }}" name="field[{{ f.ID }}]{% if f.TYPE == 4 %}[]{% endif %}"{% if f.TYPE == 4 %} multiple{% endif %}>{% if f.TYPE == 3 %}<option value=""></option>{% endif %}
+{% for o in f.choices %}<option value="{{ o.VALUE|e('html_attr') }}"{% if o.SELECTED %} selected{% endif %}>{{ o.VALUE|e }}</option>{% endfor %}</select>
+{% else %}{% for o in f.choices %}<label><input type="{% if f.TYPE == 5 %}checkbox{% else %}radio{% endif %}" name="field[{{ f.ID }}]{% if f.TYPE == 5 %}[]{% endif %}" value="{{ o.VALUE|e('html_attr') }}"{% if o.SELECTED %} checked{% endif %}> {{ o.VALUE|e }}</label> {% endfor %}{% endif %}</dd></dl>{% endfor %}</fieldset>{% endif %}
+<fieldset><legend>{L_PLUS_DL_SOURCE}</legend><p>{% if DL_EDITING %}{L_PLUS_DL_KEEP_SOURCE}{% else %}{L_PLUS_DL_SOURCE_HELP}{% endif %}</p>
+{% if DL_CURRENT_SOURCE %}<p>{L_PLUS_DL_CURRENT_SOURCE} {{ DL_CURRENT_SOURCE|e }}</p>{% endif %}
+<dl><dt><label for="dl-original">{L_PLUS_DL_LOCAL}</label></dt><dd><input type="file" id="dl-original" name="original"></dd></dl>
+<dl><dt><label for="dl-url">{L_PLUS_DL_URL}</label></dt><dd><input class="text full" type="url" id="dl-url" name="url" value="{{ DL_URL|e('html_attr') }}"></dd></dl>
+<dl><dt><label for="dl-preview">{L_PLUS_DL_PREVIEW}</label></dt><dd><input type="file" id="dl-preview" name="screenshot" accept="image/png,image/jpeg,image/gif"></dd></dl>
+<dl><dt><label for="dl-preview-url">{L_PLUS_DL_PREVIEW_URL}</label></dt><dd><input class="text full" type="url" id="dl-preview-url" name="preview_url" value="{{ DL_PREVIEW_URL|e('html_attr') }}">{% if DL_CURRENT_PREVIEW %}<br>{{ DL_CURRENT_PREVIEW|e }}{% endif %}</dd></dl>
+<dl><dt><label for="dl-preview-link">{L_ACP_PLUS_DL_PREVIEW_LINK}</label></dt><dd><select id="dl-preview-link" name="preview_link"><option value="0">{L_NO}</option><option value="1"{% if DL_LINK %} selected{% endif %}>{L_YES}</option></select></dd></dl>
+{% if DL_HAS_PREVIEW %}<dl><dt><label for="dl-remove-preview">{L_PLUS_DL_REMOVE_PREVIEW}</label></dt><dd><input type="checkbox" id="dl-remove-preview" name="remove_preview" value="1"{% if DL_REMOVE_PREVIEW %} checked{% endif %}></dd></dl>{% endif %}</fieldset>
+<fieldset class="submit-buttons"><input type="hidden" name="fields_revision" value="{DL_FIELDS_REVISION}"><input type="hidden" name="previous_downloads" value="{{ DL_PREVIOUS_COUNT|e('html_attr') }}">
+{% if DL_EDITING %}<input type="hidden" name="revision" value="{DL_REVISION}">{% else %}<input type="hidden" name="nonce" value="{DL_NONCE}">{% endif %}
+<input type="hidden" name="complete" value="1">{S_FORM_TOKEN}{% if not DL_STALE %}<button class="button1">{L_SUBMIT}</button>{% endif %}</fieldset>
+</form>
+<!-- INCLUDE overall_footer.html -->

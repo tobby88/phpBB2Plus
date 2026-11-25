@@ -3,7 +3,7 @@ namespace phpbb2plus\downloads\controller;
 
 use phpbb\request\request_interface;
 use phpbb2plus\downloads\service\access;
-use phpbb2plus\downloads\service\field_data;
+use phpbb2plus\downloads\service\editor_form;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -86,15 +86,7 @@ class submissions
 		$csrf = $id ? 'plus_dl_edit_' . $id : 'plus_dl_submit_' . $category;
 		$url = $id ? $this->helper->route('phpbb2plus_downloads_edit',array('file'=>$id)) :
 			$this->helper->route('phpbb2plus_downloads_submit',array('category'=>$category));
-		$form = array();
-		foreach (array('title','summary','description','version','author','documentation','url','preview_url') as $key)
-		{
-			$form[$key] = htmlspecialchars_decode($this->request->variable($key, '', true, request_interface::POST), ENT_QUOTES);
-		}
-		if (!$id && !$this->request->is_set_post('author') && !empty($this->user->data['is_registered']))
-		{ $form['author'] = access::plain($this->user->data['username']); }
-		$form['license'] = $this->request->variable('license', 0, false, request_interface::POST);
-		$form['fields_revision'] = $this->request->variable('fields_revision','',false,request_interface::POST);
+		$form = editor_form::metadata($this->request,$item,empty($this->user->data['is_registered']) ? '' : access::plain($this->user->data['username']),$posted);
 		$fields = $this->request->raw_variable('field', array(), request_interface::POST);
 		$existing = $id ? $this->submissions->saved_fields($id) : array();
 		$revision = $posted ? $this->request->variable('revision', -1, false, request_interface::POST) : (int) ($item['review_revision'] ?? 0);
@@ -103,17 +95,7 @@ class submissions
 		if ($id)
 		{
 			$raw = json_decode($item['source_json'], true) ?: array();
-			if (!$posted)
-			{
-				$form['title'] = access::plain($item['title']);
-				$form['summary'] = access::plain($item['summary']);
-				$form['description'] = access::plain($raw['file_longdesc'] ?? '');
-				$form['author'] = access::plain($raw['file_creator'] ?? '');
-				$form['version'] = access::plain($raw['file_version'] ?? '');
-				$form['documentation'] = (string) ($raw['file_docsurl'] ?? '');
-				$form['license'] = (int) $item['license_id'];
-				$fields = $existing;
-			}
+			if (!$posted) { $fields = $existing; }
 			foreach ($this->access->categories() as $key => $cat)
 			{
 				if ($key === $category || $this->access->can_submit($key))
@@ -146,30 +128,10 @@ class submissions
 				$status = $e->getCode() ?: 422;
 			}
 		}
-		$licenses = $this->submissions->licenses();
-		if ($item && $item['license_id'] && !isset($licenses[$item['license_id']]))
-		{ $licenses[(int) $item['license_id']] = $this->language->lang('PLUS_DL_MISSING_LICENSE', (int) $item['license_id']); }
-		foreach ($licenses as $license => $title)
-		{
-			$this->template->assign_block_vars('dl_licenses', array('ID'=>$license,'TITLE'=>$title,'SELECTED'=>$form['license'] === $license));
-		}
-		$definitions = $this->submissions->fields();
-		foreach ($definitions as $key => $definition)
-		{
-			if ($definition['type'] < 0 || $definition['type'] > 5) { continue; }
-			$value = $fields[$key] ?? '';
-			$options = array_unique(array_merge($definition['options'], $existing[$key] ?? array()));
-			$this->template->assign_block_vars('dl_custom', array('ID'=>$key,'TYPE'=>$definition['type'],'TITLE'=>$definition['title'],
-				'SUMMARY'=>$definition['description'],'VALUE'=>is_string($value) ? $value : ($existing[$key][0] ?? '')));
-			foreach ($options as $option)
-			{
-				$this->template->assign_block_vars('dl_custom.choices', array('VALUE'=>$option,'SELECTED'=>in_array($option,(array) $value,true)));
-			}
-		}
-		foreach ($form as $key => $value) { $this->template->assign_var('DL_' . strtoupper($key), $value); }
+		editor_form::display($this->template,$this->language,$this->submissions,$item,$form,$fields,$existing);
 		add_form_key($csrf);
 		$this->template->assign_vars(array('DL_NONCE'=>bin2hex(random_bytes(16)),'DL_ERROR'=>$error,
-			'DL_STALE'=>$status === 409 && !$fields_changed,'DL_FIELDS_REVISION'=>field_data::revision($definitions),'U_DL_SUBMIT'=>$url));
+			'DL_STALE'=>$status === 409 && !$fields_changed,'U_DL_SUBMIT'=>$url));
 		return $this->helper->render('@phpbb2plus_downloads/submit.html', $this->language->lang($item ? 'PLUS_DL_EDIT' : 'PLUS_DL_SUBMIT'), $status);
 	}
 

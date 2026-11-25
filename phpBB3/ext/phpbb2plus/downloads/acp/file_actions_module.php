@@ -23,10 +23,12 @@ class file_actions_module
 
 	private function display_rows($rows)
 	{
+		$edit = $this->access->file_admin('edit');
 		foreach ($rows as $row)
 		{
 			$this->template->assign_block_vars('dl_files',array('ID'=>(int) $row['file_id'],'TITLE'=>access::plain($row['title']),
 				'CATEGORY'=>access::plain($row['category'] ?? ''),'CAT_ID'=>(int) $row['cat_id'],
+				'U_EDIT'=>$edit ? $this->u_action . '&amp;action=edit&amp;file=' . (int) $row['file_id'] : '',
 				'APPROVED'=>(bool) $row['approved'],'BROKEN'=>(bool) $row['broken']));
 		}
 	}
@@ -52,6 +54,7 @@ class file_actions_module
 		{ $this->template->assign_block_vars('dl_filters',array('VALUE'=>$item,'NAME'=>$this->lang->lang('ACP_PLUS_DL_FILE_FILTER_' . strtoupper($item)))); }
 		$this->template->assign_vars(array('DL_LIST'=>true,'DL_QUERY'=>$q,'DL_FILTER'=>$status,'DL_CATEGORY'=>$cat,
 			'DL_APPROVAL'=>$this->access->file_admin('approve'),'DL_DELETE'=>$this->access->file_admin('delete'),
+			'U_DL_CREATE'=>$this->access->file_admin('edit') ? $this->u_action . '&amp;action=create' : '',
 			'DL_DONE'=>$this->request->is_set('done',request_interface::GET),
 			'DL_RESULT'=>$this->lang->lang('ACP_PLUS_DL_FILES_DONE',max(0,$this->request->variable('done',0,false,request_interface::GET))),
 			'U_DL_SEARCH'=>$this->u_action . '&amp;action=find','U_DL_SELECT'=>$this->u_action . '&amp;action=select',
@@ -64,7 +67,8 @@ class file_actions_module
 	{
 		global $phpbb_container;
 		$this->access = $phpbb_container->get('phpbb2plus.downloads.access');
-		if (!$this->access->file_admin('approve') && !$this->access->file_admin('delete')) { trigger_error('NO_AUTH_OPERATION',E_USER_WARNING); }
+		if (!$this->access->file_admin('approve') && !$this->access->file_admin('delete') && !$this->access->file_admin('edit'))
+		{ trigger_error('NO_AUTH_OPERATION',E_USER_WARNING); }
 		$this->request = $phpbb_container->get('request');
 		$this->template = $phpbb_container->get('template');
 		$this->lang = $phpbb_container->get('language');
@@ -75,6 +79,13 @@ class file_actions_module
 		try
 		{
 			if ($action === '' && !$posted) { $this->listing($phpbb_container->get('phpbb2plus.downloads.file_list')); return; }
+			if ($action === 'edit' || $action === 'create')
+			{
+				if (!$this->access->file_admin('edit')) { throw new \DomainException('NO_AUTH_OPERATION'); }
+				$this->tpl_name = 'acp_plus_dl_file_editor';
+				(new file_editor())->open($phpbb_container,$this->u_action,$action,$posted);
+				return;
+			}
 			if ($action === 'find' && $posted && check_form_key('plus_dl_file_selection'))
 			{
 				list(,,,$params) = $this->filter(request_interface::POST);
@@ -83,7 +94,7 @@ class file_actions_module
 			if ($action === 'select' && $posted && check_form_key('plus_dl_file_selection') && $this->request->is_set_post('complete'))
 			{
 				$operation = $this->request->variable('operation','',false,request_interface::POST);
-				if (!$this->access->file_admin($operation)) { throw new \DomainException('NO_AUTH_OPERATION'); }
+				if (!in_array($operation,array('approve','withdraw','delete'),true) || !$this->access->file_admin($operation)) { throw new \DomainException('NO_AUTH_OPERATION'); }
 				$ids = catalogue_selection::ids($this->request->variable('selected',array(0=>''),false,request_interface::POST),'ACP_PLUS_DL_FILE_SELECTION');
 				redirect($this->selection_url($operation,$ids));
 			}

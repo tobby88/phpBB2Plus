@@ -2,6 +2,7 @@
 <h1>{L_ACP_PLUS_DL_FILE_ACTIONS}</h1>
 {% if DL_LIST %}
 {% if DL_DONE %}<div class="successbox"><p>{{ DL_RESULT|e }}</p></div>{% endif %}
+{% if U_DL_CREATE %}<p><a class="button2" href="{U_DL_CREATE}">{L_ACP_PLUS_DL_FILE_CREATE}</a></p>{% endif %}
 <form id="dl-files-filter" method="post" action="{U_DL_SEARCH}"><fieldset class="display-options">
 <label for="dl-files-q">{L_ACP_PLUS_DL_MIRROR_SEARCH}</label> <input id="dl-files-q" class="text medium" name="q" value="{{ DL_QUERY|e('html_attr') }}">
 <label for="dl-files-filter-status">{L_ACP_PLUS_DL_FILE_STATUS}</label> <select id="dl-files-filter-status" name="filter">{% for s in loops.dl_filters %}<option value="{{ s.VALUE }}"{% if s.VALUE == DL_FILTER %} selected{% endif %}>{{ s.NAME|e }}</option>{% endfor %}</select>
@@ -14,9 +15,9 @@
 <p>{{ DL_EFFECT|e }}</p>{% if DL_REMOVAL %}<p>{{ DL_REMOVAL|e }}</p>{% endif %}
 <form id="dl-files-confirm" method="post" action="{U_DL_SAVE}">
 {% endif %}
-<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_DL_MIRROR_FILE}</th><th>{L_ACP_PLUS_DL_MIRROR_CATEGORY_NAME}</th><th>{L_ACP_PLUS_DL_FILE_STATUS}</th>{% if DL_LIST %}<th>{L_SELECT}</th>{% endif %}</tr></thead><tbody>
-{% for f in loops.dl_files %}<tr><td>{{ f.TITLE|e }} (#{{ f.ID }})</td><td>{{ f.CATEGORY|e }} (#{{ f.CAT_ID }})</td><td>{% if f.APPROVED %}{L_ACP_PLUS_DL_FILE_FILTER_APPROVED}{% else %}{L_ACP_PLUS_DL_FILE_FILTER_PENDING}{% endif %}{% if f.BROKEN %} · {L_ACP_PLUS_DL_FILE_FILTER_BROKEN}{% endif %}</td>
-{% if DL_LIST %}<td><input type="checkbox" name="selected[]" value="{{ f.ID }}" aria-label="{{ f.TITLE|e('html_attr') }}"></td>{% endif %}</tr>
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_DL_MIRROR_FILE}</th><th>{L_ACP_PLUS_DL_MIRROR_CATEGORY_NAME}</th><th>{L_ACP_PLUS_DL_FILE_STATUS}</th>{% if DL_APPROVAL or DL_DELETE %}<th>{L_SELECT}</th>{% endif %}</tr></thead><tbody>
+{% for f in loops.dl_files %}<tr><td>{% if DL_LIST and f.U_EDIT %}<a href="{{ f.U_EDIT }}">{{ f.TITLE|e }}</a>{% else %}{{ f.TITLE|e }}{% endif %} (#{{ f.ID }})</td><td>{{ f.CATEGORY|e }} (#{{ f.CAT_ID }})</td><td>{% if f.APPROVED %}{L_ACP_PLUS_DL_FILE_FILTER_APPROVED}{% else %}{L_ACP_PLUS_DL_FILE_FILTER_PENDING}{% endif %}{% if f.BROKEN %} · {L_ACP_PLUS_DL_FILE_FILTER_BROKEN}{% endif %}</td>
+{% if DL_APPROVAL or DL_DELETE %}<td><input type="checkbox" name="selected[]" value="{{ f.ID }}" aria-label="{{ f.TITLE|e('html_attr') }}"></td>{% endif %}</tr>
 {% else %}<tr><td colspan="4">{L_ACP_PLUS_DL_MIRROR_NO_FILES}</td></tr>{% endfor %}</tbody></table>
 <fieldset class="submit-buttons">
 {% if DL_LIST %}

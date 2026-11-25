@@ -87,6 +87,7 @@ class access
 
 	public function file_admin($action, $fresh = false)
 	{
+		if ($action === 'edit') { return $this->acp_admin('a_plus_dl_edit',$fresh); }
 		if ($action === 'delete') { return $this->acp_admin('a_plus_dl_delete',$fresh); }
 		return in_array($action,array('approve','withdraw'),true) && $this->acp_admin('a_plus_dl_approval',$fresh);
 	}
@@ -213,12 +214,39 @@ class access
 	public function file($id)
 	{
 		$this->open();
-		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'files WHERE file_id=' . (int) $id);
-		$file = $this->db->sql_fetchrow($result);
-		$this->db->sql_freeresult($result);
-		if (!$file || !$this->visible((int) $file['cat_id'], true) || (!$file['approved'] && !$this->allows((int) $file['cat_id'], 'mod') &&
+		$file = $this->file_row($id);
+		if (!$this->visible((int) $file['cat_id'], true) || (!$file['approved'] && !$this->allows((int) $file['cat_id'], 'mod') &&
 			(empty($this->user->data['is_registered']) || (int) $file['owner_id'] !== (int) $this->user->data['user_id']))) { throw new NotFoundHttpException(); }
 		return $file;
+	}
+
+	private function file_row($id)
+	{
+		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'files WHERE file_id=' . (int) $id);
+		$row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		if (!$row) { throw new NotFoundHttpException(); }
+		return $row;
+	}
+
+	public function editor_file($id)
+	{
+		if (!$this->file_admin('edit')) { throw new \DomainException('NO_AUTH_OPERATION'); }
+		return $this->file_row($id);
+	}
+
+	public function file_destination($id)
+	{
+		$cats = $this->categories();
+		if ($id<=0 || empty($cats[$id]['allow_files'])) { return false; }
+		$seen = array();
+		while ($id)
+		{
+			if (isset($seen[$id]) || !isset($cats[$id])) { return false; }
+			$seen[$id] = true;
+			$id = (int) $cats[$id]['parent_id'];
+		}
+		return true;
 	}
 
 	public function can_submit($id)
@@ -259,7 +287,7 @@ class access
 		},$value);
 	}
 
-	public function write($id, callable $operation)
+	public function write($id, callable $operation, $admin_editor = false)
 	{
 		$id = (int) $id;
 		$this->db->sql_transaction('begin');
@@ -268,7 +296,8 @@ class access
 			$this->lock_catalogue(false);
 			$this->db->sql_query('UPDATE ' . $this->prefix . "files SET file_id=file_id WHERE file_id=$id");
 			$this->refresh();
-			$result = $operation($this->file($id));
+			if ($admin_editor && !$this->file_admin('edit',true)) { throw new \DomainException('NO_AUTH_OPERATION'); }
+			$result = $operation($admin_editor ? $this->editor_file($id) : $this->file($id));
 			if (!$this->db->sql_transaction('commit')) { throw new \RuntimeException('The download transaction did not commit.'); }
 			return $result;
 		}

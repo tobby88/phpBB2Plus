@@ -28,16 +28,7 @@ class mirrors
 		if (!$file) { throw new \DomainException('ACP_PLUS_DL_MIRROR_MISSING'); }
 		// The historical file ACP could manage private or unapproved entries.
 		// Creating and editing mirrors still requires a complete category ancestry.
-		$cats = $this->access->categories();
-		$cat = (int) $file['cat_id'];
-		$seen = array();
-		$file['eligible'] = $cat>0 && !empty($cats[$cat]['allow_files']);
-		while ($cat && $file['eligible'])
-		{
-			if (isset($seen[$cat]) || !isset($cats[$cat])) { $file['eligible'] = false; break; }
-			$seen[$cat] = true;
-			$cat = (int) $cats[$cat]['parent_id'];
-		}
+		$file['eligible'] = $this->access->file_destination((int) $file['cat_id']);
 		return $file;
 	}
 

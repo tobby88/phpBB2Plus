@@ -11,8 +11,9 @@ class submissions
 	private $user;
 	private $config;
 	private $prefix;
+	private $log;
 
-	public function __construct($access, $media, $db, $user, $config, $prefix)
+	public function __construct($access, $media, $db, $user, $config, $prefix, $log)
 	{
 		$this->access = $access;
 		$this->media = $media;
@@ -20,6 +21,7 @@ class submissions
 		$this->user = $user;
 		$this->config = $config;
 		$this->prefix = $prefix;
+		$this->log = $log;
 	}
 
 	public function licenses()
@@ -152,10 +154,45 @@ class submissions
 		}
 	}
 
-	private function file_changes($form, $assets, $previous = null, $remove_preview = false)
+	private function admin_changes($admin, $current)
+	{
+		$row = array();
+		foreach (array('pinned','preview_link') as $flag)
+		{
+			if (!in_array($admin[$flag],array('0','1'),true)) { throw new \DomainException('FORM_INVALID'); }
+			$row[$flag] = (int) $admin[$flag];
+		}
+		$icon = $admin['icon'];
+		if ($icon !== '' && $icon !== ($current['icon_name'] ?? '') && !isset(file_display::icons()[$icon]))
+		{ throw new \DomainException('ACP_PLUS_DL_ICON_INVALID'); }
+		$row['icon_name'] = $icon;
+		if ($admin['approved'] !== null)
+		{
+			if (!$this->access->file_admin('approve')) { throw new \DomainException('NO_AUTH_OPERATION'); }
+			if (!in_array($admin['approved'],array('1','0'),true)) { throw new \DomainException('FORM_INVALID'); }
+			$row['approved'] = (int) $admin['approved'];
+		}
+		elseif (!$current) { $row['approved'] = 0; }
+		if ($admin['downloads'] !== null)
+		{
+			if (!preg_match('/^(?:0|[1-9][0-9]{0,9})$/D',$admin['downloads']) || $admin['downloads'] > 4294967295)
+			{ throw new \DomainException('ACP_PLUS_DL_COUNTER_INVALID'); }
+			if ($current && $admin['previous_downloads'] !== (string) $current['downloads'])
+			{ throw new \DomainException('ACP_PLUS_DL_COUNTER_CHANGED',409); }
+			$row['downloads'] = (int) $admin['downloads'];
+		}
+		return $row;
+	}
+
+	private function file_changes($form, $assets, $previous = null, $remove_preview = false, $admin_row = array())
 	{
 		$metadata = $previous ? json_decode($previous['source_json'], true) : array('poster_ip'=>$this->user->ip);
 		if (!is_array($metadata)) { throw new \RuntimeException('Could not read the existing download metadata.'); }
+		if ($admin_row)
+		{
+			$metadata['plus_posticon'] = $admin_row['icon_name'];
+			$metadata['plus_preview_link'] = $admin_row['preview_link'];
+		}
 		$metadata['file_longdesc'] = utf8_htmlspecialchars($form['description']);
 		$metadata['file_creator'] = utf8_htmlspecialchars($form['author']);
 		$metadata['file_version'] = utf8_htmlspecialchars($form['version']);
@@ -179,19 +216,20 @@ class submissions
 			if ($previous) { $this->media->queue($previous['preview_name']); }
 		}
 		$row['source_json'] = json_encode($metadata);
-		return $row;
+		return $row + $admin_row;
 	}
 
-	public function submit($category, $nonce, $form, $input, $file, $preview)
+	public function submit($category, $nonce, $form, $input, $file, $preview, $admin = null)
 	{
 		$category = (int) $category;
-		if (!$this->access->can_submit($category)) { throw new NotFoundHttpException(); }
+		if ($admin !== null && !$this->access->file_admin('edit')) { throw new \DomainException('NO_AUTH_OPERATION'); }
+		if ($admin === null && !$this->access->can_submit($category)) { throw new NotFoundHttpException(); }
 		if (!preg_match('/^[a-f0-9]{32}$/D', $nonce)) { throw new \DomainException('FORM_INVALID'); }
 		$file = $this->media->inspect($file, false);
 		$preview = $this->media->inspect($preview, true);
 		$this->validate($form, $file, $preview);
 		$owner = empty($this->user->data['is_registered']) ? 0 : (int) $this->user->data['user_id'];
-		$key = hash_hmac('sha256', 'submit:' . $this->user->session_id . ':' . $owner . ':' . $category . ':' . $nonce, $this->config['plus_download_media_key']);
+		$key = hash_hmac('sha256', ($admin === null ? 'submit:' : 'acp-submit:') . $this->user->session_id . ':' . $owner . ':' . $category . ':' . $nonce, $this->config['plus_download_media_key']);
 		$files = $this->prefix . 'files';
 		$receipts = $this->prefix . 'receipts';
 		$assets = array();
@@ -202,12 +240,21 @@ class submissions
 			$this->access->lock_catalogue(false);
 			$this->db->sql_query('UPDATE ' . $this->prefix . 'categories SET cat_id=cat_id WHERE cat_id=' . $category);
 			$this->access->refresh();
-			if (!$this->access->can_submit($category)) { throw new NotFoundHttpException(); }
+			$admin_row = array();
+			if ($admin !== null)
+			{
+				if (!$this->access->file_admin('edit',true)) { throw new \DomainException('NO_AUTH_OPERATION'); }
+				if (!$this->access->file_destination($category)) { throw new \DomainException('PLUS_DL_BAD_DESTINATION'); }
+				$admin_row = $this->admin_changes($admin,null);
+			}
+			elseif (!$this->access->can_submit($category)) { throw new NotFoundHttpException(); }
 			$this->check_license($form['license']);
 			$fields = $this->field_values($input,array(),$form['fields_revision']);
 			$identity = array();
 			foreach ($assets as $kind => $asset) { $identity[$kind] = $asset ? array($asset['name'], $asset['hash']) : null; }
-			$digest = hash('sha256', serialize(array($form, $fields, $identity)));
+			$payload = array($form,$fields,$identity);
+			if ($admin !== null) { $payload[] = $admin_row; }
+			$digest = hash('sha256',serialize($payload));
 			$result = $this->db->sql_query("SELECT file_id,payload_hash FROM $receipts WHERE request_key='$key'");
 			$saved = $this->db->sql_fetchrow($result);
 			$this->db->sql_freeresult($result);
@@ -224,10 +271,11 @@ class submissions
 			{
 				foreach ($assets as $asset) { $this->media->publish($asset); }
 				$approved = (string) $this->access->setting('need_validation', '1') === '0' || ($owner && $this->access->allows($category, 'mod'));
-				$row = $this->file_changes($form, $assets) + array('cat_id'=>$category, 'owner_id'=>$owner, 'approved'=>(int) $approved, 'added_at'=>time());
+				$row = $this->file_changes($form,$assets,null,false,$admin_row) + array('cat_id'=>$category, 'owner_id'=>$owner, 'approved'=>(int) $approved, 'added_at'=>time());
 				$this->db->sql_query("INSERT INTO $files " . $this->db->sql_build_array('INSERT', $row));
 				$id = (int) $this->db->sql_nextid();
 				$this->save_fields($id, $fields);
+				if ($admin !== null) { $this->log->add('admin',$owner,$this->user->ip,'LOG_PLUS_DL_FILE_CREATE',false,array($id)); }
 				$this->db->sql_query("INSERT INTO $receipts " . $this->db->sql_build_array('INSERT',
 					array('request_key'=>$key, 'payload_hash'=>$digest, 'file_id'=>$id, 'item_id'=>$id, 'created_at'=>time())));
 			}
@@ -240,30 +288,38 @@ class submissions
 		finally { foreach ($assets as $asset) { if ($asset) { $this->media->collect($asset['job']); } } }
 	}
 
-	public function edit($id, $category, $revision, $form, $input, $file, $preview, $remove_preview)
+	public function edit($id, $category, $revision, $form, $input, $file, $preview, $remove_preview, $admin = null)
 	{
 		// The revision makes replacements single-use. Only new submissions need content hashes for retries.
+		if ($admin !== null && !$this->access->file_admin('edit')) { throw new \DomainException('NO_AUTH_OPERATION'); }
 		$file = $this->media->inspect($file, false, false);
 		$preview = $this->media->inspect($preview, true, false);
 		$assets = array();
 		try
 		{
 			foreach (array('file'=>$file,'preview'=>$preview) as $kind => $part) { $assets[$kind] = $this->media->reserve($part); }
-			$this->access->write($id, function ($current) use ($id, $category, $revision, $form, $input, $assets, $remove_preview) {
-				if (!$this->access->can_manage($current, 'edit_file')) { throw new NotFoundHttpException(); }
+			$this->access->write($id, function ($current) use ($id, $category, $revision, $form, $input, $assets, $remove_preview, $admin) {
+				$admin_row = array();
+				if ($admin !== null)
+				{
+					if (!$this->access->file_destination($category)) { throw new \DomainException('PLUS_DL_BAD_DESTINATION'); }
+					$admin_row = $this->admin_changes($admin,$current);
+				}
+				elseif (!$this->access->can_manage($current, 'edit_file')) { throw new NotFoundHttpException(); }
 				if ((int) $current['review_revision'] !== $revision) { throw new \DomainException('PLUS_DL_EDIT_CHANGED', 409); }
-				if ((int) $current['cat_id'] !== $category && !$this->access->can_submit($category)) { throw new \DomainException('PLUS_DL_BAD_DESTINATION'); }
+				if ($admin === null && (int) $current['cat_id'] !== $category && !$this->access->can_submit($category)) { throw new \DomainException('PLUS_DL_BAD_DESTINATION'); }
 				$metadata = json_decode($current['source_json'], true);
 				$this->validate($form, $assets['file'], $assets['preview'], true, $remove_preview, $metadata);
 				if ((int) $current['license_id'] !== $form['license']) { $this->check_license($form['license']); }
 				$fields = $this->field_values($input,$this->saved_fields($id),$form['fields_revision']);
 				foreach ($assets as $asset) { $this->media->publish($asset); }
-				$row = $this->file_changes($form, $assets, $current, $remove_preview);
+				$row = $this->file_changes($form,$assets,$current,$remove_preview,$admin_row);
 				$row['review_revision'] = $revision + 1;
 				$row['cat_id'] = $category;
 				$this->db->sql_query('UPDATE ' . $this->prefix . 'files SET ' . $this->db->sql_build_array('UPDATE', $row) . ' WHERE file_id=' . (int) $id);
 				$this->save_fields($id, $fields, true);
-			});
+				if ($admin !== null) { $this->log->add('admin',$this->user->data['user_id'],$this->user->ip,'LOG_PLUS_DL_FILE_EDIT',false,array($id)); }
+			},$admin !== null);
 		}
 		catch (\Throwable $e)
 		{
@@ -304,7 +360,8 @@ class submissions
 
 	public function apply_file_action($action, $ids)
 	{
-		if (!$this->db->get_transaction() || !$this->access->file_admin($action)) { throw new \DomainException('NO_AUTH_OPERATION'); }
+		if (!in_array($action,array('approve','withdraw','delete'),true) || !$this->db->get_transaction() || !$this->access->file_admin($action))
+		{ throw new \DomainException('NO_AUTH_OPERATION'); }
 		if ($action === 'delete') { $this->purge($ids); }
 		else { $this->set_approval($ids,$action === 'approve'); }
 	}

@@ -1,6 +1,12 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_FILE_CREATE'=>'Download-Datei anlegen','ACP_PLUS_DL_ICON'=>'Dateisymbol','ACP_PLUS_DL_PIN'=>'Datei oben anheften',
+	'ACP_PLUS_DL_PREVIEW_LINK'=>'Lokales Vorschaubild als Link anzeigen','ACP_PLUS_DL_SET_COUNT'=>'Downloadzähler auf diesen Wert setzen',
+	'ACP_PLUS_DL_COUNTER_INVALID'=>'Gib einen gültigen ganzzahligen Downloadzähler ein.',
+	'ACP_PLUS_DL_COUNTER_CHANGED'=>'Der Downloadzähler hat sich inzwischen geändert. Lade den aktuellen Stand vor einer Korrektur.',
+	'ACP_PLUS_DL_ICON_INVALID'=>'Wähle eines der installierten Dateisymbole.',
+	'LOG_PLUS_DL_FILE_CREATE'=>'<strong>Download-Datei angelegt</strong><br>» %s','LOG_PLUS_DL_FILE_EDIT'=>'<strong>Download-Datei bearbeitet</strong><br>» %s',
 	'ACP_PLUS_DL_FILE_ACTIONS'=>'Download-Dateien verwalten','ACP_PLUS_DL_FILE_FILTER_ALL'=>'Alle Dateien',
 	'ACP_PLUS_DL_FILE_STATUS'=>'Status','ACP_PLUS_DL_FILE_ALL_CATEGORIES'=>'Alle Kategorien',
 	'ACP_PLUS_DL_FILE_FILTER_APPROVED'=>'Freigegeben','ACP_PLUS_DL_FILE_FILTER_PENDING'=>'Wartet auf Freigabe','ACP_PLUS_DL_FILE_FILTER_BROKEN'=>'Als defekt gemeldet',

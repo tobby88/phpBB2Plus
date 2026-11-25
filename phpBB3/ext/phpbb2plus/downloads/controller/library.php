@@ -3,6 +3,7 @@ namespace phpbb2plus\downloads\controller;
 
 use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\field_data;
+use phpbb2plus\downloads\service\file_display;
 use phpbb2plus\downloads\service\mirrors;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -18,8 +19,9 @@ class library
 	private $pagination;
 	private $feedback;
 	private $prefix;
+	private $paths;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $feedback, $prefix)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $feedback, $prefix, $paths)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -31,6 +33,7 @@ class library
 		$this->pagination = $pagination;
 		$this->feedback = $feedback;
 		$this->prefix = $prefix;
+		$this->paths = $paths;
 	}
 
 	private function nav($category = 0)
@@ -107,10 +110,11 @@ class library
 			$limit = max(1, min(100, (int) $this->access->setting('settings_file_page', 20)));
 			$start = $this->pagination->validate_start(max(0,$this->request->variable('start',0)), $limit, $total);
 			$this->pagination->generate_template_pagination($this->helper->route($route, $params + ($query !== '' ? array('q'=>$query) : array())), 'pagination', 'start', $total, $limit, $start);
-			$result = $this->db->sql_query_limit('SELECT file_id,title,summary,downloads,pinned' . $from . ' ORDER BY pinned DESC,added_at DESC,file_id DESC', $limit, $start);
+			$result = $this->db->sql_query_limit('SELECT file_id,title,summary,downloads,pinned,icon_name' . $from . ' ORDER BY pinned DESC,added_at DESC,file_id DESC', $limit, $start);
 			while ($f = $this->db->sql_fetchrow($result))
 			{
 				$this->template->assign_block_vars('dl_files', array('TITLE'=>access::plain($f['title']), 'SUMMARY'=>access::plain($f['summary']), 'DOWNLOADS'=>(int) $f['downloads'],
+					'ICON'=>file_display::icon_url($f['icon_name'],$this->paths->get_web_root_path()),
 					'URL'=>$this->helper->route('phpbb2plus_downloads_file', array('file'=>(int) $f['file_id']))));
 			}
 			$this->db->sql_freeresult($result);
@@ -137,6 +141,7 @@ class library
 				array('category'=>$cat, 'status'=>$f['approved'] ? 'published' : 'pending')));
 		}
 		$this->template->assign_vars(array('DL_TITLE'=>$title, 'DL_SUMMARY'=>access::plain($f['summary']), 'DL_DETAIL'=>access::plain($raw['file_longdesc'] ?? ''),
+			'DL_PREVIEW_LINK'=>(bool) $f['preview_link'],'DL_ICON'=>file_display::icon_url($f['icon_name'],$this->paths->get_web_root_path()),
 			'DL_CREATOR'=>access::plain($raw['file_creator'] ?? ''), 'DL_VERSION'=>access::plain($raw['file_version'] ?? ''), 'DL_COUNT'=>(int) $f['downloads'],
 			'DL_DATE'=>$this->user->format_date((int) $f['added_at']), 'DL_BYTES'=>(int) $f['file_bytes'], 'DL_PENDING'=>!$f['approved'], 'DL_BROKEN'=>(bool) $f['broken'],
 			'U_DL_DOCS'=>utf8_htmlspecialchars(access::external($raw['file_docsurl'] ?? '')), 'U_DL_PREVIEW'=>$f['preview_name'] ?

@@ -22,7 +22,8 @@ class file_actions
 
 	public function review($action, $ids, $lock = false)
 	{
-		if (!$this->access->file_admin($action)) { throw new \DomainException('NO_AUTH_OPERATION'); }
+		if (!in_array($action,array('approve','withdraw','delete'),true) || !$this->access->file_admin($action))
+		{ throw new \DomainException('NO_AUTH_OPERATION'); }
 		$ids = catalogue_selection::ids($ids,'ACP_PLUS_DL_FILE_SELECTION');
 		$where = ' WHERE ' . $this->db->sql_in_set('file_id',$ids);
 		$files = $this->prefix . 'files';

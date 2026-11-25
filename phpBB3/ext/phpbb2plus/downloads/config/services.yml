@@ -25,7 +25,7 @@ services:
         arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.submissions', '@dbal.conn', '@request', '@user', '@controller.helper', '@template', '@language', '@pagination', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.submissions:
         class: phpbb2plus\downloads\service\submissions
-        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.media', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_dl_']
+        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.media', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_dl_', '@log']
     phpbb2plus.downloads.media:
         class: phpbb2plus\downloads\service\media
         arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%']
@@ -46,7 +46,7 @@ services:
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.library:
         class: phpbb2plus\downloads\controller\library
-        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@phpbb2plus.downloads.feedback', '%core.table_prefix%plus_dl_']
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@phpbb2plus.downloads.feedback', '%core.table_prefix%plus_dl_', '@path_helper']
     phpbb2plus.downloads.feedback:
         class: phpbb2plus\downloads\service\feedback
         arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@config', '@text_formatter.renderer', '%core.table_prefix%plus_dl_']

@@ -7,6 +7,25 @@ from http_board import Browser, Page, admin_url, login, submit_form
 from knowledgebase import acp_panel
 
 
+def english_file_panel(base, username):
+    delegate = login(base, username, os.environ["PLUS_TEST_MODERN_PASSWORD"])
+    entry = admin_url(delegate)
+    form = delegate.fetch(entry)
+    challenge = Page(form).forms["login"][1]["credential"]
+    signed = submit_form(delegate, entry, form, "login", {"username": username, "login": "1",
+                         "password_" + challenge: os.environ["PLUS_TEST_MODERN_PASSWORD"]})
+    tab = re.search(r'<a href="([^"]+)">Extensions</a>', signed)
+    if not tab:
+        tab = re.search(r'<a href="([^"]+)">Extensions</a>', delegate.fetch(entry))
+    if not tab:
+        raise RuntimeError("The English native Extensions tab is missing for the limited file administrator")
+    menu = delegate.fetch(urljoin(entry, unescape(tab[1])))
+    match = re.search(r'<a href="([^"]+)"><span>Manage download files</span>', menu)
+    if not match:
+        raise RuntimeError("The English download file action panel is missing")
+    return delegate, urljoin(entry, unescape(match[1]))
+
+
 def administration(owner, member, verify):
     verify("installed")
     verify("seed")
@@ -30,22 +49,7 @@ def administration(owner, member, verify):
     if "Alle Kategorien" not in second or "{ STATUS }" in second:
         raise RuntimeError("The German file filter labels did not render")
 
-    delegate = login(owner.base, "DownloadFileDelegate", os.environ["PLUS_TEST_MODERN_PASSWORD"])
-    entry = admin_url(delegate)
-    form = delegate.fetch(entry)
-    challenge = Page(form).forms["login"][1]["credential"]
-    signed = submit_form(delegate, entry, form, "login", {"username": "DownloadFileDelegate", "login": "1",
-                         "password_" + challenge: os.environ["PLUS_TEST_MODERN_PASSWORD"]})
-    tab = re.search(r'<a href="([^"]+)">Extensions</a>', signed)
-    if not tab:
-        tab = re.search(r'<a href="([^"]+)">Extensions</a>', delegate.fetch(entry))
-    if not tab:
-        raise RuntimeError("The English native Extensions tab is missing for the limited file administrator")
-    menu = delegate.fetch(urljoin(entry, unescape(tab[1])))
-    match = re.search(r'<a href="([^"]+)"><span>Manage download files</span>', menu)
-    if not match:
-        raise RuntimeError("The English download file action panel is missing")
-    limited = urljoin(entry, unescape(match[1]))
+    delegate, limited = english_file_panel(owner.base, "DownloadFileDelegate")
     guest = Browser(owner.base)
     item = "app.php/downloads/file/"
 

@@ -1,6 +1,12 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_FILE_CREATE'=>'Create download file','ACP_PLUS_DL_ICON'=>'File icon','ACP_PLUS_DL_PIN'=>'Pin this file to the top',
+	'ACP_PLUS_DL_PREVIEW_LINK'=>'Show the local preview as a link','ACP_PLUS_DL_SET_COUNT'=>'Set download count to this value',
+	'ACP_PLUS_DL_COUNTER_INVALID'=>'Enter a valid whole download count.',
+	'ACP_PLUS_DL_COUNTER_CHANGED'=>'The download count has changed. Reload the current count before correcting it.',
+	'ACP_PLUS_DL_ICON_INVALID'=>'Choose one of the installed file icons.',
+	'LOG_PLUS_DL_FILE_CREATE'=>'<strong>Created download file</strong><br>» %s','LOG_PLUS_DL_FILE_EDIT'=>'<strong>Edited download file</strong><br>» %s',
 	'ACP_PLUS_DL_FILE_ACTIONS'=>'Manage download files','ACP_PLUS_DL_FILE_FILTER_ALL'=>'All files',
 	'ACP_PLUS_DL_FILE_STATUS'=>'Status','ACP_PLUS_DL_FILE_ALL_CATEGORIES'=>'All categories',
 	'ACP_PLUS_DL_FILE_FILTER_APPROVED'=>'Approved','ACP_PLUS_DL_FILE_FILTER_PENDING'=>'Awaiting approval','ACP_PLUS_DL_FILE_FILTER_BROKEN'=>'Reported broken',

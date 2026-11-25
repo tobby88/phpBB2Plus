@@ -167,6 +167,7 @@ function plus_dl_rows($short, $r, $subjects)
 				'last_download'=>(int) $r['file_last'], 'downloads'=>max(0,(int) $r['file_dls']), 'pinned'=>(bool) $r['file_pin'],
 				'approved'=>(int) $r['file_approved'] === 1, 'broken'=>(bool) $r['file_broken']);
 			$media = plus_dl_asset('file', $r['file_id'], $r);
+			$data += \phpbb2plus\downloads\service\file_display::imported($r);
 			unset($media['mime']);
 			$data += $media;
 			if (!empty($r['file_ssurl']))
