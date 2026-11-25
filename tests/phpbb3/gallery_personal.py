@@ -5,7 +5,7 @@ import time
 from urllib.parse import urljoin, urlsplit
 
 from gallery import ORIGINAL, submit
-from http_board import Browser, FormFields, Page, submit_form
+from http_board import Browser, FormFields, Page, admin_url, submit_form
 
 
 def browse(base, administrator, member, owner, check):
@@ -19,7 +19,9 @@ def browse(base, administrator, member, owner, check):
         raise RuntimeError("A personal bookmark lost its remapped owner or the historical guest collection")
     member.fetch(bookmark + "-1", expected_status=404)
     guest.fetch(bookmark + "1", expected_status=404)
-    guest.fetch(bookmark + "0", expected_status=404)
+    for source in ("0", "-1"):
+        if "login" not in Page(guest.fetch(bookmark + source)).forms:
+            raise RuntimeError("A personal bookmark for the current member did not offer native sign-in")
     owner.fetch(start, expected_status=404)
     guest.fetch(directory, expected_status=404)
     if "/album/member/87" in guest.fetch("memberlist.php?mode=viewprofile&u=87"):
@@ -118,3 +120,41 @@ def browse(base, administrator, member, owner, check):
     owner.fetch(folder(b), expected_status=404)
     check("complete")
     check("restore")
+    configuration(administrator, owner, guest, root)
+    check("inactive")
+    guest.fetch(directory, expected_status=404)
+    if "/album/member/87" in guest.fetch(folder(root)) or "(DepartingFixture)" in guest.fetch("app.php/album"):
+        raise RuntimeError("An inactive owner still has an advertised member directory")
+    check("active")
+
+
+def configuration(administrator, owner, guest, root):
+    entry = admin_url(administrator)
+    menu = administrator.fetch(entry + "&i=acp_board&mode=settings")
+    link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Persönliche Fotoalben</span>', menu)
+    if not link:
+        raise RuntimeError("The administrator cannot reach the album rules from board configuration")
+    url = urljoin(entry, unescape(link[1]))
+    form = "album-personal-settings"
+    first = administrator.fetch(url)
+    original = {key: value for key, value in FormFields(first, form).values.items()
+                if key.startswith("personal_") or key == "show_personal_gallery_link"}
+    if original.get("personal_gallery_view") != "3" or len(original) != 7:
+        raise RuntimeError("Converted personal album controls are missing or have changed defaults")
+    changes = {"personal_gallery": "1", "personal_gallery_view": "0", "show_personal_gallery_link": "0", "personal_sub_category_limit": "0"}
+    result = submit_form(administrator, url, first, form, dict(changes, personal_gallery_limit="2147483648"))
+    if ("Prüfe den Wert für" not in result or FormFields(result, form).values["personal_gallery"] != "1" or
+            FormFields(administrator.fetch(url), form).values["personal_gallery"] != original["personal_gallery"]):
+        raise RuntimeError("An invalid album quota partially changed another policy")
+    submit_form(administrator, url, first, form, changes)
+    if "inzwischen geändert" not in submit_form(administrator, url, first, form, original):
+        raise RuntimeError("An old administration form changed current album rules")
+    profile = "memberlist.php?mode=viewprofile&u=87"
+    category = "app.php/album/category/" + root
+    if "/album/member/87" in guest.fetch(profile) or "Album transfer" not in guest.fetch(category):
+        raise RuntimeError("The profile link switch changed visibility of an existing gallery")
+    owner.fetch(category + "/upload", expected_status=404)
+    saved = submit_form(administrator, url, administrator.fetch(url), form, original)
+    if (FormFields(saved, form).values["personal_gallery"] != original["personal_gallery"] or
+            "/album/member/87" not in guest.fetch(profile) or "album-upload" not in Page(owner.fetch(category + "/upload")).forms):
+        raise RuntimeError("Restoring the album settings did not restore profile links and owner uploads")

@@ -65,7 +65,8 @@ class board
 		$cat = $id ? $this->access->category($id) : null;
 		$this->breadcrumbs($cat);
 		$result = $this->db->sql_query('SELECT c.*,u.username AS owner_name FROM ' . $this->prefix . 'cats c
-			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.owner_id WHERE c.parent_id=' . $id . ' ORDER BY c.sort_order,c.cat_id');
+			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.owner_id AND ' . $this->db->sql_in_set('u.user_type', array(USER_NORMAL, USER_FOUNDER)) .
+			' WHERE c.parent_id=' . $id . ' ORDER BY c.sort_order,c.cat_id');
 		$children = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
 		foreach ($children as $child)
@@ -102,7 +103,7 @@ class board
 		}
 		$title = $cat ? $cat['title'] : $this->language->lang('PLUS_ALBUM');
 		$owner = $cat ? (int) $cat['owner_id'] : (int) $this->user->data['user_id'];
-		if ($owner > ANONYMOUS && ($cat || $this->personal->available($owner)))
+		if ($owner > ANONYMOUS && $this->personal->available($owner))
 		{ $this->template->assign_var('U_ALBUM_PERSONAL', $this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner))); }
 		if ($cat && empty($this->user->data['is_bot']) && $this->access->allows($cat, 'upload'))
 		{

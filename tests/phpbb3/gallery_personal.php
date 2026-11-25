@@ -47,6 +47,11 @@ elseif ($argv[2] === 'disable' || $argv[2] === 'enable')
 {
 	album_fixture_config('personal_allow_sub_categories', $argv[2] === 'disable' ? '0' : '1');
 }
+elseif ($argv[2] === 'inactive' || $argv[2] === 'active')
+{
+	$type = $argv[2] === 'inactive' ? USER_INACTIVE : USER_NORMAL;
+	$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_type=$type WHERE user_id=87 AND username='DepartingFixture'");
+}
 elseif ($argv[2] === 'complete')
 {
 	$roots = (int) album_fixture_value("SELECT COUNT(*) FROM {$g}cats WHERE owner_id=87 AND parent_id=0");

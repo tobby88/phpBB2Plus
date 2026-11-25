@@ -18,14 +18,14 @@ class personal
 		$this->prefix = $prefix;
 	}
 
-	public function owner($id)
+	public function owner($id, $required = true)
 	{
 		if ($id <= ANONYMOUS) { throw new NotFoundHttpException(); }
 		$result = $this->db->sql_query('SELECT user_id,username FROM ' . USERS_TABLE . ' WHERE user_id=' . (int) $id .
 			' AND ' . $this->db->sql_in_set('user_type', array(USER_NORMAL, USER_FOUNDER)));
 		$row = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
-		if (!$row) { throw new NotFoundHttpException(); }
+		if (!$row && $required) { throw new NotFoundHttpException(); }
 		return $row;
 	}
 
@@ -75,7 +75,7 @@ class personal
 
 	public function available($owner)
 	{
-		if ($owner <= ANONYMOUS) { return false; }
+		if ($owner <= ANONYMOUS || !$this->owner($owner, false)) { return false; }
 		$roots = $this->roots($owner);
 		if (!$roots) { return $this->access->may_create_personal($owner); }
 		foreach ($roots as $cat) { if ($this->access->visible($cat)) { return true; } }

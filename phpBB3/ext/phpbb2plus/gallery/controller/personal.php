@@ -33,7 +33,10 @@ class personal
 	{
 		$source = (int) $source;
 		$category = 0;
-		if ($source < 1 && empty($this->user->data['is_registered'])) { throw new NotFoundHttpException(); }
+		if ($source < 1 && empty($this->user->data['is_registered']))
+		{
+			login_box($this->helper->route('phpbb2plus_gallery_personal_legacy', array('source' => $source), false));
+		}
 		if ($source === -1) { $category = $this->service->historical_guest_root(); }
 		if ($category) { $this->access->category($category); }
 		else

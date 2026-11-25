@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.gallery.personal_settings:
+        class: phpbb2plus\gallery\service\personal_settings
+        arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '%core.table_prefix%plus_album_settings']
     phpbb2plus.gallery.personal:
         class: phpbb2plus\gallery\service\personal
         arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.pictures', '%core.table_prefix%plus_album_']
