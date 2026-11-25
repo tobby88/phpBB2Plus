@@ -28,6 +28,9 @@ switch ($argv[1])
 	case 'markers-upgrade':
 		require __DIR__ . '/removed_topics.php';
 		break;
+	case 'markers-prune':
+		require __DIR__ . '/prune_markers.php';
+		break;
 	case 'markers-deny':
 	case 'markers-allow':
 		$rights->acl_set('user', 15, (int) $member['user_id'], array('f_print' => $argv[1] === 'markers-deny' ? ACL_NEVER : ACL_NO));

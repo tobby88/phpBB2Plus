@@ -81,6 +81,7 @@ def browse(base, owner, member, fixture):
         fixture("markers-allow")
     try:
         fixture("markers-upgrade")
+    fixture("markers-prune")
         for target in ("app.php/topic/805102/removed", "app.php/topic/805103/removed", "app.php/topic/805102/print",
                        "export.php?t=805103", "viewtopic.php?t=805102"):
             inaccessible(guest, target)

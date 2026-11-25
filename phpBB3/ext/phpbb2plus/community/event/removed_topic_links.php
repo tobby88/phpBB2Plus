@@ -30,12 +30,19 @@ class removed_topic_links implements EventSubscriberInterface
 			'core.viewforum_get_announcement_topic_ids_data' => 'before_announcements',
 			'core.phpbb_content_visibility_is_visible' => 'announcement', 'core.viewforum_modify_topicrow' => 'caption',
 			'core.viewtopic_post_rowset_data' => 'source_flag', 'core.viewtopic_modify_post_row' => array('erased_post', -100),
-			'core.search_modify_submit_parameters' => 'search_start',
+			'core.search_modify_submit_parameters' => 'search_start', 'core.prune_sql' => 'retain_erased_topics',
 			'core.phpbb_content_visibility_get_global_visibility_before' => array('search_scope', -100));
 	}
 	private function readable($forum)
 	{
 		return $forum && $this->auth->acl_get('f_list', $forum) && $this->auth->acl_get('f_read', $forum);
+	}
+
+	public function retain_erased_topics($event)
+	{
+		// These records preserve historical links. Plus age pruning skipped
+		// topics with no remaining posts, even when permanent removal was enabled.
+		$event['sql_and'] .= ' AND plus_legacy_removed=0';
 	}
 
 	public function topic($event)
