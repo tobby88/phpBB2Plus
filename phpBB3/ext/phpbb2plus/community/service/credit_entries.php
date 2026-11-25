@@ -36,9 +36,22 @@ class credit_entries
 		return preg_match('~^https?://~i', $value) && filter_var($value, FILTER_VALIDATE_URL) ? $value : '';
 	}
 
-	public function may_manage()
+	public function may_manage($reload = false)
 	{
-		return defined('IN_ADMIN') && IN_ADMIN && !empty($this->user->data['session_admin']) && $this->auth->acl_get('a_plus_credits');
+		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) || empty($this->user->data['session_admin']) ||
+			!empty($this->user->data['user_perm_from'])) { return false; }
+		if ($reload)
+		{
+			$actor = $this->row('SELECT u.*,s.session_admin FROM ' . USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE .
+				" s ON s.session_user_id=u.user_id WHERE s.session_id='" . $this->db->sql_escape($this->user->session_id) .
+				"' AND u.user_id=" . (int) $this->user->data['user_id']);
+			if (!$actor || !$actor['session_admin'] || $actor['user_perm_from'] ||
+				!in_array((int) $actor['user_type'], array(USER_NORMAL, USER_FOUNDER), true)) { return false; }
+			$actor['is_registered'] = true;
+			$actor['is_bot'] = false;
+			$this->auth->acl($actor);
+		}
+		return $this->auth->acl_get('a_plus_credits');
 	}
 
 	private function row($sql)
@@ -121,7 +134,7 @@ class credit_entries
 		{
 			// Serialize catalogue mutations even when it has no rows yet.
 			$sequence = $this->sequence(true);
-			if (!$this->may_manage()) { throw new \DomainException('NO_AUTH_OPERATION'); }
+			if (!$this->may_manage(true)) { throw new \DomainException('NO_AUTH_OPERATION'); }
 			$row = $id ? $this->find($id) : array();
 			if (($id && !$row) || (int) $revision !== ($id ? (int) $row['revision'] : $sequence)) { throw new \DomainException('ACP_PLUS_CREDIT_CHANGED'); }
 			if ($action === 'delete') { $this->db->sql_query('DELETE FROM ' . $this->table . ' WHERE credit_id=' . $id); }
