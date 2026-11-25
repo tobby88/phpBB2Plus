@@ -2,6 +2,13 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ALBUM_CATEGORIES' => 'Photo categories',
+	'ACP_PLUS_ALBUM_DISPLAY' => 'Photo category previews',
+	'LOG_PLUS_ALBUM_DISPLAY' => '<strong>Changed photo category previews</strong>',
+	'PLUS_ALBUM_CFG_DISPLAY_EXPLAIN' => 'The preview shows the most recent visible pictures from the selected category and its subalbums.',
+	'PLUS_ALBUM_CFG_SHOW_RECENT_IN_SUBCATS' => 'Show a preview above pictures in shared categories',
+	'PLUS_ALBUM_CFG_SHOW_RECENT_INSTEAD_OF_NOPICS' => 'Show pictures from subalbums in empty shared categories',
+	'PLUS_ALBUM_CFG_PERSONAL_SHOW_RECENT_IN_SUBCATS' => 'Show a preview above pictures in personal categories',
+	'PLUS_ALBUM_CFG_PERSONAL_SHOW_RECENT_INSTEAD_OF_NOPICS' => 'Show pictures from subalbums in empty personal categories',
 	'ACP_PLUS_ALBUM_AUTH' => 'Photo category group permissions',
 	'ACP_PLUS_PERSONAL_GRANTS' => 'Group permissions for personal albums', 'PLUS_PERSONAL_GRANTS_SELECT' => 'Choose a group',
 	'PLUS_ALBUM_GRANT_CREATE' => 'Create a personal album', 'PLUS_PERSONAL_GRANTS_CREATION' => 'When album creation is restricted, approved group members can use this native permission to start their own album.',

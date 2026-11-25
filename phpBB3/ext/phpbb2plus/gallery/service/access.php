@@ -215,10 +215,59 @@ class access
 		$allowed = array();
 		foreach ($this->categories as $id => $category)
 		{
-			if (!$category || (!$personal && ($category['source_owner'] || $category['owner_id'])) || ($selected && !isset($selected[$id]))) { continue; }
+			if (!$category || (!$personal && $this->personal_category($category)) || ($selected && !isset($selected[$id]))) { continue; }
 			if ($this->visible($category)) { $allowed[] = $id; }
 		}
 		return $allowed;
+	}
+
+	public function personal_category($category)
+	{
+		return $category['owner_id'] || $category['source_owner'] || $category['legacy_guest_root'];
+	}
+
+	public function visible_subtree($root)
+	{
+		$id = (int) $root['cat_id'];
+		$owner = (int) $root['owner_id'];
+		$scope = 'owner_id=' . $owner;
+		if ($owner <= ANONYMOUS) { $scope .= ' AND source_owner=' . (int) $root['source_owner']; }
+		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'cats WHERE ' . $scope);
+		$children = array();
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$child = (int) $row['cat_id'];
+			$this->categories[$child] = self::category_labels($row);
+			$children[(int) $row['parent_id']][] = $child;
+		}
+		$this->db->sql_freeresult($result);
+		// The caller has opened the root. A hidden parent ends the entire branch.
+		$visible = array($id => true);
+		$queue = array($id);
+		while ($queue)
+		{
+			$parent = array_pop($queue);
+			foreach ($children[$parent] ?? array() as $child)
+			{
+				if (isset($visible[$child]) || !$this->allows($this->categories[$child], 'view')) { continue; }
+				$visible[$child] = true;
+				$queue[] = $child;
+			}
+		}
+		return array_keys($visible);
+	}
+
+	/** Categories have already passed their full ancestor visibility check. */
+	public function picture_filter($categories)
+	{
+		if (!$categories) { return '1=0'; }
+		$pending = array();
+		foreach ($categories as $id)
+		{
+			if ($this->pending_visible($this->category_row($id))) { $pending[] = $id; }
+		}
+		return $this->db->sql_in_set('p.cat_id', $categories) . ' AND (p.approved=1' .
+			($pending ? ' OR ' . $this->db->sql_in_set('p.cat_id', $pending) : '') . ')';
 	}
 
 	public function category($id)

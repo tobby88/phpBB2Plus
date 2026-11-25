@@ -89,7 +89,8 @@ def browse(admin, member, delegate, guest, personal, check):
     entry = admin_url(delegate)  # Native ACP authentication rotates the session ID.
     menu = delegate.fetch(entry)
     narrow = module(entry, menu)
-    if "Fotoalbum-Uploads</span>" in menu or "Persönliche Fotoalben</span>" in menu or form in Page(delegate.fetch(action(narrow, "edit", personal))).forms:
+    if (any(label + "</span>" in menu for label in ("Fotoalbum-Uploads", "Persönliche Fotoalben", "Vorschau in Fotokategorien")) or
+            form in Page(delegate.fetch(action(narrow, "edit", personal))).forms):
         raise RuntimeError("The category-only grant also opened another gallery control")
     save(delegate, narrow, "edit", child2, {"description":"Delegierte Bearbeitung"})
     if "Delegierte Bearbeitung" not in guest.fetch(category(root)):

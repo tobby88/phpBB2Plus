@@ -2,6 +2,13 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ALBUM_CATEGORIES' => 'Fotokategorien',
+	'ACP_PLUS_ALBUM_DISPLAY' => 'Vorschau in Fotokategorien',
+	'LOG_PLUS_ALBUM_DISPLAY' => '<strong>Vorschau in Fotokategorien geändert</strong>',
+	'PLUS_ALBUM_CFG_DISPLAY_EXPLAIN' => 'Die Vorschau zeigt die neuesten sichtbaren Bilder der gewählten Kategorie und ihrer Unteralben.',
+	'PLUS_ALBUM_CFG_SHOW_RECENT_IN_SUBCATS' => 'Vorschau über den Bildern gemeinsamer Kategorien anzeigen',
+	'PLUS_ALBUM_CFG_SHOW_RECENT_INSTEAD_OF_NOPICS' => 'In leeren gemeinsamen Kategorien Bilder aus Unteralben anzeigen',
+	'PLUS_ALBUM_CFG_PERSONAL_SHOW_RECENT_IN_SUBCATS' => 'Vorschau über den Bildern persönlicher Kategorien anzeigen',
+	'PLUS_ALBUM_CFG_PERSONAL_SHOW_RECENT_INSTEAD_OF_NOPICS' => 'In leeren persönlichen Kategorien Bilder aus Unteralben anzeigen',
 	'ACP_PLUS_ALBUM_AUTH' => 'Gruppenrechte für Fotokategorien',
 	'ACP_PLUS_PERSONAL_GRANTS' => 'Gruppenrechte für persönliche Fotoalben', 'PLUS_PERSONAL_GRANTS_SELECT' => 'Gruppe auswählen',
 	'PLUS_ALBUM_GRANT_CREATE' => 'Ein persönliches Album anlegen', 'PLUS_PERSONAL_GRANTS_CREATION' => 'Ist das Anlegen eingeschränkt, können bestätigte Gruppenmitglieder mit dieser nativen Berechtigung ein eigenes Album eröffnen.',

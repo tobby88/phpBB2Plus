@@ -1,7 +1,7 @@
 <!-- INCLUDE overall_header.html -->
 <h1>{{ ALBUM_SETTINGS_TITLE|e }}</h1>
 {% if ALBUM_ERROR %}<div class="errorbox"><p>{{ ALBUM_ERROR|e }}</p></div>{% elseif S_SAVED %}<div class="successbox"><p>{L_CONFIG_UPDATED}</p></div>{% endif %}
-<form id="album-{% if S_MEDIA %}media{% else %}personal{% endif %}-settings" action="{U_ACTION}" method="post">
+<form id="album-{{ ALBUM_SETTINGS_SECTION }}-settings" action="{U_ACTION}" method="post">
 <fieldset><legend>{{ ALBUM_SETTINGS_TITLE|e }}</legend>
 <p>{{ ALBUM_SETTINGS_EXPLAIN|e }}</p>
 {% if S_ZIP_MISSING %}<p>{L_PLUS_ALBUM_CFG_ZIP_MISSING}</p>{% endif %}

@@ -8,16 +8,18 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 class AlbumPage(HTMLParser):
     def __init__(self, html):
         super().__init__()
-        self.grid = False
+        self.grid = ""
         self.pictures, self.neighbours, self.pages, self.categories = {}, {}, {}, []
+        self.recent, self.grids = {}, []
         self.comments, self.methods = [], []
         self.select = ""
         self.feed(html)
 
     def handle_starttag(self, tag, pairs):
         attrs = dict(pairs)
-        if tag == "ul" and "plus-album-grid" in attrs.get("class", "").split():
-            self.grid = True
+        if tag == "section" and "data-album-grid" in attrs:
+            self.grid = attrs["data-album-grid"]
+            self.grids.append(self.grid)
         if tag == "select":
             self.select = attrs.get("id", "")
         if tag == "option" and self.select == "album-sort-method":
@@ -29,8 +31,10 @@ class AlbumPage(HTMLParser):
         address = attrs["href"]
         where = urlsplit(address)
         match = re.search(r"/album/picture/(\d+)$", where.path)
-        if self.grid and match:
+        if self.grid == "category" and match:
             self.pictures[int(match[1])] = address
+        if self.grid == "recent" and match:
+            self.recent[int(match[1])] = address
         if match and attrs.get("rel") in {"prev", "next"}:
             self.neighbours[attrs["rel"]] = (int(match[1]), address)
         offsets = parse_qs(where.query).get("start")
@@ -40,8 +44,8 @@ class AlbumPage(HTMLParser):
                 self.pages[int(offsets[0])] = address
 
     def handle_endtag(self, tag):
-        if tag == "ul":
-            self.grid = False
+        if tag == "section":
+            self.grid = ""
         elif tag == "select":
             self.select = ""
 

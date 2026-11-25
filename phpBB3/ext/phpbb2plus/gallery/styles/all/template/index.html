@@ -17,7 +17,7 @@
 </ul></section>
 {% endif %}
 {% for grid in loops.album_grids %}
-<section class="plus-album-block" aria-labelledby="album-grid-{{ loop.index }}">
+<section class="plus-album-block" data-album-grid="{% if grid.S_CATEGORY %}category{% elseif grid.S_RECENT %}recent{% else %}featured{% endif %}" aria-labelledby="album-grid-{{ loop.index }}">
 <h3 class="plus-album-heading" id="album-grid-{{ loop.index }}">{{ grid.HEADING }}</h3>
 {% if grid.pictures %}
 <ul class="plus-album-grid" style="--album-columns:{{ grid.COLUMNS }}; --album-mobile-columns:{{ grid.MOBILE_COLUMNS }}">
@@ -32,7 +32,7 @@
 {% endfor %}</ul>
 {% else %}<p class="plus-album-empty">{L_PLUS_ALBUM_EMPTY}</p>{% endif %}</section>
 {% endfor %}
-{% if not loops.album_grids and not loops.album_categories %}
+{% if not loops.album_grids and (ALBUM_CATEGORY_ID or not loops.album_categories) %}
 <p class="panel plus-album-empty">{L_PLUS_ALBUM_EMPTY}</p>
 {% endif %}
 {% if U_ALBUM_SORT %}

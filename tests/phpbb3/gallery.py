@@ -18,6 +18,11 @@ ORIGINAL = png(40, 24, b"\x17\x84\x66")
 IMPORTED_THUMB = png(16, 10, b"\x21\x48\xca")
 
 
+def category_grid(page):
+    section = re.search(r'<section\b[^>]* data-album-grid="category"[^>]*>(.*?)</section>', page, re.S)
+    return section[1] if section else ""
+
+
 def source_media(legacy):
     uploads = legacy / "album_mod/upload"
     uploads.mkdir(parents=True, exist_ok=True)
@@ -99,7 +104,7 @@ def uploads(base, guest, moderator, member):
     category = "app.php/album/category/1"
     public, staff = guest.fetch(category), moderator.fetch(category)
     for name in ("Mehrfachprobe A", "Mehrfachprobe B"):
-        if name in public or staff.count(name) != 1:
+        if name in public or category_grid(staff).count(name) != 1:
             raise RuntimeError("Retried album publication changed data or visibility")
     action, params = fields()
     response = member.fetch(action, params, expected_status=422, files=pictures)

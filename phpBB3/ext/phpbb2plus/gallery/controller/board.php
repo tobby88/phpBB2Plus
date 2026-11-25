@@ -68,18 +68,21 @@ class board
 		return $start;
 	}
 
-	private function picture_grid($heading, $columns, $where, $order, $limit, $start = 0, $context = array())
+	private function picture_grid($heading, $columns, $where, $order, $limit, $start = 0, $context = array(), $show_empty = true)
 	{
-		$this->template->assign_block_vars('album_grids', array('HEADING' => $this->language->lang($heading),
-			'COLUMNS' => $columns, 'MOBILE_COLUMNS' => min(2, $columns)));
-		if ($where === '') { return; }
 		$rate = (int) $this->access->setting('rate', 1) === 1;
 		$rating = $rate || $heading === 'PLUS_ALBUM_HIGHEST' ? ',(SELECT COALESCE(AVG(r.points),0) FROM ' . $this->prefix .
 			'ratings r WHERE r.pic_id=p.pic_id AND r.points>0) AS rating' : '';
 		$result = $this->db->sql_query_limit('SELECT p.pic_id,p.title,p.created_at,p.views,p.author_id,p.author_name,p.author_removed,p.storage_name,
 			u.username,u.user_colour' . $rating . ' FROM ' . $this->prefix . 'pics p LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=p.author_id
 			WHERE ' . $where . ' ORDER BY ' . $order, $limit, $start);
-		while ($pic = $this->db->sql_fetchrow($result))
+		$pictures = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+		if (!$pictures && !$show_empty) { return; }
+		$this->template->assign_block_vars('album_grids', array('HEADING' => $this->language->lang($heading),
+			'S_CATEGORY' => $heading === 'PLUS_ALBUM_PICTURES', 'S_RECENT' => $heading === 'PLUS_ALBUM_RECENT',
+			'COLUMNS' => $columns, 'MOBILE_COLUMNS' => min(2, $columns)));
+		foreach ($pictures as $pic)
 		{
 			$params = array('picture' => (int) $pic['pic_id']);
 			$this->template->assign_block_vars('album_grids.pictures', array('TITLE' => $pic['title'],
@@ -89,7 +92,13 @@ class board
 				'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params + $context),
 				'U_THUMB' => $pic['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small')) : ''));
 		}
-		$this->db->sql_freeresult($result);
+	}
+
+	private function preview_dimensions()
+	{
+		$columns = max(1, min(20, (int) $this->access->setting('img_cols', 4, 'sp')));
+		$rows = max(1, min(100, (int) $this->access->setting('img_rows', 2, 'sp')));
+		return array($columns, min(100, $rows * $columns));
 	}
 
 	private function home_grids()
@@ -100,26 +109,26 @@ class board
 			if ((int) $this->access->setting($setting, 1, 'sp') === 1) { $enabled[$setting] = $heading; }
 		}
 		if (!$enabled) { return; }
-		$columns = max(1, min(20, (int) $this->access->setting('img_cols', 4, 'sp')));
-		$rows = max(1, min(100, (int) $this->access->setting('img_rows', 2, 'sp')));
+		list($columns, $limit) = $this->preview_dimensions();
 		$categories = $this->access->portal_categories(false, array());
-		$where = '';
-		if ($categories)
-		{
-			$pending = array();
-			foreach ($categories as $id)
-			{
-				if ($this->access->pending_visible($this->access->category_row($id))) { $pending[] = $id; }
-			}
-			$where = $this->db->sql_in_set('p.cat_id', $categories) . " AND p.storage_name<>'' AND (p.approved=1" .
-				($pending ? ' OR ' . $this->db->sql_in_set('p.cat_id', $pending) : '') . ')';
-		}
+		$where = $this->access->picture_filter($categories) . " AND p.storage_name<>''";
 		$random = in_array($this->db->get_sql_layer(), array('postgres', 'sqlite3'), true) ? 'RANDOM()' : 'RAND()';
 		$sort = array('disp_late' => 'p.created_at DESC,p.pic_id DESC', 'disp_high' => 'rating DESC,' . $random, 'disp_rand' => $random);
 		foreach ($enabled as $setting => $heading)
 		{
-			$this->picture_grid($heading, $columns, $where, $sort[$setting], min(100, $rows * $columns));
+			$this->picture_grid($heading, $columns, $where, $sort[$setting], $limit);
 		}
+	}
+
+	private function category_preview($cat, $total, $has_children)
+	{
+		$personal = $this->access->personal_category($cat);
+		$option = ($personal ? 'personal_' : '') . ($total ? 'show_recent_in_subcats' : 'show_recent_instead_of_nopics');
+		if ((!$total && !$has_children) || (int) $this->access->setting($option, 1) !== 1) { return; }
+		$categories = $has_children ? $this->access->visible_subtree($cat) : array((int) $cat['cat_id']);
+		list($columns, $limit) = $this->preview_dimensions();
+		$this->picture_grid('PLUS_ALBUM_RECENT', $columns, $this->access->picture_filter($categories) . " AND p.storage_name<>''",
+			'p.created_at DESC,p.pic_id DESC', $limit, 0, array(), !$personal || $total > 0);
 	}
 
 	public function index($category = 0)
@@ -132,9 +141,11 @@ class board
 			' WHERE c.parent_id=' . $id . ' ORDER BY c.sort_order,c.cat_id');
 		$children = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
+		$has_children = false;
 		foreach ($children as $child)
 		{
 			if (!$this->access->visible($child)) { continue; }
+			$has_children = true;
 			$child = $this->access->category_labels($child);
 			$this->template->assign_block_vars('album_categories', array('TITLE' => $child['title'], 'DESCRIPTION' => $child['description'],
 				'OWNER' => !$id && (int) $child['owner_id'] > ANONYMOUS && $child['owner_name'] !== null ?
@@ -147,6 +158,7 @@ class board
 			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'pics p WHERE ' . $where);
 			$total = (int) $this->db->sql_fetchfield('count');
 			$this->db->sql_freeresult($result);
+			$this->category_preview($cat, $total, $has_children);
 			$columns = max(1, min(20, (int) $this->access->setting('cols_per_page', 4)));
 			$rows = max(1, min(50, (int) $this->access->setting('rows_per_page', 3)));
 			$limit = min(100, $rows * $columns);

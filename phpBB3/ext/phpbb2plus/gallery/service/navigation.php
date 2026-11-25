@@ -19,7 +19,7 @@ class navigation
 	public function methods($category)
 	{
 		$methods = array('pic_time' => 'PLUS_ALBUM_DATE', 'pic_title' => 'PLUS_ALBUM_SORT_TITLE');
-		if (!$category['owner_id'] && !$category['source_owner'] && !$category['legacy_guest_root']) { $methods['username'] = 'AUTHOR'; }
+		if (!$this->access->personal_category($category)) { $methods['username'] = 'AUTHOR'; }
 		$methods['pic_view_count'] = 'VIEWS';
 		if ((int) $this->access->setting('rate', 1) === 1) { $methods['rating'] = 'PLUS_ALBUM_PORTAL_RATING'; }
 		if ((int) $this->access->setting('comment', 1) === 1)

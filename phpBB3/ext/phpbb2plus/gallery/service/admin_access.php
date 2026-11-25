@@ -19,7 +19,8 @@ class admin_access
 	/** A fresh check distinguishes a native grant (true) from the exact migrated ACP module (false). */
 	public function authorize($module, $write = false)
 	{
-		$options = array('categories' => 'a_plus_album_categories', 'permissions' => 'a_plus_album_auth', 'personal_permissions' => 'a_plus_album_personal_auth');
+		$options = array('categories' => 'a_plus_album_categories', 'permissions' => 'a_plus_album_auth',
+			'personal_permissions' => 'a_plus_album_personal_auth', 'settings' => 'a_plus_gallery');
 		$option = $options[$module];
 		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) ||
 			empty($this->user->data['session_admin']) || !empty($this->user->data['user_perm_from']) ||
@@ -46,7 +47,7 @@ class admin_access
 		if ((int) ($row['a_'] ?? ACL_NO) === ACL_NEVER) { throw new AccessDeniedHttpException(); }
 		$narrow = (int) ($row[$option] ?? ACL_NO);
 		if ((int) ($row['a_plus_gallery'] ?? ACL_NO) === ACL_YES || $narrow === ACL_YES) { return true; }
-		if ($narrow !== ACL_NEVER && !empty($account['plus_jr_delegate']) && method_exists($this->auth, 'delegated_module'))
+		if ($option !== 'a_plus_gallery' && $narrow !== ACL_NEVER && !empty($account['plus_jr_delegate']) && method_exists($this->auth, 'delegated_module'))
 		{
 			// A migrated module grant exists only for this ACP request. Never materialize it in native ACL tables.
 			$account['is_registered'] = true;

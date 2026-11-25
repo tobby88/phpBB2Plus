@@ -8,7 +8,7 @@ import time
 import zlib
 from urllib.parse import urljoin, urlsplit
 
-from gallery import IMPORTED_THUMB, ORIGINAL, png, submit
+from gallery import IMPORTED_THUMB, ORIGINAL, category_grid, png, submit
 from http_board import FormFields, Page, admin_url, submit_form
 
 
@@ -23,7 +23,7 @@ def upload(actor, form, title, images, previews=(), status=200, retry=None):
 
 
 def picture(actor, folder, title):
-    link = re.search(r'<a href="([^"]*/album/picture/\d+[^"]*)"><img [^>]*><strong>' + re.escape(title) + '</strong>', actor.fetch(folder))
+    link = re.search(r'<a href="([^"]*/album/picture/\d+[^"]*)"><img [^>]*><strong>' + re.escape(title) + '</strong>', category_grid(actor.fetch(folder)))
     if not link:
         raise RuntimeError("The published item is absent from the visible album")
     return urlsplit(unescape(link[1])).path
@@ -54,7 +54,7 @@ def manual(admin, member, guest, root, check):
     upload(member, form, "Manuelle Vorschau", original, preview, retry=receipt)
     upload(member, form, "Manuelle Vorschau", original, [("cover.png", "image/png", IMPORTED_THUMB)], 422, receipt)
     image = picture(member, folder, "Manuelle Vorschau")
-    if (member.fetch(folder).count("Manuelle Vorschau") != 1 or admin.fetch(image + "/small", raw=True) != preview[0][2] or
+    if (category_grid(member.fetch(folder)).count("Manuelle Vorschau") != 1 or admin.fetch(image + "/small", raw=True) != preview[0][2] or
             guest.fetch(image + "/small", raw=True) == preview[0][2] or admin.fetch(image + "/full", raw=True) != ORIGINAL or
             struct.unpack(">II", admin.fetch(image + "/medium", raw=True)[16:24]) != (30, 18)):
         raise RuntimeError("The manual crop, watermark, original, medium image or repeat receipt changed")
@@ -109,7 +109,7 @@ def resize(admin, owner, root, check):
     small = png(10, 8, b"\x33\x44\x55")
     upload(owner, form, "Small original", [("small.png", "image/png", small)])
     if (admin.fetch(picture(owner, folder, "Small original") + "/full", raw=True) != small or
-            admin.fetch("app.php/album/picture/100/full", raw=True) != ORIGINAL or owner.fetch(folder).count("PNG resized") != 1):
+            admin.fetch("app.php/album/picture/100/full", raw=True) != ORIGINAL or category_grid(owner.fetch(folder)).count("PNG resized") != 1):
         raise RuntimeError("Resizing changed a small upload, a converted original or the repeat receipt")
     check("resize_rendered")
     for title in ("PNG resized", "Portrait resized", "Small original"):

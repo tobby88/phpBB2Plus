@@ -13,14 +13,18 @@ class personal_module
 
 	public function main($id, $mode)
 	{
-		global $auth, $phpbb_container, $request, $template, $user;
-		if (!$auth->acl_get('a_plus_gallery')) { trigger_error('NO_AUTH_OPERATION', E_USER_WARNING); }
+		global $phpbb_container, $request, $template, $user;
+		$phpbb_container->get('phpbb2plus.gallery.admin_access')->authorize('settings');
 		$language = $phpbb_container->get('language');
 		$language->add_lang('info_acp_gallery', 'phpbb2plus/gallery');
 		$this->tpl_name = 'acp_plus_personal_albums';
-		$media = $mode === 'media';
-		$this->page_title = $media ? 'ACP_PLUS_ALBUM_UPLOADS' : 'ACP_PLUS_PERSONAL_ALBUMS';
-		$form_key = $media ? 'plus_album_upload_policy' : 'plus_personal_albums';
+		$pages = array(
+			'settings' => array('ACP_PLUS_PERSONAL_ALBUMS','plus_personal_albums','LOG_PLUS_PERSONAL_ALBUMS','PLUS_ALBUM_CFG_EXPLAIN','personal'),
+			'media' => array('ACP_PLUS_ALBUM_UPLOADS','plus_album_upload_policy','LOG_PLUS_ALBUM_UPLOADS','PLUS_ALBUM_CFG_MEDIA_EXPLAIN','media'),
+			'display' => array('ACP_PLUS_ALBUM_DISPLAY','plus_album_display','LOG_PLUS_ALBUM_DISPLAY','PLUS_ALBUM_CFG_DISPLAY_EXPLAIN','display'),
+		);
+		if (!isset($pages[$mode])) { trigger_error('NO_MODE', E_USER_WARNING); }
+		list($this->page_title, $form_key, $log, $explain, $section) = $pages[$mode];
 		$settings = $phpbb_container->get('phpbb2plus.gallery.settings');
 		$correction = array();
 		if ($request->server('REQUEST_METHOD') === 'POST')
@@ -32,7 +36,7 @@ class personal_module
 			{
 				if ($settings->save($values, $request->variable('revision', '', false, request_interface::POST), $mode))
 				{
-					$phpbb_container->get('log')->add('admin', $user->data['user_id'], $user->ip, $media ? 'LOG_PLUS_ALBUM_UPLOADS' : 'LOG_PLUS_PERSONAL_ALBUMS');
+					$phpbb_container->get('log')->add('admin', $user->data['user_id'], $user->ip, $log);
 				}
 				$template->assign_var('S_SAVED', true);
 			}
@@ -64,8 +68,8 @@ class personal_module
 			}
 		}
 		add_form_key($form_key);
-		$template->assign_vars(array('U_ACTION' => $this->u_action, 'REVISION' => settings::revision($stored), 'S_MEDIA' => $media,
-			'S_ZIP_MISSING' => $media && !upload_archive::available(),
-			'ALBUM_SETTINGS_TITLE' => $language->lang($this->page_title), 'ALBUM_SETTINGS_EXPLAIN' => $language->lang($media ? 'PLUS_ALBUM_CFG_MEDIA_EXPLAIN' : 'PLUS_ALBUM_CFG_EXPLAIN')));
+		$template->assign_vars(array('U_ACTION' => $this->u_action, 'REVISION' => settings::revision($stored), 'ALBUM_SETTINGS_SECTION' => $section,
+			'S_ZIP_MISSING' => $mode === 'media' && !upload_archive::available(),
+			'ALBUM_SETTINGS_TITLE' => $language->lang($this->page_title), 'ALBUM_SETTINGS_EXPLAIN' => $language->lang($explain)));
 	}
 }

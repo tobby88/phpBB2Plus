@@ -4,7 +4,7 @@ import re
 import time
 from urllib.parse import urljoin, urlsplit
 
-from gallery import ORIGINAL, submit
+from gallery import ORIGINAL, category_grid, submit
 import gallery_media
 import gallery_zip
 import gallery_categories
@@ -102,7 +102,7 @@ def browse(base, administrator, member, owner, check):
         data.update(title=name, description="Original")
         time.sleep(max(0, int(data["creation_time"]) + 1.05 - time.time()))
         owner.fetch(urljoin(urljoin(base, route), action), data, files=[("photos[]", "probe.png", "image/png", ORIGINAL)])
-        match = re.search(r'<a href="([^"]*/album/picture/\d+[^"]*)"><img [^>]*><strong>' + re.escape(name) + '</strong>', owner.fetch(folder(cat)))
+        match = re.search(r'<a href="([^"]*/album/picture/\d+[^"]*)"><img [^>]*><strong>' + re.escape(name) + '</strong>', category_grid(owner.fetch(folder(cat))))
         if not match:
             raise RuntimeError("The personal upload was not listed")
         return urlsplit(unescape(match[1])).path

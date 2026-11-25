@@ -3,7 +3,7 @@ from io import BytesIO
 import struct
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from gallery import ORIGINAL, png, submit
+from gallery import ORIGINAL, category_grid, png, submit
 from gallery_media import picture, settings_url, upload
 from http_board import FormFields, submit_form
 
@@ -65,7 +65,7 @@ def browse(admin, owner, guest, root):
     upload(owner, public_form, "", package, retry=retry)
     stored = [picture(admin, public, title) for title in (first, second)]
     for title, route, data in zip((first, second), stored, (ORIGINAL, small)):
-        if admin.fetch(public).count(title) != 1 or admin.fetch(route + "/full", raw=True) != data:
+        if category_grid(admin.fetch(public)).count(title) != 1 or admin.fetch(route + "/full", raw=True) != data:
             raise RuntimeError("An accepted archive changed its original, member name, or repeat receipt")
         guest.fetch(route + "/small", expected_status=404)
     if "Albumkontingent" not in upload(owner, public_form, "", package, status=422)[0]:
@@ -87,7 +87,7 @@ def browse(admin, owner, guest, root):
         label = title + " - %03d" % (index + 1)
         route = picture(owner, private, label)
         original = admin.fetch(route + "/full", raw=True)
-        if (owner.fetch(private).count(label) != 1 or admin.fetch(route + "/small", raw=True) != crops[index][1] or
+        if (category_grid(owner.fetch(private)).count(label) != 1 or admin.fetch(route + "/small", raw=True) != crops[index][1] or
                 struct.unpack(">II", original[16:24]) != expected_size or (index == 1 and original != small)):
             raise RuntimeError("A paired ZIP changed the order, crop, number, output size, or untouched original")
         numbered.append(route)

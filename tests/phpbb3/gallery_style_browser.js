@@ -50,9 +50,14 @@ async function checkGalleryStyle(frame) {
             throw Error("The album directory or filtered home picture grids are missing at " + width + "px");
         }
         const cat = await page("/category/1", width);
-        const grid = cat.querySelector(".plus-album-grid");
+        const categoryBlocks = Array.from(cat.querySelectorAll("[data-album-grid]"));
+        const recent = categoryBlocks[0]?.querySelector(".plus-album-grid");
+        const grid = cat.querySelector('[data-album-grid="category"] .plus-album-grid');
         const size = width > 700 ? 4 : 2;
-        if (!grid || cat.defaultView.getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length !== size ||
+        if (!recent || categoryBlocks[0].dataset.albumGrid !== "recent" || !grid ||
+            cat.defaultView.getComputedStyle(recent).gridTemplateColumns.trim().split(/\s+/).length !== (width > 700 ? 3 : 2) ||
+            !recent.querySelector("a[href*='/album/picture/100']") || recent.querySelector("a[href*='/album/picture/104']") ||
+            cat.defaultView.getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length !== size ||
             !fillsBoard(cat, grid.parentElement) || !crumbs(cat).some(path => path.endsWith("/album"))) {
             throw Error("The category did not use its gallery columns, board width or album navigation at " + width + "px");
         }

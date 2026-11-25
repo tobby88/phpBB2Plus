@@ -1,8 +1,6 @@
 <?php
 namespace phpbb2plus\gallery\service;
 
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-
 class settings
 {
 	const DEFAULTS = array('personal_gallery' => '0', 'personal_gallery_view' => '-1', 'personal_gallery_limit' => '10',
@@ -11,6 +9,8 @@ class settings
 	const MEDIA = array('gd_version' => '2', 'thumbnail_size' => '125', 'max_file_size' => '128000', 'max_width' => '800',
 		'max_height' => '600', 'resize_pic' => '0', 'resize_width' => '600', 'resize_height' => '600', 'resize_quality' => '70',
 		'multiple_uploads' => '1', 'max_uploads' => '10', 'zip_uploads' => '1');
+	const DISPLAY = array('show_recent_in_subcats' => '1', 'show_recent_instead_of_nopics' => '1',
+		'personal_show_recent_in_subcats' => '1', 'personal_show_recent_instead_of_nopics' => '1');
 	const BOUNDS = array('thumbnail_size' => array(1,10000), 'max_file_size' => array(1,67108864), 'max_width' => array(1,10000),
 		'max_height' => array(1,10000), 'resize_width' => array(1,10000), 'resize_height' => array(1,10000), 'resize_quality' => array(0,100),
 		'max_uploads' => array(1,100));
@@ -19,19 +19,27 @@ class settings
 		'personal_allow_gallery_mod' => array(1 => 'YES', 0 => 'NO'), 'personal_allow_sub_categories' => array(1 => 'YES', 0 => 'NO'),
 		'show_personal_gallery_link' => array(1 => 'YES', 0 => 'NO'), 'resize_pic' => array(1 => 'YES', 0 => 'NO'),
 		'gd_version' => array(2 => 'AUTO', 1 => 'GD1', 0 => 'MANUAL'), 'multiple_uploads' => array(1 => 'YES', 0 => 'NO'),
-		'zip_uploads' => array(1 => 'YES', 0 => 'NO'));
+		'zip_uploads' => array(1 => 'YES', 0 => 'NO'), 'show_recent_in_subcats' => array(1 => 'YES', 0 => 'NO'),
+		'show_recent_instead_of_nopics' => array(1 => 'YES', 0 => 'NO'), 'personal_show_recent_in_subcats' => array(1 => 'YES', 0 => 'NO'),
+		'personal_show_recent_instead_of_nopics' => array(1 => 'YES', 0 => 'NO'));
 	private $db;
 	private $access;
+	private $admin;
 	private $table;
 
-	public function __construct($db, $access, $table)
+	public function __construct($db, $access, $admin, $table)
 	{
 		$this->db = $db;
 		$this->access = $access;
+		$this->admin = $admin;
 		$this->table = $table;
 	}
 
-	public static function defaults($mode) { return $mode === 'media' ? self::MEDIA : self::DEFAULTS; }
+	public static function defaults($mode)
+	{
+		if ($mode === 'display') { return self::DISPLAY; }
+		return $mode === 'media' ? self::MEDIA : self::DEFAULTS;
+	}
 
 	public function snapshot($mode = 'settings')
 	{
@@ -45,7 +53,7 @@ class settings
 	public function save($values, $revision, $mode = 'settings')
 	{
 		return $this->access->write(function () use ($values, $revision, $mode) {
-			if (!$this->access->administrator()) { throw new AccessDeniedHttpException(); }
+			$this->admin->authorize('settings', true);
 			$old = $this->snapshot($mode);
 			if (!hash_equals(self::revision($old), $revision)) { throw new \DomainException('PLUS_ALBUM_CONFIG_CHANGED'); }
 			$changed = false;
