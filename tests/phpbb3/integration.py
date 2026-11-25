@@ -20,6 +20,7 @@ from build_phpbb3 import assemble, PACKAGES
 import arcade
 import banners
 import attachments
+import attachment_quotas
 import news
 import portal
 import custom_profiles
@@ -170,6 +171,9 @@ def main():
                 portal.media(base, member, ordinary, pending)
                 banners.browse(base, member, ordinary)
                 php(fixture, "banner-clicks", target)
+                php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "before", cwd=web)
+                attachment_quotas.browse(ordinary)
+                php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "after", cwd=web)
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)

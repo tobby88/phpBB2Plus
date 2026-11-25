@@ -1,12 +1,13 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
-/** Restore the calendar capability separately from creating or editing a topic. */
+require_once __DIR__ . '/plus_local_roles.php';
+
 /** Convert a legacy local publishing right into individual and group phpBB ACL grants. */
 function plus_forum_permission($native)
 {
 	global $db, $src_db, $convert, $phpbb_container;
-	$source_options = array('f_plus_calendar'=>'auth_cal', 'f_plus_news'=>'auth_news');
+	$source_options = array('f_plus_calendar'=>'auth_cal', 'f_plus_news'=>'auth_news', 'f_attach'=>'auth_attachments', 'f_download'=>'auth_download');
 	if (!isset($source_options[$native])) { throw new \InvalidArgumentException('Unknown Plus forum permission.'); }
 	$source = $source_options[$native];
 	$p = $convert->src_table_prefix;
@@ -26,17 +27,18 @@ function plus_forum_permission($native)
 	{
 		// The migration seeded a default for fresh boards. An existing Plus
 		// board already has its own publishing policy for each forum.
-		foreach (array(ACL_ROLES_DATA_TABLE, ACL_GROUPS_TABLE, ACL_USERS_TABLE) as $table)
-		{
-			$db->sql_query("DELETE FROM $table WHERE auth_option_id=$option");
-		}
+		plus_clear_local_option($option,array_column($forums,'forum_id'));
 		foreach ($forums as $forum)
 		{
 			$id = (int) $forum['forum_id'];
 			$level = (int) $forum['permission_level'];
 			$grant = array('group_id'=>array(), 'user_id'=>array());
 			if (in_array($level,array(0,1,2,3,5),true)) { $grant['group_id'][$groups['ADMINISTRATORS']] = true; }
-			if ($level === 0 && $source !== 'auth_news') { $grant['group_id'][$groups['GUESTS']] = true; }
+			if ($level === 0 && $source !== 'auth_news')
+			{
+				$grant['group_id'][$groups['GUESTS']] = true;
+				if ($native === 'f_download' && isset($groups['BOTS'])) { $grant['group_id'][$groups['BOTS']] = true; }
+			}
 			if ($level === 0 || $level === 1)
 			{
 				$grant['group_id'][$groups['REGISTERED']] = true;

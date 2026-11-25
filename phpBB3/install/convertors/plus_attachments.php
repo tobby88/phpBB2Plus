@@ -26,8 +26,9 @@ function plus_check_attachment_source()
 function plus_attachment_parents($id)
 {
 	global $src_db, $convert;
-	$sql = 'SELECT DISTINCT post_id, privmsgs_id FROM ' . $convert->src_table_prefix . 'attachments
-		WHERE attach_id = ' . $id . ' ORDER BY privmsgs_id, post_id';
+	$p = $convert->src_table_prefix;
+	$sql = "SELECT DISTINCT a.post_id,a.privmsgs_id,a.user_id_1,a.user_id_2,m.privmsgs_type FROM {$p}attachments a
+		LEFT JOIN {$p}privmsgs m ON m.privmsgs_id=a.privmsgs_id WHERE a.attach_id=" . $id . ' ORDER BY a.privmsgs_id,a.post_id,a.user_id_1,a.user_id_2';
 	$result = $src_db->sql_query($sql);
 	$parents = array();
 	while ($row = $src_db->sql_fetchrow($result))
@@ -35,10 +36,14 @@ function plus_attachment_parents($id)
 		$post = (int) $row['post_id'];
 		$pm = (int) $row['privmsgs_id'];
 		if ($post && $pm) { throw new \RuntimeException('Ambiguous content association for attachment ' . $id); }
-		if ($post || $pm) { $parents[] = array('in_message' => $pm ? 1 : 0, 'parent_id' => $pm ?: $post); }
+		if (!$post && !$pm) { continue; }
+		$key = $pm . ':' . $post;
+		if (!isset($parents[$key])) { $parents[$key] = array('in_message'=>$pm ? 1 : 0,'parent_id'=>$pm ?: $post,'payers'=>array()); }
+		$parents[$key]['payers'][] = array('source_sender'=>(int) $row['user_id_1'],'source_recipient'=>(int) $row['user_id_2'],
+			'pm_state'=>$pm && $row['privmsgs_type'] !== null ? (int) $row['privmsgs_type'] : -1);
 	}
 	$src_db->sql_freeresult($result);
-	return $parents ?: array(array('in_message' => 0, 'parent_id' => 0));
+	return $parents ? array_values($parents) : array(array('in_message'=>0,'parent_id'=>0,'payers'=>array()));
 }
 
 function plus_attachment_parent($source, $parent)
@@ -90,7 +95,7 @@ function plus_import_attachment($id, $copies)
 	foreach ($parents as $parent)
 	{
 		$owner = plus_attachment_parent($id, $parent);
-		$reference = array('source_id' => $id) + $parent;
+		$reference = array('source_id'=>$id,'in_message'=>$parent['in_message'],'parent_id'=>$parent['parent_id']);
 		$physical = 'plus_' . hash_hmac('sha256', implode(':', $reference), $config['plus_media_key']);
 		plus_copy_media($source, $target . '/' . $physical);
 		if ($thumb) { plus_copy_media($thumb, $target . '/thumb_' . $physical); }
@@ -113,6 +118,13 @@ function plus_import_attachment($id, $copies)
 				$db->sql_query('INSERT INTO ' . ATTACHMENTS_TABLE . ' ' . $db->sql_build_array('INSERT', $data));
 				$reference['attach_id'] = $copies ? (int) $db->sql_nextid() : $id;
 				$db->sql_query('INSERT INTO ' . $map . ' ' . $db->sql_build_array('INSERT', $reference));
+				$charges = array();
+				foreach ($parent['payers'] as $payer)
+				{
+					$charges[] = $payer + array('attach_id'=>$reference['attach_id'],'sender'=>plus_quota_member($payer['source_sender']),
+						'recipient'=>plus_quota_member($payer['source_recipient']));
+				}
+				foreach (array_chunk($charges,100) as $batch) { $db->sql_multi_insert($table_prefix . 'plus_attach_payers',$batch); }
 				if ($parent['in_message'])
 				{
 					$db->sql_query('UPDATE ' . PRIVMSGS_TABLE . ' SET message_attachment = 1 WHERE msg_id = ' . $parent['parent_id']);

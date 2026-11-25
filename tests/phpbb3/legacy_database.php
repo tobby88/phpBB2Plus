@@ -132,7 +132,16 @@ if ($argv[1] === 'seed')
 		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
 		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");
 	$db->query("INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2)
-		VALUES (50,32,0,-1,0),(50,32,0,-1,0),(50,40,0,2,0),(63,0,111,2,1),(63,0,112,2,1)");
+		VALUES (50,32,0,-1,0),(50,32,0,-1,0),(50,32,0,2,0),(50,40,0,2,0),(63,0,111,2,1),(63,0,112,2,1)");
+	$db->query("INSERT INTO phpbb_quota_limits (quota_limit_id,quota_desc,quota_limit) VALUES
+		(9,'Klein & fein',50),(10,'Medium fixture',100),(11,'Group fixture',300),(12,'Full range',18446744073709551615)");
+	$db->query("INSERT INTO phpbb_attach_quota (user_id,group_id,quota_type,quota_limit_id) VALUES
+		(1,0,1,9),(0,71,1,11),(0,73,1,10),(0,71,2,10),(0,73,2,11),(0,72,1,12),(999,0,2,12)");
+	$db->query("UPDATE phpbb_attachments_config SET config_value='1' WHERE config_name='default_upload_quota'");
+	$db->query('UPDATE phpbb_forums SET auth_attachments=1 WHERE forum_id=1');
+	$db->query('UPDATE phpbb_forums SET auth_attachments=2,auth_download=1 WHERE forum_id=14');
+	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_attachments) VALUES (71,14,1) ON DUPLICATE KEY UPDATE auth_attachments=1');
+	$db->query("UPDATE phpbb_attachments_config SET config_value='9' WHERE config_name='default_pm_quota'");
 }
 elseif ($argv[1] === 'installed-flags')
 {

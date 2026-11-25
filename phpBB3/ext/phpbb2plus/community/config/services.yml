@@ -77,3 +77,16 @@ services:
         arguments: ['@dbal.conn', '@config', '@phpbb2plus.community.former_members', '%core.table_prefix%plus_bylines']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.attachment_quotas:
+        class: phpbb2plus\community\attachment\quotas
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_attach_']
+    phpbb2plus.community.attachment_upload:
+        class: phpbb2plus\community\attachment\upload
+        decorates: attachment.upload
+        shared: false
+        arguments: ['@phpbb2plus.community.attachment_upload.inner', '@phpbb2plus.community.attachment_quotas', '@attachment.delete', '@user', '@language']
+    phpbb2plus.community.attachment_quota_events:
+        class: phpbb2plus\community\event\attachment_quotas
+        arguments: ['@phpbb2plus.community.attachment_quotas', '@user', '@attachment.delete']
+        tags:
+            - { name: event.listener }

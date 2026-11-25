@@ -28,6 +28,7 @@ $tables[] = 'color_groups';
 $tables[] = 'post_icon_config';
 $tables[] = 'banner';
 $tables[] = 'banner_stats';
+if (defined('MOD_ATTACHMENT')) { $tables[] = 'quota_limits'; $tables[] = 'attach_quota'; }
 
 if (!$get_info)
 {
@@ -55,6 +56,11 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	$convertor['execute_last'][] = "plus_forum_permission('f_plus_calendar');";
+	if (defined('MOD_ATTACHMENT'))
+	{
+		$convertor['execute_last'][] = "plus_forum_permission('f_attach');";
+		$convertor['execute_last'][] = "plus_forum_permission('f_download');";
+	}
 	$convertor['execute_last'][] = "plus_forum_permission('f_plus_news');";
 	$convertor['execute_last'][] = 'plus_guest_poll_permissions();';
 	$convertor['execute_last'][] = 'plus_finish_news();';
@@ -234,7 +240,8 @@ if (!$get_info)
 			'target' => ATTACHMENTS_TABLE, 'primary' => 'attachments_desc.attach_id', 'autoincrement' => 'attach_id',
 			'execute_first' => 'plus_check_attachment_source();',
 			'query_first' => array(array('target', $convert->truncate_statement . ATTACHMENTS_TABLE),
-				array('target', $convert->truncate_statement . $table_prefix . 'plus_attach_refs')),
+				array('target', $convert->truncate_statement . $table_prefix . 'plus_attach_refs'),
+				array('target', $convert->truncate_statement . $table_prefix . 'plus_attach_payers')),
 			array('', 'attachments_desc.attach_id', 'plus_attachment_primary'),
 		);
 		$convertor['schema'][] = array(
@@ -242,6 +249,7 @@ if (!$get_info)
 			'group_by' => 'attachments.attach_id', 'having' => 'COUNT(*) > 1',
 			array('', 'attachments.attach_id', 'plus_attachment_copies'),
 		);
+		$convertor['schema'] = array_merge($convertor['schema'],plus_quota_schema($table_prefix,$convert->truncate_statement));
 	}
 	$convertor['schema'][] = array(
 		'target' => SEARCH_WORDMATCH_TABLE, 'primary' => 'posts.post_id',
