@@ -20,6 +20,7 @@ def source_modules(source, target):
         shutil.copyfile(file, directory / file.name)
     for path in ("includes/functions_jr_admin_auth.php", "includes/functions_stats.php", "includes/functions_module.php",
                  "ctracker/admin/acp_module_settings.php", "ctracker/classes/class_ct_adminfunctions.php",
+                 "ctracker/admin/acp_module_globalmessage.php", "ctracker/classes/class_admin_actions.php",
                  "ctracker/classes/class_ct_database.php", "ctracker/classes/class_settings_storage.php",
                  "ctracker/classes/class_configuration_storage.php", "ctracker/classes/class_acp_storage.php",
                  "includes/functions_acl_storage.php", "includes/functions_owned_storage.php",

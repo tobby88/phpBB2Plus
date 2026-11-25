@@ -58,6 +58,7 @@ import historical_actions
 import credits
 import warning_cards
 import account_logins
+import member_notice
 import profile_media
 import rank_overview
 import topic_calendar
@@ -343,6 +344,7 @@ def main():
                     member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+                member_notice.imported(base, ordinary, member, media_only)
                 php(fixture, "signed-in", target)
                 def login_fixture(phase):
                     php(ROOT / "tests/phpbb3/login_networks.php", target, phase, cwd=web)
@@ -350,6 +352,8 @@ def main():
                     php(ROOT / "tests/phpbb3/delegation_files.php", target, phase, cwd=web)
                 if media_only:
                     account_logins.browse(base, ordinary, member, login_fixture)
+                    member_notice.manage(base, ordinary, member, lambda phase: php(
+                        ROOT / "tests/phpbb3/member_notice_member.php", target, phase, cwd=web))
                     delegation.module_roles(base, file_roles)
                     download_checks(base, member, ordinary, pending, fixture, target, web)
                     php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)

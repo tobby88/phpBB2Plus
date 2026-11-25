@@ -102,17 +102,23 @@ function plus_jr_registry()
 		'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
 		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 	);
+	$tracker = array(
+		'ctracker/classes/class_ct_adminfunctions.php' => '5b477176fb5b1ff7120da693755695995e943bf22456103f8b533500da133fa6',
+		'ctracker/classes/class_ct_database.php' => 'cf7d05a8520da871abd7a34e20153f53e2d1a0f04466d1549be4e2f9510f8360',
+		'ctracker/classes/class_configuration_storage.php' => 'b00675f780f1085097bec974e9d8cbaaa3ff2de4a8f473dd34a078f5f9b0b7e0',
+		'ctracker/classes/class_acp_storage.php' => 'c64b0d532650bd92f87a5b9060351078e8e0dc7811b886d989fbd417502e470b',
+		'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+		'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
+	);
 	$dependencies = array(
-		'admin_cracker_tracker.php?modu=9' => array(
+		'admin_cracker_tracker.php?modu=4' => $tracker + array(
+			'ctracker/admin/acp_module_globalmessage.php' => '57340603caf94dffa1143ef5dce694b4669a44cff9a416482c021d877198ca2f',
+			'ctracker/classes/class_admin_actions.php' => '388eeed5489880bcb464a13cc70dd887bb730773af346ec86bcf6670acba4654',
+		),
+		'admin_cracker_tracker.php?modu=9' => $tracker + array(
 			'ctracker/admin/acp_module_settings.php' => '644f5fffd4e82bda03c2461574577ca1de105d5d1ca18b5a90e9c78ef225bf58',
-			'ctracker/classes/class_ct_adminfunctions.php' => '5b477176fb5b1ff7120da693755695995e943bf22456103f8b533500da133fa6',
-			'ctracker/classes/class_ct_database.php' => 'cf7d05a8520da871abd7a34e20153f53e2d1a0f04466d1549be4e2f9510f8360',
 			'ctracker/classes/class_settings_storage.php' => '12f33ae9212e04652e8451bb3512c0637ce8f94ccd3e4da644702ecc37f00058',
-			'ctracker/classes/class_configuration_storage.php' => 'b00675f780f1085097bec974e9d8cbaaa3ff2de4a8f473dd34a078f5f9b0b7e0',
-			'ctracker/classes/class_acp_storage.php' => 'c64b0d532650bd92f87a5b9060351078e8e0dc7811b886d989fbd417502e470b',
-			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
-			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
-			'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 		),
 		'admin_pa_settings.php' => $download_writes + array(
 			'pafiledb/includes/functions_settings_storage.php' => '840e087ee3913ebf75a0b98382742926e4840b57f69dccd4ba6b37120b536334',

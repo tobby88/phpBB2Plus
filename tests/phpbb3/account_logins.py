@@ -120,6 +120,9 @@ def browse(base, member, admin, fixture):
         delegated_panel = entry + route
         initial = delegate.fetch(delegated_panel)
         denied = delegate.fetch(entry + "&i=acp_board&mode=security", expected_status=503)
+        notice_only = delegate.fetch(entry + "&i=-phpbb2plus-community-acp-tracker_settings_module&mode=notice", expected_status=503)
+        if "Module not accessible" not in notice_only:
+            raise RuntimeError("The tracker settings grant also opened board message publication")
         if form not in Page(initial).forms or "Module not accessible" not in denied or "acp_board" in Page(denied).forms:
             raise RuntimeError("The historical tracker module was lost or opened the general server settings")
         submit_form(delegate, delegated_panel, initial, form, {"config[plus_login_limit]": "4"})

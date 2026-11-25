@@ -23,6 +23,14 @@ if ($argv[2] === 'older')
 }
 elseif ($argv[2] === 'upgraded')
 {
+	$notice = $phpbb_container->get('phpbb2plus.community.member_notice')->current();
+	$result = $db->sql_query_limit('SELECT user_id FROM ' . USERS_TABLE . ' WHERE plus_notice_pending<>0', 1);
+	$recipient = $db->sql_fetchfield('user_id');
+	$db->sql_freeresult($result);
+	if ($notice['message'] !== '' || $notice['format'] !== 'text' || $recipient !== false)
+	{
+		throw new RuntimeException('The preview upgrade invented an old board message or recipient');
+	}
 	if (!$phpbb_container->get('dbal.tools')->sql_table_exists($table) || !$config->offsetExists('plus_login_history') ||
 		!$config->offsetExists('plus_login_network_check') || (int) $config['plus_login_history'] !== 0 ||
 		(int) $config['plus_login_network_check'] !== 0 || (int) $config['plus_login_limit'] !== 10 || $count('1=1') !== 0 ||

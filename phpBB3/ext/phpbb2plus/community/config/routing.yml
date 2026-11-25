@@ -17,6 +17,10 @@ phpbb2plus_community_portal:
     path: /portal
     defaults: { _controller: phpbb2plus.community.portal:handle }
     methods: [GET, HEAD]
+phpbb2plus_community_member_notice_read:
+    path: /member-notice/read
+    defaults: { _controller: phpbb2plus.community.member_notice_form:acknowledge }
+    methods: [POST]
 phpbb2plus_community_statistics:
     path: /statistics
     defaults: { _controller: phpbb2plus.community.statistics:show }

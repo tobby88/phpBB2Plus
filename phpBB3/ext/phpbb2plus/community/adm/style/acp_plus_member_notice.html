@@ -1,0 +1,19 @@
+{% include 'overall_header.html' %}
+<h1>{{ lang('ACP_PLUS_MEMBER_NOTICE') }}</h1>
+<p>{{ lang('PLUS_MEMBER_NOTICE_AUDIENCE') }}</p>
+<form id="plus-member-notice-admin" method="post" action="{{ U_ACTION }}">
+	<fieldset><legend>{{ lang('ACP_PLUS_MEMBER_NOTICE') }}</legend>
+		<dl><dt><label for="plus-notice-format">{{ lang('PLUS_MEMBER_NOTICE_FORMAT') }}</label></dt><dd>
+			<select id="plus-notice-format" name="format">
+				<option value="text"{% if not S_LINK %} selected{% endif %}>{{ lang('PLUS_MEMBER_NOTICE_TEXT') }}</option>
+				<option value="link"{% if S_LINK %} selected{% endif %}>{{ lang('PLUS_MEMBER_NOTICE_LINK') }}</option>
+			</select></dd></dl>
+		<dl><dt><label for="plus-notice-body">{{ lang('PLUS_MEMBER_NOTICE_BODY') }}</label></dt>
+			<dd><textarea id="plus-notice-body" name="message" rows="4" cols="48">{{ MESSAGE|e }}</textarea></dd></dl>
+	</fieldset>
+	<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ REVISION|e }}">
+		<button type="submit" class="button1" name="action" value="publish">{{ lang('PLUS_MEMBER_NOTICE_PUBLISH') }}</button>
+		<button type="submit" class="button2" name="action" value="withdraw">{{ lang('PLUS_MEMBER_NOTICE_WITHDRAW') }}</button>
+		{{ S_FORM_TOKEN }}</fieldset>
+</form>
+{% include 'overall_footer.html' %}

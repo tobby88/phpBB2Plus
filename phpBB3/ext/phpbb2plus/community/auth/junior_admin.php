@@ -28,6 +28,8 @@ class junior_admin
 		'admin_album_auth.php' => array('Photo_Album', 'Permissions', array('a_plus_album_auth' => array('phpbb2plus\gallery\acp\permissions_module', 'manage'))),
 		'admin_album_personal.php' => array('Photo_Album', 'Personal_Galleries', array('a_plus_album_personal_auth' => array('phpbb2plus\gallery\acp\personal_permissions_module', 'manage'))),
 		'admin_album_clearcache.php' => array('Photo_Album', 'Clear_Cache', array('a_plus_album_cache' => array('phpbb2plus\gallery\acp\cache_module', 'manage'))),
+		'admin_cracker_tracker.php?modu=4' => array('ctracker_module_category', 'ctracker_module_4',
+			array('a_plus_ct_notice' => array('phpbb2plus\community\acp\tracker_settings_module', 'notice'))),
 		'admin_cracker_tracker.php?modu=9' => array('ctracker_module_category', 'ctracker_module_9',
 			array('a_plus_ct_settings' => array('phpbb2plus\community\acp\tracker_settings_module', 'manage'))),
 		'admin_hacks_list.php' => array('General', 'Hacks_List', array('a_plus_credits' => array('phpbb2plus\community\acp\credits_module', 'manage'))),

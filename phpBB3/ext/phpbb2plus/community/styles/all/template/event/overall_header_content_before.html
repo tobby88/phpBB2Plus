@@ -1,3 +1,15 @@
+{% if S_PLUS_MEMBER_NOTICE %}
+<section class="panel bg1" id="plus-member-notice" aria-labelledby="plus-member-notice-title"><div class="inner">
+	<h3 id="plus-member-notice-title">{{ lang('ACP_PLUS_MEMBER_NOTICE') }}</h3>
+	<div class="content">{% if PLUS_NOTICE_URL %}<a href="{{ PLUS_NOTICE_URL|e }}">{{ PLUS_NOTICE_BODY|e }}</a>{% else %}{{ PLUS_NOTICE_BODY|e|nl2br }}{% endif %}</div>
+	<form id="plus-member-notice-read" method="post" action="{{ U_PLUS_NOTICE_READ }}">
+		<input type="hidden" name="revision" value="{{ PLUS_NOTICE_REVISION|e }}">
+		<input type="hidden" name="return_page" value="{{ PLUS_NOTICE_RETURN|e }}">
+		<input type="submit" class="button2" value="{{ lang('PLUS_MEMBER_NOTICE_READ') }}">
+		{{ S_FORM_TOKEN_PLUS_MEMBER_NOTICE }}
+	</form>
+</div></section>
+{% endif %}
 {% if PLUS_LOGIN_NOTICE and not S_PLUS_LOGIN_PANEL %}
 <div class="rules" id="plus-login-notice"><div class="inner">{{ PLUS_LOGIN_NOTICE }} <a href="{{ U_PLUS_ACCOUNT_LOGINS }}">{{ lang('UCP_PLUS_LOGINS') }}</a></div></div>
 {% endif %}

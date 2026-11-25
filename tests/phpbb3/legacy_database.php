@@ -177,6 +177,13 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	$db->query('INSERT INTO phpbb_forum_prune (forum_id,prune_days,prune_freq) VALUES (1,10,1),(1,90,7),(7,90,7),(11,10,1),(14,10,1),(14,10,1),(15,0,2)');
 	seed_warning_cards($db);
 	seed_account_logins($db, $argv[1] === 'seed-pruning-off');
+	// The forum suite also covers a historical link entry that must fall back to plain text.
+	$notice = $argv[1] === 'seed-pruning-off' ? "Grüße &amp; Rückblick 📷\n&lt;Hinweis&gt; & Abschluss" : '0';
+	$statement = $db->prepare("UPDATE phpbb_ctracker_config SET ct_config_value=? WHERE ct_config_name='global_message'");
+	$statement->bind_param('s', $notice);
+	$statement->execute();
+	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='" . ($notice === '0' ? '0' : '1') . "' WHERE ct_config_name='global_message_type'");
+	$db->query('UPDATE phpbb_users SET ct_global_msg_read=1 WHERE user_id=1');
 }
 elseif ($argv[1] === 'cards-reset')
 {

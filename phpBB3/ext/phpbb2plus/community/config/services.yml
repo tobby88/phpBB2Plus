@@ -239,6 +239,14 @@ services:
     phpbb2plus.community.account_logins:
         class: phpbb2plus\community\service\account_logins
         arguments: ['@dbal.conn', '@config', '%core.table_prefix%']
+    phpbb2plus.community.member_notice:
+        class: phpbb2plus\community\service\member_notice
+        arguments: ['@dbal.conn', '%tables.config_text%']
+    phpbb2plus.community.member_notice_form:
+        class: phpbb2plus\community\controller\member_notice
+        arguments: ['@phpbb2plus.community.member_notice', '@user', '@request', '@controller.helper', '@language', '@template']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.account_login_events:
         class: phpbb2plus\community\event\account_logins
         arguments: ['@phpbb2plus.community.account_logins', '@config', '@user', '@language', '@template', '@auth']

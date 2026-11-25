@@ -7,6 +7,8 @@ class tracker_settings_info
 	{
 		return array('filename' => '\phpbb2plus\community\acp\tracker_settings_module', 'title' => 'ACP_PLUS_TRACKER_SETTINGS',
 			'modes' => array('manage' => array('title' => 'ACP_PLUS_TRACKER_SETTINGS',
-				'auth' => 'ext_phpbb2plus/community && (acl_a_server || acl_a_plus_ct_settings)', 'cat' => array('ACP_SERVER_CONFIGURATION'))));
+				'auth' => 'ext_phpbb2plus/community && (acl_a_server || acl_a_plus_ct_settings)', 'cat' => array('ACP_SERVER_CONFIGURATION')),
+				'notice' => array('title' => 'ACP_PLUS_MEMBER_NOTICE', 'auth' => 'ext_phpbb2plus/community && (acl_a_server || acl_a_plus_ct_notice)',
+					'cat' => array('ACP_SERVER_CONFIGURATION'))));
 	}
 }

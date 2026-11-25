@@ -64,6 +64,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_jr_finish();';
 	$convertor['execute_last'][] = 'plus_finish_action_log();';
 	$convertor['execute_last'][] = 'plus_login_settings();';
+	$convertor['execute_last'][] = 'plus_import_member_notice();';
 	$convertor['execute_last'][] = 'plus_card_finish();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
@@ -219,6 +220,10 @@ if (!$get_info)
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
+			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_global_msg_read'))
+			{
+				$section[] = array('plus_notice_pending', 'users.ct_global_msg_read', 'plus_tracker_flag');
+			}
 			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_passwd_change'))
 			{
 				$section[] = array('user_passchg', 'users.user_passwd_change', 'plus_password_change_time');
@@ -232,7 +237,7 @@ if (!$get_info)
 			{
 				if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', $old))
 				{
-					$section[] = array($new, 'users.' . $old, $old === 'ct_enable_ip_warn' ? 'plus_login_warning_enabled' : 'plus_login_address');
+					$section[] = array($new, 'users.' . $old, $old === 'ct_enable_ip_warn' ? 'plus_tracker_flag' : 'plus_login_address');
 				}
 			}
 			$section[] = array('plus_card_count', array('users.user_id', 'users.user_warnings'), 'plus_card_count');

@@ -16,6 +16,8 @@ on:
       - 'phpBB2/images/smiles/**'
       - 'phpBB2/admin/admin_*.php'
       - 'phpBB2/ctracker/admin/acp_module_settings.php'
+      - 'phpBB2/ctracker/admin/acp_module_globalmessage.php'
+      - 'phpBB2/ctracker/classes/class_admin_actions.php'
       - 'phpBB2/ctracker/classes/class_ct_adminfunctions.php'
       - 'phpBB2/ctracker/classes/class_ct_database.php'
       - 'phpBB2/ctracker/classes/class_settings_storage.php'

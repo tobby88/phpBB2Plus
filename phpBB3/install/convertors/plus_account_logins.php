@@ -1,7 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
-function plus_login_warning_enabled($value)
+function plus_tracker_flag($value)
 {
 	return (int) ((string) $value === '1');
 }

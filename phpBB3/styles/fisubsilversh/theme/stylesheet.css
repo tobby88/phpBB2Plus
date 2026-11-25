@@ -53,6 +53,9 @@ li.row:hover { background-color: #f2f5f9; }
 .bg1, .panel, .post.bg1 { background-color: #eaedf4; }
 .bg2, .post.bg2 { background-color: #d9e2ec; }
 .bg3 { background-color: #cedcec; }
+#plus-member-notice { background-color: #e1ffdf; border: 1px solid #b7c9b8; }
+#plus-member-notice .content { overflow-wrap: anywhere; }
+#plus-member-notice form { margin-top: .5em; }
 .post, .panel, .postbody blockquote, .codebox { border-radius: 0; }
 .postbody blockquote, .codebox { background-color: #fafafa; border: 1px solid #9ca9b4; }
 .plus-portal .panel { padding: 0; border: 1px solid #006699; box-shadow: 0 2px 2px #aeb7c0; }

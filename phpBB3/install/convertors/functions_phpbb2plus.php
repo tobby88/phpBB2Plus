@@ -12,6 +12,7 @@ require_once __DIR__ . '/plus_permissions.php';
 require_once __DIR__ . '/plus_junior_admin.php';
 require_once __DIR__ . '/plus_actions.php';
 require_once __DIR__ . '/plus_account_logins.php';
+require_once __DIR__ . '/plus_member_notice.php';
 require_once __DIR__ . '/plus_credits.php';
 require_once __DIR__ . '/plus_cards.php';
 require_once __DIR__ . '/plus_memberships.php';
