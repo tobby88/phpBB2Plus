@@ -7,15 +7,44 @@ class age_pruning implements EventSubscriberInterface
 {
 	private $pruning;
 	private $template;
+	private $language;
 	private $selections = array();
 	private $counts = array();
 	private $opened = array();
 
-	public function __construct($pruning, $template) { $this->pruning = $pruning; $this->template = $template; }
+	public function __construct($pruning, $template, $language)
+	{
+		$this->pruning = $pruning;
+		$this->template = $template;
+		$this->language = $language;
+	}
 	public static function getSubscribedEvents()
 	{
 		return array('core.prune_sql' => array('select', -1000), 'core.prune_delete_before' => array('remove', -1000),
-			'core.adm_page_footer' => 'report');
+			'core.prune_forums_settings_template_data' => 'instructions',
+			'core.prune_forums_settings_confirm' => 'check_days', 'core.adm_page_footer' => 'report');
+	}
+
+	public function instructions($event)
+	{
+		if ($this->pruning->policy() === '-1') { return; }
+		$this->language->add_lang('deletion', 'phpbb2plus/community');
+		$data = $event['template_data'];
+		$data['L_ACP_PRUNE_FORUMS_EXPLAIN'] = $this->language->lang('PLUS_PRUNE_AGE_EXPLAIN');
+		$event['template_data'] = $data;
+	}
+
+	public function check_days($event)
+	{
+		if ($this->pruning->policy() === '-1') { return; }
+		$fields = $event['hidden_fields'];
+		$posted = (int) $fields['prune_days'];
+		$viewed = (int) $fields['prune_vieweddays'];
+		if ($posted < 0 || $viewed < 0 || max($posted, $viewed) > 36500 || !($posted || $viewed))
+		{
+			$this->language->add_lang('deletion', 'phpbb2plus/community');
+			trigger_error($this->language->lang('PLUS_PRUNE_PERIOD_REQUIRED'), E_USER_WARNING);
+		}
 	}
 
 	public function select($event)
@@ -55,7 +84,7 @@ class age_pruning implements EventSubscriberInterface
 				$forums[$id] = $schedule;
 				$this->opened[$id] = true;
 			}
-			elseif ($this->pruning->manual($id))
+			elseif ($this->pruning->manual($id) && $cutoff <= time() - 86400 && $cutoff > time() - 36501 * 86400)
 			{
 				$forums[$id] = null;
 				if (!isset($this->counts[$id])) { $this->counts[$id] = array('name' => $forum['forum_name'], 'topics' => 0, 'posts' => 0); }

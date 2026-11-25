@@ -63,7 +63,7 @@ services:
         arguments: ['@dbal.conn', '@config', '@auth', '@user', '@phpbb2plus.community.confirmed_deletions', '%core.table_prefix%']
     phpbb2plus.community.prune_events:
         class: phpbb2plus\community\event\age_pruning
-        arguments: ['@phpbb2plus.community.age_pruning', '@template']
+        arguments: ['@phpbb2plus.community.age_pruning', '@template', '@language']
         tags:
             - { name: event.listener }
     phpbb2plus.community.prune_continuation:
