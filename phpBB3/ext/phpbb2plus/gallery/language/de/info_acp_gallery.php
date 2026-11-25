@@ -1,6 +1,23 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_ALBUM_CATEGORIES' => 'Fotokategorien',
+	'PLUS_ALBUM_PUBLIC_SCOPE' => 'Hier werden die allgemeinen Kategorien des Fotoalbums verwaltet. Eine Kategorie ist nur erreichbar, wenn auch alle übergeordneten Kategorien sichtbar sind.',
+	'PLUS_ALBUM_PUBLIC_NAME' => 'Kategoriename', 'PLUS_ALBUM_PUBLIC_ROOT' => 'Oberste Ebene des Fotoalbums',
+	'PLUS_ALBUM_PUBLIC_ADD' => 'Kategorie anlegen', 'PLUS_ALBUM_PUBLIC_EDIT' => 'Kategorie bearbeiten',
+	'PLUS_ALBUM_PUBLIC_DELETE' => 'Kategorie löschen', 'PLUS_ALBUM_PUBLIC_UP' => 'Kategorie nach oben verschieben', 'PLUS_ALBUM_PUBLIC_DOWN' => 'Kategorie nach unten verschieben',
+	'PLUS_ALBUM_PUBLIC_VIEW_LEVEL' => 'Kategorie ansehen', 'PLUS_ALBUM_PUBLIC_UPLOAD_LEVEL' => 'Bilder hochladen',
+	'PLUS_ALBUM_PUBLIC_RATE_LEVEL' => 'Bilder bewerten', 'PLUS_ALBUM_PUBLIC_COMMENT_LEVEL' => 'Bilder kommentieren',
+	'PLUS_ALBUM_PUBLIC_EDIT_LEVEL' => 'Eigene Bilder und Kommentare bearbeiten', 'PLUS_ALBUM_PUBLIC_DELETE_LEVEL' => 'Eigene Bilder und Kommentare löschen',
+	'PLUS_ALBUM_PUBLIC_APPROVAL_LEVEL' => 'Freigabe neuer Bilder', 'PLUS_ALBUM_CFG_NONE' => 'Keine Freigabe erforderlich',
+	'PLUS_ALBUM_CFG_ASSIGNED' => 'Mitglieder und Gruppen mit entsprechender Zuweisung',
+	'PLUS_ALBUM_PUBLIC_DEST' => 'Wähle eine allgemeine Kategorie außerhalb des zu verschiebenden oder zu löschenden Zweigs.',
+	'PLUS_ALBUM_PUBLIC_MISSING' => 'Diese allgemeine Kategorie ist nicht mehr verfügbar.',
+	'LOG_PLUS_ALBUM_PUBLIC_ADD' => '<strong>Fotokategorie angelegt</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_EDIT' => '<strong>Fotokategorie bearbeitet</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_DELETE' => '<strong>Fotokategorie gelöscht</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_UP' => '<strong>Fotokategorie nach oben verschoben</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_DOWN' => '<strong>Fotokategorie nach unten verschoben</strong><br>» %s',
 	'ACP_PLUS_PERSONAL_ALBUMS' => 'Persönliche Fotoalben',
 	'ACP_PLUS_ALBUM_UPLOADS' => 'Fotoalbum-Uploads', 'LOG_PLUS_ALBUM_UPLOADS' => '<strong>Einstellungen für Fotoalbum-Uploads geändert</strong>',
 	'PLUS_ALBUM_CFG_MEDIA_EXPLAIN' => 'Die Bildverkleinerung greift bei neuen Uploads oberhalb der zulässigen Bildmaße. Das Seitenverhältnis bleibt erhalten. Die Dateigrößengrenze gilt für das gespeicherte Bild und jede mitgelieferte Vorschau.',

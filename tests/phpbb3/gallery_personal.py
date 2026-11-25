@@ -7,6 +7,7 @@ from urllib.parse import urljoin, urlsplit
 from gallery import ORIGINAL, submit
 import gallery_media
 import gallery_zip
+import gallery_categories
 from http_board import Browser, FormFields, Page, admin_url, submit_form
 
 
@@ -131,6 +132,7 @@ def browse(base, administrator, member, owner, check):
     gallery_media.manual(administrator, owner, guest, root, check)
     gallery_media.resize(administrator, owner, root, check)
     gallery_zip.browse(administrator, owner, guest, root)
+    gallery_categories.browse(administrator, member, owner, guest, root, check)
 
 
 def configuration(administrator, owner, guest, root):

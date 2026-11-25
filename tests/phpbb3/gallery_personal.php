@@ -109,6 +109,42 @@ elseif ($argv[2] === 'resize_rendered')
 		}
 	}
 }
+elseif ($argv[2] === 'category_delegate' || $argv[2] === 'category_revoke')
+{
+	$option = (int) album_fixture_value('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='a_plus_album_categories'");
+	if (!$option) { throw new RuntimeException('The narrow native category permission is unavailable'); }
+	$where = "forum_id=0 AND user_id=87 AND auth_role_id=0 AND auth_option_id=$option";
+	if ($argv[2] === 'category_delegate')
+	{
+		if ((int) album_fixture_value('SELECT COUNT(*) FROM ' . ACL_USERS_TABLE . ' WHERE ' . $where)) { throw new RuntimeException('Duplicate fixture category grant'); }
+		$db->sql_query('INSERT INTO ' . ACL_USERS_TABLE . ' ' . $db->sql_build_array('INSERT',
+			array('forum_id'=>0,'user_id'=>87,'auth_role_id'=>0,'auth_option_id'=>$option,'auth_setting'=>ACL_YES)));
+	}
+	else { $db->sql_query('DELETE FROM ' . ACL_USERS_TABLE . ' WHERE ' . $where); }
+	$auth->acl_clear_prefetch(87);
+}
+elseif ($argv[2] === 'category_grants')
+{
+	$member = (int) album_fixture_value('SELECT user_id FROM ' . USERS_TABLE . " WHERE username='HistoricMember'");
+	if ((int) album_fixture_value("SELECT COUNT(*) FROM {$g}grants WHERE cat_id=8 AND ((capability='view' AND subject_type='g' AND subject_id=71) OR (capability='moderator' AND subject_type='u' AND subject_id=$member))") !== 2)
+	{ throw new RuntimeException('Editing a public category changed a migrated group or moderator grant'); }
+}
+elseif ($argv[2] === 'category_moved')
+{
+	$pic = (int) album_fixture_value("SELECT p.pic_id FROM {$g}pics p JOIN {$g}cats c ON c.cat_id=p.cat_id WHERE p.title='Public category transfer' AND c.title='Category target'");
+	if (!$pic || (int) album_fixture_value("SELECT COUNT(*) FROM {$g}comments m JOIN {$g}pics p ON p.pic_id=m.pic_id AND p.cat_id=m.cat_id WHERE p.pic_id=$pic") !== 1 ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM {$g}ratings WHERE pic_id=$pic AND points=8") !== 1)
+	{ throw new RuntimeException('Public category removal lost the picture, comment category or rating'); }
+}
+elseif (preg_match('/^category_removed_([1-9][0-9]*)$/D', $argv[2], $match))
+{
+	$pic = (int) $match[1];
+	foreach (array('pics','comments','ratings') as $table)
+	{
+		if ((int) album_fixture_value("SELECT COUNT(*) FROM {$g}{$table} WHERE pic_id=$pic"))
+		{ throw new RuntimeException('Deleting the public category left part of its discarded picture behind'); }
+	}
+}
 elseif ($argv[2] === 'complete')
 {
 	$roots = (int) album_fixture_value("SELECT COUNT(*) FROM {$g}cats WHERE owner_id=87 AND parent_id=0");

@@ -1,6 +1,23 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_ALBUM_CATEGORIES' => 'Photo categories',
+	'PLUS_ALBUM_PUBLIC_SCOPE' => 'Manage the shared photo album categories here. Visitors can open a category only when they can also see every parent category.',
+	'PLUS_ALBUM_PUBLIC_NAME' => 'Category name', 'PLUS_ALBUM_PUBLIC_ROOT' => 'Photo album root',
+	'PLUS_ALBUM_PUBLIC_ADD' => 'Create category', 'PLUS_ALBUM_PUBLIC_EDIT' => 'Edit category',
+	'PLUS_ALBUM_PUBLIC_DELETE' => 'Delete category', 'PLUS_ALBUM_PUBLIC_UP' => 'Move category up', 'PLUS_ALBUM_PUBLIC_DOWN' => 'Move category down',
+	'PLUS_ALBUM_PUBLIC_VIEW_LEVEL' => 'View category', 'PLUS_ALBUM_PUBLIC_UPLOAD_LEVEL' => 'Upload pictures',
+	'PLUS_ALBUM_PUBLIC_RATE_LEVEL' => 'Rate pictures', 'PLUS_ALBUM_PUBLIC_COMMENT_LEVEL' => 'Comment on pictures',
+	'PLUS_ALBUM_PUBLIC_EDIT_LEVEL' => 'Edit own pictures and comments', 'PLUS_ALBUM_PUBLIC_DELETE_LEVEL' => 'Delete own pictures and comments',
+	'PLUS_ALBUM_PUBLIC_APPROVAL_LEVEL' => 'Approval of new pictures', 'PLUS_ALBUM_CFG_NONE' => 'No approval required',
+	'PLUS_ALBUM_CFG_ASSIGNED' => 'Members and groups with the corresponding grant',
+	'PLUS_ALBUM_PUBLIC_DEST' => 'Choose a shared category outside the branch being moved or removed.',
+	'PLUS_ALBUM_PUBLIC_MISSING' => 'This shared album category is no longer available.',
+	'LOG_PLUS_ALBUM_PUBLIC_ADD' => '<strong>Created photo category</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_EDIT' => '<strong>Edited photo category</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_DELETE' => '<strong>Deleted photo category</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_UP' => '<strong>Moved photo category up</strong><br>» %s',
+	'LOG_PLUS_ALBUM_PUBLIC_DOWN' => '<strong>Moved photo category down</strong><br>» %s',
 	'ACP_PLUS_PERSONAL_ALBUMS' => 'Personal photo albums',
 	'ACP_PLUS_ALBUM_UPLOADS' => 'Photo album uploads', 'LOG_PLUS_ALBUM_UPLOADS' => '<strong>Changed the photo album upload settings</strong>',
 	'PLUS_ALBUM_CFG_MEDIA_EXPLAIN' => 'Resizing applies to new uploads that exceed the permitted dimensions. Pictures keep their aspect ratio. The file size limit applies to the stored picture and each supplied thumbnail.',

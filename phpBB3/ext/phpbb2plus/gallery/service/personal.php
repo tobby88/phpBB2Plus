@@ -7,14 +7,14 @@ class personal
 {
 	private $db;
 	private $access;
-	private $pictures;
+	private $hierarchy;
 	private $prefix;
 
-	public function __construct($db, $access, $pictures, $prefix)
+	public function __construct($db, $access, $hierarchy, $prefix)
 	{
 		$this->db = $db;
 		$this->access = $access;
-		$this->pictures = $pictures;
+		$this->hierarchy = $hierarchy;
 		$this->prefix = $prefix;
 	}
 
@@ -29,33 +29,7 @@ class personal
 		return $row;
 	}
 
-	public function tree($owner)
-	{
-		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'cats WHERE owner_id=' . (int) $owner . ' ORDER BY sort_order,cat_id');
-		$rows = $children = $tree = array();
-		while ($row = $this->db->sql_fetchrow($result))
-		{
-			$id = (int) $row['cat_id'];
-			$rows[$id] = access::category_labels($row);
-			$children[(int) $row['parent_id']][] = $id;
-		}
-		$this->db->sql_freeresult($result);
-		$stack = array_reverse($children[0] ?? array());
-		while ($stack)
-		{
-			$id = array_pop($stack);
-			$cat = $rows[$id];
-			$parent = (int) $cat['parent_id'];
-			if (!$id || isset($tree[$id]) || ($parent && (int) $tree[$parent]['source_owner'] !== (int) $cat['source_owner']))
-			{ throw new \DomainException('PLUS_ALBUM_TREE_INVALID'); }
-			$cat['depth'] = $parent ? 1 + $tree[$parent]['depth'] : 0;
-			$cat['children'] = count($children[$id] ?? array());
-			$tree[$id] = $cat;
-			foreach (array_reverse($children[$id] ?? array()) as $child) { $stack[] = $child; }
-		}
-		if (count($tree) !== count($rows)) { throw new \DomainException('PLUS_ALBUM_TREE_INVALID'); }
-		return $tree;
-	}
+	public function tree($owner) { return $this->hierarchy->tree($owner); }
 
 	public function can_add($tree)
 	{
@@ -103,28 +77,15 @@ class personal
 			if (($root && in_array($mode, array('up','down'), true)) || ($root && $mode === 'delete' && !$this->access->administrator()))
 			{ throw new NotFoundHttpException(); }
 		}
-		// Bind the confirmation to the directory the owner saw. Reads and picture views
-		// do not invalidate it. A new, changed or reassigned picture does invalidate a deletion.
-		$hash = hash_init('sha256');
-		foreach ($tree as $cat) { hash_update($hash, serialize($cat)); }
-		$count = 0;
-		if ($mode === 'delete')
-		{
-			$result = $this->db->sql_query('SELECT pic_id,storage_name,title,description,approved,locked FROM ' . $this->prefix . 'pics WHERE cat_id=' . $id . ' ORDER BY pic_id');
-			while ($row = $this->db->sql_fetchrow($result)) { ++$count; hash_update($hash, serialize($row)); }
-			$this->db->sql_freeresult($result);
-		}
-		return array('state' => hash_final($hash), 'pictures' => $count);
+		return $this->hierarchy->review($tree, $id, $mode);
 	}
 
 	public function destinations($tree, $id, $mode)
 	{
-		$choices = $excluded = array();
-		foreach ($tree as $other => $cat)
+		$choices = array();
+		foreach ($this->hierarchy->destinations($tree, $id) as $other => $cat)
 		{
-			if ($other === $id || isset($excluded[(int) $cat['parent_id']])) { $excluded[$other] = true; continue; }
-			if ((int) $cat['source_owner'] !== (int) $tree[$id]['source_owner'] || !$this->access->visible($cat)) { continue; }
-			if ($mode === 'delete' ? $this->access->allows($cat, 'upload') : $this->access->may_manage_personal($cat)) { $choices[$other] = $cat; }
+			if ($this->access->visible($cat) && ($mode === 'delete' ? $this->access->allows($cat, 'upload') : $this->access->may_manage_personal($cat))) { $choices[$other] = $cat; }
 		}
 		return $choices;
 	}
@@ -172,10 +133,7 @@ class personal
 				if ($mode === 'add')
 				{
 					if (!$this->can_add($tree)) { throw new \DomainException('PLUS_ALBUM_CAT_QUOTA'); }
-					$last = 0;
-					foreach ($tree as $sibling) { if ((int) $sibling['parent_id'] === $id) { $last = max($last, (int) $sibling['sort_order']); } }
-					if ($last > 2147483637) { throw new \DomainException('PLUS_ALBUM_TREE_INVALID'); }
-					$data += array('parent_id' => $id, 'owner_id' => $owner, 'source_owner' => (int) $cat['source_owner'], 'sort_order' => $last + 10,
+					$data += array('parent_id' => $id, 'owner_id' => $owner, 'source_owner' => (int) $cat['source_owner'], 'sort_order' => $this->hierarchy->next_order($tree, $id),
 						'approval' => 0, 'edit_level' => 3, 'delete_level' => 3);
 					$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $data));
 					return;
@@ -191,50 +149,13 @@ class personal
 			}
 			if ($mode === 'up' || $mode === 'down')
 			{
-				$siblings = array();
-				foreach ($tree as $other => $sibling) { if ((int) $sibling['parent_id'] === $parent) { $siblings[] = $other; } }
-				$pos = array_search($id, $siblings, true);
-				$next = $pos + ($mode === 'up' ? -1 : 1);
-				if (isset($siblings[$next]))
-				{
-					if (!$this->access->may_manage_personal($tree[$siblings[$next]])) { throw new NotFoundHttpException(); }
-					$siblings[$pos] = $siblings[$next]; $siblings[$next] = $id;
-					foreach ($siblings as $index => $other)
-					{
-						$order = ($index + 1) * 10;
-						if ((int) $tree[$other]['sort_order'] !== $order) { $this->db->sql_query("UPDATE $table SET sort_order=$order WHERE cat_id=$other"); }
-					}
-				}
+				$this->hierarchy->reorder($tree, $id, $mode, array($this->access, 'may_manage_personal'));
 				return;
 			}
 			if ($mode !== 'delete') { throw new NotFoundHttpException(); }
-			$result = $this->db->sql_query_limit("SELECT cat_id FROM $table WHERE parent_id=$id AND owner_id<>" . $owner, 1);
-			$foreign = $this->db->sql_fetchfield('cat_id') !== false;
-			$this->db->sql_freeresult($result);
-			if ($foreign) { throw new \DomainException('PLUS_ALBUM_TREE_INVALID'); }
 			$dest = $form['destination'];
-			$photos = $this->prefix . 'pics';
-			if ($dest === 'remove')
-			{
-				do
-				{
-					$result = $this->db->sql_query_limit("SELECT pic_id,storage_name FROM $photos WHERE cat_id=$id ORDER BY pic_id", 50);
-					$rows = $this->db->sql_fetchrowset($result);
-					$this->db->sql_freeresult($result);
-					foreach ($rows as $pic) { $this->pictures->discard($pic); }
-				} while (count($rows) === 50);
-			}
-			else
-			{
-				$choices = $this->destinations($tree, $id, 'delete');
-				if (!isset($choices[$dest])) { throw new \DomainException('PLUS_ALBUM_BAD_CATEGORY'); }
-				$dest = (int) $dest;
-				$this->db->sql_query('UPDATE ' . $this->prefix . "comments SET cat_id=$dest WHERE pic_id IN (SELECT pic_id FROM $photos WHERE cat_id=$id)");
-				$this->db->sql_query("UPDATE $photos SET cat_id=$dest WHERE cat_id=$id");
-			}
-			$this->db->sql_query("UPDATE $table SET parent_id=$parent WHERE owner_id=$owner AND parent_id=$id");
-			$this->db->sql_query('DELETE FROM ' . $this->prefix . "grants WHERE cat_id=$id");
-			$this->db->sql_query("DELETE FROM $table WHERE cat_id=$id");
+			if ($dest !== 'remove' && !isset($this->destinations($tree, $id, 'delete')[$dest])) { throw new \DomainException('PLUS_ALBUM_BAD_CATEGORY'); }
+			$this->hierarchy->remove($cat, $dest);
 		});
 	}
 }

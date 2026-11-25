@@ -1,0 +1,32 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_ALBUM_CATEGORIES}</h1>
+{% if ALBUM_ERROR %}<div class="errorbox"><p>{{ ALBUM_ERROR|e }}</p></div>{% endif %}
+{% if S_DIRECTORY %}
+<p>{L_PLUS_ALBUM_PUBLIC_SCOPE}</p>
+<p><a class="button1" href="{U_ADD}">{L_PLUS_ALBUM_PUBLIC_ADD}</a></p>
+{% if loops.categories %}<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_ALBUM_CATEGORIES}</th><th>{L_OPTIONS}</th></tr></thead><tbody>
+{% for cat in loops.categories %}<tr><td>{{ cat.INDENT|e }}<a href="{{ cat.U_EDIT }}"><strong>{{ cat.TITLE|e }}</strong></a>{% if cat.DESCRIPTION %}<br>{{ cat.DESCRIPTION|e }}{% endif %}</td>
+<td><a href="{{ cat.U_ADD }}">{L_PLUS_ALBUM_CAT_ADD}</a> &middot; <a href="{{ cat.U_EDIT }}">{L_EDIT}</a>
+{% if cat.U_UP %} &middot; <a href="{{ cat.U_UP }}">{L_PLUS_ALBUM_CAT_UP}</a>{% endif %}{% if cat.U_DOWN %} &middot; <a href="{{ cat.U_DOWN }}">{L_PLUS_ALBUM_CAT_DOWN}</a>{% endif %}
+ &middot; <a href="{{ cat.U_DELETE }}">{L_DELETE}</a></td></tr>{% endfor %}
+</tbody></table>{% endif %}
+{% elseif S_FORM %}
+<form id="album-public-category" action="{U_SAVE}" method="post"><fieldset><legend>{{ ALBUM_ACTION|e }}</legend>
+{% if ALBUM_CATEGORY %}<p><strong>{{ ALBUM_CATEGORY|e }}</strong></p>{% endif %}
+{% if S_EDITING %}
+<dl><dt><label for="album-name">{L_PLUS_ALBUM_PUBLIC_NAME}</label></dt><dd><input id="album-name" name="title" type="text" value="{{ ALBUM_TITLE|e('html_attr') }}" maxlength="255" required></dd></dl>
+<dl><dt><label for="album-description">{L_DESCRIPTION}</label></dt><dd><textarea id="album-description" name="description" rows="3" maxlength="65535">{{ ALBUM_DESCRIPTION|e }}</textarea></dd></dl>
+<dl><dt><label for="album-parent">{L_PLUS_ALBUM_PARENT}</label></dt><dd><select id="album-parent" name="parent">
+<option value="0"{% if S_ROOT_PARENT %} selected{% endif %}>{L_PLUS_ALBUM_PUBLIC_ROOT}</option>{% for other in loops.choices %}<option value="{{ other.ID }}"{% if other.SELECTED %} selected{% endif %}>{{ other.INDENT|e }}{{ other.TITLE|e }}</option>{% endfor %}</select></dd></dl>
+{% for level in loops.levels %}<dl><dt><label for="level-{{ level.NAME }}">{{ level.LABEL|e }}</label></dt><dd>
+<select id="level-{{ level.NAME }}" name="{{ level.NAME }}">{% for option in level.options %}<option value="{{ option.ID|e('html_attr') }}"{% if option.SELECTED %} selected{% endif %}>{{ option.LABEL|e }}</option>{% endfor %}</select></dd></dl>{% endfor %}
+{% elseif S_DELETE %}
+<p>{{ lang('PLUS_ALBUM_CATEGORY_CONTENTS', PICTURES, CHILDREN) }}</p>
+<dl><dt><label for="album-target">{L_PLUS_ALBUM_PICTURE_DEST}</label></dt><dd><select id="album-target" name="destination" required>
+<option value="">{L_PLUS_ALBUM_CHOOSE_DEST}</option>{% for other in loops.choices %}<option value="{{ other.ID }}"{% if other.SELECTED %} selected{% endif %}>{{ other.INDENT|e }}{{ other.TITLE|e }}</option>{% endfor %}
+<option value="remove">{L_PLUS_ALBUM_REMOVE_CONTENT}</option></select></dd></dl>
+{% endif %}
+</fieldset><fieldset class="submit-buttons"><input type="hidden" name="state" value="{ALBUM_STATE}">{S_FORM_TOKEN}
+<button class="button1" type="submit">{{ ALBUM_ACTION|e }}</button> <a class="button2" href="{U_BACK}">{L_CANCEL}</a></fieldset></form>
+{% else %}<p><a href="{U_BACK}">{L_BACK}</a></p>{% endif %}
+<!-- INCLUDE overall_footer.html -->

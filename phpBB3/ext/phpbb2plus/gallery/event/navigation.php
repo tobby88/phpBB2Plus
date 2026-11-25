@@ -43,6 +43,7 @@ class navigation implements EventSubscriberInterface
 	{
 		$permissions = $event['permissions'];
 		$permissions['a_plus_gallery'] = array('lang' => 'ACL_A_PLUS_GALLERY', 'cat' => 'misc');
+		$permissions['a_plus_album_categories'] = array('lang' => 'ACL_A_PLUS_ALBUM_CATEGORIES', 'cat' => 'misc');
 		$permissions['u_plus_album_personal'] = array('lang' => 'ACL_U_PLUS_ALBUM_PERSONAL', 'cat' => 'misc');
 		$event['permissions'] = $permissions;
 	}

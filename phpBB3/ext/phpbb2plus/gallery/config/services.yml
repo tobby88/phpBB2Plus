@@ -6,7 +6,13 @@ services:
         arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '%core.table_prefix%plus_album_settings']
     phpbb2plus.gallery.personal:
         class: phpbb2plus\gallery\service\personal
-        arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.pictures', '%core.table_prefix%plus_album_']
+        arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.hierarchy', '%core.table_prefix%plus_album_']
+    phpbb2plus.gallery.hierarchy:
+        class: phpbb2plus\gallery\service\hierarchy
+        arguments: ['@dbal.conn', '@phpbb2plus.gallery.pictures', '%core.table_prefix%plus_album_']
+    phpbb2plus.gallery.categories:
+        class: phpbb2plus\gallery\service\categories
+        arguments: ['@dbal.conn', '@phpbb2plus.gallery.hierarchy', '@phpbb2plus.gallery.access', '@auth', '@user', '%core.table_prefix%plus_album_cats', '@log']
     phpbb2plus.gallery.personal_controller:
         class: phpbb2plus\gallery\controller\personal
         arguments: ['@phpbb2plus.gallery.personal', '@phpbb2plus.gallery.access', '@request', '@controller.helper', '@language', '@template', '@user', '@?phpbb2plus.community.legacy']
