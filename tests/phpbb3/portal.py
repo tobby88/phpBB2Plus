@@ -30,8 +30,11 @@ def browse(base, owner):
         raise RuntimeError("The sidebar ignored the visitor or the original members-only Shoutbox setting")
     for html, visible in ((public, False), (private, True)):
         block = re.search(r'<section class="panel plus-seen">(.+?)</section>', html, re.S)
-        if not block or ("DepartingFixture" in block.group(1)) != visible:
-            raise RuntimeError("Hidden members were shown in the wrong last-seen audience")
+        if not block:
+            raise RuntimeError("The enabled last-seen portal block is missing")
+        if ("DepartingFixture" in block.group(1)) != visible:
+            audience = "administrator" if visible else "guest"
+            raise RuntimeError(f"The recently signed-in hidden member has the wrong visibility for the {audience}")
 
 
 def media(base, founder, member, pending):

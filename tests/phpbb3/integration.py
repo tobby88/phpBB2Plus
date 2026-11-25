@@ -308,10 +308,11 @@ def main():
                     # This test counts the exact number of index page views.
                     # Finish the other ACP logins before and start new ones afterwards.
                     banners.administration(base, member, web)
+                    # The portal checks the five most recent sign-ins, including a hidden member.
+                    portal.administration(base, member)
                     statistics_run = worker.submit(statistics_administration.exercise, base, lambda phase: php(
                         ROOT / "tests/phpbb3/statistics_administration.php", phase, target, cwd=web))
                     colours.administration(member, media["member"])
-                    portal.administration(base, member)
                     custom_profiles.administration(member)
                     statistics_run.result()
                 warning_cards.exercise(member, media["member"], os.environ["PLUS_TEST_MODERN_PASSWORD"], lambda step: php(fixture, step, target))
