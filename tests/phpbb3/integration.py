@@ -35,6 +35,7 @@ import mail_links
 import downloads
 import download_categories
 import download_permissions
+import download_licenses
 import delegation
 import delegation_administration
 import historical_actions
@@ -139,12 +140,15 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
             permissions = worker.submit(download_permissions.administration,
                                         *(actor.separate_client() for actor in (admin, historical, applicant)),
                                         lambda phase: php(ROOT / "tests/phpbb3/download_permissions.php", target, phase, cwd=web))
+            def verify_licence(phase):
+                php(ROOT / "tests/phpbb3/download_licenses.php", target, phase, cwd=web)
+            download_licenses.agreements(historical, verify_licence)
+            download_licenses.administration(admin, historical, verify_licence)
             # The storage-failure case temporarily switches the board's upload directory.
             gallery_run.result()
             downloads.submissions(base, admin, historical, applicant,
                                   lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
             permissions.result()
-        download_categories.administration(admin, lambda phase: php(ROOT / "tests/phpbb3/download_categories.php", target, phase, cwd=web))
 
     def gallery_checks(admin, historical, applicant):
         gallery.browse(base, admin, historical, applicant)
@@ -161,9 +165,15 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
         php(fixture, "kb-category-cleanup", target)
         knowledgebase.settings_administration(member, pending)
         download_run.result()
-    # Approving this fixture member also changes their KB and download permissions.
-    gallery_personal.browse(base, member, ordinary, pending,
-                            lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
+        def verify_category(phase):
+            php(ROOT / "tests/phpbb3/download_categories.php", target, phase, cwd=web)
+        verify_category("roles")
+        category_run = workers.submit(download_categories.administration, member.separate_client(), verify_category)
+        # All membership-sensitive KB and download cases are now finished. The
+        # download category tree is independent of these private album operations.
+        gallery_personal.browse(base, member, ordinary, pending,
+                                lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
+        category_run.result()
     print(f"Knowledge Base, downloads and gallery workflows: {monotonic()-started:.1f}s", flush=True)
 
 

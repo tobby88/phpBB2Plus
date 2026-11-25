@@ -8,7 +8,6 @@ from knowledgebase import acp_panel
 def administration(owner, verify):
     panel = acp_panel(owner, "Downloadkategorien verwalten")
     guest = Browser(owner.base)
-    verify("roles")
     verify("seed")
 
     def action(name, ident=0):
