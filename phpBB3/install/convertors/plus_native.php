@@ -12,47 +12,6 @@ function plus_pm_unread($type)
 	return in_array((int) $type, array(1, 5), true) ? 1 : 0;
 }
 
-/** The stock "limited access" role includes voting even when the old public forum required a login. */
-function plus_guest_poll_permissions()
-{
-	global $db, $src_db, $convert, $phpbb_root_path, $phpEx;
-	require_once $phpbb_root_path . 'includes/acp/auth.' . $phpEx;
-	$admin = new \auth_admin();
-	$result = $db->sql_query('SELECT group_id FROM ' . GROUPS_TABLE . " WHERE group_name='GUESTS' AND group_type=" . GROUP_SPECIAL);
-	$guest = (int) $db->sql_fetchfield('group_id');
-	$db->sql_freeresult($result);
-	if (!$guest) { throw new \RuntimeException('The destination guest group is missing.'); }
-	$groups = $admin->acl_group_raw_data($guest, 'f_%');
-	$result = $src_db->sql_query('SELECT forum_id,auth_vote,auth_pollcreate FROM ' . $convert->src_table_prefix . 'forums');
-	$forums = $src_db->sql_fetchrowset($result);
-	$src_db->sql_freeresult($result);
-	$db->sql_transaction('begin');
-	try
-	{
-		foreach ($forums as $forum)
-		{
-			$id = (int) $forum['forum_id'];
-			$flags = $groups[$guest][$id] ?? array();
-			if (!$flags) { continue; }
-			$corrected = $flags;
-			foreach (array('auth_vote'=>'f_vote','auth_pollcreate'=>'f_poll') as $old=>$native)
-			{
-				$allowed = (int) $forum[$old] === 0 && (int) ($flags['f_read'] ?? ACL_NO) === ACL_YES;
-				if ($allowed !== ((int) ($flags[$native] ?? ACL_NO) === ACL_YES)) { $corrected[$native] = $allowed ? ACL_YES : ACL_NO; }
-			}
-			if ($corrected !== $flags)
-			{
-				// Store the complete forum permission set through the ACP writer. Other
-				// guest permissions survive and the site's shared role stays editable.
-				$admin->acl_set('group', $id, $guest, $corrected, 0, false);
-			}
-		}
-		$db->sql_transaction('commit');
-	}
-	catch (\Throwable $error) { $db->sql_transaction('rollback'); throw $error; }
-	$admin->acl_clear_prefetch();
-}
-
 function plus_sync_new_pms()
 {
 	global $db;

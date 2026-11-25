@@ -130,6 +130,9 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_auth_access (group_id,forum_id,auth_cal) VALUES (71,1,1),(72,1,1) ON DUPLICATE KEY UPDATE auth_cal=1");
 	$db->query('UPDATE phpbb_forums SET auth_news=2 WHERE forum_id=1');
 	$db->query('UPDATE phpbb_auth_access SET auth_news=1 WHERE forum_id=1 AND group_id=71');
+	$db->query('UPDATE phpbb_forums SET auth_sticky=2,auth_announce=2,auth_global_announce=5,auth_pollcreate=2 WHERE forum_id=1');
+	$db->query('UPDATE phpbb_auth_access SET auth_announce=1,auth_pollcreate=1 WHERE forum_id=1 AND group_id=71');
+	$db->query('UPDATE phpbb_auth_access SET auth_sticky=1 WHERE forum_id=1 AND group_id=72');
 	$db->query("INSERT INTO phpbb_attachments_desc (attach_id,physical_filename,real_filename,download_count,extension,mimetype,filesize,filetime,thumbnail)
 		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
 		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");
@@ -148,6 +151,15 @@ if ($argv[1] === 'seed')
 	$db->query("UPDATE phpbb_attachments_config SET config_value='1048576' WHERE config_name='max_filesize'");
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user) VALUES (74,2,'PM quota circle','',0)");
 	$db->query("INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (74,87,0)");
+	$db->query('UPDATE phpbb_forums SET auth_sticky=5,auth_announce=5,auth_global_announce=2 WHERE forum_id=14');
+	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_global_announce) VALUES (74,14,1)');
+	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,cat_id,forum_order,auth_view,auth_read,auth_post,auth_reply,auth_sticky,auth_announce,auth_global_announce,auth_pollcreate)
+		VALUES (12,'Moderation circle','',1,31,1,1,1,1,3,2,5,3)");
+	$db->query("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email)
+		SELECT 89,'ModerationFixture',user_password,'german','moderation@example.invalid' FROM phpbb_users WHERE user_id=87");
+	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user) VALUES (75,2,'Local moderation fixture','',0)");
+	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (75,89,0)');
+	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_mod) VALUES (75,12,1)');
 }
 elseif ($argv[1] === 'installed-flags')
 {

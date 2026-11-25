@@ -1,13 +1,15 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
-/** Clear a converted forum option while preserving the native role catalogue for future forums. */
-function plus_clear_local_option($option, $forums)
+/** Replace converted forum options without changing the reusable native role catalogue. */
+function plus_clear_local_options($options, $forums)
 {
 	global $db;
-	$option = (int) $option;
+	if (!$options || !$forums) { return; }
+	$replace = array_fill_keys(array_map('intval',$options),true);
+	$scope_options = $db->sql_in_set('auth_option_id',array_keys($replace));
 	$r = $db->sql_query('SELECT d.role_id,d.auth_option_id,d.auth_setting FROM ' . ACL_ROLES_DATA_TABLE . ' d WHERE d.role_id IN
-		(SELECT role_id FROM ' . ACL_ROLES_DATA_TABLE . ' WHERE auth_option_id=' . $option . ') ORDER BY d.role_id,d.auth_option_id');
+		(SELECT role_id FROM ' . ACL_ROLES_DATA_TABLE . " WHERE $scope_options) ORDER BY d.role_id,d.auth_option_id");
 	$roles = array();
 	while ($row = $db->sql_fetchrow($r))
 	{
@@ -35,7 +37,7 @@ function plus_clear_local_option($option, $forums)
 					}
 					foreach ($roles[$role] as $other=>$setting)
 					{
-						if ($other === $option || $setting === ACL_NO) { continue; }
+						if (isset($replace[$other]) || $setting === ACL_NO) { continue; }
 						if (!isset($expanded[$forum][$who][$other]) || ($key === 'group_id' && $setting === ACL_NEVER))
 						{
 							$expanded[$forum][$who][$other] = $setting;
@@ -67,7 +69,7 @@ function plus_clear_local_option($option, $forums)
 				$db->sql_query("DELETE FROM $table WHERE $scope AND $role_scope");
 				foreach (array_chunk($insert,100) as $batch) { $db->sql_multi_insert($table,$batch); }
 			}
-			$db->sql_query("DELETE FROM $table WHERE $scope AND auth_role_id=0 AND auth_option_id=$option");
+			$db->sql_query("DELETE FROM $table WHERE $scope AND auth_role_id=0 AND $scope_options");
 		}
 	}
 }

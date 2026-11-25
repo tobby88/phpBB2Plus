@@ -21,6 +21,7 @@ import arcade
 import banners
 import attachments
 import attachment_quotas
+import forum_permissions
 import news
 import portal
 import custom_profiles
@@ -161,6 +162,7 @@ def main():
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
+                forum_permissions.publishing(member, ordinary, pending)
                 public_pages(base, member)
                 legend = member.fetch("index.php")
                 if ('#5A769B">Redaktion &amp; Gäste</span>' not in legend or 'Hidden palette' in legend

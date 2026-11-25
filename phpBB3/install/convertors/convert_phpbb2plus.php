@@ -55,15 +55,11 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
-	$convertor['execute_last'][] = "plus_forum_permission('f_plus_calendar');";
 	if (defined('MOD_ATTACHMENT'))
 	{
 		$convertor['execute_last'][] = 'plus_quota_defaults();';
-		$convertor['execute_last'][] = "plus_forum_permission('f_attach');";
-		$convertor['execute_last'][] = "plus_forum_permission('f_download');";
 	}
-	$convertor['execute_last'][] = "plus_forum_permission('f_plus_news');";
-	$convertor['execute_last'][] = 'plus_guest_poll_permissions();';
+	$convertor['execute_last'][] = 'plus_forum_permissions();';
 	$convertor['execute_last'][] = 'plus_finish_news();';
 	$convertor['execute_last'][] = 'plus_portal_settings();';
 	$convertor['execute_last'][] = 'plus_finish_colours();';
