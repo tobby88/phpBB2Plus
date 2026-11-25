@@ -13,9 +13,15 @@ function plus_kb_label($text)
 
 function plus_kb_setting($name, $value)
 {
+	if (plus_kb_text_setting($name)) { return plus_kb_label($value); }
 	if ($name !== 'admin_id') { return $value; }
 	$id = plus_existing_author($value);
 	return $id > ANONYMOUS ? (string) $id : '0';
+}
+
+function plus_kb_text_setting($name)
+{
+	return (int) in_array($name, array('pt_header','pt_body'), true);
 }
 
 function plus_kb_editor($text, $uid)
@@ -139,7 +145,8 @@ function plus_kb_schema($prefix, $truncate)
 	$p = $prefix . 'plus_kb_';
 	return array(
 		array('target' => $p . 'settings', 'primary' => 'kb_config.config_name', 'query_first' => array('target', $truncate . $p . 'settings'),
-			array('setting_name', 'kb_config.config_name', ''), array('setting_value', array('kb_config.config_name','kb_config.config_value'), 'plus_kb_setting')),
+			array('setting_name', 'kb_config.config_name', ''), array('setting_value', array('kb_config.config_name','kb_config.config_value'), 'plus_kb_setting'),
+			array('value_encoded','kb_config.config_name','plus_kb_text_setting')),
 		array('target' => $p . 'cats', 'primary' => 'kb_categories.category_id', 'autoincrement' => 'cat_id',
 			'query_first' => array('target', $truncate . $p . 'cats'), array('cat_id','kb_categories.category_id','intval'),
 			array('parent_id','kb_categories.parent','intval'), array('sort_order','kb_categories.cat_order','intval'),

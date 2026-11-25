@@ -27,8 +27,8 @@ class articles
 		if ($this->settings === null)
 		{
 			$this->settings = array();
-			$result = $this->db->sql_query('SELECT setting_name,setting_value FROM ' . $this->prefix . 'settings');
-			while ($row = $this->db->sql_fetchrow($result)) { $this->settings[$row['setting_name']] = $row['setting_value']; }
+			$result = $this->db->sql_query('SELECT setting_name,setting_value,value_encoded FROM ' . $this->prefix . 'settings');
+			while ($row = $this->db->sql_fetchrow($result)) { $this->settings[$row['setting_name']] = self::label($row['setting_value'], $row['value_encoded']); }
 			$this->db->sql_freeresult($result);
 		}
 		return $this->settings[$name] ?? $default;

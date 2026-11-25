@@ -271,3 +271,44 @@ def category_administration(owner):
     if ("Archivbrief" not in guest.fetch(article + "214") or "Briefe der Klasse" not in guest.fetch(directory + "1")
             or "Welche Jahreszeit?" not in guest.fetch("viewtopic.php?t=1")):
         raise RuntimeError("Deleting direct category contents also removed a descendant article or an independent discussion")
+
+
+def settings_administration(owner, contributor):
+    panel = acp_panel(owner, "Einstellungen der Wissensdatenbank")
+    page = owner.fetch(panel)
+    guest = Browser(owner.base)
+    article = "app.php/knowledge/article/201"
+    new = "app.php/knowledge/new"
+    submission, discussion, notices, ratings = ["kb-settings-" + s for s in ("submission", "discussion", "notices", "ratings")]
+    if not {submission, discussion, notices, ratings}.issubset(Page(page).forms):
+        raise RuntimeError("The native ACP lost a Knowledge Base settings section")
+    prefs = FormFields(page, submission).values
+    if FormFields(page, discussion).values["forum_id"] != "1" or FormFields(page, notices).values["notify"] != "1":
+        raise RuntimeError("The settings panel did not load the converted discussion and review preferences")
+    intro = "Hinweise 📗 &amp; Druck"
+    message = "Bitte A & B prüfen."
+    result = submit_form(owner, panel, page, submission, {"show_pretext": "1", "pt_header": intro, "pt_body": message})
+    if "wurden gespeichert" not in result or escape(intro) not in contributor.fetch(new) or escape(message) not in contributor.fetch(new):
+        raise RuntimeError("Submission instructions failed to reach the article form intact")
+    stale = submit_form(owner, panel, page, submission, {"allow_new": None})
+    if "inzwischen geändert" not in stale or FormFields(stale, submission).values["pt_header"] != intro:
+        raise RuntimeError("A stale settings page replaced the newer instructions")
+    result = submit_form(owner, panel, stale, submission, {"allow_new": None})
+    contributor.fetch(new, expected_status=404)
+    owner.fetch(new)
+    result = submit_form(owner, panel, result, submission, {"allow_new": prefs["allow_new"], "show_pretext": prefs.get("show_pretext"),
+                                                        "pt_header": prefs["pt_header"], "pt_body": prefs["pt_body"]})
+    if "kb-editor" not in Page(contributor.fetch(new)).forms:
+        raise RuntimeError("Reopening submissions did not restore the member's form")
+    result = submit_form(owner, panel, result, discussion, {"comments": None})
+    if "Diskussion im Forum" in guest.fetch(article) or "Welche Jahreszeit?" not in guest.fetch("viewtopic.php?t=1"):
+        raise RuntimeError("Disabling article discussions removed a native topic or left its article link active")
+    result = submit_form(owner, panel, result, discussion, {"comments": "1"})
+    result = submit_form(owner, panel, result, ratings, {"allow_rating": None})
+    if "kb-rate" in Page(contributor.fetch(article)).forms or "Stimmen)" in guest.fetch(article):
+        raise RuntimeError("Disabled article ratings were still visible")
+    result = submit_form(owner, panel, result, ratings, {"allow_rating": "1"})
+    saved = FormFields(result, notices).values
+    refused = submit_form(owner, panel, result, notices, {"notify": "2", "admin_id": "999999"})
+    if "Benutzer-ID" not in refused or FormFields(owner.fetch(panel), notices).values["notify"] != saved["notify"]:
+        raise RuntimeError("An invalid recipient partially changed the review notification method")

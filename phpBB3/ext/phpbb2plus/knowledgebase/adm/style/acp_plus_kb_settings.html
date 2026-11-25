@@ -1,0 +1,21 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_KB_SETTINGS}</h1>
+{% if KB_SAVED %}<div class="successbox"><p>{L_ACP_PLUS_KB_SETTINGS_SAVED}</p></div>{% endif %}
+{% for section in loops.kb_sections %}
+<form id="kb-settings-{{ section.KEY }}" action="{U_SAVE}" method="post">
+	<fieldset><legend>{{ section.TITLE|e }}</legend>
+	{% if section.ERROR %}<div class="errorbox"><p>{{ section.ERROR|e }}</p></div>{% endif %}
+	{% for field in section.fields %}
+	<dl><dt><label for="kb-opt-{{ field.NAME }}">{{ field.LABEL|e }}</label></dt><dd>
+	{% if field.KIND == 'bool' %}<input id="kb-opt-{{ field.NAME }}" type="checkbox" name="{{ field.NAME }}" value="1"{% if field.CHECKED %} checked{% endif %}>
+	{% elseif field.options %}<select id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}">{% for choice in field.options %}<option value="{{ choice.KEY|e('html_attr') }}"{% if choice.SELECTED %} selected{% endif %}>{{ choice.LABEL|e }}</option>{% endfor %}</select>
+	{% elseif field.KIND == 'memo' %}<textarea id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}" maxlength="{{ field.LIMIT }}" rows="3">{{ field.VALUE|e }}</textarea>
+	{% elseif field.KIND == 'text' %}<input class="inputbox" id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}" type="text" maxlength="{{ field.LIMIT }}" value="{{ field.VALUE|e('html_attr') }}">
+	{% else %}<input id="kb-opt-{{ field.NAME }}" name="{{ field.NAME }}" type="number" min="0" value="{{ field.VALUE|e('html_attr') }}" required>{% endif %}
+	</dd></dl>{% endfor %}
+	<input type="hidden" name="state" value="{{ section.STATE }}"><input type="hidden" name="section" value="{{ section.KEY }}">{{ section.TOKEN }}
+	</fieldset>
+	<fieldset class="submit-buttons"><button type="submit" class="button1">{L_SUBMIT}</button></fieldset>
+</form>
+{% endfor %}
+<!-- INCLUDE overall_footer.html -->

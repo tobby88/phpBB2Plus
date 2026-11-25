@@ -231,6 +231,7 @@ def main():
                 knowledgebase.type_administration(member)
                 knowledgebase.category_administration(member)
                 php(fixture, "kb-category-cleanup", target)
+                knowledgebase.settings_administration(member, pending)
                 gallery.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
                 former_names(base, ordinary)
