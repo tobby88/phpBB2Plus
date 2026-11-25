@@ -25,8 +25,9 @@ class board
 	private $config;
 	private $member_pictures;
 	private $category_index;
+	private $group_helper;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config, $member_pictures, $category_index)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config, $member_pictures, $category_index, $group_helper)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -45,6 +46,7 @@ class board
 		$this->config = $config;
 		$this->member_pictures = $member_pictures;
 		$this->category_index = $category_index;
+		$this->group_helper = $group_helper;
 	}
 
 	private function breadcrumbs($cat = null, $listing = array())
@@ -183,6 +185,12 @@ class board
 				'TOTAL_COMMENTS' => $child['total']['comments'], 'PHOTO' => $this->index_event($child['photo'], false, $options['fullpic_popup']),
 				'COMMENT' => $this->index_event($child['comment'], true, false),
 				'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $row['cat_id']))));
+			foreach ($child['moderators'] as $group)
+			{
+				$this->template->assign_block_vars('album_categories.moderators', array(
+					'NAME' => htmlspecialchars_decode($group['group_name'], ENT_QUOTES),
+					'URL' => $this->group_helper->get_name_string('profile', (int) $group['group_id'], $group['group_name'])));
+			}
 			foreach ($child['children'] as $sub)
 			{
 				$item = $sub['category'];

@@ -1,6 +1,7 @@
 """Read the public and personal album directories through four real browser sessions."""
 from html import unescape
 import re
+from urllib.parse import urljoin
 from gallery import category_grid
 
 
@@ -39,6 +40,18 @@ def browse(administrator, member, applicant, guest, check):
             branch = rows(actor, 880)
             row = branch[881]
             sub = children(row)
+            moderators = re.search(r'<p class="plus-album-moderators">(.*?)</p>', row, re.S)
+            if (not moderators or moderators[1].count("Album editors &amp; friends") != 1 or
+                    "Staff photographers" not in moderators[1] or moderators[1].index("Album editors") > moderators[1].index("Staff photographers") or
+                    "Photo Club" in moderators[1] or "plus-album-moderators" in branch[882]):
+                raise RuntimeError("The gallery moderator list included hidden groups or lost a visible group, order or label")
+            if actor is administrator:
+                link = re.search(r'<a href="([^"]+)">Album editors &amp; friends</a>', moderators[1])
+                if not link or "g=28881" not in link[1]:
+                    raise RuntimeError("The visible gallery group did not link to its native profile")
+                page = actor.fetch(urljoin(urljoin(actor.base, "app.php/album/category/880"), unescape(link[1])))
+                if "Album editors &amp; friends" not in page:
+                    raise RuntimeError("The linked native group page did not show the named gallery moderators")
             if list(sub) != ([883,884,886] if privileged else [883,886]) or "data-album-subcount" in sub[886]:
                 raise RuntimeError("The direct subalbum list included a hidden parent, descendant or zero-picture label")
             expected = 10 if actor is administrator else 9 if privileged else 6
@@ -114,7 +127,7 @@ def browse(administrator, member, applicant, guest, check):
         if 'target="_blank"' in inline_grid or not re.search(r'<a href="[^"]*/album/picture/28004(?:\?[^"]*)?">', inline_grid):
             raise RuntimeError("Disabling the full-image popup did not restore the picture page")
         row = rows(guest, 880)[881]
-        if children(row) or any(key in row for key in ("data-album-new", "data-album-count", "plus-album-index-thumb", "data-album-last-")):
+        if children(row) or any(key in row for key in ("plus-album-moderators", "data-album-new", "data-album-count", "plus-album-index-thumb", "data-album-last-")):
             raise RuntimeError("Disabled directory details remained visible")
     finally:
         check("cleanup")

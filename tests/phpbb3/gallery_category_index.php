@@ -35,6 +35,7 @@ $db->sql_transaction('begin');
 if ($argv[2] === 'seed')
 {
 	if (directory_rows("SELECT cat_id FROM {$g}cats WHERE cat_id BETWEEN 880 AND 892") ||
+		directory_rows('SELECT group_id FROM ' . GROUPS_TABLE . ' WHERE group_id IN (28881,28882)') ||
 		directory_rows("SELECT pic_id FROM {$g}pics WHERE pic_id BETWEEN 28000 AND 28009") ||
 		directory_rows("SELECT comment_id FROM {$g}comments WHERE comment_id BETWEEN 28500 AND 28507") ||
 		directory_rows("SELECT setting_name FROM {$g}settings WHERE scope='idxtest'"))
@@ -58,6 +59,15 @@ if ($argv[2] === 'seed')
 		$db->sql_query("INSERT INTO {$g}cats " . $db->sql_build_array('INSERT', $cat));
 	}
 	$db->sql_query("INSERT INTO {$g}grants (cat_id,capability,subject_type,subject_id) VALUES (884,'view','g',71),(883,'moderator','g',71)");
+	$group = directory_rows('SELECT * FROM ' . GROUPS_TABLE . ' WHERE group_id=71')[0];
+	foreach (array(28881 => 'Album editors &amp; friends', 28882 => 'Staff photographers') as $id => $name)
+	{
+		$row = array_merge($group, array('group_id' => $id, 'group_name' => $name, 'group_type' => GROUP_CLOSED));
+		$db->sql_query('INSERT INTO ' . GROUPS_TABLE . ' ' . $db->sql_build_array('INSERT', $row));
+	}
+	$db->sql_query("INSERT INTO {$g}grants (cat_id,capability,subject_type,subject_id) VALUES
+		(881,'moderator','g',28882),(881,'moderator','g',71),(881,'moderator','u',28881),
+		(881,'moderator','g',28881),(882,'moderator','g',28881)");
 	$photo = directory_rows("SELECT * FROM {$g}pics WHERE pic_id=100")[0];
 	$now = time();
 	foreach (array(array(881,7200),array(881,1728000),array(883,600),array(887,300),array(883,300),array(884,200),array(885,100),
@@ -110,6 +120,8 @@ elseif ($argv[2] === 'cleanup')
 	$db->sql_query("DELETE FROM {$g}comments WHERE comment_id BETWEEN 28500 AND 28507");
 	$db->sql_query("DELETE FROM {$g}pics WHERE pic_id BETWEEN 28000 AND 28009");
 	$db->sql_query("DELETE FROM {$g}grants WHERE cat_id IN (883,884) AND subject_type='g' AND subject_id=71");
+	$db->sql_query("DELETE FROM {$g}grants WHERE cat_id IN (881,882) AND capability='moderator'");
+	$db->sql_query('DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id IN (28881,28882)');
 	$db->sql_query("DELETE FROM {$g}cats WHERE cat_id BETWEEN 880 AND 892");
 	$db->sql_query("DELETE FROM {$g}settings WHERE scope='album' AND " . $db->sql_in_set('setting_name', array_keys($options)));
 	foreach (directory_rows("SELECT setting_name,setting_value FROM {$g}settings WHERE scope='idxtest'") as $row)

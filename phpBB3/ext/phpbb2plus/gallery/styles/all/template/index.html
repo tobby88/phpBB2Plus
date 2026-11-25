@@ -19,6 +19,10 @@
 {% if cat.OWNER %}<span>({{ cat.OWNER|e }})</span>{% endif %}
 {% if cat.NEW %}<span class="plus-album-new" data-album-new>{{ cat.NEW }}</span>{% endif %}
 {% if cat.DESCRIPTION %}<p class="plus-album-copy">{{ cat.DESCRIPTION|e }}</p>{% endif %}
+{% if cat.moderators %}
+<p class="plus-album-moderators"><strong>{L_MODERATORS}{L_COLON}</strong>
+{% for group in cat.moderators %}{% if group.URL %}<a href="{{ group.URL }}">{{ group.NAME|e }}</a>{% else %}{{ group.NAME|e }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}
 {% if cat.children %}
 <ul class="plus-album-subcategories{% if S_LINE_BREAK_SUBCATS %} plus-album-subcategories-lines{% endif %}" aria-label="{L_PLUS_ALBUM_INDEX_SUBCATEGORIES}">
 {% for sub in cat.children %}<li data-album-subcategory="{{ sub.ID }}"><a href="{{ sub.URL }}"{% if sub.DESCRIPTION %} title="{{ sub.DESCRIPTION|e }}"{% endif %}>{{ sub.TITLE|e }}</a>{% if sub.COUNT %} <span data-album-subcount>({{ sub.COUNT }})</span>{% endif %}{% if sub.NEW %} <span class="plus-album-new" data-album-new>{{ sub.NEW }}</span>{% endif %}</li>{% endfor %}

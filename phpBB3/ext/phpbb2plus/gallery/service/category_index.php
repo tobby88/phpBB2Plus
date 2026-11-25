@@ -143,6 +143,20 @@ class category_index
 		return $rows;
 	}
 
+	private function moderator_groups($categories)
+	{
+		$groups = array();
+		foreach (array_chunk($categories, 500) as $chunk)
+		{
+			$sql = 'SELECT a.cat_id,g.group_id,g.group_name FROM ' . $this->prefix . 'grants a JOIN ' . GROUPS_TABLE . " g
+				ON g.group_id=a.subject_id WHERE a.capability='moderator' AND a.subject_type='g' AND " .
+				$this->db->sql_in_set('a.cat_id', $chunk) . ' AND ' . $this->db->sql_in_set('g.group_type', array(GROUP_HIDDEN, GROUP_SPECIAL), true) .
+				' ORDER BY a.cat_id,g.group_name,g.group_id';
+			foreach ($this->rows($sql) as $row) { $groups[(int) $row['cat_id']][] = $row; }
+		}
+		return $groups;
+	}
+
 	public function listing($parent, $options)
 	{
 		list($categories, $links) = $this->tree($parent);
@@ -204,6 +218,7 @@ class category_index
 		}
 		$photos = $this->details($winners['photo'], false);
 		$comments = $this->details($winners['comment'], true);
+		$moderators = $this->moderator_groups(array_keys($children));
 		$list = array();
 		foreach ($direct as $id)
 		{
@@ -214,6 +229,7 @@ class category_index
 				$subcategories[] = array('category' => $categories[$child], 'pictures' => $total[$child]['pictures'], 'new' => $total[$child]['new']);
 			}
 			$list[] = array('category' => $cat, 'children' => $subcategories, 'local' => $local[$id], 'total' => $total[$id],
+				'moderators' => $moderators[$id] ?? array(),
 				'photo' => $photos[$total[$id]['photo'][1] ?? 0] ?? null, 'comment' => $comments[$total[$id]['comment'][1] ?? 0] ?? null);
 		}
 		return $list;
