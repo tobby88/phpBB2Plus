@@ -18,6 +18,8 @@ function delegation_fixture_roles()
 		51 => array('DownloadLicenseJunior', 'DownloadLicense_titleadmin_pa_license.php', 'a_plus_dl_licenses'),
 		52 => array('DownloadFieldsJunior', 'DownloadMfieldtitleadmin_pa_custom.php', 'a_plus_dl_fields'),
 		53 => array('AlbumPersonalJunior', 'Photo_AlbumPersonal_Galleriesadmin_album_personal.php', 'a_plus_album_personal_auth'),
+		54 => array('StatisticsModulesJunior', 'StatisticsStatistics_managementadmin_statistics.php?mode=manage', 'a_plus_stats_modules'),
+		55 => array('StatisticsSettingsJunior', 'StatisticsStatistics_configadmin_statistics.php?mode=config', 'a_plus_stats_settings'),
 	);
 }
 

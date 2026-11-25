@@ -65,6 +65,7 @@ function plus_jr_registry()
 	// A locally modified module can expose fewer actions under the same name. These
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
+		'admin_statistics.php' => '9dae7adc915d806601d0140450537a82d430d8039f06e095ae763b32972980e1',
 		'admin_pa_custom.php' => '9237b12da9f50adbc87ff38da3b3550063a92d017dc628b410ee65a69927350b',
 		'admin_album_personal.php' => 'd97d4e085e90eac081030134f6894b60b3e4824ee6d1ef88ad82bd1fd36f5d87',
 		'admin_words.php' => '5d8a246e3aa046ed04b6e9346336e66ca0a79031ad0c2a8aa81f4b8d8a257e59',
@@ -87,6 +88,10 @@ function plus_jr_registry()
 		'pafiledb/includes/functions_file_authority.php' => 'd875f99ae5eafa9a2398fbc89fefd86cc406a7d91633290834c62b77023ba2a1',
 	);
 	$dependencies = array(
+		'admin_statistics.php' => array(
+			'includes/functions_stats.php' => 'df16dfb95b1f29bd7afc18b882d5516c0193fa63f0dbc09a640bd7ec5570f602',
+			'includes/functions_module.php' => '886c98ef69101689102bcfa5bd9a973214ca4bfaee639d4f031910508ec7d045',
+		),
 		'admin_pa_custom.php' => $file_authority + array(
 			'pafiledb/includes/functions_custom_storage.php' => '148a8b14339e9d4808f5283add8ec0dc6ddc3ad2bef7da0dabdfcd29ade4c0ee',
 			'pafiledb/includes/functions_field.php' => '55cda748f5b69160f14244f22d4496a8520f4ab4160150828effb35b4428ea20',
@@ -119,7 +124,7 @@ function plus_jr_registry()
 			$hash = md5($category . $label . $route);
 			$record = array('category' => $category, 'module' => $label, 'route' => $route);
 			$map = junior_admin::MODULES[$route] ?? null;
-			if ($map && $file === $route && $category === $map[0] && $label === $map[1])
+			if ($map && $file === explode('?', $route, 2)[0] && $category === $map[0] && $label === $map[1])
 			{
 				if (isset($reviewed[$file]) && plus_jr_source_matches($source, $reviewed[$file])
 					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$file] ?? array()))

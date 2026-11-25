@@ -23,6 +23,8 @@ on:
       - 'phpBB2/pafiledb/includes/functions_field.php'
       - 'phpBB2/includes/functions_ban.php'
       - 'phpBB2/includes/functions_jr_admin*.php'
+      - 'phpBB2/includes/functions_stats.php'
+      - 'phpBB2/includes/functions_module.php'
       - 'phpBB2/includes/functions_post_author.php'
       - 'phpBB2/includes/icon_defaults.php'
       - 'phpBB2/language/lang_*/lang_extend_post_icons.php'

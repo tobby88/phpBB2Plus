@@ -18,7 +18,8 @@ def source_modules(source, target):
     directory.mkdir(exist_ok=True)
     for file in (source / "admin").glob("admin_*.php"):
         shutil.copyfile(file, directory / file.name)
-    for path in ("includes/functions_jr_admin_auth.php", "pafiledb/includes/functions_file_authority.php",
+    for path in ("includes/functions_jr_admin_auth.php", "includes/functions_stats.php", "includes/functions_module.php",
+                 "pafiledb/includes/functions_file_authority.php",
                  "pafiledb/includes/functions_permission_storage.php", "pafiledb/includes/functions_license_storage.php",
                  "pafiledb/includes/functions_custom_storage.php", "pafiledb/includes/functions_field.php",
                  "album_mod/album_admin_category_storage.php",

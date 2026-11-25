@@ -8,6 +8,8 @@ class junior_admin
 		'admin_words.php' => array('General', 'Word_Censor', 'a_words', 'acp_words', 'words'),
 		'admin_disallow.php' => array('Users', 'Disallow', 'a_names', 'acp_disallow', 'usernames'),
 		'admin_ranks.php' => array('Users', 'Ranks', 'a_ranks', 'acp_ranks', 'ranks'),
+		'admin_statistics.php?mode=manage' => array('Statistics', 'Statistics_management', 'a_plus_stats_modules', 'phpbb2plus\community\acp\statistics_module', 'manage'),
+		'admin_statistics.php?mode=config' => array('Statistics', 'Statistics_config', 'a_plus_stats_settings', 'phpbb2plus\community\acp\statistics_module', 'settings'),
 		'admin_kb_art.php' => array('KB_title', 'Art_man', 'a_plus_kb_articles', 'phpbb2plus\knowledgebase\acp\articles_module', 'manage'),
 		'admin_kb_types.php' => array('KB_title', 'Types_man', 'a_plus_kb_types', 'phpbb2plus\knowledgebase\acp\types_module', 'manage'),
 		'admin_kb_cat.php' => array('KB_title', 'Cat_man', 'a_plus_kb_categories', 'phpbb2plus\knowledgebase\acp\categories_module', 'manage'),

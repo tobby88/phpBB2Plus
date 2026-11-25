@@ -10,6 +10,7 @@ require_once './includes/acp/auth.php';
 $writer = new auth_admin();
 $text = $phpbb_container->get('config_text');
 $roles = array('DownloadCategoryJunior' => 'a_plus_stats_modules', 'DownloadAccessJunior' => 'a_plus_stats_settings');
+if ($argv[1] === 'revoke' || $argv[1] === 'restore') { $roles['StatisticsModulesJunior'] = 'a_plus_stats_modules'; }
 foreach ($roles as $name => $right)
 {
 	$result = $db->sql_query('SELECT user_id FROM ' . USERS_TABLE . " WHERE username='" . $db->sql_escape($name) . "'");
@@ -17,7 +18,7 @@ foreach ($roles as $name => $right)
 	$db->sql_freeresult($result);
 	if ($id < 2) { throw new RuntimeException('Missing synthetic statistics operator'); }
 	if ($argv[1] === 'rights') { $writer->acl_set('user', 0, $id, array($right => ACL_YES)); }
-	if ($argv[1] === 'revoke' && $name === 'DownloadCategoryJunior') { $writer->acl_set('user', 0, $id, array($right => ACL_NEVER)); }
+	if ($argv[1] === 'revoke' && $right === 'a_plus_stats_modules') { $writer->acl_set('user', 0, $id, array($right => ACL_NEVER)); }
 	if ($argv[1] === 'restore') { $writer->acl_set('user', 0, $id, array($right => ACL_NO)); }
 }
 $source = 'plus_statistics_source_modules';

@@ -1,5 +1,6 @@
 """Use separately authorised native ACP sessions to configure the statistics page."""
 import re
+from concurrent.futures import ThreadPoolExecutor
 from board_statistics import panels
 from delegation import authenticate
 from http_board import Browser, FormFields, submit_form
@@ -11,13 +12,22 @@ def exercise(base, fixture):
     guest = Browser(base)
     fixture("rights")
     try:
-        manager, modules_entry = authenticate(base, "DownloadCategoryJunior")
-        operator, settings_entry = authenticate(base, "DownloadAccessJunior")
+        names = ("StatisticsModulesJunior", "StatisticsSettingsJunior", "DownloadCategoryJunior", "DownloadAccessJunior")
+        with ThreadPoolExecutor(max_workers=4) as workers:
+            (manager, modules_entry), (operator, settings_entry), native_manager, native_operator = workers.map(
+                lambda name: authenticate(base, name), names)
         module = "&i=-phpbb2plus-community-acp-statistics_module&mode="
         modules = modules_entry + module + "manage"
         settings = settings_entry + module + "settings"
-        for browser, url in ((manager, modules_entry + module + "settings"), (operator, settings_entry + module + "manage")):
-            if "Module not accessible" not in browser.fetch(url, expected_status=503):
+        # Direct native grants and grants converted from the two historical
+        # registrations must both stop at their own ACP mode.
+        for browser, entry, permitted, forbidden in ((manager, modules_entry, "manage", "settings"),
+                (operator, settings_entry, "settings", "manage"), (*native_manager, "manage", "settings"),
+                (*native_operator, "settings", "manage")):
+            allowed = browser.fetch(entry + module + permitted)
+            if "plus-stats-admin" not in allowed and "action=edit" not in allowed:
+                raise RuntimeError("The statistics grant did not open its ACP mode")
+            if "Module not accessible" not in browser.fetch(entry + module + forbidden, expected_status=503):
                 raise RuntimeError("The two native statistics administration rights were not separate")
         page = manager.fetch(modules)
         other = operator.fetch(settings)

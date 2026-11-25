@@ -21,6 +21,7 @@ import arcade
 import arcade_administration
 import banners
 import board_statistics
+import statistics_administration
 import attachments
 import attachment_quotas
 import forum_permissions
@@ -263,6 +264,8 @@ def main():
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
                 board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
+                statistics_administration.exercise(base, lambda phase: php(
+                    ROOT / "tests/phpbb3/statistics_administration.php", phase, target, cwd=web))
                 forum_permissions.publishing(member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)
