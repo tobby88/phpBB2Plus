@@ -218,6 +218,13 @@ class access
 		return $this->categories[$id];
 	}
 
+	public function remember_category($row)
+	{
+		$row = self::category_labels($row);
+		$this->categories[(int) $row['cat_id']] = $row;
+		return $row;
+	}
+
 	public function visible($category)
 	{
 		$seen = array();

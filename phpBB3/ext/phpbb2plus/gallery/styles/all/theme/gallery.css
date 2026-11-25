@@ -19,10 +19,18 @@
 	.plus-album-block .username-coloured { -webkit-text-fill-color: currentColor; }
 }
 .plus-album-categories, .plus-album-grid { margin: 1px 0 0; padding: 0; list-style: none; }
-.plus-album-categories li { padding: .65em .85em; background: #eaedf4; }
-.plus-album-categories li + li { border-top: 1px solid #fff; }
-.plus-album-categories li:nth-child(even), .plus-album-metadata { background: #d9e2ec; }
+.plus-album-categories > li { padding: .65em .85em; background: #eaedf4; }
+.plus-album-categories > li + li { border-top: 1px solid #fff; }
+.plus-album-categories > li:nth-child(even), .plus-album-metadata { background: #d9e2ec; }
 .plus-album-categories p { margin: .2em 0 0; font-size: 1em; }
+.plus-album-subcategories { display: flex; flex-wrap: wrap; gap: .2em 1.2em; margin: .3em 0; padding: 0; list-style: none; }
+.plus-album-subcategories-lines { display: block; }
+.plus-album-new { color: #683800; font-weight: bold; }
+.plus-album-index-thumb { display: inline-block; margin-block-start: .4em; }
+.plus-album-index-thumb img { display: block; max-width: min(7em, 100%); max-height: 7em; }
+.plus-album-index-details { display: grid; grid-template-columns: fit-content(45%) minmax(0, 1fr); gap: .1em .8em; margin: .4em 0 0; }
+.plus-album-index-details dt { font-weight: bold; }
+.plus-album-index-details dd { margin: 0; }
 .plus-album-grid {
 	display: grid; gap: 1px;
 	/* Respect the album setting while allowing narrower boards and long captions to reflow. */

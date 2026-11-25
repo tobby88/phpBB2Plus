@@ -24,8 +24,9 @@ class board
 	private $navigation;
 	private $config;
 	private $member_pictures;
+	private $category_index;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config, $member_pictures)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config, $member_pictures, $category_index)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -43,6 +44,7 @@ class board
 		$this->navigation = $navigation;
 		$this->config = $config;
 		$this->member_pictures = $member_pictures;
+		$this->category_index = $category_index;
 	}
 
 	private function breadcrumbs($cat = null, $listing = array())
@@ -147,27 +149,56 @@ class board
 			'p.created_at DESC,p.pic_id DESC', $limit, 0, array(), !$personal || $total > 0);
 	}
 
+	private function index_event($row, $is_comment, $popup)
+	{
+		if (!$row) { return array(); }
+		$params = array('picture' => (int) $row['pic_id']);
+		$title = $row['title'];
+		if ($is_comment) { $link = $this->helper->route('phpbb2plus_gallery_comment_legacy', array('comment' => (int) $row['event_id'])); }
+		else
+		{
+			$link = $popup ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')) : $this->helper->route('phpbb2plus_gallery_picture', $params);
+			$length = max(1, min(200, (int) $this->access->setting('last_pic_title_length', 25)));
+			if (utf8_strlen($title) > $length) { $title = utf8_substr($title, 0, $length) . '…'; }
+		}
+		return array('ID' => (int) $row['event_id'], 'TITLE' => $title, 'URL' => $link, 'AUTHOR' => $this->byline->display($row),
+			'TIME' => $this->user->format_date($row['created_at']), 'DATETIME' => gmdate('c', $row['created_at']),
+			'THUMB' => !$is_comment && $row['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small')) : '');
+	}
+
+	private function category_directory($cat)
+	{
+		$options = $this->category_index->options();
+		$children = $this->category_index->listing($cat, $options);
+		foreach ($options as $key => $enabled) { $this->template->assign_var('S_' . strtoupper($key), $enabled); }
+		foreach ($children as $child)
+		{
+			$row = $child['category'];
+			$this->template->assign_block_vars('album_categories', array('ID' => (int) $row['cat_id'], 'TITLE' => $row['title'], 'DESCRIPTION' => $row['description'],
+				'OWNER' => !$cat && (int) $row['owner_id'] > ANONYMOUS && $row['owner_name'] !== null ? html_entity_decode($row['owner_name'], ENT_QUOTES, 'UTF-8') : '',
+				'NEW' => $child['local']['new'] ? $this->language->lang('PLUS_ALBUM_INDEX_NEW', $child['local']['new']) : '',
+				'PICS' => $child['local']['pictures'], 'COMMENTS' => $child['local']['comments'], 'TOTAL_PICS' => $child['total']['pictures'],
+				'TOTAL_COMMENTS' => $child['total']['comments'], 'PHOTO' => $this->index_event($child['photo'], false, $options['fullpic_popup']),
+				'COMMENT' => $this->index_event($child['comment'], true, false),
+				'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $row['cat_id']))));
+			foreach ($child['children'] as $sub)
+			{
+				$item = $sub['category'];
+				$this->template->assign_block_vars('album_categories.children', array('ID' => (int) $item['cat_id'], 'TITLE' => $item['title'], 'DESCRIPTION' => $item['description'],
+					'COUNT' => $sub['pictures'] ? $this->language->lang('PLUS_ALBUM_INDEX_SUBCOUNT', $sub['pictures']) : '',
+					'NEW' => $sub['new'] ? $this->language->lang('PLUS_ALBUM_INDEX_NEW', $sub['new']) : '',
+					'URL' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $item['cat_id']))));
+			}
+		}
+		return (bool) $children;
+	}
+
 	public function index($category = 0)
 	{
 		$id = (int) $category;
 		$cat = $id ? $this->access->category($id) : null;
 		$this->breadcrumbs($cat);
-		$result = $this->db->sql_query('SELECT c.*,u.username AS owner_name FROM ' . $this->prefix . 'cats c
-			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.owner_id AND ' . $this->db->sql_in_set('u.user_type', array(USER_NORMAL, USER_FOUNDER)) .
-			' WHERE c.parent_id=' . $id . ' ORDER BY c.sort_order,c.cat_id');
-		$children = $this->db->sql_fetchrowset($result);
-		$this->db->sql_freeresult($result);
-		$has_children = false;
-		foreach ($children as $child)
-		{
-			if (!$this->access->visible($child)) { continue; }
-			$has_children = true;
-			$child = $this->access->category_labels($child);
-			$this->template->assign_block_vars('album_categories', array('TITLE' => $child['title'], 'DESCRIPTION' => $child['description'],
-				'OWNER' => !$id && (int) $child['owner_id'] > ANONYMOUS && $child['owner_name'] !== null ?
-					html_entity_decode($child['owner_name'], ENT_QUOTES, 'UTF-8') : '',
-				'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $child['cat_id']))));
-		}
+		$has_children = $this->category_directory($cat);
 		if ($id)
 		{
 			$where = $this->navigation->category_filter($cat);

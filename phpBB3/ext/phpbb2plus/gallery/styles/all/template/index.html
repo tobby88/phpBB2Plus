@@ -15,9 +15,25 @@
 <h3 class="plus-album-heading" id="album-categories">{L_PLUS_ALBUM_CATEGORIES}</h3>
 <ul class="plus-album-categories">
 {% for cat in loops.album_categories %}
-<li><a class="forumtitle" href="{{ cat.U_CATEGORY }}">{{ cat.TITLE|e }}</a>
+<li data-album-category="{{ cat.ID }}"><a class="forumtitle" href="{{ cat.U_CATEGORY }}">{{ cat.TITLE|e }}</a>
 {% if cat.OWNER %}<span>({{ cat.OWNER|e }})</span>{% endif %}
-{% if cat.DESCRIPTION %}<p class="plus-album-copy">{{ cat.DESCRIPTION|e }}</p>{% endif %}</li>
+{% if cat.NEW %}<span class="plus-album-new" data-album-new>{{ cat.NEW }}</span>{% endif %}
+{% if cat.DESCRIPTION %}<p class="plus-album-copy">{{ cat.DESCRIPTION|e }}</p>{% endif %}
+{% if cat.children %}
+<ul class="plus-album-subcategories{% if S_LINE_BREAK_SUBCATS %} plus-album-subcategories-lines{% endif %}" aria-label="{L_PLUS_ALBUM_INDEX_SUBCATEGORIES}">
+{% for sub in cat.children %}<li data-album-subcategory="{{ sub.ID }}"><a href="{{ sub.URL }}"{% if sub.DESCRIPTION %} title="{{ sub.DESCRIPTION|e }}"{% endif %}>{{ sub.TITLE|e }}</a>{% if sub.COUNT %} <span data-album-subcount>({{ sub.COUNT }})</span>{% endif %}{% if sub.NEW %} <span class="plus-album-new" data-album-new>{{ sub.NEW }}</span>{% endif %}</li>{% endfor %}
+</ul>{% endif %}
+{% if S_SHOW_INDEX_THUMB and cat.PHOTO.THUMB %}
+<a class="plus-album-index-thumb" href="{{ cat.PHOTO.URL }}"{% if S_FULLPIC_POPUP %} target="_blank" rel="noopener noreferrer"{% endif %}><img loading="lazy" src="{{ cat.PHOTO.THUMB }}" alt="{{ cat.PHOTO.TITLE|e }}"></a>{% endif %}
+{% if S_SHOW_INDEX_PICS or S_SHOW_INDEX_TOTAL_PICS or S_SHOW_INDEX_COMMENTS or S_SHOW_INDEX_TOTAL_COMMENTS or S_SHOW_INDEX_LAST_PIC or S_SHOW_INDEX_LAST_COMMENT %}
+<dl class="plus-album-index-details">
+{% if S_SHOW_INDEX_PICS %}<dt>{L_PLUS_ALBUM_INDEX_PICS}</dt><dd data-album-count="pics">{{ cat.PICS }}</dd>{% endif %}
+{% if S_SHOW_INDEX_TOTAL_PICS %}<dt>{L_PLUS_ALBUM_INDEX_TOTAL_PICS}</dt><dd data-album-count="total-pics">{{ cat.TOTAL_PICS }}</dd>{% endif %}
+{% if S_SHOW_INDEX_COMMENTS %}<dt>{L_PLUS_ALBUM_INDEX_COMMENTS}</dt><dd data-album-count="comments">{{ cat.COMMENTS }}</dd>{% endif %}
+{% if S_SHOW_INDEX_TOTAL_COMMENTS %}<dt>{L_PLUS_ALBUM_INDEX_TOTAL_COMMENTS}</dt><dd data-album-count="total-comments">{{ cat.TOTAL_COMMENTS }}</dd>{% endif %}
+{% if S_SHOW_INDEX_LAST_PIC %}<dt>{L_PLUS_ALBUM_INDEX_LAST_PIC}</dt><dd>{% if cat.PHOTO %}<a data-album-last-picture="{{ cat.PHOTO.ID }}" href="{{ cat.PHOTO.URL }}"{% if S_FULLPIC_POPUP %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ cat.PHOTO.TITLE|e }}</a> · {{ cat.PHOTO.AUTHOR }} · <time datetime="{{ cat.PHOTO.DATETIME }}">{{ cat.PHOTO.TIME }}</time>{% else %}{L_PLUS_ALBUM_INDEX_NO_PIC}{% endif %}</dd>{% endif %}
+{% if S_SHOW_INDEX_LAST_COMMENT %}<dt>{L_PLUS_ALBUM_INDEX_LAST_COMMENT}</dt><dd>{% if cat.COMMENT %}<a data-album-last-comment="{{ cat.COMMENT.ID }}" href="{{ cat.COMMENT.URL }}">{{ cat.COMMENT.TITLE|e }}</a> · {{ cat.COMMENT.AUTHOR }} · <time datetime="{{ cat.COMMENT.DATETIME }}">{{ cat.COMMENT.TIME }}</time>{% else %}{L_PLUS_ALBUM_INDEX_NO_COMMENT}{% endif %}</dd>{% endif %}
+</dl>{% endif %}</li>
 {% endfor %}
 </ul></section>
 {% endif %}
