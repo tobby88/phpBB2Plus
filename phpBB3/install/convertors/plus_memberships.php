@@ -33,7 +33,7 @@ function plus_membership_sections($section)
 function plus_personal_post_options()
 {
 	return array('auth_post'=>array('f_post','f_bbcode','f_smilies','f_img','f_sigs','f_postcount','f_report','f_subscribe','f_print','f_email'),
-		'auth_reply'=>array('f_reply'),'auth_edit'=>array('f_edit'),'auth_delete'=>array('f_delete'));
+		'auth_reply'=>array('f_reply'),'auth_edit'=>array('f_edit'));
 }
 
 /** The stock converter assigned these users local options before checking if their memberships were approved. */

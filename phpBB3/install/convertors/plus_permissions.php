@@ -15,7 +15,7 @@ function plus_forum_grants($native,$source,$forum,$groups,$assignments)
 		$grants['group_id'][$groups['REGISTERED']] = true;
 		if (isset($groups['REGISTERED_COPPA'])) { $grants['group_id'][$groups['REGISTERED_COPPA']] = true; }
 		$access_option = $native === 'f_list' || $native === 'f_read';
-		if ($level === 0 && $native !== 'f_plus_news' && ($access_option || (!(int) $forum['auth_view'] && !(int) $forum['auth_read'])))
+		if ($level === 0 && !in_array($native, array('f_plus_news', 'f_delete', 'f_softdelete'), true) && ($access_option || (!(int) $forum['auth_view'] && !(int) $forum['auth_read'])))
 		{
 			$grants['group_id'][$groups['GUESTS']] = true;
 			if (($access_option || $native === 'f_download') && isset($groups['BOTS'])) { $grants['group_id'][$groups['BOTS']] = true; }
@@ -64,7 +64,8 @@ function plus_forum_permissions()
 {
 	global $db, $src_db, $convert, $phpbb_container, $config;
 	$mapping = array('f_plus_calendar'=>'auth_cal','f_plus_news'=>'auth_news','f_sticky'=>'auth_sticky',
-		'f_announce'=>'auth_announce','f_announce_global'=>'auth_global_announce','f_poll'=>'auth_pollcreate','f_vote'=>'auth_vote');
+		'f_announce'=>'auth_announce','f_announce_global'=>'auth_global_announce','f_poll'=>'auth_pollcreate','f_vote'=>'auth_vote',
+		'f_delete'=>'auth_delete','f_softdelete'=>'auth_delete');
 	if (defined('MOD_ATTACHMENT')) { $mapping += array('f_attach'=>'auth_attachments','f_download'=>'auth_download'); }
 	$names = array_merge(array_keys($mapping),array('f_list','f_read','f_list_topics','f_search','f_print','f_plus_read_if_listed'));
 	$r = $db->sql_query('SELECT auth_option,auth_option_id FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option',$names));
@@ -80,7 +81,7 @@ function plus_forum_permissions()
 	}
 
 	$p = $convert->src_table_prefix;
-	$columns = array_merge(array('auth_view','auth_read'),array_values($mapping),array_keys(plus_personal_post_options()));
+	$columns = array_unique(array_merge(array('auth_view','auth_read'),array_values($mapping),array_keys(plus_personal_post_options())));
 	$r = $src_db->sql_query('SELECT forum_id,' . implode(',',$columns) . " FROM {$p}forums ORDER BY forum_id");
 	$forums = $src_db->sql_fetchrowset($r);
 	$src_db->sql_freeresult($r);
@@ -150,6 +151,7 @@ function plus_forum_permissions()
 		$phpbb_container->get('config_text')->set('plus_read_scopes',implode(',',$conditional_forums));
 		$config->set('plus_conditional_read',(int) (bool) $conditional_forums);
 		$config->set('plus_print_read_acl', 1);
+		$config->set('plus_post_delete_policy', (string) get_config_value('post_delete_allow_permanent') === '1' ? 1 : 0);
 		$db->sql_transaction('commit');
 	}
 	catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }

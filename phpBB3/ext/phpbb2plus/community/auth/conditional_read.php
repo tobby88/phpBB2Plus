@@ -15,6 +15,7 @@ class conditional_read extends \phpbb\auth\auth
 	private $building_native_cache = false;
 	private $delegation;
 	private $delegated = array();
+	private $soft_delete_only = false;
 
 	public function __construct($config,$text,$delegation)
 	{
@@ -24,6 +25,9 @@ class conditional_read extends \phpbb\auth\auth
 	}
 
 	public function has_delegated_acp() { return (bool) $this->delegated; }
+
+	/** Scope the native confirmation form and its operation to the policy for this request. */
+	public function restrict_post_deletion() { $this->soft_delete_only = true; }
 
 	public function delegated_module($basename, $mode)
 	{
@@ -45,6 +49,10 @@ class conditional_read extends \phpbb\auth\auth
 
 	public function acl_get($opt, $f = 0)
 	{
+		if ($this->soft_delete_only && in_array(ltrim($opt, '!'), array('f_delete', 'm_delete'), true))
+		{
+			return $opt[0] === '!';
+		}
 		if ($this->delegated && !$f)
 		{
 			$negate = strpos($opt, '!') === 0;

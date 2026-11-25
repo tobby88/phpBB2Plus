@@ -31,6 +31,7 @@ import custom_profiles
 import colours
 import post_icons
 import removed_posts
+import delete_policy
 import print_topics
 import announcement_duration
 import legacy_links
@@ -447,6 +448,8 @@ def main():
                 removed_posts.native(base, positions)
                 php(removal_fixture, target, positions["posts"][4], cwd=web)
                 removed_posts.restored(base, positions)
+                delete_policy.exercise(ordinary, member, lambda phase: php(
+                    ROOT / "tests/phpbb3/delete_policy.php", target, phase, cwd=web))
                 if args.suite == "all":
                     download_report_upgrade(target, web)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
