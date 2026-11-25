@@ -37,11 +37,12 @@ def browse(admin, verify):
             raise RuntimeError("The native ACP did not render its confirmation button")
         return submit(url, prompt, "confirm", {"confirm": button[1]})
 
+    url = admin_url(admin) + "&i=acp_prune&mode=forums"
+    admin.fetch(url)  # A normal ACP session can already have cached the forum selector.
     verify("seed")
     try:
         for phase in ("rules", "queue", "resume", "nested"):
             verify(phase)
-        url = admin_url(admin) + "&i=acp_prune&mode=forums"
         manual(url, "", "", valid=False)
         verify("manual-before")
         for topics, posts in ((3, 4), (0, 0)):

@@ -197,6 +197,7 @@ if ($argv[2] === 'seed')
 	}
 	$config->set('plus_post_delete_policy', 0, false);
 	$db->sql_transaction('commit');
+	$cache->destroy('sql', FORUMS_TABLE);
 }
 elseif ($argv[2] === 'rules')
 {
@@ -358,6 +359,7 @@ elseif ($argv[2] === 'cleanup')
 	$db->sql_query('DELETE FROM ' . LOG_TABLE . " WHERE log_operation='LOG_PRUNE' AND log_data='$log_data'");
 	foreach ($snapshot as $key => $value) { $config->set($key, $value, false); }
 	$db->sql_transaction('commit');
+	$cache->destroy('sql', FORUMS_TABLE);
 }
 else { throw new RuntimeException('Unknown age-pruning fixture phase'); }
 $complete = true;
