@@ -1,0 +1,46 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
+<!-- INCLUDEJS @phpbb2plus_gallery/moderation.js -->
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_ALBUM_MODERATE}</h2>
+<p><a href="{U_CATEGORY}">{{ ALBUM_TITLE|e }}</a></p>
+{% if ALBUM_ERROR %}<p class="error" role="alert">{{ ALBUM_ERROR }}</p>{% endif %}
+{% if S_REVIEW %}
+<form class="panel" id="album-mod-confirm" action="{U_ACTION}" method="post">
+<h3>{{ lang('PLUS_ALBUM_MOD_' ~ MOD_OPERATION|upper) }}</h3>
+{% if MOD_TARGET %}<p>{L_PLUS_ALBUM_DESTINATION}: <strong>{{ MOD_TARGET|e }}</strong></p>{% endif %}
+{% if MOD_OPERATION == 'delete' %}<p>{L_PLUS_ALBUM_MOD_DELETE_WARNING}</p>{% endif %}
+<ul>{% for pic in loops.selected %}<li>{{ pic.TITLE|e }}</li>{% endfor %}</ul>
+<input type="hidden" name="stage" value="confirm"><input type="hidden" name="operation" value="{{ MOD_OPERATION }}">
+<input type="hidden" name="selection" value="{{ MOD_SELECTION }}"><input type="hidden" name="review_key" value="{{ MOD_REVIEW_KEY }}">
+{% if MOD_DESTINATION %}<input type="hidden" name="destination" value="{{ MOD_DESTINATION }}">{% endif %}
+{S_FORM_TOKEN}
+<button type="submit" class="button1">{L_CONFIRM}</button> <a href="{U_ACTION}">{L_CANCEL}</a>
+</form>
+{% elseif loops.pictures %}
+<form class="plus-album-sort" id="album-mod-sort" action="{U_ALBUM_SORT}" method="get">
+<label for="album-mod-method">{L_PLUS_ALBUM_SORT_BY}</label>
+<select id="album-mod-method" name="sort_method">{% for item in loops.album_sorts %}<option value="{{ item.VALUE }}"{% if item.SELECTED %} selected{% endif %}>{{ item.LABEL }}</option>{% endfor %}</select>
+<label for="album-mod-order">{L_PLUS_ALBUM_ORDER}</label>
+<select id="album-mod-order" name="sort_order"><option value="ASC"{% if ALBUM_SORT_ORDER == 'ASC' %} selected{% endif %}>{L_ASCENDING}</option><option value="DESC"{% if ALBUM_SORT_ORDER == 'DESC' %} selected{% endif %}>{L_DESCENDING}</option></select>
+{% if ALBUM_SID %}<input type="hidden" name="sid" value="{{ ALBUM_SID }}">{% endif %}
+<button class="button2" type="submit">{L_GO}</button></form>
+<form id="album-mod-select" action="{U_ACTION}" method="post">
+<p>{L_PLUS_ALBUM_MOD_PAGE}</p>
+<table class="plus-album-results"><thead><tr><th scope="col">{L_SELECT}</th><th scope="col">{L_PLUS_ALBUM_SORT_TITLE}</th><th scope="col">{L_PLUS_ALBUM_PORTAL_RATING}</th>
+<th scope="col">{L_PLUS_ALBUM_SORT_COMMENTS}</th><th scope="col">{L_PLUS_ALBUM_MOD_STATE}</th></tr></thead><tbody>
+{% for pic in loops.pictures %}<tr><td><input type="checkbox" name="pic_id[]" id="choose-pic-{{ pic.ID }}" value="{{ pic.ID }}"><label class="sr-only" for="choose-pic-{{ pic.ID }}">{{ pic.TITLE|e }}</label></td>
+<td><a href="{{ pic.U_PICTURE }}">{{ pic.TITLE|e }}</a><br>{{ pic.AUTHOR }} · {{ pic.TIME }}</td><td>{{ pic.RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</td>
+<td>{{ pic.COMMENTS }}</td><td>{{ lang(pic.APPROVED ? 'PLUS_ALBUM_MOD_APPROVED' : 'PLUS_ALBUM_MOD_PENDING') }}{% if pic.LOCKED %}<br>{L_PLUS_ALBUM_MOD_LOCKED}{% endif %}</td></tr>
+{% endfor %}</tbody></table>
+<p id="album-mod-toggles" hidden><button type="button" class="button2" value="all">{L_MARK_ALL}</button>
+<button type="button" class="button2" value="none">{L_UNMARK_ALL}</button> <button type="button" class="button2" value="invert">{L_PLUS_ALBUM_MOD_INVERT}</button></p>
+<fieldset class="fields2"><dl><dt><label for="album-mod-operation">{L_PLUS_ALBUM_MOD_ACTION}</label></dt><dd>
+<select id="album-mod-operation" name="operation">{% for item in loops.actions %}<option value="{{ item.NAME }}">{{ lang('PLUS_ALBUM_MOD_' ~ item.NAME|upper) }}</option>{% endfor %}</select></dd></dl>
+{% if loops.destinations %}<dl><dt><label for="album-mod-destination">{L_PLUS_ALBUM_DESTINATION}</label></dt><dd><select id="album-mod-destination" name="destination">
+<option value="0">{L_PLUS_ALBUM_MOD_TARGET}</option>{% for item in loops.destinations %}<option value="{{ item.ID }}">{{ item.TITLE|e }}</option>{% endfor %}</select></dd></dl>{% endif %}</fieldset>
+<input type="hidden" name="page_key" value="{{ MOD_PAGE_KEY }}">{S_FORM_TOKEN}
+<button class="button1" type="submit">{L_PLUS_ALBUM_MOD_REVIEW}</button>
+</form>
+{% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
+{% else %}<p class="plus-album-empty">{L_PLUS_ALBUM_EMPTY}</p>{% endif %}
+<!-- INCLUDE overall_footer.html -->

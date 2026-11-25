@@ -1,4 +1,10 @@
 services:
+    phpbb2plus.gallery.moderation:
+        class: phpbb2plus\gallery\service\moderation
+        arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.pictures', '@phpbb2plus.gallery.picture_navigation', '@user', '%core.table_prefix%plus_album_']
+    phpbb2plus.gallery.moderation_controller:
+        class: phpbb2plus\gallery\controller\moderation
+        arguments: ['@phpbb2plus.gallery.moderation', '@phpbb2plus.gallery.pictures', '@phpbb2plus.gallery.byline', '@request', '@controller.helper', '@template', '@language', '@user', '@pagination', '@config']
     phpbb2plus.gallery.personal_settings:
         alias: phpbb2plus.gallery.settings
     phpbb2plus.gallery.settings:

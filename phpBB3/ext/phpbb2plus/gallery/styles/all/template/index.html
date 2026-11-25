@@ -7,6 +7,7 @@
 {% if U_ALBUM_COLLECTION %}<a class="button" href="{U_ALBUM_COLLECTION}">{L_PLUS_ALBUM_ALL_PICTURES}</a>{% endif %}
 {% for item in loops.album_member_links %}<a class="button" href="{{ item.URL }}">{{ item.LABEL|e }}</a>{% endfor %}
 {% if U_ALBUM_UPLOAD %}<a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a>{% endif %}
+{% if U_ALBUM_MODERATE %}<a class="button" href="{U_ALBUM_MODERATE}">{L_PLUS_ALBUM_MODERATE}</a>{% endif %}
 {% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
 {% if loops.album_categories %}

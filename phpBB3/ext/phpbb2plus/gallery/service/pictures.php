@@ -66,51 +66,82 @@ class pictures
 		return array_map(array($this->access, 'category_labels'), array_filter($rows, function ($to) use ($cat) { return $this->can_receive($cat, $to); }));
 	}
 
+	public function destination($cat, $id)
+	{
+		$to = $this->access->category($id);
+		if (!$this->can_receive($cat, $to)) { throw new NotFoundHttpException(); }
+		return $to;
+	}
+
 	public function change($picture, $action, $title, $description, $destination)
 	{
 		return $this->access->write(function () use ($picture, $action, $title, $description, $destination)
 		{
 			list($pic, $cat) = $this->context($picture, $action);
-			$id = (int) $pic['pic_id'];
-			$where = ' WHERE pic_id=' . $id;
-			if ($action === 'delete')
-			{
-				$this->discard($pic);
-				return (int) $cat['cat_id'];
-			}
 			if ($action === 'edit')
 			{
 				if ($title === '' || utf8_strlen($title) > 255 || utf8_strlen($description) > max(0,min(65535,(int) $this->access->setting('desc_length', 512))))
 				{ throw new \DomainException('PLUS_ALBUM_BAD_TEXT'); }
 				$fields = array('title' => $title, 'description' => $description);
+				$this->db->sql_query('UPDATE ' . $this->prefix . 'pics SET ' . $this->db->sql_build_array('UPDATE', $fields) . ' WHERE pic_id=' . (int) $pic['pic_id']);
 			}
-			elseif ($action === 'move')
+			else
 			{
-				$to = $this->access->category($destination);
-				if (!$this->can_receive($cat, $to)) { throw new NotFoundHttpException(); }
+				$to = $action === 'move' ? $this->destination($cat, $destination) : null;
+				$this->apply_moderation(array($pic), $action, $to);
+			}
+			return $action === 'delete' ? (int) $cat['cat_id'] : 0;
+		});
+	}
+
+	/** Only after checking every source picture and destination under the gallery write lock. */
+	public function apply_moderation($rows, $action, $to)
+	{
+		if ($action === 'delete')
+		{
+			$this->discard_many($rows);
+			return;
+		}
+		$where = ' WHERE ' . $this->db->sql_in_set('pic_id', array_map('intval', array_column($rows, 'pic_id')));
+		switch ($action)
+		{
+			case 'move':
 				$fields = array('cat_id' => (int) $to['cat_id'], 'legacy_uncategorized' => 0);
 				$this->db->sql_query('UPDATE ' . $this->prefix . 'comments SET cat_id=' . (int) $to['cat_id'] . $where);
-			}
-			elseif ($action === 'lock' || $action === 'unlock') { $fields = array('locked' => $action === 'lock' ? 1 : 0); }
-			else { $fields = array('approved' => $action === 'approve' ? 1 : 0); }
-			$this->db->sql_query('UPDATE ' . $this->prefix . 'pics SET ' . $this->db->sql_build_array('UPDATE', $fields) . $where);
-			return 0;
-		});
+				break;
+			case 'lock': case 'unlock': $fields = array('locked' => (int) ($action === 'lock')); break;
+			case 'approve': case 'unapprove': $fields = array('approved' => (int) ($action === 'approve')); break;
+			default: throw new \InvalidArgumentException('Unknown moderation action');
+		}
+		$this->db->sql_query('UPDATE ' . $this->prefix . 'pics SET ' . $this->db->sql_build_array('UPDATE', $fields) . $where);
 	}
 
 	/** Called while the gallery write lock is held, after authorizing picture or category deletion. */
 	public function discard($pic)
 	{
-		$name = $pic['storage_name'];
-		if (preg_match('/^gallery_[a-f0-9]{64}$/D', $name))
+		$this->discard_many(array($pic));
+	}
+
+	private function discard_many($rows)
+	{
+		$names = array();
+		foreach ($rows as $pic)
+		{
+			$name = $pic['storage_name'];
+			if (preg_match('/^gallery_[a-f0-9]{64}$/D', $name)) { $names[$name] = $name; }
+		}
+		if ($names)
 		{
 			$table = $this->prefix . 'trash';
-			$result = $this->db->sql_query("SELECT storage_name FROM $table WHERE storage_name='$name'");
-			$queued = $this->db->sql_fetchfield('storage_name') !== false;
+			$result = $this->db->sql_query("SELECT storage_name FROM $table WHERE " . $this->db->sql_in_set('storage_name', $names));
+			while ($queued = $this->db->sql_fetchrow($result)) { unset($names[$queued['storage_name']]); }
 			$this->db->sql_freeresult($result);
-			if (!$queued) { $this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', array('storage_name' => $name, 'removed_at' => time()))); }
+			$time = time();
+			$new = array();
+			foreach ($names as $name) { $new[] = array('storage_name' => $name, 'removed_at' => $time); }
+			if ($new) { $this->db->sql_multi_insert($table, $new); }
 		}
-		$where = ' WHERE pic_id=' . (int) $pic['pic_id'];
+		$where = ' WHERE ' . $this->db->sql_in_set('pic_id', array_map('intval', array_column($rows, 'pic_id')));
 		foreach (array('comments','ratings','pics') as $table) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . $where); }
 	}
 }

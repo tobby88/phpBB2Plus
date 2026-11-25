@@ -85,6 +85,25 @@ class access
 		return $this->administrator() && empty($this->user->data['user_perm_from']) && $this->auth->acl_get('a_user');
 	}
 
+	public function check_moderator_session()
+	{
+		$id = (int) $this->user->data['user_id'];
+		$sid = $this->db->sql_escape($this->user->session_id);
+		$result = $this->db->sql_query('SELECT u.user_type,u.user_perm_from FROM ' . USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE .
+			" s ON s.session_user_id=u.user_id WHERE u.user_id=$id AND s.session_id='$sid'");
+		$row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		if (!$row || !in_array((int) $row['user_type'], array(USER_NORMAL, USER_FOUNDER), true) || !empty($row['user_perm_from']))
+		{ throw new NotFoundHttpException(); }
+		if ((int) $row['user_type'] !== USER_FOUNDER && $this->administrator())
+		{
+			$acl = $this->auth->acl_raw_data($id, array('a_', 'a_plus_gallery'), 0);
+			$perms = $acl[$id][0] ?? array();
+			if ((int) ($perms['a_'] ?? ACL_NO) === ACL_NEVER || (int) ($perms['a_plus_gallery'] ?? ACL_NO) !== ACL_YES)
+			{ throw new NotFoundHttpException(); }
+		}
+	}
+
 	public function may_create_personal($owner, $fresh = false)
 	{
 		if (empty($this->user->data['is_registered']) || !empty($this->user->data['is_bot']) || $owner <= ANONYMOUS) { return false; }

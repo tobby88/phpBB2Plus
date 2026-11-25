@@ -203,6 +203,10 @@ class board
 			if ($cat && (int) $this->access->setting('show_all_in_personal_gallery', 0))
 			{ $this->template->assign_var('U_ALBUM_COLLECTION', $this->helper->route('phpbb2plus_gallery_member_pictures', array('owner' => $owner))); }
 		}
+		if ($cat && !empty($this->user->data['is_registered']) && empty($this->user->data['user_perm_from']) && $this->access->moderates($cat))
+		{
+			$this->template->assign_var('U_ALBUM_MODERATE', $this->helper->route('phpbb2plus_gallery_moderate', array('category' => $id)));
+		}
 		if ($cat && empty($this->user->data['is_bot']) && $this->access->allows($cat, 'upload'))
 		{
 			$this->template->assign_var('U_ALBUM_UPLOAD', $this->helper->route('phpbb2plus_gallery_upload', array('category' => $id)));

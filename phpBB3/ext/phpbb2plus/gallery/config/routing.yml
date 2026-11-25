@@ -49,6 +49,11 @@ phpbb2plus_gallery_category:
     defaults: { _controller: phpbb2plus.gallery.board:index }
     requirements: { category: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_gallery_moderate:
+    path: /album/category/{category}/moderate
+    defaults: { _controller: phpbb2plus.gallery.moderation_controller:show }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET, HEAD, POST]
 phpbb2plus_gallery_picture:
     path: /album/picture/{picture}
     defaults: { _controller: phpbb2plus.gallery.board:picture }
