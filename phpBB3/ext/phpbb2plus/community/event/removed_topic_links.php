@@ -130,8 +130,7 @@ class removed_topic_links implements EventSubscriberInterface
 		$row = $event['row'];
 		if (empty($row['plus_legacy_erased']) || (int) $row['post_visibility'] !== ITEM_DELETED) { return; }
 		$this->language->add_lang('community', 'phpbb2plus/community');
-		// This row had already been erased before conversion. Even the native
-		// moderator's "show" link cannot reveal a recoverable post or editor.
+		// A retained Plus placeholder has no recoverable text or editor.
 		$event['post_row'] = array('POST_ID' => (int) $row['post_id'],
 			'MESSAGE' => '<span class="plus-erased-caption">' . htmlspecialchars($this->language->lang('PLUS_REMOVED_POSTS', 1), ENT_QUOTES, 'UTF-8') . '</span>');
 	}

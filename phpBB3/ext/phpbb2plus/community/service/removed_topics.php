@@ -67,29 +67,36 @@ class removed_topics
 				$rows = array_column($db->sql_fetchrowset($result), null, 'post_id');
 				$db->sql_freeresult($result);
 				if (!$rows) { $db->sql_transaction('commit'); continue; }
-				$ids = array_keys($rows);
-				$topic_ids = array_unique(array_column($rows, 'topic_id'));
 				$processed = true;
 				// Keep mismatched attachments as unowned orphan copies, retaining the
 				// source references and every healthy association of a shared file.
 				$db->sql_query('UPDATE ' . ATTACHMENTS_TABLE . ' a JOIN ' . POSTS_TABLE . " p ON p.post_id=a.post_msg_id
 					JOIN {$prefix}plus_attach_refs r ON r.attach_id=a.attach_id AND r.parent_id=p.post_id AND r.in_message=0
 					SET a.is_orphan=1,a.poster_id=0,a.post_msg_id=0,a.topic_id=0 WHERE $where AND a.in_message=0 AND a.is_orphan=0 AND a.topic_id=p.topic_id");
-				$db->sql_query('UPDATE ' . POSTS_TABLE . ' p SET p.poster_id=' . ANONYMOUS . ",
-					p.post_username='',p.poster_ip='',p.post_subject='',p.post_text='',p.post_checksum='',p.post_edit_reason='',
-					p.post_edit_user=0,p.post_edit_count=0,p.post_edit_time=0,p.post_attachment=0,p.icon_id=0,
-					p.enable_sig=0,p.enable_bbcode=0,p.enable_smilies=0,p.enable_magic_url=0,p.bbcode_uid='',p.bbcode_bitfield=''
-					WHERE $where");
-				$db->sql_query("DELETE b FROM {$prefix}plus_bylines b JOIN " . POSTS_TABLE . " p ON p.post_id=b.post_id WHERE $where");
-				$db->sql_query('UPDATE ' . TOPICS_TABLE . ' t SET t.topic_attachment=EXISTS (SELECT 1 FROM ' . ATTACHMENTS_TABLE .
-					' a WHERE a.topic_id=t.topic_id AND a.in_message=0 AND a.is_orphan=0) WHERE ' . $db->sql_in_set('t.topic_id', $topic_ids));
-				self::remove_existing_matches($db, $rows, $ids);
+				self::erase_rows($db, $prefix, $rows);
 				$db->sql_transaction('commit');
 			}
 			catch (\Throwable $error) { $db->sql_transaction('rollback'); throw $error; }
 		}
 		while (count($candidates) === 200);
 		return $processed;
+	}
+
+	/** Both callers supply locked, positively identified rows after handling their attachment policy. */
+	public static function erase_rows($db, $prefix, $rows)
+	{
+		$ids = array_keys($rows);
+		$topics = array_unique(array_column($rows, 'topic_id'));
+		$where = $db->sql_in_set('p.post_id', $ids) . ' AND p.plus_legacy_erased=1 AND p.post_visibility=' . ITEM_DELETED;
+		$db->sql_query('UPDATE ' . POSTS_TABLE . ' p SET p.poster_id=' . ANONYMOUS . ",
+			p.post_username='',p.poster_ip='',p.post_subject='',p.post_text='',p.post_checksum='',p.post_edit_reason='',
+			p.post_edit_user=0,p.post_edit_count=0,p.post_edit_time=0,p.post_attachment=0,p.icon_id=0,
+			p.enable_sig=0,p.enable_bbcode=0,p.enable_smilies=0,p.enable_magic_url=0,p.bbcode_uid='',p.bbcode_bitfield=''
+			WHERE $where");
+		$db->sql_query("DELETE b FROM {$prefix}plus_bylines b JOIN " . POSTS_TABLE . " p ON p.post_id=b.post_id WHERE $where");
+		$db->sql_query('UPDATE ' . TOPICS_TABLE . ' t SET t.topic_attachment=EXISTS (SELECT 1 FROM ' . ATTACHMENTS_TABLE .
+			' a WHERE a.topic_id=t.topic_id AND a.in_message=0 AND a.is_orphan=0) WHERE ' . $db->sql_in_set('t.topic_id', $topics));
+		self::remove_existing_matches($db, $rows, $ids);
 	}
 
 	private static function remove_existing_matches($db, $rows, $ids)
@@ -100,9 +107,18 @@ class removed_topics
 		$indexed = array_column($db->sql_fetchrowset($result), 'post_id');
 		$db->sql_freeresult($result);
 		if (!$indexed) { return; }
+		// The native bulk removal subtracts once per word in titles and once
+		// in bodies. Account for the additional posts in this batch first.
+		if (count($indexed) > 1)
+		{
+			$db->sql_query('UPDATE ' . SEARCH_WORDLIST_TABLE . ' w JOIN (SELECT word_id,COUNT(*)-COUNT(DISTINCT title_match) AS extra
+				FROM ' . SEARCH_WORDMATCH_TABLE . ' WHERE ' . $db->sql_in_set('post_id', $indexed) . ' GROUP BY word_id HAVING extra>0) d ON d.word_id=w.word_id
+				SET w.word_count=GREATEST(0,CAST(w.word_count AS SIGNED)-CAST(d.extra AS SIGNED))');
+		}
 		$error = false;
 		$index = new \phpbb\search\fulltext_native($error, $phpbb_root_path, $phpEx, $auth, $config, $db, $user, $phpbb_dispatcher);
-		foreach ($indexed as $id) { $index->index_remove(array($id), array($rows[$id]['poster_id']), array($rows[$id]['forum_id'])); }
+		$matched = array_intersect_key($rows, array_flip($indexed));
+		$index->index_remove($indexed, array_unique(array_column($matched, 'poster_id')), array_unique(array_column($matched, 'forum_id')));
 	}
 
 	public static function refresh_counts($db, $config)

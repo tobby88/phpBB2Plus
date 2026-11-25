@@ -31,9 +31,28 @@ services:
             - { name: console.command }
     phpbb2plus.community.post_delete_policy:
         class: phpbb2plus\community\event\post_delete_policy
-        arguments: ['@config', '@auth', '@request', '@language']
+        arguments: ['@config', '@auth', '@request', '@language', '@phpbb2plus.community.confirmed_deletions', '@phpbb2plus.community.erased_files']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.confirmed_visibility:
+        parent: content.visibility
+        class: phpbb2plus\community\service\confirmed_visibility
+        decorates: content.visibility
+        calls:
+            - [set_deletions, ['@phpbb2plus.community.confirmed_deletions']]
+    phpbb2plus.community.confirmed_deletions:
+        class: phpbb2plus\community\service\confirmed_deletions
+        arguments: ['@dbal.conn', '@config', '@auth', '@user', '@language', '%core.table_prefix%', '@phpbb2plus.community.erased_files', '@service_container']
+    phpbb2plus.community.erased_files:
+        class: phpbb2plus\community\service\erased_files
+        arguments: ['@dbal.conn', '@config', '%core.root_path%', '%core.table_prefix%', '@service_container']
+    phpbb2plus.community.erased_files_cron:
+        class: phpbb2plus\community\cron\erased_files
+        arguments: ['@phpbb2plus.community.erased_files']
+        calls:
+            - [set_name, ['phpbb2plus.community.erased_files_cron']]
+        tags:
+            - { name: cron.task }
     phpbb2plus.community.removed_posts:
         class: phpbb2plus\community\event\removed_posts
         arguments: ['@dbal.conn', '@auth', '@content.visibility', '@config', '@language']

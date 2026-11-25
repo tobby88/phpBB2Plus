@@ -72,7 +72,7 @@ class removed_topic
 		$page_url = $this->helper->route('phpbb2plus_community_removed_topic', $args + ($descending ? array('sd' => 'd') : array()));
 		$this->pagination->generate_template_pagination($page_url, 'pagination', 'start', $total, $limit, $start);
 		$order = $descending ? 'DESC' : 'ASC';
-		// A historical placeholder contains a position only, even for moderators.
+		// A retained Plus placeholder contains a position only, even for moderators.
 		$result = $this->db->sql_query_limit('SELECT p.post_id' . $from . " ORDER BY p.post_time $order,p.post_id $order", $limit, $start);
 		while ($row = $this->db->sql_fetchrow($result)) { $this->template->assign_block_vars('marker', array('ID' => (int) $row['post_id'])); }
 		$this->db->sql_freeresult($result);
