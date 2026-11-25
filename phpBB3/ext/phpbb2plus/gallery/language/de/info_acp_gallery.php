@@ -73,6 +73,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_CFG_PERSONAL_ALLOW_SUB_CATEGORIES' => 'Mitglieder dürfen eigene Unteralben verwalten',
 	'PLUS_ALBUM_CFG_PERSONAL_SUB_CATEGORY_LIMIT' => 'Höchstzahl der Unteralben je Mitglied',
 	'PLUS_ALBUM_CFG_SHOW_PERSONAL_GALLERY_LINK' => 'Zugängliches Album im Benutzerprofil verlinken',
+	'PLUS_ALBUM_CFG_SHOW_ALL_IN_PERSONAL_GALLERY' => 'Link zur Gesamtansicht der persönlichen Fotoalben anzeigen',
 	'PLUS_ALBUM_CFG_GUESTS' => 'Alle Besucher', 'PLUS_ALBUM_CFG_MEMBERS' => 'Registrierte Mitglieder',
 	'PLUS_ALBUM_CFG_SELECTED' => 'Mitglieder mit der Benutzerberechtigung',
 	'PLUS_ALBUM_CFG_PRIVATE' => 'Privat', 'PLUS_ALBUM_CFG_MODS' => 'Album-Moderatoren', 'PLUS_ALBUM_CFG_ADMINS' => 'Album-Administratoren',

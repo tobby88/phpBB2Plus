@@ -19,6 +19,16 @@ phpbb2plus_gallery_personal:
     defaults: { _controller: phpbb2plus.gallery.personal_controller:index }
     requirements: { owner: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_gallery_member_pictures:
+    path: /album/member/{owner}/pictures
+    defaults: { _controller: phpbb2plus.gallery.board:collection, type: all }
+    requirements: { owner: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_gallery_member_activity:
+    path: /album/member/{owner}/activity/{type}
+    defaults: { _controller: phpbb2plus.gallery.board:collection }
+    requirements: { owner: '[1-9][0-9]*', type: 'pic|rating|comment' }
+    methods: [GET, HEAD]
 phpbb2plus_gallery_comment_legacy:
     path: /album/legacy/comment/{comment}
     defaults: { _controller: phpbb2plus.gallery.board:comment_bookmark }

@@ -1,1 +1,4 @@
-{% if U_PROFILE_ALBUM %}<dt>{L_PLUS_ALBUM}{L_COLON}</dt><dd><a href="{U_PROFILE_ALBUM}">{L_PLUS_ALBUM_PERSONAL}</a></dd>{% endif %}
+{% if U_PROFILE_ALBUM_ACTIVITY %}<dt>{L_PLUS_ALBUM}{L_COLON}</dt><dd>
+{% if U_PROFILE_ALBUM %}<a href="{U_PROFILE_ALBUM}">{L_PLUS_ALBUM_PERSONAL}</a> · {% endif %}
+{% if U_PROFILE_ALBUM_ALL %}<a href="{U_PROFILE_ALBUM_ALL}">{L_PLUS_ALBUM_ALL_PICTURES}</a> · {% endif %}
+<a href="{U_PROFILE_ALBUM_ACTIVITY}">{L_PLUS_ALBUM_MEMBER_UPLOADS}</a></dd>{% endif %}

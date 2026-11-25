@@ -4,6 +4,8 @@
 <!-- INCLUDE @phpbb2plus_gallery/search_form.html -->
 <div class="action-bar"><a class="button" href="{{ path('phpbb2plus_gallery_hot') }}">{L_PLUS_ALBUM_HOT}</a>
 <a class="button" href="{{ path('phpbb2plus_gallery_members') }}">{L_PLUS_ALBUM_MEMBERS}</a>
+{% if U_ALBUM_COLLECTION %}<a class="button" href="{U_ALBUM_COLLECTION}">{L_PLUS_ALBUM_ALL_PICTURES}</a>{% endif %}
+{% for item in loops.album_member_links %}<a class="button" href="{{ item.URL }}">{{ item.LABEL|e }}</a>{% endfor %}
 {% if U_ALBUM_UPLOAD %}<a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a>{% endif %}
 {% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
@@ -27,10 +29,13 @@
 <li><a href="{{ pic.U_PICTURE }}">{% if pic.U_THUMB %}<img loading="lazy" src="{{ pic.U_THUMB }}" alt="">{% else %}<span>{L_PLUS_ALBUM_MISSING_IMAGE}</span>{% endif %}<strong>{{ pic.TITLE|e }}</strong></a>
 <dl class="plus-album-caption">
 <dt>{L_AUTHOR}</dt><dd>{{ pic.AUTHOR }}</dd>
+{% if pic.U_CATEGORY %}<dt>{L_PLUS_ALBUM}</dt><dd><a href="{{ pic.U_CATEGORY }}">{{ pic.CATEGORY|e }}</a></dd>{% endif %}
 <dt>{L_PLUS_ALBUM_DATE}</dt><dd><time datetime="{{ pic.DATETIME }}">{{ pic.TIME }}</time></dd>
 <dt>{L_VIEWS}</dt><dd>{{ pic.VIEWS }}</dd>
-{% if pic.S_RATE %}<dt>{L_PLUS_ALBUM_PORTAL_RATING}</dt><dd>{{ pic.RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</dd>{% endif %}
-</dl></li>
+{% if pic.S_RATE %}<dt>{{ S_MEMBER_RATING ? lang('PLUS_ALBUM_MEMBER_SCORE') : lang('PLUS_ALBUM_PORTAL_RATING') }}</dt><dd>{{ pic.RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</dd>{% endif %}
+{% if pic.S_COMMENTS %}<dt>{{ S_MEMBER_COMMENTS ? lang('PLUS_ALBUM_MEMBER_COMMENTS') : lang('PLUS_ALBUM_COMMENTS') }}</dt><dd><a href="{{ pic.U_PICTURE }}#album-comments">{{ pic.COMMENTS }}</a></dd>{% endif %}
+{% if pic.IP %}<dt>{L_IP}</dt><dd>{{ pic.IP|e }}</dd>{% endif %}
+</dl>{% if pic.U_DELETE %}<p class="plus-album-grid-action"><a href="{{ pic.U_DELETE }}">{L_PLUS_ALBUM_ACTION_DELETE}</a></p>{% endif %}</li>
 {% endfor %}</ul>
 {% else %}<p class="plus-album-empty">{L_PLUS_ALBUM_EMPTY}</p>{% endif %}</section>
 {% endfor %}

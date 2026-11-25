@@ -10,14 +10,16 @@ class navigation implements EventSubscriberInterface
 	private $language;
 	private $personal;
 	private $access;
+	private $user;
 
-	public function __construct($helper, $template, $language, $personal, $access)
+	public function __construct($helper, $template, $language, $personal, $access, $user)
 	{
 		$this->helper = $helper;
 		$this->template = $template;
 		$this->language = $language;
 		$this->personal = $personal;
 		$this->access = $access;
+		$this->user = $user;
 	}
 
 	static public function getSubscribedEvents()
@@ -28,9 +30,16 @@ class navigation implements EventSubscriberInterface
 	public function profile($event)
 	{
 		$member = $event['member'];
-		if (!in_array((int) $member['user_type'], array(USER_NORMAL, USER_FOUNDER), true) ||
-			!(int) $this->access->setting('show_personal_gallery_link', 1) || !$this->personal->available((int) $member['user_id'])) { return; }
-		$this->template->assign_var('U_PROFILE_ALBUM', $this->helper->route('phpbb2plus_gallery_personal', array('owner' => (int) $member['user_id'])));
+		if (empty($this->user->data['is_registered']) || !in_array((int) $member['user_type'], array(USER_NORMAL, USER_FOUNDER), true) ||
+			!(int) $this->access->setting('show_personal_gallery_link', 1)) { return; }
+		$params = array('owner' => (int) $member['user_id']);
+		$this->template->assign_var('U_PROFILE_ALBUM_ACTIVITY', $this->helper->route('phpbb2plus_gallery_member_activity', $params + array('type' => 'pic')));
+		if ($this->personal->available($params['owner']))
+		{
+			$this->template->assign_var('U_PROFILE_ALBUM', $this->helper->route('phpbb2plus_gallery_personal', $params));
+			if ((int) $this->access->setting('show_all_in_personal_gallery', 0))
+			{ $this->template->assign_var('U_PROFILE_ALBUM_ALL', $this->helper->route('phpbb2plus_gallery_member_pictures', $params)); }
+		}
 	}
 
 	public function header()

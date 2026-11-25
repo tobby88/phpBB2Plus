@@ -5,7 +5,7 @@ class settings
 {
 	const DEFAULTS = array('personal_gallery' => '0', 'personal_gallery_view' => '-1', 'personal_gallery_limit' => '10',
 		'personal_allow_gallery_mod' => '1', 'personal_allow_sub_categories' => '1', 'personal_sub_category_limit' => '10',
-		'show_personal_gallery_link' => '1');
+		'show_personal_gallery_link' => '1', 'show_all_in_personal_gallery' => '0');
 	const MEDIA = array('gd_version' => '2', 'thumbnail_size' => '125', 'max_file_size' => '128000', 'max_width' => '800',
 		'max_height' => '600', 'resize_pic' => '0', 'resize_width' => '600', 'resize_height' => '600', 'resize_quality' => '70',
 		'multiple_uploads' => '1', 'max_uploads' => '10', 'zip_uploads' => '1');
@@ -15,6 +15,7 @@ class settings
 		'max_height' => array(1,10000), 'resize_width' => array(1,10000), 'resize_height' => array(1,10000), 'resize_quality' => array(0,100),
 		'max_uploads' => array(1,100));
 	const OPTIONS = array('personal_gallery' => array(0 => 'MEMBERS', 3 => 'SELECTED', 1 => 'ADMINS'),
+		'show_all_in_personal_gallery' => array(1 => 'YES', 0 => 'NO'),
 		'personal_gallery_view' => array(-1 => 'GUESTS', 0 => 'MEMBERS', 3 => 'PRIVATE', 2 => 'MODS', 1 => 'ADMINS'),
 		'personal_allow_gallery_mod' => array(1 => 'YES', 0 => 'NO'), 'personal_allow_sub_categories' => array(1 => 'YES', 0 => 'NO'),
 		'show_personal_gallery_link' => array(1 => 'YES', 0 => 'NO'), 'resize_pic' => array(1 => 'YES', 0 => 'NO'),

@@ -73,6 +73,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_CFG_PERSONAL_ALLOW_SUB_CATEGORIES' => 'Members may manage their subalbums',
 	'PLUS_ALBUM_CFG_PERSONAL_SUB_CATEGORY_LIMIT' => 'Maximum subalbums per member',
 	'PLUS_ALBUM_CFG_SHOW_PERSONAL_GALLERY_LINK' => 'Link to accessible albums from member profiles',
+	'PLUS_ALBUM_CFG_SHOW_ALL_IN_PERSONAL_GALLERY' => 'Show the link to all pictures in a personal album',
 	'PLUS_ALBUM_CFG_GUESTS' => 'All visitors', 'PLUS_ALBUM_CFG_MEMBERS' => 'Registered members',
 	'PLUS_ALBUM_CFG_SELECTED' => 'Members with the user permission',
 	'PLUS_ALBUM_CFG_PRIVATE' => 'Private', 'PLUS_ALBUM_CFG_MODS' => 'Album moderators', 'PLUS_ALBUM_CFG_ADMINS' => 'Album administrators',

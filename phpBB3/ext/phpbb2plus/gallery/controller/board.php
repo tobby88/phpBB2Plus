@@ -23,8 +23,9 @@ class board
 	private $personal;
 	private $navigation;
 	private $config;
+	private $member_pictures;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config, $member_pictures)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -41,6 +42,7 @@ class board
 		$this->personal = $personal;
 		$this->navigation = $navigation;
 		$this->config = $config;
+		$this->member_pictures = $member_pictures;
 	}
 
 	private function breadcrumbs($cat = null, $listing = array())
@@ -81,13 +83,25 @@ class board
 		$pictures = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
 		if (!$pictures && !$show_empty) { return; }
+		$this->grid_rows($heading, $pictures, $columns, $rate, $context);
+	}
+
+	private function grid_rows($heading, $pictures, $columns, $rate, $context = array())
+	{
 		$this->template->assign_block_vars('album_grids', array('HEADING' => $this->language->lang($heading),
 			'S_CATEGORY' => $heading === 'PLUS_ALBUM_PICTURES', 'S_RECENT' => $heading === 'PLUS_ALBUM_RECENT',
 			'COLUMNS' => $columns, 'MOBILE_COLUMNS' => min(2, $columns)));
 		foreach ($pictures as $pic)
 		{
 			$params = array('picture' => (int) $pic['pic_id']);
-			$this->template->assign_block_vars('album_grids.pictures', array('TITLE' => $pic['title'],
+			$category = isset($pic['cat_id']) ? $this->access->category_row($pic['cat_id']) : null;
+			$delete = $category && ($this->access->administrator() || (int) $pic['author_id'] === (int) $this->user->data['user_id']) &&
+				$this->pictures->allowed($pic, $category, 'delete');
+			$this->template->assign_block_vars('album_grids.pictures', array('TITLE' => $pic['title'], 'CATEGORY' => $category ? $category['title'] : '',
+				'U_CATEGORY' => $category ? $this->helper->route('phpbb2plus_gallery_category', array('category' => $category['cat_id'])) : '',
+				'U_DELETE' => $delete ? $this->helper->route('phpbb2plus_gallery_manage', $params + array('mode' => 'delete')) : '',
+				'IP' => !empty($pic['author_ip']) && filter_var($pic['author_ip'], FILTER_VALIDATE_IP) ? $pic['author_ip'] : '',
+				'S_COMMENTS' => isset($pic['comments']), 'COMMENTS' => isset($pic['comments']) ? (int) $pic['comments'] : 0,
 				'TIME' => $this->user->format_date($pic['created_at']), 'DATETIME' => gmdate('c', $pic['created_at']),
 				'AUTHOR' => $this->byline->display($pic), 'VIEWS' => (int) $pic['views'], 'S_RATE' => $rate,
 				'RATING' => $rate && (float) $pic['rating'] > 0 ? number_format((float) $pic['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), '') : '',
@@ -184,7 +198,11 @@ class board
 		$title = $cat ? $cat['title'] : $this->language->lang('PLUS_ALBUM');
 		$owner = $cat ? (int) $cat['owner_id'] : (int) $this->user->data['user_id'];
 		if ($owner > ANONYMOUS && $this->personal->available($owner))
-		{ $this->template->assign_var('U_ALBUM_PERSONAL', $this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner))); }
+		{
+			$this->template->assign_var('U_ALBUM_PERSONAL', $this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner)));
+			if ($cat && (int) $this->access->setting('show_all_in_personal_gallery', 0))
+			{ $this->template->assign_var('U_ALBUM_COLLECTION', $this->helper->route('phpbb2plus_gallery_member_pictures', array('owner' => $owner))); }
+		}
 		if ($cat && empty($this->user->data['is_bot']) && $this->access->allows($cat, 'upload'))
 		{
 			$this->template->assign_var('U_ALBUM_UPLOAD', $this->helper->route('phpbb2plus_gallery_upload', array('category' => $id)));
@@ -256,6 +274,48 @@ class board
 		$url = $this->helper->route('phpbb2plus_gallery_members', array('mode' => $page['mode'], 'order' => $page['order']));
 		$this->pagination->generate_template_pagination($url, 'pagination', 'start', $page['total'], $page['size'], $page['start']);
 		return $this->helper->render('@phpbb2plus_gallery/members.html', $this->language->lang('PLUS_ALBUM_MEMBERS'));
+	}
+
+	public function collection($owner, $type)
+	{
+		$this->breadcrumbs();
+		$owner = (int) $owner;
+		$page = $this->member_pictures->page($owner, $type, $this->request->variable('sort_method', ''), $this->request->variable('sort_order', ''),
+			$this->request->variable('start', 0));
+		$name = html_entity_decode($page['account']['username'], ENT_QUOTES, 'UTF-8');
+		$title = $this->language->lang('PLUS_ALBUM_MEMBER_' . strtoupper($type), $name);
+		$params = array('owner' => $owner);
+		$route = 'phpbb2plus_gallery_member_pictures';
+		if ($type !== 'all') { $route = 'phpbb2plus_gallery_member_activity'; $params['type'] = $type; }
+		if ($this->personal->available($owner))
+		{
+			$this->template->assign_var('U_ALBUM_PERSONAL', $this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner)));
+			if ($type !== 'all' && (int) $this->access->setting('show_all_in_personal_gallery', 0))
+			{ $this->template->assign_var('U_ALBUM_COLLECTION', $this->helper->route('phpbb2plus_gallery_member_pictures', array('owner' => $owner))); }
+		}
+		foreach (array('pic' => true, 'rating' => $page['rate'], 'comment' => $page['comments']) as $kind => $enabled)
+		{
+			if ($enabled && $kind !== $type && ($type !== 'all' || !empty($this->user->data['is_registered'])))
+			{
+				$this->template->assign_block_vars('album_member_links', array('LABEL' => $this->language->lang('PLUS_ALBUM_MEMBER_' . strtoupper($kind), $name),
+					'URL' => $this->helper->route('phpbb2plus_gallery_member_activity', array('owner' => $owner, 'type' => $kind))));
+			}
+		}
+		$this->template->assign_vars(array('ALBUM_TITLE' => $title, 'S_MEMBER_RATING' => $type === 'rating', 'S_MEMBER_COMMENTS' => $type === 'comment'));
+		$this->grid_rows('PLUS_ALBUM_PICTURES', $page['rows'], $page['columns'], $page['rate']);
+		if ($page['total'])
+		{
+			$sort = $page['sort'];
+			foreach ($this->navigation->methods(null) as $method => $label)
+			{
+				$this->template->assign_block_vars('album_sorts', array('VALUE' => $method, 'LABEL' => $this->language->lang($label), 'SELECTED' => $method === $sort[0]));
+			}
+			$this->template->assign_vars(array('U_ALBUM_SORT' => $this->helper->route($route, $params), 'ALBUM_SORT_ORDER' => $sort[1],
+				'ALBUM_SORT_HIDDEN' => $this->hidden_fields(array())));
+			$url = $this->helper->route($route, $params + array('sort_method' => $sort[0], 'sort_order' => $sort[1]));
+			$this->pagination->generate_template_pagination($url, 'pagination', 'start', $page['total'], $page['limit'], $page['start']);
+		}
+		return $this->helper->render('@phpbb2plus_gallery/index.html', utf8_htmlspecialchars($title));
 	}
 
 	private function rating_text($picture, $honour)

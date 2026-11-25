@@ -79,6 +79,12 @@ class access
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_gallery');
 	}
 
+	public function may_view_upload_ips()
+	{
+		// Legacy lists displayed addresses only to board administrators. A gallery delegation alone is insufficient.
+		return $this->administrator() && empty($this->user->data['user_perm_from']) && $this->auth->acl_get('a_user');
+	}
+
 	public function may_create_personal($owner, $fresh = false)
 	{
 		if (empty($this->user->data['is_registered']) || !empty($this->user->data['is_bot']) || $owner <= ANONYMOUS) { return false; }

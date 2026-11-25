@@ -46,9 +46,18 @@ class personal
 	{
 		$source = (int) $source;
 		$category = 0;
+		$mode = strtolower($this->request->variable('mode', ''));
+		$extra = array();
+		if ($mode === 'all' || $mode === 'list')
+		{
+			$extra['mode'] = $mode;
+			$type = strtolower($this->request->variable('type', 'pic'));
+			$extra['type'] = in_array($type, array('rating','comment'), true) ? $type : 'pic';
+			$extra['cat_id'] = max(0, $this->request->variable('cat_id', 0));
+		}
 		if ($source < 1 && empty($this->user->data['is_registered']))
 		{
-			login_box($this->helper->route('phpbb2plus_gallery_personal_legacy', array('source' => $source) + $this->listing_parameters(), false));
+			login_box($this->helper->route('phpbb2plus_gallery_personal_legacy', array('source' => $source) + $extra + $this->listing_parameters(), false));
 		}
 		if ($source === -1) { $category = $this->service->historical_guest_root(); }
 		if ($category) { $this->access->category($category); }
@@ -56,6 +65,22 @@ class personal
 		{
 			$owner = $source < 1 ? (int) $this->user->data['user_id'] : ($this->legacy ? $this->legacy->member_id($source) : 0);
 			$this->service->owner($owner);
+			if ($extra)
+			{
+				$cat = $extra['cat_id'] ? $this->access->category($extra['cat_id']) : null;
+				if ($cat && (int) $cat['owner_id'] !== $owner) { throw new NotFoundHttpException(); }
+				if ($mode === 'list' && $cat && $cat['parent_id'])
+				{
+					return new RedirectResponse($this->helper->route('phpbb2plus_gallery_category', array('category' => $cat['cat_id']) + $this->listing_parameters(), false));
+				}
+				$params = array('owner' => $owner) + $this->listing_parameters();
+				if ($mode === 'list')
+				{
+					$params['type'] = $extra['type'];
+					return new RedirectResponse($this->helper->route('phpbb2plus_gallery_member_activity', $params, false));
+				}
+				return new RedirectResponse($this->helper->route('phpbb2plus_gallery_member_pictures', $params, false));
+			}
 			$roots = $this->service->roots($owner);
 			$visible = array_filter($roots, array($this->access, 'visible'));
 			if (!$visible && ($roots || !$this->access->may_create_personal($owner))) { throw new NotFoundHttpException(); }
@@ -89,6 +114,10 @@ class personal
 		$owner = (int) $owner;
 		$title = $this->setup($owner);
 		if (!$this->service->available($owner)) { throw new NotFoundHttpException(); }
+		if (!empty($this->user->data['is_registered']))
+		{ $this->template->assign_var('U_MEMBER_ACTIVITY', $this->helper->route('phpbb2plus_gallery_member_activity', array('owner' => $owner, 'type' => 'pic'))); }
+		if ((int) $this->access->setting('show_all_in_personal_gallery', 0))
+		{ $this->template->assign_var('U_ALBUM_COLLECTION', $this->helper->route('phpbb2plus_gallery_member_pictures', array('owner' => $owner))); }
 		try { $tree = $this->service->tree($owner); }
 		catch (\DomainException $e) { return $this->helper->message($e->getMessage(), array(), 'INFORMATION', 409); }
 		if (!$tree) { $this->template->assign_var('U_START', $this->action($owner, 0, 'start')); }

@@ -29,6 +29,7 @@
 	grid-template-columns: repeat(auto-fill, minmax(min(100%, max(10em, calc((100% + 1px) / var(--album-columns) - 1px))), 1fr));
 }
 .plus-album-grid li { min-width: 0; display: flex; flex-direction: column; background: #d9e2ec; }
+.plus-album-grid-action { margin: 0 .75em .5em; }
 .plus-album-grid li > a {
 	display: grid; grid-template-rows: 1fr auto; flex: 1 0 auto; align-items: center;
 	justify-items: center; gap: .5em; padding: .6em; background: #eaedf4; text-align: center;
