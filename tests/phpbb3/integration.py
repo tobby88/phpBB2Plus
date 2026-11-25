@@ -59,6 +59,7 @@ import topic_calendar
 import gallery
 import gallery_navigation
 import gallery_activity
+import gallery_moderation
 import gallery_previews
 import gallery_hot
 import gallery_directory
@@ -436,6 +437,8 @@ def main():
                         ROOT / "tests/phpbb3/gallery_directory.php", target, phase, cwd=web, capture=True))
                     gallery_activity.browse(admin, reader, applicant, guest, lambda phase: php(
                         ROOT / "tests/phpbb3/gallery_activity.php", target, phase, cwd=web, capture=True))
+                    gallery_moderation.browse(admin, reader, applicant, guest, lambda phase: php(
+                        ROOT / "tests/phpbb3/gallery_moderation.php", target, phase, cwd=web, capture=True))
 
                 with ThreadPoolExecutor(max_workers=1) as worker:
                     navigation = worker.submit(gallery_views)

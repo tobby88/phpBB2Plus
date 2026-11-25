@@ -195,6 +195,21 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . '/upload'; }
 			break;
 		case 'album_hotornot': $path = 'album/hot-or-not'; break;
+		case 'album_modcp':
+			$picture = $positive('pic_id');
+			$tasks = array('move' => 'move', 'lock' => 'lock', 'unlock' => 'unlock',
+				'approval' => 'approve', 'unapproval' => 'unapprove', 'delete' => 'delete');
+			$mode = $query['mode'] ?? '';
+			if ($picture && is_string($mode) && isset($tasks[$mode]))
+			{
+				$path = 'album/picture/' . $picture . '/manage/' . $tasks[$mode];
+			}
+			elseif (!isset($query['pic_id']) && ($cat = $positive('cat_id')) && ($mode === '' || (is_string($mode) && isset($tasks[$mode]))))
+			{
+				$path = 'album/category/' . $cat . '/moderate';
+				if (($query['sort_method'] ?? '') === 'pic_user_id') { $extra['sort_method'] = 'pic_user_id'; }
+			}
+			break;
 		case 'album_personal_index':
 			$path = 'album/members';
 			$sort = $method === 'POST' ? $_POST + $query : $query;
@@ -321,7 +336,8 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 	}
 	if ($path === '') { http_response_code(404); return; }
-	if ($entry === 'album_cat' || $entry === 'album_personal' || ($entry === 'album' && $path !== 'album'))
+	if ($entry === 'album_cat' || $entry === 'album_personal' || ($entry === 'album' && $path !== 'album') ||
+		($entry === 'album_modcp' && !$picture))
 	{
 		if (in_array($query['sort_method'] ?? '', array('pic_time','pic_title','username','pic_view_count','rating','comments','new_comment'), true))
 		{

@@ -48,6 +48,9 @@ def browse(base, owner, historic_id):
         ("ranks.php", "app.php/ranks", {}, ""),
         ("album.php?user_id=0", "app.php/album", {}, ""),
         ("album_hotornot.php", "app.php/album/hot-or-not", {}, ""),
+        ("album_modcp.php?cat_id=2&sort_method=pic_user_id&sort_order=ASC&start=3", "app.php/album/category/2/moderate",
+         {"sort_method": "pic_user_id", "sort_order": "ASC", "start": 3}, ""),
+        ("album_modcp.php?mode=approval&pic_id=100", "app.php/album/picture/100/manage/approve", {}, ""),
         ("album_personal_index.php?mode=last_pic&order=DESC&start=9", "app.php/album/members",
          {"mode": "last_pic", "order": "DESC", "start": 9}, ""),
         ("album_search.php?mode=name&search=Gr%C3%BC%C3%9Fe&start=20", "app.php/album/search",
@@ -127,6 +130,7 @@ def browse(base, owner, historic_id):
     if "Private fixture text" in guest.fetch("fpost40.html") or "Private fixture text" not in owner.fetch("fpost40.html"):
         raise RuntimeError("Old post link changed the forum's read permissions")
     guest.fetch("profile.php?mode=register", {}, expected_status=405)
+    guest.fetch("album_modcp.php?mode=delete&pic_id=100", {"confirm": 1}, expected_status=405)
     guest.fetch("dload.php?action=search", {"action": "user_upload"}, expected_status=405)
 
 

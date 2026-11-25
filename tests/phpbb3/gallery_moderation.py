@@ -36,9 +36,12 @@ def browse(administrator, member, applicant, guest, check):
             if "/album/category/760/moderate" in reader.fetch(category):
                 raise RuntimeError("A guest or pending group applicant received the moderation link")
             reader.fetch(panel, expected_status=404)
+            reader.fetch("album_modcp.php?cat_id=760", expected_status=404)
         if "/album/category/760/moderate" not in member.fetch(category):
             raise RuntimeError("The active moderator has no entry point from the category")
         first = member.fetch(panel)
+        if ids(member.fetch("album_modcp.php?cat_id=760")) != ids(first):
+            raise RuntimeError("The old moderation bookmark opened a different selection of pictures")
         if ids(first) != [26007, 26006, 26005]:
             raise RuntimeError(f"Unexpected moderation page size or order: {ids(first)}")
         links = [unescape(href) for href in re.findall(r'href="([^"]+)"', first)]
