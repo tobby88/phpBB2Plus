@@ -61,7 +61,7 @@ def administration(base, owner):
     guest = Browser(base)
     entry = admin_url(owner)
     menus = owner.fetch(entry + "&i=acp_icons&mode=icons")
-    link = re.search(r'<a[^>]+href="([^"]+)"[^>]*>\s*Nachrichtenkategorien\s*</a>', menus)
+    link = re.search(r'<a[^>]+href="([^"]+)"[^>]*>\s*<span>Nachrichtenkategorien</span>\s*</a>', menus)
     if not link:
         raise RuntimeError("The news category editor is missing from the native posting ACP")
     panel = urljoin(entry, unescape(link.group(1)))
@@ -74,7 +74,7 @@ def administration(base, owner):
         return owner.fetch(urljoin(url, unescape(action)), fields)
 
     def edit_url(label):
-        match = re.search(r'<a href="([^"]+)"[^>]*>' + re.escape(label) + r'</a>', owner.fetch(panel))
+        match = re.search(r'<a\b[^>]*\bhref="([^"]+)"[^>]*>' + re.escape(label) + r'</a>', owner.fetch(panel))
         if not match:
             raise RuntimeError("Missing news category in ACP: " + label)
         return urljoin(panel, unescape(match.group(1)))

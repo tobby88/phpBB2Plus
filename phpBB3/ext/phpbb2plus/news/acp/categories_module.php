@@ -137,7 +137,7 @@ class categories_module
 				if (!check_form_key($form)) { trigger_error('FORM_INVALID',E_USER_WARNING); }
 				if ($remove)
 				{
-					confirm_box(false,'PLUS_NEWS_DELETE',build_hidden_fields(array('remove'=>1,'revision'=>$previous)),'confirm_body.html',$url);
+					confirm_box(false,'PLUS_NEWS_DELETE',build_hidden_fields(array('remove'=>1,'revision'=>$previous)));
 					return;
 				}
 			}
