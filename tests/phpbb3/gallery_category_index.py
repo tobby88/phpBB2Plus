@@ -32,6 +32,11 @@ def browse(administrator, member, applicant, guest, check):
             raise RuntimeError("Missing latest " + kind + " in the directory")
         return int(link[1]), unescape(link[2]), unescape(link[3])
 
+    def portal_links(popup):
+        links = re.findall(r'<figure><a href="([^"]*/album/picture/\d+)(/full)?(?:\?[^"]*)?"([^>]*)>', guest.fetch("app.php/portal"))
+        if not links or any(bool(full) != popup or ('target="_blank" rel="noopener noreferrer"' in attrs) != popup for _, full, attrs in links):
+            raise RuntimeError("The portal picture links did not follow the album popup setting")
+
     check("seed")
     try:
         if not 0 < int(check("volume")) <= 14:
@@ -146,6 +151,7 @@ def browse(administrator, member, applicant, guest, check):
         image = re.search(r'<a href="([^"]*/album/picture/28004/full(?:\?[^"]*)?)" target="_blank" rel="noopener noreferrer">', popup_grid)
         if not image or not guest.fetch(unescape(image[1]), raw=True).startswith(b"\x89PNG\r\n\x1a\n"):
             raise RuntimeError("A normal gallery thumbnail did not open its full image")
+        portal_links(True)
         check("missing_file")
         row = rows(guest, 880)[881]
         picture, target, _ = latest(row, "picture")
@@ -153,6 +159,7 @@ def browse(administrator, member, applicant, guest, check):
                 "Grüne Ansicht – fünf" not in guest.fetch(target)):
             raise RuntimeError("An unavailable original did not fall back to its accessible picture page")
         check("minimal")
+        portal_links(False)
         inline_grid = category_grid(guest.fetch(grid_url))
         if 'target="_blank"' in inline_grid or not re.search(r'<a href="[^"]*/album/picture/28002(?:\?[^"]*)?">', inline_grid):
             raise RuntimeError("Disabling the full-image popup did not restore the picture page")

@@ -1,7 +1,7 @@
 {% if U_PORTAL_ALBUM %}
 <section class="panel plus-portal-album" style="--plus-preview-size: {{ PORTAL_PICTURE_SIZE }}px"><h3><a href="{U_PORTAL_ALBUM}">{L_PLUS_ALBUM}</a></h3>
 {% for pic in loops.plus_album_pictures %}
-<figure><a href="{{ pic.U_PICTURE }}" title="{{ pic.DESCRIPTION|e }}"><img src="{{ pic.U_THUMB }}" loading="lazy" alt=""><br>{{ pic.TITLE|e }}</a>
+<figure><a href="{{ pic.U_PICTURE }}"{% if S_PORTAL_PICTURE_POPUP %} target="_blank" rel="noopener noreferrer"{% endif %} title="{{ pic.DESCRIPTION|e }}"><img src="{{ pic.U_THUMB }}" loading="lazy" alt=""><br>{{ pic.TITLE|e }}</a>
 <figcaption>{{ pic.AUTHOR }} &middot; {{ pic.TIME }}<br>{L_VIEWS}: {{ pic.VIEWS }}
 {% if pic.S_RATE %}<br>{L_PLUS_ALBUM_PORTAL_RATING}: {% if pic.RATING %}{{ pic.RATING }}{% else %}{L_PLUS_ALBUM_NOT_RATED}{% endif %}{% endif %}
 {% if pic.S_COMMENTS %}<br>{L_PLUS_ALBUM_COMMENTS}: {{ pic.COMMENTS }}{% endif %}</figcaption></figure>

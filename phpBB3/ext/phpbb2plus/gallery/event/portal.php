@@ -44,8 +44,9 @@ class portal implements EventSubscriberInterface
 		$this->language->add_lang('gallery', 'phpbb2plus/gallery');
 		$rate = (bool) $this->access->setting('rate', 1);
 		$comments = (bool) $this->access->setting('comment', 1);
-		$full = (bool) $this->access->setting('fullpic_popup', 0);
+		$full = (int) $this->access->setting('fullpic_popup', 0) === 1;
 		$this->template->assign_vars(array('U_PORTAL_ALBUM'=>$this->helper->route('phpbb2plus_gallery_index'),
+			'S_PORTAL_PICTURE_POPUP'=>$full,
 			'PORTAL_PICTURE_SIZE'=>max(1, min(1024, (int) $this->config['plus_portal_picture_size']))));
 
 		$stats = '';
