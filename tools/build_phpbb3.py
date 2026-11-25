@@ -171,6 +171,8 @@ def assemble(output, cache, offline=False):
                 shutil.copyfile(file, player / file.name)
         images.mkdir(parents=True, exist_ok=True)
         old_images = ROOT / "phpBB2/templates/fisubsilversh/images"
+        (web / "images/pluskb").mkdir()
+        shutil.copyfile(old_images / "lang_english/kb.gif", web / "images/pluskb/header.gif")
         news_images = web / "images/plusnews"
         (web / "images/plusportal").mkdir(parents=True, exist_ok=True)
         news_images.mkdir()

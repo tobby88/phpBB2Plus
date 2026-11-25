@@ -170,6 +170,18 @@ class articles
 		return $visible ? $topic : false;
 	}
 
+	public function discussion_sort_sql()
+	{
+		$forums = array_diff(array_intersect(array_keys($this->auth->acl_getf('f_list', true)), array_keys($this->auth->acl_getf('f_read', true))),
+			$this->user->get_passworded_forums());
+		if (!$forums || !(int) $this->setting('comments', 1)) { return 'a.article_id'; }
+		// A topic's cached last post can be hidden from this reader. The indexed
+		// lookup considers only the posts of the article's own linked topic.
+		return 'COALESCE((SELECT MAX(p.post_id) FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.topic_id=t.topic_id AND p.forum_id=t.forum_id
+			WHERE t.topic_id=a.topic_id AND t.topic_moved_id=0 AND ' . $this->db->sql_in_set('t.forum_id', array_map('intval', $forums)) . ' AND '
+			. $this->visibility->get_forums_visibility_sql('topic', $forums, 't.') . ' AND ' . $this->visibility->get_forums_visibility_sql('post', $forums, 'p.') . '),0)';
+	}
+
 	public function forum_open($forum, $password)
 	{
 		if ($password === '') { return true; }

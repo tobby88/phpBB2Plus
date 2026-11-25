@@ -3,6 +3,11 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_KB_SET_DISPLAY' => 'Article lists', 'ACP_PLUS_KB_OPT_STATS_LIST' => 'Show published article counts by type',
 	'ACP_PLUS_KB_OPT_ART_PAGINATION' => 'Articles per page (1 to 1000)',
+	'ACP_PLUS_KB_OPT_HEADER_BANNER' => 'Show the Knowledge Base header image',
+	'ACP_PLUS_KB_OPT_NEWS_SORT' => 'Default article order', 'ACP_PLUS_KB_OPT_NEWS_SORT_PAR' => 'Sort direction',
+	'ACP_PLUS_KB_SORT_ALPHABETIC' => 'Title', 'ACP_PLUS_KB_SORT_CREATION' => 'Publication date', 'ACP_PLUS_KB_SORT_ID' => 'Article number',
+	'ACP_PLUS_KB_SORT_LATEST' => 'Latest discussion activity', 'ACP_PLUS_KB_SORT_USERRANK' => 'Author rank',
+	'ACP_PLUS_KB_SORT_ASC' => 'Ascending', 'ACP_PLUS_KB_SORT_DESC' => 'Descending',
 	'ACP_PLUS_KB' => 'Knowledge Base', 'ACP_PLUS_KB_ARTICLES' => 'Manage articles', 'ACP_PLUS_KB_ARTICLE' => 'Article',
 	'ACP_PLUS_KB_ALL' => 'All articles', 'ACP_PLUS_KB_EDITED' => 'Edits awaiting approval', 'ACP_PLUS_KB_PENDING' => 'New submissions',
 	'ACP_PLUS_KB_PUBLISHED' => 'Published', 'ACP_PLUS_KB_EMPTY' => 'No articles in this view.',

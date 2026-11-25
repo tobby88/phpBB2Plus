@@ -52,6 +52,8 @@ class board
 
 	private function navigation($active = '')
 	{
+		$this->template->assign_vars(array('KB_HEADER_BANNER' => (bool) (int) $this->articles->setting('header_banner', 1),
+			'U_KB_HOME' => $this->helper->route('phpbb2plus_kb_index')));
 		foreach (array('latest','mostpopular','toprated') as $list)
 		{
 			if ($list === 'toprated' && !(int) $this->articles->setting('allow_rating', 0)) { continue; }
@@ -134,10 +136,18 @@ class board
 		$params = $id ? array('category' => $id) : array();
 		$route = $id ? 'phpbb2plus_kb_category' : 'phpbb2plus_kb_index';
 		$url = $this->helper->route($route, $params);
-		$stats = array('newest' => 'a.created_at DESC', 'viewed' => 'a.views DESC', 'alphabetical' => 'a.title ASC');
-		$configured = $this->articles->setting('news_sort', 'Alphabetic') === 'Alphabetic' ? 'alphabetical' : 'newest';
-		$sort = $stats[$view] ?? $stats[$configured];
-		if (isset($stats[$view])) { $params['order'] = $view; }
+		$visitor = array('newest' => array('Creation','DESC'), 'viewed' => array('Views','DESC'), 'alphabetical' => array('Alphabetic','ASC'));
+		if (isset($visitor[$view]))
+		{
+			list($mode, $direction) = $visitor[$view];
+			$params['order'] = $view;
+		}
+		else
+		{
+			$view = 'default';
+			$mode = $this->articles->setting('news_sort', 'Alphabetic');
+			$direction = strtoupper($this->articles->setting('news_sort_par', 'ASC')) === 'ASC' ? 'ASC' : 'DESC';
+		}
 		foreach ($cats as $cat)
 		{
 			if ((int) $cat['parent_id'] !== $id || $query !== '') { continue; }
@@ -156,7 +166,16 @@ class board
 		$count = (int) $this->db->sql_fetchfield('total');
 		$this->db->sql_freeresult($result);
 		list($limit, $start) = $this->page_window($this->helper->route($route, $params), $count);
-		$result = $this->db->sql_query_limit("SELECT a.article_id,a.title,a.description,a.approval FROM $from WHERE $where ORDER BY $sort,a.article_id", $limit, $start);
+		$fields = array('Id' => 'a.article_id', 'Creation' => 'a.created_at', 'Alphabetic' => 'a.title', 'Views' => 'a.views');
+		if ($mode === 'Latest') { $field = $this->articles->discussion_sort_sql(); }
+		elseif ($mode === 'Userrank')
+		{
+			$from .= ' LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=a.author_id';
+			$field = 'COALESCE(u.user_rank,0)';
+		}
+		else { $field = $fields[$mode] ?? 'a.created_at'; }
+		$order = $field . ' ' . $direction . ($field === 'a.article_id' ? '' : ',a.article_id ' . $direction);
+		$result = $this->db->sql_query_limit("SELECT a.article_id,a.title,a.description,a.approval FROM $from WHERE $where ORDER BY $order", $limit, $start);
 		while ($article = $this->db->sql_fetchrow($result))
 		{
 			$this->template->assign_block_vars('kb_articles', array('TITLE' => $article['title'], 'SUMMARY' => $article['description'],
@@ -165,7 +184,7 @@ class board
 		$this->db->sql_freeresult($result);
 		$title = $id ? $cats[$id]['title'] : $this->language->lang('PLUS_KB');
 		if ($this->editor->allowed('new')) { $this->template->assign_var('U_KB_NEW', $this->helper->route('phpbb2plus_kb_submit', $id ? array('category' => $id) : array())); }
-		$this->template->assign_vars(array('KB_TITLE' => $title, 'KB_QUERY' => $query, 'KB_SORT' => $view ?: $configured, 'U_SEARCH' => $url));
+		$this->template->assign_vars(array('KB_TITLE' => $title, 'KB_QUERY' => $query, 'KB_SORT' => $view, 'U_SEARCH' => $url));
 		return $this->helper->render('@phpbb2plus_knowledgebase/index.html', utf8_htmlspecialchars($title));
 	}
 

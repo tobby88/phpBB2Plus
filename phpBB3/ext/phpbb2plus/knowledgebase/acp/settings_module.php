@@ -50,8 +50,14 @@ class settings_module
 			{
 				$value = $group === $section && $error !== '' ? ($input[$name] ?? $stored[$name]) : $stored[$name];
 				$template->assign_block_vars('kb_sections.fields', array('NAME' => $name, 'LABEL' => $language->lang('ACP_PLUS_KB_OPT_' . strtoupper($name)),
-					'KIND' => $field[0], 'VALUE' => $value, 'LIMIT' => $field[2] ?? 0, 'CHECKED' => $value === '1'));
+					'KIND' => $field[0], 'VALUE' => $value, 'LIMIT' => in_array($field[0], array('text','memo'), true) ? $field[2] : 0,
+					'CHECKED' => $value === '1'));
 				if ($field[0] === 'notify') { $choices = array($language->lang('NO'), $language->lang('PRIVATE_MESSAGE'), $language->lang('EMAIL')); }
+				elseif ($field[0] === 'choice')
+				{
+					$choices = array();
+					foreach ($field[2] as $option) { $choices[$option] = $language->lang('ACP_PLUS_KB_SORT_' . strtoupper($option)); }
+				}
 				elseif ($field[0] === 'forum')
 				{
 					$choices = array(0 => $language->lang('ACP_PLUS_KB_NO_DISCUSSION_FORUM')) + $settings->forums();

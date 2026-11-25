@@ -1,3 +1,4 @@
+{% if KB_HEADER_BANNER %}<a href="{U_KB_HOME}"><img class="postimage" src="{ROOT_PATH}images/pluskb/header.gif" width="285" height="48" alt="{L_PLUS_KB}"></a>{% endif %}
 <nav class="action-bar" aria-label="{L_PLUS_KB}">
 	{% for entry in loops.kb_lists %}{% if not loop.first %} &middot; {% endif %}{% if entry.ACTIVE %}<strong aria-current="page">{{ entry.LABEL }}</strong>{% else %}<a href="{{ entry.URL }}">{{ entry.LABEL }}</a>{% endif %}{% endfor %}
 </nav>

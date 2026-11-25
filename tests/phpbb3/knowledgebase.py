@@ -7,6 +7,23 @@ from http_board import Browser, FormFields, Page, admin_url, submit_form
 from gallery import submit
 
 
+def rankings(guest, editor):
+    ranked = "app.php/knowledge/statistics/"
+    rated = guest.fetch("kb.php?mode=stats&stats=toprated")
+    title, other = "Öffentliche Anleitung", "Geschütztes Diskussionsthema"
+    banner = re.search(r'<img [^>]*src="([^"]*images/pluskb/header.gif)"', rated)
+    if not banner or guest.fetch(urljoin(guest.base + ranked + "toprated", unescape(banner[1])), raw=True)[:3] != b"GIF":
+        raise RuntimeError("The original Knowledge Base header image was unavailable on the rankings page")
+    if (rated.index(title) >= rated.index(other) or "EditorFixture" in rated or "8,25 von 10 (2 Stimmen)" not in rated
+            or "Anleitung (1)" not in rated or "Sterne 🌠 &amp;amp; Zeichen (0)" not in rated):
+        raise RuntimeError("Ranked articles lost historical votes, public type counts or retired-name protection")
+    popular = editor.fetch(ranked + "mostpopular")
+    if popular.index(title) >= popular.index(other) or "Überarbeitete Anleitung" in popular or "EditorFixture" not in popular:
+        raise RuntimeError("The public most-read ranking included drafts or lost its order or member bylines")
+    if title not in guest.fetch("kb.php?mode=stats&stats=latest&start=5") or "Brief der Klasse" not in guest.fetch(ranked + "latest"):
+        raise RuntimeError("The legacy statistics bookmark lost the sort or page offset")
+
+
 def browse(base, administrator, editor, reader):
     guest = Browser(base)
     index = "app.php/knowledge"
@@ -24,17 +41,7 @@ def browse(base, administrator, editor, reader):
     guest.fetch(article + "202", expected_status=404)
     if "Ungeprüfte Anleitung" in guest.fetch(index + "?q=Wissensprobe") or "Ungeprüfte Anleitung" not in editor.fetch(index + "?q=Wissensprobe"):
         raise RuntimeError("Knowledge Base search crossed the article approval boundary")
-    ranked = index + "/statistics/"
-    rated = guest.fetch("kb.php?mode=stats&stats=toprated")
-    title, other = "Öffentliche Anleitung", "Geschütztes Diskussionsthema"
-    if (rated.index(title) >= rated.index(other) or "EditorFixture" in rated or "8,25 von 10 (2 Stimmen)" not in rated
-            or "Anleitung (1)" not in rated or "Sterne 🌠 &amp;amp; Zeichen (0)" not in rated):
-        raise RuntimeError("Ranked articles lost historical votes, public type counts or retired-name protection")
-    popular = editor.fetch(ranked + "mostpopular")
-    if popular.index(title) >= popular.index(other) or "Überarbeitete Anleitung" in popular or "EditorFixture" not in popular:
-        raise RuntimeError("The public most-read ranking included drafts or lost its order or member bylines")
-    if title not in guest.fetch("kb.php?mode=stats&stats=latest&start=5") or "Brief der Klasse" not in guest.fetch(ranked + "latest"):
-        raise RuntimeError("The legacy statistics bookmark lost the sort or page offset")
+    rankings(guest, editor)
     first = guest.fetch(article + "201")
     legacy = guest.fetch("kb.php?mode=article&k=201&page_num=2&print=true")
     if "Zweite Wissensseite" not in legacy or "Wissensarchiv" not in guest.fetch("kb.php?mode=cat&cat=8"):
@@ -56,8 +63,9 @@ def browse(base, administrator, editor, reader):
     new_rating = submit(reader, article + "201", "kb-rate", {"rating": 7})
     if "7,83 von 10 (3 Stimmen)" not in new_rating:
         raise RuntimeError("Historical and new Knowledge Base ratings do not add up")
-    ranked_after = guest.fetch(ranked + "toprated")
-    if ranked_after.index(other) >= ranked_after.index(title) or "7,83 von 10 (3 Stimmen)" not in ranked_after:
+    ranked_after = guest.fetch(index + "/statistics/toprated")
+    if (ranked_after.index("Geschütztes Diskussionsthema") >= ranked_after.index("Öffentliche Anleitung")
+            or "7,83 von 10 (3 Stimmen)" not in ranked_after):
         raise RuntimeError("A new vote did not reorder the combined historical and current rankings")
     publication(base, guest, reader, editor, administrator)
 
@@ -325,16 +333,28 @@ def settings_administration(owner, contributor):
     result = submit_form(owner, panel, result, ratings, {"allow_rating": "1"})
     display = "kb-settings-display"
     original_display = FormFields(result, display).values
-    result = submit_form(owner, panel, result, display, {"stats_list": None, "art_pagination": "1"})
+    result = submit_form(owner, panel, result, display, {"stats_list": None, "header_banner": None, "art_pagination": "1"})
     latest = "app.php/knowledge/statistics/latest"
     first, second = guest.fetch(latest), guest.fetch(latest + "?start=1")
-    if ("Veröffentlichte Artikel nach Typ" in first or len(re.findall('class="topictitle"', first)) != 1
+    if ("Veröffentlichte Artikel nach Typ" in first or "images/pluskb/header.gif" in first or len(re.findall('class="topictitle"', first)) != 1
             or re.findall(r'class="topictitle" href="([^"]+)', first) == re.findall(r'class="topictitle" href="([^"]+)', second)):
         raise RuntimeError("The article count or page-size preference had no public effect")
     refused = submit_form(owner, panel, result, display, {"art_pagination": "1001"})
     if "errorbox" not in refused or FormFields(owner.fetch(panel), display).values["art_pagination"] != "1":
         raise RuntimeError("The list settings accepted an out-of-range page size")
-    result = submit_form(owner, panel, result, display, {"stats_list": original_display.get("stats_list"), "art_pagination": original_display["art_pagination"]})
+    defaults = {"stats_list": original_display.get("stats_list"), "header_banner": original_display.get("header_banner"), "art_pagination": original_display["art_pagination"],
+                "news_sort": original_display["news_sort"], "news_sort_par": original_display["news_sort_par"]}
+    directory = "app.php/knowledge/category/8"
+    title, other = "Öffentliche Anleitung", "Geschütztes Diskussionsthema"
+    result = submit_form(owner, panel, result, display, dict(defaults, news_sort="Id", news_sort_par="DESC"))
+    default, override = guest.fetch(directory), guest.fetch(directory + "?order=alphabetical")
+    if default.index(other) >= default.index(title) or 'value="alphabetical" selected' not in override:
+        raise RuntimeError("The category lost the configured direction or the reader's sort preference")
+    result = submit_form(owner, panel, result, display, {"news_sort": "Latest"})
+    by_discussion = guest.fetch(directory)
+    if by_discussion.index(title) >= by_discussion.index(other):
+        raise RuntimeError("Restricted discussion activity affected the public article order")
+    result = submit_form(owner, panel, result, display, defaults)
     saved = FormFields(result, notices).values
     refused = submit_form(owner, panel, result, notices, {"notify": "2", "admin_id": "999999"})
     if "Benutzer-ID" not in refused or FormFields(owner.fetch(panel), notices).values["notify"] != saved["notify"]:
