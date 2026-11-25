@@ -1,17 +1,5 @@
 // Run inside the existing synthetic board's same-origin renderer.
 async function checkGalleryStyle(frame) {
-    async function page(path, width) {
-        frame.style.cssText = "border:0;height:760px;width:" + width + "px";
-        await new Promise(resolve => {
-            frame.addEventListener("load", resolve, {once: true});
-            frame.src = "app.php/album" + path;
-        });
-        const doc = frame.contentDocument;
-        if (doc.documentElement.scrollWidth > doc.defaultView.innerWidth + 1) {
-            throw Error("Album overflows at " + path + " (" + width + "px)");
-        }
-        return doc;
-    }
     function fillsBoard(doc, section) {
         const board = doc.querySelector("#page-body").getBoundingClientRect();
         const box = section.getBoundingClientRect();
@@ -39,8 +27,7 @@ async function checkGalleryStyle(frame) {
         });
         return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
     }
-    for (const width of [1180, 390]) {
-        const home = await page("", width);
+    await checkStylePage(frame, "app.php/album", [1180, 390], (home, width) => {
         const directory = home.querySelector(".plus-album-categories");
         const previews = Array.from(home.querySelectorAll(".plus-album-grid"));
         if (!directory || !fillsBoard(home, directory.parentElement) || previews.length !== 3 ||
@@ -49,7 +36,8 @@ async function checkGalleryStyle(frame) {
             previews.some(grid => grid.querySelector("a[href*='/album/picture/101'], a[href*='/album/picture/102'], a[href*='/album/picture/103'], a[href*='/album/picture/104']"))) {
             throw Error("The album directory or filtered home picture grids are missing at " + width + "px");
         }
-        const cat = await page("/category/1", width);
+    });
+    await checkStylePage(frame, "app.php/album/category/1", [390, 1180], async (cat, width) => {
         const categoryBlocks = Array.from(cat.querySelectorAll("[data-album-grid]"));
         const recent = categoryBlocks[0]?.querySelector(".plus-album-grid");
         const grid = cat.querySelector('[data-album-grid="category"] .plus-album-grid');
@@ -79,7 +67,8 @@ async function checkGalleryStyle(frame) {
             (colour && (luminance(fill) + .05) / (luminance(cat.defaultView.getComputedStyle(colour).webkitTextFillColor) + .05) < 7)) {
             throw Error("The thumbnail or its caption is unreadable at " + width + "px");
         }
-        const pic = await page("/picture/100", width);
+    });
+    await checkStylePage(frame, "app.php/album/picture/100", [1180, 390], async (pic, width) => {
         const section = pic.querySelector(".plus-album-detail");
         const parents = crumbs(pic);
         if (!section || !fillsBoard(pic, section) || !parents.some(path => path.endsWith("/album")) ||
@@ -101,6 +90,7 @@ async function checkGalleryStyle(frame) {
         }
         // Exercise the same template with a larger rendition of the loaded synthetic picture.
         const current = section.querySelector("figure img");
+        const original = current.src;
         const larger = pic.createElement("canvas");
         larger.width = 800;
         larger.height = 480;
@@ -118,7 +108,10 @@ async function checkGalleryStyle(frame) {
         if (width > 700 ? author.right > reply.left : author.bottom > reply.top) {
             throw Error("The album comment author overlaps its text at " + width + "px");
         }
-        const found = await page("/search?mode=name&search=Fotoprobe", width);
+        current.src = original;
+        await current.decode();
+    });
+    await checkStylePage(frame, "app.php/album/search?mode=name&search=Fotoprobe", [390, 1180], (found, width) => {
         const form = found.querySelector("#album-search");
         const results = found.querySelector("#album-search-results");
         if (!form || form.elements.mode.value !== "name" || form.elements.search.value !== "Fotoprobe" || !results ||
@@ -126,5 +119,5 @@ async function checkGalleryStyle(frame) {
             results.querySelector("td a[href*='/album/picture/104']")) {
             throw Error("The search form or its visible photo results changed at " + width + "px");
         }
-    }
+    });
 }

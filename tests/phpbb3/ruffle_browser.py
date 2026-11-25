@@ -19,6 +19,7 @@ def playback(web, base, root):
         raise RuntimeError("The renderer check requires Chromium and an isolated loopback board")
     token = secrets.token_hex(16)
     results = []
+    progress = []
 
     class Result(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -29,7 +30,11 @@ def playback(web, base, root):
             if not 0 < size <= 1000:
                 self.send_error(400)
                 return
-            results.append(self.rfile.read(size).decode("utf-8"))
+            message = self.rfile.read(size).decode("utf-8")
+            if message in {"movie decoded", "forum style checked"}:
+                progress.append((time.monotonic(), message))
+            else:
+                results.append(message)
             self.send_response(204)
             self.end_headers()
 
@@ -69,7 +74,9 @@ setInterval(async () => {
             checkingStyle = true;
             const movie = [meta.width, meta.height, meta.frameRate, meta.numFrames];
             try {
+                await fetch(CALLBACK, {mode:"no-cors", method:"POST", body:"movie decoded"});
                 await checkPlusStyle(frame);
+                await fetch(CALLBACK, {mode:"no-cors", method:"POST", body:"forum style checked"});
                 await checkGalleryStyle(frame);
                 report(JSON.stringify(movie));
             }
@@ -85,12 +92,16 @@ setInterval(async () => {
         process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         try:
-            deadline = time.monotonic() + 50
-            while not results and time.monotonic() < deadline and process.poll() is None:
+            start = time.monotonic()
+            while not results and process.poll() is None:
+                last = progress[-1][0] if progress else start
+                if time.monotonic() >= min(start + 100, last + 45):
+                    break
                 receiver.handle_request()
             if not results or results[0] != "[80,45,24,1]":
-                raise RuntimeError(f"Browser playback or Plus style check failed: {results or 'no browser response'}")
-            print("Chromium played the Ruffle fixture and checked the desktop and mobile Plus style")
+                status = progress[-1][1] if progress else "waiting for the movie"
+                raise RuntimeError(f"Browser playback or Plus style check failed after {status}: {results or 'no response'}")
+            print(f"Chromium played the Ruffle fixture and checked the desktop and mobile Plus style in {time.monotonic()-start:.1f}s")
         finally:
             try:
                 if process.poll() is None:
