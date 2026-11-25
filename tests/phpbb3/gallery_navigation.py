@@ -190,7 +190,7 @@ def browse(administrator, member, guest, check):
             member.fetch(album + "/legacy/comment/9901/" + mode, expected_status=404)
             member.fetch(album + "/legacy/comment/9001/" + mode, expected_status=404)
             administrator.fetch(album + "/legacy/comment/999999/" + mode, expected_status=404)
-            own = album + "/legacy/comment/9900/" + mode
+            own = f"album_comment_{mode}.php?comment_id=9900"
             form = Page(member.fetch(own)).forms["album-comment-edit"][0]
             if not urlsplit(form).path.endswith("/album/picture/7002/comment/9900/" + mode):
                 raise RuntimeError("The comment author could not open their own native form")

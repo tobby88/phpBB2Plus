@@ -48,6 +48,8 @@ def browse(base, owner, historic_id):
         ("ranks.php", "app.php/ranks", {}, ""),
         ("album.php?user_id=0", "app.php/album", {}, ""),
         ("album_hotornot.php", "app.php/album/hot-or-not", {}, ""),
+        ("album_comment_edit.php?comment_id=95&sort_order=DESC", "app.php/album/legacy/comment/95/edit", {"sort_order": "DESC"}, ""),
+        ("album_comment_delete.php?comment_id=95", "app.php/album/legacy/comment/95/delete", {}, ""),
         ("album_modcp.php?cat_id=2&sort_method=pic_user_id&sort_order=ASC&start=3", "app.php/album/category/2/moderate",
          {"sort_method": "pic_user_id", "sort_order": "ASC", "start": 3}, ""),
         ("album_modcp.php?mode=approval&pic_id=100", "app.php/album/picture/100/manage/approve", {}, ""),
@@ -131,6 +133,7 @@ def browse(base, owner, historic_id):
         raise RuntimeError("Old post link changed the forum's read permissions")
     guest.fetch("profile.php?mode=register", {}, expected_status=405)
     guest.fetch("album_modcp.php?mode=delete&pic_id=100", {"confirm": 1}, expected_status=405)
+    guest.fetch("album_comment_delete.php?comment_id=95", {"confirm": 1}, expected_status=405)
     guest.fetch("dload.php?action=search", {"action": "user_upload"}, expected_status=405)
 
 

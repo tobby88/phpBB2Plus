@@ -195,6 +195,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . '/upload'; }
 			break;
 		case 'album_hotornot': $path = 'album/hot-or-not'; break;
+		case 'album_comment_edit': case 'album_comment_delete':
+			if ($comment = $positive('comment_id'))
+			{
+				$path = 'album/legacy/comment/' . $comment . ($entry === 'album_comment_edit' ? '/edit' : '/delete');
+				if (($query['sort_order'] ?? '') === 'DESC') { $extra['sort_order'] = 'DESC'; }
+			}
+			break;
 		case 'album_modcp':
 			$picture = $positive('pic_id');
 			$tasks = array('move' => 'move', 'lock' => 'lock', 'unlock' => 'unlock',
