@@ -295,19 +295,18 @@ def main():
                 legacy_links.groups(base, member, ordinary, pending, int(php(fixture, "group-bookmarks", target, capture=True)))
                 credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
-                # The founder's credit edits and the statistics operators have
-                # independent sessions and tables. Finish before reusing those
-                # operators in the delegation tests.
-                with ThreadPoolExecutor(max_workers=2) as worker:
+                with ThreadPoolExecutor(max_workers=1) as worker:
                     credit_run = worker.submit(credits.administration, member.separate_client())
+                    news.administration(base, member)
+                    credit_run.result()
+                    # This test counts the exact number of index page views.
+                    # Finish the other ACP logins before and start new ones afterwards.
+                    banners.administration(base, member, web)
                     statistics_run = worker.submit(statistics_administration.exercise, base, lambda phase: php(
                         ROOT / "tests/phpbb3/statistics_administration.php", phase, target, cwd=web))
-                    news.administration(base, member)
-                    banners.administration(base, member, web)
                     colours.administration(member, media["member"])
                     portal.administration(base, member)
                     custom_profiles.administration(member)
-                    credit_run.result()
                     statistics_run.result()
                 warning_cards.exercise(member, media["member"], os.environ["PLUS_TEST_MODERN_PASSWORD"], lambda step: php(fixture, step, target))
                 def delegation_fixture(operation):
