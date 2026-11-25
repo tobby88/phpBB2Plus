@@ -30,7 +30,7 @@ function stats_change_recorded_renderer($renderer)
 	$records = json_decode($db->query("SELECT config_value FROM p3_config_text WHERE config_name='plus_statistics_modules'")->fetch_row()[0], true);
 	foreach ($records as &$record)
 	{
-		if (in_array($record['module_id'], array(22,23), true)) { $record['renderer'] = $renderer; }
+		if (in_array($record['module_id'], array(22,23,24,25,26), true)) { $record['renderer'] = $renderer; }
 	}
 	unset($record);
 	$db->query("UPDATE p3_config_text SET config_value='" . $db->real_escape_string(json_encode($records)) . "' WHERE config_name='plus_statistics_modules'");
@@ -41,13 +41,16 @@ switch ($argv[1])
 	case 'seed':
 		$db->query("UPDATE phpbb_stats_config SET config_value='2' WHERE config_name='return_limit'");
 		$db->query("UPDATE phpbb_stats_config SET config_value='157' WHERE config_name='page_views'");
+		$db->query("UPDATE phpbb_config SET config_value='87654' WHERE config_name='record_online_users'");
+		$db->query("UPDATE phpbb_config SET config_value='1420112131' WHERE config_name='record_online_date'");
 		$db->query("INSERT INTO phpbb_stats_config VALUES ('install_date','1000000000') ON DUPLICATE KEY UPDATE config_value=VALUES(config_value)");
 		$db->query("INSERT INTO phpbb_stats_modules (module_id,name,active,installed,display_order,auth_value,update_time) VALUES
 			(11,'most_viewed_topics',1,1,2,0,17),(12,'most_active_topics',1,1,7,1,0),(13,'top_posters',1,1,4,0,0),
 			(14,'site_hist_week_top_posters',1,1,5,1,11),(15,'site_hist_month_top_posters',1,1,8,5,12),(16,'forum_index',1,1,1,0,0),
 			(17,'most_active_topics',0,1,10,0,0),(18,'most_active_topics',1,0,9,0,0),(19,'most_viewed_topics',1,1,3,2,0),
 			(20,'custom_fixture',1,1,11,0,0),(21,'top_smilies',1,1,12,0,0),
-			(22,'most_used_languages',1,1,13,0,0),(23,'top_attachments',1,1,14,0,0)");
+			(22,'most_used_languages',1,1,13,0,0),(23,'top_attachments',1,1,14,0,0),
+			(24,'admin_statistics',1,1,15,0,0),(25,'admin_statistics',1,1,16,1,0),(26,'admin_statistics',1,1,17,5,0)");
 		break;
 	case 'converted':
 		require_once dirname(__DIR__, 2) . '/phpBB3/ext/phpbb2plus/community/controller/statistics.php';
@@ -62,8 +65,9 @@ switch ($argv[1])
 		}
 		$value = $db->query("SELECT config_value FROM p3_config_text WHERE config_name='plus_statistics_modules'")->fetch_row()[0];
 		$modules = json_decode($value, true);
-		stats_expect(array_column($modules, 'module_id') === array(16,11,19,13,14,12,15,18,17,20,21,22,23), 'Lost statistics registration or module order');
+		stats_expect(array_column($modules, 'module_id') === array(16,11,19,13,14,12,15,18,17,20,21,22,23,24,25,26), 'Lost statistics registration or module order');
 		$map = array_column($modules, null, 'module_id');
+		stats_expect($map[24]['renderer'] === 'native' && $map[25]['auth_value'] === 1 && $map[26]['auth_value'] === 5, 'Lost operating statistics registration or audience');
 		stats_expect($map[11]['renderer'] === 'native' && $map[14]['renderer'] === 'native' && $map[11]['update_time'] === 17 &&
 			$map[20]['renderer'] === 'unported' && $map[20]['source_sha256'] === '' && $map[21]['renderer'] === 'unported' &&
 			preg_match('/^[a-f0-9]{64}$/D', $map[21]['source_sha256']) && $map[22]['renderer'] === 'native' && $map[23]['renderer'] === 'native', 'Lost the statistics module metadata');

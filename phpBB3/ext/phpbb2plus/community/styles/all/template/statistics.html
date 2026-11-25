@@ -4,7 +4,11 @@
 <section class="panel" id="{{ panel.ID }}"><div class="inner">
 {% if panel.INDEX %}<a href="{U_INDEX}">{{ panel.TITLE|e }}</a>
 {% else %}<h3>{{ panel.TITLE|e }}</h3>
-{% if panel.entries %}
+{% if panel.DETAILS %}
+<table class="table1"><thead><tr><th scope="col">{{ lang('STATISTIC') }}</th><th scope="col">{{ lang('VALUE') }}</th></tr></thead><tbody>
+{% for row in panel.entries %}<tr><th scope="row">{{ row.LABEL|e }}</th><td>{% if row.URL %}<a href="{{ row.URL|e }}">{{ row.VALUE|e }}</a>{% else %}{{ row.VALUE|e }}{% endif %}</td></tr>{% endfor %}
+</tbody></table>
+{% elseif panel.entries %}
 <table class="table1"><thead><tr><th scope="col">{{ lang('PLUS_STATS_RANK') }}</th><th scope="col">{{ panel.COLUMN|e }}</th>
 <th scope="col">{{ panel.METRIC|e }}</th>{% if panel.FILES %}<th scope="col">{{ lang('PLUS_STATS_SIZE') }}</th><th scope="col">{L_TOPIC}</th>{% endif %}
 {% if panel.AUTHORS %}<th scope="col">{{ panel.SHARE|e }}</th>{% endif %}</tr></thead><tbody>

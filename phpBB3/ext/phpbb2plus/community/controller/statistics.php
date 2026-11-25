@@ -6,7 +6,7 @@ use phpbb2plus\community\service\statistics_modules;
 class statistics
 {
 	private const COLUMNS = array('most_active_topics' => array('TOPIC','REPLIES'), 'most_viewed_topics' => array('TOPIC','VIEWS'),
-		'most_used_languages' => array('LANGUAGE','PLUS_STATS_MEMBERS'), 'top_attachments' => array('PLUS_STATS_FILE','PLUS_STATS_DOWNLOADS'));
+		'most_used_languages' => array('PLUS_STATS_LANGUAGE','PLUS_STATS_MEMBERS'), 'top_attachments' => array('PLUS_STATS_FILE','PLUS_STATS_DOWNLOADS'));
 	private const AUTHORS = array('top_posters' => '', 'site_hist_week_top_posters' => 'week', 'site_hist_month_top_posters' => 'month');
 	private $db;
 	private $auth;
@@ -21,8 +21,9 @@ class statistics
 	private $root;
 	private $ext;
 	private $attachments;
+	private $installation;
 
-	public function __construct($db, $auth, $visibility, $user, $config, $text, $language, $template, $helper, $request, $root, $ext, $attachments)
+	public function __construct($db, $auth, $visibility, $user, $config, $text, $language, $template, $helper, $request, $root, $ext, $attachments, $installation)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -37,6 +38,7 @@ class statistics
 		$this->root = $root;
 		$this->ext = $ext;
 		$this->attachments = $attachments;
+		$this->installation = $installation;
 	}
 
 	private function audience($value)
@@ -148,15 +150,17 @@ class statistics
 			if ($author && !$profiles) { continue; }
 			$files = $name === 'top_attachments';
 			$languages = $name === 'most_used_languages';
+			$operations = $name === 'admin_statistics';
 			list($label, $metric) = self::COLUMNS[$name] ?? array('USERNAME', 'POSTS');
 			$this->template->assign_block_vars('stats_modules', array('ID' => (int) $module['module_id'], 'INDEX' => $name === 'forum_index', 'AUTHORS' => $author,
-				'FILES' => $files, 'COLUMN' => $this->language->lang($label),
+				'FILES' => $files, 'DETAILS' => $operations, 'COLUMN' => $this->language->lang($label),
 				'TITLE' => $this->language->lang('PLUS_STATS_' . strtoupper($name)), 'METRIC' => $this->language->lang($metric),
 				'SHARE' => $author ? $this->language->lang($name === 'top_posters' ? 'PLUS_STATS_SHARE_TOTAL' : 'PLUS_STATS_SHARE_RANKED') : ''));
-			if ((!$scope && !$languages) || $name === 'forum_index') { continue; }
+			if ((!$scope && !$languages && !$operations) || $name === 'forum_index') { continue; }
 			if (!isset($results[$name]))
 			{
 				if ($languages) { $results[$name] = $this->languages($limit); }
+				elseif ($operations) { $results[$name] = $this->installation->rows($profiles); }
 				elseif ($files)
 				{
 					$post_scope = $scope . ' AND p.post_visibility=' . ITEM_APPROVED . ' AND (' . $this->visibility->get_forums_visibility_sql('post', $forums, 'p.') . ')';

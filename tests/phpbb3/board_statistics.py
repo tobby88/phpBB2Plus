@@ -14,7 +14,7 @@ def source_modules(source, target):
     directory = target / "stat_modules"
     for name in ("forum_index", "most_active_topics", "most_viewed_topics", "top_posters",
                  "site_hist_week_top_posters", "site_hist_month_top_posters", "top_smilies",
-                 "most_used_languages", "top_attachments"):
+                 "most_used_languages", "top_attachments", "admin_statistics"):
         (directory / name).mkdir(parents=True, exist_ok=True)
         for file in ("module.php", "module.tpl", "info.txt"):
             shutil.copyfile(source / "stat_modules" / name / file, directory / name / file)
@@ -26,6 +26,19 @@ def panels(body):
 
 def languages(panel):
     return {name.strip(): int(amount) for name, amount in re.findall(r'<tr><td>\d+</td><td>([^<>]+)</td><td>(\d+)</td>', panel)}
+
+
+def check_operations(public, ordinary, private):
+    if ordinary[24] != ordinary[25] or private[24] != private[25] or private[24] != private[26]:
+        raise RuntimeError("The same administrative statistics changed between equivalent registrations")
+    for panel in (public[24], ordinary[24], private[24]):
+        rows = re.findall(r'<tr><th scope="row">([^<]+)</th><td>(.*?)</td></tr>', panel, re.S)
+        if (len(rows) not in (14, 16) or ('/memberlist.php?mode=viewprofile' in panel) != (len(rows) == 16)
+                or "87654" not in dict(rows).values() or not any("2015" in value for _, value in rows)
+                or any("NOT_AVAILABLE" in value or "PLUS_STATS_" in label for label, value in rows)):
+            raise RuntimeError(f"Missing operating statistics, unprotected member information or lost online record: {rows}")
+        if not any(re.match(r'[\d,.]+\s*(?:MiB|MB|KiB|KB)', value, re.I) for _, value in rows):
+            raise RuntimeError("The source-scoped database size was not displayed")
 
 
 def check_files(public, ordinary, private, member, path, fixture):
@@ -62,8 +75,8 @@ def browse(base, admin, member, fixture):
         public = panels(guest.fetch(path))
         ordinary = panels(member.fetch("statistics.php"))
         private = panels(admin.fetch(path))
-        if (list(public) not in ([16, 11, 22, 23], [16, 11, 13, 22, 23]) or list(ordinary) != [16, 11, 13, 14, 12, 22, 23]
-                or list(private) != [16, 11, 13, 14, 12, 15, 22, 23]):
+        if (list(public) not in ([16, 11, 22, 23, 24], [16, 11, 13, 22, 23, 24])
+                or list(ordinary) != [16, 11, 13, 14, 12, 22, 23, 24, 25] or list(private) != [16, 11, 13, 14, 12, 15, 22, 23, 24, 25, 26]):
             raise RuntimeError(f"Wrong statistics audiences or active registrations: {list(public)}, {list(ordinary)}, {list(private)}")
         if ("Stats public & Grüße" not in public[11] or "Stats private" in public[11] or "Stats private" not in ordinary[11]
                 or public[11].count('<tr><td>') != 2 or "StatsPrivate" not in ordinary[14] or "StatsPublic" not in ordinary[14]):
@@ -79,9 +92,11 @@ def browse(base, admin, member, fixture):
                 or any(languages(result[22]) != after or "<a href=" in result[22] for result in (public, ordinary, private))):
             raise RuntimeError(f"Language totals included an inactive account, linked a profile or varied by viewer: {before} / {after}")
         check_files(public, ordinary, private, member, path, fixture)
+        check_operations(public, ordinary, private)
         fixture("hide-profiles")
         try:
-            if list(panels(member.fetch(path))) != [16, 11, 12, 22, 23]:
+            narrowed = panels(member.fetch(path))
+            if list(narrowed) != [16, 11, 12, 22, 23, 24, 25] or "/memberlist.php?mode=viewprofile" in narrowed[24] or narrowed[24].count('<th scope="row">') != 14:
                 raise RuntimeError("A reader denied native profile access received a member ranking")
         finally:
             fixture("restore-profiles")

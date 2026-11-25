@@ -7,7 +7,7 @@ use phpbb2plus\community\service\statistics_modules;
 function plus_statistics_renderer($root, $directory, $name, &$fingerprint)
 {
 	$fingerprint = '';
-	if (!isset(statistics_modules::SOURCES[$name]) && !in_array($name, array('admin_statistics', 'top_smilies'), true)) { return 'unported'; }
+	if (!isset(statistics_modules::SOURCES[$name]) && $name !== 'top_smilies') { return 'unported'; }
 	$dir = trim(str_replace('\\', '/', $directory), '/');
 	if ($dir === '' || strpos($dir, '..') !== false || !preg_match('~^[a-zA-Z0-9_./-]+$~D', $dir)) { return 'unavailable'; }
 	try

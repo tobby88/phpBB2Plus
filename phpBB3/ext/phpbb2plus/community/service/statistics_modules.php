@@ -13,6 +13,7 @@ class statistics_modules
 		'site_hist_month_top_posters' => '6b13a1a71e9494f6c9ba9ac284b962f6815e86a09b8646da515da10f6d634a4f',
 		'most_used_languages' => '166eabfd20e4832f46b56683afd21234c1503bc3be26736592fd440b14238aac',
 		'top_attachments' => '81ef3b4b15cd850e783834c5fae41eccfb4fea2f85218b491b2a221369c87594',
+		'admin_statistics' => '1607bdd051f289351435aab2ac6508f37f8be58d84565ab174afcac5a2470e87',
 	);
 
 	public static function recognised($name, $digest)
