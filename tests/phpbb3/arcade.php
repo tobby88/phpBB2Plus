@@ -23,7 +23,7 @@ function seed_arcade($db)
 		('puzzle','EditorFixture',98,-12.3751,11003,30,''),('timer','HistoricMember',1,0.0001,11004,3,''),('timer','ModernMember',2,9.7500,11005,7,'')");
 	$db->query("INSERT INTO phpbb_ina_at_scores (game_name,player,player_id,score,date,time_taken)
 		SELECT game_name,player,player_id,score,date,time_taken FROM phpbb_ina_scores");
-	$db->query("UPDATE phpbb_ina_at_scores SET score=9999999999.9999 WHERE game_name='puzzle' AND player_id=2");
+	$db->query("UPDATE phpbb_ina_at_scores SET score=9999999999.9999,date=UNIX_TIMESTAMP()-60 WHERE game_name='puzzle' AND player_id=2");
 	$db->query("INSERT INTO phpbb_ina_highscore (highscore_id,highscore_year,highscore_mon,highscore_game,highscore_user_id,highscore_player,highscore_score,highscore_date)
 		VALUES (7,2008,5,'puzzle',1,'AlterSpielname',96.0004,11006)");
 	$db->query("INSERT INTO phpbb_ina_fav (user_id,fav_game_id,fav_game_name)
@@ -31,7 +31,7 @@ function seed_arcade($db)
 	$db->query("UPDATE phpbb_ina_data SET config_value='10' WHERE config_name='games_default_rate'");
 	$db->query("INSERT INTO phpbb_ina_game_saves (user_id,game_id,game_data,saved_at) VALUES (1,60,'Spielstand ü=7 🎮',11007)");
 	$db->query("INSERT INTO phpbb_ina_comment (comment_id,comment_game_name,comment_user_id,comment_username,comment_time,comment_text,comment_edit_user_id)
-		VALUES (71,'puzzle',1,'AlterSpielname',11008,'Schöne Farben',2)");
+		VALUES (71,'puzzle',1,'AlterSpielname',11008,'Schöne Farben &amp; Formen',2)");
 	$db->query("INSERT INTO phpbb_ina_rate (rate_game_name,rate_user_id,rate_user_ip,rate_point) VALUES ('puzzle',1,'7f000001',7)");
 	$db->query("INSERT INTO phpbb_ina_tour (tour_id,tour_name,tour_desc,start_id,start_date,tour_max_players,tour_player_turns,tour_active)
 		VALUES (31,'Frühlingsrunde','Spielprobe',1,11009,8,3,1)");

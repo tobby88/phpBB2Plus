@@ -12,6 +12,7 @@ function plus_arcade_grants()
 	global $src_db, $db, $table_prefix, $convert;
 	$p = $convert->src_table_prefix;
 	\phpbb2plus\arcade\service\activity::link_games($db,$table_prefix . 'plus_arc_');
+	\phpbb2plus\arcade\service\activity::link_comments($db,$table_prefix . 'plus_arc_');
 	$result = $src_db->sql_query("SELECT group_required FROM ".$p."ina_games WHERE group_required>0 UNION
 		SELECT group_required FROM ".$p."ina_cat WHERE group_required>0 UNION
 		SELECT config_value AS group_required FROM ".$p."ina_data WHERE config_name='games_group_required'");

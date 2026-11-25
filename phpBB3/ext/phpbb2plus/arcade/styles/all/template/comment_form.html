@@ -1,0 +1,13 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{% if ARC_DELETE %}{L_PLUS_ARC_COMMENT_DELETE}{% else %}{L_PLUS_ARC_COMMENT_EDIT}{% endif %} · {{ ARC_TITLE|e }}</h2>
+<form id="arcade-change-comment" method="post" action="{{ U_ARC_CHANGE }}" class="panel"><div class="inner">
+{% if ARC_DELETE %}
+<p>{L_PLUS_ARC_COMMENT_CONFIRM}</p><blockquote>{{ ARC_BODY|e|nl2br }}</blockquote>
+{% else %}
+<label for="arc-body">{{ lang('PLUS_ARC_COMMENT_PROMPT', ARC_COMMENT_LIMIT) }}</label>
+<textarea name="body" id="arc-body" class="inputbox" rows="5" maxlength="{{ ARC_COMMENT_LIMIT }}" required>{{ ARC_BODY|e }}</textarea>
+{% endif %}
+<input type="hidden" name="revision" value="{{ ARC_REVISION }}">{{ S_FORM_TOKEN }}
+<fieldset class="submit-buttons"><button type="submit" class="button1">{% if ARC_DELETE %}{L_DELETE}{% else %}{L_SUBMIT}{% endif %}</button>
+<a class="button2" href="{{ U_ARC_BACK }}">{L_CANCEL}</a></fieldset></div></form>
+<!-- INCLUDE overall_footer.html -->

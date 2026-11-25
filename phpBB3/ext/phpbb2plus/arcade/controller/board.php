@@ -106,10 +106,7 @@ class board
 
 	private function player($s)
 	{
-		if ($s['owner_id'] && $s['username'] !== null) { return get_username_string('full', $s['owner_id'], $s['username'], $s['user_colour']); }
-		if ($s['author_removed'] && ($this->names ? $this->names->hidden() : empty($this->user->data['is_registered'])))
-		{ return $this->language->lang('PLUS_ARC_FORMER'); }
-		return $s['display_name'] !== null && $s['display_name'] !== '' ? utf8_htmlspecialchars(catalog::plain($s['display_name'])) : $this->language->lang('GUEST');
+		return catalog::player_name($s,$this->language,$this->names ? $this->names->hidden() : empty($this->user->data['is_registered']));
 	}
 
 	public function feedback($game,$operation)
@@ -163,6 +160,7 @@ class board
 				'ARC_CURRENCY' => catalog::plain($account['currency_name']) ?: $this->language->lang('PLUS_ARC_POINTS'), 'ARC_COST' => (int) $g['game_charge']));
 		}
 		$params = array('game' => (int) $g['game_id']);
+		if ($this->catalog->comment_limit($g)) { $this->template->assign_var('U_ARC_COMMENTS',$this->helper->route('phpbb2plus_arcade_comments',$params)); }
 		$title = catalog::plain($g['game_desc'] ?: $g['game_name']);
 		if ($this->catalog->can_play($g))
 		{

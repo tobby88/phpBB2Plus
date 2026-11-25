@@ -133,12 +133,27 @@ class catalog
 
 	public function scores_available($game)
 	{
-		if (!$game['game_show_score'] || $game['game_name'] === null || $game['game_name'] === '') { return false; }
+		return $game['game_show_score'] && $this->unique_name($game);
+	}
+
+	public function unique_name($game)
+	{
+		if ($game['game_name'] === null || $game['game_name'] === '') { return false; }
 		// Historic results have a name, not a game ID. An ambiguous name cannot identify a restricted game.
 		$result = $this->db->sql_query('SELECT COUNT(*) AS games FROM ' . $this->prefix . "games WHERE game_name='" . $this->db->sql_escape($game['game_name']) . "'");
 		$unique = (int) $this->db->sql_fetchfield('games') === 1;
 		$this->db->sql_freeresult($result);
 		return $unique;
+	}
+
+	public function comment_limit($game)
+	{
+		if (empty($this->user->data['is_registered']) || !empty($this->user->data['is_bot']) ||
+			(int) $this->setting('games_comments',0) !== 1 ||
+			(int) $this->user->data['user_posts'] < (int) $this->setting('games_posts_required',0) ||
+			(int) $this->user->data['user_rank'] < (int) $this->setting('games_rank_required',0)) { return 0; }
+		$size = (int) $this->setting('games_comment_size',0);
+		return $size > 0 && $size <= 65535 && $this->unique_name($game) ? $size : 0;
 	}
 
 	public function same_boards($game)
@@ -154,4 +169,11 @@ class catalog
 	}
 
 	static public function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+
+	public static function player_name($row,$language,$hide_former)
+	{
+		if ($row['owner_id'] && $row['username'] !== null) { return get_username_string('full',$row['owner_id'],$row['username'],$row['user_colour']); }
+		if ($row['author_removed'] && $hide_former) { return $language->lang('PLUS_ARC_FORMER'); }
+		return $row['display_name'] !== null && $row['display_name'] !== '' ? utf8_htmlspecialchars(self::plain($row['display_name'])) : $language->lang('GUEST');
+	}
 }

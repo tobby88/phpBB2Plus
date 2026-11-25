@@ -42,6 +42,50 @@ def community(base, founder, member, pending):
         raise RuntimeError("A repeated vote changed the average or left the voting form active")
 
 
+def comments(base, founder, member, pending):
+    game = "app.php/arcade/game/60"
+    path = game + "/comments"
+    guest = Browser(base)
+    guest.fetch(path, expected_status=404)
+    if "/arcade/game/60/comments" not in member.fetch(game) or "/arcade/game/60/comments" in guest.fetch(game):
+        raise RuntimeError("The game links to the wrong comment view for its reader")
+    original = member.fetch(path)
+    if "Schöne Farben &amp; Formen" not in original or "AlterSpielname" in original or "HistoricMember" not in original:
+        raise RuntimeError("The converted comment text or author is wrong")
+    if "arcade-add-comment" in Page(pending.fetch(path)).forms:
+        raise RuntimeError("Comment form offered before recording a score")
+    pending.fetch(path + "/71/edit", expected_status=404)
+
+    def send(actor, form, values, status=200):
+        action, fields = form
+        time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+        return actor.fetch(urljoin(urljoin(base,path),action),dict(fields, **values),expected_status=status)
+
+    add = Page(founder.fetch(path)).forms["arcade-add-comment"]
+    send(founder, add, {"body": "ä" * 129}, 422)
+    first = send(founder, add, {"body": "Rätsel & Grüße"})
+    entries = re.findall(r'<div id="comment-(\d+)" class="post\b[^>]*>.*?<div class="content">(.*?)</div>', first, re.S)
+    ids = [cid for cid, body in entries if "Rätsel &amp; Grüße" in body]
+    if len(ids) != 1 or ids[0] == "71":
+        raise RuntimeError("New comment or its permalink is missing")
+    cid = ids[0]
+    send(founder, add, {"body": "Rätsel & Grüße"})
+    if founder.fetch(path).count("Rätsel &amp; Grüße") != 1 or member.fetch("ucp.php?i=pm&folder=inbox").count(">New arcade comment<") != 1:
+        raise RuntimeError("A repeated comment or its privately delivered notification was lost or duplicated")
+    edit = Page(founder.fetch(path + "/" + cid + "/edit")).forms["arcade-change-comment"]
+    send(founder, edit, {"body": "Zweiter Entwurf"})
+    send(founder, edit, {"body": "Veralteter Entwurf"}, 409)
+    listing = member.fetch(path + "?order=desc")
+    if listing.index("Zweiter Entwurf") > listing.index("Schöne Farben") or "Edited once by" not in listing:
+        raise RuntimeError("Comment order or latest editor is wrong")
+    remove = Page(founder.fetch(path + "/" + cid + "/delete")).forms["arcade-change-comment"]
+    send(founder, remove, {})
+    send(founder, add, {"body": "Rätsel & Grüße"})
+    if "Zweiter Entwurf" in member.fetch(path) or "Rätsel &amp; Grüße" in member.fetch(path):
+        raise RuntimeError("A deleted comment returned when the original form was retried")
+    member.fetch(path + "?focus=" + cid, expected_status=404)
+
+
 def movie():
     # A single Flash frame with a coloured background. No ActionScript or third-party content.
     rect = "01100" + "".join(f"{coordinate:012b}" for coordinate in (0, 1600, 0, 900))

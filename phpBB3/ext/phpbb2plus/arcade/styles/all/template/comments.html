@@ -1,0 +1,26 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_ARC_COMMENTS} · <a href="{{ U_ARC_GAME }}">{{ ARC_TITLE|e }}</a></h2>
+{% if loops.arc_comments %}
+<p><a href="{{ U_ARC_SORT }}">{% if ARC_DESC %}{L_PLUS_ARC_OLDEST}{% else %}{L_PLUS_ARC_NEWEST}{% endif %}</a></p>
+{% endif %}
+{% for c in loops.arc_comments %}
+<div id="comment-{{ c.ID }}" class="post bg{{ loop.index is odd ? '1' : '2' }}"><div class="inner">
+<p class="author"><strong>{{ c.PLAYER }}</strong> · {{ c.DATE }}</p>
+<div class="content">{{ c.BODY }}</div>
+{% if c.HAS_SCORE %}<p>{{ lang('PLUS_ARC_COMMENT_SCORE', c.SCORE, c.DURATION) }}</p>{% endif %}
+{% if c.EDIT_COUNT %}<p class="notice">{{ lang('PLUS_ARC_COMMENT_EDITED', c.EDIT_COUNT, c.EDITOR, c.EDIT_DATE) }}</p>{% endif %}
+{% if c.IP %}<p>{L_IP}{L_COLON} {{ c.IP|e }}</p>{% endif %}
+{% if c.U_EDIT %}<p><a href="{{ c.U_EDIT }}">{L_EDIT}</a> · <a href="{{ c.U_DELETE }}">{L_DELETE}</a></p>{% endif %}
+</div></div>
+{% else %}<p>{L_PLUS_ARC_COMMENT_EMPTY}</p>{% endfor %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% if U_ARC_ADD %}
+<div class="panel"><div class="inner">
+<form method="post" id="arcade-add-comment" action="{{ U_ARC_ADD }}">
+<h3>{L_PLUS_ARC_COMMENT_ADD}</h3>
+<label for="arc-body">{{ lang('PLUS_ARC_COMMENT_PROMPT', ARC_COMMENT_LIMIT) }}</label>
+<textarea name="body" id="arc-body" class="inputbox" rows="4" maxlength="{{ ARC_COMMENT_LIMIT }}" required></textarea>
+<input type="hidden" name="receipt" value="{{ ARC_COMMENT_NONCE }}">{{ S_FORM_TOKEN }}
+<button type="submit" class="button1">{L_SUBMIT}</button></form></div></div>
+{% else %}<p>{L_PLUS_ARC_COMMENT_RECENT}</p>{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -21,6 +21,21 @@ phpbb2plus_arcade_game:
     defaults: { _controller: phpbb2plus.arcade.board:game, board: '' }
     requirements: { game: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_arcade_comments:
+    path: /arcade/game/{game}/comments
+    defaults: { _controller: phpbb2plus.arcade.discussion:listing }
+    requirements: { game: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_add_comment:
+    path: /arcade/game/{game}/comments/add
+    defaults: { _controller: phpbb2plus.arcade.discussion:change, action: add, comment: 0 }
+    requirements: { game: '[1-9][0-9]*' }
+    methods: [POST]
+phpbb2plus_arcade_change_comment:
+    path: /arcade/game/{game}/comments/{comment}/{action}
+    defaults: { _controller: phpbb2plus.arcade.discussion:change }
+    requirements: { game: '[1-9][0-9]*', comment: '[1-9][0-9]*', action: 'edit|delete' }
+    methods: [GET, POST]
 phpbb2plus_arcade_scores:
     path: /arcade/game/{game}/scores/{board}
     defaults: { _controller: phpbb2plus.arcade.board:game }

@@ -188,6 +188,7 @@ def main():
                 arcade.wallets(base, ordinary, member)
                 php(fixture, "scored", target)
                 arcade.community(base, member, ordinary, pending)
+                arcade.comments(base, member, ordinary, pending)
                 downloads.browse(base, member, ordinary, pending)
                 php(fixture, "downloaded", target)
                 playback(web, base, root)

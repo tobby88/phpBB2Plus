@@ -28,6 +28,11 @@ class activity
 		}
 	}
 
+	public static function link_comments($db,$prefix)
+	{
+		self::link_game_rows($db,$prefix,'comments','comment_game_name');
+	}
+
 	private static function link_game_rows($db,$prefix,$suffix,$name)
 	{
 		$table = $prefix . $suffix;
