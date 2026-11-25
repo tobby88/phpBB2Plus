@@ -1,19 +1,13 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
+use phpbb2plus\community\service\statistics_modules;
+
 /** The old loader required a readable module, template and information file. */
 function plus_statistics_renderer($root, $directory, $name, &$fingerprint)
 {
-	$known = array(
-		'forum_index' => 'cc2141bce4945332fc8aa2200ff0a5b0e215c0b62c2e944045413ca678d1ba5d',
-		'most_active_topics' => '1aa9c688b5cb047801d7683118ad8fe69877e24096bcff9339b477351a2a92c7',
-		'most_viewed_topics' => '3623a14cb864d44dd5895452643b7e0f5d2597d44fbd4ab5d8b746d58edb00fb',
-		'top_posters' => 'c9bd1b3b9907e4b8951492dd5617345d87b89c2e24690e3987f6e0c8e07c6daa',
-		'site_hist_week_top_posters' => '358c548f1b29440ac4ed3ffd3334dbfa625bcc63f46bc81761c8bdf830f4bc5f',
-		'site_hist_month_top_posters' => '6b13a1a71e9494f6c9ba9ac284b962f6815e86a09b8646da515da10f6d634a4f',
-	);
 	$fingerprint = '';
-	if (!isset($known[$name]) && !in_array($name, array('admin_statistics','most_used_languages','top_attachments','top_smilies'), true)) { return 'unported'; }
+	if (!isset(statistics_modules::SOURCES[$name]) && !in_array($name, array('admin_statistics', 'top_smilies'), true)) { return 'unported'; }
 	$dir = trim(str_replace('\\', '/', $directory), '/');
 	if ($dir === '' || strpos($dir, '..') !== false || !preg_match('~^[a-zA-Z0-9_./-]+$~D', $dir)) { return 'unavailable'; }
 	try
@@ -29,8 +23,8 @@ function plus_statistics_renderer($root, $directory, $name, &$fingerprint)
 		}
 		$fingerprint = hash('sha256', implode("\0", $parts));
 		// A subsequent port can recognise the remaining bundled modules without reopening the source board.
-		if (!isset($known[$name])) { return 'unported'; }
-		return $fingerprint === $known[$name] ? 'native' : 'customised';
+		if (!isset(statistics_modules::SOURCES[$name])) { return 'unported'; }
+		return statistics_modules::recognised($name, $fingerprint) ? 'native' : 'customised';
 	}
 	catch (\RuntimeException $e) { return 'unavailable'; }
 }

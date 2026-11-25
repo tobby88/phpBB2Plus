@@ -5,9 +5,12 @@
 {% if panel.INDEX %}<a href="{U_INDEX}">{{ panel.TITLE|e }}</a>
 {% else %}<h3>{{ panel.TITLE|e }}</h3>
 {% if panel.entries %}
-<table class="table1"><thead><tr><th scope="col">{{ lang('PLUS_STATS_RANK') }}</th><th scope="col">{% if panel.AUTHORS %}{L_USERNAME}{% else %}{L_TOPIC}{% endif %}</th>
-<th scope="col">{{ panel.METRIC|e }}</th>{% if panel.AUTHORS %}<th scope="col">{{ panel.SHARE|e }}</th>{% endif %}</tr></thead><tbody>
-{% for row in panel.entries %}<tr><td>{{ loop.index }}</td><td><a href="{{ row.URL|e }}">{{ row.LABEL|e }}</a></td><td>{{ row.COUNT }}</td>
+<table class="table1"><thead><tr><th scope="col">{{ lang('PLUS_STATS_RANK') }}</th><th scope="col">{{ panel.COLUMN|e }}</th>
+<th scope="col">{{ panel.METRIC|e }}</th>{% if panel.FILES %}<th scope="col">{{ lang('PLUS_STATS_SIZE') }}</th><th scope="col">{L_TOPIC}</th>{% endif %}
+{% if panel.AUTHORS %}<th scope="col">{{ panel.SHARE|e }}</th>{% endif %}</tr></thead><tbody>
+{% for row in panel.entries %}<tr><td>{{ loop.index }}</td><td>{% if row.URL %}<a href="{{ row.URL|e }}">{{ row.LABEL|e }}</a>{% else %}{{ row.LABEL|e }}{% endif %}
+{% if row.COMMENT %}<br>{{ row.COMMENT|e }}{% endif %}</td><td>{{ row.COUNT }}</td>
+{% if panel.FILES %}<td>{{ row.SIZE|e }}</td><td><a href="{{ row.U_POST|e }}">{{ row.TOPIC|e }}</a><br>{{ row.DATE|e }}</td>{% endif %}
 {% if panel.AUTHORS %}<td><meter value="{{ row.BAR }}" max="{{ row.MAX }}" aria-hidden="true"></meter> {{ row.PERCENT|e }} %</td>{% endif %}</tr>{% endfor %}
 </tbody></table>{% else %}<p>{{ lang('PLUS_STATS_NO_ROWS') }}</p>{% endif %}{% endif %}
 </div></section>

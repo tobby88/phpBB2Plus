@@ -52,7 +52,10 @@ services:
         arguments: ['@phpbb2plus.community.credit_entries', '@ext.manager', '@controller.helper', '@template', '@language', '@request', '@pagination']
     phpbb2plus.community.statistics:
         class: phpbb2plus\community\controller\statistics
-        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@config', '@config_text', '@language', '@template', '@controller.helper', '@request', '%core.root_path%', '%core.php_ext%']
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@config', '@config_text', '@language', '@template', '@controller.helper', '@request', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.statistics_attachments']
+    phpbb2plus.community.statistics_attachments:
+        class: phpbb2plus\community\service\statistics_attachments
+        arguments: ['@dbal.conn', '@cache', '@auth', '@config', '@user', '%core.root_path%', '%core.php_ext%']
     phpbb2plus.community.credit_entries:
         class: phpbb2plus\community\service\credit_entries
         arguments: ['@dbal.conn', '%core.table_prefix%plus_credits', '@auth', '@user']

@@ -1,9 +1,12 @@
 <?php
 namespace phpbb2plus\community\controller;
 
+use phpbb2plus\community\service\statistics_modules;
+
 class statistics
 {
-	private const TOPICS = array('most_active_topics' => 'REPLIES', 'most_viewed_topics' => 'VIEWS');
+	private const COLUMNS = array('most_active_topics' => array('TOPIC','REPLIES'), 'most_viewed_topics' => array('TOPIC','VIEWS'),
+		'most_used_languages' => array('LANGUAGE','PLUS_STATS_MEMBERS'), 'top_attachments' => array('PLUS_STATS_FILE','PLUS_STATS_DOWNLOADS'));
 	private const AUTHORS = array('top_posters' => '', 'site_hist_week_top_posters' => 'week', 'site_hist_month_top_posters' => 'month');
 	private $db;
 	private $auth;
@@ -17,8 +20,9 @@ class statistics
 	private $request;
 	private $root;
 	private $ext;
+	private $attachments;
 
-	public function __construct($db, $auth, $visibility, $user, $config, $text, $language, $template, $helper, $request, $root, $ext)
+	public function __construct($db, $auth, $visibility, $user, $config, $text, $language, $template, $helper, $request, $root, $ext, $attachments)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -32,6 +36,7 @@ class statistics
 		$this->request = $request;
 		$this->root = $root;
 		$this->ext = $ext;
+		$this->attachments = $attachments;
 	}
 
 	private function audience($value)
@@ -108,6 +113,20 @@ class statistics
 		return $rows;
 	}
 
+	private function languages($limit)
+	{
+		$result = $this->db->sql_query_limit('SELECT u.user_lang,l.lang_local_name,COUNT(*) AS amount FROM ' . USERS_TABLE . ' u
+			LEFT JOIN ' . LANG_TABLE . ' l ON l.lang_iso=u.user_lang WHERE u.user_id<>' . ANONYMOUS . ' AND u.user_type IN (' .
+			USER_NORMAL . ',' . USER_FOUNDER . ") AND u.user_lang<>'' GROUP BY u.user_lang,l.lang_local_name ORDER BY amount DESC,u.user_lang", $limit);
+		$rows = array();
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$rows[] = array('LABEL' => htmlspecialchars_decode($row['lang_local_name'] ?: $row['user_lang'], ENT_QUOTES), 'COUNT' => (int) $row['amount']);
+		}
+		$this->db->sql_freeresult($result);
+		return $rows;
+	}
+
 	public function show()
 	{
 		$this->language->add_lang('statistics', 'phpbb2plus/community');
@@ -121,17 +140,30 @@ class statistics
 		$results = array();
 		foreach ((array) $modules as $module)
 		{
-			if ($module['active'] !== 1 || $module['installed'] !== 1 || $module['renderer'] !== 'native' || !$this->audience($module['auth_value'])) { continue; }
 			$name = trim($module['name']);
+			// Earlier conversions recorded the source hash before all native panels existed.
+			if ($module['active'] !== 1 || $module['installed'] !== 1 || !in_array($module['renderer'], array('native','unported'), true) ||
+				!statistics_modules::recognised($name, $module['source_sha256'] ?? '') || !$this->audience($module['auth_value'])) { continue; }
 			$author = isset(self::AUTHORS[$name]);
-			if (($author && !$profiles) || (!$author && !isset(self::TOPICS[$name]) && $name !== 'forum_index')) { continue; }
+			if ($author && !$profiles) { continue; }
+			$files = $name === 'top_attachments';
+			$languages = $name === 'most_used_languages';
+			list($label, $metric) = self::COLUMNS[$name] ?? array('USERNAME', 'POSTS');
 			$this->template->assign_block_vars('stats_modules', array('ID' => (int) $module['module_id'], 'INDEX' => $name === 'forum_index', 'AUTHORS' => $author,
-				'TITLE' => $this->language->lang('PLUS_STATS_' . strtoupper($name)), 'METRIC' => $this->language->lang(self::TOPICS[$name] ?? 'POSTS'),
+				'FILES' => $files, 'COLUMN' => $this->language->lang($label),
+				'TITLE' => $this->language->lang('PLUS_STATS_' . strtoupper($name)), 'METRIC' => $this->language->lang($metric),
 				'SHARE' => $author ? $this->language->lang($name === 'top_posters' ? 'PLUS_STATS_SHARE_TOTAL' : 'PLUS_STATS_SHARE_RANKED') : ''));
-			if (!$scope || $name === 'forum_index') { continue; }
+			if ((!$scope && !$languages) || $name === 'forum_index') { continue; }
 			if (!isset($results[$name]))
 			{
-				$results[$name] = $author ? $this->author_rows(self::AUTHORS[$name], $forums, $scope, $limit) : $this->topic_rows($name, $forums, $scope, $limit);
+				if ($languages) { $results[$name] = $this->languages($limit); }
+				elseif ($files)
+				{
+					$post_scope = $scope . ' AND p.post_visibility=' . ITEM_APPROVED . ' AND (' . $this->visibility->get_forums_visibility_sql('post', $forums, 'p.') . ')';
+					$results[$name] = $this->attachments->ranking($forums, $post_scope, $limit);
+				}
+				elseif ($author) { $results[$name] = $this->author_rows(self::AUTHORS[$name], $forums, $scope, $limit); }
+				else { $results[$name] = $this->topic_rows($name, $forums, $scope, $limit); }
 			}
 			foreach ($results[$name] as $row) { $this->template->assign_block_vars('stats_modules.entries', $row); }
 		}

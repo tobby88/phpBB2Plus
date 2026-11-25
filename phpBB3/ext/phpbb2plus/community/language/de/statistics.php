@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_STATS_DECIMAL' => ',',
+	'PLUS_STATS_MOST_USED_LANGUAGES' => 'Oberflächensprachen aktiver Mitglieder', 'PLUS_STATS_TOP_ATTACHMENTS' => 'Meistgeladene Dateianhänge',
+	'PLUS_STATS_MEMBERS' => 'Mitglieder', 'PLUS_STATS_FILE' => 'Datei', 'PLUS_STATS_DOWNLOADS' => 'Downloads', 'PLUS_STATS_SIZE' => 'Größe',
 	'PLUS_STATS_FORUM_INDEX' => 'Zur Forenübersicht', 'PLUS_STATS_MOST_ACTIVE_TOPICS' => 'Themen mit den meisten Antworten',
 	'PLUS_STATS_MOST_VIEWED_TOPICS' => 'Meistgelesene Themen', 'PLUS_STATS_TOP_POSTERS' => 'Mitglieder mit den meisten Beiträgen',
 	'PLUS_STATS_SITE_HIST_WEEK_TOP_POSTERS' => 'Aktivste Mitglieder dieser Woche', 'PLUS_STATS_SITE_HIST_MONTH_TOP_POSTERS' => 'Aktivste Mitglieder dieses Monats',
