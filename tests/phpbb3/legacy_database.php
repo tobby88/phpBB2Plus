@@ -81,9 +81,6 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 	seed_native_content($db);
-	$db->query('UPDATE phpbb_forums SET prune_enable=1,prune_next=2140000000 WHERE forum_id IN (1,7,11,14,15)');
-	$db->query("UPDATE phpbb_forums SET forum_desc='Übersicht & Rückblick 📷' WHERE forum_id=15");
-	$db->query('INSERT INTO phpbb_forum_prune (forum_id,prune_days,prune_freq) VALUES (1,10,1),(1,90,7),(7,90,7),(11,10,1),(14,10,1),(14,10,1),(15,0,2)');
 	require_once __DIR__ . '/removed_topic_source.php';
 	seed_removed_topics($db);
 	seed_news($db);
@@ -173,6 +170,9 @@ if ($argv[1] === 'seed')
 	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (75,89,0)');
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_mod) VALUES (75,12,1)');
 	seed_forum_access($db);
+	$db->query('UPDATE phpbb_forums SET prune_enable=1,prune_next=2140000000 WHERE forum_id IN (1,7,11,14,15)');
+	$db->query("UPDATE phpbb_forums SET forum_desc='Übersicht & Rückblick 📷' WHERE forum_id=15");
+	$db->query('INSERT INTO phpbb_forum_prune (forum_id,prune_days,prune_freq) VALUES (1,10,1),(1,90,7),(7,90,7),(11,10,1),(14,10,1),(14,10,1),(15,0,2)');
 	seed_warning_cards($db);
 }
 elseif ($argv[1] === 'cards-reset')
@@ -313,9 +313,9 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	check_fixture($ambiguous && array_map('intval', $ambiguous) === array(0,0,0),
 		'Conflicting source schedules must yield one forum with no active or guessed rule');
 	$description = $db->query('SELECT forum_desc FROM p3_forums WHERE forum_id=15')->fetch_row()[0];
-	check_fixture(html_entity_decode($description, ENT_QUOTES, 'UTF-8') === 'Übersicht & Rückblick 📷' &&
-		(int) $db->query('SELECT COUNT(*) FROM p3_forums WHERE forum_type=0 AND plus_legacy_category=0')->fetch_row()[0] === 0,
-		'Conversion lost the UTF-8 forum description or retained a provisional category');
+	check_fixture(html_entity_decode($description, ENT_QUOTES, 'UTF-8') === 'Übersicht & Rückblick 📷', 'Conversion lost the UTF-8 forum description');
+	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_forums WHERE forum_type=0 AND plus_legacy_category=0')->fetch_row()[0] === 0,
+		'Conversion retained a provisional category');
 	$shout = $db->query('SELECT author_id,hidden_by FROM p3_plus_shouts WHERE shout_id=7')->fetch_assoc();
 	check_fixture($shout && (int) $shout['author_id'] === (int) $users[0]['user_id']
 		&& (int) $shout['hidden_by'] === 2, 'Shout author or moderation state was not converted');
