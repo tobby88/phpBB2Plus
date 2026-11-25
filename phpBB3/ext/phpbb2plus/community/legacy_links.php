@@ -136,7 +136,10 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 				case 'user_upload':
 					$file = $positive('file_id');
 					$cat = $positive('cat_id');
-					if ($file) { $path = 'downloads/file/' . $file; }
+					if ($file)
+					{
+						$path = 'downloads/file/' . $file . (($query['do'] ?? '') === 'delete' ? '/delete' : '/edit');
+					}
 					elseif (!isset($query['file_id']) && (!isset($query['cat_id']) || $cat) && empty($query['do']) && empty($query['mode']) && !isset($parts[1]))
 					{ $path = $cat ? 'downloads/category/' . $cat . '/submit' : 'downloads/submit'; }
 					break;
