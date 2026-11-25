@@ -59,6 +59,13 @@ class comments
 		catch (\DomainException $e) { return $this->helper->message($e->getMessage(), array(), 'INFORMATION', 422); }
 	}
 
+	public function bookmark($comment, $mode)
+	{
+		$row = $this->discussion->comment(null, $comment, $mode);
+		$params = $this->picture_parameters($row['pic_id']) + array('comment' => (int) $comment, 'mode' => $mode);
+		return new RedirectResponse($this->helper->route('phpbb2plus_gallery_comment', $params, false));
+	}
+
 	public function manage($picture, $comment, $mode)
 	{
 		$row = $this->discussion->comment($picture, $comment, $mode);

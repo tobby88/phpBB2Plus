@@ -34,6 +34,11 @@ phpbb2plus_gallery_comment_legacy:
     defaults: { _controller: phpbb2plus.gallery.board:comment_bookmark }
     requirements: { comment: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_gallery_comment_manage_legacy:
+    path: /album/legacy/comment/{comment}/{mode}
+    defaults: { _controller: phpbb2plus.gallery.comments:bookmark }
+    requirements: { comment: '[1-9][0-9]*', mode: 'edit|delete' }
+    methods: [GET, HEAD]
 phpbb2plus_gallery_personal_legacy:
     path: /album/legacy/member/{source}
     defaults: { _controller: phpbb2plus.gallery.personal_controller:bookmark }

@@ -168,13 +168,14 @@ class discussion
 
 	public function comment($picture, $id, $mode)
 	{
-		list($pic, $cat) = $this->access->picture($picture);
 		$table = $this->prefix . 'comments';
-		$result = $this->db->sql_query("SELECT * FROM $table WHERE pic_id=" . (int) $picture . ' AND comment_id=' . (int) $id);
+		$result = $this->db->sql_query("SELECT * FROM $table WHERE comment_id=" . (int) $id .
+			($picture === null ? '' : ' AND pic_id=' . (int) $picture));
 		$row = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
-		if (!$row || !(int) $this->access->setting('comment', 1) || !$this->access->allows($cat, 'comment') ||
-			!$this->access->may_change($cat, $row['author_id'], $mode)) { throw new NotFoundHttpException(); }
+		if (!$row || !(int) $this->access->setting('comment', 1)) { throw new NotFoundHttpException(); }
+		list($pic, $cat) = $this->access->picture($row['pic_id']);
+		if (!$this->access->allows($cat, 'comment') || !$this->access->may_change($cat, $row['author_id'], $mode)) { throw new NotFoundHttpException(); }
 		return $row;
 	}
 

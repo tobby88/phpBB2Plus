@@ -55,8 +55,9 @@ if ($argv[2] === 'seed')
 		$comments[] = array_merge($comment, array('comment_id' => 9000 + $i, 'pic_id' => 7010, 'cat_id' => 601,
 			'created_at' => 40000 - $i, 'body' => 'Navigation comment ' . $i));
 	}
-	$comments[] = array_merge($comment, array('comment_id' => 9900, 'pic_id' => 7002, 'cat_id' => 601, 'body' => 'Latest comment identity'));
-	$comments[] = array_merge($comment, array('comment_id' => 9901, 'pic_id' => 7001, 'cat_id' => 601, 'body' => 'Awaiting approval'));
+	$comments[] = array_merge($comment, array('comment_id' => 9900, 'pic_id' => 7002, 'cat_id' => 601, 'author_id' => $member['user_id'], 'body' => 'Latest comment identity'));
+	$comments[] = array_merge($comment, array('comment_id' => 9901, 'pic_id' => 7001, 'cat_id' => 601, 'author_id' => $member['user_id'], 'body' => 'Awaiting approval'));
+	$db->sql_query("UPDATE {$g}cats SET comment_level=0,edit_level=0,delete_level=0 WHERE cat_id=601");
 	$db->sql_multi_insert($g . 'comments', $comments);
 	$rating = nav_row("SELECT * FROM {$g}ratings WHERE pic_id=100 AND points>0");
 	unset($rating['rating_id']);

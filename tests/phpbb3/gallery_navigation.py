@@ -6,7 +6,7 @@ import re
 from urllib.parse import parse_qs, urlencode, urlsplit
 from urllib.request import Request
 
-from http_board import submit_form
+from http_board import Page, submit_form
 
 
 class AlbumPage(HTMLParser):
@@ -177,10 +177,25 @@ def browse(administrator, member, guest, check):
         edit = re.search(r'href="([^"]*/album/picture/7010/comment/9001/edit[^"]*)"', tail)
         if not edit:
             raise RuntimeError("The test comment cannot be edited from its displayed descending page")
-        edit_url = unescape(edit[1])
+        edit_url = album + "/legacy/comment/9001/edit?sort_order=DESC"
+        native_form = Page(administrator.fetch(edit_url)).forms["album-comment-edit"][0]
+        if (not urlsplit(native_form).path.endswith("/album/picture/7010/comment/9001/edit")
+                or parse_qs(urlsplit(native_form).query).get("sort_order") != ["DESC"]):
+            raise RuntimeError("The historic edit bookmark did not resolve to the same native form and order")
         query, comments = saved_comment(administrator, edit_url, administrator.fetch(edit_url), "album-comment-edit", "Edited comment with an out-of-order timestamp")
         if query.get("sort_order") != ["DESC"] or query.get("start") != [str(limit)] or 9001 not in comments:
             raise RuntimeError("Editing an existing comment used its old timestamp or lost the selected order")
+        for mode in ("edit", "delete"):
+            guest.fetch(album + "/legacy/comment/9900/" + mode, expected_status=404)
+            member.fetch(album + "/legacy/comment/9901/" + mode, expected_status=404)
+            member.fetch(album + "/legacy/comment/9001/" + mode, expected_status=404)
+            administrator.fetch(album + "/legacy/comment/999999/" + mode, expected_status=404)
+            own = album + "/legacy/comment/9900/" + mode
+            form = Page(member.fetch(own)).forms["album-comment-edit"][0]
+            if not urlsplit(form).path.endswith("/album/picture/7002/comment/9900/" + mode):
+                raise RuntimeError("The comment author could not open their own native form")
+        submit_form(member, own, member.fetch(own), "album-comment-edit", {})
+        member.fetch(own, expected_status=404)
         check("controls-off")
         off = AlbumPage(guest.fetch(album + "/category/601?sort_method=rating&sort_order=ASC"))
         if {"rating", "comments", "new_comment"} & set(off.methods) or list(off.pictures) != sorted(allowed)[:12]:
@@ -189,6 +204,7 @@ def browse(administrator, member, guest, check):
         if list(large_page.pictures) != list(range(8100, 8200)):
             raise RuntimeError("The legacy hundred-picture pages changed their bookmark offsets")
         guest.fetch(album + "/legacy/comment/9000", expected_status=404)
+        administrator.fetch(album + "/legacy/comment/9001/edit", expected_status=404)
     finally:
         check("controls-on")
         check("cleanup")
