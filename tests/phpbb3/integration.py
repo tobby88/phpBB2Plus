@@ -20,6 +20,7 @@ from build_phpbb3 import assemble, PACKAGES
 import arcade
 import arcade_administration
 import banners
+import board_statistics
 import attachments
 import attachment_quotas
 import forum_permissions
@@ -204,7 +205,10 @@ def main():
             os.environ["PLUS_TEST_MODERN_PASSWORD"] = secrets.token_hex(7) + '"&Ü\\'
             os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
             php(fixture, "seed", source)
+            statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
+            php(statistics_fixture, "seed", source)
             source_files(ROOT / "phpBB2", root / "legacy")
+            board_statistics.source_modules(ROOT / "phpBB2", root / "legacy")
             delegation.source_modules(ROOT / "phpBB2", root / "legacy")
             attachments.source_media(root / "legacy")
             news.source_media(root / "legacy")
@@ -218,6 +222,7 @@ def main():
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
                 php(fixture, "converted", target)
+                php(statistics_fixture, "converted", target)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True))
                 converted = monotonic()
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
@@ -227,6 +232,7 @@ def main():
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
+                board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target))
                 forum_permissions.publishing(member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)

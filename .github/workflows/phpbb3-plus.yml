@@ -26,6 +26,9 @@ on:
       - 'phpBB2/includes/icon_defaults.php'
       - 'phpBB2/language/lang_*/lang_extend_post_icons.php'
       - 'phpBB2/install/schemas/*.sql'
+      - 'phpBB2/stat_modules/*/module.php'
+      - 'phpBB2/stat_modules/*/module.tpl'
+      - 'phpBB2/stat_modules/*/info.txt'
       - 'phpBB2/assets/ruffle/**'
       - '.github/workflows/phpbb3-plus.yml'
   workflow_dispatch:
