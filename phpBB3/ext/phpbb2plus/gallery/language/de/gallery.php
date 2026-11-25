@@ -1,6 +1,22 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_PERSONAL' => 'Persönliches Album', 'PLUS_ALBUM_OWNER_TITLE' => 'Fotoalbum von %s',
+	'PLUS_ALBUM_CAT_START' => 'Persönliches Album anlegen', 'PLUS_ALBUM_CAT_ADD' => 'Unteralbum anlegen',
+	'PLUS_ALBUM_CAT_EDIT' => 'Album bearbeiten', 'PLUS_ALBUM_CAT_DELETE' => 'Album entfernen',
+	'PLUS_ALBUM_CAT_UP' => 'Nach oben verschieben', 'PLUS_ALBUM_CAT_DOWN' => 'Nach unten verschieben',
+	'PLUS_ALBUM_PARENT' => 'Übergeordnetes Album', 'PLUS_ALBUM_PICTURE_DEST' => 'Bilder dieses Albums verschieben nach',
+	'PLUS_ALBUM_CHOOSE_DEST' => 'Bitte wählen',
+	'PLUS_ALBUM_REMOVE_CONTENT' => 'Bilder mit Kommentaren und Bewertungen endgültig löschen', 'PLUS_ALBUM_CATEGORY_CONTENTS' => 'Bilder (%1$d) · Direkte Unteralben (%2$d). Die Unteralben behalten ihre Bilder und rücken eine Ebene höher. Dadurch kann sich ändern, wer sie sehen darf.',
+	'PLUS_ALBUM_POLICY_VIEW' => 'Album ansehen', 'PLUS_ALBUM_POLICY_UPLOAD' => 'Bilder hochladen',
+	'PLUS_ALBUM_POLICY_RATE' => 'Bilder bewerten', 'PLUS_ALBUM_POLICY_COMMENT' => 'Bilder kommentieren',
+	'PLUS_ALBUM_LEVEL_GUESTS' => 'Alle Besucher', 'PLUS_ALBUM_LEVEL_MEMBERS' => 'Registrierte Mitglieder',
+	'PLUS_ALBUM_LEVEL_PRIVATE' => 'Privat', 'PLUS_ALBUM_LEVEL_MODS' => 'Album-Moderatoren', 'PLUS_ALBUM_LEVEL_ADMINS' => 'Album-Administratoren',
+	'PLUS_ALBUM_CAT_QUOTA' => 'Die Höchstzahl an Unteralben ist erreicht.', 'PLUS_ALBUM_BAD_LEVEL' => 'Bitte wähle eine verfügbare Berechtigungsstufe.',
+	'PLUS_ALBUM_BAD_CATEGORY' => 'Bitte wähle ein zulässiges Ziel im selben persönlichen Album.',
+	'PLUS_ALBUM_TREE_CHANGED' => 'Das Album hat sich inzwischen geändert. Öffne die Albumverwaltung erneut.',
+	'PLUS_ALBUM_TREE_INVALID' => 'Die Albumstruktur enthält eine ungültige Verknüpfung. Bitte wende dich an die Albumverwaltung.',
+	'PLUS_ALBUM_PERSONAL_BAD_TEXT' => 'Gib einen Namen mit höchstens 255 Zeichen und eine Beschreibung mit höchstens 65535 Zeichen ein.',
 	'PLUS_ALBUM_PORTAL_RATING'=>'Bewertung', 'PLUS_ALBUM_NOT_RATED'=>'Noch nicht bewertet',
 	'PLUS_ALBUM' => 'Fotoalbum', 'PLUS_ALBUM_CATEGORIES' => 'Alben', 'PLUS_ALBUM_EMPTY' => 'In diesem Album sind keine Bilder sichtbar.',
 	'PLUS_ALBUM_ORIGINAL' => 'Bild in voller Größe öffnen', 'PLUS_ALBUM_COMMENTS' => 'Bildkommentare',

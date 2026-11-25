@@ -21,6 +21,8 @@ class accounts implements EventSubscriberInterface
 
 	public function depart($event)
 	{
+		// Coordinate owner reassignment with category creation and gallery uploads.
+		$this->db->sql_query('UPDATE ' . $this->prefix . 'writes SET lock_id=1 WHERE lock_id=1');
 		foreach ($event['user_rows'] as $id => $row)
 		{
 			$id = (int) $id;

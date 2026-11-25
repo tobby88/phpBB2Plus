@@ -1,13 +1,16 @@
 <!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ ALBUM_TITLE|e }}</h2>
-{% if U_ALBUM_UPLOAD %}<div class="action-bar"><a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a></div>{% endif %}
+{% if U_ALBUM_UPLOAD or U_ALBUM_PERSONAL %}<div class="action-bar">
+{% if U_ALBUM_UPLOAD %}<a class="button" href="{U_ALBUM_UPLOAD}">{L_PLUS_ALBUM_UPLOAD}</a>{% endif %}
+{% if U_ALBUM_PERSONAL %}<a class="button" href="{U_ALBUM_PERSONAL}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</div>{% endif %}
 {% if ALBUM_DESCRIPTION %}<p class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</p>{% endif %}
 {% if loops.album_categories %}
 <div class="forabg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_ALBUM_CATEGORIES}</div></dt></dl></li></ul>
 <ul class="topiclist forums">
 {% for cat in loops.album_categories %}
 <li class="row"><dl class="row-item forum_read"><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.U_CATEGORY }}">{{ cat.TITLE|e }}</a>
+{% if cat.OWNER %}<span>({{ cat.OWNER|e }})</span>{% endif %}
 {% if cat.DESCRIPTION %}<br><span class="plus-album-copy">{{ cat.DESCRIPTION|e }}</span>{% endif %}</div></dt></dl></li>
 {% endfor %}
 </ul></div></div>

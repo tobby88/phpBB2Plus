@@ -15,8 +15,9 @@ class board
 	private $byline;
 	private $discussion;
 	private $pictures;
+	private $personal;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -30,6 +31,7 @@ class board
 		$this->byline = $byline;
 		$this->discussion = $discussion;
 		$this->pictures = $pictures;
+		$this->personal = $personal;
 	}
 
 	private function breadcrumbs($cat = null)
@@ -62,13 +64,17 @@ class board
 		$id = (int) $category;
 		$cat = $id ? $this->access->category($id) : null;
 		$this->breadcrumbs($cat);
-		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'cats WHERE parent_id=' . $id . ' ORDER BY sort_order,cat_id');
+		$result = $this->db->sql_query('SELECT c.*,u.username AS owner_name FROM ' . $this->prefix . 'cats c
+			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.owner_id WHERE c.parent_id=' . $id . ' ORDER BY c.sort_order,c.cat_id');
 		$children = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
 		foreach ($children as $child)
 		{
 			if (!$this->access->visible($child)) { continue; }
+			$child = $this->access->category_labels($child);
 			$this->template->assign_block_vars('album_categories', array('TITLE' => $child['title'], 'DESCRIPTION' => $child['description'],
+				'OWNER' => !$id && (int) $child['owner_id'] > ANONYMOUS && $child['owner_name'] !== null ?
+					html_entity_decode($child['owner_name'], ENT_QUOTES, 'UTF-8') : '',
 				'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $child['cat_id']))));
 		}
 		if ($id)
@@ -95,6 +101,9 @@ class board
 			$this->db->sql_freeresult($result);
 		}
 		$title = $cat ? $cat['title'] : $this->language->lang('PLUS_ALBUM');
+		$owner = $cat ? (int) $cat['owner_id'] : (int) $this->user->data['user_id'];
+		if ($owner > ANONYMOUS && ($cat || $this->personal->available($owner)))
+		{ $this->template->assign_var('U_ALBUM_PERSONAL', $this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner))); }
 		if ($cat && empty($this->user->data['is_bot']) && $this->access->allows($cat, 'upload'))
 		{
 			$this->template->assign_var('U_ALBUM_UPLOAD', $this->helper->route('phpbb2plus_gallery_upload', array('category' => $id)));

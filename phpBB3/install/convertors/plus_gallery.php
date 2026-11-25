@@ -35,9 +35,9 @@ function plus_gallery_preflight()
 	}
 }
 
-function plus_gallery_grants($category, $policies)
+function plus_gallery_principals($policies)
 {
-	global $src_db, $db, $convert, $table_prefix;
+	global $src_db, $convert;
 	$capabilities = array();
 	foreach ($policies as $action => $list)
 	{
@@ -46,7 +46,6 @@ function plus_gallery_grants($category, $policies)
 			if (ctype_digit($value) && (int) $value > 0) { $capabilities[(int) $value][$action] = true; }
 		}
 	}
-	$table = $table_prefix . 'plus_album_grants';
 	$grants = array();
 	if ($capabilities)
 	{
@@ -64,15 +63,56 @@ function plus_gallery_grants($category, $policies)
 			$type = $single ? 'u' : 'g';
 			foreach (array_keys($capabilities[$group['group_id']]) as $action)
 			{
-				$grants[$type . '/' . $id . '/' . $action] = array('cat_id' => $category, 'capability' => $action,
+				$grants[$type . '/' . $id . '/' . $action] = array('capability' => $action,
 					'subject_type' => $type, 'subject_id' => $id);
 			}
 		}
 	}
+	return array_values($grants);
+}
+
+function plus_gallery_grants($category, $policies)
+{
+	global $db, $table_prefix;
+	$table = $table_prefix . 'plus_album_grants';
+	$grants = plus_gallery_principals($policies);
+	foreach ($grants as &$row) { $row['cat_id'] = (int) $category; }
+	unset($row);
 	$db->sql_transaction('begin');
 	$db->sql_query("DELETE FROM $table WHERE cat_id=" . (int) $category);
 	if ($grants) { $db->sql_multi_insert($table, array_values($grants)); }
 	$db->sql_transaction('commit');
+}
+
+function plus_gallery_personal_permissions()
+{
+	global $db, $src_db, $convert, $phpbb_container;
+	$result = $src_db->sql_query('SELECT config_value FROM ' . $convert->src_table_prefix . "album_config WHERE config_name='personal_gallery_private'");
+	$list = $src_db->sql_fetchfield('config_value');
+	$src_db->sql_freeresult($result);
+	$principals = plus_gallery_principals(array('create' => $list));
+	$result = $db->sql_query("SELECT auth_option_id FROM " . ACL_OPTIONS_TABLE . " WHERE auth_option='u_plus_album_personal'");
+	$option = (int) $db->sql_fetchfield('auth_option_id');
+	$db->sql_freeresult($result);
+	if (!$option) { throw new \RuntimeException('Missing personal album permission.'); }
+	$db->sql_transaction('begin');
+	foreach ($principals as $principal)
+	{
+		$single = $principal['subject_type'] === 'u';
+		$field = $single ? 'user_id' : 'group_id';
+		$table = $single ? ACL_USERS_TABLE : ACL_GROUPS_TABLE;
+		$id = (int) $principal['subject_id'];
+		$db->sql_query("DELETE FROM $table WHERE $field=$id AND forum_id=0 AND auth_role_id=0 AND auth_option_id=$option");
+		$db->sql_query("INSERT INTO $table " . $db->sql_build_array('INSERT', array($field => $id, 'forum_id' => 0,
+			'auth_option_id' => $option, 'auth_role_id' => 0, 'auth_setting' => ACL_YES)));
+	}
+	$db->sql_transaction('commit');
+	if ($principals) { $phpbb_container->get('auth')->acl_clear_prefetch(); }
+}
+
+function plus_gallery_category_text($value)
+{
+	return \phpbb2plus\gallery\service\access::encode_label(plus_gallery_text($value));
 }
 
 function plus_gallery_category_grants($id)
@@ -107,9 +147,11 @@ function plus_gallery_category($cat, $owner)
 	// Early personal albums stored pic_cat_id=0. Resolve each owner's original or
 	// create a distinct root using that board's actual personal-gallery policy.
 	$source_owner = max(0, (int) $owner);
-	if (isset($personal[$source_owner])) { return $personal[$source_owner]; }
+	$guest = (int) $owner === -1 ? 1 : 0;
+	$key = $guest ? -1 : $source_owner;
+	if (isset($personal[$key])) { return $personal[$key]; }
 	$owner_id = plus_existing_author($source_owner);
-	$result = $db->sql_query_limit("SELECT cat_id FROM $table WHERE source_owner=$source_owner AND owner_id=$owner_id AND parent_id=0 ORDER BY cat_id", 1);
+	$result = $db->sql_query_limit("SELECT cat_id FROM $table WHERE source_owner=$source_owner AND owner_id=$owner_id AND parent_id=0 AND legacy_guest_root=$guest ORDER BY cat_id", 1);
 	$id = $db->sql_fetchfield('cat_id');
 	$db->sql_freeresult($result);
 	if ($id === false)
@@ -120,7 +162,7 @@ function plus_gallery_category($cat, $owner)
 		$db->sql_freeresult($result);
 		$missing = $owner_id === ANONYMOUS;
 		$view = $missing ? 1 : (int) ($settings['personal_gallery_view'] ?? 1);
-		$data = array('source_owner' => $source_owner, 'owner_id' => $owner_id, 'parent_id' => 0,
+		$data = array('source_owner' => $source_owner, 'owner_id' => $owner_id, 'parent_id' => 0, 'legacy_guest_root' => $guest,
 			'title' => $config['default_lang'] === 'de' ? 'Persönliches Album' : 'Personal album',
 			'description' => '', 'view_level' => $view, 'upload_level' => $missing ? 1 : 3,
 			'rate_level' => $view, 'comment_level' => $view, 'edit_level' => 3, 'delete_level' => 3, 'approval' => 0);
@@ -131,7 +173,7 @@ function plus_gallery_category($cat, $owner)
 		plus_gallery_grants($id, array('view' => $groups, 'rate' => $groups, 'comment' => $groups));
 		$db->sql_transaction('commit');
 	}
-	return $personal[$source_owner] = (int) $id;
+	return $personal[$key] = (int) $id;
 }
 
 function plus_gallery_file_field($id, $filename, $field)
@@ -173,7 +215,7 @@ function plus_gallery_schema($prefix, $truncate)
 		'query_first' => array(array('target',$truncate . $t . 'cats'),array('target',$truncate . $t . 'grants')),
 		array('cat_id','album_cat.cat_id','intval'), array('parent_id','album_cat.cat_parent','intval'),
 		array('owner_id','album_cat.cat_user_id','plus_gallery_owner'), array('source_owner','album_cat.cat_user_id','intval'),
-		array('title','album_cat.cat_title','plus_gallery_text'), array('description','album_cat.cat_desc','plus_gallery_text'),
+		array('title','album_cat.cat_title','plus_gallery_category_text'), array('description','album_cat.cat_desc','plus_gallery_category_text'), array('label_encoded', 1, ''),
 		array('sort_order','album_cat.cat_order','intval'), array('approval','album_cat.cat_approval','intval'));
 	foreach (array('view','upload','rate','comment','edit','delete','moderator') as $action)
 	{

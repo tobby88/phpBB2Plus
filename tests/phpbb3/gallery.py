@@ -173,6 +173,11 @@ def manage(base, guest, moderator, member):
 def departed(base, member):
     from http_board import Browser
     picture = "app.php/album/picture/105"
-    public, private = Browser(base).fetch(picture), member.fetch(picture)
+    guest = Browser(base)
+    public, private = guest.fetch(picture), member.fetch(picture)
     if "DepartingFixture" in public or "Ehemaliger Nutzer" not in public or private.count("DepartingFixture") < 3:
         raise RuntimeError("Album uploader, comment and editor attribution changed after native account removal")
+    member.fetch("app.php/album/member/87", expected_status=404)
+    member.fetch("app.php/album/legacy/member/87", expected_status=404)
+    if "(DepartingFixture)" in guest.fetch("app.php/album"):
+        raise RuntimeError("A retained personal album still publishes its removed owner's username")

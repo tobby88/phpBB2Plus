@@ -2,6 +2,21 @@ phpbb2plus_gallery_index:
     path: /album
     defaults: { _controller: phpbb2plus.gallery.board:index, category: 0 }
     methods: [GET, HEAD]
+phpbb2plus_gallery_personal:
+    path: /album/member/{owner}
+    defaults: { _controller: phpbb2plus.gallery.personal_controller:index }
+    requirements: { owner: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_gallery_personal_legacy:
+    path: /album/legacy/member/{source}
+    defaults: { _controller: phpbb2plus.gallery.personal_controller:bookmark }
+    requirements: { source: '-1|0|[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_gallery_personal_form:
+    path: /album/member/{owner}/{category}/{mode}
+    defaults: { _controller: phpbb2plus.gallery.personal_controller:form }
+    requirements: { owner: '[1-9][0-9]*', category: '0|[1-9][0-9]*', mode: 'start|add|edit|up|down|delete' }
+    methods: [GET, POST]
 phpbb2plus_gallery_category:
     path: /album/category/{category}
     defaults: { _controller: phpbb2plus.gallery.board:index }

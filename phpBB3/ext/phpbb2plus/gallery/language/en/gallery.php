@@ -1,6 +1,22 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_PERSONAL' => 'Personal album', 'PLUS_ALBUM_OWNER_TITLE' => 'Photo album of %s',
+	'PLUS_ALBUM_CAT_START' => 'Create personal album', 'PLUS_ALBUM_CAT_ADD' => 'Create subalbum',
+	'PLUS_ALBUM_CAT_EDIT' => 'Edit album', 'PLUS_ALBUM_CAT_DELETE' => 'Remove album',
+	'PLUS_ALBUM_CAT_UP' => 'Move up', 'PLUS_ALBUM_CAT_DOWN' => 'Move down',
+	'PLUS_ALBUM_PARENT' => 'Parent album', 'PLUS_ALBUM_PICTURE_DEST' => 'Destination for pictures in this album',
+	'PLUS_ALBUM_CHOOSE_DEST' => 'Select a destination',
+	'PLUS_ALBUM_REMOVE_CONTENT' => 'Permanently delete pictures, comments and ratings', 'PLUS_ALBUM_CATEGORY_CONTENTS' => 'Pictures (%1$d) · Direct subalbums (%2$d). The subalbums keep their pictures and move up one level. This can change who may see them.',
+	'PLUS_ALBUM_POLICY_VIEW' => 'View album', 'PLUS_ALBUM_POLICY_UPLOAD' => 'Upload pictures',
+	'PLUS_ALBUM_POLICY_RATE' => 'Rate pictures', 'PLUS_ALBUM_POLICY_COMMENT' => 'Comment on pictures',
+	'PLUS_ALBUM_LEVEL_GUESTS' => 'All visitors', 'PLUS_ALBUM_LEVEL_MEMBERS' => 'Registered members',
+	'PLUS_ALBUM_LEVEL_PRIVATE' => 'Private', 'PLUS_ALBUM_LEVEL_MODS' => 'Album moderators', 'PLUS_ALBUM_LEVEL_ADMINS' => 'Album administrators',
+	'PLUS_ALBUM_CAT_QUOTA' => 'You have reached the subalbum limit.', 'PLUS_ALBUM_BAD_LEVEL' => 'Choose an available access level.',
+	'PLUS_ALBUM_BAD_CATEGORY' => 'Choose an eligible destination in the same personal album.',
+	'PLUS_ALBUM_TREE_CHANGED' => 'The album has changed. Reopen the album directory and review your change.',
+	'PLUS_ALBUM_TREE_INVALID' => 'The album hierarchy contains an invalid relationship. Contact an album administrator.',
+	'PLUS_ALBUM_PERSONAL_BAD_TEXT' => 'Enter a name of up to 255 characters and a description of up to 65535 characters.',
 	'PLUS_ALBUM_PORTAL_RATING'=>'Rating', 'PLUS_ALBUM_NOT_RATED'=>'Not yet rated',
 	'PLUS_ALBUM' => 'Photo album', 'PLUS_ALBUM_CATEGORIES' => 'Albums', 'PLUS_ALBUM_EMPTY' => 'There are no visible pictures in this album.',
 	'PLUS_ALBUM_ORIGINAL' => 'Open full-size picture', 'PLUS_ALBUM_COMMENTS' => 'Picture comments',

@@ -79,6 +79,35 @@ class access
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_gallery');
 	}
 
+	public function may_create_personal($owner)
+	{
+		if (empty($this->user->data['is_registered']) || !empty($this->user->data['is_bot']) || $owner <= ANONYMOUS) { return false; }
+		if ($this->administrator()) { return true; }
+		if ((int) $this->user->data['user_id'] !== (int) $owner) { return false; }
+		$policy = (string) $this->setting('personal_gallery', '0');
+		return $policy === '0' || ($policy === '3' && $this->auth->acl_get('u_plus_album_personal'));
+	}
+
+	public function may_manage_personal($category)
+	{
+		return (int) $category['owner_id'] > ANONYMOUS && ($this->administrator() ||
+			($this->owner($category) && $this->visible($category) && $this->allows($category, 'upload') &&
+				(string) $this->setting('personal_allow_gallery_mod', 1) === '1' &&
+				(string) $this->setting('personal_allow_sub_categories', 1) === '1' &&
+				(int) $this->setting('personal_sub_category_limit', 10) !== 0));
+	}
+
+	public static function encode_label($text) { return utf8_encode_ucr(utf8_htmlspecialchars($text)); }
+
+	public static function category_labels($row)
+	{
+		if ($row && $row['label_encoded'])
+		{
+			foreach (array('title','description') as $field) { $row[$field] = html_entity_decode($row[$field], ENT_QUOTES, 'UTF-8'); }
+		}
+		return $row;
+	}
+
 	public function watermark_strength()
 	{
 		if ((int) $this->setting('use_watermark', 0, 'sp') !== 1) { return 0; }
@@ -141,7 +170,7 @@ class access
 		if (!array_key_exists($id, $this->categories))
 		{
 			$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'cats WHERE cat_id=' . $id);
-			$this->categories[$id] = $this->db->sql_fetchrow($result);
+			$this->categories[$id] = self::category_labels($this->db->sql_fetchrow($result));
 			$this->db->sql_freeresult($result);
 		}
 		return $this->categories[$id];
@@ -164,7 +193,7 @@ class access
 	public function portal_categories($personal, $selected)
 	{
 		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'cats');
-		while ($row = $this->db->sql_fetchrow($result)) { $this->categories[(int) $row['cat_id']] = $row; }
+		while ($row = $this->db->sql_fetchrow($result)) { $this->categories[(int) $row['cat_id']] = self::category_labels($row); }
 		$this->db->sql_freeresult($result);
 		$allowed = array();
 		foreach ($this->categories as $id => $category)

@@ -7,7 +7,7 @@ function seed_gallery($db)
 	$db->query("UPDATE phpbb_album_sp_config SET config_value='30' WHERE config_name='midthumb_width'");
 	$db->query("UPDATE phpbb_album_sp_config SET config_value='18' WHERE config_name='midthumb_height'");
 	$db->query("UPDATE phpbb_album_config SET config_value='3' WHERE config_name='personal_gallery_view'");
-	$db->query("UPDATE phpbb_album_config SET config_value='72' WHERE config_name='personal_gallery_private'");
+	$db->query("UPDATE phpbb_album_config SET config_value='71,72' WHERE config_name='personal_gallery_private'");
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_moderator,group_single_user)
 		VALUES (71,2,'Photo Club','',2,0),(72,1,'Single HistoricMember','',0,1)");
 	$db->query('INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES (71,1,0),(71,87,1),(72,1,0)');
@@ -18,7 +18,8 @@ function seed_gallery($db)
 		VALUES (100,'fixture.png','Öffentliche Fotoprobe','Beschreibung &amp; Grüße',2,'',100100,1,14,0,1),
 		(101,'fixture.png','Clubfotoprobe','',1,'',100101,8,2,0,1),(102,'fixture.png','Freigabeprobe','',1,'',100102,1,0,0,0),
 		(103,'fixture.png','Persönliche Fotoprobe','',1,'',100103,0,2,0,1),(104,'fixture.png','Verschachtelte Fotoprobe','',2,'',100104,9,4,1,1),
-		(105,'fixture.png','Foto zum Kontowechsel','',87,'',100105,1,0,0,1)");
+		(105,'fixture.png','Foto zum Kontowechsel','',87,'',100105,1,0,0,1),
+		(106,'fixture.png','Historisches Gastfoto','',-1,'Gast',100001,0,0,0,1)");
 	$db->query("INSERT INTO phpbb_album_comment (comment_id,comment_pic_id,comment_cat_id,comment_user_id,comment_username,comment_user_ip,
 		comment_time,comment_text,comment_edit_time,comment_edit_count,comment_edit_user_id)
 		VALUES (95,100,1,-1,'EditorFixture','c0000203',100112,'Historischer Bildkommentar',100114,1,1),
