@@ -23,6 +23,8 @@ def browse(admin, verify):
         settings = submit(url, chooser, "acp_prune", {"f[]": [653, 654]})
         if 'id="prune_days"' not in settings or 'id="prune_vieweddays"' not in settings:
             raise RuntimeError("The native ACP did not open both age inputs for the selected forum")
+        if sorted(FormFields(settings, "acp_prune").values.get("f[]", [])) != ["653", "654"]:
+            raise RuntimeError("The native ACP did not retain both selected forums")
         prompt = submit(url, settings, "acp_prune", {"prune_days": posted, "prune_vieweddays": viewed, "submit": "1"})
         if not valid:
             if "confirm" in Page(prompt).forms or not re.search(r"(von 1 bis 36500 Tagen|from 1 to 36500 days)", prompt):

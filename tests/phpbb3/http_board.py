@@ -17,6 +17,13 @@ from urllib.parse import urlencode, urljoin, urlsplit
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPRedirectHandler, Request
 
 
+def add_input(fields, name, value):
+    if name.endswith("[]"):
+        fields.setdefault(name, []).append(value)
+    else:
+        fields[name] = value
+
+
 class Page(HTMLParser):
     def __init__(self, body, checked=False):
         super().__init__(convert_charrefs=True)
@@ -34,14 +41,10 @@ class Page(HTMLParser):
             self.form = (attrs.get("action", ""), {})
             self.forms[attrs.get("id")] = self.form
         if tag == "input" and self.form and attrs.get("type") == "hidden" and attrs.get("name"):
-            self.form[1][attrs["name"]] = attrs.get("value", "")
+            add_input(self.form[1], attrs["name"], attrs.get("value", ""))
         if (self.checked and tag == "input" and self.form and attrs.get("name") and "checked" in attrs
                 and attrs.get("type") in ("checkbox", "radio")):
-            key, value = attrs["name"], attrs.get("value", "on")
-            if key.endswith("[]"):
-                self.form[1].setdefault(key, []).append(value)
-            else:
-                self.form[1][key] = value
+            add_input(self.form[1], attrs["name"], attrs.get("value", "on"))
 
     def handle_endtag(self, tag):
         if tag == "form":
@@ -67,7 +70,7 @@ class FormFields(HTMLParser):
             return
         if tag == "input" and name and "disabled" not in attrs and attrs.get("type") not in {"submit", "button", "reset", "file"}:
             if attrs.get("type") not in {"checkbox", "radio"} or "checked" in attrs:
-                self.values[name] = attrs.get("value", "")
+                add_input(self.values, name, attrs.get("value", "on" if attrs.get("type") in {"checkbox", "radio"} else ""))
         elif tag == "select":
             self.select = name
         elif tag == "option" and self.select and ("selected" in attrs or self.select not in self.values):
@@ -133,8 +136,10 @@ class Browser:
         if files is not None:
             boundary = "plus-test-" + uuid.uuid4().hex
             pieces = []
-            for name, value in (data or {}).items():
-                pieces += [("--" + boundary).encode(), f'Content-Disposition: form-data; name="{name}"'.encode(), b"", str(value).encode()]
+            for name, values in (data or {}).items():
+                values = values if isinstance(values, (tuple, list)) else (values,)
+                for value in values:
+                    pieces += [("--" + boundary).encode(), f'Content-Disposition: form-data; name="{name}"'.encode(), b"", str(value).encode()]
             for name, filename, content_type, content in files:
                 pieces += [("--" + boundary).encode(), f'Content-Disposition: form-data; name="{name}"; filename="{filename}"'.encode(),
                            ("Content-Type: " + content_type).encode(), b"", content]
