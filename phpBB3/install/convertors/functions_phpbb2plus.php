@@ -7,7 +7,7 @@ require_once __DIR__ . '/plus_native.php';
 require_once __DIR__ . '/plus_profile_media.php';
 require_once __DIR__ . '/plus_flags.php';
 require_once __DIR__ . '/plus_custom_profiles.php';
-require_once __DIR__ . '/plus_calendar.php';
+require_once __DIR__ . '/plus_permissions.php';
 require_once __DIR__ . '/plus_news.php';
 require_once __DIR__ . '/plus_attachments.php';
 require_once __DIR__ . '/plus_gallery.php';

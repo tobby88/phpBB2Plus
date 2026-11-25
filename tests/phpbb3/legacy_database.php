@@ -91,6 +91,8 @@ if ($argv[1] === 'seed')
 	$db->query("UPDATE phpbb_forums SET auth_cal=2 WHERE forum_id=1");
 	$db->query("UPDATE phpbb_forums SET auth_cal=5 WHERE forum_id=7");
 	$db->query("INSERT INTO phpbb_auth_access (group_id,forum_id,auth_cal) VALUES (71,1,1),(72,1,1) ON DUPLICATE KEY UPDATE auth_cal=1");
+	$db->query('UPDATE phpbb_forums SET auth_news=2 WHERE forum_id=1');
+	$db->query('UPDATE phpbb_auth_access SET auth_news=1 WHERE forum_id=1 AND group_id=71');
 	$db->query("INSERT INTO phpbb_attachments_desc (attach_id,physical_filename,real_filename,download_count,extension,mimetype,filesize,filetime,thumbnail)
 		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
 		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");

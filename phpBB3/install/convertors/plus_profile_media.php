@@ -13,7 +13,7 @@ function plus_profile_media_issue($kind, $source_id, $reference, $reason)
 	$db->sql_query("INSERT INTO $table " . $db->sql_build_array('INSERT', $row));
 }
 
-function plus_profile_image($directory, $relative)
+function plus_profile_image($directory, $relative, $allow_board_root = false)
 {
 	global $convert;
 	$directory = rtrim((string) $directory, '/');
@@ -23,7 +23,7 @@ function plus_profile_image($directory, $relative)
 	if (!isset($types[$ext])) { return false; }
 	try
 	{
-		$root = plus_media_path($convert->options['forum_path'], $directory, true);
+		$root = $directory === '' && $allow_board_root ? $convert->options['forum_path'] : plus_media_path($convert->options['forum_path'], $directory, true);
 		$file = plus_media_path($root, $relative);
 	}
 	catch (\RuntimeException $e) { return false; }

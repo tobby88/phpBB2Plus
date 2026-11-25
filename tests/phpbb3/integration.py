@@ -130,6 +130,7 @@ def main():
             php(fixture, "seed", source)
             source_files(ROOT / "phpBB2", root / "legacy")
             attachments.source_media(root / "legacy")
+            news.source_media(root / "legacy")
             gallery.source_media(root / "legacy")
             arcade.source_media(root / "legacy")
             downloads.source_media(root / "legacy")
@@ -159,6 +160,7 @@ def main():
                 profile_media.browse(ordinary, member, media)
                 legacy_links.browse(base, member, media["member"])
                 topic_calendar.browse(base, member, ordinary, pending)
+                news.administration(base, member)
                 custom_profiles.administration(member)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)

@@ -1,0 +1,24 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_NEWS_CATEGORIES}</h1>
+<!-- IF S_EDITOR -->
+<p><a href="{U_LIST}">{L_BACK}</a></p>
+<form id="plus-news-category" method="post" action="{U_SAVE}">
+<fieldset><legend>{L_ACP_PLUS_NEWS_CATEGORIES}</legend>
+<dl><dt><label for="category-name">{L_PLUS_NEWS_NAME}</label></dt><dd><input id="category-name" type="text" name="category_name" value="{CATEGORY_NAME}" maxlength="255" required></dd></dl>
+<dl><dt>{L_PLUS_NEWS_IMAGE}</dt><dd>
+<label><input type="radio" name="category_image" value=""<!-- IF S_NO_IMAGE --> checked<!-- ENDIF -->> {L_PLUS_NEWS_IMAGE_NONE}</label><br>
+<!-- BEGIN images --><label><input type="radio" name="category_image" value="{images.NAME}"<!-- IF images.SELECTED --> checked<!-- ENDIF -->>
+<!-- IF images.URL --><img src="{images.URL}" alt="" width="32" style="vertical-align:middle"><!-- ENDIF --> {images.LABEL}</label><br><!-- END images -->
+</dd></dl>
+<dl><dt><label for="category-active">{L_PLUS_NEWS_ACTIVE}</label></dt><dd><input id="category-active" type="checkbox" name="active" value="1"<!-- IF ACTIVE --> checked<!-- ENDIF -->></dd></dl>
+</fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{REVISION}">
+<input class="button1" type="submit" name="save" value="{L_SUBMIT}">
+<!-- IF S_EXISTING --><input class="button2" type="submit" name="remove" value="{L_DELETE}" formnovalidate><!-- ENDIF -->
+{S_FORM_TOKEN}</fieldset></form>
+<!-- ELSE -->
+<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_NEWS_NAME}</th><th>{L_STATUS}</th></tr></thead><tbody>
+<!-- BEGIN categories --><tr><td><a href="{categories.U_EDIT}">{categories.NAME}</a></td>
+<td><!-- IF categories.ACTIVE -->{L_ENABLED}<!-- ELSE -->{L_DISABLED}<!-- ENDIF --></td></tr><!-- END categories -->
+</tbody></table><p><a class="button1" href="{U_NEW}">{L_PLUS_NEWS_ADD}</a></p>
+<!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->

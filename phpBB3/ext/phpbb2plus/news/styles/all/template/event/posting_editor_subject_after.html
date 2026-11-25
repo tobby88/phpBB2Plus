@@ -1,0 +1,7 @@
+<!-- IF S_PLUS_NEWS_EDITOR -->
+<dl><dt><label for="plus-news-category">{L_PLUS_NEWS_CATEGORY}</label></dt><dd>
+<input type="hidden" name="plus_news_previous" value="{PLUS_NEWS_PREVIOUS}">
+<select name="plus_news_category" id="plus-news-category">
+<!-- BEGIN plus_news_choices --><option value="{plus_news_choices.ID}"<!-- IF plus_news_choices.SELECTED --> selected<!-- ENDIF -->>{plus_news_choices.LABEL}</option><!-- END plus_news_choices -->
+</select></dd></dl>
+<!-- ENDIF -->

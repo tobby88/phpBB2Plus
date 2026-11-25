@@ -1,7 +1,7 @@
 <?php
 function seed_news($db)
 {
-	$db->query("UPDATE phpbb_config SET config_value='images/plusnews/topicnews.gif' WHERE config_name='news_rss_image'");
+	$db->query("UPDATE phpbb_config SET config_value='templates/fisubsilversh/images/news/topicnews.gif' WHERE config_name='news_rss_image'");
 	$db->query("UPDATE phpbb_config SET config_value='Forum &amp; News' WHERE config_name='news_rss_image_desc'");
 	$db->query("INSERT INTO phpbb_news VALUES (74,'Private desk','announcements.gif')");
 	$db->query("UPDATE phpbb_topics SET news_id=1 WHERE topic_id=1");
@@ -22,4 +22,6 @@ function verify_news($db)
 		'Missing original news category, verified image or retired category ID');
 	$topics = $db->query('SELECT topic_id,plus_news_cat FROM p3_topics WHERE topic_id IN (1,2,7,601) ORDER BY topic_id')->fetch_all();
 	check_fixture(array_map('intval',array_column($topics,1)) === array(1,2,74,999),'Native topics lost their news classifications');
+	$unused = $db->query("SELECT asset FROM p3_plus_news_images WHERE label='Unused fixture.gif'")->fetch_row();
+	check_fixture($unused && preg_match('/^[0-9a-f]{64}\.gif$/D',$unused[0]),'An unassigned news image disappeared from the ACP');
 }

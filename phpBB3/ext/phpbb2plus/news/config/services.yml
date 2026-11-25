@@ -10,3 +10,13 @@ services:
         arguments: ['@phpbb2plus.news.articles', '@template', '@language', '@controller.helper', '@config']
         tags:
             - { name: event.listener }
+    phpbb2plus.news.posting:
+        class: phpbb2plus\news\event\posting
+        arguments: ['@dbal.conn', '@auth', '@user', '@config', '@request', '@template', '@language', '%core.table_prefix%plus_news_cats']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.news.settings:
+        class: phpbb2plus\news\event\settings
+        arguments: ['@language']
+        tags:
+            - { name: event.listener }

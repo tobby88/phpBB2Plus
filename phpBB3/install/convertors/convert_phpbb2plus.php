@@ -44,15 +44,15 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
-	$convertor['execute_last'][] = 'plus_calendar_permissions();';
+	$convertor['execute_last'][] = "plus_forum_permission('f_plus_calendar');";
+	$convertor['execute_last'][] = "plus_forum_permission('f_plus_news');";
 	$convertor['execute_last'][] = 'plus_guest_poll_permissions();';
-	$convertor['execute_last'][] = 'plus_news_orphans();';
+	$convertor['execute_last'][] = 'plus_finish_news();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 	foreach (array('publish'=>'allow_news','page_size'=>'news_item_num','trim'=>'news_item_trim','title_trim'=>'news_title_trim',
 		'feed'=>'allow_rss','feed_limit'=>'news_rss_item_count','feed_abstract'=>'news_rss_show_abstract',
-		'feed_description'=>'news_rss_desc','feed_language'=>'news_rss_language','feed_ttl'=>'news_rss_ttl','feed_category'=>'news_rss_cat',
-		'feed_image'=>'news_rss_image','feed_image_desc'=>'news_rss_image_desc') as $new=>$old)
+		'feed_language'=>'news_rss_language','feed_ttl'=>'news_rss_ttl') as $new=>$old)
 	{
 		$config_schema['settings']['plus_news_' . $new] = $old;
 	}

@@ -84,8 +84,12 @@ def preferences(base, owner, member, guest):
 
 def edit_event(base, owner, member, pending):
     new = "posting.php?mode=post&f=1"
-    if "plus_cal_present" in pending.fetch(new) or "plus_cal_present" not in member.fetch(new):
-        raise RuntimeError("The native post editor did not respect the imported calendar grant")
+    allowed, restricted = member.fetch(new), pending.fetch(new)
+    for field in ("plus_cal_present", "plus_news_category"):
+        if field in restricted or field not in allowed:
+            raise RuntimeError("The native post editor ignored the imported publishing permission for " + field)
+    if 'name="plus_news_category"' in Browser(base).fetch(new):
+        raise RuntimeError("The news publisher appeared on a guest topic form")
     title = "Fiktiver Kalendertermin"
     subject = dict(subject=title, message="Lokaler Test des Kalendereditors.", post="1")
 
@@ -102,26 +106,38 @@ def edit_event(base, owner, member, pending):
     invalid = submit(action, dict(fields, plus_cal_end_date="2008-04-06"))
     if "Prüfe Datum und Uhrzeit" not in invalid:
         raise RuntimeError("Calendar validation did not return the first-post editor")
-    submit(action, fields)
+    preview = submit(action, dict(fields, post="", preview="1", plus_news_category="2"))
+    if not re.search(r'<option value="2" selected', preview) or title in owner.fetch("app.php/news/category/2"):
+        raise RuntimeError("The native preview lost or prematurely published the news classification")
+    submit(action, dict(fields, plus_news_category="2"))
     agenda = "app.php/calendar?view=day&date=2008-04-"
     first = owner.fetch(agenda + "08")
     topic = re.search(r'href="([^"]*viewtopic\.php\?t=\d+[^"]*)"[^>]*>' + title + '<', first)
     if not topic or title in owner.fetch(agenda + "09"):
         raise RuntimeError("The native new-topic form did not store the inclusive all-day interval")
     topic_page = owner.fetch(unescape(topic.group(1)))
+    reply = re.search(r'href="([^"]*posting\.php\?[^"]*mode=reply[^"]*)"', topic_page)
+    if not reply or 'name="plus_news_category"' in owner.fetch(unescape(reply.group(1))):
+        raise RuntimeError("News publication should only be available on a topic's first post")
+    if title not in member.fetch("app.php/news/category/2") or title not in Browser(base).fetch("app.php/portal"):
+        raise RuntimeError("Publishing a native topic did not put its first post in the news category")
     edit = re.search(r'href="([^"]*posting\.php\?[^"]*mode=edit[^"]*)"', topic_page)
     if not edit or 'class="plus-cal-topic"' not in topic_page:
         raise RuntimeError("The calendar event is missing from its native topic")
     editor = unescape(edit.group(1))
     action, old = form(editor)
-    change = dict(old, plus_cal_start_date="2008-04-10", plus_cal_start_time="12:15:22", plus_cal_end_date="")
+    change = dict(old, plus_cal_start_date="2008-04-10", plus_cal_start_time="12:15:22", plus_cal_end_date="", plus_news_category="1")
     submit(action, change)
     if title in owner.fetch(agenda + "08") or title not in owner.fetch(agenda + "10"):
         raise RuntimeError("Editing the first post did not move the event")
-    stale = submit(action, old)
-    if "Termin wurde inzwischen geändert" not in stale:
-        raise RuntimeError("A second editor could overwrite a later calendar edit")
+    if title in owner.fetch("app.php/news/category/2") or title not in owner.fetch("app.php/news/category/1"):
+        raise RuntimeError("Editing a native first post did not move the news article")
+    stale = submit(action, dict(old, plus_news_category="2"))
+    if "Termin wurde inzwischen geändert" not in stale or "Nachrichtenkategorie wurde inzwischen geändert" not in stale:
+        raise RuntimeError("A second editor could overwrite a later calendar or news edit")
     action, current = form(editor)
-    submit(action, dict(current, plus_cal_remove="1"))
+    submit(action, dict(current, plus_cal_remove="1", plus_news_category="0"))
     if title in owner.fetch(agenda + "10") or title not in owner.fetch(unescape(topic.group(1))):
         raise RuntimeError("Removing the date did not preserve the forum topic")
+    if title in owner.fetch("app.php/news"):
+        raise RuntimeError("Removing the news classification left the article in the archive")
