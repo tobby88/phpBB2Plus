@@ -37,4 +37,7 @@ function seed_removed_topics($db)
 		$db->query("INSERT INTO phpbb_vote_results (vote_id,vote_option_id,vote_option_text,vote_result) VALUES ($topic,1,'Residual option',1)");
 		$db->query("INSERT INTO phpbb_vote_voters (vote_id,vote_user_id,vote_user_ip) VALUES ($topic,2,'c0000209')");
 	}
+	$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_desc,topic_status,topic_moved_id,topic_time)
+		VALUES (805106,14,'Old erased move link','Old link details',2,805100,10000),
+		(805107,14,'Old healthy move link','Kept link details',2,1,10000)");
 }

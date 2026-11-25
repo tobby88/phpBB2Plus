@@ -47,6 +47,7 @@ function plus_removed_topics()
 		}
 		$db->sql_query("UPDATE $topics t SET t.poll_title='',t.poll_start=0,t.poll_length=0,t.poll_last_vote=0,t.poll_max_options=1,t.poll_vote_change=0
 			WHERE (t.poll_title<>'' OR t.poll_start<>0 OR t.poll_length<>0 OR t.poll_last_vote<>0 OR t.poll_vote_change<>0 OR t.poll_max_options<>1) AND $erased");
+		\phpbb2plus\community\service\removed_topic_shadows::hide($db, 0, false);
 		$db->sql_transaction('commit');
 	}
 	catch (\Throwable $error) { $db->sql_transaction('rollback'); throw $error; }

@@ -210,7 +210,9 @@ class confirmed_deletions
 				'topic_last_poster_name' => '', 'topic_last_poster_colour' => '', 'topic_last_post_subject' => '', 'topic_attachment' => 0)) . " WHERE topic_id=$id");
 		}
 		$after = $this->rows('SELECT topic_visibility FROM ' . TOPICS_TABLE . " WHERE topic_id=$id");
+		$removed = (int) $after[0]['topic_visibility'] !== ITEM_APPROVED;
+		$shadows = $removed ? removed_topic_shadows::hide($db, $id, true) : 0;
 		$this->config->set('num_posts', max(0, (int) $counters['num_posts'] - count($ids)), false);
-		$this->config->set('num_topics', max(0, (int) $counters['num_topics'] - (int) ((int) $after[0]['topic_visibility'] !== ITEM_APPROVED)), false);
+		$this->config->set('num_topics', max(0, (int) $counters['num_topics'] - (int) $removed - $shadows), false);
 	}
 }
