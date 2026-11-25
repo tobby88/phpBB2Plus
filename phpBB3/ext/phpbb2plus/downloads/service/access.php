@@ -5,11 +5,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class access
 {
-	const CATEGORY_ACTIONS = array('view','read','view_file','edit_file','delete_file','upload','download','rate','email',
-		'view_comment','post_comment','edit_comment','delete_comment');
+	const ACTIONS = array('view','read','view_file','edit_file','delete_file','upload','download','rate','email',
+		'view_comment','post_comment','edit_comment','delete_comment','mod','search','stats','toplist','viewall');
 	const GLOBAL_ACTIONS = array('search','stats','toplist','viewall');
-	const ACTIONS = [...self::CATEGORY_ACTIONS,'mod',...self::GLOBAL_ACTIONS];
 	const LEVELS = array(0,1,2,3,5);
+
+	public static function category_actions() { return array_diff(self::ACTIONS,self::GLOBAL_ACTIONS,array('mod')); }
 
 	public static function level($value)
 	{

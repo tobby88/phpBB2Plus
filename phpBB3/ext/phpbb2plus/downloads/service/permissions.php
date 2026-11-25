@@ -109,7 +109,7 @@ class permissions
 		if (!$this->access->permissions_admin()) { throw new \DomainException('NO_AUTH_OPERATION'); }
 		$categories = $this->categories();
 		if ($category < 0 || ($category && !isset($categories[$category]))) { throw new \DomainException('NO_AUTH_OPERATION'); }
-		$actions = $category ? access::CATEGORY_ACTIONS : access::GLOBAL_ACTIONS;
+		$actions = $category ? access::category_actions() : access::GLOBAL_ACTIONS;
 		$levels = array();
 		foreach ($actions as $action)
 		{
