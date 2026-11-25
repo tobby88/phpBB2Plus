@@ -1,4 +1,9 @@
 services:
+    phpbb2plus.community.polls:
+        class: phpbb2plus\community\event\polls
+        arguments: ['@dbal.conn', '@user']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.legacy:
         class: phpbb2plus\community\controller\legacy
         arguments: ['@dbal.conn', '@auth', '@user', '%core.root_path%', '%core.php_ext%']

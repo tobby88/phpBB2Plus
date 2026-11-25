@@ -43,6 +43,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	$convertor['execute_last'][] = 'plus_calendar_permissions();';
+	$convertor['execute_last'][] = 'plus_guest_poll_permissions();';
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 	foreach (\phpbb2plus\calendar\service\settings::MEMBER + \phpbb2plus\calendar\service\settings::BOARD as $name=>$default)
@@ -101,6 +102,10 @@ if (!$get_info)
 			{
 				$field[2] = 'plus_pm_unread';
 			}
+			if ($section['target'] === POLL_VOTES_TABLE && $field[0] === 'vote_user_ip')
+			{
+				$field[2] = 'plus_registration_ip';
+			}
 			if ($section['target'] === POSTS_TABLE && $field[0] === 'post_username')
 			{
 				$field = array('post_username', array('posts.post_username', 'posts.post_author_removed'), 'plus_convert_author');
@@ -115,6 +120,13 @@ if (!$get_info)
 			}
 		}
 		unset($field);
+		if ($section['target'] === POLL_VOTES_TABLE)
+		{
+			// A deleted account's numeric ID may now belong to a different member.
+			// The option totals already include these votes independently of the receipts.
+			$section['left_join'] = 'vote_voters LEFT JOIN users ON users.user_id=vote_voters.vote_user_id';
+			$section['where'] .= ' AND (vote_voters.vote_user_id=-1 OR (vote_voters.vote_user_id>0 AND users.user_id IS NOT NULL))';
+		}
 		if ($section['target'] === SMILIES_TABLE)
 		{
 			$section = array('target' => SMILIES_TABLE, 'primary' => 'smilies.smilies_id', 'autoincrement' => 'smiley_id',

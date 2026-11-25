@@ -270,6 +270,24 @@ def native_content(base, moderator, member):
     poll = member.fetch("viewtopic.php?t=1")
     if "Welche Jahreszeit?" not in poll or "Frühling" not in poll or "Herbst" not in poll:
         raise RuntimeError("A converted poll is missing from the topic")
+    guest = Browser(base)
+    ballot = 'name="vote_id[]"'
+    if ballot in poll or ballot in guest.fetch("viewtopic.php?t=1") or ballot not in moderator.fetch("viewtopic.php?t=1"):
+        raise RuntimeError("The imported member-only ballot or previous member vote changed")
+    if ballot in guest.fetch("viewtopic.php?t=601"):
+        raise RuntimeError("The historical guest vote was forgotten")
+    path = "viewtopic.php?t=602"
+    public = guest.fetch(path)
+    form = re.search(r'<form\b[^>]*class="topic_poll"[^>]*>.*?</form>', public, re.S)
+    if ballot not in public or not form:
+        raise RuntimeError("A ballot which explicitly allowed guests was closed")
+    action, fields = Page(form.group(0)).forms[None]
+    fields.update({"vote_id[]": "2", "update": "1"})
+    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+    guest.fetch(urljoin(urljoin(base, path), action), fields)
+    voted = guest.fetch(path)
+    if ballot in voted or '<span class="poll_total_vote_cnt">2</span>' not in voted:
+        raise RuntimeError("The native guest ballot did not keep the new vote")
     search = "search.php?keywords=Archivsuchprobe&sr=posts"
     results = Browser(base).fetch(search)
     restricted = moderator.fetch(search)

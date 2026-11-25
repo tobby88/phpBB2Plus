@@ -9,7 +9,19 @@ function seed_native_content($db)
 		VALUES (21,1,'Welche Jahreszeit?',1000000000,0)");
 	$db->query("INSERT INTO phpbb_vote_results (vote_id,vote_option_id,vote_option_text,vote_result)
 		VALUES (21,1,'Frühling',2),(21,2,'Herbst',1)");
-	$db->query("INSERT INTO phpbb_vote_voters (vote_id,vote_user_id,vote_user_ip) VALUES (21,1,'c0000204')");
+	$db->query("INSERT INTO phpbb_vote_voters (vote_id,vote_user_id,vote_user_ip) VALUES (21,1,'c0000204'),(21,88,'c0000205')");
+	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,cat_id,forum_order,auth_view,auth_read,auth_vote,auth_pollcreate)
+		VALUES (14,'Ballots open to guests','',1,28,0,0,0,0)");
+	foreach (array(601,602) as $id)
+	{
+		$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id,topic_vote)
+			VALUES ($id,14,'Ballot $id',2,1000000000,$id,$id,1)");
+		$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time) VALUES ($id,$id,14,2,'c0000203',1000000000)");
+		$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES ($id,'Ballot $id','A public poll')");
+		$db->query("INSERT INTO phpbb_vote_desc (vote_id,topic_id,vote_text,vote_start,vote_length) VALUES ($id,$id,'Ballot $id',1000000000,0)");
+		$db->query("INSERT INTO phpbb_vote_results (vote_id,vote_option_id,vote_option_text,vote_result) VALUES ($id,1,'Rot',1),($id,2,'Blau',0)");
+	}
+	$db->query("INSERT INTO phpbb_vote_voters (vote_id,vote_user_id,vote_user_ip) VALUES (601,-1,'7f000001')");
 	$db->query("UPDATE phpbb_posts_text SET post_text=CONCAT(post_text, ' Archivsuchprobe') WHERE post_id IN (32,40)");
 	$db->query('UPDATE phpbb_users SET user_new_privmsg=9, user_unread_privmsg=12 WHERE user_id=1');
 	$pm = $db->prepare('INSERT INTO phpbb_privmsgs (privmsgs_id,privmsgs_type,privmsgs_subject,privmsgs_from_userid,
@@ -39,6 +51,8 @@ function verify_native_content($db, $recipient)
 	$poll = $db->query('SELECT poll_title,poll_start FROM p3_topics WHERE topic_id=1')->fetch_assoc();
 	$options = $db->query('SELECT poll_option_text,poll_option_total FROM p3_poll_options WHERE topic_id=1 ORDER BY poll_option_id')->fetch_all();
 	$voter = $db->query('SELECT poll_option_id,vote_user_id,vote_user_ip FROM p3_poll_votes WHERE topic_id=1')->fetch_assoc();
+	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_poll_votes WHERE topic_id=1')->fetch_row()[0] === 1,
+		'A retired account receipt was attached to a different native member');
 	check_fixture($poll['poll_title'] === 'Welche Jahreszeit?' && (int) $poll['poll_start'] === 1000000000
 		&& count($options) === 2 && $options[0][0] === 'Frühling' && (int) $options[0][1] === 2
 		&& $options[1][0] === 'Herbst' && (int) $options[1][1] === 1
