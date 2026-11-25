@@ -168,6 +168,36 @@ class catalog
 		return $same;
 	}
 
+	public function can_view_awards($member)
+	{
+		return (int) $member > ANONYMOUS && (int) $this->setting('games_show_stats',1) &&
+			((int) $this->user->data['user_id'] === (int) $member || $this->auth->acl_get('u_viewprofile'));
+	}
+
+	/** Rank only eligible games. Use the same score and tie order as the game's leaderboard. */
+	public function award_query($member,$all_time)
+	{
+		$table = $this->prefix . ($all_time ? 'all_scores' : 'scores');
+		$games = $this->prefix . 'games';
+		$scope = $this->game_filter() . " AND g.game_avail=1 AND g.game_show_score=1 AND g.game_name<>'' AND NOT EXISTS
+			(SELECT 1 FROM $games other WHERE other.game_name=g.game_name AND other.game_id<>g.game_id)";
+		if ($all_time) { $scope .= ' AND g.at_highscore_limit>0'; }
+		$directions = array();
+		foreach (array('DESC'=>'COALESCE(g.reverse_list,0)=0','ASC'=>'g.reverse_list<>0') as $direction=>$order_filter)
+		{
+			// Only the top three entries need consideration, including guests and retired accounts.
+			$rank = 'CASE s.row_id';
+			for ($offset=0; $offset<3; $offset++)
+			{
+				$rank .= " WHEN (SELECT r.row_id FROM $table r WHERE r.game_name=g.game_name
+					ORDER BY r.score_units $direction,r.recorded_at,r.player_id,r.row_id LIMIT 1 OFFSET $offset) THEN " . ($offset+1);
+			}
+			$directions[] = "SELECT g.game_id,g.game_name,g.game_desc,s.row_id,s.score_units,s.recorded_at,s.time_taken,$rank ELSE 0 END AS place
+				FROM $table s JOIN $games g ON g.game_name=s.game_name WHERE s.owner_id=" . (int) $member . " AND $order_filter AND $scope";
+		}
+		return '(' . implode(' UNION ALL ',$directions) . ') podium';
+	}
+
 	static public function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 
 	public static function player_name($row,$language,$hide_former)

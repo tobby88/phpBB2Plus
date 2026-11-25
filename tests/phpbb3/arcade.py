@@ -7,6 +7,37 @@ from urllib.parse import parse_qs, urljoin, urlsplit
 from http_board import Browser, Page
 
 
+def awards(founder, member, pending):
+    root = "app.php/arcade/player/2/awards"
+
+    def placements(page):
+        return sorted((int(game), int(place)) for place, game in re.findall(
+            r'<tr[^>]*><td>([123])</td><td><a href="[^"]*/arcade/game/(\d+)/scores/', page))
+
+    current = founder.fetch(root)
+    if placements(current) != [(60, 2), (61, 2), (64, 3)] or "Platz 2 (2)" not in current or "12 s" not in current:
+        raise RuntimeError("Current podium finishes lost a tie, a retired competitor or the time played")
+    if placements(member.fetch(root + "/all")) != [(60, 1), (61, 2), (64, 3)]:
+        raise RuntimeError("All-time or lower-is-better podium ranks did not match the individual scoreboards")
+    limited = pending.fetch(root)
+    if placements(limited) != [(60, 2), (61, 2)] or "Persönliche Spielprobe" in limited:
+        raise RuntimeError("A podium finish exceeded the viewer's Arcade category access")
+    if placements(member.fetch(root + "/all?place=1")) != [(60, 1)] or placements(pending.fetch(root + "?place=3")):
+        raise RuntimeError("Filtering by award or restricting a category changed the wrong results")
+    link = re.search(r'<a href="([^"]+)">My podium finishes</a>', member.fetch("app.php/arcade"))
+    if not link or placements(member.fetch(unescape(link[1]))) != [(60, 1), (61, 1), (64, 2)]:
+        raise RuntimeError("The converted member's Arcade link opened another player's results")
+    own_firsts = [(60, 1), (61, 1)]
+    for old in ("activity.php?mode=game_stats&id=4", "activity.php?mode=game_stats&id=4&user_id=1"):
+        if placements(member.fetch(old)) != own_firsts:
+            raise RuntimeError("The historical Arcade award link lost its player or medal filter")
+    if "9999999999.9999" not in member.fetch("activity.php?mode=at_highscore&id=60"):
+        raise RuntimeError("The old all-time game link lost its scoreboard")
+    if "awards" not in member.fetch("app.php/arcade/game/60/scores/current"):
+        raise RuntimeError("The game leaderboard does not link to its active players' awards")
+    member.fetch("app.php/arcade/player/888888/awards", expected_status=404)
+
+
 def community(base, founder, member, pending):
     guest = Browser(base)
     listing = "app.php/arcade/favourites"
@@ -230,6 +261,9 @@ def protocols(base, member, first_source):
     permission = parse_qs(member.fetch("arcade.php", {"sessdo": "permrequest", "score": "145.75", "fakekey": "fixture", "arcade_hash": token}))
     if not re.search(r">145[.,]75<", member.fetch("arcade.php", {"sessdo": "burn", "microone": permission["microone"][0], "arcade_hash": token})):
         raise RuntimeError("vBulletin did not complete the play")
+    own = re.search(r'<a href="([^"]+)">My podium finishes</a>', member.fetch("app.php/arcade"))
+    if not own or ">145.75<" not in member.fetch(unescape(own[1])):
+        raise RuntimeError("A new score did not update the player's awards")
 
 
 def wallets(base, member, administrator):

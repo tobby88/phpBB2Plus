@@ -19,6 +19,24 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'activity':
+			$mode = $query['mode'] ?? '';
+			$id = $positive('id');
+			if ($mode === '') { $path = ($cat = $positive('cat_id')) ? 'arcade/category/' . $cat : 'arcade'; }
+			elseif ($mode === 'fav') { $path = 'arcade/favourites'; }
+			elseif ($id && in_array($mode,array('game','stats','highscore','at_highscore'),true))
+			{
+				$path = 'arcade/game/' . $id;
+				if ($mode === 'highscore' || $mode === 'at_highscore') { $path .= '/scores/' . ($mode === 'highscore' ? 'current' : 'all'); }
+			}
+			elseif ($mode === 'game_stats' && $id && $id <= 6)
+			{
+				$source = $positive('user_id');
+				if (!$source && isset($query['user_id'])) { break; }
+				$path = 'arcade/legacy/player/' . $source . '/awards/' . ($id <= 3 ? 'all' : 'current');
+				$extra['place'] = $id <= 3 ? $id : $id-3;
+			}
+			break;
 		case 'banner':
 			if ($id = $positive('banner_id')) { $path = 'banners/' . $id . '/visit'; }
 			break;

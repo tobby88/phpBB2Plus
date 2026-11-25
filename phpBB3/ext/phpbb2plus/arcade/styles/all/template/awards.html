@@ -1,0 +1,13 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{{ ARC_TITLE|e }}</h2>
+<div class="action-bar">
+{% if ARC_ALL_TIME or ARC_FILTERED %}<a class="button2" href="{{ U_ARC_CURRENT }}">{L_PLUS_ARC_CURRENT}</a>{% else %}<strong>{L_PLUS_ARC_CURRENT}</strong>{% endif %}
+{% if U_ARC_ALL %} · {% if not ARC_ALL_TIME or ARC_FILTERED %}<a class="button2" href="{{ U_ARC_ALL }}">{L_PLUS_ARC_ALL}</a>{% else %}<strong>{L_PLUS_ARC_ALL}</strong>{% endif %}{% endif %}
+</div>
+<p>{% for item in loops.arc_places %}{% if item.ACTIVE %}<strong>{{ lang('PLUS_ARC_AWARD_COUNT',item.PLACE,item.COUNT) }}</strong>{% else %}<a href="{{ item.URL }}">{{ lang('PLUS_ARC_AWARD_COUNT',item.PLACE,item.COUNT) }}</a>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+<div class="forumbg"><div class="inner"><table class="table1">
+<thead><tr><th>{L_PLUS_ARC_PLACE}</th><th>{L_PLUS_ARC_GAMES}</th><th>{L_PLUS_ARC_POINTS}</th><th>{L_DATE}</th><th>{L_PLUS_ARC_PLAY_TIME}</th></tr></thead>
+<tbody>{% for row in loops.arc_medals %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td>{{ row.PLACE }}</td><td><a href="{{ row.URL }}">{{ row.GAME|e }}</a></td><td>{{ row.POINTS }}</td><td>{{ row.DATE }}</td><td>{{ lang('PLUS_ARC_SECONDS',row.SECONDS) }}</td></tr>
+{% else %}<tr><td colspan="5">{L_PLUS_ARC_NO_SCORES}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

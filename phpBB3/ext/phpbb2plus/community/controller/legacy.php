@@ -69,6 +69,16 @@ class legacy
 		throw new NotFoundHttpException();
 	}
 
+	public function member_id($source)
+	{
+		$source = (int) $source;
+		if ($source <= 0) { return 0; }
+		$r = $this->db->sql_query('SELECT user_id FROM ' . USERS_TABLE . ' WHERE plus_legacy_id=' . $source);
+		$id = (int) $this->db->sql_fetchfield('user_id');
+		$this->db->sql_freeresult($r);
+		return $id > ANONYMOUS ? $id : 0;
+	}
+
 	public function member_link($source, $mode)
 	{
 		$source = (int) $source;
@@ -78,10 +88,8 @@ class legacy
 			if ($registered) { throw new AccessDeniedHttpException(); }
 			return $this->destination('ucp', array('mode'=>'login', 'redirect'=>'profile.' . $this->ext . '?mode=' . $mode . '&u=' . $source));
 		}
-		$result = $this->db->sql_query('SELECT user_id FROM ' . USERS_TABLE . ' WHERE plus_legacy_id=' . $source);
-		$id = (int) $this->db->sql_fetchfield('user_id');
-		$this->db->sql_freeresult($result);
-		if (!$id || $id === ANONYMOUS) { throw new NotFoundHttpException(); }
+		$id = $this->member_id($source);
+		if (!$id) { throw new NotFoundHttpException(); }
 		return $this->destination('memberlist', array('mode'=>$mode, 'u'=>$id));
 	}
 }

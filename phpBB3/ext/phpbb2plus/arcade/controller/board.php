@@ -19,10 +19,11 @@ class board
 	private $pagination;
 	private $prefix;
 	private $names;
+	private $legacy;
 	private $wallet;
 	private $activity;
 
-	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $names = null)
+	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $names = null, $legacy = null)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -34,6 +35,7 @@ class board
 		$this->pagination = $pagination;
 		$this->prefix = $prefix;
 		$this->names = $names;
+		$this->legacy = $legacy;
 		$this->wallet = $wallet;
 		$this->activity = $activity;
 	}
@@ -72,6 +74,11 @@ class board
 				'URL' => $link ? utf8_htmlspecialchars($url) : $url));
 		}
 		$where = $this->catalog->game_filter($id);
+		$member = (int) $this->user->data['user_id'];
+		if (!empty($this->user->data['is_registered']) && $this->catalog->can_view_awards($member))
+		{
+			$this->template->assign_var('U_ARC_MY_AWARDS',$this->helper->route('phpbb2plus_arcade_awards',array('member'=>$member,'period'=>'current')));
+		}
 		$title = $id ? catalog::plain($cats[$id]['cat_name']) : $this->language->lang('PLUS_ARC');
 		$pagelink = $id ? $this->helper->route('phpbb2plus_arcade_category', array('category' => $id)) : $this->helper->route('phpbb2plus_arcade_index');
 		if ($favourites)
@@ -118,6 +125,58 @@ class board
 		try { $this->activity->write($id,$operation,$value); }
 		catch (\DomainException $e) { return $this->helper->message($e->getMessage(),array(),'INFORMATION',422); }
 		return new RedirectResponse($this->helper->route('phpbb2plus_arcade_game',array('game'=>$id),false),303);
+	}
+
+	public function awards($member,$period,$legacy = false)
+	{
+		$this->header();
+		$id = (int) $member;
+		$reason = $this->catalog->board_access();
+		if ($reason === 'LOGIN' || ($legacy && !$id && empty($this->user->data['is_registered'])))
+		{
+			$route = $legacy ? 'phpbb2plus_arcade_legacy_awards' : 'phpbb2plus_arcade_awards';
+			login_box($this->helper->route($route,array('member'=>$id,'period'=>$period,'place'=>$this->request->variable('place',0)),false));
+		}
+		if ($reason !== '') { throw new NotFoundHttpException(); }
+		if ($legacy) { $id = $id ? ($this->legacy ? $this->legacy->member_id($id) : 0) : (int) $this->user->data['user_id']; }
+		if (!$this->catalog->can_view_awards($id)) { throw new NotFoundHttpException(); }
+		$params = array('member'=>$id,'period'=>$period);
+		$all_time = (int) $this->catalog->setting('games_at_highscore',1);
+		$place = $this->request->variable('place',0);
+		if (($period === 'all' && !$all_time) || $place < 0 || $place > 3) { throw new NotFoundHttpException(); }
+		$r = $this->db->sql_query('SELECT username FROM ' . USERS_TABLE . " WHERE user_id=$id AND user_type IN (" . USER_NORMAL . ',' . USER_FOUNDER . ')');
+		$name = $this->db->sql_fetchfield('username'); $this->db->sql_freeresult($r);
+		if ($name === false) { throw new NotFoundHttpException(); }
+		$source = $this->catalog->award_query($id,$period === 'all');
+		$r = $this->db->sql_query("SELECT place,COUNT(*) AS n FROM $source WHERE place>0 GROUP BY place");
+		$counts = array_column($this->db->sql_fetchrowset($r),'n','place');
+		$this->db->sql_freeresult($r);
+		$total = $place ? (int) ($counts[$place] ?? 0) : array_sum($counts);
+		$url = $this->helper->route('phpbb2plus_arcade_awards',$params + ($place ? array('place'=>$place) : array()));
+		$start = $this->start($url,$total,25);
+		for ($i=1; $i<=3; $i++)
+		{
+			$this->template->assign_block_vars('arc_places',array('PLACE'=>$i,'COUNT'=>(int) ($counts[$i] ?? 0),'ACTIVE'=>$i===$place,
+				'URL'=>$this->helper->route('phpbb2plus_arcade_awards',$params + array('place'=>$i))));
+		}
+		if ($total)
+		{
+			$filter = $place ? "place=$place" : 'place>0';
+			$r = $this->db->sql_query_limit("SELECT * FROM $source WHERE $filter ORDER BY place,game_desc,game_id,row_id",25,$start);
+			while ($row = $this->db->sql_fetchrow($r))
+			{
+				$this->template->assign_block_vars('arc_medals',array('PLACE'=>(int) $row['place'],'GAME'=>catalog::plain($row['game_desc'] ?: $row['game_name']),
+					'URL'=>$this->helper->route('phpbb2plus_arcade_scores',array('game'=>(int) $row['game_id'],'board'=>$period)),
+					'POINTS'=>score::display($row['score_units'],$this->language->lang('PLUS_ARC_DECIMAL')),
+					'DATE'=>$this->user->format_date((int) $row['recorded_at']),'SECONDS'=>(int) $row['time_taken']));
+			}
+			$this->db->sql_freeresult($r);
+		}
+		$title = $this->language->lang('PLUS_ARC_AWARDS_FOR',htmlspecialchars_decode($name,ENT_QUOTES));
+		$this->template->assign_vars(array('ARC_TITLE'=>$title,'ARC_ALL_TIME'=>$period==='all','ARC_FILTERED'=>(bool) $place,
+			'U_ARC_CURRENT'=>$this->helper->route('phpbb2plus_arcade_awards',array('member'=>$id,'period'=>'current')),
+			'U_ARC_ALL'=>$all_time ? $this->helper->route('phpbb2plus_arcade_awards',array('member'=>$id,'period'=>'all')) : ''));
+		return $this->helper->render('@phpbb2plus_arcade/awards.html',utf8_htmlspecialchars($title));
 	}
 
 	private function activity_forms($game)
@@ -198,12 +257,14 @@ class board
 			$sort = $history ? 's.highscore_year DESC,s.highscore_mon DESC,s.highscore_id' :
 				's.score_units ' . ($g['reverse_list'] ? 'ASC' : 'DESC') . ',s.recorded_at,s.player_id,s.row_id';
 			$fields = $history ? ',s.highscore_year,s.highscore_mon' : '';
-			$result = $this->db->sql_query_limit("SELECT s.owner_id,s.author_removed,s.score_units,$display AS display_name,$date AS score_time,u.username,u.user_colour$fields
+			$result = $this->db->sql_query_limit("SELECT s.owner_id,s.author_removed,s.score_units,$display AS display_name,$date AS score_time,u.username,u.user_colour,u.user_type$fields
 				FROM $table s LEFT JOIN " . USERS_TABLE . " u ON u.user_id=s.owner_id AND s.owner_id>0" . $where . ' ORDER BY ' . $sort, 25, $start);
 			$position = $start;
 			while ($s = $this->db->sql_fetchrow($result))
 			{
 				$this->template->assign_block_vars('arc_scores', array('POSITION' => ++$position, 'PLAYER' => $this->player($s),
+					'U_AWARDS' => $s['username'] !== null && in_array((int) $s['user_type'],array(USER_NORMAL,USER_FOUNDER),true) && $this->catalog->can_view_awards($s['owner_id']) ?
+						$this->helper->route('phpbb2plus_arcade_awards',array('member'=>(int) $s['owner_id'],'period'=>$board === 'all' ? 'all' : 'current')) : '',
 					'POINTS' => score::display($s['score_units'], $this->language->lang('PLUS_ARC_DECIMAL')), 'TIME' => $this->user->format_date((int) $s['score_time']),
 					'MONTH' => $history ? sprintf('%04d-%02d', $s['highscore_year'], $s['highscore_mon']) : ''));
 			}
