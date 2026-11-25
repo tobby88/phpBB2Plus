@@ -40,7 +40,8 @@ def playback(web, base, root):
         receiver.timeout = 0.35
         probe = Path(web) / ("renderer-" + token + ".html")
         callback = f"http://127.0.0.1:{receiver.server_port}/{token}"
-        style_checks = Path(__file__).with_name("style_browser.js").read_text(encoding="utf-8")
+        style_checks = "\n".join(Path(__file__).with_name(name).read_text(encoding="utf-8")
+                                 for name in ("style_browser.js", "gallery_style_browser.js"))
         probe.write_text("""<!doctype html><html><body><iframe title="Arcade fixture"></iframe><script>
 STYLE_CHECKS
 const frame = document.querySelector("iframe");
@@ -67,7 +68,11 @@ setInterval(async () => {
         if (meta && api.readyState === 2) {
             checkingStyle = true;
             const movie = [meta.width, meta.height, meta.frameRate, meta.numFrames];
-            try { await checkPlusStyle(frame); report(JSON.stringify(movie)); }
+            try {
+                await checkPlusStyle(frame);
+                await checkGalleryStyle(frame);
+                report(JSON.stringify(movie));
+            }
             catch (error) { report(String(error).slice(0, 220)); }
         }
     } else if (container && !player) { report(container.textContent.slice(0, 120)); }
