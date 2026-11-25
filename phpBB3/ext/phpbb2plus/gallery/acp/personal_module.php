@@ -3,6 +3,7 @@ namespace phpbb2plus\gallery\acp;
 
 use phpbb\request\request_interface;
 use phpbb2plus\gallery\service\settings;
+use phpbb2plus\gallery\service\upload_archive;
 
 class personal_module
 {
@@ -64,6 +65,7 @@ class personal_module
 		}
 		add_form_key($form_key);
 		$template->assign_vars(array('U_ACTION' => $this->u_action, 'REVISION' => settings::revision($stored), 'S_MEDIA' => $media,
+			'S_ZIP_MISSING' => $media && !upload_archive::available(),
 			'ALBUM_SETTINGS_TITLE' => $language->lang($this->page_title), 'ALBUM_SETTINGS_EXPLAIN' => $language->lang($media ? 'PLUS_ALBUM_CFG_MEDIA_EXPLAIN' : 'PLUS_ALBUM_CFG_EXPLAIN')));
 	}
 }

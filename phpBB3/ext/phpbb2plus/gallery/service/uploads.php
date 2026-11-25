@@ -37,11 +37,17 @@ class uploads
 
 	public function resizing() { return (string) $this->access->setting('resize_pic', 0) === '1'; }
 
+	public function zip_enabled() { return (string) $this->access->setting('zip_uploads', 1) === '1'; }
+
+	public function picture_limit() { return max(1, min(100, (int) $this->access->setting('max_uploads', 10))); }
+
+	public function archive_limit() { return min(upload_archive::MAX_IMAGES, $this->picture_limit()); }
+
 	private function image_policy()
 	{
 		$current = array();
 		foreach (array('gd_version','thumbnail_size','max_width','max_height','max_file_size','resize_pic','resize_width','resize_height',
-			'resize_quality','jpg_allowed','gif_allowed','png_allowed') as $name) { $current[$name] = $this->access->setting($name, null); }
+			'resize_quality','jpg_allowed','gif_allowed','png_allowed','zip_uploads','max_uploads','multiple_uploads') as $name) { $current[$name] = $this->access->setting($name, null); }
 		return $current;
 	}
 
@@ -57,11 +63,44 @@ class uploads
 		return max(0, min(65535, (int) $this->access->setting('desc_length', 512)));
 	}
 
-	private function inspect($path, $client_name, $preview = false)
+	private function inputs($files, $expected, $preview, &$packed, &$remaining_bytes)
+	{
+		$count_error = $preview ? 'PLUS_ALBUM_BAD_PREVIEW' : 'PLUS_ALBUM_BAD_COUNT';
+		if (!is_array($files) || !isset($files['name'], $files['tmp_name'], $files['error']) || !is_array($files['name']) ||
+			!is_array($files['tmp_name']) || !is_array($files['error']) || !count($files['error']) || count($files['error']) > $this->limit() ||
+			($expected && count($files['error']) !== $expected))
+		{ throw new \DomainException($count_error); }
+		$items = array();
+		foreach ($files['error'] as $key => $error)
+		{
+			$path = $files['tmp_name'][$key] ?? null;
+			$name = $files['name'][$key] ?? null;
+			if ($error !== UPLOAD_ERR_OK || !is_string($path) || !is_uploaded_file($path) || !is_string($name))
+			{ throw new \DomainException($preview ? 'PLUS_ALBUM_BAD_PREVIEW' : 'PLUS_ALBUM_BAD_FILE'); }
+			$name = upload_archive::filename($name);
+			if (preg_match('/\.zip$/iD', $name))
+			{
+				if (!$this->zip_enabled()) { throw new \DomainException('PLUS_ALBUM_ZIP_DISABLED'); }
+				$limit = min($this->archive_limit(), $this->picture_limit() - count($items));
+				$bytes = max(1, (int) $this->access->setting('max_file_size', 128000)) * $this->archive_limit();
+				$items = array_merge($items, upload_archive::images($path, $limit, $bytes, $remaining_bytes));
+				$packed = true;
+			}
+			else
+			{
+				if (count($items) >= $this->picture_limit()) { throw new \DomainException($count_error); }
+				$items[] = array('name' => $name, 'path' => $path);
+			}
+		}
+		return $items;
+	}
+
+	private function inspect($file, $preview = false)
 	{
 		$types = array(IMAGETYPE_JPEG => array('jpg_allowed','image/jpeg','imagecreatefromjpeg'),
 			IMAGETYPE_PNG => array('png_allowed','image/png','imagecreatefrompng'), IMAGETYPE_GIF => array('gif_allowed','image/gif','imagecreatefromgif'));
-		if (!is_string($path) || !is_uploaded_file($path)) { throw new \DomainException('PLUS_ALBUM_BAD_FILE'); }
+		// inputs() supplies either a verified multipart upload or a private archive-member stream.
+		$path = $file['path'];
 		$bytes = filesize($path);
 		if (!$bytes || $bytes > 67108864) { throw new \DomainException('PLUS_ALBUM_BAD_SIZE'); }
 		$info = @getimagesize($path);
@@ -82,13 +121,17 @@ class uploads
 		if (ini_get('memory_limit') !== '-1' && $needed > $this->ini->getBytes('memory_limit') - memory_get_usage(true)) { throw new \DomainException('PLUS_ALBUM_BAD_SIZE'); }
 		$decoded = @$decoder($path);
 		if (!$decoded) { throw new \DomainException('PLUS_ALBUM_BAD_FILE'); }
-		$name = is_string($client_name) ? basename(str_replace('\\', '/', $client_name)) : '';
+		$name = $file['name'];
 		if ($name === '' || !preg_match('//u', $name) || preg_match('/[\x00-\x1f\x7f]/', $name) || utf8_strlen($name) > 255) { throw new \DomainException('PLUS_ALBUM_BAD_FILE'); }
 		$hash = hash_file('sha256', $path);
 		if ($hash === false) { throw new \DomainException('PLUS_ALBUM_BAD_FILE'); }
 		$image = array('path' => $path, 'hash' => $hash, 'source_filename' => $name, 'width' => $info[0], 'height' => $info[1],
 			'media_type' => $mime, 'bytes' => $bytes);
-		if (!$resize) { return $image; }
+		if (!$resize)
+		{
+			if (isset($file['stream'])) { $image['stream'] = $file['stream']; }
+			return $image;
+		}
 		if ($mime === 'image/jpeg') { $decoded = raster::orient($decoded, raster::orientation($path)); }
 		$width = min($width, max(1, (int) $this->access->setting('resize_width', 600)));
 		$height = min($height, max(1, (int) $this->access->setting('resize_height', 600)));
@@ -180,9 +223,6 @@ class uploads
 	{
 		$this->destination($id);
 		if (!preg_match('/^[a-f0-9]{32}$/D', $nonce)) { throw new \DomainException('FORM_INVALID'); }
-		if (!is_array($files) || !isset($files['name'], $files['tmp_name'], $files['error']) || !is_array($files['error']) ||
-			!count($files['error']) || count($files['error']) > $this->limit() || ($expected && count($files['error']) !== $expected))
-		{ throw new \DomainException('PLUS_ALBUM_BAD_COUNT'); }
 		if (utf8_strlen($title) > 255 || utf8_strlen($description) > $this->text_limit()) { throw new \DomainException('PLUS_ALBUM_BAD_TEXT'); }
 		$registered = !empty($this->user->data['is_registered']);
 		if (!$registered && $guest_name !== '')
@@ -192,25 +232,33 @@ class uploads
 		}
 		$manual = $this->manual();
 		$policy = $this->image_policy();
-		if (($manual && (!isset($previews['error']) || !is_array($previews['error']) || array_keys($files['error']) !== array_keys($previews['error']))) ||
-			(!$manual && $previews)) { throw new \DomainException('PLUS_ALBUM_BAD_PREVIEW'); }
-		$images = $small = $identity = array();
-		foreach ($files['error'] as $key => $error)
+		if (!$manual && $previews) { throw new \DomainException('PLUS_ALBUM_BAD_PREVIEW'); }
+		$remaining_bytes = upload_archive::MAX_BYTES;
+		$packed = false;
+		$files = $this->inputs($files, $expected, false, $packed, $remaining_bytes);
+		if ($manual)
 		{
-			if ($error !== UPLOAD_ERR_OK || !isset($files['tmp_name'][$key], $files['name'][$key])) { throw new \DomainException('PLUS_ALBUM_BAD_FILE'); }
-			$image = $this->inspect($files['tmp_name'][$key], $files['name'][$key]);
+			$previews = $this->inputs($previews, 0, true, $packed, $remaining_bytes);
+			if (count($files) !== count($previews)) { throw new \DomainException('PLUS_ALBUM_BAD_PREVIEW'); }
+		}
+		$number_titles = $packed && count($files) > 1 && $title !== '';
+		if ($number_titles && utf8_strlen($title) > 249) { throw new \DomainException('PLUS_ALBUM_ZIP_TITLE'); }
+		$images = $small = $identity = array();
+		foreach ($files as $key => $file)
+		{
+			$image = $this->inspect($file);
 			$images[] = $image;
 			$entry = array($image['source_filename'], $image['source_hash'] ?? $image['hash']);
 			if ($manual)
 			{
-				if ($previews['error'][$key] !== UPLOAD_ERR_OK || !isset($previews['tmp_name'][$key], $previews['name'][$key])) { throw new \DomainException('PLUS_ALBUM_BAD_PREVIEW'); }
-				$thumb = $this->inspect($previews['tmp_name'][$key], $previews['name'][$key], true);
+				$thumb = $this->inspect($previews[$key], true);
 				if ($thumb['media_type'] !== $image['media_type']) { throw new \DomainException('PLUS_ALBUM_BAD_PREVIEW'); }
 				$small[] = $thumb;
 				$entry[] = $thumb['hash'];
 			}
 			$identity[] = $entry;
 		}
+		if ($number_titles) { $identity['numbered'] = true; }
 		$actor = $registered ? (string) $this->user->data['user_id'] : 'guest-' . $this->user->session_id;
 		$batch = hash_hmac('sha256', $actor . ':' . (int) $id . ':' . $nonce, $this->config['plus_gallery_media_key']);
 		$payload = hash('sha256', serialize(array($title, $description, $registered ? '' : $guest_name, $identity)));
@@ -241,7 +289,7 @@ class uploads
 			foreach ($names as $name) { $rows[] = array('storage_name' => $name, 'removed_at' => time()); }
 			$this->db->sql_multi_insert($table, $rows);
 		});
-		return $this->access->write(function () use ($id, $batch, $payload, $dir, $images, $small, $manual, $policy, $names, $title, $description, $registered, $guest_name)
+		return $this->access->write(function () use ($id, $batch, $payload, $dir, $images, $small, $manual, $policy, $names, $number_titles, $title, $description, $registered, $guest_name)
 		{
 			$cat = $this->destination($id);
 			$result = $this->db->sql_query('SELECT payload_hash FROM ' . $this->prefix . "batches WHERE batch_key='$batch'");
@@ -250,7 +298,7 @@ class uploads
 			if ($saved !== false && !hash_equals($saved, $payload)) { throw new \DomainException('FORM_INVALID'); }
 			if ($saved === false)
 			{
-				if ($policy !== $this->image_policy() || count($names) > $this->limit()) { throw new \DomainException('FORM_INVALID'); }
+				if ($policy !== $this->image_policy()) { throw new \DomainException('FORM_INVALID'); }
 				$reserved = $this->db->sql_in_set('storage_name', $names);
 				if ($this->count($this->prefix . 'trash', $reserved) !== count($names)) { throw new \DomainException('FORM_INVALID'); }
 				$this->check_quota($cat, count($images));
@@ -267,6 +315,7 @@ class uploads
 					unset($image['hash'], $image['path'], $image['stream'], $image['source_hash']);
 					$default_title = trim(pathinfo($image['source_filename'], PATHINFO_FILENAME));
 					$label = $title === '' ? ($default_title === '' ? $image['source_filename'] : $default_title) : $title;
+					if ($number_titles) { $label .= sprintf(' - %03d', $i + 1); }
 					$row = $image + array('cat_id' => (int) $id, 'storage_name' => $name, 'title' => $label, 'description' => $description,
 						'author_id' => (int) $this->user->data['user_id'], 'author_name' => $registered ? '' : $guest_name,
 						'author_ip' => $this->user->ip, 'created_at' => time(), 'approved' => (int) $cat['approval'] === 0 ? 1 : 0);

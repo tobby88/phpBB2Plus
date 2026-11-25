@@ -2,6 +2,7 @@
 namespace phpbb2plus\gallery\controller;
 
 use phpbb\request\request_interface;
+use phpbb2plus\gallery\service\upload_archive;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class upload
@@ -63,6 +64,9 @@ class upload
 		$this->template->assign_vars(array('ALBUM_ERROR' => $error, 'ALBUM_BATCH' => bin2hex(random_bytes(16)),
 			'ALBUM_TITLE' => $fields['title'], 'ALBUM_DESCRIPTION' => $fields['description'], 'ALBUM_GUEST' => $fields['guest_name'],
 			'ALBUM_CATEGORY' => $cat['title'], 'ALBUM_COUNT' => $this->uploads->limit(), 'ALBUM_DESC_LIMIT' => $this->uploads->text_limit(),
+			'S_ZIP' => $this->uploads->zip_enabled() && upload_archive::available(), 'ZIP_LIMIT' => $this->uploads->archive_limit(),
+			'ZIP_BATCH_LIMIT' => min($this->uploads->picture_limit(), $this->uploads->limit() * $this->uploads->archive_limit()),
+			'S_ZIP_UNAVAILABLE' => $this->uploads->zip_enabled() && !upload_archive::available(),
 			'S_MANUAL_PREVIEWS' => $this->uploads->manual(), 'PREVIEW_BOUND' => $this->uploads->preview_bound(), 'S_RESIZE' => $this->uploads->resizing(),
 			'S_ALBUM_GUEST' => empty($this->user->data['is_registered']), 'U_ALBUM_UPLOAD' => $this->helper->route('phpbb2plus_gallery_upload', $params),
 			'U_CATEGORY' => $target));

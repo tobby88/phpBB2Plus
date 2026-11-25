@@ -6,5 +6,6 @@
     "license": "GPL-2.0-only",
     "authors": [{"name": "phpBB2 Plus contributors"}],
     "require": {"php": ">=7.2", "phpbb/phpbb": ">=3.3.19 <4.0"},
+    "suggest": {"ext-zip": "Allows members to submit ZIP archives of album pictures and thumbnails."},
     "extra": {"display-name": "phpBB2 Plus Photo Album", "soft-require": {"phpbb/phpbb": ">=3.3.19 <4.0"}}
 }

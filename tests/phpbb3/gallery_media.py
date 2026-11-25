@@ -66,13 +66,17 @@ def manual(admin, member, guest, root, check):
     check("preview_cleanup")
 
 
-def resize(admin, owner, root, check):
+def settings_url(admin):
     entry = admin_url(admin)
     menu = admin.fetch(entry + "&i=acp_board&mode=settings")
     link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Fotoalbum-Uploads</span>', menu)
     if not link:
         raise RuntimeError("The ACP has no gallery upload policy")
-    url = urljoin(entry, unescape(link[1]))
+    return urljoin(entry, unescape(link[1]))
+
+
+def resize(admin, owner, root, check):
+    url = settings_url(admin)
     form_id = "album-media-settings"
     page = admin.fetch(url)
     data = FormFields(page, form_id).values

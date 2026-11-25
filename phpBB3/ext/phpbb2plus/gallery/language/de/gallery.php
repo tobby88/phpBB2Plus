@@ -1,6 +1,15 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_FILE_SLOTS' => 'Bis zu %d Dateien auswählen.',
+	'PLUS_ALBUM_ZIP_HINT' => 'Eine ZIP-Datei darf bis zu %1$d JPG-, PNG- oder GIF-Bilder mit unterschiedlichen Dateinamen enthalten. Insgesamt sind bis zu %2$d Bilder je Upload möglich. Ein gemeinsamer Titel wird in Archiv-Reihenfolge nummeriert.',
+	'PLUS_ALBUM_ZIP_PREVIEWS' => 'Auch die Vorschaubilder können als ZIP-Datei hochgeladen werden. Ihre Reihenfolge muss der Reihenfolge der Bilder entsprechen.',
+	'PLUS_ALBUM_ZIP_TITLE' => 'Ein gemeinsamer Titel darf höchstens 249 Zeichen enthalten, damit die Bildnummer Platz hat.',
+	'PLUS_ALBUM_ZIP_DISABLED' => 'ZIP-Uploads sind für dieses Album deaktiviert. Bitte einzelne Bilder auswählen.',
+	'PLUS_ALBUM_ZIP_UNAVAILABLE' => 'ZIP-Uploads sind auf diesem Server nicht verfügbar. Einzelne Bilder können hochgeladen werden.',
+	'PLUS_ALBUM_ZIP_INVALID' => 'Die ZIP-Datei konnte nicht gelesen werden. Bitte ein neues Archiv erstellen oder die Bilder einzeln hochladen.',
+	'PLUS_ALBUM_ZIP_CONTENTS' => 'Bitte eine ZIP-Datei ohne Passwort auswählen, die ausschließlich JPG-, PNG- oder GIF-Bilder mit unterschiedlichen Dateinamen enthält.',
+	'PLUS_ALBUM_ZIP_LIMIT' => 'Die ZIP-Datei überschreitet die zulässige Bildanzahl oder die entpackte Dateigröße. Bitte die Bilder auf kleinere Uploads verteilen.',
 	'PLUS_ALBUM_RESIZE_HINT' => 'Bei zu großen Bildmaßen wird das Bild vor dem Speichern verkleinert. Bei animierten GIFs bleibt dabei das erste Einzelbild erhalten.',
 	'PLUS_ALBUM_RESIZE_FAILED' => 'Das Bild ließ sich nicht verkleinern. Bitte lade eine kleinere Fassung hoch.',
 	'PLUS_ALBUM_PREVIEWS' => 'Vorschaubilder', 'PLUS_ALBUM_PREVIEW_FILES' => 'Wähle pro Bild eine Vorschau im selben Dateiformat und in derselben Reihenfolge. Die längste Seite darf %d Pixel haben.',

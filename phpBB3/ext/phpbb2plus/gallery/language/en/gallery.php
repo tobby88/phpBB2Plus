@@ -1,6 +1,15 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_FILE_SLOTS' => 'Select up to %d files.',
+	'PLUS_ALBUM_ZIP_HINT' => 'ZIP archives may contain up to %1$d JPG, PNG or GIF pictures with distinct file names. You can submit up to %2$d pictures in total. A shared title is numbered in archive order.',
+	'PLUS_ALBUM_ZIP_PREVIEWS' => 'You can also upload the thumbnails as a ZIP. Arrange the thumbnails in the same order as the pictures.',
+	'PLUS_ALBUM_ZIP_TITLE' => 'Use a shared title of at most 249 characters to leave room for the picture number.',
+	'PLUS_ALBUM_ZIP_DISABLED' => 'ZIP uploads are disabled for this album. Select individual pictures.',
+	'PLUS_ALBUM_ZIP_UNAVAILABLE' => 'ZIP uploads are unavailable on this server. You can upload individual pictures.',
+	'PLUS_ALBUM_ZIP_INVALID' => 'The ZIP archive could not be read. Create a new copy or upload the pictures individually.',
+	'PLUS_ALBUM_ZIP_CONTENTS' => 'Choose a ZIP containing only JPG, PNG or GIF files with distinct file names and no password.',
+	'PLUS_ALBUM_ZIP_LIMIT' => 'The ZIP exceeds the permitted number of pictures or the uncompressed size limit. Split it into smaller uploads.',
 	'PLUS_ALBUM_RESIZE_HINT' => 'Pictures exceeding the dimension limits are resized before storage. Resizing an animated GIF keeps its first frame.',
 	'PLUS_ALBUM_RESIZE_FAILED' => 'The picture could not be resized. Please upload a smaller copy.',
 	'PLUS_ALBUM_PREVIEWS' => 'Thumbnails', 'PLUS_ALBUM_PREVIEW_FILES' => 'Select one thumbnail for each picture, in the same format and order. The longest edge may be up to %d pixels.',
