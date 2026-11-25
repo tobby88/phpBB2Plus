@@ -252,8 +252,8 @@ if (!$get_info)
 		array('native_id', 0, ''),
 		array('name_hash', 'removed_author_names.author_name_hash', ''),
 		array('name_key', 'removed_author_names.author_name', 'plus_name_lookup_key'),
-		array('name_clean', 'removed_author_names.author_name', array('\phpbb2plus\community\service\former_members', 'clean')),
-		array('author_name', 'removed_author_names.author_name', ''),
+		array('name_clean', 'removed_author_names.author_name', array('\phpbb2plus\community\service\former_members', 'stored_clean')),
+		array('author_name', 'removed_author_names.author_name', 'utf8_encode_ucr'),
 		array('recorded_at', 'removed_author_names.recorded_at', 'intval'),
 		'left_join' => 'removed_author_names LEFT JOIN users ON users.user_id=removed_author_names.author_user_id',
 		'where' => 'removed_author_names.author_user_id=0 OR users.user_id IS NULL',
@@ -282,8 +282,10 @@ if (!$get_info)
 		'query_first' => array('target', $convert->truncate_statement . $table_prefix . 'plus_bylines'),
 		array('post_id', 'posts.post_id', 'intval'),
 		array('author_name', array('posts.post_username', 'posts.post_author_removed'), 'plus_retained_byline'),
+		array('author_clean', array('posts.post_username', 'posts.poster_id', 'posts.post_author_removed'), 'plus_search_author_clean'),
+		array('author_key', array('posts.post_username', 'posts.poster_id', 'posts.post_author_removed'), 'plus_search_author_key'),
 		array('editor_name', 'posts.post_edit_username', 'plus_convert_byline'),
-		'where' => "posts.post_author_removed = 1 OR posts.post_edit_username <> ''",
+		'where' => "posts.post_author_removed = 1 OR posts.post_edit_username <> '' OR (posts.poster_id <= 0 AND posts.post_username <> '')",
 	);
 	$convertor['schema'][] = array(
 		'target' => BOOKMARKS_TABLE,

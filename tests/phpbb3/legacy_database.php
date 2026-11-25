@@ -66,6 +66,11 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time)
 		VALUES (40,7,7,2,'7f000001',1234567891)");
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (40,'Restricted topic fixture','Private fixture text')");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_username,post_time,post_author_removed) VALUES
+		(44,7,7,-1,'c0000201','RetiredFixture',1234567910,1),(45,1,1,-1,'c0000202','RetiredFixGuest',1000010001,0)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES
+		(44,'Private retained byline','A former member in a restricted forum'),(45,'Named guest message','A genuine guest contribution')");
+	$db->query("UPDATE phpbb_topics SET topic_last_post_id=44,topic_replies=1 WHERE topic_id=7");
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 	seed_native_content($db);

@@ -68,8 +68,7 @@ class former_names implements EventSubscriberInterface
 			$clean = former_members::clean($name);
 			$this->db->sql_query('INSERT INTO ' . $ledger . ' ' . $this->db->sql_build_array('INSERT', array(
 				'source_id' => 0, 'native_id' => $id, 'name_hash' => hash('sha256', $raw), 'name_key' => hash('sha256', $clean),
-				'name_clean' => $event['retain_username'] ? $clean : '', 'author_name' => $event['retain_username'] ? $raw : '', 'recorded_at' => time())));
-			$literal = "'" . $this->db->sql_escape($name) . "'";
+				'name_clean' => $event['retain_username'] ? utf8_encode_ucr($clean) : '', 'author_name' => $event['retain_username'] ? utf8_encode_ucr($raw) : '', 'recorded_at' => time())));
 			// All writes share the transaction phpBB opened for the account deletion.
 			// A native request to discard bylines takes precedence over member display.
 			if ($event['retain_username'])
@@ -78,10 +77,17 @@ class former_names implements EventSubscriberInterface
 				if ($event['mode'] === 'retain') { $columns['author_name'] = 'poster_id'; }
 				foreach ($columns as $column => $source)
 				{
-					$this->db->sql_query("INSERT INTO $table (post_id,author_name,editor_name)
-						SELECT p.post_id,'','' FROM " . POSTS_TABLE . " p LEFT JOIN $table b ON b.post_id=p.post_id
+					$this->db->sql_query("INSERT INTO $table (post_id,author_name,editor_name,author_clean)
+						SELECT p.post_id,'','','' FROM " . POSTS_TABLE . " p LEFT JOIN $table b ON b.post_id=p.post_id
 						WHERE p.$source=$id AND b.post_id IS NULL");
-					$this->db->sql_query("UPDATE $table SET $column=$literal WHERE post_id IN (SELECT post_id FROM " . POSTS_TABLE . " WHERE $source=$id)");
+					$change = array($column=>$name);
+					if ($column === 'author_name')
+					{
+						$change['author_clean'] = utf8_encode_ucr($clean);
+						$change['author_key'] = $clean === '' ? '' : hash('sha256',$clean);
+					}
+					$this->db->sql_query("UPDATE $table SET " . $this->db->sql_build_array('UPDATE',$change) .
+						' WHERE post_id IN (SELECT post_id FROM ' . POSTS_TABLE . " WHERE $source=$id)");
 				}
 				// phpBB writes this byline to denormalized native forum/topic caches as well.
 				$this->original_names[$id] = $name;

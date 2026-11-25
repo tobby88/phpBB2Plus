@@ -67,3 +67,8 @@ services:
         arguments: ['@phpbb2plus.community.former_members', '@dbal.conn', '%core.table_prefix%']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.author_search:
+        class: phpbb2plus\community\event\author_search
+        arguments: ['@dbal.conn', '@config', '@phpbb2plus.community.former_members', '%core.table_prefix%plus_bylines']
+        tags:
+            - { name: event.listener }

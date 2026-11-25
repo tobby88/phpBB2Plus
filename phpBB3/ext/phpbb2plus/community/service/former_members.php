@@ -36,6 +36,11 @@ class former_members
 		return utf8_clean_string(html_entity_decode((string) $name, ENT_QUOTES, 'UTF-8'));
 	}
 
+	public static function stored_clean($name)
+	{
+		return utf8_encode_ucr(self::clean($name));
+	}
+
 	private function exists($conditions)
 	{
 		$result = $this->db->sql_query_limit('SELECT n.name_hash FROM ' . $this->table . ' n WHERE (' . $conditions . ')
@@ -82,7 +87,7 @@ class former_members
 			}
 			else
 			{
-				$parts = array_map(array(__CLASS__, 'clean'), explode('*', $term));
+				$parts = array_map(array(__CLASS__, 'stored_clean'), explode('*', $term));
 				$conditions[] = 'n.name_clean ' . $this->db->sql_like_expression(implode($this->db->get_any_char(), $parts));
 			}
 		}

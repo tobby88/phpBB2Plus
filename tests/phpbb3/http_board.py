@@ -307,7 +307,7 @@ def native_content(base, moderator, member):
         raise RuntimeError("Unable to read a converted private message")
 
 
-def former_names(base, member, removed=False):
+def former_names(base, member, removed=False, founder=None):
     guest = Browser(base)
     path = "viewtopic.php?t=1"
     public = guest.fetch(path)
@@ -321,3 +321,32 @@ def former_names(base, member, removed=False):
         result = guest.fetch("search.php?" + urlencode({"keywords": term, "sr": "posts"}))
         if "keine passenden Ergebnisse gefunden" not in result or "Zitatprobe" in result or "Retained post" in result:
             raise RuntimeError("A public search matched a retained quote identity")
+    if removed:
+        author_results(base, member, removed=True, founder=founder)
+
+
+def author_results(base, member, removed=False, founder=None):
+    guest = Browser(base)
+    queries = (
+        {"author": "retiredfixture", "sr": "posts"},
+        {"author": "RetiredFix*", "sr": "posts"},
+        {"author": "RetiredFixture", "keywords": "former", "sr": "posts"},
+    )
+    for params in queries:
+        path = "search.php?" + urlencode(params)
+        allowed = member.fetch(path)
+        if ("Retained post" not in allowed or "RetiredFixture" not in allowed or "GuestQuoter" in allowed
+                or "Private retained byline" in allowed or "Retained post" in guest.fetch(path)):
+            raise RuntimeError("Retained author search changed its byline, scope or guest visibility")
+    topics = member.fetch("search.php?" + urlencode({"author": "RetiredFix*", "sr": "topics"}))
+    if not re.search(r'viewtopic\.php\?[^"]*\bt=1(?:[^0-9]|$)',topics):
+        raise RuntimeError("Retained author search did not return the parent topic")
+    if removed:
+        after = member.fetch("search.php?" + urlencode({"author": "DepartingFixture", "sr": "posts"}))
+        if "DepartingFixture" not in after or 'p=42' not in after:
+            raise RuntimeError("The retained author of a newly removed native account could not be found")
+    possible = "search.php?" + urlencode({"author": "RetiredFix*", "sr": "posts"})
+    if "Named guest message" not in member.fetch(possible) or "Named guest message" not in guest.fetch(possible):
+        raise RuntimeError("A genuine guest disappeared from a wildcard author search")
+    if founder and "Private retained byline" not in founder.fetch(possible):
+        raise RuntimeError("A founder could not find a retained byline in a restricted forum")

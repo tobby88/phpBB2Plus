@@ -143,6 +143,17 @@ function plus_retained_byline($name, $removed)
 	return (int) $removed ? plus_convert_byline($name) : '';
 }
 
+function plus_search_author_clean($name,$poster,$removed)
+{
+	return (int) $removed || (int) $poster <= 0 ? \phpbb2plus\community\service\former_members::stored_clean(plus_convert_byline($name)) : '';
+}
+
+function plus_search_author_key($name,$poster,$removed)
+{
+	$clean = (int) $removed || (int) $poster <= 0 ? \phpbb2plus\community\service\former_members::clean(plus_convert_byline($name)) : '';
+	return $clean === '' ? '' : hash('sha256',$clean);
+}
+
 function plus_convert_editor($id, $count, $poster)
 {
 	if (!(int) $count) { return 0; }
