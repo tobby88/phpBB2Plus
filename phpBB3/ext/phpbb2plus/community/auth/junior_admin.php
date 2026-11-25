@@ -22,6 +22,12 @@ class junior_admin
 		$this->table = $table;
 	}
 
+	public static function supported_option($option)
+	{
+		// An older Knowledge Base used the review permission for editing any article.
+		return $option !== 'a_plus_kb_articles' || method_exists(\phpbb2plus\knowledgebase\service\articles::class, 'reviewer');
+	}
+
 	public function options($userdata, $auth)
 	{
 		if (empty($userdata['plus_jr_delegate']) || empty($userdata['is_registered']) || !isset($userdata['user_perm_from']) || (int) $userdata['user_perm_from'] !== 0 ||
@@ -44,7 +50,7 @@ class junior_admin
 		$allowed = array();
 		foreach ($rights as $right)
 		{
-			if (isset($auth->acl_options['global'][$right]) && (int) ($existing[$right] ?? ACL_NO) !== ACL_NEVER &&
+			if (isset($auth->acl_options['global'][$right]) && self::supported_option($right) && (int) ($existing[$right] ?? ACL_NO) !== ACL_NEVER &&
 				($row['ext_active'] || strpos($right, 'a_plus_kb_') !== 0)) { $allowed[$right] = true; }
 		}
 		return $allowed;

@@ -230,15 +230,14 @@ def main():
                 colours.administration(member, media["member"])
                 portal.administration(base, member)
                 custom_profiles.administration(member)
+                junior, junior_entry = delegation.browse(base)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/colours", "--no-interaction", cwd=web)
                     php("bin/phpbbcli.php", "cache:purge", "--no-interaction", cwd=web)
                     php(fixture, "colours-" + action, target)
                     if action == "disable":
-                        junior = login(base, "JuniorFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
-                        if "adm/index.php?" in junior.fetch("index.php"):
-                            raise RuntimeError("Disabling Community did not suspend Junior Admin access")
+                        delegation.suspended(junior, junior_entry)
                     php(ROOT / "tests/phpbb3/forum_access.php", target, action, cwd=web)
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
@@ -264,7 +263,6 @@ def main():
                 php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
                 php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
                 delegation.verify_report(php, web)
-                delegation.browse(base)
                 knowledgebase.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                 module_administration(base, member, ordinary, pending, fixture, target, web)

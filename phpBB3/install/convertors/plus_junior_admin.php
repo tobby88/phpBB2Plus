@@ -139,6 +139,7 @@ function plus_jr_plan($id, $level, $active, $raw)
 				elseif (!isset($entry['option'])) { $reason = 'manual-review'; }
 				elseif ($account !== 'active') { $reason = $account; }
 				elseif (!isset($available[$entry['option']])) { $reason = 'target-option-unavailable'; }
+				elseif (!junior_admin::supported_option($entry['option'])) { $reason = 'target-module-too-broad'; }
 				else
 				{
 					$reason = 'delegated';

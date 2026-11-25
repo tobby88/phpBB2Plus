@@ -26,9 +26,16 @@ $account = $subject();
 $auth->acl($account);
 $stock = new \phpbb\auth\auth();
 $stock->acl($account);
+$review = method_exists(\phpbb2plus\knowledgebase\service\articles::class, 'reviewer');
 if (!$auth->has_delegated_acp() || $auth->acl_get('a_') || $stock->acl_get('a_') ||
-	$auth->acl_get('a_words') || $stock->acl_get('a_words') || $auth->acl_get('a_user'))
+	$auth->acl_get('a_words') || $stock->acl_get('a_words') || $auth->acl_get('a_user') || (bool) $auth->acl_get('a_plus_kb_articles') !== $review)
 { throw new RuntimeException('An archived Junior Admin grant affected native public staff permissions'); }
+if ($review)
+{
+	$user->data = $account;
+	$kb = $phpbb_container->get('phpbb2plus.knowledgebase.articles');
+	if (!$kb->reviewer() || $kb->moderator()) { throw new RuntimeException('Delegated article review must not imply editorial rights'); }
+}
 define('ADMIN_START', true);
 if (!$auth->acl_get('a_') || !$auth->acl_get('a_words') || !$auth->acl_get('a_plus_kb_types') || $auth->acl_get('a_icons'))
 { throw new RuntimeException('Junior Admin entrance or the scoped module grant changed'); }
@@ -40,7 +47,7 @@ try
 	$account = $subject();
 	$auth->acl($account);
 	if ($auth->acl_get('a_words') || !$auth->acl_get('a_plus_kb_types')) { throw new RuntimeException('An individual native Never did not revoke just its matching delegation'); }
-	$writer->acl_set('user', 0, 91, array('a_plus_kb_types' => ACL_NEVER));
+	$writer->acl_set('user', 0, 91, array('a_plus_kb_types' => ACL_NEVER, 'a_plus_kb_articles' => ACL_NEVER));
 	plus_jr_finish();
 	$account = $subject();
 	$auth->acl($account);
@@ -56,5 +63,26 @@ try
 }
 finally
 {
-	$writer->acl_set('user', 0, 91, array('a_words' => ACL_NO, 'a_plus_kb_types' => ACL_NO, 'a_ranks' => ACL_NO));
+	$writer->acl_set('user', 0, 91, array('a_words' => ACL_NO, 'a_plus_kb_types' => ACL_NO, 'a_plus_kb_articles' => ACL_NO, 'a_ranks' => ACL_NO));
+}
+
+// The source fixture's ordinary Archive Club has no administrative assignments.
+$membership = array('group_id' => 73, 'user_id' => 91, 'group_leader' => 0, 'user_pending' => 1);
+$db->sql_query('INSERT INTO ' . USER_GROUP_TABLE . ' ' . $db->sql_build_array('INSERT', $membership));
+try
+{
+	$writer->acl_set('group', 0, 73, array('a_words' => ACL_NEVER));
+	$account = $subject();
+	$auth->acl($account);
+	if (!$auth->acl_get('a_words')) { throw new RuntimeException('A pending group membership changed Junior Admin access'); }
+	$db->sql_query('UPDATE ' . USER_GROUP_TABLE . ' SET user_pending=0 WHERE group_id=73 AND user_id=91');
+	$account = $subject();
+	$auth->acl($account);
+	if ($auth->acl_get('a_words') || !$auth->acl_get('a_plus_kb_types'))
+	{ throw new RuntimeException('An active group denial did not revoke the corresponding delegation'); }
+}
+finally
+{
+	$db->sql_query('DELETE FROM ' . USER_GROUP_TABLE . ' WHERE group_id=73 AND user_id=91');
+	$writer->acl_set('group', 0, 73, array('a_words' => ACL_NO));
 }

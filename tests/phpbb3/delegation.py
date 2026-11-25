@@ -46,4 +46,16 @@ def browse(base):
     types = junior.fetch(entry + "&i=-phpbb2plus-knowledgebase-acp-types_module&mode=manage&action=create")
     if 'id="kb-type"' not in types:
         raise RuntimeError("A converted Junior Admin could not open the delegated Knowledge Base module")
-    junior.fetch(entry + "&i=acp_board&mode=settings", expected_status=503)
+    denied = junior.fetch(entry + "&i=acp_board&mode=settings", expected_status=503)
+    if "Module not accessible" not in denied:
+        raise RuntimeError("phpBB did not return its native module-access denial")
+    return junior, entry
+
+
+def suspended(junior, entry):
+    page = junior.fetch("index.php")
+    if "mode=logout" not in page or "adm/index.php?" in page:
+        raise RuntimeError("Disabling Community did not suspend delegation for the signed-in member")
+    denied = junior.fetch(entry, expected_status=403)
+    if "You are not authorised to administer this board." not in denied:
+        raise RuntimeError("phpBB did not return its native ACP entrance denial")
