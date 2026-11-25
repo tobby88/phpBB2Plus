@@ -4,10 +4,10 @@
 function phpbb2plus_redirect_legacy($entry, array $query)
 {
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
-	$search_post = $entry === 'album_search' && $method === 'POST';
-	if (!$search_post && !in_array($method, array('GET', 'HEAD'), true))
+	$read_form = in_array($entry, array('album_search', 'album_personal_index'), true);
+	if (!in_array($method, array('GET', 'HEAD'), true) && !($read_form && $method === 'POST'))
 	{
-		header($entry === 'album_search' ? 'Allow: GET, HEAD, POST' : 'Allow: GET, HEAD');
+		header($read_form ? 'Allow: GET, HEAD, POST' : 'Allow: GET, HEAD');
 		http_response_code(405);
 		return;
 	}
@@ -160,6 +160,12 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . ($entry === 'album_upload' ? '/upload' : ''); }
 			break;
 		case 'album_hotornot': $path = 'album/hot-or-not'; break;
+		case 'album_personal_index':
+			$path = 'album/members';
+			$sort = $method === 'POST' ? $_POST + $query : $query;
+			if (in_array($sort['mode'] ?? '', array('joindate', 'username', 'pics', 'last_pic'), true)) { $extra['mode'] = $sort['mode']; }
+			if (in_array($sort['order'] ?? '', array('ASC', 'DESC'), true)) { $extra['order'] = $sort['order']; }
+			break;
 		case 'album_search':
 			$path = 'album/search';
 			foreach (array('mode','search') as $key)
@@ -268,6 +274,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	}
 	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
-	// The read-only album form also accepted POST. Keep its search text in the request body.
-	header('Location: ' . $base . $path . $search . $anchor, true, $search_post ? 307 : 302);
+	// Search terms stay in the body. The directory sort has only public, enumerated fields.
+	$status = $method === 'POST' ? ($entry === 'album_personal_index' ? 303 : 307) : 302;
+	header('Location: ' . $base . $path . $search . $anchor, true, $status);
 }

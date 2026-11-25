@@ -57,6 +57,7 @@ import gallery
 import gallery_navigation
 import gallery_previews
 import gallery_hot
+import gallery_directory
 import gallery_search
 import gallery_personal
 import knowledgebase
@@ -418,6 +419,8 @@ def main():
                         ROOT / "tests/phpbb3/gallery_search.php", target, phase, cwd=web, capture=True))
                     gallery_hot.browse(admin, reader, applicant, guest, lambda phase: php(
                         ROOT / "tests/phpbb3/gallery_hot.php", target, phase, cwd=web, capture=True))
+                    gallery_directory.browse(admin, reader, applicant, guest, lambda phase: php(
+                        ROOT / "tests/phpbb3/gallery_directory.php", target, phase, cwd=web, capture=True))
 
                 with ThreadPoolExecutor(max_workers=1) as worker:
                     navigation = worker.submit(gallery_views)
