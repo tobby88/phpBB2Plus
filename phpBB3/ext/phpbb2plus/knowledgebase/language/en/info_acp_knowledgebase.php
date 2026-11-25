@@ -4,6 +4,7 @@ $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_KB_SET_DISPLAY' => 'Article lists', 'ACP_PLUS_KB_OPT_STATS_LIST' => 'Show published article counts by type',
 	'ACP_PLUS_KB_OPT_ART_PAGINATION' => 'Articles per page (1 to 1000)',
 	'ACP_PLUS_KB_OPT_HEADER_BANNER' => 'Show the Knowledge Base header image',
+	'ACP_PLUS_KB_OPT_COMMENTS_SHOW' => 'Display forum replies below the article', 'ACP_PLUS_KB_OPT_COMMENTS_PAGINATION' => 'Replies per article page (1 to 1000)',
 	'ACP_PLUS_KB_OPT_NEWS_SORT' => 'Default article order', 'ACP_PLUS_KB_OPT_NEWS_SORT_PAR' => 'Sort direction',
 	'ACP_PLUS_KB_SORT_ALPHABETIC' => 'Title', 'ACP_PLUS_KB_SORT_CREATION' => 'Publication date', 'ACP_PLUS_KB_SORT_ID' => 'Article number',
 	'ACP_PLUS_KB_SORT_LATEST' => 'Latest discussion activity', 'ACP_PLUS_KB_SORT_USERRANK' => 'Author rank',

@@ -43,6 +43,7 @@ $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_KB_SET_DISPLAY' => 'Artikellisten', 'ACP_PLUS_KB_OPT_STATS_LIST' => 'Anzahl veröffentlichter Artikel nach Typ anzeigen',
 	'ACP_PLUS_KB_OPT_ART_PAGINATION' => 'Artikel pro Seite (1 bis 1000)',
 	'ACP_PLUS_KB_OPT_HEADER_BANNER' => 'Grafik der Wissensdatenbank im Kopfbereich anzeigen',
+	'ACP_PLUS_KB_OPT_COMMENTS_SHOW' => 'Antworten aus dem Forum unter dem Artikel anzeigen', 'ACP_PLUS_KB_OPT_COMMENTS_PAGINATION' => 'Antworten pro Artikelseite (1 bis 1000)',
 	'ACP_PLUS_KB_OPT_NEWS_SORT' => 'Standardsortierung der Artikel', 'ACP_PLUS_KB_OPT_NEWS_SORT_PAR' => 'Sortierrichtung',
 	'ACP_PLUS_KB_SORT_ALPHABETIC' => 'Titel', 'ACP_PLUS_KB_SORT_CREATION' => 'Erstellungsdatum', 'ACP_PLUS_KB_SORT_ID' => 'Artikelnummer',
 	'ACP_PLUS_KB_SORT_LATEST' => 'Letzte Aktivität im Diskussionsthema', 'ACP_PLUS_KB_SORT_USERRANK' => 'Rang des Verfassers',

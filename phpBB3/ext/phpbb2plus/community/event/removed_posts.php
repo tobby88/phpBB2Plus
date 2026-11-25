@@ -24,7 +24,15 @@ class removed_posts implements EventSubscriberInterface
 	public static function getSubscribedEvents()
 	{
 		return array('core.submit_post_modify_sql_data'=>'posting', 'core.set_post_visibility_before_sql'=>'approval',
-			'core.viewtopic_modify_post_data'=>'positions', 'core.viewtopic_modify_post_row'=>'caption');
+			'core.viewtopic_modify_post_data'=>'positions', 'core.viewtopic_modify_post_row'=>'caption',
+			'phpbb2plus.knowledgebase.reply_visibility'=>'reply_markers');
+	}
+
+	public function reply_markers($event)
+	{
+		// A formerly published reply may retain its position in a visible topic.
+		// The preview renders only a marker for every deleted row.
+		$event['visible'] = '(' . $event['visible'] . ') OR (t.topic_visibility=' . ITEM_APPROVED . ' AND p.post_visibility=' . ITEM_DELETED . ' AND p.plus_public_post=1)';
 	}
 
 	public function posting($event)

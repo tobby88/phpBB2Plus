@@ -157,11 +157,11 @@ class articles
 	public function discussion($id)
 	{
 		if (!$id || !(int) $this->setting('comments', 1)) { return false; }
-		$result = $this->db->sql_query('SELECT t.topic_id,t.topic_title,t.forum_id,t.topic_moved_id,f.forum_password FROM ' . TOPICS_TABLE . ' t
+		$result = $this->db->sql_query('SELECT t.topic_id,t.topic_title,t.forum_id,t.topic_moved_id,t.topic_status,f.forum_password FROM ' . TOPICS_TABLE . ' t
 			JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=t.forum_id WHERE t.topic_id=' . (int) $id);
 		$topic = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
-		if (!$topic || $topic['topic_moved_id'] || !$this->auth->acl_get('f_list', $topic['forum_id']) || !$this->auth->acl_get('f_read', $topic['forum_id'])) { return false; }
+		if (!$topic || $topic['topic_moved_id'] || (int) $topic['topic_status'] === ITEM_MOVED || !$this->auth->acl_get('f_list', $topic['forum_id']) || !$this->auth->acl_get('f_read', $topic['forum_id'])) { return false; }
 		if (!$this->forum_open($topic['forum_id'], $topic['forum_password'])) { return false; }
 		$result = $this->db->sql_query_limit('SELECT topic_id FROM ' . TOPICS_TABLE . ' t WHERE t.topic_id=' . (int) $id .
 			' AND ' . $this->visibility->get_visibility_sql('topic', $topic['forum_id'], 't.'), 1);
@@ -178,7 +178,7 @@ class articles
 		// A topic's cached last post can be hidden from this reader. The indexed
 		// lookup considers only the posts of the article's own linked topic.
 		return 'COALESCE((SELECT MAX(p.post_id) FROM ' . TOPICS_TABLE . ' t JOIN ' . POSTS_TABLE . ' p ON p.topic_id=t.topic_id AND p.forum_id=t.forum_id
-			WHERE t.topic_id=a.topic_id AND t.topic_moved_id=0 AND ' . $this->db->sql_in_set('t.forum_id', array_map('intval', $forums)) . ' AND '
+			WHERE t.topic_id=a.topic_id AND t.topic_moved_id=0 AND t.topic_status<>' . ITEM_MOVED . ' AND ' . $this->db->sql_in_set('t.forum_id', array_map('intval', $forums)) . ' AND '
 			. $this->visibility->get_forums_visibility_sql('topic', $forums, 't.') . ' AND ' . $this->visibility->get_forums_visibility_sql('post', $forums, 'p.') . '),0)';
 	}
 

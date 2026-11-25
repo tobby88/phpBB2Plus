@@ -8,6 +8,21 @@
 <div class="content">{KB_BODY}</div></div></article>
 <div class="panel"><p>{{ lang('PLUS_KB_VIEWS', KB_VIEWS) }}{% if KB_SCORE %} &middot; {KB_SCORE}{% endif %}</p>
 {% if U_KB_RATE %}<form id="kb-rate" action="{U_KB_RATE}" method="post"><label for="kb-rating">{L_PLUS_KB_RATE}</label> <select id="kb-rating" name="rating">{% for value in 1..10 %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select> {S_FORM_TOKEN}<input class="button2" type="submit" value="{L_SUBMIT}"></form>{% endif %}
-{% if U_KB_DISCUSSION %}<p>{L_PLUS_KB_DISCUSSION} &middot; <a href="{U_KB_DISCUSSION}">{KB_DISCUSSION}</a></p>{% endif %}
+{% if U_KB_DISCUSSION %}<p>{L_PLUS_KB_DISCUSSION} &middot; <a href="{U_KB_DISCUSSION}">{KB_DISCUSSION}</a> &middot; {L_REPLIES} ({KB_REPLIES})</p>{% endif %}
 {% if not KB_PRINT %}<a href="{U_KB_PRINT}">{L_PLUS_KB_PRINT}</a>{% endif %}</div>
+{% if loops.kb_replies %}<section aria-label="{L_REPLIES}" id="kb-discussion">
+{% for reply in loops.kb_replies %}
+<article class="post bg{{ loop.index is odd ? '1' : '2' }}" id="kb-reply-{{ reply.ID }}"><div class="inner">
+{% if reply.REMOVED %}<p>{L_POST_DELETED}</p>
+{% elseif reply.IGNORED %}<p>{L_PLUS_KB_IGNORED_REPLY} <a href="{{ reply.URL }}">{L_PLUS_KB_VIEW_REPLY}</a></p>
+{% else %}
+<h3><a href="{{ reply.URL }}">{% if reply.SUBJECT %}{{ reply.SUBJECT }}{% else %}{L_PLUS_KB_VIEW_REPLY}{% endif %}</a></h3>
+<p class="author">{{ reply.AUTHOR }} &middot; {{ reply.DATE }}{% if reply.LOCATION %} &middot; {L_LOCATION} {{ reply.LOCATION }}{% endif %}</p>
+{% if reply.PENDING %}<p class="notice">{L_POST_UNAPPROVED}</p>{% endif %}
+<div class="content">{{ reply.BODY }}</div>
+{% if reply.ATTACHMENTS %}<dl class="attachbox"><dt>{L_ATTACHMENTS}</dt>{% for file in reply.ATTACHMENTS %}<dd>{{ file }}</dd>{% endfor %}</dl>{% endif %}
+{% if reply.EDITED %}<div class="notice">{{ reply.EDITED }}</div>{% endif %}
+{% endif %}</div></article>
+{% endfor %}</section>{% endif %}
+{% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
 {% if KB_PRINT %}<!-- INCLUDE simple_footer.html -->{% else %}<!-- INCLUDE overall_footer.html -->{% endif %}

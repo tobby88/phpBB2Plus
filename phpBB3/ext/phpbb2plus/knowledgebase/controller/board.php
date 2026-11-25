@@ -20,8 +20,9 @@ class board
 	private $php_ext;
 	private $names;
 	private $editor;
+	private $replies;
 
-	public function __construct($articles, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $root, $php_ext, $editor, $names = null)
+	public function __construct($articles, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $root, $php_ext, $editor, $replies, $names = null)
 	{
 		$this->articles = $articles;
 		$this->db = $db;
@@ -36,6 +37,7 @@ class board
 		$this->php_ext = $php_ext;
 		$this->names = $names;
 		$this->editor = $editor;
+		$this->replies = $replies;
 	}
 
 	private function breadcrumbs($id)
@@ -195,6 +197,27 @@ class board
 		return $a['author_name'] === '' ? $this->language->lang('GUEST') : utf8_htmlspecialchars($a['author_name']);
 	}
 
+	private function discussion_replies($topic, $params, $page, $print)
+	{
+		$count = $this->replies->count($topic);
+		$this->template->assign_vars(array('KB_DISCUSSION' => $topic['topic_title'], 'KB_REPLIES' => $count,
+			'U_KB_DISCUSSION' => append_sid($this->root . 'viewtopic.' . $this->php_ext, 't=' . $topic['topic_id'])));
+		if (!$count || !(int) $this->articles->setting('comments_show', 1)) { return 0; }
+		$this->language->add_lang('viewtopic');
+		$limit = max(1, min(1000, (int) $this->articles->setting('comments_pagination', 5)));
+		$start = $this->pagination->validate_start(max(0, $this->request->variable('start', 0)), $limit, $count);
+		if ($page > 1) { $params['page'] = $page; }
+		if ($print) { $params['print'] = 1; }
+		$url = $this->helper->route('phpbb2plus_kb_article', $params);
+		$this->pagination->generate_template_pagination($url, 'pagination', 'start', $count, $limit, $start);
+		foreach ($this->replies->page($topic, $limit, $start) as $reply)
+		{
+			$reply['URL'] = append_sid($this->root . 'viewtopic.' . $this->php_ext, 'p=' . $reply['ID']) . '#p' . $reply['ID'];
+			$this->template->assign_block_vars('kb_replies', $reply);
+		}
+		return $start;
+	}
+
 	public function article($article)
 	{
 		$id = (int) $article;
@@ -240,15 +263,11 @@ class board
 					'URL' => $this->helper->route('phpbb2plus_kb_manage', $params + array('mode' => $action))));
 			}
 		}
-		if ($topic)
-		{
-			$this->template->assign_vars(array('KB_DISCUSSION' => $topic['topic_title'],
-				'U_KB_DISCUSSION' => append_sid($this->root . 'viewtopic.' . $this->php_ext, 't=' . $topic['topic_id'])));
-		}
+		$start = $topic ? $this->discussion_replies($topic, $params, $page, $print) : 0;
 		$this->template->assign_vars(array('KB_TITLE' => $a['title'], 'KB_SUMMARY' => $a['description'], 'KB_TYPE' => $a['type_name'],
 			'KB_PENDING' => (int) $a['approval'] !== 1, 'KB_AUTHOR' => $this->author($a), 'KB_DATE' => $this->user->format_date($a['created_at']),
 			'KB_VIEWS' => $a['views'], 'KB_PRINT' => $print, 'KB_BODY' => generate_text_for_display($part['content'], $part['bbcode_uid'], $part['bbcode_bitfield'], $part['bbcode_options']),
-			'U_KB_PRINT' => $this->helper->route('phpbb2plus_kb_article', $params + array('page' => $page, 'print' => 1))));
+			'U_KB_PRINT' => $this->helper->route('phpbb2plus_kb_article', $params + array('page' => $page, 'print' => 1) + ($start ? array('start' => $start) : array()))));
 		return $this->helper->render('@phpbb2plus_knowledgebase/article.html', utf8_htmlspecialchars($a['title']));
 	}
 

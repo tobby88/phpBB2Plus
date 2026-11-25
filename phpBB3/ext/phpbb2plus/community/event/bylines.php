@@ -22,7 +22,7 @@ class bylines implements EventSubscriberInterface
 	static public function getSubscribedEvents()
 	{
 		return array('core.viewtopic_modify_post_data'=>'show_bylines', 'phpbb2plus.community.preview_bylines'=>'show_bylines',
-			'core.viewtopic_modify_post_row'=>'show_editor');
+			'core.viewtopic_modify_post_row'=>'show_editor', 'phpbb2plus.community.preview_edited'=>'show_editor');
 	}
 
 	public function show_bylines($event)

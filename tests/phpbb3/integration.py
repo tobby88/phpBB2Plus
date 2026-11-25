@@ -266,6 +266,7 @@ def main():
                 php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
                 delegation.verify_report(php, web)
                 knowledgebase.browse(base, member, ordinary, pending)
+                knowledgebase.reply_preferences(base, member, lambda phase: php(fixture, phase, target))
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
                 module_administration(base, member, ordinary, pending, fixture, target, web)
                 former_names(base, ordinary)

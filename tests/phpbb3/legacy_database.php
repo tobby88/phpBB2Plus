@@ -300,6 +300,22 @@ elseif ($argv[1] === 'kb-category-cleanup')
 {
 	verify_knowledgebase_category_removal($db);
 }
+elseif ($argv[1] === 'kb-reply-limits' || $argv[1] === 'kb-reply-restore')
+{
+	$db->begin_transaction();
+	if ($argv[1] === 'kb-reply-limits')
+	{
+		$db->query('INSERT INTO p3_zebra (user_id,zebra_id,friend,foe) VALUES (2,87,0,1)');
+		$db->query('UPDATE p3_posts SET plus_public_post=0 WHERE post_id=31 AND post_visibility=2 AND plus_public_post=1');
+	}
+	else
+	{
+		$db->query('DELETE FROM p3_zebra WHERE user_id=2 AND zebra_id=87 AND foe=1');
+		$db->query('UPDATE p3_posts SET plus_public_post=1 WHERE post_id=31 AND post_visibility=2 AND plus_public_post=0');
+	}
+	check_fixture($db->affected_rows === 1, 'The inline discussion fixture did not change the expected removal marker');
+	$db->commit();
+}
 elseif ($argv[1] === 'attachments')
 {
 	$rows = $db->query('SELECT r.source_id,r.parent_id,r.attach_id,r.in_message,a.filesize,a.physical_filename,a.is_orphan,a.download_count

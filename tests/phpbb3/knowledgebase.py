@@ -24,6 +24,40 @@ def rankings(guest, editor):
         raise RuntimeError("The legacy statistics bookmark lost the sort or page offset")
 
 
+def reply_panel(page):
+    start = page.index('id="kb-discussion"')
+    return page[start:page.index("</section>", start)]
+
+
+def inline_replies(guest, member):
+    article = "app.php/knowledge/article/"
+    public = reply_panel(guest.fetch(article + "201"))
+    private = reply_panel(member.fetch(article + "201"))
+    removed = re.search(r'id="kb-reply-31"(.*?)</article>', public, re.S)
+    if (not removed or "gelöscht" not in removed[1] or "AliasFixture" in removed[1] or "viewtopic.php" in removed[1]
+            or "Former member fixture" not in public or "RetiredFixGuest" not in public or "RetiredFixture" in public
+            or "EditorFixture" in public or "RetiredFixture" not in private or "EditorFixture" not in private or 'id="kb-reply-1"' in public):
+        raise RuntimeError("Inline replies lost a guest or historical byline, exposed a deleted post, or repeated the first post")
+    if 'id="kb-discussion"' in guest.fetch(article + "204") or "A former member in a restricted forum" not in reply_panel(member.fetch(article + "204")):
+        raise RuntimeError("Article replies did not follow their native forum's read permissions")
+
+
+def reply_preferences(base, member, change):
+    guest = Browser(base)
+    article = "app.php/knowledge/article/201"
+    change("kb-reply-limits")
+    try:
+        public = reply_panel(guest.fetch(article))
+        own = reply_panel(member.fetch(article))
+        if ('id="kb-reply-31"' in public or "Account removal fixture" not in public or "Ignorierliste" not in own
+                or "Account removal fixture" in own or "Antwort im Forum lesen" not in own or "AliasFixture" in own):
+            raise RuntimeError("An unpublished removal or an ignored reply was exposed in the discussion preview")
+    finally:
+        change("kb-reply-restore")
+    if "Account removal fixture" not in reply_panel(member.fetch(article)):
+        raise RuntimeError("Removing a personal ignore setting did not restore the visible reply")
+
+
 def browse(base, administrator, editor, reader):
     guest = Browser(base)
     index = "app.php/knowledge"
@@ -42,6 +76,7 @@ def browse(base, administrator, editor, reader):
     if "Ungeprüfte Anleitung" in guest.fetch(index + "?q=Wissensprobe") or "Ungeprüfte Anleitung" not in editor.fetch(index + "?q=Wissensprobe"):
         raise RuntimeError("Knowledge Base search crossed the article approval boundary")
     rankings(guest, editor)
+    inline_replies(guest, administrator)
     first = guest.fetch(article + "201")
     legacy = guest.fetch("kb.php?mode=article&k=201&page_num=2&print=true")
     if "Zweite Wissensseite" not in legacy or "Wissensarchiv" not in guest.fetch("kb.php?mode=cat&cat=8"):
@@ -326,6 +361,17 @@ def settings_administration(owner, contributor):
     if "Diskussion im Forum" in guest.fetch(article) or "Welche Jahreszeit?" not in guest.fetch("viewtopic.php?t=1"):
         raise RuntimeError("Disabling article discussions removed a native topic or left its article link active")
     result = submit_form(owner, panel, result, discussion, {"comments": "1"})
+    options = FormFields(result, discussion).values
+    result = submit_form(owner, panel, result, discussion, {"comments_show": None, "comments_pagination": "1"})
+    hidden = guest.fetch(article)
+    if 'id="kb-discussion"' in hidden or "Diskussion im Forum" not in hidden:
+        raise RuntimeError("Hiding inline replies affected the native discussion link")
+    result = submit_form(owner, panel, result, discussion, {"comments_show": "1"})
+    first = reply_panel(guest.fetch(article + "?page=2"))
+    second = guest.fetch("kb.php?mode=article&k=201&page_num=2&start=1&print=true")
+    if first.count('id="kb-reply-') != 1 or 'id="kb-reply-31"' not in first or 'id="kb-reply-32"' not in reply_panel(second) or "Zweite Wissensseite" not in second:
+        raise RuntimeError("The article and reply page offsets did not survive the printed legacy bookmark")
+    result = submit_form(owner, panel, result, discussion, {"comments_show": options.get("comments_show"), "comments_pagination": options["comments_pagination"]})
     result = submit_form(owner, panel, result, ratings, {"allow_rating": None})
     if "kb-rate" in Page(contributor.fetch(article)).forms or "Stimmen)" in guest.fetch(article):
         raise RuntimeError("Disabled article ratings were still visible")

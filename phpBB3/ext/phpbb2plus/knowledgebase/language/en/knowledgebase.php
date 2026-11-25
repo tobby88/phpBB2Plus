@@ -3,6 +3,8 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_KB_NO_TYPE' => 'No article type',
 	'PLUS_KB_DEFAULT' => 'Knowledge Base default',
+	'PLUS_KB_IGNORED_REPLY' => 'A member on your ignore list wrote this reply.',
+	'PLUS_KB_VIEW_REPLY' => 'Read reply in the forum',
 	'PLUS_KB_LIST_LATEST' => 'Latest articles', 'PLUS_KB_LIST_MOSTPOPULAR' => 'Most read articles',
 	'PLUS_KB_LIST_TOPRATED' => 'Top rated articles', 'PLUS_KB_BY_TYPE' => 'Published articles by type',
 	'PLUS_KB' => 'Knowledge Base', 'PLUS_KB_CATEGORIES' => 'Categories', 'PLUS_KB_ARTICLES' => 'Articles',
