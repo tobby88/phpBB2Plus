@@ -50,10 +50,11 @@ import profile_media
 import rank_overview
 import topic_calendar
 import gallery
+import gallery_navigation
 import gallery_personal
 import knowledgebase
 from ruffle_browser import playback
-from http_board import author_results, convert, former_names, login, native_content, public_pages, profiles, server, source_files
+from http_board import Browser, author_results, convert, former_names, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
 
 
@@ -353,9 +354,16 @@ def main():
                 historical_actions.browse(member)
                 php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
                 delegation.verify_report(php, web)
-                knowledgebase.browse(base, member, ordinary, pending)
-                knowledgebase.reply_preferences(base, member, lambda phase: php(fixture, phase, target))
-                php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
+                # The gallery checks briefly change its display options. Keep them
+                # away from other gallery requests, including the Chromium check.
+                with ThreadPoolExecutor(max_workers=1) as worker:
+                    navigation = worker.submit(gallery_navigation.browse, member.separate_client(), ordinary.separate_client(),
+                                               Browser(base), lambda phase: php(ROOT / "tests/phpbb3/gallery_navigation.php",
+                                                                               target, phase, cwd=web, capture=True))
+                    knowledgebase.browse(base, member, ordinary, pending)
+                    knowledgebase.reply_preferences(base, member, lambda phase: php(fixture, phase, target))
+                    php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
+                    navigation.result()
                 module_administration(base, member, ordinary, pending, fixture, target, web)
                 former_names(base, ordinary)
                 removed_posts.converted(base, ordinary, member)

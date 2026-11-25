@@ -92,6 +92,7 @@ switch ($phase)
 			$name = $job['storage_name'];
 			if (is_file($dir . $name) !== in_array($name,$keep,true)) { throw new RuntimeException('Replaced or shared media was cleaned incorrectly'); }
 		}
+		$state->delete_array(array('plus_fixture_dl_queue_start', 'plus_fixture_dl_assets'));
 		break;
 	case 'offline':
 		$config->set('upload_path', $config['upload_path'] . '/unavailable-fixture');

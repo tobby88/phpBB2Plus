@@ -164,7 +164,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if ($entry === 'album_showpage')
 			{
 				if (isset($query['full'])) { $extra['full'] = 1; }
-				if ($comment = $positive('comment_id')) { $anchor = '#comment-' . $comment; }
+				if ($comment = $positive('comment_id'))
+				{
+					if (!$id) { $path = 'album/legacy/comment/' . $comment; }
+					$anchor = '#comment-' . $comment;
+				}
+				if ($id && in_array($query['mode'] ?? '', array('next','previous'), true)) { $extra['mode'] = $query['mode']; }
+				if (in_array($query['sort_order'] ?? '', array('ASC','DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
 			}
 			break;
 		case 'dload':
@@ -230,6 +236,14 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 	}
 	if ($path === '') { http_response_code(404); return; }
+	if ($entry === 'album_cat' || $entry === 'album_personal' || ($entry === 'album' && $path !== 'album'))
+	{
+		if (in_array($query['sort_method'] ?? '', array('pic_time','pic_title','username','pic_view_count','rating','comments','new_comment'), true))
+		{
+			$extra['sort_method'] = $query['sort_method'];
+		}
+		if (in_array($query['sort_order'] ?? '', array('ASC','DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
+	}
 	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	header('Location: ' . $base . $path . $search . $anchor, true, 302);
