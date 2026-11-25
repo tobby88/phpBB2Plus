@@ -7,14 +7,20 @@ function seed_knowledgebase($db)
 	$db->query("INSERT INTO phpbb_kb_types (id,type) VALUES (2,'Anleitung')");
 	$db->query("INSERT INTO phpbb_kb_types (id,type) VALUES (9,'Sterne 🌠 &amp;amp; Zeichen')");
 	$db->query("INSERT INTO phpbb_kb_categories (category_id,category_name,category_details,parent,cat_order)
-		VALUES (9,'Pflanzen 🌿','Gärten &amp;amp; Parks 🌼',8,10)");
+		VALUES (9,'Pflanzen 🌿','Gärten &amp;amp; Parks 🌼',8,10),(10,'Lesemappe','',1,20),
+		(11,'Fundstücke','',10,10),(12,'Archivregister','',1,30),(14,'Briefe der Klasse','',11,10)");
 	$db->query("INSERT INTO phpbb_kb_articles (article_id,article_category_id,article_title,article_description,article_date,article_author_id,username,
 		bbcode_uid,article_body,article_type,approved,topic_id,views,article_rating,article_totalvotes) VALUES
 		(201,8,'Öffentliche Anleitung','Beschreibung &amp; Grüße','100201',1,'','testuid','Einstieg[toc]\n[b:testuid]Grüße[/b:testuid] Wissensprobe[page]Fortsetzung[toc]\nZweite Wissensseite',2,1,1,17,16.5000,2),
 		(202,8,'Ungeprüfte Anleitung','','100202',2,'','','Wissensprobe nur intern',2,0,0,0,0,0),
 		(203,8,'Überarbeitete Anleitung','','100203',87,'','','Noch in Prüfung',2,2,0,1,0,0),
-		(204,8,'Geschütztes Diskussionsthema','','100204',0,'EditorFixture','','0',1,1,7,1,0,0)");
+		(204,8,'Geschütztes Diskussionsthema','','100204',0,'EditorFixture','','0',1,1,7,1,0,0),
+		(211,10,'Lesemappenbrief','','100211',2,'','','Rückblick',1,1,1,0,0,0),
+		(212,11,'Ein Fundstück','','100212',2,'','','Fundstück',1,1,0,0,0,0),
+		(213,10,'Interner Entwurf','','100213',2,'','','Entwurf',1,0,0,0,0,0),
+		(214,14,'Brief der Klasse','','100214',2,'','','Archivbrief',1,1,0,0,0,0)");
 	$db->query("INSERT INTO phpbb_kb_votes (votes_ip,votes_userid,votes_file) VALUES ('c0000203',1,201),('192.0.2.5',2,201)");
+	$db->query("INSERT INTO phpbb_kb_votes (votes_ip,votes_userid,votes_file) VALUES ('c0000204',2,211)");
 	$db->query("INSERT INTO phpbb_kb_articles (article_id,article_category_id,article_title,article_description,article_date,article_author_id,
 		username,bbcode_uid,article_body,article_type,approved,topic_id,views,article_rating,article_totalvotes)
 		VALUES (210,8,'Verknüpfter Artikel','','100210',2,'','','Verknüpfung',1,1,9,0,0,0)");
@@ -40,4 +46,15 @@ function verify_knowledgebase($db, $member)
 		JOIN p3_posts p ON p.post_id=a.intro_post WHERE a.article_id=210 AND a.managed_topic=1')->fetch_assoc();
 	check_fixture($owned && (int) $owned['intro_post'] === 72 && (int) $owned['plus_kb_article'] === 210 &&
 		$owned['plus_kb_digest'] === $owned['discussion_hash'] && !(int) $a['managed_topic'], 'A generated intro or an ordinary linked topic was misclassified');
+}
+
+function verify_knowledgebase_category_removal($db)
+{
+	foreach (array('articles','pages','votes','mail') as $table)
+	{
+		$total = $db->query("SELECT COUNT(*) FROM p3_plus_kb_$table WHERE article_id IN (211,212,213)")->fetch_row()[0];
+		check_fixture(!(int) $total, 'Removing category contents left orphan rows in ' . $table);
+	}
+	$parent = $db->query('SELECT c.parent_id FROM p3_plus_kb_articles a JOIN p3_plus_kb_cats c ON a.cat_id=c.cat_id WHERE a.article_id=214')->fetch_row();
+	check_fixture($parent && (int) $parent[0] === 1, 'Deleting a parent removed or orphaned a descendant article');
 }

@@ -36,7 +36,7 @@ class editor
 		if (!$a) { return false; }
 		if ($action === 'edit') { return $this->articles->moderator() || (!empty($this->user->data['is_registered']) &&
 			(int) $this->articles->setting('allow_edit', 1) && (int) $a['author_id'] === (int) $this->user->data['user_id']); }
-		if (!$this->articles->moderator()) { return false; }
+		if (!$this->articles->reviewer()) { return false; }
 		return $action === 'delete' || ($action === 'approve' && (int) $a['approval'] !== 1) || ($action === 'unapprove' && (int) $a['approval'] === 1);
 	}
 
@@ -156,14 +156,11 @@ class editor
 		$this->locked(function () use ($mode, $id, $expected)
 		{
 			$where = ' WHERE article_id=' . (int) $id;
-			// Rating writes take the same row lock before inserting their receipt.
-			$this->db->sql_query('UPDATE ' . $this->prefix . 'articles SET article_id=article_id' . $where);
 			$a = $this->context($mode, $id);
 			if (self::form_revision($a) !== $expected) { throw new \DomainException('PLUS_KB_CONFLICT'); }
 			if ($mode === 'delete')
 			{
-				$this->publication->remove($a);
-				foreach (array('mail','votes','pages','articles') as $name) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $name . $where); }
+				$this->publication->remove_article($a);
 			}
 			else
 			{

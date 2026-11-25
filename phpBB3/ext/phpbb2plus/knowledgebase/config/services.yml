@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.knowledgebase.categories:
+        class: phpbb2plus\knowledgebase\service\categories
+        arguments: ['@phpbb2plus.knowledgebase.articles', '@phpbb2plus.knowledgebase.editor', '@phpbb2plus.knowledgebase.publication', '@dbal.conn', '@auth', '%core.table_prefix%plus_kb_']
     phpbb2plus.knowledgebase.articles:
         class: phpbb2plus\knowledgebase\service\articles
         arguments: ['@dbal.conn', '@auth', '@user', '@content.visibility', '%core.table_prefix%plus_kb_']

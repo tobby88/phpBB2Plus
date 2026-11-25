@@ -1,0 +1,33 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_KB_CATEGORIES}</h1>
+{% if KB_FORM %}
+<form id="kb-category" action="{U_SAVE}" method="post">
+	<fieldset><legend>{{ KB_LABEL|e }}</legend>
+		{% if KB_ERROR %}<div class="errorbox"><p>{{ KB_ERROR|e }}</p></div>{% endif %}
+		{% if KB_EDIT %}
+		<dl><dt><label for="kb-title">{L_ACP_PLUS_KB_CAT_NAME}</label></dt><dd><input id="kb-title" class="inputbox" name="title" value="{{ KB_TITLE|e('html_attr') }}" required maxlength="255"></dd></dl>
+		<dl><dt><label for="kb-description">{L_DESCRIPTION}</label></dt><dd><textarea id="kb-description" name="description" rows="3" maxlength="255">{{ KB_DESCRIPTION|e }}</textarea></dd></dl>
+		<dl><dt><label for="kb-parent">{L_ACP_PLUS_KB_CAT_PARENT}</label></dt><dd><select id="kb-parent" name="parent">
+		<option value="0"{% if KB_ROOT %} selected{% endif %}>{L_ACP_PLUS_KB_CAT_ROOT}</option>
+		{% for choice in loops.kb_choices %}<option value="{{ choice.ID }}"{% if choice.SELECTED %} selected{% endif %}>{{ choice.INDENT|e }}{{ choice.TITLE|e }}</option>{% endfor %}</select></dd></dl>
+		{% else %}
+		<p><strong>{{ KB_TITLE|e }}</strong></p>
+		{% if KB_DELETE %}<p>{{ KB_AFFECTED|e }}</p><p>{L_ACP_PLUS_KB_CAT_PROMOTE}</p>
+		<dl><dt><label for="kb-destination">{L_ACP_PLUS_KB_CAT_ARTICLES}</label></dt><dd><select id="kb-destination" name="destination" required>
+		<option value="">{L_SELECT_OPTION}</option>
+		{% for choice in loops.kb_choices %}<option value="{{ choice.ID }}"{% if choice.SELECTED %} selected{% endif %}>{{ choice.INDENT|e }}{{ choice.TITLE|e }}</option>{% endfor %}
+		<option value="0"{% if KB_DROP_CONTENTS %} selected{% endif %}>{L_ACP_PLUS_KB_CAT_DELETE_CONTENTS}</option></select></dd></dl>{% endif %}
+		{% endif %}
+		<input type="hidden" name="state" value="{KB_STATE}">{S_FORM_TOKEN}
+	</fieldset>
+	<fieldset class="submit-buttons"><button class="button1" type="submit">{{ KB_LABEL|e }}</button> <a href="{U_BACK}">{L_CANCEL}</a></fieldset>
+</form>
+{% else %}
+<p><a class="button2" href="{U_CREATE}">{L_ACP_PLUS_KB_CAT_CREATE}</a></p>
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_KB_CAT_NAME}</th><th>{L_ACP_PLUS_KB_ARTICLES_TOTAL}</th><th>{L_ACTION}</th></tr></thead><tbody>
+{% for cat in loops.kb_cats %}<tr><td>{{ cat.INDENT|e }}<a href="{{ cat.U_EDIT }}">{{ cat.TITLE|e }}</a>{% if cat.DESCRIPTION %}<br>{{ cat.DESCRIPTION|e }}{% endif %}</td><td>{{ cat.TOTAL }}</td>
+<td>{% if cat.U_UP %}<a href="{{ cat.U_UP }}">{L_MOVE_UP}</a> &middot; {% endif %}{% if cat.U_DOWN %}<a href="{{ cat.U_DOWN }}">{L_MOVE_DOWN}</a> &middot; {% endif %}
+<a href="{{ cat.U_DELETE }}">{L_DELETE}</a></td></tr>{% else %}<tr><td colspan="3">{L_ACP_PLUS_KB_CATS_EMPTY}</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

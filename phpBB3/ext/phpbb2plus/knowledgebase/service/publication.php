@@ -158,7 +158,16 @@ class publication
 		}
 	}
 
-	public function remove($a)
+	public function remove_article($a)
+	{
+		$where = ' WHERE article_id=' . (int) $a['article_id'];
+		// A rating takes this row lock before writing its receipt.
+		$this->db->sql_query('UPDATE ' . $this->prefix . 'articles SET article_id=article_id' . $where);
+		$this->remove_discussion($a);
+		foreach (array('mail','votes','pages','articles') as $table) { $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . $where); }
+	}
+
+	private function remove_discussion($a)
 	{
 		$a = $this->recover($a);
 		if (!$a['managed_topic'] || !(int) $this->articles->setting('del_topic', 1) || !($topic = $this->topic($a))) { return; }

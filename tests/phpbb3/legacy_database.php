@@ -293,6 +293,10 @@ elseif ($argv[1] === 'downloaded')
 	$votes = $db->query('SELECT COUNT(*),SUM(points) FROM p3_plus_dl_votes WHERE file_id=50')->fetch_row();
 	check_fixture((int) $votes[0] === 3 && (int) $votes[1] === 24, 'A repeated vote changed the paFileDB rating totals');
 }
+elseif ($argv[1] === 'kb-category-cleanup')
+{
+	verify_knowledgebase_category_removal($db);
+}
 elseif ($argv[1] === 'attachments')
 {
 	$rows = $db->query('SELECT r.source_id,r.parent_id,r.attach_id,r.in_message,a.filesize,a.physical_filename,a.is_orphan,a.download_count

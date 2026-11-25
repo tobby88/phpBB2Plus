@@ -31,22 +31,28 @@ foreach (array('ModernMember'=>array(true,0,true),'HistoricMember'=>array(false,
 	}
 }
 require_once './includes/functions_module.php';
+$editor = $phpbb_container->get('phpbb2plus.knowledgebase.editor');
+$foreign = array('author_id' => 2, 'approval' => 0);
 $reviews = (new \phpbb2plus\knowledgebase\acp\articles_info())->module()['modes']['manage']['auth'];
 $types = (new \phpbb2plus\knowledgebase\acp\types_info())->module()['modes']['manage']['auth'];
-if (p_master::module_auth($reviews, 0) || p_master::module_auth($types, 0))
+$categories = (new \phpbb2plus\knowledgebase\acp\categories_info())->module()['modes']['manage']['auth'];
+if (p_master::module_auth($reviews, 0) || p_master::module_auth($types, 0) || p_master::module_auth($categories, 0))
 { throw new RuntimeException('An unrelated Arcade moderator can administer the Knowledge Base'); }
-foreach (array('a_plus_kb_articles', 'a_plus_kb_types', '') as $option)
+foreach (array('a_plus_kb_articles', 'a_plus_kb_types', 'a_plus_kb_categories', '') as $option)
 {
 	$may_review = $option === 'a_plus_kb_articles';
 	$may_classify = $option === 'a_plus_kb_types';
-	$writer->acl_set('user', 0, 87, array('a_plus_kb_articles' => $may_review ? ACL_YES : ACL_NO, 'a_plus_kb_types' => $may_classify ? ACL_YES : ACL_NO));
+	$may_arrange = $option === 'a_plus_kb_categories';
+	$writer->acl_set('user', 0, 87, array('a_plus_kb_articles' => $may_review ? ACL_YES : ACL_NO, 'a_plus_kb_types' => $may_classify ? ACL_YES : ACL_NO,
+		'a_plus_kb_categories' => $may_arrange ? ACL_YES : ACL_NO));
 	$auth->acl_clear_prefetch(87);
 	$result = $db->sql_query('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=87');
 	$user->data = $db->sql_fetchrow($result) + array('is_registered' => true, 'is_bot' => false);
 	$db->sql_freeresult($result);
 	$auth->acl($user->data);
-	if ((bool) p_master::module_auth($reviews, 0) !== $may_review || (bool) $kb->moderator() !== $may_review
-		|| (bool) p_master::module_auth($types, 0) !== $may_classify || $auth->acl_get('a_plus_kb'))
+	if ((bool) p_master::module_auth($reviews, 0) !== $may_review || (bool) $kb->reviewer() !== $may_review || $kb->moderator()
+		|| $editor->allowed('edit', $foreign) || (bool) $editor->allowed('approve', $foreign) !== $may_review
+		|| (bool) p_master::module_auth($types, 0) !== $may_classify || (bool) p_master::module_auth($categories, 0) !== $may_arrange || $auth->acl_get('a_plus_kb'))
 	{ throw new RuntimeException('Delegating an article desk gave the wrong Knowledge Base capabilities'); }
 }
 // Rows converted by earlier releases predate native label encoding.

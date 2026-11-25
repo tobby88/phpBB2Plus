@@ -61,6 +61,11 @@ class articles
 
 	public function moderator()
 	{
+		return !empty($this->user->data['is_registered']) && $this->auth->acl_gets('m_plus_kb', 'a_plus_kb');
+	}
+
+	public function reviewer()
+	{
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_gets('m_plus_kb', 'a_plus_kb', 'a_plus_kb_articles');
 	}
 
@@ -72,7 +77,7 @@ class articles
 
 	public function visible_sql()
 	{
-		if ($this->moderator()) { return '1=1'; }
+		if ($this->reviewer()) { return '1=1'; }
 		if (empty($this->user->data['is_registered'])) { return 'a.approval=1'; }
 		return '(a.approval=1 OR a.author_id=' . (int) $this->user->data['user_id'] . ')';
 	}

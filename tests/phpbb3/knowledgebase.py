@@ -161,6 +161,13 @@ def administration(owner):
     owner.fetch(article, expected_status=404)
 
 
+def acp_action(panel, page, suffix):
+    matches = [unescape(u) for u in re.findall(r'<a[^>]* href="([^"]+)"', page) if unescape(u).endswith(suffix)]
+    if len(matches) != 1:
+        raise RuntimeError("Expected one Knowledge Base operation for " + suffix)
+    return urljoin(panel, matches[0])
+
+
 def type_administration(owner):
     panel = acp_panel(owner, "Artikeltypen verwalten")
     guest = Browser(owner.base)
@@ -170,16 +177,10 @@ def type_administration(owner):
     if "Pflanzen 🌿" not in category or "Gärten &amp;amp; Parks 🌼" not in category:
         raise RuntimeError("A converted category lost a four-byte character or literal entity")
 
-    def action(page, suffix):
-        matches = [unescape(u) for u in re.findall(r'<a[^>]* href="([^"]+)"', page) if unescape(u).endswith(suffix)]
-        if len(matches) != 1:
-            raise RuntimeError("Expected one article type operation for " + suffix)
-        return urljoin(panel, matches[0])
-
     listing = owner.fetch(panel)
     if "Sterne 🌠 &amp;amp; Zeichen" not in listing:
         raise RuntimeError("The article types lost their converted label")
-    create = action(listing, "&action=create")
+    create = acp_action(panel, listing, "&action=create")
     original = owner.fetch(create)
     title = "Ä" * 250 + " 📘 &"
     listing = submit_form(owner, create, original, "kb-type", {"title": title})
@@ -194,7 +195,7 @@ def type_administration(owner):
     if FormFields(rename, "kb-type").values["title"] != title:
         raise RuntimeError("An article type was escaped twice in its edit form")
     listing = submit_form(owner, edit, rename, "kb-type", {"title": name})
-    remove = action(listing, "type_id=2&action=delete")
+    remove = acp_action(panel, listing, "&type_id=2&action=delete")
     previous = owner.fetch(editor)
     review = owner.fetch(remove)
     if "anderen Artikeltyp" not in submit_form(owner, remove, review, "kb-type", {"destination": ""}):
@@ -205,9 +206,68 @@ def type_administration(owner):
     guest.fetch("app.php/knowledge/article/202", expected_status=404)
     if "inzwischen geändert" not in submit_form(owner, editor, previous, "kb-editor", {}, 422):
         raise RuntimeError("An old article editor could overwrite its new type")
-    remove = action(listing, "type_id=" + created + "&action=delete")
+    remove = acp_action(panel, listing, "&type_id=" + created + "&action=delete")
     submit_form(owner, remove, owner.fetch(remove), "kb-type", {"destination": "0"})
     edit_article = owner.fetch(editor)
     if (FormFields(edit_article, "kb-editor").values["type"] != "0" or escape(name) in guest.fetch(article)
             or "Wissensprobe" not in submit_form(owner, editor, edit_article, "kb-editor", {})):
         raise RuntimeError("The article or its unassigned type was lost on editing")
+
+
+def category_administration(owner):
+    panel = acp_panel(owner, "Kategorien verwalten")
+    guest = Browser(owner.base)
+    directory = "app.php/knowledge/category/"
+    article = "app.php/knowledge/article/"
+
+    def operation(listing, cat, name):
+        return acp_action(panel, listing, "&cat_id=" + str(cat) + "&action=" + name)
+
+    def save(url, values):
+        return submit_form(owner, url, owner.fetch(url), "kb-category", values)
+
+    listing = owner.fetch(panel)
+    remove_parent = operation(listing, 10, "delete")
+    stale = owner.fetch(remove_parent)
+    edit_parent = operation(listing, 10, "edit")
+    page = owner.fetch(edit_parent)
+    if any('value="' + n + '"' in page.split('id="kb-parent"', 1)[1].split("</select>", 1)[0] for n in ("10", "11", "14")):
+        raise RuntimeError("An ancestor could be moved beneath itself or a descendant")
+    refused = submit_form(owner, edit_parent, page, "kb-category", {"parent": "11"})
+    if "Wähle eine übergeordnete Kategorie" not in refused:
+        raise RuntimeError("The category manager accepted a cycle")
+    create = acp_action(panel, listing, "&action=create")
+    name = "Ablage 📚 &amp; Bestand"
+    listing = save(create, {"parent": "1", "title": name, "description": "Historische Übersicht"})
+    found = re.search(r'<a href="[^"]+cat_id=(\d+)&amp;action=edit">' + re.escape(escape(name)) + '</a>', listing)
+    if not found:
+        raise RuntimeError("The new category lost its label")
+    created = found[1]
+    conflict = submit_form(owner, remove_parent, stale, "kb-category", {"destination": "0"})
+    if "inzwischen geändert" not in conflict or "Lesemappenbrief" not in guest.fetch(directory + "10"):
+        raise RuntimeError("An out-of-date confirmation removed the category")
+    for direction, name_first in (("up", True), ("down", False)):
+        listing = save(operation(listing, created, direction), {})
+        front = guest.fetch(directory + "1")
+        if (front.index(escape(name)) < front.index("Archivregister")) != name_first:
+            raise RuntimeError("The public directory did not preserve the new sibling order")
+    edit = operation(listing, created, "edit")
+    listing = save(edit, {"parent": "8", "description": "Überarbeitet"})
+    if escape(name) in guest.fetch(directory + "1") or "Überarbeitet" not in guest.fetch(directory + "8"):
+        raise RuntimeError("Moving a category did not update the public hierarchy")
+    refused = save(remove_parent, {"destination": ""})
+    if "andere Kategorie" not in refused:
+        raise RuntimeError("An empty category destination was interpreted as deletion")
+    listing = save(remove_parent, {"destination": "11"})
+    guest.fetch(directory + "10", expected_status=404)
+    moved = guest.fetch(directory + "11")
+    if not all(text in moved for text in ("Lesemappenbrief", "Ein Fundstück", "Briefe der Klasse")) or "Interner Entwurf" in moved:
+        raise RuntimeError("Moving contents into the promoted child lost its own articles, children or approval boundary")
+    if "Fundstücke" not in guest.fetch(directory + "1"):
+        raise RuntimeError("The former subcategory did not move up to its parent's level")
+    save(operation(listing, 11, "delete"), {"destination": "0"})
+    for deleted in ("211", "212", "213"):
+        owner.fetch(article + deleted, expected_status=404)
+    if ("Archivbrief" not in guest.fetch(article + "214") or "Briefe der Klasse" not in guest.fetch(directory + "1")
+            or "Welche Jahreszeit?" not in guest.fetch("viewtopic.php?t=1")):
+        raise RuntimeError("Deleting direct category contents also removed a descendant article or an independent discussion")
