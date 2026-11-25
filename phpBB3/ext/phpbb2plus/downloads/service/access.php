@@ -67,6 +67,11 @@ class access
 
 	public function permissions_admin($fresh = false)
 	{
+		return $this->acp_admin('a_plus_dl_perms',$fresh);
+	}
+
+	private function acp_admin($permission, $fresh)
+	{
 		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) || empty($this->user->data['session_admin']) ||
 			!empty($this->user->data['user_perm_from']))
 		{ return false; }
@@ -74,16 +79,20 @@ class access
 		{
 			// Load the native session and current ACL after acquiring the catalogue lock.
 			// A delegated administrator may have lost the grant since opening the form.
-			$result = $this->db->sql_query('SELECT u.user_id,u.user_type,u.user_permissions,u.user_perm_from,s.session_admin FROM ' .
+			$result = $this->db->sql_query('SELECT u.*,s.session_admin FROM ' .
 				USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE . " s ON s.session_user_id=u.user_id WHERE s.session_id='" .
 				$this->db->sql_escape($this->user->session_id) . "' AND u.user_id=" . (int) $this->user->data['user_id']);
 			$actor = $this->db->sql_fetchrow($result);
 			$this->db->sql_freeresult($result);
 			if (!$actor || !$actor['session_admin'] || $actor['user_perm_from'] || (int) $actor['user_type'] !== (int) $this->user->data['user_type'] ||
 				!in_array((int) $actor['user_type'],array(USER_NORMAL,USER_FOUNDER),true)) { return false; }
+			// Native sessions derive these flags after loading the account. The optional
+			// Junior Admin ACL decorator also needs its current extension fields from u.*.
+			$actor['is_registered'] = true;
+			$actor['is_bot'] = false;
 			$this->auth->acl($actor);
 		}
-		return $this->auth->acl_gets('a_plus_downloads','a_plus_dl_perms');
+		return $this->auth->acl_gets('a_plus_downloads',$permission);
 	}
 
 	// Catalogue and permission changes serialize with operations on files.
