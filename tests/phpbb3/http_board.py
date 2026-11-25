@@ -1,5 +1,6 @@
 """Exercise the ordinary phpBB installer wizard and login forms on loopback."""
 from contextlib import contextmanager
+from copy import copy
 from html import unescape
 from html.parser import HTMLParser
 from http.cookiejar import CookieJar
@@ -114,7 +115,14 @@ class LoopbackRedirect(HTTPRedirectHandler):
 class Browser:
     def __init__(self, base):
         self.base = base
-        self.opener = build_opener(HTTPCookieProcessor(CookieJar()), LoopbackRedirect(urlsplit(base).netloc))
+        self.cookies = CookieJar()
+        self.opener = build_opener(HTTPCookieProcessor(self.cookies), LoopbackRedirect(urlsplit(base).netloc))
+
+    def separate_client(self):
+        client = Browser(self.base)
+        for cookie in self.cookies:
+            client.cookies.set_cookie(copy(cookie))
+        return client
 
     def fetch(self, path, data=None, ajax=False, raw=False, expected_status=200, files=None):
         address = urljoin(self.base, path)

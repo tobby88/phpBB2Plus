@@ -118,6 +118,33 @@ def verify_upstream(web, cache):
     return count
 
 
+def module_administration(base, member, ordinary, pending, fixture, target, web):
+    started = monotonic()
+
+    def download_checks(admin, historical, applicant):
+        downloads.browse(base, admin, historical, applicant)
+        php(fixture, "downloaded", target)
+
+    def gallery_checks(admin, historical, applicant):
+        gallery.browse(base, admin, historical, applicant)
+        php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
+
+    # Each module owns its fixture rows. Separate clients let the real form-token
+    # waits overlap without sharing HTTP handlers or cookie jars across threads.
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        people = (member, ordinary, pending)
+        download_run = workers.submit(download_checks, *(actor.separate_client() for actor in people))
+        gallery_run = workers.submit(gallery_checks, *(actor.separate_client() for actor in people))
+        knowledgebase.administration(member)
+        knowledgebase.type_administration(member)
+        knowledgebase.category_administration(member)
+        php(fixture, "kb-category-cleanup", target)
+        knowledgebase.settings_administration(member, pending)
+        download_run.result()
+        gallery_run.result()
+    print(f"Knowledge Base, downloads and gallery workflows: {monotonic()-started:.1f}s", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
@@ -221,19 +248,11 @@ def main():
                 arcade_administration.exercise(member, ordinary, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "proposal", cwd=web))
                 creation = arcade_administration.control(member, ordinary, pending, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "control", cwd=web))
                 arcade_administration.closure(member, ordinary, pending, creation, lambda step: php(ROOT / "tests/phpbb3/tournament_closure.php", target, step, cwd=web))
-                downloads.browse(base, member, ordinary, pending)
-                php(fixture, "downloaded", target)
                 playback(web, base, root)
                 php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
                 knowledgebase.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
-                knowledgebase.administration(member)
-                knowledgebase.type_administration(member)
-                knowledgebase.category_administration(member)
-                php(fixture, "kb-category-cleanup", target)
-                knowledgebase.settings_administration(member, pending)
-                gallery.browse(base, member, ordinary, pending)
-                php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
+                module_administration(base, member, ordinary, pending, fixture, target, web)
                 former_names(base, ordinary)
                 removed_posts.converted(base, ordinary, member)
                 php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
