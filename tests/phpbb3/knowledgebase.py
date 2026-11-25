@@ -358,10 +358,16 @@ def settings_administration(owner, contributor):
     if "kb-editor" not in Page(contributor.fetch(new)).forms:
         raise RuntimeError("Reopening submissions did not restore the member's form")
     def save_discussion(page, fields):
+        expected = FormFields(page, discussion).values
+        expected.update(fields)
         saved = submit_form(owner, panel, page, discussion, fields)
         if 'class="successbox"' not in saved:
             reason = re.search(r'class="errorbox"><p>([^<]+)</p>', saved)
             raise RuntimeError("Saving Knowledge Base discussion settings failed: " + (reason[1] if reason else "no confirmation"))
+        actual = FormFields(saved, discussion).values
+        for key in ("comments", "comments_show", "comments_pagination", "forum_id"):
+            if actual.get(key) != expected.get(key):
+                raise RuntimeError(f"The ACP returned {key}={actual.get(key)!r} after saving {expected.get(key)!r}")
         return saved
 
     result = save_discussion(result, {"comments": None})
@@ -373,8 +379,11 @@ def settings_administration(owner, contributor):
     hidden = guest.fetch(article)
     if 'id="kb-discussion"' in hidden:
         raise RuntimeError("The article still displayed inline replies after the setting was saved")
-    if "Diskussion im Forum" not in hidden:
-        raise RuntimeError("The article lost its native forum link when inline replies were hidden")
+    if not re.search(r'<p>Diskussion im Forum\s*&middot;\s*<a href="[^"]*viewtopic\.php\?t=1(?:&amp;[^"]*)?">', hidden):
+        title = re.search(r"<title>([^<]{1,160})</title>", hidden)
+        details = (f"page={title[1] if title else 'unknown'}, article={'Öffentliche Anleitung' in hidden}, "
+                   f"caption={'Diskussion im Forum' in hidden}, translated={'Forum discussion' in hidden}")
+        raise RuntimeError(f"The article lost its native discussion link when inline replies were hidden ({details})")
     result = save_discussion(result, {"comments_show": "1"})
     first = reply_panel(guest.fetch(article + "?page=2"))
     second = guest.fetch("kb.php?mode=article&k=201&page_num=2&start=1&print=true")
