@@ -23,8 +23,10 @@ def exercise(base, moderator, member):
     if "FormerShouter" not in member.fetch(path):
         raise RuntimeError("The retained shoutbox byline should be visible to members")
     public_home = guest.fetch("")
-    if "Grüße aus dem Archiv" not in public_home or "Masked shout fixture" in public_home:
-        raise RuntimeError("Portal and full Shoutbox disagree on visible messages")
+    member_home = member.fetch("")
+    if ("Grüße aus dem Archiv" in public_home or "Grüße aus dem Archiv" not in member_home or
+            "Masked shout fixture" in member_home):
+        raise RuntimeError("The members-only portal preview ignored the audience or disclosed a hidden shout")
     page = member.fetch(path)
     posted = submit(member, page, "plus-shout-compose", {"message": "[b]Neue Nachricht[/b] ä 😀"})
     matches = re.findall(r'id="shout-(\d+)"', posted)

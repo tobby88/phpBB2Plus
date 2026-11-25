@@ -61,6 +61,10 @@ def administration(base, owner):
         raise RuntimeError("Saving the portal settings did not update the welcome, sections or selected poll")
     if "Portal-Einstellungen wurden inzwischen geändert" not in save(first, dict(fields, recent="1")):
         raise RuntimeError("A stale portal settings form overwrote the saved layout")
+    save(owner.fetch(path), dict(fields, shouts="1"))
+    public = guest.fetch("app.php/portal")
+    if "Grüße aus dem Archiv" not in public or "FormerShouter" in public or "Masked shout fixture" in public:
+        raise RuntimeError("A public portal preview lost visible shouts or disclosed a private byline or message")
     save(owner.fetch(path), dict(fields, welcome=welcome, recent="2", last_seen="5", top_posters="5", stats="1", shouts="2",
                                  **{"poll_forums[]": [1, 7], "exclude[]": [14]}))
     browse(base, owner)
