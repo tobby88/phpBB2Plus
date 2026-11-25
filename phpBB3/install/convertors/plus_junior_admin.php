@@ -70,6 +70,7 @@ function plus_jr_registry()
 		'admin_statistics.php' => '9dae7adc915d806601d0140450537a82d430d8039f06e095ae763b32972980e1',
 		'admin_pa_custom.php' => '9237b12da9f50adbc87ff38da3b3550063a92d017dc628b410ee65a69927350b',
 		'admin_album_personal.php' => 'd97d4e085e90eac081030134f6894b60b3e4824ee6d1ef88ad82bd1fd36f5d87',
+		'admin_album_clearcache.php' => 'd84fe34e3710e149884660098985a99d796695ec1ea0f0424d0802bcd8330b3a',
 		'admin_words.php' => '5d8a246e3aa046ed04b6e9346336e66ca0a79031ad0c2a8aa81f4b8d8a257e59',
 		'admin_disallow.php' => '5da99a11b96be1a5020ceca18693aaa0e6339e10ba40f91f18405b71ae7fc8fd',
 		'admin_ranks.php' => 'ae0f662dc79f4e9a203a32e4193d983c33db4666f76e684aa81fc12296fcfd1e',
@@ -130,6 +131,13 @@ function plus_jr_registry()
 			'album_mod/album_admin_category_storage.php' => '872eab0aaf53f1ec8201ff7b91dbfc44d334187c7bc813de5ed43f078f8b5f2f',
 			'album_mod/album_category_remove.php' => 'd10eea4bd6208303ec8430c513ae51de64fbfc1dd322a27b8bee3367e45439ba',
 			'album_mod/album_lifecycle_authority.php' => '0c7a663f8211eb2f317695d1e384a27f28de1eaaf422d74b250dfd8ced638349',
+		),
+		'admin_album_clearcache.php' => array(
+			'album_mod/album_cache_maintenance.php' => '7dedbe1e48544d307a111054a5877346bf30c1b11e8b387683cf17c549650847',
+			'album_mod/album_lifecycle_authority.php' => '0c7a663f8211eb2f317695d1e384a27f28de1eaaf422d74b250dfd8ced638349',
+			'album_mod/album_file_storage.php' => '23a4935ca1f223fe34e55b4f2faf3af5db5ac3bc7e64fdfb3163f4e850615fdb',
+			'album_mod/album_file_coordinator.php' => '398b792bdaaa7335ad122ef3321020a11ecfa6011d67e46de1039954afb1f7ca',
+			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
 		),
 	);
 	$registry = array();

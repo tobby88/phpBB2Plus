@@ -50,6 +50,8 @@ def browse(base, owner, historic_id):
         ("album_hotornot.php", "app.php/album/hot-or-not", {}, ""),
         ("album_comment_edit.php?comment_id=95&sort_order=DESC", "app.php/album/legacy/comment/95/edit", {"sort_order": "DESC"}, ""),
         ("album_comment_delete.php?comment_id=95", "app.php/album/legacy/comment/95/delete", {}, ""),
+        ("album_personal_cat_admin.php", "app.php/album/legacy/member/0/manage", {}, ""),
+        ("album_personal_cat_admin.php?user_id=1&action=edit&cat_id=782", "app.php/album/legacy/member/1/manage", {"action": "edit", "cat_id": 782}, ""),
         ("album_modcp.php?cat_id=2&sort_method=pic_user_id&sort_order=ASC&start=3", "app.php/album/category/2/moderate",
          {"sort_method": "pic_user_id", "sort_order": "ASC", "start": 3}, ""),
         ("album_modcp.php?mode=approval&pic_id=100", "app.php/album/picture/100/manage/approve", {}, ""),
@@ -81,6 +83,7 @@ def browse(base, owner, historic_id):
         ("dload.php?action=user_upload&do=delete&file_id=50", "app.php/downloads/file/50/delete", {}, ""),
         ("dload.php?action=mcp&cat_id=2", "app.php/downloads/category/2/review", {}, ""),
         ("dload.php?action=stats", "app.php/downloads/stats", {}, ""),
+        ("dload.php?action=email&file_id=50", "app.php/downloads/file/50/recommend", {}, ""),
         ("dload.php?action=viewall&sort_method=rating&sort_order=DESC&start=5", "app.php/downloads/all",
          {"sort_method": "rating", "sort_order": "DESC", "start": 5}, ""),
         ("dload.php?action=category&cat_id=21&sort_method=file_update_time", "app.php/downloads/category/21",
@@ -134,6 +137,8 @@ def browse(base, owner, historic_id):
     guest.fetch("profile.php?mode=register", {}, expected_status=405)
     guest.fetch("album_modcp.php?mode=delete&pic_id=100", {"confirm": 1}, expected_status=405)
     guest.fetch("album_comment_delete.php?comment_id=95", {"confirm": 1}, expected_status=405)
+    guest.fetch("album_personal_cat_admin.php?user_id=87&action=delete", {"confirm": 1}, expected_status=405)
+    guest.fetch("dload.php?action=email&file_id=50", {"submit": 1}, expected_status=405)
     guest.fetch("dload.php?action=search", {"action": "user_upload"}, expected_status=405)
 
 

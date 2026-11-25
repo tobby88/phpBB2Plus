@@ -195,6 +195,17 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . '/upload'; }
 			break;
 		case 'album_hotornot': $path = 'album/hot-or-not'; break;
+		case 'album_personal_cat_admin':
+			$owner = $positive('user_id');
+			if (isset($query['user_id']) && !$owner && $query['user_id'] !== '0') { break; }
+			$action = $query['action'] ?? '';
+			if (!in_array($action, array('', 'edit', 'delete'), true)) { break; }
+			$category = $positive('cat_id');
+			if (isset($query['cat_id']) && !$category && $query['cat_id'] !== '0') { break; }
+			$path = 'album/legacy/member/' . $owner . '/manage';
+			if ($action !== '') { $extra['action'] = $action; }
+			if ($category) { $extra['cat_id'] = $category; }
+			break;
 		case 'album_comment_edit': case 'album_comment_delete':
 			if ($comment = $positive('comment_id'))
 			{
@@ -259,6 +270,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 				case 'main': $path = 'downloads'; break;
 				case 'viewall': $path = 'downloads/all'; break;
 				case 'stats': $path = 'downloads/stats'; break;
+				case 'email':
+					if ($file = $positive('file_id')) { $path = 'downloads/file/' . $file . '/recommend'; }
+					break;
 				case 'toplist':
 					$path = 'downloads/toplist';
 					if (in_array($query['mode'] ?? '', array('newest', 'downloads', 'rating'), true)) { $extra['mode'] = $query['mode']; }

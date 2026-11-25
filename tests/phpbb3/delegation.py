@@ -29,7 +29,8 @@ def source_modules(source, target):
                  "pafiledb/includes/functions_settings_storage.php",
                  "pafiledb/includes/functions_permission_storage.php", "pafiledb/includes/functions_license_storage.php",
                  "pafiledb/includes/functions_custom_storage.php", "pafiledb/includes/functions_field.php",
-                 "album_mod/album_admin_category_storage.php",
+                 "album_mod/album_admin_category_storage.php", "album_mod/album_cache_maintenance.php",
+                 "album_mod/album_file_storage.php", "album_mod/album_file_coordinator.php",
                  "album_mod/album_category_remove.php", "album_mod/album_lifecycle_authority.php"):
         (target / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / path, target / path)
@@ -124,6 +125,7 @@ def module_roles(base, file_fixture):
         "AlbumCategoryJunior": ("-phpbb2plus-gallery-acp-categories_module", "action=edit&category=8", "album-public-category", "description", "Delegated album edit"),
         "AlbumAccessJunior": ("-phpbb2plus-gallery-acp-permissions_module", "category=8", "album-category-grants", "grant[71][comment]", "1"),
         "AlbumPersonalJunior": ("-phpbb2plus-gallery-acp-personal_permissions_module", "group=75", "album-personal-grants", None, None),
+        "AlbumCacheJunior": ("-phpbb2plus-gallery-acp-cache_module", "", "album-cache-clear", None, None),
         "CreditsJunior": ("-phpbb2plus-community-acp-credits_module", "action=edit&credit=19001", "plus-credit", "title", "Delegated credits edit"),
     }
 
@@ -143,6 +145,11 @@ def module_roles(base, file_fixture):
                 if username == "AlbumPersonalJunior":
                     personal_album_rights(browser, url, page)
                     continue
+                if username == "AlbumCacheJunior":
+                    result = submit_form(browser, url, page, form, {"confirm": 1})
+                    if "The album will generate fresh previews on the next request." not in result or form in Page(result).forms:
+                        raise RuntimeError("The delegated preview cache confirmation failed")
+                    continue
                 original = controls.get(field)
                 if original == new_value:
                     raise RuntimeError(f"Expected a different starting value for {module}")
@@ -158,12 +165,11 @@ def module_roles(base, file_fixture):
     with ThreadPoolExecutor(max_workers=4) as pool:
         sessions = {name: pool.submit(authenticate, base, name) for name in (*modules, "DownloadFilesJunior")}
         list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior", "DownloadFieldsJunior", "DownloadSettingsJunior"),
-                                 ("AlbumCategoryJunior", "AlbumAccessJunior", "AlbumPersonalJunior"), ("CreditsJunior",))))
+                                 ("AlbumCategoryJunior", "AlbumAccessJunior", "AlbumPersonalJunior", "AlbumCacheJunior"), ("CreditsJunior",))))
         file_management(*sessions["DownloadFilesJunior"].result(), file_fixture)
 
 
-def browse(base, file_fixture):
-    module_roles(base, file_fixture)
+def browse(base):
     junior, entry = authenticate(base, "JuniorFixture")
     home = junior.fetch(entry)
     if "Your delegated administration" not in home or "Fixture &lt;only&gt; &amp; 😀" not in home or "Private source note" in home:

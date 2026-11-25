@@ -39,7 +39,7 @@ def browse(admin, member, owner, guest, check):
         owner.fetch(current + "?cat_id=782&action=edit", expected_status=404)
         owner.fetch(current + "?cat_id=780&action=delete", expected_status=404)
         admin.fetch(route.format(999999), expected_status=404)
-        child_edit = current + "?cat_id=781&action=edit"
+        child_edit = "album_personal_cat_admin.php?cat_id=781&action=edit"
         saved = submit_form(owner, child_edit, owner.fetch(child_edit), form, {"description": "Saved through the administration bookmark"})
         if "Saved through the administration bookmark" not in saved:
             raise RuntimeError("The resolved editing form did not save to the expected gallery")

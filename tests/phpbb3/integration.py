@@ -33,6 +33,7 @@ import post_icons
 import removed_posts
 import delete_policy
 import confirmed_deletions
+import removed_shadow_links
 import print_topics
 import announcement_duration
 import legacy_links
@@ -46,6 +47,7 @@ import download_permissions
 import download_reports
 import download_search
 import download_listing
+import download_mail
 import download_settings
 import download_licenses
 import download_mirrors
@@ -66,6 +68,8 @@ import gallery_hot
 import gallery_directory
 import gallery_search
 import gallery_personal
+import gallery_cache
+import gallery_management_bookmarks
 import knowledgebase
 from ruffle_browser import playback
 from http_board import Browser, author_results, convert, former_names, login, native_content, public_pages, profiles, server, source_files
@@ -208,6 +212,8 @@ def download_checks(base, admin, historical, applicant, fixture, target, web, ga
         # The settings test temporarily closes the download area and restores its global policy.
         download_settings.administration(admin, historical, lambda phase: php(
             ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
+        download_mail.browse(base, historical, applicant, lambda phase: php(
+            ROOT / "tests/phpbb3/download_mail.php", target, phase, cwd=web))
 
 
 def download_category_checks(admin, target, web):
@@ -218,9 +224,8 @@ def download_category_checks(admin, target, web):
 
 
 def download_upgrades(target, web):
-    fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php")]
-    # The search migration depends on the reports migration. Revert both once,
-    # seed real data in the earlier schema, then run the normal native updater.
+    fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php", "download_mail.php")]
+    # Start at the common parent of these dependent migrations and run the normal updater once.
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "older", cwd=web)
@@ -254,8 +259,13 @@ def module_administration(base, member, ordinary, pending, fixture, target, web,
             category_run = workers.submit(download_category_checks, member.separate_client(), target, web)
         # All membership-sensitive KB and download cases are now finished. The
         # download category tree is independent of these private album operations.
+        gallery_management_bookmarks.browse(member, ordinary, pending, Browser(base), lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_management_bookmarks.php", target, phase, cwd=web, capture=True))
         gallery_personal.browse(base, member, ordinary, pending,
                                 lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
+        gallery_cache.browse(member, pending, Browser(base), lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_cache.php", target, phase, cwd=web, capture=True),
+            lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
         if include_downloads:
             category_run.result()
     print(f"Module administration and gallery workflows: {monotonic()-started:.1f}s", flush=True)
@@ -306,6 +316,7 @@ def main():
                 php(fixture, "converted", target)
                 php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
+                php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)
                 php(statistics_fixture, "converted", target)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True))
                 converted = monotonic()
@@ -319,7 +330,10 @@ def main():
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
+                def file_roles(phase):
+                    php(ROOT / "tests/phpbb3/delegation_files.php", target, phase, cwd=web)
                 if args.suite == "downloads":
+                    delegation.module_roles(base, file_roles)
                     download_checks(base, member, ordinary, pending, fixture, target, web)
                     download_category_checks(member, target, web)
                     php(fixture, "download-voter", target)
@@ -379,8 +393,9 @@ def main():
                 def delegation_fixture(operation):
                     php(ROOT / "tests/phpbb3/delegation_management.php", target, operation, cwd=web)
                 delegation_fixture("backfill")
-                junior, junior_entry = delegation.browse(base, lambda phase: php(
-                    ROOT / "tests/phpbb3/delegation_files.php", target, phase, cwd=web))
+                if args.suite == "all":
+                    delegation.module_roles(base, file_roles)
+                junior, junior_entry = delegation.browse(base)
                 delegation_administration.manage(member, junior, junior_entry, delegation_fixture)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)
@@ -470,6 +485,8 @@ def main():
                     ROOT / "tests/phpbb3/delete_policy.php", target, phase, cwd=web))
                 confirmed_deletions.exercise(ordinary, member, lambda phase: php(
                     ROOT / "tests/phpbb3/confirmed_deletions.php", target, phase, cwd=web))
+                removed_shadow_links.exercise(member, lambda phase: php(
+                    ROOT / "tests/phpbb3/removed_shadow_links.php", target, phase, cwd=web))
                 if args.suite == "all":
                     download_upgrades(target, web)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)

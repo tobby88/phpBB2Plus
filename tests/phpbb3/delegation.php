@@ -23,6 +23,7 @@ function delegation_fixture_roles()
 		56 => array('DownloadFilesJunior', 'DownloadFile_manage_titleadmin_pa_file.php',
 			array('a_plus_dl_edit', 'a_plus_dl_approval', 'a_plus_dl_delete', 'a_plus_dl_mirrors')),
 		57 => array('DownloadSettingsJunior', 'DownloadSettingsadmin_pa_settings.php', 'a_plus_dl_settings'),
+		58 => array('AlbumCacheJunior', 'Photo_AlbumClear_Cacheadmin_album_clearcache.php', 'a_plus_album_cache'),
 	);
 }
 

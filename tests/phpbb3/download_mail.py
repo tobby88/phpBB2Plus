@@ -65,8 +65,10 @@ def browse(base, member, ordinary, verify):
     public, shared, guest_file = root + "50", root + "51", root + "11050"
 
     def form(actor, item):
-        page = actor.fetch(item + "/recommend")
-        target = urljoin(urljoin(base, item + "/recommend"), Page(page).forms["dl-recommend"][0])
+        file_id = item.rsplit("/", 1)[-1]
+        address = "dload.php?action=email&file_id=" + file_id
+        page = actor.fetch(address)
+        target = urljoin(urljoin(base, address), Page(page).forms["dl-recommend"][0])
         return page, target, FormFields(page, "dl-recommend").values
 
     def send(actor, target, fields, **changes):
