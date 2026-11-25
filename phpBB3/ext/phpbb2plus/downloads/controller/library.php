@@ -58,9 +58,11 @@ class library
 		$can_search = $this->access->allows(0, 'search');
 		if ($query !== '' && !$can_search) { throw new NotFoundHttpException(); }
 		$scope = array();
+		$can_submit = false;
 		foreach ($cats as $key => $c)
 		{
 			if (!$this->access->visible($key)) { continue; }
+			if (!$id && !$can_submit && $this->access->can_submit($key)) { $can_submit = true; }
 			if ((int) $c['parent_id'] === $id && $query === '')
 			{
 				$this->template->assign_block_vars('dl_cats', array('TITLE'=>access::plain($c['title']), 'SUMMARY'=>access::plain($c['summary']),
@@ -81,6 +83,13 @@ class library
 		$url = $this->helper->route($route, $params);
 		$title = $id ? access::plain($cats[$id]['title']) : access::plain($this->access->setting('settings_dbname', $this->language->lang('PLUS_DL')));
 		$this->template->assign_vars(array('DL_TITLE'=>$title, 'DL_QUERY'=>$query, 'S_DL_SEARCH'=>$can_search, 'U_DL_SEARCH'=>$url));
+		if ($can_submit || ($id && $this->access->can_submit($id)))
+		{
+			$this->template->assign_var('U_DL_SUBMIT', $id ? $this->helper->route('phpbb2plus_downloads_submit', array('category'=>$id)) :
+				$this->helper->route('phpbb2plus_downloads_destinations'));
+		}
+		if ($id && $this->access->can_review($id))
+		{ $this->template->assign_var('U_DL_QUEUE', $this->helper->route('phpbb2plus_downloads_queue',array('category'=>$id))); }
 		if ($scope && ($id || $query !== '' || ((int) $this->access->setting('settings_viewall', 1) && $this->access->allows(0,'viewall'))))
 		{
 			$filter = $this->db->sql_in_set('cat_id', $scope) . ' AND approved=1';
@@ -116,6 +125,11 @@ class library
 		$raw = json_decode($f['source_json'], true) ?: array();
 		$title = access::plain($f['title']);
 		$download = $this->access->allows($cat, 'download');
+		if ($this->access->can_review($cat))
+		{
+			$this->template->assign_var('U_DL_QUEUE', $this->helper->route('phpbb2plus_downloads_queue',
+				array('category'=>$cat, 'status'=>$f['approved'] ? 'published' : 'pending')));
+		}
 		$this->template->assign_vars(array('DL_TITLE'=>$title, 'DL_SUMMARY'=>access::plain($f['summary']), 'DL_DETAIL'=>access::plain($raw['file_longdesc'] ?? ''),
 			'DL_CREATOR'=>access::plain($raw['file_creator'] ?? ''), 'DL_VERSION'=>access::plain($raw['file_version'] ?? ''), 'DL_COUNT'=>(int) $f['downloads'],
 			'DL_DATE'=>$this->user->format_date((int) $f['added_at']), 'DL_BYTES'=>(int) $f['file_bytes'], 'DL_PENDING'=>!$f['approved'], 'DL_BROKEN'=>(bool) $f['broken'],

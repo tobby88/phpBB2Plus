@@ -1,4 +1,20 @@
 services:
+    phpbb2plus.downloads.submissions_controller:
+        class: phpbb2plus\downloads\controller\submissions
+        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.submissions', '@dbal.conn', '@request', '@user', '@controller.helper', '@template', '@language', '@pagination', '%core.table_prefix%plus_dl_']
+    phpbb2plus.downloads.submissions:
+        class: phpbb2plus\downloads\service\submissions
+        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.media', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_dl_']
+    phpbb2plus.downloads.media:
+        class: phpbb2plus\downloads\service\media
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%']
+    phpbb2plus.downloads.cleanup:
+        class: phpbb2plus\downloads\cron\cleanup
+        arguments: ['@phpbb2plus.downloads.media', '@dbal.conn', '@config', '%core.table_prefix%plus_dl_']
+        calls:
+            - [set_name, [phpbb2plus.downloads.cleanup]]
+        tags:
+            - { name: cron.task }
     phpbb2plus.downloads.portal:
         class: phpbb2plus\downloads\event\portal
         arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '@template', '@controller.helper', '@language', '%core.table_prefix%plus_dl_files']

@@ -3,8 +3,12 @@ function seed_downloads($db)
 {
 	$db->query("INSERT INTO phpbb_pa_cat (cat_id,cat_name,cat_desc,cat_parent,parents_data,cat_order,cat_allow_file,auth_view,auth_read,auth_view_file)
 		VALUES (21,'Öffentliche Dateien','',0,'',5,1,0,0,0),(22,'Clubordner','',0,'',6,0,2,2,0),
-		(23,'Clubdateien','',22,'',1,1,0,0,0),(24,'Einzelfreigabe','',0,'',7,1,2,2,2)");
+		(23,'Clubdateien','',22,'',1,1,0,0,0),(24,'Einzelfreigabe','',0,'',7,1,2,2,2),(25,'Gästebriefkasten','',0,'',8,1,0,0,0)");
 	$db->query("INSERT INTO phpbb_pa_auth (group_id,cat_id,auth_view,auth_read,auth_view_file) VALUES (71,22,1,1,0),(72,24,1,1,1)");
+	$db->query("UPDATE phpbb_pa_cat SET auth_upload=1 WHERE cat_id IN(21,23)");
+	$db->query("INSERT INTO phpbb_pa_auth (group_id,cat_id,auth_mod) VALUES (71,23,1)");
+	$db->query("UPDATE phpbb_pa_config SET config_value='1' WHERE config_name='need_validation'");
+	$db->query("UPDATE phpbb_pa_config SET config_value=CONCAT(config_value,',pdf') WHERE config_name='forbidden_extensions'");
 	$db->query("INSERT INTO phpbb_pa_license (license_id,license_name,license_text) VALUES (31,'Beispiellizenz','Nur für den fiktiven Test 🎮.')");
 	$db->query("INSERT INTO phpbb_pa_files
 		(file_id,user_id,file_name,file_catid,file_dir,real_name,unique_name,file_desc,file_longdesc,file_creator,file_version,file_ssurl,file_license,file_time,file_approved,file_dls,file_dlurl)
@@ -34,7 +38,7 @@ function verify_downloads($db, $member)
 	check_fixture($f && (int) $f['owner_id'] === $member && $f['asset_status'] === 'ready' && $f['preview_type'] === 'image/png'
 		&& $mirror && $mirror['asset_status'] === 'ready' && $mirror['storage_name'] !== $f['storage_name'] &&
 		strpos(html_entity_decode($conditions, ENT_QUOTES, 'UTF-8'),'🎮') !== false, 'Missing paFileDB media, account or licence text');
-	foreach (array('files'=>5,'mirrors'=>2,'grants'=>2,'comments'=>1,'votes'=>2,'visitors'=>1,'fields'=>1,'field_values'=>1,'licenses'=>1,'import_journal'=>1) as $table=>$count)
+	foreach (array('files'=>5,'mirrors'=>2,'grants'=>3,'comments'=>1,'votes'=>2,'visitors'=>1,'fields'=>1,'field_values'=>1,'licenses'=>1,'import_journal'=>1) as $table=>$count)
 	{
 		check_fixture((int) $db->query("SELECT COUNT(*) FROM p3_plus_dl_$table")->fetch_row()[0] === $count, 'Incomplete download conversion for ' . $table);
 	}

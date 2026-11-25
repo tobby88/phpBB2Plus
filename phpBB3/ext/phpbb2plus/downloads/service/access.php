@@ -126,6 +126,19 @@ class access
 		return $file;
 	}
 
+	public function can_submit($id)
+	{
+		$cats = $this->categories();
+		return empty($this->user->data['is_bot']) && isset($cats[$id]) && $cats[$id]['allow_files'] &&
+			$this->visible($id) && $this->allows($id, 'upload');
+	}
+
+	public function can_review($id)
+	{
+		return !empty($this->user->data['is_registered']) && $this->visible($id, true) &&
+			($this->admin() || ($this->setting('validator', 'validator_admin') === 'validator_mod' && $this->allows($id, 'mod')));
+	}
+
 	public static function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 
 	public function write($id, callable $operation)

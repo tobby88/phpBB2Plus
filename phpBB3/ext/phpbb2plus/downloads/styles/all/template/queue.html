@@ -1,0 +1,16 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_DL_REVIEW}</h2>
+{% if DL_CONFIRM %}
+<form id="dl-review" method="post" action="{U_DL_REVIEW}" class="panel"><div class="inner">
+<h3>{{ DL_ACTION|e }}</h3><p><a href="{U_DL_FILE}">{{ DL_TITLE|e }}</a></p>
+{% if DL_REJECT %}<p>{L_PLUS_DL_REJECT_EXPLAIN}</p>{% endif %}
+<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{DL_REVISION}">{S_FORM_TOKEN}
+<button type="submit" class="button1">{{ DL_ACTION|e }}</button> <a class="button2" href="{U_DL_BACK}">{L_CANCEL}</a></fieldset></div></form>
+{% else %}
+<div class="action-bar"><a class="button" href="{U_DL_PENDING}">{L_PLUS_DL_PENDING_FILES}</a> <a class="button" href="{U_DL_PUBLISHED}">{L_PLUS_DL_PUBLISHED_FILES}</a></div>
+<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{% if DL_PUBLISHED %}{L_PLUS_DL_PUBLISHED_FILES}{% else %}{L_PLUS_DL_PENDING_FILES}{% endif %}</th><th>{L_PLUS_DL_REVIEW_ACTIONS}</th></tr></thead><tbody>
+{% for f in loops.dl_queue %}<tr><td><a href="{{ f.U_FILE }}">{{ f.TITLE|e }}</a>{% if f.SUMMARY %}<br>{{ f.SUMMARY|e }}{% endif %}</td><td><a href="{{ f.U_REVIEW }}">{% if DL_PUBLISHED %}{L_PLUS_DL_WITHDRAW}{% else %}{L_PLUS_DL_APPROVE}{% endif %}</a>
+{% if f.U_REJECT %} &middot; <a href="{{ f.U_REJECT }}">{L_PLUS_DL_REJECT}</a>{% endif %}</td></tr>{% else %}<tr><td colspan="2">{L_PLUS_DL_EMPTY}</td></tr>{% endfor %}
+</tbody></table></div></div>{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

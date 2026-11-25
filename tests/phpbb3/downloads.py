@@ -1,6 +1,7 @@
 """Follow paFileDB category permissions, licence forms and protected downloads."""
 import re
 import time
+from html import unescape
 from urllib.parse import urljoin
 from http_board import Browser, Page
 from gallery import ORIGINAL
@@ -90,3 +91,92 @@ def feedback(base, author, moderator, guest):
     after = moderator.fetch(urljoin(delete, action), remove)
     if "Fiktiver Folgekommentar" in after or "Testkommentar" not in after:
         raise RuntimeError("The moderator did not remove the selected comment")
+
+
+def submissions(base, founder, moderator, author, verify):
+    guest = Browser(base)
+    root = "app.php/downloads"
+    category = root + "/category/21"
+    club = root + "/category/23"
+    upload = category + "/submit"
+    queue = category + "/review"
+
+    def post(actor, url, page, name, changes=None, files=None, status=200, raw=False):
+        target, fields = Page(page).forms[name]
+        time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+        return actor.fetch(urljoin(urljoin(base, url), target), dict(fields, **(changes or {})),
+                           files=files, expected_status=status, raw=raw)
+
+    destinations = author.fetch(root + "/submit")
+    if "Öffentliche Dateien" not in destinations or "/23/submit" in destinations:
+        raise RuntimeError("An upload destination ignored a private parent")
+    guest.fetch(upload, expected_status=404)
+    author.fetch(club + "/submit", expected_status=404)
+    moderator.fetch(club + "/review", expected_status=404)
+    author.fetch(queue, expected_status=404)
+    page = author.fetch(upload)
+    if "Farbauswahl" not in page or 'value="Rot"' not in page:
+        raise RuntimeError("The upload form lost the migrated custom field options")
+    title = "Klassenplan 📘 &amp; Entwurf"
+    shown = "Klassenplan 📘 &amp;amp; Entwurf"
+    fields = {"title": title, "description": "Plan mit Grüßen", "license": "31", "version": "2", "field[81][]": "Rot"}
+    assets = [("original", "Plan & Grüße.txt", "text/plain", PAYLOAD), ("screenshot", "Plan.png", "image/png", ORIGINAL)]
+    invalid = post(author, upload, page, "dl-submit", dict(fields, title=""), assets, 422)
+    if 'id="dl-submit"' not in invalid or "Plan mit Grüßen" not in invalid:
+        raise RuntimeError("An invalid download submission discarded its form details")
+    post(author, upload, page, "dl-submit", fields, [("original", "Plan.txt", "text/plain", b"x" * 262145)], 422)
+    post(author, upload, page, "dl-submit", fields, [("original", "Plan.pdf", "application/pdf", PAYLOAD)], 422)
+    verify("offline")
+    unavailable = post(author, upload, page, "dl-submit", fields, assets, 503)
+    verify("online")
+    if 'id="dl-submit"' not in unavailable or "Plan mit Grüßen" not in unavailable:
+        raise RuntimeError("A temporary storage failure lost the submission details")
+    for _ in range(2):
+        submitted = post(author, upload, page, "dl-submit", fields, assets)
+        if (shown not in submitted or "Rot</dd>" not in submitted or "Freigabe" not in submitted):
+            raise RuntimeError("The owner's pending download lost its fields or approval status")
+    pending = founder.fetch(queue)
+    match = re.findall(r'href="([^"]*/downloads/file/(\d+)[^"]*)">' + re.escape(shown) + '</a>', pending)
+    if len(match) != 1 or shown in guest.fetch(category):
+        raise RuntimeError("Retrying a submission produced a duplicate or exposed the draft")
+    item = urljoin(base, unescape(match[0][0])).split("?", 1)[0]
+    guest.fetch(item, expected_status=404)
+    guest.fetch(item + "/preview", expected_status=404)
+    moderator.fetch(item + "/review/approve", expected_status=404)
+    approve = item + "/review/approve"
+    reject = item + "/review/reject"
+    old = founder.fetch(reject)
+    post(founder, approve, founder.fetch(approve), "dl-review")
+    if shown not in guest.fetch(category) or guest.fetch(item + "/preview", raw=True) != ORIGINAL:
+        raise RuntimeError("Approval did not publish the original screenshot and file entry")
+    source = item + "/get/0"
+    if post(author, source, author.fetch(source), "dl-license", {"accept": "1"}, raw=True) != PAYLOAD:
+        raise RuntimeError("A licensed upload returned different bytes")
+    withdraw = item + "/review/withdraw"
+    post(founder, withdraw, founder.fetch(withdraw), "dl-review")
+    guest.fetch(item, expected_status=404)
+    post(founder, reject, old, "dl-review", status=409)
+    post(founder, reject, founder.fetch(reject), "dl-review")
+    founder.fetch(item, expected_status=404)
+    post(author, upload, page, "dl-submit", fields, assets, 422)
+    verify("cleanup")
+
+    new = club + "/submit"
+    club_entry = post(moderator, new, moderator.fetch(new), "dl-submit",
+                      {"title": "Clubverweis", "description": "Quelle im Archiv", "url": "https://example.invalid/club-source"})
+    if "Clubverweis" not in club_entry or "Clubverweis" not in moderator.fetch(club):
+        raise RuntimeError("A category moderator's own submission lost immediate publication")
+    verify("moderators")
+    if "Clubverweis" not in moderator.fetch(club + "/review?status=published"):
+        raise RuntimeError("The configured category validator cannot review club downloads")
+    moderator.fetch(queue, expected_status=404)
+    inbox = root + "/category/25/submit"
+    guest_submission = post(guest, inbox, guest.fetch(inbox), "dl-submit",
+                            {"title": "Gastverweis", "description": "Post für das Archiv", "url": "https://example.invalid/guest"})
+    if "eingereicht" not in guest_submission or "Gastverweis" in guest.fetch(root + "/category/25"):
+        raise RuntimeError("Explicit guest uploads lost their confirmation or exposed an unapproved submission")
+    verify("automatic")
+    public = post(author, upload, author.fetch(upload), "dl-submit",
+                  {"title": "Öffentlicher Verweis", "description": "Ohne manuelle Freigabe", "url": "https://example.invalid/archive"})
+    if "Öffentlicher Verweis" not in public or "Öffentlicher Verweis" not in guest.fetch(category):
+        raise RuntimeError("The automatic publication setting did not apply to a member's submission")

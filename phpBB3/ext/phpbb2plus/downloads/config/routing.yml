@@ -2,6 +2,25 @@ phpbb2plus_downloads_index:
     path: /downloads
     defaults: { _controller: phpbb2plus.downloads.library:index, category: 0 }
     methods: [GET, HEAD]
+phpbb2plus_downloads_destinations:
+    path: /downloads/submit
+    defaults: { _controller: phpbb2plus.downloads.submissions_controller:choose }
+    methods: [GET]
+phpbb2plus_downloads_submit:
+    path: /downloads/category/{category}/submit
+    defaults: { _controller: phpbb2plus.downloads.submissions_controller:form }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET, POST]
+phpbb2plus_downloads_queue:
+    path: /downloads/category/{category}/review
+    defaults: { _controller: phpbb2plus.downloads.submissions_controller:queue }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET]
+phpbb2plus_downloads_review:
+    path: /downloads/file/{file}/review/{action}
+    defaults: { _controller: phpbb2plus.downloads.submissions_controller:review }
+    requirements: { file: '[1-9][0-9]*', action: 'approve|withdraw|reject' }
+    methods: [GET, POST]
 phpbb2plus_downloads_category:
     path: /downloads/category/{category}
     defaults: { _controller: phpbb2plus.downloads.library:index }
