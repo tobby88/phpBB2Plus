@@ -81,6 +81,8 @@ if ($argv[1] === 'seed')
 	$db->query("INSERT INTO phpbb_shout (shout_id,shout_username,shout_user_id,shout_session_time,shout_text,shout_active,shout_author_removed)
 		VALUES (5,'FormerShouter',-1,1000,'Grüße aus dem Archiv',0,1),(7,'Member',1,1100,'Masked shout fixture',2,0)");
 	seed_native_content($db);
+	$db->query('UPDATE phpbb_forums SET prune_enable=1,prune_next=2140000000 WHERE forum_id IN (7,11,14,15)');
+	$db->query('INSERT INTO phpbb_forum_prune (forum_id,prune_days,prune_freq) VALUES (7,90,7),(11,10,1),(14,10,1),(14,10,1),(15,0,2)');
 	require_once __DIR__ . '/removed_topic_source.php';
 	seed_removed_topics($db);
 	seed_news($db);
@@ -302,6 +304,10 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	check_fixture($nested && (int) $nested['parent_id'] === 1 && $nested['cat_left'] < $nested['left_id']
 		&& $nested['cat_right'] > $nested['right_id'] && (int) $nested['forum_type'] === 2
 		&& $nested['forum_link'] === 'https://example.invalid/archive', 'Lost nested category, linked forum or tree bounds');
+	$rules = $db->query('SELECT forum_id,enable_prune,prune_days,prune_freq,prune_next FROM p3_forums WHERE forum_id IN (7,11,14,15) ORDER BY forum_id')->fetch_all(MYSQLI_ASSOC);
+	check_fixture(array_map('intval', array_column($rules, 'enable_prune')) === array(1,0,0,0)
+		&& (int) $rules[0]['prune_days'] === 90 && (int) $rules[0]['prune_freq'] === 7 && (int) $rules[0]['prune_next'] === 2140000000,
+		'Conversion activated a link, duplicate or empty pruning rule, or lost the valid schedule');
 	$shout = $db->query('SELECT author_id,hidden_by FROM p3_plus_shouts WHERE shout_id=7')->fetch_assoc();
 	check_fixture($shout && (int) $shout['author_id'] === (int) $users[0]['user_id']
 		&& (int) $shout['hidden_by'] === 2, 'Shout author or moderation state was not converted');

@@ -63,8 +63,9 @@ function plus_restore_forum_tree()
 		FROM ' . $convert->src_table_prefix . 'categories ORDER BY cat_id');
 	$categories = $src_db->sql_fetchrowset($result);
 	$src_db->sql_freeresult($result);
-	$result = $src_db->sql_query('SELECT forum_id, cat_id, main_type, forum_order, forum_link, forum_link_hit_count, forum_link_hit
-		FROM ' . $convert->src_table_prefix . 'forums ORDER BY forum_id');
+	$result = $src_db->sql_query('SELECT f.forum_id, f.cat_id, f.main_type, f.forum_order, f.forum_link, f.forum_link_hit_count, f.forum_link_hit,
+		(SELECT COUNT(*) FROM ' . $convert->src_table_prefix . 'forum_prune p WHERE p.forum_id=f.forum_id) AS prune_rules
+		FROM ' . $convert->src_table_prefix . 'forums f ORDER BY f.forum_id');
 	$forums = $src_db->sql_fetchrowset($result);
 	$src_db->sql_freeresult($result);
 	$nodes = plus_forum_layout($categories, $forums);
@@ -119,6 +120,9 @@ function plus_restore_forum_tree()
 				// Unlike stock phpBB2, Plus age pruning protects polls and announcements
 				// and treats a sticky topic like an ordinary topic of the same age.
 				$fields['forum_flags'] = (phpbb_forum_flags() & ~(FORUM_FLAG_PRUNE_POLL | FORUM_FLAG_PRUNE_ANNOUNCE)) | FORUM_FLAG_PRUNE_STICKY;
+				// The native importer groups identical schedule rows. Plus only
+				// ran an automatic rule when exactly one source row existed.
+				if ((int) $row['prune_rules'] !== 1) { $fields['enable_prune'] = 0; }
 			}
 			$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $fields) . ' WHERE forum_id=' . $node['id']);
 		}
