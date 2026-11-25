@@ -20,6 +20,7 @@ on:
       - 'phpBB2/album_mod/album_lifecycle_authority.php'
       - 'phpBB2/pafiledb/includes/functions_*_storage.php'
       - 'phpBB2/pafiledb/includes/functions_file_authority.php'
+      - 'phpBB2/pafiledb/includes/functions_field.php'
       - 'phpBB2/includes/functions_ban.php'
       - 'phpBB2/includes/functions_jr_admin*.php'
       - 'phpBB2/includes/functions_post_author.php'

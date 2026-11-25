@@ -14,8 +14,10 @@ class junior_admin
 		'admin_pa_category.php' => array('Download', 'Cat_manage_title', 'a_plus_dl_categories', 'phpbb2plus\downloads\acp\categories_module', 'manage'),
 		'admin_pa_catauth.php' => array('Download', 'Permissions', 'a_plus_dl_perms', 'phpbb2plus\downloads\acp\permissions_module', 'manage'),
 		'admin_pa_license.php' => array('Download', 'License_title', 'a_plus_dl_licenses', 'phpbb2plus\downloads\acp\licenses_module', 'manage'),
+		'admin_pa_custom.php' => array('Download', 'Mfieldtitle', 'a_plus_dl_fields', 'phpbb2plus\downloads\acp\fields_module', 'manage'),
 		'admin_album_cat.php' => array('Photo_Album', 'Categories', 'a_plus_album_categories', 'phpbb2plus\gallery\acp\categories_module', 'manage'),
 		'admin_album_auth.php' => array('Photo_Album', 'Permissions', 'a_plus_album_auth', 'phpbb2plus\gallery\acp\permissions_module', 'manage'),
+		'admin_album_personal.php' => array('Photo_Album', 'Personal_Galleries', 'a_plus_album_personal_auth', 'phpbb2plus\gallery\acp\personal_permissions_module', 'manage'),
 		'admin_hacks_list.php' => array('General', 'Hacks_List', 'a_plus_credits', 'phpbb2plus\community\acp\credits_module', 'manage'),
 	);
 

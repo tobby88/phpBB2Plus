@@ -1,6 +1,7 @@
 """Check the converted Junior Admin's own, reauthenticated native ACP session."""
 import json
 import os
+import re
 import shutil
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -19,6 +20,7 @@ def source_modules(source, target):
         shutil.copyfile(file, directory / file.name)
     for path in ("includes/functions_jr_admin_auth.php", "pafiledb/includes/functions_file_authority.php",
                  "pafiledb/includes/functions_permission_storage.php", "pafiledb/includes/functions_license_storage.php",
+                 "pafiledb/includes/functions_custom_storage.php", "pafiledb/includes/functions_field.php",
                  "album_mod/album_admin_category_storage.php",
                  "album_mod/album_category_remove.php", "album_mod/album_lifecycle_authority.php"):
         (target / path).parent.mkdir(parents=True, exist_ok=True)
@@ -48,13 +50,41 @@ def authenticate(base, name):
     return junior, admin_url(junior)
 
 
+def personal_album_rights(browser, url, page):
+    form = "album-personal-grants"
+    def counts(body):
+        match = re.search(r'<tr data-permission="delete" data-assigned="([0-9]+)" data-categories="([0-9]+)"', body)
+        if not match:
+            raise RuntimeError("The existing membership totals are missing for the personal albums")
+        return tuple(map(int, match.groups()))
+
+    previous, total = counts(page)
+    if previous != 0 or not total or FormFields(page, form).values.get("scope") != "existing" or '<option value="future">' in page:
+        raise RuntimeError("The historical delegate did not start with the original personal album scope")
+    submit_form(browser, url, page, form, {"change[delete]": "grant", "scope": "future"}, status=403)
+    if counts(browser.fetch(url)) != (previous, total):
+        raise RuntimeError("A refused personal album scope changed a group's existing rights")
+    for action, wanted in (("grant", total), ("remove", 0)):
+        preview = submit_form(browser, url, page, form, {"change[delete]": action})
+        confirmation = "album-personal-grants-confirm"
+        if confirmation not in Page(preview).forms or counts(browser.fetch(url)) != (previous, total):
+            raise RuntimeError("Previewing a personal album grant did not preserve the original rights")
+        submit_form(browser, url, preview, confirmation, {})
+        page = browser.fetch(url)
+        if counts(page) != (wanted, total):
+            raise RuntimeError("The converted delegate could not confirm the change to the existing albums")
+        previous = wanted
+
+
 def module_roles(base):
     modules = {
         "DownloadCategoryJunior": ("-phpbb2plus-downloads-acp-categories_module", "action=edit&category=23", "dl-category", "summary", "Delegated category edit"),
         "DownloadAccessJunior": ("-phpbb2plus-downloads-acp-permissions_module", "section=edit&category=21", "dl-permissions", "values[view]", "1"),
         "DownloadLicenseJunior": ("-phpbb2plus-downloads-acp-licenses_module", "action=edit&ids=31", "dl-license-admin", "name", "Delegated licence edit"),
+        "DownloadFieldsJunior": ("-phpbb2plus-downloads-acp-fields_module", "action=edit&ids=81", "dl-field-admin", "name", "Delegated field edit"),
         "AlbumCategoryJunior": ("-phpbb2plus-gallery-acp-categories_module", "action=edit&category=8", "album-public-category", "description", "Delegated album edit"),
         "AlbumAccessJunior": ("-phpbb2plus-gallery-acp-permissions_module", "category=8", "album-category-grants", "grant[71][comment]", "1"),
+        "AlbumPersonalJunior": ("-phpbb2plus-gallery-acp-personal_permissions_module", "group=75", "album-personal-grants", None, None),
         "CreditsJunior": ("-phpbb2plus-community-acp-credits_module", "action=edit&credit=19001", "plus-credit", "title", "Delegated credits edit"),
     }
 
@@ -71,6 +101,9 @@ def module_roles(base):
                 controls = FormFields(page, form).values
                 if "form_token" not in controls:
                     raise RuntimeError(f"{username} could not open its mapped form {form}")
+                if username == "AlbumPersonalJunior":
+                    personal_album_rights(browser, url, page)
+                    continue
                 original = controls.get(field)
                 if original == new_value:
                     raise RuntimeError(f"Expected a different starting value for {module}")
@@ -84,8 +117,8 @@ def module_roles(base):
     # Each catalogue shares its write lock and revisions. Keep edits within it
     # sequential while testing the independent download, album and credit stores.
     with ThreadPoolExecutor(max_workers=3) as pool:
-        list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior"),
-                                 ("AlbumCategoryJunior", "AlbumAccessJunior"), ("CreditsJunior",))))
+        list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior", "DownloadFieldsJunior"),
+                                 ("AlbumCategoryJunior", "AlbumAccessJunior", "AlbumPersonalJunior"), ("CreditsJunior",))))
 
 
 def browse(base):

@@ -65,6 +65,8 @@ function plus_jr_registry()
 	// A locally modified module can expose fewer actions under the same name. These
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
+		'admin_pa_custom.php' => '9237b12da9f50adbc87ff38da3b3550063a92d017dc628b410ee65a69927350b',
+		'admin_album_personal.php' => 'd97d4e085e90eac081030134f6894b60b3e4824ee6d1ef88ad82bd1fd36f5d87',
 		'admin_words.php' => '5d8a246e3aa046ed04b6e9346336e66ca0a79031ad0c2a8aa81f4b8d8a257e59',
 		'admin_disallow.php' => '5da99a11b96be1a5020ceca18693aaa0e6339e10ba40f91f18405b71ae7fc8fd',
 		'admin_ranks.php' => 'ae0f662dc79f4e9a203a32e4193d983c33db4666f76e684aa81fc12296fcfd1e',
@@ -85,6 +87,10 @@ function plus_jr_registry()
 		'pafiledb/includes/functions_file_authority.php' => 'd875f99ae5eafa9a2398fbc89fefd86cc406a7d91633290834c62b77023ba2a1',
 	);
 	$dependencies = array(
+		'admin_pa_custom.php' => $file_authority + array(
+			'pafiledb/includes/functions_custom_storage.php' => '148a8b14339e9d4808f5283add8ec0dc6ddc3ad2bef7da0dabdfcd29ade4c0ee',
+			'pafiledb/includes/functions_field.php' => '55cda748f5b69160f14244f22d4496a8520f4ab4160150828effb35b4428ea20',
+		),
 		'admin_pa_catauth.php' => $file_authority + array(
 			'admin_pa_ug_auth.php' => 'fa7397cc5100fd2dbeb871477fc5bc166d63a5d3ff789df671ce1a5e09edcd01',
 			'pafiledb/includes/functions_permission_storage.php' => '4b9503464cdb3e0e7a5ec3426a116f0c6e0cb6c251a6ad5ebebac1d78900c450',

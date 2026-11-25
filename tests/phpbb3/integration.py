@@ -146,8 +146,10 @@ def module_administration(base, member, ordinary, pending, fixture, target, web)
                 php(ROOT / "tests/phpbb3/download_licenses.php", target, phase, cwd=web)
             download_licenses.agreements(historical, verify_licence)
             download_licenses.administration(admin, historical, verify_licence)
-            download_fields.runtime(admin, historical,
-                                    lambda phase: php(ROOT / "tests/phpbb3/download_fields.php", target, phase, cwd=web))
+            def verify_fields(phase):
+                php(ROOT / "tests/phpbb3/download_fields.php", target, phase, cwd=web)
+            download_fields.runtime(admin, historical, verify_fields)
+            download_fields.administration(admin, historical, verify_fields)
             # The storage-failure case temporarily switches the board's upload directory.
             gallery_run.result()
             downloads.submissions(base, admin, historical, applicant,
