@@ -73,10 +73,15 @@ class conditional_read extends \phpbb\auth\auth
 			(int) ($row[$keys[self::CONDITIONAL] ?? self::CONDITIONAL] ?? ACL_NO) === ACL_YES;
 	}
 
-	private function complete(&$row,$keys,$rights = self::RIGHTS)
+	private function rights()
+	{
+		return empty($this->board_config['plus_print_read_acl']) ? self::RIGHTS : array_merge(self::RIGHTS, array('f_print'));
+	}
+
+	private function complete(&$row,$keys,$rights = null)
 	{
 		if (!$this->qualified($row,$keys)) { return; }
-		foreach ($rights as $name)
+		foreach ($rights ?? $this->rights() as $name)
 		{
 			$key = $keys[$name] ?? $name;
 			if ((int) ($row[$key] ?? ACL_NO) !== ACL_NEVER) { $row[$key] = ACL_YES; }
@@ -115,7 +120,7 @@ class conditional_read extends \phpbb\auth\auth
 		foreach ($this->scopes() as $forum)
 		{
 			if (!isset($this->acl[$forum]) || !$this->qualified($this->acl[$forum],$keys)) { continue; }
-			foreach (self::RIGHTS as $name)
+			foreach ($this->rights() as $name)
 			{
 				if ($this->acl[$forum][$keys[$name]] === '0') { $candidates[$forum][] = $name; }
 			}
@@ -151,7 +156,7 @@ class conditional_read extends \phpbb\auth\auth
 		$scopes = $this->scopes();
 		if ($forum_id !== false) { $scopes = array_intersect($scopes,(array) $forum_id); }
 		if (!$scopes) { return $data; }
-		$fields = array_merge(self::RIGHTS,array('f_list',self::CONDITIONAL));
+		$fields = array_merge($this->rights(),array('f_list',self::CONDITIONAL));
 		$wanted = array();
 		foreach ($opts === false ? array('%') : (array) $opts as $pattern)
 		{
@@ -161,7 +166,7 @@ class conditional_read extends \phpbb\auth\auth
 				if (preg_match('~^' . str_replace('%','.*',preg_quote($pattern,'~')) . '$~D',$name)) { $wanted[$name]=$name; }
 			}
 		}
-		$rights = array_intersect(self::RIGHTS,$wanted);
+		$rights = array_intersect($this->rights(),$wanted);
 		if (!$rights) { return $data; }
 		if (isset($wanted['f_list'],$wanted[self::CONDITIONAL]))
 		{

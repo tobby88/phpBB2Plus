@@ -32,6 +32,7 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL_MEMBERS'=>'Signed-in members', 'PLUS_PORTAL_LENGTH'=>'The welcome message is limited to 65,535 bytes.',
 	'PLUS_PORTAL_LIMIT'=>'Choose a value within the limits shown.', 'PLUS_PORTAL_CHANGED'=>'The portal settings have changed. Reload the form before saving.',
 	'PLUS_FORMER_MEMBER' => 'Former member',
+	'PLUS_PRINT_IGNORED' => 'Post by an ignored member.',
 	'PLUS_SHOUTBOX' => 'Shoutbox',
 	'PLUS_SHOUT_HIDDEN' => 'This message was hidden by a moderator.',
 	'PLUS_SHOUT_HIDE' => 'Hide',

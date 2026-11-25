@@ -17,12 +17,14 @@ class articles
 	private $table;
 	private $root;
 	private $ext;
+	private $printer;
 
-	public function __construct($db, $config, $user, $auth, $visibility, $helper, $paths, $feed, $dispatcher, $table, $root, $ext)
+	public function __construct($db, $config, $user, $auth, $visibility, $helper, $paths, $feed, $dispatcher, $table, $root, $ext, $printer = null)
 	{
 		$this->db = $db; $this->config = $config; $this->user = $user; $this->auth = $auth;
 		$this->visibility = $visibility; $this->helper = $helper; $this->paths = $paths; $this->feed = $feed;
 		$this->dispatcher = $dispatcher; $this->table = $table; $this->root = $root; $this->ext = $ext;
+		$this->printer = $printer;
 	}
 
 	public function forums()
@@ -158,7 +160,12 @@ class articles
 				$plain = html_entity_decode($title,ENT_QUOTES,'UTF-8');
 				if (utf8_strlen($plain) > $title_limit) { $title = utf8_htmlspecialchars(utf8_substr($plain,0,$title_limit)) . '…'; }
 			}
-			yield $this->category_data($row) + array('ID'=>$id, 'TITLE'=>$title, 'BODY'=>$this->body($row,$files[$post] ?? array(),$feed,$trim),
+			$print = '';
+			if (!$feed && $this->auth->acl_get('f_print', (int) $row['forum_id']))
+			{
+				$print = $this->printer ? $this->printer->url($id) : append_sid($this->root . 'viewtopic.' . $this->ext, 't=' . $id . '&amp;view=print');
+			}
+			yield $this->category_data($row) + array('ID'=>$id, 'TITLE'=>$title, 'U_PRINT'=>$print, 'BODY'=>$this->body($row,$files[$post] ?? array(),$feed,$trim),
 				'AUTHOR'=>get_username_string('full',(int) $row['user_id'],$row['username'],$row['user_colour'],$row['post_username']),
 				'DATE'=>$this->user->format_date($row['topic_time']), 'TIME'=>(int) $row['topic_time'],
 				'REPLIES'=>max(0,(int) $row['topic_posts_approved']-1), 'VIEWS'=>(int) $row['topic_views'],

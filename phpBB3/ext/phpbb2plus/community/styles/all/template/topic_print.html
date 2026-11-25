@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html dir="{S_CONTENT_DIRECTION}" lang="{S_USER_LANG}">
+<head>
+	<meta charset="utf-8">
+	<meta name="robots" content="noindex">
+	<title>{TOPIC_TITLE} &bull; {SITENAME}</title>
+	<link rel="stylesheet" href="{T_THEME_PATH}/print.css">
+	{% if S_CONTENT_DIRECTION == 'rtl' %}<link rel="stylesheet" href="{T_THEME_PATH}/bidi.css">{% endif %}
+	<!-- EVENT viewtopic_print_head_append -->
+</head>
+<body id="phpbb" class="{S_CONTENT_DIRECTION}">
+<main id="wrap" class="wrap">
+	<header id="page-header">
+		<h1>{SITENAME}</h1>
+		<p><a href="{U_FORUM}">{FORUM_NAME}</a></p>
+		<h2>{TOPIC_TITLE}</h2>
+		<p><a href="{U_TOPIC}">{U_TOPIC}</a></p>
+	</header>
+	<div id="page-body" class="page-body">
+	{% for post in PRINT_POSTS %}
+		{% if post.REMOVED %}<p class="post removed">{{ PRINT_REMOVED }}</p>
+		{% elseif post.IGNORED %}<p class="post ignored">{{ lang('PLUS_PRINT_IGNORED') }}</p>
+		{% else %}
+		<article class="post" id="p{{ post.ID }}">
+			<h3>{{ post.SUBJECT }}</h3>
+			<div class="date">{L_POSTED}{L_COLON} <strong>{{ post.DATE }}</strong></div>
+			<div class="author">{L_POST_BY_AUTHOR} <strong>{{ post.AUTHOR }}</strong></div>
+			{% if post.PENDING %}<p>{{ lang('POST_UNAPPROVED') }}</p>{% endif %}
+			<div class="content">{{ post.BODY }}</div>
+			{% for file in post.ATTACHMENTS %}<div class="attachments">{{ file }}</div>{% endfor %}
+		</article>
+		{% endif %}
+		<hr>
+	{% else %}
+		<p>{% if PRINT_FILTERED %}{{ lang('NO_POSTS_TIME_FRAME') }}{% else %}{{ lang('NO_POSTS') }}{% endif %}</p>
+	{% endfor %}
+	</div>
+	<footer id="page-footer" class="page-footer">
+		<p>{S_TIMEZONE}</p>
+		<div class="copyright"><p>{{ CREDIT_LINE }}</p>{% if TRANSLATION_INFO %}<p>{{ TRANSLATION_INFO }}</p>{% endif %}</div>
+	</footer>
+</main>
+</body>
+</html>

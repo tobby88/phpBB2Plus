@@ -32,6 +32,7 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL_MEMBERS'=>'Angemeldete Mitglieder', 'PLUS_PORTAL_LENGTH'=>'Der Begrüßungstext darf höchstens 65.535 Bytes umfassen.',
 	'PLUS_PORTAL_LIMIT'=>'Wähle einen Wert innerhalb der angezeigten Grenzen.', 'PLUS_PORTAL_CHANGED'=>'Die Portal-Einstellungen wurden inzwischen geändert. Lade das Formular vor dem Speichern erneut.',
 	'PLUS_FORMER_MEMBER' => 'Ehemaliger Nutzer',
+	'PLUS_PRINT_IGNORED' => 'Beitrag eines ignorierten Mitglieds.',
 	'PLUS_SHOUTBOX' => 'Shoutbox',
 	'PLUS_SHOUT_HIDDEN' => 'Diese Nachricht wurde ausgeblendet.',
 	'PLUS_SHOUT_HIDE' => 'Ausblenden',
