@@ -234,7 +234,7 @@ def main():
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 php(fixture, "signed-in", target)
-                board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target))
+                board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
                 forum_permissions.publishing(member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)
