@@ -69,9 +69,14 @@ def exercise(base, fixture):
         if panels(guest.fetch(front)):
             raise RuntimeError("An uninstalled report remained visible")
         displayed = manager.fetch(new)
+        native, native_entry = native_manager
+        native_edit = native_entry + module + "manage&action=edit&item=1"
+        native_form = native.fetch(native_edit)
         fixture("revoke")
-        denied = submit_form(manager, new, displayed, form, {"state": "2"}, status=503)
-        if "Module not accessible" not in denied or panels(guest.fetch(front)):
+        board_denial = submit_form(manager, new, displayed, form, {"state": "2"}, status=403)
+        module_denial = submit_form(native, native_edit, native_form, form, {"state": "2"}, status=503)
+        if ("not authorised to administer" not in board_denial or "Module not accessible" not in module_denial
+                or panels(guest.fetch(front))):
             raise RuntimeError("A previously open form saved after revocation")
     finally:
         fixture("restore")
