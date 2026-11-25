@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 import arcade
+import arcade_administration
 import banners
 import attachments
 import attachment_quotas
@@ -217,6 +218,7 @@ def main():
                 arcade.community(base, member, ordinary, pending)
                 arcade.comments(base, member, ordinary, pending)
                 arcade.tournament_play(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
+                arcade_administration.exercise(member, ordinary, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "proposal", cwd=web))
                 downloads.browse(base, member, ordinary, pending)
                 php(fixture, "downloaded", target)
                 playback(web, base, root)

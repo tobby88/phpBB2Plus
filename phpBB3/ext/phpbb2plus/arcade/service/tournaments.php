@@ -203,14 +203,26 @@ class tournaments
 		return '';
 	}
 
-	/** Called inside the same Arcade transaction coordinator as game starts. */
-	public function join(array $ids)
+	public function may_participate()
+	{
+		return $this->available() && $this->eligible($this->user->data);
+	}
+
+	/** Read the current participant while holding the Arcade transaction. */
+	public function current_participant()
 	{
 		if (!$this->available()) { throw new NotFoundHttpException(); }
 		$owner = (int) $this->user->data['user_id'];
 		$actors = $this->rows('SELECT user_type,user_rank,user_posts FROM ' . USERS_TABLE . " WHERE user_id=$owner LOCK IN SHARE MODE");
 		if (!$actors || !$this->eligible($actors[0])) { throw new AccessDeniedHttpException(); }
-		$source = (int) ($this->user->data['plus_legacy_id'] ?? 0) ?: $owner;
+		return array('owner_id'=>$owner, 'user_id'=>(int) ($this->user->data['plus_legacy_id'] ?? 0) ?: $owner);
+	}
+
+	public function join(array $ids)
+	{
+		$actor = $this->current_participant();
+		$owner = $actor['owner_id'];
+		$source = $actor['user_id'];
 		$p = $this->prefix;
 		$entries = $this->rows($this->entries() . ' WHERE ' . $this->db->sql_in_set('t.tour_id', $ids) . ' ORDER BY t.tour_id FOR UPDATE');
 		$result = array();

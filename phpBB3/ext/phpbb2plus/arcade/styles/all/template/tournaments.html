@@ -5,6 +5,7 @@
 <a href="{{ U_TOURS }}">{{ lang('PLUS_ARC_TOURS') }}</a>
 {% else %}
 {% if not CHAMPIONS_ONLY %}
+{% if U_PROPOSE %}<p class="action-bar"><a class="button" href="{{ U_PROPOSE }}">{{ lang('PLUS_ARC_PROPOSE') }}</a></p>{% endif %}
 {% if U_JOIN %}<form method="post" id="arcade-join-tours" action="{{ U_JOIN }}">{% endif %}
 <div class="forumbg"><div class="inner"><table class="table1">
 <thead><tr><th>{{ lang('PLUS_ARC_TOUR') }}</th><th>{{ lang('PLUS_ARC_TOUR_STATE') }}</th><th>{{ lang('PLUS_ARC_TOUR_PLAYERS') }}</th></tr></thead>

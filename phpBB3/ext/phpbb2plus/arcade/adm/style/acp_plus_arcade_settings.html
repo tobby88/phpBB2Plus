@@ -1,0 +1,12 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{{ lang('ACP_PLUS_ARCADE_SETTINGS') }}</h1>
+{% if ARC_ERROR %}<div class="errorbox"><p>{{ ARC_ERROR }}</p></div>{% elseif S_SAVED %}<div class="successbox"><p>{{ lang('CONFIG_UPDATED') }}</p></div>{% endif %}
+{% for group in loops.sections %}
+<form action="{{ U_ACTION }}" method="post" id="arc-settings-{{ group.KEY }}"><fieldset><legend>{{ group.TITLE }}</legend>
+{% for field in group.fields %}<dl><dt><label for="opt-{{ field.KEY }}">{{ field.LABEL }}</label></dt><dd>
+{% if field.IS_BOOL %}<input id="opt-{{ field.KEY }}" name="{{ field.KEY }}" type="checkbox" value="1"{% if field.VALUE %} checked{% endif %}>
+{% else %}<input id="opt-{{ field.KEY }}" name="{{ field.KEY }}" type="number" min="{{ field.MIN }}" max="{{ field.MAX }}" value="{{ field.VALUE|e }}" required>{% endif %}
+</dd></dl>{% endfor %}
+<input type="hidden" name="section" value="{{ group.KEY }}"><input type="hidden" name="revision" value="{{ group.REVISION }}">{{ group.TOKEN }}
+<p class="submit-buttons"><button class="button1" type="submit">{{ lang('SUBMIT') }}</button></p></fieldset></form>{% endfor %}
+<!-- INCLUDE overall_footer.html -->

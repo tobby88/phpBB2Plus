@@ -184,6 +184,10 @@ function plus_arcade_schema($prefix, $truncate)
 		{
 			$section['query_first'] = array(array('target', $truncate . $target), array('target', $truncate . $prefix . 'plus_arc_launches'));
 		}
+		elseif ($short === 'tour')
+		{
+			$section['query_first'] = array(array('target', $truncate . $target), array('target', $truncate . $prefix . 'plus_arc_proposals'));
+		}
 		elseif ($short === 'tour_play')
 		{
 			$section['query_first'] = array(array('target', $truncate . $target), array('target', $truncate . $prefix . 'plus_arc_turns'));

@@ -17,8 +17,9 @@ class tournaments
 	private $helper;
 	private $request;
 	private $pagination;
+	private $management;
 
-	public function __construct($tours, $sessions, $user, $language, $template, $helper, $request, $pagination)
+	public function __construct($tours, $sessions, $user, $language, $template, $helper, $request, $pagination, $management)
 	{
 		$this->tours = $tours;
 		$this->sessions = $sessions;
@@ -28,6 +29,7 @@ class tournaments
 		$this->helper = $helper;
 		$this->request = $request;
 		$this->pagination = $pagination;
+		$this->management = $management;
 	}
 
 	private function header($route, $params = array())
@@ -62,7 +64,7 @@ class tournaments
 		$id = (int) $entry['tour_id'];
 		$status = $this->tours->join_status($entry);
 		$states = array('PLUS_ARC_TOUR_WAITING', 'PLUS_ARC_TOUR_INACTIVE', 'PLUS_ARC_TOUR_OPEN', 'PLUS_ARC_TOUR_FINISHED');
-		return array('ID'=>$id, 'NAME'=>catalog::plain($entry['tour_name']), 'DESCRIPTION'=>catalog::plain($entry['tour_desc']),
+		return array('ID'=>$id, 'NAME'=>(string) $entry['tour_name'], 'DESCRIPTION'=>(string) $entry['tour_desc'],
 			'PLAYERS'=>(int) $entry['players'], 'CAPACITY'=>(int) $entry['tour_max_players'], 'INVITED'=>(bool) $entry['invited'],
 			'STATE'=>$this->language->lang($states[(int) $entry['tour_active']] ?? $states[0]), 'CAN_JOIN'=>$status === '',
 			'STATUS'=>$status !== '' && $status !== 'PLUS_ARC_TOUR_CLOSED' ? $this->language->lang($status) : '',
@@ -77,6 +79,10 @@ class tournaments
 		$can_join = false;
 		if (!$champions)
 		{
+			if ($this->management->proposals_enabled() && $this->management->room())
+			{
+				$this->template->assign_var('U_PROPOSE', $this->helper->route('phpbb2plus_arcade_propose'));
+			}
 			foreach ($this->tours->listing($start, 25) as $row)
 			{
 				$entry = $this->display($row);
@@ -86,7 +92,7 @@ class tournaments
 		}
 		foreach ($this->tours->champions($champions ? $start : 0, $champions ? 25 : 5) as $row)
 		{
-			$this->template->assign_block_vars('champions', array('NAME'=>catalog::plain($row['tour_name']), 'PLAYER'=>$this->player($row),
+			$this->template->assign_block_vars('champions', array('NAME'=>(string) $row['tour_name'], 'PLAYER'=>$this->player($row),
 				'URL'=>$this->helper->route('phpbb2plus_arcade_tournament', array('id'=>(int) $row['tour_id']))));
 		}
 		if ($can_join)
@@ -98,6 +104,38 @@ class tournaments
 		$this->template->assign_vars(array('ARC_TITLE'=>$title, 'CHAMPIONS_ONLY'=>(bool) $champions,
 			'U_CHAMPIONS'=>$this->helper->route('phpbb2plus_arcade_champions')));
 		return $this->helper->render('@phpbb2plus_arcade/tournaments.html', $title);
+	}
+
+	public function proposal()
+	{
+		$this->header('phpbb2plus_arcade_propose');
+		if (!$this->management->proposals_enabled()) { throw new NotFoundHttpException(); }
+		$max = $this->management->limit('games_tournament_players');
+		$input = array('name'=>'', 'description'=>'', 'players'=>2, 'turns'=>1, 'reserve'=>'0');
+		$nonce = bin2hex(random_bytes(16));
+		$error = '';
+		if ($this->request->is_set_post('propose'))
+		{
+			if (!check_form_key('plus_arc_proposal')) { throw new AccessDeniedHttpException(); }
+			foreach (array_keys($input) as $key)
+			{
+				$value = $this->request->variable($key, $key === 'reserve' ? '0' : '', true, \phpbb\request\request_interface::POST);
+				$input[$key] = htmlspecialchars_decode($value, ENT_QUOTES);
+			}
+			$nonce = $this->request->variable('nonce', '', false, \phpbb\request\request_interface::POST);
+			try
+			{
+				$id = $this->sessions->locked(function () use ($input, $nonce) { return $this->management->propose($input, $nonce); });
+				return new RedirectResponse($this->helper->route('phpbb2plus_arcade_tournament', array('id'=>$id), false), 303);
+			}
+			catch (\DomainException $e) { $error = $this->language->lang($e->getMessage()); }
+		}
+		elseif (!$this->management->room()) { return $this->helper->message('PLUS_ARC_PROPOSAL_LIMIT', array(), 'INFORMATION', 409); }
+		add_form_key('plus_arc_proposal');
+		$title = $this->language->lang('PLUS_ARC_PROPOSE');
+		$this->template->assign_vars(array('ARC_TITLE'=>$title, 'ARC_ERROR'=>$error, 'MAX_PLAYERS'=>$max, 'PROPOSAL'=>$input,
+			'NONCE'=>$nonce, 'U_PROPOSE'=>$this->helper->route('phpbb2plus_arcade_propose')));
+		return $this->helper->render('@phpbb2plus_arcade/proposal.html', $title, $error === '' ? 200 : 422);
 	}
 
 	public function detail($id)
@@ -175,7 +213,7 @@ class tournaments
 		$this->header('phpbb2plus_arcade_tournaments');
 		foreach ($results as $key=>$row)
 		{
-			$this->template->assign_block_vars('joined', array('NAME'=>catalog::plain($row['name']), 'STATUS'=>$this->language->lang($row['status']),
+			$this->template->assign_block_vars('joined', array('NAME'=>(string) $row['name'], 'STATUS'=>$this->language->lang($row['status']),
 				'URL'=>$this->helper->route('phpbb2plus_arcade_tournament', array('id'=>$key))));
 		}
 		if (!$results) { throw new NotFoundHttpException(); }

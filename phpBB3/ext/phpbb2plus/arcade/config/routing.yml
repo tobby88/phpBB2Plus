@@ -11,6 +11,10 @@ phpbb2plus_arcade_tournament:
     defaults: { _controller: phpbb2plus.arcade.events_board:detail }
     requirements: { id: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_arcade_propose:
+    path: /arcade/tournaments/propose
+    defaults: { _controller: phpbb2plus.arcade.events_board:proposal }
+    methods: [GET, POST]
 phpbb2plus_arcade_tournament_start:
     path: /arcade/tournament/{tour}/game/{game}/start
     defaults: { _controller: phpbb2plus.arcade.player:start }
