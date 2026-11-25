@@ -83,7 +83,8 @@ def browse(base, member, admin, fixture):
     before = addresses(remembered.fetch(BOOKMARK))
     if before[:2] != ["127.0.0.1", "198.51.100.41"] or not any(c.name.endswith("_k") and c.value for c in remembered.cookies):
         raise RuntimeError("The explicit remembered login did not record exactly one new entry")
-    sid = next(c for c in remembered.cookies if c.name.endswith("_sid"))
-    remembered.cookies.clear(sid.domain, sid.path, sid.name)
-    if addresses(remembered.fetch(BOOKMARK)) != before:
+    previous_session = next(c.value for c in remembered.cookies if c.name.endswith("_sid"))
+    fixture("expire-remembered-session")
+    resumed = addresses(remembered.fetch(BOOKMARK))
+    if resumed != before or previous_session == next(c.value for c in remembered.cookies if c.name.endswith("_sid")):
         raise RuntimeError("Resuming the native remember-me cookie added a second login or lost the account session")

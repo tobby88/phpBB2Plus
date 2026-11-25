@@ -11,6 +11,14 @@ $result = $db->sql_query("SELECT user_id FROM " . USERS_TABLE . " WHERE plus_leg
 $id = (int) $db->sql_fetchfield('user_id');
 $db->sql_freeresult($result);
 if ($id <= ANONYMOUS) { throw new RuntimeException('Missing remapped login history fixture'); }
+if ($argv[2] === 'expire-remembered-session')
+{
+	// Native session garbage collection removes the row. The browser retains
+	// its previous session ID, per-device key and account cookies until it returns.
+	$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . " WHERE session_user_id=$id AND session_autologin=1");
+	if ((int) $db->sql_affectedrows() !== 1) { throw new RuntimeException('Expected one persistent fixture session to expire'); }
+	return;
+}
 if ($argv[2] === 'disabled')
 {
 	$result = $db->sql_query('SELECT COUNT(*) AS total FROM ' . $table_prefix . 'plus_account_logins');
