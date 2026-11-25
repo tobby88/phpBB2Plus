@@ -1,6 +1,6 @@
-<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{L_PLUS_DL_TITLE}</th><th>{L_PLUS_DL_CATEGORY}</th>
-<th>{L_PLUS_DL_PUBLISHER}</th><th>{L_PLUS_DL_DATE}</th><th>{L_PLUS_DL_COUNT}</th><th>{L_PLUS_DL_RATING}</th></tr></thead><tbody>
+<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{L_PLUS_DL_TITLE}</th>{% if not S_DL_SINGLE_CATEGORY %}<th>{L_PLUS_DL_CATEGORY}</th>{% endif %}
+{% if not S_DL_CATALOGUE %}<th>{L_PLUS_DL_PUBLISHER}</th>{% endif %}<th>{L_PLUS_DL_DATE}</th><th>{L_PLUS_DL_COUNT}</th><th>{L_PLUS_DL_RATING}</th>{% if S_DL_CATALOGUE %}<th>{L_PLUS_DL_PREVIEW}</th>{% endif %}</tr></thead><tbody>
 {% for file in loops.ranked %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td>{% if file.ICON %}<img src="{{ file.ICON }}" alt=""> {% endif %}
 <a href="{{ file.URL }}">{{ file.TITLE|e }}</a>{% if file.RECENT %} <strong>{L_PLUS_DL_NEW_FILE}</strong>{% endif %}{% if file.PINNED %} <span>({L_PLUS_DL_PINNED})</span>{% endif %}
-{% if file.SUMMARY %}<br>{{ file.SUMMARY|e }}{% endif %}</td><td><a href="{{ file.CATEGORY_URL }}">{{ file.CATEGORY|e }}</a></td><td>{{ file.PUBLISHER }}</td>
-<td>{{ file.DATE|e }}</td><td>{{ file.COUNT }}</td><td>{{ file.SCORE|e }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if file.SUMMARY %}<br>{{ file.SUMMARY|e }}{% endif %}</td>{% if not S_DL_SINGLE_CATEGORY %}<td><a href="{{ file.CATEGORY_URL }}">{{ file.CATEGORY|e }}</a></td>{% endif %}{% if not S_DL_CATALOGUE %}<td>{{ file.PUBLISHER }}</td>{% endif %}
+<td>{{ file.DATE|e }}</td><td>{{ file.COUNT }}</td><td>{{ file.SCORE|e }}</td>{% if S_DL_CATALOGUE %}<td>{% if file.PREVIEW %}<a href="{{ file.PREVIEW }}" rel="noreferrer">{L_PLUS_DL_PREVIEW}</a>{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody></table></div></div>

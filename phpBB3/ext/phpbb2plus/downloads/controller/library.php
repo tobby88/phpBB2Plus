@@ -5,8 +5,6 @@ use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\field_data;
 use phpbb2plus\downloads\service\file_display;
 use phpbb2plus\downloads\service\mirrors;
-use phpbb2plus\downloads\service\settings;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class library
 {
@@ -21,8 +19,9 @@ class library
 	private $feedback;
 	private $prefix;
 	private $paths;
+	private $listing;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $feedback, $prefix, $paths)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $feedback, $prefix, $paths, $listing)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -35,108 +34,7 @@ class library
 		$this->feedback = $feedback;
 		$this->prefix = $prefix;
 		$this->paths = $paths;
-	}
-
-	private function nav($category = 0)
-	{
-		$this->access->open();
-		$this->language->add_lang('downloads', 'phpbb2plus/downloads');
-		$this->template->assign_block_vars('navlinks', array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),
-			'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_index')));
-		if ($this->access->allows(0,'search'))
-		{ $this->template->assign_var('U_DL_ADVANCED',$this->helper->route('phpbb2plus_downloads_search',$category ? array('cat_id'=>$category) : array())); }
-		foreach (array('stats','toplist') as $report)
-		{
-			if ($this->access->allows(0,$report))
-			{ $this->template->assign_var('U_DL_' . strtoupper($report),$this->helper->route('phpbb2plus_downloads_' . $report)); }
-		}
-		if (!$category) { return; }
-		if (!$this->access->visible($category)) { throw new NotFoundHttpException(); }
-		$cats = $this->access->categories();
-		$path = array();
-		for ($id = $category; $id; $id = (int) $cats[$id]['parent_id']) { $path[] = $id; }
-		foreach (array_reverse($path) as $id)
-		{
-			$this->template->assign_block_vars('navlinks', array('FORUM_NAME'=>utf8_htmlspecialchars(access::plain($cats[$id]['title'])),
-				'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_category', array('category'=>$id))));
-		}
-	}
-
-	public function index($category = 0)
-	{
-		$id = (int) $category;
-		$this->nav($id);
-		$cats = $this->access->categories();
-		$query = trim(htmlspecialchars_decode($this->request->variable('q', '', true), ENT_QUOTES));
-		$can_search = $this->access->allows(0, 'search');
-		if ($query !== '' && !$can_search) { throw new NotFoundHttpException(); }
-		$scope = array();
-		$can_submit = false;
-		foreach ($cats as $key => $c)
-		{
-			if (!$this->access->visible($key)) { continue; }
-			if (!$id && !$can_submit && $this->access->can_submit($key)) { $can_submit = true; }
-			if ((int) $c['parent_id'] === $id && $query === '')
-			{
-				$this->template->assign_block_vars('dl_cats', array('TITLE'=>access::plain($c['title']), 'SUMMARY'=>access::plain($c['summary']),
-					'URL'=>$this->helper->route('phpbb2plus_downloads_category', array('category'=>$key))));
-			}
-			if (!$this->access->visible($key, true)) { continue; }
-			if ($id && $key !== $id)
-			{
-				if ($query === '') { continue; }
-				$parent = (int) $c['parent_id'];
-				while ($parent && $parent !== $id) { $parent = (int) $cats[$parent]['parent_id']; }
-				if (!$parent) { continue; }
-			}
-			$scope[] = $key;
-		}
-		$route = $id ? 'phpbb2plus_downloads_category' : 'phpbb2plus_downloads_index';
-		$params = $id ? array('category'=>$id) : array();
-		$url = $this->helper->route($route, $params);
-		$title = $id ? access::plain($cats[$id]['title']) : access::plain($this->access->setting('settings_dbname', $this->language->lang('PLUS_DL')));
-		if (!$id && trim($title) === '') { $title = $this->language->lang('PLUS_DL'); }
-		$this->template->assign_vars(array('DL_TITLE'=>$title, 'DL_QUERY'=>$query, 'S_DL_SEARCH'=>$can_search, 'U_DL_SEARCH'=>$url));
-		if ($can_submit || ($id && $this->access->can_submit($id)))
-		{
-			$this->template->assign_var('U_DL_SUBMIT', $id ? $this->helper->route('phpbb2plus_downloads_submit', array('category'=>$id)) :
-				$this->helper->route('phpbb2plus_downloads_destinations'));
-		}
-		if ($id && $this->access->can_review($id))
-		{ $this->template->assign_var('U_DL_QUEUE', $this->helper->route('phpbb2plus_downloads_queue',array('category'=>$id))); }
-		if ($scope && ($id || $query !== '' || ((int) $this->access->setting('settings_viewall', 1) && $this->access->allows(0,'viewall'))))
-		{
-			$filter = $this->db->sql_in_set('cat_id', $scope) . ' AND approved=1';
-			if ($query !== '')
-			{
-				$pattern = $this->db->sql_like_expression($this->db->get_any_char() . utf8_encode_ucr($query) . $this->db->get_any_char());
-				$filter .= " AND (title $pattern OR summary $pattern)";
-			}
-			$from = ' FROM ' . $this->prefix . 'files WHERE ' . $filter;
-			$result = $this->db->sql_query('SELECT COUNT(*) AS total' . $from);
-			$total = (int) $this->db->sql_fetchfield('total');
-			$this->db->sql_freeresult($result);
-			$limit = max(1, min(100, (int) $this->access->setting('settings_file_page', 20)));
-			$start = $this->pagination->validate_start(max(0,$this->request->variable('start',0)), $limit, $total);
-			$this->pagination->generate_template_pagination($this->helper->route($route, $params + ($query !== '' ? array('q'=>$query) : array())), 'pagination', 'start', $total, $limit, $start);
-			$method = settings::SORT[$this->access->setting('sort_method','file_time')] ?? 'added_at';
-			$direction = $this->access->setting('sort_order','DESC') === 'ASC' ? 'ASC' : 'DESC';
-			$rating = $method === 'rating' ? ',(SELECT COALESCE(AVG(v.points),0) FROM ' . $this->prefix . 'votes v WHERE v.file_id=' .
-				$this->prefix . 'files.file_id) AS rating' : '';
-			$days = max(0,min(1000000,(int) $this->access->setting('settings_newdays',0)));
-			$new_since = time() - $days*86400;
-			$result = $this->db->sql_query_limit('SELECT file_id,title,summary,downloads,pinned,icon_name,added_at' . $rating . $from .
-				" ORDER BY pinned DESC,$method $direction,file_id $direction",$limit,$start);
-			while ($f = $this->db->sql_fetchrow($result))
-			{
-				$this->template->assign_block_vars('dl_files', array('TITLE'=>access::plain($f['title']), 'SUMMARY'=>access::plain($f['summary']), 'DOWNLOADS'=>(int) $f['downloads'],
-					'ICON'=>file_display::icon_url($f['icon_name'],$this->paths->get_web_root_path()),
-					'NEW'=>$days && (int) $f['added_at'] > $new_since,
-					'URL'=>$this->helper->route('phpbb2plus_downloads_file', array('file'=>(int) $f['file_id']))));
-			}
-			$this->db->sql_freeresult($result);
-		}
-		return $this->helper->render('@phpbb2plus_downloads/index.html', utf8_htmlspecialchars($title));
+		$this->listing = $listing;
 	}
 
 	public function file($file)
@@ -144,7 +42,8 @@ class library
 		$id = (int) $file;
 		$f = $this->access->file($id);
 		$cat = (int) $f['cat_id'];
-		$this->nav($cat);
+		$this->language->add_lang('downloads','phpbb2plus/downloads');
+		$this->listing->navigation('',$cat);
 		$raw = json_decode($f['source_json'], true) ?: array();
 		$title = access::plain($f['title']);
 		$download = $this->access->allows($cat, 'download');

@@ -3,7 +3,6 @@ namespace phpbb2plus\downloads\controller;
 
 use phpbb\request\request_interface;
 use phpbb2plus\downloads\service\file_search;
-use phpbb2plus\downloads\service\settings;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -45,15 +44,11 @@ class search
 
 	private function criteria()
 	{
-		$default = $this->access->setting('sort_method','file_time');
-		if (!isset(settings::SORT[$default])) { $default='file_time'; }
-		$sort = $this->input('sort_method',$default);
-		if ($sort==='rating') { $sort='file_rating'; }
+		$sort = $this->listing->sort($this->input('sort_method',''),$this->input('sort_order',''));
 		$keywords = file_search::bounded($this->input('search_keywords',''),500);
 		$author = file_search::bounded($this->input('search_author',''),100);
 		return array('search_keywords'=>$keywords,'search_author'=>$author,'search_terms'=>$this->input('search_terms','any')==='all' ? 'all' : 'any',
-			'cat_id'=>max(0,(int) $this->input('cat_id',0)),'comments_search'=>$this->input('comments_search',$keywords==='' && $author==='' ? 'YES' : 'NO')==='YES' ? 'YES' : 'NO',
-			'sort_method'=>isset(settings::SORT[$sort]) ? $sort : $default,'sort_order'=>$this->input('sort_order',$this->access->setting('sort_order','DESC'))==='ASC' ? 'ASC' : 'DESC');
+			'cat_id'=>max(0,(int) $this->input('cat_id',0)),'comments_search'=>$this->input('comments_search',$keywords==='' && $author==='' ? 'YES' : 'NO')==='YES' ? 'YES' : 'NO')+$sort;
 	}
 
 	private function private_response($response)
@@ -74,12 +69,8 @@ class search
 			if (empty($this->user->data['is_registered'])) { login_box($this->helper->route($route,array(),false)); }
 			throw new AccessDeniedHttpException();
 		}
-		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_index')));
+		$this->listing->navigation('search');
 		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL_ADVANCED'),'U_VIEW_FORUM'=>$url));
-		foreach (array('stats','toplist') as $name)
-		{
-			if ($this->access->allows(0,$name)) { $this->template->assign_var('U_DL_' . strtoupper($name),$this->helper->route('phpbb2plus_downloads_' . $name)); }
-		}
 		$criteria = $this->criteria();
 		$id = max(0,(int) $this->input('search_id',0));
 		$fresh = $criteria['search_keywords']!=='' || $criteria['search_author']!=='';
@@ -90,12 +81,9 @@ class search
 		{
 			$this->template->assign_block_vars('categories',array('ID'=>$key,'TITLE'=>$name,'SELECTED'=>$criteria['cat_id']===$key));
 		}
-		foreach (array('file_name'=>'PLUS_DL_TITLE','file_time'=>'PLUS_DL_DATE','file_rating'=>'PLUS_DL_RATING','file_dls'=>'PLUS_DL_COUNT','file_update_time'=>'PLUS_DL_UPDATED') as $key=>$label)
-		{
-			$this->template->assign_block_vars('sorts',array('VALUE'=>$key,'LABEL'=>$this->language->lang($label),'SELECTED'=>$criteria['sort_method']===$key));
-		}
+		$this->listing->sort_controls($criteria);
 		$this->template->assign_vars(array('U_DL_FORM'=>$url,'DL_KEYWORDS'=>$criteria['search_keywords'],'DL_AUTHOR'=>$criteria['search_author'],
-			'DL_ALL'=>$criteria['search_terms']==='all','DL_COMMENTS'=>$criteria['comments_search']==='YES','DL_ASC'=>$criteria['sort_order']==='ASC'));
+			'DL_ALL'=>$criteria['search_terms']==='all','DL_COMMENTS'=>$criteria['comments_search']==='YES'));
 		if ($fresh || $snapshot)
 		{
 			$where = $this->search->filter($criteria,$files,$comments);

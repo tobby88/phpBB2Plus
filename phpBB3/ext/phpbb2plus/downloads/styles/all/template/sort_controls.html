@@ -1,0 +1,2 @@
+<select id="dl-sort" name="sort_method">{% for sort in loops.sorts %}<option value="{{ sort.VALUE }}"{% if sort.SELECTED %} selected{% endif %}>{{ sort.LABEL|e }}</option>{% endfor %}</select>
+<select aria-label="{L_SORT_DIRECTION}" name="sort_order"><option value="ASC"{% if DL_ASC %} selected{% endif %}>{L_ASCENDING}</option><option value="DESC"{% if not DL_ASC %} selected{% endif %}>{L_DESCENDING}</option></select>

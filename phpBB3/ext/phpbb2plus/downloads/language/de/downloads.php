@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_VIEWALL'=>'Alle Dateien','PLUS_DL_VIEWALL_DISABLED'=>'Die Gesamtansicht der Downloads ist deaktiviert.','PLUS_DL_LAST_FILE'=>'Neueste Datei',
 	'PLUS_DL_ADVANCED'=>'Erweiterte Download-Suche','PLUS_DL_WORDS'=>'Suchbegriffe','PLUS_DL_WORDS_HELP'=>'Durchsucht Titel, Urheber und Beschreibungen. Verwende * als Platzhalter oder verknüpfe Begriffe mit AND, OR und NOT.',
 	'PLUS_DL_AUTHOR_HELP'=>'Gib den Benutzernamen des Mitglieds ein, das die Datei eingereicht hat. Mit * kannst du nach einem Teil des Namens suchen.',
 	'PLUS_DL_MATCH'=>'Suchbegriffe verknüpfen','PLUS_DL_ANY'=>'Ein beliebiger Begriff','PLUS_DL_ALL'=>'Alle Begriffe','PLUS_DL_ALL_CATEGORIES'=>'Alle zugänglichen Kategorien',

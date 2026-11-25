@@ -1,7 +1,11 @@
 phpbb2plus_downloads_index:
     path: /downloads
-    defaults: { _controller: phpbb2plus.downloads.library:index, category: 0 }
+    defaults: { _controller: phpbb2plus.downloads.catalogue_controller:view, category: 0 }
     methods: [GET, HEAD]
+phpbb2plus_downloads_viewall:
+    path: /downloads/all
+    defaults: { _controller: phpbb2plus.downloads.catalogue_controller:view, category: 0, all: true }
+    methods: [GET, HEAD, POST]
 phpbb2plus_downloads_stats:
     path: /downloads/stats
     defaults: { _controller: phpbb2plus.downloads.reports:stats }
@@ -45,9 +49,9 @@ phpbb2plus_downloads_review:
     methods: [GET, POST]
 phpbb2plus_downloads_category:
     path: /downloads/category/{category}
-    defaults: { _controller: phpbb2plus.downloads.library:index }
+    defaults: { _controller: phpbb2plus.downloads.catalogue_controller:view }
     requirements: { category: '[1-9][0-9]*' }
-    methods: [GET, HEAD]
+    methods: [GET, HEAD, POST]
 phpbb2plus_downloads_file:
     path: /downloads/file/{file}
     defaults: { _controller: phpbb2plus.downloads.library:file }

@@ -6,7 +6,7 @@ $lang = array_merge($lang ?? array(),array(
 	'ACP_PLUS_DL_CFG_GROUP_COMMENTS'=>'Comments','ACP_PLUS_DL_CFG_GROUP_ACCESS'=>'Global access levels',
 	'ACP_PLUS_DL_CFG_SETTINGS_DBNAME'=>'Catalogue title','ACP_PLUS_DL_CFG_SETTINGS_DISABLE'=>'Close the download library',
 	'ACP_PLUS_DL_CFG_SETTINGS_DISABLE_HELP'=>'Download administrators can continue to use the library while it is closed.',
-	'ACP_PLUS_DL_CFG_SETTINGS_VIEWALL'=>'List files on the download home page','ACP_PLUS_DL_CFG_SETTINGS_FILE_PAGE'=>'Files per page (1–100)',
+	'ACP_PLUS_DL_CFG_SETTINGS_VIEWALL'=>'Enable the list of all files','ACP_PLUS_DL_CFG_SETTINGS_FILE_PAGE'=>'Files per page (1–100)',
 	'ACP_PLUS_DL_CFG_SORT_METHOD'=>'Sort files by','ACP_PLUS_DL_CFG_SORT_ORDER'=>'Sort order','ACP_PLUS_DL_SORT_ADDED'=>'Date added','ACP_PLUS_DL_SORT_UPDATED'=>'Last update',
 	'ACP_PLUS_DL_CFG_SETTINGS_NEWDAYS'=>'Days to mark new files','ACP_PLUS_DL_CFG_SETTINGS_NEWDAYS_HELP'=>'Enter 0 to hide the new-file label.',
 	'ACP_PLUS_DL_CFG_MAX_FILE_SIZE'=>'Maximum upload size in bytes','ACP_PLUS_DL_CFG_MAX_FILE_SIZE_HELP'=>'Applies to files, mirrors and screenshots uploaded by members and delegated editors. The server upload limits also apply.',

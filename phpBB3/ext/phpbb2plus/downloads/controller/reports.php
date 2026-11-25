@@ -45,13 +45,9 @@ class reports
 			}
 			throw new AccessDeniedHttpException();
 		}
-		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),
-			'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_index')));
+		$this->listing->navigation($view);
 		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL_' . strtoupper($view)),
 			'U_VIEW_FORUM'=>$this->helper->route($route,$params)));
-		$other = $view === 'stats' ? 'toplist' : 'stats';
-		if ($this->access->allows(0,'search')) { $this->template->assign_var('U_DL_ADVANCED',$this->helper->route('phpbb2plus_downloads_search')); }
-		if ($this->access->allows(0,$other)) { $this->template->assign_var('U_DL_' . strtoupper($other),$this->helper->route('phpbb2plus_downloads_' . $other)); }
 		return $this->data->scope();
 	}
 

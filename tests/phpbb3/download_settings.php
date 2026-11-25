@@ -64,14 +64,14 @@ switch ($phase)
 		$levels['upload'] = 1;
 		$insert($p.'categories',array('cat_id'=>10630,'title'=>'Sort fixture','access_levels'=>json_encode($levels))+$cat);
 		$f = $rows("SELECT * FROM {$p}files WHERE file_id=50")[0];
-		foreach (array(10641=>'Zulu oldest',10642=>'Alpha recent',10643=>'Pinned fixture') as $id=>$name)
+		foreach (array(10641=>'Zulu oldest',10642=>'Alpha recent',10643=>'Pinned fixture',10644=>'Middle file') as $id=>$name)
 		{
-			$insert($p.'files',array('file_id'=>$id,'cat_id'=>10630,'title'=>$name,'pinned'=>(int) ($id===10643),'downloads'=>10643-$id,
+			$insert($p.'files',array('file_id'=>$id,'cat_id'=>10630,'title'=>$name,'pinned'=>(int) ($id===10643),'downloads'=>10644-$id,
 				'added_at'=>time()-($id===10642 ? 300 : 10*86400),'updated_at'=>time()-($id===10641 ? 100 : 600))+$f);
 		}
 		$vote = $rows("SELECT * FROM {$p}votes WHERE file_id=50 ORDER BY row_id")[0];
 		unset($vote['row_id']);
-		foreach (array(10641=>6,10642=>9) as $id=>$points) { $insert($p.'votes',array('file_id'=>$id,'points'=>$points)+$vote); }
+		foreach (array(10641=>6,10642=>9,10644=>7) as $id=>$points) { $insert($p.'votes',array('file_id'=>$id,'points'=>$points)+$vote); }
 		break;
 	case 'unchanged':
 	case 'saved':
@@ -116,8 +116,8 @@ switch ($phase)
 		$db->sql_query("DELETE FROM {$p}settings WHERE " . $db->sql_in_set('config_name',$changed));
 		foreach (array_intersect_key($before,array_fill_keys($changed,true)) as $key=>$value)
 		{ $insert($p.'settings',array('config_name'=>$key,'config_value'=>$value)); }
-		$db->sql_query("DELETE FROM {$p}votes WHERE file_id IN (10641,10642)");
-		$db->sql_query("DELETE FROM {$p}files WHERE file_id IN (10641,10642,10643)");
+		$db->sql_query("DELETE FROM {$p}votes WHERE file_id IN (10641,10642,10644)");
+		$db->sql_query("DELETE FROM {$p}files WHERE file_id IN (10641,10642,10643,10644)");
 		$db->sql_query("DELETE FROM {$p}categories WHERE cat_id=10630");
 		$db->sql_transaction('commit');
 		require_once './includes/functions_user.php';

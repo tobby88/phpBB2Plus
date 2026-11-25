@@ -26,7 +26,7 @@ def browse(base, founder, member, pending):
     if "/downloads" not in guest.fetch("app.php/portal"):
         raise RuntimeError("The portal does not link to the download library")
     for actor, permitted in ((guest, False), (pending, False), (member, True), (founder, True)):
-        index = actor.fetch(root)
+        index = actor.fetch(root + "/all")
         search = actor.fetch(root + "?q=Fixture")
         for title in ("Clubbibliothek", "Privatfreigabe"):
             if (title in index) != permitted or (title in search) != permitted:

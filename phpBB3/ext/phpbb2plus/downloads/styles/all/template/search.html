@@ -12,7 +12,6 @@
 <dl><dt><label for="dl-cat">{L_PLUS_DL_CATEGORY}</label></dt><dd><select id="dl-cat" name="cat_id"><option value="0">{L_PLUS_DL_ALL_CATEGORIES}</option>
 {% for cat in loops.categories %}<option value="{{ cat.ID }}"{% if cat.SELECTED %} selected{% endif %}>{{ cat.TITLE|e }}</option>{% endfor %}</select></dd></dl>
 <dl><dt><label for="dl-comments">{L_PLUS_DL_SEARCH_COMMENTS}</label></dt><dd><select id="dl-comments" name="comments_search"><option value="YES"{% if DL_COMMENTS %} selected{% endif %}>{L_YES}</option><option value="NO"{% if not DL_COMMENTS %} selected{% endif %}>{L_NO}</option></select></dd></dl>
-<dl><dt><label for="dl-sort">{L_SORT_BY}</label></dt><dd><select id="dl-sort" name="sort_method">{% for sort in loops.sorts %}<option value="{{ sort.VALUE }}"{% if sort.SELECTED %} selected{% endif %}>{{ sort.LABEL|e }}</option>{% endfor %}</select>
-<select aria-label="{L_SORT_DIRECTION}" name="sort_order"><option value="ASC"{% if DL_ASC %} selected{% endif %}>{L_ASCENDING}</option><option value="DESC"{% if not DL_ASC %} selected{% endif %}>{L_DESCENDING}</option></select></dd></dl>
+<dl><dt><label for="dl-sort">{L_SORT_BY}</label></dt><dd><!-- INCLUDE @phpbb2plus_downloads/sort_controls.html --></dd></dl>
 </fieldset><fieldset class="submit-buttons"><button class="button1" type="submit">{L_SEARCH}</button></fieldset></div></form>
 <!-- INCLUDE overall_footer.html -->

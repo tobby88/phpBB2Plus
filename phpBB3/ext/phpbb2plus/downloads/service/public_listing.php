@@ -27,6 +27,49 @@ class public_listing
 		return str_replace('.',$this->language->lang('PLUS_DL_DECIMAL'),$points) . ' / 10';
 	}
 
+	public function navigation($active = '',$category = 0)
+	{
+		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),
+			'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_index')));
+		foreach (array('viewall'=>'VIEWALL','search'=>'ADVANCED','stats'=>'STATS','toplist'=>'TOPLIST') as $route=>$link)
+		{
+			if ($route === $active || ($route === 'viewall' && !(int) $this->access->setting('settings_viewall',1)) ||
+				!$this->access->allows(0,$route)) { continue; }
+			$params = $route === 'search' && $category ? array('cat_id'=>$category) : array();
+			$this->template->assign_var('U_DL_' . $link,$this->helper->route('phpbb2plus_downloads_' . $route,$params));
+		}
+		if (!$category) { return; }
+		if (!$this->access->visible($category)) { throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException(); }
+		$cats = $this->access->categories();
+		$path = array();
+		for ($id=$category; $id; $id=(int) $cats[$id]['parent_id']) { $path[]=$id; }
+		foreach (array_reverse($path) as $id)
+		{
+			$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>utf8_htmlspecialchars(access::plain($cats[$id]['title'])),
+				'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$id))));
+		}
+	}
+
+	public function sort($method,$direction)
+	{
+		$default = $this->access->setting('sort_method','file_time');
+		if ($default === 'rating') { $default='file_rating'; }
+		if ($method === 'rating') { $method='file_rating'; }
+		if (!isset(settings::SORT[$method])) { $method=isset(settings::SORT[$default]) ? $default : 'file_time'; }
+		if (!in_array($direction,array('ASC','DESC'),true)) { $direction=$this->access->setting('sort_order','DESC'); }
+		return array('sort_method'=>$method,'sort_order'=>$direction === 'ASC' ? 'ASC' : 'DESC');
+	}
+
+	public function sort_controls($sort)
+	{
+		foreach (array('file_name'=>'PLUS_DL_TITLE','file_time'=>'PLUS_DL_DATE','file_rating'=>'PLUS_DL_RATING',
+			'file_dls'=>'PLUS_DL_COUNT','file_update_time'=>'PLUS_DL_UPDATED') as $key=>$label)
+		{
+			$this->template->assign_block_vars('sorts',array('VALUE'=>$key,'LABEL'=>$this->language->lang($label),'SELECTED'=>$sort['sort_method']===$key));
+		}
+		$this->template->assign_var('DL_ASC',$sort['sort_order']==='ASC');
+	}
+
 	public function assign($rows)
 	{
 		$cats = $this->access->categories();
@@ -35,11 +78,17 @@ class public_listing
 		foreach ($rows as $row)
 		{
 			$cat = (int) $row['cat_id'];
+			$preview = '';
+			if (isset($row['preview_name']))
+			{
+				$preview = $row['preview_name'] !== '' ? $this->helper->route('phpbb2plus_downloads_preview',array('file'=>(int) $row['file_id'])) :
+					utf8_htmlspecialchars(access::external((json_decode($row['source_json'],true) ?? array())['file_ssurl'] ?? ''));
+			}
 			$this->template->assign_block_vars('ranked',array('TITLE'=>access::plain($row['title']),'SUMMARY'=>access::plain($row['summary']),
-				'PUBLISHER'=>$row['user_id'] ? get_username_string('full',(int) $row['user_id'],$row['username'],$row['user_colour']) : $this->language->lang('GUEST'),
+				'PUBLISHER'=>!empty($row['user_id']) ? get_username_string('full',(int) $row['user_id'],$row['username'],$row['user_colour']) : $this->language->lang('GUEST'),
 				'DATE'=>$this->user->format_date((int) $row['added_at']),'SCORE'=>$this->score($row['rating']),'COUNT'=>(int) $row['downloads'],
 				'RECENT'=>$days && (int) $row['added_at']>$recent,'PINNED'=>(bool) $row['pinned'],'ICON'=>file_display::icon_url($row['icon_name'],$this->paths->get_web_root_path()),
-				'CATEGORY'=>access::plain($cats[$cat]['title']),'CATEGORY_URL'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$cat)),
+				'PREVIEW'=>$preview,'CATEGORY'=>access::plain($cats[$cat]['title']),'CATEGORY_URL'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$cat)),
 				'URL'=>$this->helper->route('phpbb2plus_downloads_file',array('file'=>(int) $row['file_id']))));
 		}
 	}

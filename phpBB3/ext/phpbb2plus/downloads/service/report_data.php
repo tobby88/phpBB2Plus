@@ -120,13 +120,26 @@ class report_data
 		return (int) $this->rows('SELECT COUNT(*) AS total FROM ' . $this->prefix . 'files f WHERE ' . $where)[0]['total'];
 	}
 
-	public function files($where,$mode,$limit,$start,$direction = 'DESC')
+	public function directory_totals($category_ids)
+	{
+		if (!$category_ids) { return array(); }
+		$table = $this->prefix . 'files';
+		// One row per readable category. Break ties on the latest timestamp by file ID.
+		return $this->rows("SELECT g.cat_id,g.total,f.file_id,f.title,f.added_at FROM
+			(SELECT cat_id,COUNT(*) AS total,MAX(added_at) AS latest FROM $table WHERE approved=1 AND " .
+			$this->db->sql_in_set('cat_id',$category_ids) . " GROUP BY cat_id) g
+			JOIN $table f ON f.file_id=(SELECT MAX(x.file_id) FROM $table x WHERE x.cat_id=g.cat_id AND x.approved=1 AND x.added_at=g.latest)");
+	}
+
+	public function files($where,$mode,$limit,$start,$direction = 'DESC',$listing = '')
 	{
 		$sort = array('rating'=>'rating','downloads'=>'f.downloads','newest'=>'f.added_at','file_name'=>'f.title','file_time'=>'f.added_at',
 			'file_rating'=>'rating','file_dls'=>'f.downloads','file_update_time'=>'f.updated_at')[$mode];
 		$direction = $direction === 'ASC' ? 'ASC' : 'DESC';
-		return $this->rows('SELECT f.file_id,f.cat_id,f.title,f.summary,f.added_at,f.downloads,f.pinned,f.icon_name,u.user_id,u.username,u.user_colour,' .
-			$this->rating() . ' AS rating FROM ' . $this->prefix . 'files f LEFT JOIN ' . USERS_TABLE .
-			" u ON u.user_id=f.owner_id AND u.user_id>" . ANONYMOUS . " WHERE $where ORDER BY $sort $direction,f.file_id $direction",$limit,$start);
+		$pin_order = $listing === 'quick_search' ? 'f.pinned DESC,' : '';
+		$columns = $listing !== '' ? 'f.preview_name,f.source_json' : 'u.user_id,u.username,u.user_colour';
+		$owner = $listing !== '' ? '' : ' LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=f.owner_id AND u.user_id>' . ANONYMOUS;
+		return $this->rows("SELECT f.file_id,f.cat_id,f.title,f.summary,f.added_at,f.downloads,f.pinned,f.icon_name,$columns," .
+			$this->rating() . ' AS rating FROM ' . $this->prefix . "files f$owner WHERE $where ORDER BY $pin_order$sort $direction,f.file_id $direction",$limit,$start);
 	}
 }

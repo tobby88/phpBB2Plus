@@ -6,7 +6,7 @@ $lang = array_merge($lang ?? array(),array(
 	'ACP_PLUS_DL_CFG_GROUP_COMMENTS'=>'Kommentare','ACP_PLUS_DL_CFG_GROUP_ACCESS'=>'Globale Zugriffsstufen',
 	'ACP_PLUS_DL_CFG_SETTINGS_DBNAME'=>'Titel des Katalogs','ACP_PLUS_DL_CFG_SETTINGS_DISABLE'=>'Downloadbereich schließen',
 	'ACP_PLUS_DL_CFG_SETTINGS_DISABLE_HELP'=>'Download-Administratoren haben während der Schließung weiterhin Zugriff.',
-	'ACP_PLUS_DL_CFG_SETTINGS_VIEWALL'=>'Dateien auf der Download-Startseite auflisten','ACP_PLUS_DL_CFG_SETTINGS_FILE_PAGE'=>'Dateien pro Seite (1–100)',
+	'ACP_PLUS_DL_CFG_SETTINGS_VIEWALL'=>'Gesamtansicht aller Dateien aktivieren','ACP_PLUS_DL_CFG_SETTINGS_FILE_PAGE'=>'Dateien pro Seite (1–100)',
 	'ACP_PLUS_DL_CFG_SORT_METHOD'=>'Dateien sortieren nach','ACP_PLUS_DL_CFG_SORT_ORDER'=>'Sortierrichtung','ACP_PLUS_DL_SORT_ADDED'=>'Einstelldatum','ACP_PLUS_DL_SORT_UPDATED'=>'Letzte Aktualisierung',
 	'ACP_PLUS_DL_CFG_SETTINGS_NEWDAYS'=>'Dauer der Kennzeichnung neuer Dateien in Tagen','ACP_PLUS_DL_CFG_SETTINGS_NEWDAYS_HELP'=>'Bei 0 Tagen entfällt die Kennzeichnung.',
 	'ACP_PLUS_DL_CFG_MAX_FILE_SIZE'=>'Maximale Uploadgröße in Bytes','ACP_PLUS_DL_CFG_MAX_FILE_SIZE_HELP'=>'Gilt für Dateien, Spiegelkopien und Vorschaubilder von Mitgliedern und delegierten Dateiredakteuren. Zusätzlich gelten die Uploadgrenzen des Servers.',
