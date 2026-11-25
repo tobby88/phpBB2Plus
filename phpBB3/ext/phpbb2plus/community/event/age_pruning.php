@@ -7,7 +7,7 @@ class age_pruning implements EventSubscriberInterface
 {
 	private $pruning;
 	private $template;
-	private $selection;
+	private $selections = array();
 	private $counts = array();
 	private $opened = array();
 
@@ -20,12 +20,15 @@ class age_pruning implements EventSubscriberInterface
 
 	public function select($event)
 	{
-		$this->selection = null;
+		// Another subscriber may run a second, complete prune between the two
+		// native events. Each invocation must consume its own selection.
+		$this->selections[] = null;
 		$policy = $this->pruning->policy();
 		if ($policy === '-1') { return; }
 		$mode = $event['prune_mode'];
 		if (!in_array($policy, array('0', '1'), true) || !in_array($mode, array('posted', 'viewed', 'shadow'), true))
 		{
+			$this->selections[count($this->selections) - 1] = array('forums' => array());
 			$event['sql_and'] .= ' AND 1=0';
 			return;
 		}
@@ -58,16 +61,15 @@ class age_pruning implements EventSubscriberInterface
 				if (!isset($this->counts[$id])) { $this->counts[$id] = array('name' => $forum['forum_name'], 'topics' => 0, 'posts' => 0); }
 			}
 		}
-		$this->selection = array('mode' => $mode, 'flags' => $flags, 'cutoff' => $cutoff, 'limit' => $limit, 'forums' => $forums);
+		$this->selections[count($this->selections) - 1] = array('mode' => $mode, 'flags' => $flags, 'cutoff' => $cutoff, 'limit' => $limit, 'forums' => $forums);
 		$event['sql_and'] .= $forums ? ' AND forum_id IN (' . implode(',', array_keys($forums)) . ') AND ' .
 			$this->pruning->filter($mode, $cutoff, $flags) : ' AND 1=0';
 	}
 
 	public function remove($event)
 	{
-		if ($this->selection === null) { return; }
-		$operation = $this->selection;
-		$this->selection = null;
+		$operation = array_pop($this->selections);
+		if ($operation === null) { return; }
 		$ids = array_values(array_unique(array_map('intval', $event['topic_list'])));
 		$event['topic_list'] = array();
 		foreach ($operation['forums'] as $id => $schedule)
