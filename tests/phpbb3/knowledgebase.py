@@ -357,21 +357,30 @@ def settings_administration(owner, contributor):
                                                         "pt_header": prefs["pt_header"], "pt_body": prefs["pt_body"]})
     if "kb-editor" not in Page(contributor.fetch(new)).forms:
         raise RuntimeError("Reopening submissions did not restore the member's form")
-    result = submit_form(owner, panel, result, discussion, {"comments": None})
+    def save_discussion(page, fields):
+        saved = submit_form(owner, panel, page, discussion, fields)
+        if 'class="successbox"' not in saved:
+            reason = re.search(r'class="errorbox"><p>([^<]+)</p>', saved)
+            raise RuntimeError("Saving Knowledge Base discussion settings failed: " + (reason[1] if reason else "no confirmation"))
+        return saved
+
+    result = save_discussion(result, {"comments": None})
     if "Diskussion im Forum" in guest.fetch(article) or "Welche Jahreszeit?" not in guest.fetch("viewtopic.php?t=1"):
         raise RuntimeError("Disabling article discussions removed a native topic or left its article link active")
-    result = submit_form(owner, panel, result, discussion, {"comments": "1"})
+    result = save_discussion(result, {"comments": "1"})
     options = FormFields(result, discussion).values
-    result = submit_form(owner, panel, result, discussion, {"comments_show": None, "comments_pagination": "1"})
+    result = save_discussion(result, {"comments_show": None, "comments_pagination": "1"})
     hidden = guest.fetch(article)
-    if 'id="kb-discussion"' in hidden or "Diskussion im Forum" not in hidden:
-        raise RuntimeError("Hiding inline replies affected the native discussion link")
-    result = submit_form(owner, panel, result, discussion, {"comments_show": "1"})
+    if 'id="kb-discussion"' in hidden:
+        raise RuntimeError("The article still displayed inline replies after the setting was saved")
+    if "Diskussion im Forum" not in hidden:
+        raise RuntimeError("The article lost its native forum link when inline replies were hidden")
+    result = save_discussion(result, {"comments_show": "1"})
     first = reply_panel(guest.fetch(article + "?page=2"))
     second = guest.fetch("kb.php?mode=article&k=201&page_num=2&start=1&print=true")
     if first.count('id="kb-reply-') != 1 or 'id="kb-reply-31"' not in first or 'id="kb-reply-32"' not in reply_panel(second) or "Zweite Wissensseite" not in second:
         raise RuntimeError("The article and reply page offsets did not survive the printed legacy bookmark")
-    result = submit_form(owner, panel, result, discussion, {"comments_show": options.get("comments_show"), "comments_pagination": options["comments_pagination"]})
+    result = save_discussion(result, {"comments_show": options.get("comments_show"), "comments_pagination": options["comments_pagination"]})
     result = submit_form(owner, panel, result, ratings, {"allow_rating": None})
     if "kb-rate" in Page(contributor.fetch(article)).forms or "Stimmen)" in guest.fetch(article):
         raise RuntimeError("Disabled article ratings were still visible")
