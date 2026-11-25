@@ -7,13 +7,15 @@ class cleanup extends \phpbb\cron\task\base
 	private $config;
 	private $prefix;
 	private $root;
+	private $access;
 
-	public function __construct($db, $config, $prefix, $root)
+	public function __construct($db, $config, $prefix, $root, $access)
 	{
 		$this->db = $db;
 		$this->config = $config;
 		$this->prefix = $prefix;
 		$this->root = $root;
+		$this->access = $access;
 	}
 
 	public function should_run()
@@ -32,23 +34,7 @@ class cleanup extends \phpbb\cron\task\base
 		$this->db->sql_freeresult($result);
 		foreach ($items as $item)
 		{
-			$name = $item['storage_name'];
-			if (!preg_match('/^gallery_([a-f0-9]{64})$/D', $name, $match)) { continue; }
-			$result = $this->db->sql_query_limit('SELECT pic_id FROM ' . $this->prefix . "pics WHERE storage_name='$name'", 1);
-			$still_used = $this->db->sql_fetchfield('pic_id') !== false;
-			$this->db->sql_freeresult($result);
-			if ($still_used) { continue; }
-			$prefix = 'gallery_cache_' . $match[1] . '_';
-			$cached = glob($dir . DIRECTORY_SEPARATOR . $prefix . '*', GLOB_NOSORT);
-			if ($cached === false) { continue; }
-			$complete = true;
-			foreach (array_merge($cached, array($dir . DIRECTORY_SEPARATOR . $name, $dir . DIRECTORY_SEPARATOR . 'gallery_small_' . $match[1])) as $path)
-			{
-				$file = basename($path);
-				if ($file !== $name && $file !== 'gallery_small_' . $match[1] && !preg_match('/^' . $prefix . '[a-f0-9]{64}$/D', $file)) { continue; }
-				if (is_link($path) || (file_exists($path) && (!is_file($path) || !@unlink($path)))) { $complete = false; }
-			}
-			if ($complete) { $this->db->sql_query('DELETE FROM ' . $this->prefix . "trash WHERE storage_name='$name'"); }
+			$this->access->write(function () use ($dir, $cut, $item) { $this->collect($dir, $cut, $item['storage_name']); });
 		}
 		$lifetime = (int) $this->config['form_token_lifetime'];
 		if ($lifetime > 0)
@@ -56,5 +42,31 @@ class cleanup extends \phpbb\cron\task\base
 			$this->db->sql_query('DELETE FROM ' . $this->prefix . 'batches WHERE created_at<' . (time() - $lifetime - 86400));
 		}
 		$this->config->set('plus_gallery_gc_time', time(), true);
+	}
+
+	private function collect($dir, $cut, $name)
+	{
+		if (!preg_match('/^gallery_([a-f0-9]{64})$/D', $name, $match)) { return; }
+		$table = $this->prefix . 'trash';
+		$result = $this->db->sql_query("SELECT storage_name FROM $table WHERE storage_name='$name' AND removed_at<$cut");
+		$expired = $this->db->sql_fetchfield('storage_name') !== false;
+		$this->db->sql_freeresult($result);
+		if (!$expired) { return; } // A concurrent retry renewed or committed this reservation.
+		$result = $this->db->sql_query_limit('SELECT pic_id FROM ' . $this->prefix . "pics WHERE storage_name='$name'", 1);
+		$still_used = $this->db->sql_fetchfield('pic_id') !== false;
+		$this->db->sql_freeresult($result);
+		if (!$still_used)
+		{
+			$prefix = 'gallery_cache_' . $match[1] . '_';
+			$cached = glob($dir . DIRECTORY_SEPARATOR . $prefix . '*', GLOB_NOSORT);
+			if ($cached === false) { return; }
+			foreach (array_merge($cached, array($dir . DIRECTORY_SEPARATOR . $name, $dir . DIRECTORY_SEPARATOR . 'gallery_small_' . $match[1])) as $path)
+			{
+				$file = basename($path);
+				if ($file !== $name && $file !== 'gallery_small_' . $match[1] && !preg_match('/^' . $prefix . '[a-f0-9]{64}$/D', $file)) { continue; }
+				if (is_link($path) || (file_exists($path) && (!is_file($path) || !@unlink($path)))) { return; }
+			}
+		}
+		$this->db->sql_query("DELETE FROM $table WHERE storage_name='$name'");
 	}
 }

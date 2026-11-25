@@ -13,7 +13,7 @@ function plus_gallery_owner($id)
 
 function plus_gallery_preflight()
 {
-	global $src_db, $convert, $config, $phpbb_root_path;
+	global $src_db, $convert, $config, $phpbb_root_path, $db, $table_prefix;
 	$result = $src_db->sql_query_limit('SELECT operation_kind FROM ' . $convert->src_table_prefix . "album_file_jobs
 		WHERE operation_state NOT IN ('published','complete','abandoned')", 1);
 	$job = $src_db->sql_fetchfield('operation_kind');
@@ -22,6 +22,7 @@ function plus_gallery_preflight()
 	{
 		throw new \RuntimeException('The source album has unfinished file operations. Finish recovery on the offline source before converting its media.');
 	}
+	$db->sql_query('DELETE FROM ' . $table_prefix . "plus_media_issues WHERE asset_kind='album-thumb'");
 	$result = $src_db->sql_query('SELECT config_value FROM ' . $convert->src_table_prefix . "album_sp_config WHERE config_name='use_watermark'");
 	$uses_mark = (int) $src_db->sql_fetchfield('config_value') === 1;
 	$src_db->sql_freeresult($result);
@@ -176,7 +177,29 @@ function plus_gallery_category($cat, $owner)
 	return $personal[$key] = (int) $id;
 }
 
-function plus_gallery_file_field($id, $filename, $field)
+function plus_gallery_preview($id, $filename, $thumbnail, $mime, $uploads, $target, $storage)
+{
+	if ($thumbnail === '') { return ''; }
+	try
+	{
+		if (strpbrk($thumbnail, "/\\") !== false) { throw new \RuntimeException(); }
+		$cache = plus_media_path($uploads, 'cache', true);
+		$path = plus_media_path($cache, $thumbnail);
+		$info = @getimagesize($path);
+		if (!$info || $info['mime'] !== $mime || min($info[0], $info[1]) < 1 || max($info[0], $info[1]) > 10000 ||
+			$info[0] * $info[1] > 20000000 || filesize($path) > 67108864) { throw new \RuntimeException(); }
+	}
+	catch (\RuntimeException $e)
+	{
+		// An old cache may have been cleared. Keep the original and record the missing reference.
+		plus_profile_media_issue('album-thumb', $id, array('file' => $filename, 'preview' => $thumbnail), 'unavailable');
+		return '';
+	}
+	plus_copy_media($path, $target . '/gallery_small_' . substr($storage, 8));
+	return hash_file('sha256', $path);
+}
+
+function plus_gallery_file_field($id, $filename, $thumbnail, $field)
 {
 	global $convert, $config, $phpbb_root_path;
 	static $last = null, $info = array();
@@ -193,7 +216,8 @@ function plus_gallery_file_field($id, $filename, $field)
 		if (empty($config['plus_gallery_media_key']) || $target === $uploads) { throw new \RuntimeException('Use a separate initialized gallery destination.'); }
 		$storage = 'gallery_' . hash_hmac('sha256', 'picture:' . $id, $config['plus_gallery_media_key']);
 		plus_copy_media($source, $target . '/' . $storage);
-		$info = array('storage_name' => $storage, 'media_type' => $types[$dimensions[2]], 'width' => $dimensions[0],
+		$preview = plus_gallery_preview($id, $filename, (string) $thumbnail, $types[$dimensions[2]], $uploads, $target, $storage);
+		$info = array('storage_name' => $storage, 'preview_hash' => $preview, 'media_type' => $types[$dimensions[2]], 'width' => $dimensions[0],
 			'height' => $dimensions[1], 'bytes' => filesize($source));
 		$last = $id;
 	}
@@ -233,9 +257,9 @@ function plus_gallery_schema($prefix, $truncate)
 		array('description','album.pic_desc','plus_gallery_text'), array('created_at','album.pic_time','intval'),
 		array('views','album.pic_view_count','intval'), array('locked','album.pic_lock','intval'), array('approved','album.pic_approval','intval'),
 		array('source_filename','album.pic_filename',''));
-	foreach (array('storage_name','media_type','width','height','bytes') as $field)
+	foreach (array('storage_name','preview_hash','media_type','width','height','bytes') as $field)
 	{
-		$pictures[] = array($field, array('album.pic_id','album.pic_filename',$field), 'plus_gallery_file_field');
+		$pictures[] = array($field, array('album.pic_id','album.pic_filename','album.pic_thumbnail',$field), 'plus_gallery_file_field');
 	}
 	$schema[] = $pictures;
 	$schema[] = array('target' => $t . 'comments', 'primary' => 'album_comment.comment_id', 'autoincrement' => 'comment_id',

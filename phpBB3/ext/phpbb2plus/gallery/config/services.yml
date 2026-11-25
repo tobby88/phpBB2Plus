@@ -55,7 +55,7 @@ services:
             - { name: event.listener }
     phpbb2plus.gallery.cleanup:
         class: phpbb2plus\gallery\cron\cleanup
-        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_album_', '%core.root_path%']
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_album_', '%core.root_path%', '@phpbb2plus.gallery.access']
         calls:
             - [set_name, [phpbb2plus.gallery.cleanup]]
         tags:

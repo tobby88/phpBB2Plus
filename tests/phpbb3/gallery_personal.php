@@ -52,6 +52,33 @@ elseif ($argv[2] === 'inactive' || $argv[2] === 'active')
 	$type = $argv[2] === 'inactive' ? USER_INACTIVE : USER_NORMAL;
 	$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_type=$type WHERE user_id=87 AND username='DepartingFixture'");
 }
+elseif ($argv[2] === 'manual' || $argv[2] === 'automatic')
+{
+	album_fixture_config('gd_version', $argv[2] === 'manual' ? '0' : '2');
+	album_fixture_config('gif_allowed', $argv[2] === 'manual' ? '1' : '0');
+	if ($argv[2] === 'manual' && !(int) album_fixture_value("SELECT COUNT(*) FROM {$table_prefix}plus_media_issues WHERE asset_kind='album-thumb' AND source_id=101"))
+	{ throw new RuntimeException('The converter failed to record a missing referenced album thumbnail'); }
+}
+elseif ($argv[2] === 'preview_cleanup')
+{
+	$trash = "{$g}trash";
+	$result = $db->sql_query("SELECT storage_name FROM $trash");
+	$found = false;
+	$dir = realpath($config['upload_path']);
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$name = $row['storage_name'];
+		if (!preg_match('/^gallery_([a-f0-9]{64})$/D', $name, $match)) { continue; }
+		$thumb = $dir . '/gallery_small_' . $match[1];
+		if (is_file($thumb) && is_file($dir . '/' . $name)) { $found = true; break; }
+	}
+	$db->sql_freeresult($result);
+	if (!$found) { throw new RuntimeException('The removed album original and manual thumbnail have no cleanup receipt'); }
+	$db->sql_query("UPDATE $trash SET removed_at=1 WHERE storage_name='$name'");
+	$phpbb_container->get('phpbb2plus.gallery.cleanup')->run();
+	if (is_file($thumb) || is_file($dir . '/' . $name) || (int) album_fixture_value("SELECT COUNT(*) FROM $trash WHERE storage_name='$name'"))
+	{ throw new RuntimeException('The expired receipt failed to remove its protected thumbnail and original'); }
+}
 elseif ($argv[2] === 'complete')
 {
 	$roots = (int) album_fixture_value("SELECT COUNT(*) FROM {$g}cats WHERE owner_id=87 AND parent_id=0");

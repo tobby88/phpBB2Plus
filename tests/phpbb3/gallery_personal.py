@@ -5,6 +5,7 @@ import time
 from urllib.parse import urljoin, urlsplit
 
 from gallery import ORIGINAL, submit
+import gallery_media
 from http_board import Browser, FormFields, Page, admin_url, submit_form
 
 
@@ -126,6 +127,7 @@ def browse(base, administrator, member, owner, check):
     if "/album/member/87" in guest.fetch(folder(root)) or "(DepartingFixture)" in guest.fetch("app.php/album"):
         raise RuntimeError("An inactive owner still has an advertised member directory")
     check("active")
+    gallery_media.manual(administrator, owner, guest, root, check)
 
 
 def configuration(administrator, owner, guest, root):

@@ -20,6 +20,8 @@ function seed_gallery($db)
 		(103,'fixture.png','Persönliche Fotoprobe','',1,'',100103,0,2,0,1),(104,'fixture.png','Verschachtelte Fotoprobe','',2,'',100104,9,4,1,1),
 		(105,'fixture.png','Foto zum Kontowechsel','',87,'',100105,1,0,0,1),
 		(106,'fixture.png','Historisches Gastfoto','',-1,'Gast',100001,0,0,0,1)");
+	$db->query("UPDATE phpbb_album SET pic_thumbnail='fixture-small.png' WHERE pic_id=100");
+	$db->query("UPDATE phpbb_album SET pic_thumbnail='missing-small.png' WHERE pic_id=101");
 	$db->query("INSERT INTO phpbb_album_comment (comment_id,comment_pic_id,comment_cat_id,comment_user_id,comment_username,comment_user_ip,
 		comment_time,comment_text,comment_edit_time,comment_edit_count,comment_edit_user_id)
 		VALUES (95,100,1,-1,'EditorFixture','c0000203',100112,'Historischer Bildkommentar',100114,1,1),

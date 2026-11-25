@@ -79,10 +79,24 @@ class media
 		$strength = $mime !== 'image/gif' ? $this->access->watermark_strength() : 0;
 		if ($size === 'medium' && !(int) $this->access->setting('midthumb_use', 1, 'sp')) { $size = 'full'; }
 		if ($size === 'full' && !$strength) { return $this->response($source, $mime); }
+		$preview = '';
+		if ($size === 'small' && preg_match('/^[a-f0-9]{64}$/D', $pic['preview_hash']))
+		{
+			$path = $directory . '/gallery_small_' . substr($pic['storage_name'], 8);
+			if (!is_link($path) && is_file($path) && hash_file('sha256', $path) === $pic['preview_hash'])
+			{
+				$preview = $pic['preview_hash'];
+				$source = $path;
+			}
+		}
 		$dimensions = $this->image_info($source, $mime);
 		$width = $dimensions[0];
 		$height = $dimensions[1];
-		if ($size === 'small') { $width = $height = max(1, min(2048, (int) $this->access->setting('thumbnail_size', 125))); }
+		if ($size === 'small')
+		{
+			$width = $height = max(1, min(10000, (int) $this->access->setting('thumbnail_size', 125)));
+			if ($preview !== '' && !$strength && max($dimensions[0], $dimensions[1]) <= $width) { return $this->response($source, $mime); }
+		}
 		if ($size === 'medium')
 		{
 			$width = max(1, min(10000, (int) $this->access->setting('midthumb_width', 800, 'sp')));
@@ -94,7 +108,7 @@ class media
 		$mark_size = $strength ? $this->image_info($mark, 'image/png') : array(0,0);
 		$mark_hash = $strength ? hash_file('sha256', $mark) : '';
 		if ($strength && !$mark_hash) { throw new ServiceUnavailableHttpException(); }
-		$key = implode(':', array('v1', $pic['storage_name'], $width, $height, $size, $quality, $strength, $position, $mark_hash));
+		$key = implode(':', array('v1', $pic['storage_name'], $preview, $width, $height, $size, $quality, $strength, $position, $mark_hash));
 		$cached = $directory . '/gallery_cache_' . substr($pic['storage_name'], 8) . '_' . hash_hmac('sha256', $key, $this->config['plus_gallery_media_key']);
 		$use_cache = $size === 'small' ? (int) $this->access->setting('thumbnail_cache', 1) : (int) $this->access->setting('midthumb_cache', 1, 'sp');
 		if ($use_cache && is_file($cached) && !is_link($cached)) { return $this->response($cached, $mime); }

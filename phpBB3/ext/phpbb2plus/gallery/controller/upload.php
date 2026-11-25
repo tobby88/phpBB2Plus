@@ -27,6 +27,7 @@ class upload
 	{
 		$cat = $this->uploads->destination($category);
 		$this->language->add_lang('gallery', 'phpbb2plus/gallery');
+		if ($this->uploads->limit() < 1) { return $this->helper->message('PLUS_ALBUM_NO_FILE_SLOTS', array(), 'INFORMATION', 503); }
 		$params = array('category' => (int) $category);
 		$target = $this->helper->route('phpbb2plus_gallery_category', $params);
 		$key = 'plus_gallery_upload_' . (int) $category;
@@ -43,7 +44,8 @@ class upload
 				if (!check_form_key($key)) { throw new \DomainException('FORM_INVALID'); }
 				$pending = $this->uploads->publish($category, $this->request->variable('batch', '', false, request_interface::POST),
 					$this->request->raw_variable('photos', array(), request_interface::FILES),
-					$this->request->variable('file_count', 0, false, request_interface::POST), $fields['title'], $fields['description'], $fields['guest_name']);
+					$this->request->variable('file_count', 0, false, request_interface::POST), $fields['title'], $fields['description'], $fields['guest_name'],
+					$this->request->raw_variable('previews', array(), request_interface::FILES));
 				if ($this->request->is_ajax())
 				{
 					return new JsonResponse(array('location' => htmlspecialchars_decode($target, ENT_QUOTES), 'message' => $this->language->lang($pending ? 'PLUS_ALBUM_PENDING' : 'PLUS_ALBUM_SAVED')));
@@ -61,6 +63,7 @@ class upload
 		$this->template->assign_vars(array('ALBUM_ERROR' => $error, 'ALBUM_BATCH' => bin2hex(random_bytes(16)),
 			'ALBUM_TITLE' => $fields['title'], 'ALBUM_DESCRIPTION' => $fields['description'], 'ALBUM_GUEST' => $fields['guest_name'],
 			'ALBUM_CATEGORY' => $cat['title'], 'ALBUM_COUNT' => $this->uploads->limit(), 'ALBUM_DESC_LIMIT' => $this->uploads->text_limit(),
+			'S_MANUAL_PREVIEWS' => $this->uploads->manual(), 'PREVIEW_BOUND' => $this->uploads->preview_bound(),
 			'S_ALBUM_GUEST' => empty($this->user->data['is_registered']), 'U_ALBUM_UPLOAD' => $this->helper->route('phpbb2plus_gallery_upload', $params),
 			'U_CATEGORY' => $target));
 		return $this->helper->render('@phpbb2plus_gallery/upload.html', $this->language->lang('PLUS_ALBUM_UPLOAD'), $error === '' ? 200 : 422);

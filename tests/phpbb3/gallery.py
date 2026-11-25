@@ -15,12 +15,15 @@ def png(width, height, colour):
 
 
 ORIGINAL = png(40, 24, b"\x17\x84\x66")
+IMPORTED_THUMB = png(16, 10, b"\x21\x48\xca")
 
 
 def source_media(legacy):
     uploads = legacy / "album_mod/upload"
     uploads.mkdir(parents=True, exist_ok=True)
     (uploads / "fixture.png").write_bytes(ORIGINAL)
+    (uploads / "cache").mkdir(exist_ok=True)
+    (uploads / "cache/fixture-small.png").write_bytes(IMPORTED_THUMB)
     (uploads.parent / "mark.png").write_bytes(png(8, 6, b"\xee\x20\x10"))
 
 

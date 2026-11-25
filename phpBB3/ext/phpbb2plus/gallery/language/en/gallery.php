@@ -1,6 +1,9 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_PREVIEWS' => 'Thumbnails', 'PLUS_ALBUM_PREVIEW_FILES' => 'Select one thumbnail for each picture, in the same format and order. The longest edge may be up to %d pixels.',
+	'PLUS_ALBUM_BAD_PREVIEW' => 'Each picture needs a matching thumbnail in the same format and within the indicated dimensions.',
+	'PLUS_ALBUM_NO_FILE_SLOTS' => 'The PHP configuration allows too few files per request for this upload.',
 	'PLUS_ALBUM_PERSONAL' => 'Personal album', 'PLUS_ALBUM_OWNER_TITLE' => 'Photo album of %s',
 	'PLUS_ALBUM_CAT_START' => 'Create personal album', 'PLUS_ALBUM_CAT_ADD' => 'Create subalbum',
 	'PLUS_ALBUM_CAT_EDIT' => 'Edit album', 'PLUS_ALBUM_CAT_DELETE' => 'Remove album',
