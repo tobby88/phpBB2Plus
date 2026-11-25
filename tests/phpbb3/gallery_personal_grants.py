@@ -19,7 +19,7 @@ def browse(admin, member, junior, guest, check):
         acp = admin_url(actor)
         menu = actor.fetch(acp + ("&i=acp_board&mode=settings" if full else ""))
         link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Gruppenrechte für persönliche Fotoalben</span>', menu)
-        if not link or (not full and re.search(r'<span>(Gruppenrechte für Fotokategorien|Fotokategorien|Fotoalbum-Uploads|Persönliche Fotoalben|Vorschau in Fotokategorien)</span>', menu)):
+        if not link or (not full and re.search(r'<span>(Gruppenrechte für Fotokategorien|Fotokategorien|Fotoalbum-Uploads|Persönliche Fotoalben|Anzeige im Fotoalbum)</span>', menu)):
             raise RuntimeError("Native gallery ACP roles did not remain independent")
         return urljoin(acp, unescape(link[1]))
 

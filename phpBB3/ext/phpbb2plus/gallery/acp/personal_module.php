@@ -52,12 +52,13 @@ class personal_module
 		foreach (settings::defaults($mode) as $name => $default)
 		{
 			$current = (string) ($stored[$name] ?? $default);
-			$options = settings::OPTIONS[$name] ?? array();
+			$options = settings::options($name);
 			$bounds = settings::BOUNDS[$name] ?? array(-1,2147483647);
 			$value = $correction[$name] ?? $current;
 			if ($options && !array_key_exists($value, $options)) { $value = $current; }
 			$template->assign_block_vars('controls', array('NAME' => $name, 'LABEL' => $language->lang('PLUS_ALBUM_CFG_' . strtoupper($name)),
-				'VALUE' => $value, 'MIN' => min((float) $current, $bounds[0]), 'MAX' => max((float) $current, $bounds[1]), 'IS_SELECT' => !empty($options)));
+				'VALUE' => $value, 'MIN' => min((float) $current, $bounds[0]), 'MAX' => max((float) $current, $bounds[1]),
+				'IS_SELECT' => !empty($options), 'IS_INTERVAL' => $name === 'new_pic_check_interval'));
 			foreach ($options as $key => $label)
 			{
 				$template->assign_block_vars('controls.options', array('VALUE' => $key, 'LABEL' => $language->lang('PLUS_ALBUM_CFG_' . $label), 'SELECTED' => (string) $key === $value));

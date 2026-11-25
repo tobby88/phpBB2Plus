@@ -3,6 +3,7 @@ from html import unescape
 import re
 from urllib.parse import urljoin
 from gallery import category_grid
+from http_board import FormFields, admin_url, submit_form
 
 
 def browse(administrator, member, applicant, guest, check):
@@ -88,7 +89,25 @@ def browse(administrator, member, applicant, guest, check):
         root = rows(guest)[880]
         if recent(root) or recent(children(root)[881]) != 4 or 883 in children(root):
             raise RuntimeError("The root directory confused direct children with deeper categories")
-        check("hour")
+        entry = admin_url(administrator)
+        menu = administrator.fetch(entry + "&i=acp_board&mode=settings")
+        link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Anzeige im Fotoalbum</span>', menu)
+        if not link:
+            raise RuntimeError("The gallery directory settings are missing from the native ACP")
+        url = urljoin(entry, unescape(link[1]))
+        form = "album-display-settings"
+        original = administrator.fetch(url)
+        fields = FormFields(original, form).values
+        if (fields.get("album_category_sorting") != "cat_order" or fields.get("new_pic_check_interval") != "1D" or
+                fields.get("last_pic_title_length") != "8" or fields.get("show_index_total_comments") != "1"):
+            raise RuntimeError("The ACP did not expose the current album directory settings")
+        invalid = submit_form(administrator, url, original, form, {"last_pic_title_length": "4", "new_pic_check_interval": "1X"})
+        if ('class="errorbox"' not in invalid or
+                FormFields(administrator.fetch(url), form).values.get("last_pic_title_length") != "8"):
+            raise RuntimeError("An invalid new-picture interval did not roll back the other changes")
+        saved = submit_form(administrator, url, administrator.fetch(url), form, {"new_pic_check_interval": "1H"})
+        if 'class="successbox"' not in saved:
+            raise RuntimeError("The ACP could not save the hourly new-picture interval")
         if recent(rows(guest, 880)[881]) or recent(children(rows(guest)[880])[881]) != 3:
             raise RuntimeError("The historic hourly new-picture interval was ignored")
         check("month")
@@ -113,7 +132,12 @@ def browse(administrator, member, applicant, guest, check):
         if (count(row, "comments") is not None or count(row, "total-comments") is not None or "data-album-last-comment" in row or
                 'plus-album-index-thumb' in row or latest(row, "picture")[0] != 28004):
             raise RuntimeError("Global comment or independent thumbnail and last-picture preferences were ignored")
-        check("popup")
+        current = administrator.fetch(url)
+        if FormFields(current, form).values.get("new_pic_check_interval") != "1hm":
+            raise RuntimeError("The ACP discarded an imported multi-unit interval")
+        saved = submit_form(administrator, url, current, form, {"fullpic_popup": "1", "show_index_thumb": "1"})
+        if 'class="successbox"' not in saved or FormFields(saved, form).values.get("new_pic_check_interval") != "1hm":
+            raise RuntimeError("Saving full-image links changed the imported new-picture interval")
         row = rows(guest, 880)[881]
         if "/album/picture/28004/full" not in latest(row, "picture")[1] or row.count('target="_blank" rel="noopener noreferrer"') != 2:
             raise RuntimeError("The configured full-size picture links did not open separately")

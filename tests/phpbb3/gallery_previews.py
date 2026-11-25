@@ -24,7 +24,7 @@ def browse(administrator, member, applicant, guest, check):
     try:
         entry = admin_url(administrator)
         menu = administrator.fetch(entry + "&i=acp_board&mode=settings")
-        link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Vorschau in Fotokategorien</span>', menu)
+        link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Anzeige im Fotoalbum</span>', menu)
         if not link:
             raise RuntimeError("The category preview options are missing from the ACP")
         url = urljoin(entry, unescape(link[1]))

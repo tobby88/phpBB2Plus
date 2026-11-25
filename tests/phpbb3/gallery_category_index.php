@@ -130,11 +130,10 @@ elseif ($argv[2] === 'cleanup')
 }
 else
 {
-	$modes = array('hour' => array('new_pic_check_interval' => '1H'), 'month' => array('new_pic_check_interval' => '1hm'),
+	$modes = array('month' => array('new_pic_check_interval' => '1hm'),
 		'public_only' => array('personal_show_subcats_in_index' => 0, 'show_index_subcats' => 1, 'line_break_subcats' => 0),
 		'personal_only' => array('personal_show_subcats_in_index' => 1, 'show_index_subcats' => 0, 'show_index_last_pic' => 0),
 		'no_comments' => array('comment' => 0, 'show_index_last_pic' => 1, 'show_index_thumb' => 0),
-		'popup' => array('fullpic_popup' => 1, 'show_index_thumb' => 1),
 		'title' => array('album_category_sorting' => 'cat_title'), 'id' => array('album_category_sorting' => 'cat_id'),
 		'minimal' => array_fill_keys(array('fullpic_popup','show_index_subcats','personal_show_subcats_in_index','show_index_pics','show_index_total_pics',
 			'show_index_comments','show_index_total_comments','show_index_last_pic','show_index_last_comment','show_index_thumb','new_pic_check_interval'), 0));

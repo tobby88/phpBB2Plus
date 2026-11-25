@@ -20,7 +20,7 @@ def browse(admin, member, other, guest, personal, check):
         entry = admin_url(actor)
         menu = actor.fetch(entry + ("&i=acp_board&mode=settings" if full else ""))
         link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Gruppenrechte für Fotokategorien</span>', menu)
-        if not link or (not full and re.search(r'<span>(Fotokategorien|Fotoalbum-Uploads|Persönliche Fotoalben|Vorschau in Fotokategorien)</span>', menu)):
+        if not link or (not full and re.search(r'<span>(Fotokategorien|Fotoalbum-Uploads|Persönliche Fotoalben|Anzeige im Fotoalbum)</span>', menu)):
             raise RuntimeError("The ACP did not expose exactly the permitted gallery modules")
         return urljoin(entry, unescape(link[1]))
 

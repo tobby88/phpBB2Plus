@@ -18,9 +18,7 @@ class category_index
 	public function options()
 	{
 		$on = array();
-		foreach (array('show_index_subcats' => 1, 'personal_show_subcats_in_index' => 1, 'line_break_subcats' => 0,
-			'show_index_pics' => 0, 'show_index_total_pics' => 0, 'show_index_comments' => 0, 'show_index_total_comments' => 0,
-			'show_index_last_pic' => 0, 'show_index_last_comment' => 0, 'show_index_thumb' => 0, 'fullpic_popup' => 0) as $name => $default)
+		foreach (settings::DIRECTORY_SWITCHES as $name => $default)
 		{ $on[$name] = (int) $this->access->setting($name, $default) === 1; }
 		if (!(int) $this->access->setting('comment', 1))
 		{ $on['show_index_comments'] = $on['show_index_total_comments'] = $on['show_index_last_comment'] = false; }
