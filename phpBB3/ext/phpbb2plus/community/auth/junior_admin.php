@@ -4,23 +4,29 @@ namespace phpbb2plus\community\auth;
 /** Old grants identify individual ACP module registrations, including the query string. */
 class junior_admin
 {
+	private const FILE_ACTIONS = array('phpbb2plus\downloads\acp\file_actions_module', 'manage');
+
 	public const MODULES = array(
-		'admin_words.php' => array('General', 'Word_Censor', 'a_words', 'acp_words', 'words'),
-		'admin_disallow.php' => array('Users', 'Disallow', 'a_names', 'acp_disallow', 'usernames'),
-		'admin_ranks.php' => array('Users', 'Ranks', 'a_ranks', 'acp_ranks', 'ranks'),
-		'admin_statistics.php?mode=manage' => array('Statistics', 'Statistics_management', 'a_plus_stats_modules', 'phpbb2plus\community\acp\statistics_module', 'manage'),
-		'admin_statistics.php?mode=config' => array('Statistics', 'Statistics_config', 'a_plus_stats_settings', 'phpbb2plus\community\acp\statistics_module', 'settings'),
-		'admin_kb_art.php' => array('KB_title', 'Art_man', 'a_plus_kb_articles', 'phpbb2plus\knowledgebase\acp\articles_module', 'manage'),
-		'admin_kb_types.php' => array('KB_title', 'Types_man', 'a_plus_kb_types', 'phpbb2plus\knowledgebase\acp\types_module', 'manage'),
-		'admin_kb_cat.php' => array('KB_title', 'Cat_man', 'a_plus_kb_categories', 'phpbb2plus\knowledgebase\acp\categories_module', 'manage'),
-		'admin_pa_category.php' => array('Download', 'Cat_manage_title', 'a_plus_dl_categories', 'phpbb2plus\downloads\acp\categories_module', 'manage'),
-		'admin_pa_catauth.php' => array('Download', 'Permissions', 'a_plus_dl_perms', 'phpbb2plus\downloads\acp\permissions_module', 'manage'),
-		'admin_pa_license.php' => array('Download', 'License_title', 'a_plus_dl_licenses', 'phpbb2plus\downloads\acp\licenses_module', 'manage'),
-		'admin_pa_custom.php' => array('Download', 'Mfieldtitle', 'a_plus_dl_fields', 'phpbb2plus\downloads\acp\fields_module', 'manage'),
-		'admin_album_cat.php' => array('Photo_Album', 'Categories', 'a_plus_album_categories', 'phpbb2plus\gallery\acp\categories_module', 'manage'),
-		'admin_album_auth.php' => array('Photo_Album', 'Permissions', 'a_plus_album_auth', 'phpbb2plus\gallery\acp\permissions_module', 'manage'),
-		'admin_album_personal.php' => array('Photo_Album', 'Personal_Galleries', 'a_plus_album_personal_auth', 'phpbb2plus\gallery\acp\personal_permissions_module', 'manage'),
-		'admin_hacks_list.php' => array('General', 'Hacks_List', 'a_plus_credits', 'phpbb2plus\community\acp\credits_module', 'manage'),
+		'admin_words.php' => array('General', 'Word_Censor', array('a_words' => array('acp_words', 'words'))),
+		'admin_disallow.php' => array('Users', 'Disallow', array('a_names' => array('acp_disallow', 'usernames'))),
+		'admin_ranks.php' => array('Users', 'Ranks', array('a_ranks' => array('acp_ranks', 'ranks'))),
+		'admin_statistics.php?mode=manage' => array('Statistics', 'Statistics_management', array('a_plus_stats_modules' => array('phpbb2plus\community\acp\statistics_module', 'manage'))),
+		'admin_statistics.php?mode=config' => array('Statistics', 'Statistics_config', array('a_plus_stats_settings' => array('phpbb2plus\community\acp\statistics_module', 'settings'))),
+		'admin_kb_art.php' => array('KB_title', 'Art_man', array('a_plus_kb_articles' => array('phpbb2plus\knowledgebase\acp\articles_module', 'manage'))),
+		'admin_kb_types.php' => array('KB_title', 'Types_man', array('a_plus_kb_types' => array('phpbb2plus\knowledgebase\acp\types_module', 'manage'))),
+		'admin_kb_cat.php' => array('KB_title', 'Cat_man', array('a_plus_kb_categories' => array('phpbb2plus\knowledgebase\acp\categories_module', 'manage'))),
+		'admin_pa_category.php' => array('Download', 'Cat_manage_title', array('a_plus_dl_categories' => array('phpbb2plus\downloads\acp\categories_module', 'manage'))),
+		'admin_pa_catauth.php' => array('Download', 'Permissions', array('a_plus_dl_perms' => array('phpbb2plus\downloads\acp\permissions_module', 'manage'))),
+		'admin_pa_file.php' => array('Download', 'File_manage_title', array(
+			'a_plus_dl_edit' => self::FILE_ACTIONS, 'a_plus_dl_approval' => self::FILE_ACTIONS, 'a_plus_dl_delete' => self::FILE_ACTIONS,
+			'a_plus_dl_mirrors' => array('phpbb2plus\downloads\acp\mirrors_module', 'manage'),
+		)),
+		'admin_pa_license.php' => array('Download', 'License_title', array('a_plus_dl_licenses' => array('phpbb2plus\downloads\acp\licenses_module', 'manage'))),
+		'admin_pa_custom.php' => array('Download', 'Mfieldtitle', array('a_plus_dl_fields' => array('phpbb2plus\downloads\acp\fields_module', 'manage'))),
+		'admin_album_cat.php' => array('Photo_Album', 'Categories', array('a_plus_album_categories' => array('phpbb2plus\gallery\acp\categories_module', 'manage'))),
+		'admin_album_auth.php' => array('Photo_Album', 'Permissions', array('a_plus_album_auth' => array('phpbb2plus\gallery\acp\permissions_module', 'manage'))),
+		'admin_album_personal.php' => array('Photo_Album', 'Personal_Galleries', array('a_plus_album_personal_auth' => array('phpbb2plus\gallery\acp\personal_permissions_module', 'manage'))),
+		'admin_hacks_list.php' => array('General', 'Hacks_List', array('a_plus_credits' => array('phpbb2plus\community\acp\credits_module', 'manage'))),
 	);
 
 	private $db;
@@ -30,6 +36,14 @@ class junior_admin
 	{
 		$this->db = $db;
 		$this->table = $table;
+	}
+
+	/** One source registration may now use several independently assignable native permissions. */
+	public static function targets()
+	{
+		static $targets;
+		if ($targets === null) { $targets = array_merge(...array_column(self::MODULES, 2)); }
+		return $targets;
 	}
 
 	public static function supported_option($option)
@@ -62,11 +76,10 @@ class junior_admin
 	{
 		$modules = array();
 		$needed = array('phpbb2plus/community');
-		foreach (self::MODULES as $definition)
+		foreach (self::targets() as $right => $target)
 		{
-			$right = $definition[2];
 			if (!in_array($right, $requested, true)) { continue; }
-			$parts = explode('\\', ltrim($definition[3], '\\'));
+			$parts = explode('\\', ltrim($target[0], '\\'));
 			$extension = isset($parts[1]) ? $parts[0] . '/' . $parts[1] : '';
 			$modules[$right] = $extension;
 			if ($extension !== '') { $needed[] = $extension; }

@@ -9,8 +9,8 @@ require './common.php';
 if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1]) { exit(2); }
 require_once './includes/acp/auth.php';
 require_once './includes/functions_module.php';
-require_once dirname(__DIR__, 2) . '/phpBB3/install/convertors/plus_junior_admin.php';
-require_once dirname(__DIR__, 2) . '/phpBB3/install/convertors/plus_media.php';
+require_once '../finished-installer/convertors/plus_junior_admin.php';
+require_once '../finished-installer/convertors/plus_media.php';
 require_once __DIR__ . '/delegation.php';
 if (plus_jr_source_present($db, 'missing_fixture_')) { throw new RuntimeException('An absent Junior Admin source was treated as installed'); }
 $root = realpath('../legacy');
@@ -21,6 +21,28 @@ if (!plus_jr_reviewed_dependencies($root, $directory, array($sibling => $digest)
 	|| plus_jr_reviewed_dependencies($root, $directory, array($sibling => str_repeat('0', 64)))
 	|| plus_jr_reviewed_dependencies($root, $directory, array('missing_fixture_module.php' => $digest)))
 { throw new RuntimeException('Changed or missing dependency was accepted for automatic delegation'); }
+$convert = (object) array('options' => array('forum_path' => $root));
+$file_grant = md5('DownloadFile_manage_titleadmin_pa_file.php');
+$helper = $root . '/pafiledb/includes/functions_mirror_storage.php';
+$original = file_get_contents($helper);
+try
+{
+	file_put_contents($helper, $original . "\n/* Locally customised mirror handler */\n");
+	$registry = plus_jr_registry();
+	$entry = $registry[$file_grant] ?? array();
+	if (empty($entry['customised']) || isset($entry['options']) || isset($entry['option']))
+	{ throw new RuntimeException('A customised file-management dependency retained its automatic assignment'); }
+}
+finally { file_put_contents($helper, $original); }
+$db->sql_transaction('begin');
+try
+{
+	$db->sql_query('UPDATE ' . ACL_OPTIONS_TABLE . " SET is_global=0 WHERE auth_option='a_plus_dl_mirrors'");
+	list($report, $rights) = plus_jr_plan(56, 0, 1, $file_grant);
+	if ((json_decode($report, true)[0]['result'] ?? '') !== 'target-option-unavailable' || $rights !== '[]')
+	{ throw new RuntimeException('An incomplete target extension received part of a bundled source grant'); }
+}
+finally { $db->sql_transaction('rollback'); }
 plus_jr_finish();
 plus_jr_finish();
 $writer = new auth_admin();
@@ -60,23 +82,26 @@ foreach (delegation_fixture_roles() as $id => $role)
 	$auth->acl($single);
 	$stock->acl($single);
 	if ($single['username'] !== $role[0] || !$auth->has_delegated_acp() || $stock->acl_get('a_')) { throw new RuntimeException('Invalid isolated delegate'); }
+	$options = (array) $role[2];
 	foreach (array_keys($auth->acl_options['global']) as $option)
 	{
-		if (strpos($option, 'a_') === 0 && (bool) $auth->acl_get($option) !== ($option === $role[2]))
+		if (strpos($option, 'a_') === 0 && (bool) $auth->acl_get($option) !== in_array($option, $options, true))
 		{ throw new RuntimeException('Unexpected native ACP option ' . $option . ' for ' . $role[0]); }
 	}
-	foreach (\phpbb2plus\community\auth\junior_admin::MODULES as $entry)
+	$targets = \phpbb2plus\community\auth\junior_admin::targets();
+	$panels = array_intersect_key($targets, array_flip($options));
+	foreach ($targets as $target)
 	{
-		if ($auth->delegated_module($entry[3], $entry[4]) !== ($entry[2] === $role[2]))
+		if ($auth->delegated_module($target[0], $target[1]) !== in_array($target, $panels, true))
 		{ throw new RuntimeException('Unexpected delegated ACP module for ' . $role[0]); }
 	}
 	try
 	{
-		$writer->acl_set('user', 0, $id, array($role[2] => ACL_NEVER));
+		$writer->acl_set('user', 0, $id, array_fill_keys($options, ACL_NEVER));
 		$auth->acl($single);
-		if ($auth->has_delegated_acp()) { throw new RuntimeException('Native Never did not close the only delegated module'); }
+		if ($auth->has_delegated_acp()) { throw new RuntimeException('Native Never did not close all delegated modules'); }
 	}
-	finally { $writer->acl_set('user', 0, $id, array($role[2] => ACL_NO)); }
+	finally { $writer->acl_set('user', 0, $id, array_fill_keys($options, ACL_NO)); }
 }
 $auth->acl($account);
 $db->sql_transaction('begin');

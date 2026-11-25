@@ -19,7 +19,13 @@ def source_modules(source, target):
     for file in (source / "admin").glob("admin_*.php"):
         shutil.copyfile(file, directory / file.name)
     for path in ("includes/functions_jr_admin_auth.php", "includes/functions_stats.php", "includes/functions_module.php",
-                 "pafiledb/includes/functions_file_authority.php",
+                 "includes/functions_acl_storage.php", "includes/functions_owned_storage.php",
+                 "pafiledb/pafiledb_common.php", "pafiledb/includes/pafiledb_constants.php",
+                 "pafiledb/includes/functions_pafiledb.php", "pafiledb/includes/functions_file_authority.php",
+                 "pafiledb/includes/functions_file_actions.php", "pafiledb/includes/functions_file_coordinator.php",
+                 "pafiledb/includes/functions_file_journal.php", "pafiledb/includes/functions_file_reference.php",
+                 "pafiledb/includes/functions_file_storage.php", "pafiledb/includes/functions_file_delete.php",
+                 "pafiledb/includes/functions_mutation_storage.php", "pafiledb/includes/functions_mirror_storage.php",
                  "pafiledb/includes/functions_permission_storage.php", "pafiledb/includes/functions_license_storage.php",
                  "pafiledb/includes/functions_custom_storage.php", "pafiledb/includes/functions_field.php",
                  "album_mod/album_admin_category_storage.php",
@@ -77,7 +83,37 @@ def personal_album_rights(browser, url, page):
         previous = wanted
 
 
-def module_roles(base):
+def file_management(browser, entry, fixture):
+    panel = entry + "&i=-phpbb2plus-downloads-acp-file_actions_module&mode=manage"
+    mirrors = entry + "&i=-phpbb2plus-downloads-acp-mirrors_module&mode=manage&action=file&file=10801"
+    edit = panel + "&action=edit&file=10801"
+    remove = panel + "&action=delete&ids=10801"
+    fixture("setup")
+    try:
+        for module in ("categories", "permissions", "licenses", "fields"):
+            url = entry + f"&i=-phpbb2plus-downloads-acp-{module}_module&mode=manage"
+            if "Module not accessible" not in browser.fetch(url, expected_status=503):
+                raise RuntimeError(f"The historical file operator gained the independent {module} panel")
+        listing = browser.fetch(panel)
+        if any(f'value="{op}"' not in listing for op in ("approve", "withdraw", "delete")):
+            raise RuntimeError("The converted file-management panel lost a bulk action")
+        confirmation = browser.fetch(remove)
+        fixture("deny-delete")
+        denied = submit_form(browser, remove, confirmation, "dl-files-confirm", {"confirm": "1"})
+        if "dl-files-confirm" in Page(denied).forms or 'value="delete"' in browser.fetch(panel):
+            raise RuntimeError("An individual native denial left the delete action available")
+        initial = browser.fetch(edit)
+        if 'id="dl-editor-mirrors"' not in initial or "dl-mirror-list" not in Page(browser.fetch(mirrors)).forms:
+            raise RuntimeError("Revoking deletion closed the file operator's mirror management")
+        submit_form(browser, edit, initial, "dl-file-editor",
+                    {"summary": "Changed by file operator", "approved": "1", "field[81][]": ["Blau", "Rot"]})
+        fixture("verified")
+        browser.fetch("app.php/downloads/file/10801", expected_status=404)
+    finally:
+        fixture("cleanup")
+
+
+def module_roles(base, file_fixture):
     modules = {
         "DownloadCategoryJunior": ("-phpbb2plus-downloads-acp-categories_module", "action=edit&category=23", "dl-category", "summary", "Delegated category edit"),
         "DownloadAccessJunior": ("-phpbb2plus-downloads-acp-permissions_module", "section=edit&category=21", "dl-permissions", "values[view]", "1"),
@@ -118,13 +154,14 @@ def module_roles(base):
     # Each member can log in and reauthenticate independently. Edits within
     # one catalogue still run in order because they share its write revision.
     with ThreadPoolExecutor(max_workers=4) as pool:
-        sessions = {name: pool.submit(authenticate, base, name) for name in modules}
+        sessions = {name: pool.submit(authenticate, base, name) for name in (*modules, "DownloadFilesJunior")}
         list(pool.map(exercise, (("DownloadCategoryJunior", "DownloadAccessJunior", "DownloadLicenseJunior", "DownloadFieldsJunior"),
                                  ("AlbumCategoryJunior", "AlbumAccessJunior", "AlbumPersonalJunior"), ("CreditsJunior",))))
+        file_management(*sessions["DownloadFilesJunior"].result(), file_fixture)
 
 
-def browse(base):
-    module_roles(base)
+def browse(base, file_fixture):
+    module_roles(base, file_fixture)
     junior, entry = authenticate(base, "JuniorFixture")
     home = junior.fetch(entry)
     if "Your delegated administration" not in home or "Fixture &lt;only&gt; &amp; 😀" not in home or "Private source note" in home:

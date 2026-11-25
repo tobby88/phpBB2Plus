@@ -68,7 +68,7 @@ class delegations_module
 		}
 		add_permission_language();
 		$permissions = $phpbb_container->get('acl.permissions');
-		$states = $phpbb_container->get('phpbb2plus.community.junior_admin')->states($subject, $auth, array_column(junior_admin::MODULES, 2));
+		$states = $phpbb_container->get('phpbb2plus.community.junior_admin')->states($subject, $auth, array_keys(junior_admin::targets()));
 		foreach ($states as $option => $state)
 		{
 			$selected = in_array($option, $row['rights'], true);

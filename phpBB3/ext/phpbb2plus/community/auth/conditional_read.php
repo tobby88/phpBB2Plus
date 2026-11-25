@@ -27,9 +27,9 @@ class conditional_read extends \phpbb\auth\auth
 
 	public function delegated_module($basename, $mode)
 	{
-		foreach (junior_admin::MODULES as $registration)
+		foreach (junior_admin::targets() as $option => $target)
 		{
-			if (isset($this->delegated[$registration[2]]) && ltrim($basename, '\\') === $registration[3] && $mode === $registration[4]) { return true; }
+			if (isset($this->delegated[$option]) && ltrim($basename, '\\') === $target[0] && $mode === $target[1]) { return true; }
 		}
 		return false;
 	}

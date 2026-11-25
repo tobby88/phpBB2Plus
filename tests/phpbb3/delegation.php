@@ -20,6 +20,8 @@ function delegation_fixture_roles()
 		53 => array('AlbumPersonalJunior', 'Photo_AlbumPersonal_Galleriesadmin_album_personal.php', 'a_plus_album_personal_auth'),
 		54 => array('StatisticsModulesJunior', 'StatisticsStatistics_managementadmin_statistics.php?mode=manage', 'a_plus_stats_modules'),
 		55 => array('StatisticsSettingsJunior', 'StatisticsStatistics_configadmin_statistics.php?mode=config', 'a_plus_stats_settings'),
+		56 => array('DownloadFilesJunior', 'DownloadFile_manage_titleadmin_pa_file.php',
+			array('a_plus_dl_edit', 'a_plus_dl_approval', 'a_plus_dl_delete', 'a_plus_dl_mirrors')),
 	);
 }
 
@@ -81,9 +83,10 @@ function verify_delegation($db)
 	{
 		$row = $rows[$id];
 		$report = json_decode($row['report_json'], true);
+		$options = (array) $role[2];
 		check_fixture((int) $row['user_id'] === $id && base64_decode($row['modules_b64'], true) === md5($role[1])
-			&& json_decode($row['rights_json'], true) === array($role[2]) && count($report) === 1
-			&& $report[0]['result'] === 'delegated' && $report[0]['option'] === $role[2],
+			&& json_decode($row['rights_json'], true) === $options && count($report) === 1 && $report[0]['result'] === 'delegated'
+			&& ($report[0]['options'] ?? array($report[0]['option'] ?? null)) === $options,
 			'Isolated delegation for ' . $role[0] . ' was not reconstructed: ' . $row['report_json']);
 	}
 	$delegates = array_map('intval', array_column($db->query('SELECT user_id FROM p3_users WHERE plus_jr_delegate=1 ORDER BY user_id')->fetch_all(MYSQLI_ASSOC), 'user_id'));

@@ -320,7 +320,8 @@ def main():
                 def delegation_fixture(operation):
                     php(ROOT / "tests/phpbb3/delegation_management.php", target, operation, cwd=web)
                 delegation_fixture("backfill")
-                junior, junior_entry = delegation.browse(base)
+                junior, junior_entry = delegation.browse(base, lambda phase: php(
+                    ROOT / "tests/phpbb3/delegation_files.php", target, phase, cwd=web))
                 delegation_administration.manage(member, junior, junior_entry, delegation_fixture)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)

@@ -88,7 +88,7 @@ class delegations
 			if (!$row || (int) $row['user_type'] === USER_FOUNDER) { throw new \DomainException('PLUS_JR_NO_CHANGE'); }
 			if ((int) $row['revision'] !== $revision) { throw new \DomainException('PLUS_JR_STALE'); }
 			if ($note !== $row['note'] && strlen($note) > 60000) { throw new \DomainException('PLUS_JR_LONG_NOTE'); }
-			$states = $this->access->states($id, $auth, array_column(junior_admin::MODULES, 2));
+			$states = $this->access->states($id, $auth, array_keys(junior_admin::targets()));
 			foreach ($requested as $option)
 			{
 				if (!is_string($option) || !isset($states[$option]) || (!in_array($option, $row['rights'], true) &&
