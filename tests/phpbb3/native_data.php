@@ -40,6 +40,17 @@ function seed_forum_access($db)
 
 function seed_native_content($db)
 {
+	$db->query("UPDATE phpbb_config SET config_value='0' WHERE config_name='announcement_duration'");
+	$db->query("UPDATE phpbb_config SET config_value='1' WHERE config_name='announcement_prune_strategy'");
+	foreach (array(701=>array(2,3),702=>array(3,0),703=>array(2,-1),704=>array(2,80000),705=>array(2,1),706=>array(1,9)) as $id=>$schedule)
+	{
+		list($type,$days) = $schedule;
+		$start = $id === 702 ? time() : 1000000000;
+		$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_type,topic_announce_duration,topic_poster,topic_time,topic_first_post_id,topic_last_post_id)
+			VALUES ($id,7,'Duration fixture $id',$type,$days,2,$start,$id,$id)");
+		$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time) VALUES ($id,$id,7,2,'c0000203',$start)");
+		$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES ($id,'Duration fixture $id','Ein Aushang zur Probe')");
+	}
 	$db->query("INSERT INTO phpbb_topics_watch (topic_id,user_id,notify_status)
 		VALUES (1,1,0),(1,1,1),(2,1,0),(999,1,0),(1,-1,0),(1,99,0)");
 	$db->query("UPDATE phpbb_topics SET topic_vote=1 WHERE topic_id=1");

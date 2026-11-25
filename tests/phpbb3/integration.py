@@ -28,6 +28,7 @@ import custom_profiles
 import colours
 import post_icons
 import removed_posts
+import announcement_duration
 import legacy_links
 import downloads
 import profile_media
@@ -165,6 +166,7 @@ def main():
                 forum_permissions.publishing(member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)
+                announcement_duration.exercise(member, lambda step: php(ROOT / "tests/phpbb3/announcement_duration.php", target, step, cwd=web))
                 public_pages(base, member)
                 legend = member.fetch("index.php")
                 if ('#5A769B">Redaktion &amp; Gäste</span>' not in legend or 'Hidden palette' in legend

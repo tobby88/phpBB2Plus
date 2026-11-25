@@ -81,15 +81,21 @@ def administration(base, owner):
 
     post = entry + "&i=acp_board&mode=post"
     feed = entry + "&i=acp_board&mode=feed"
-    if 'config[plus_news_page_size]' not in owner.fetch(post) or 'config[plus_news_feed_limit]' not in owner.fetch(feed):
+    settings = owner.fetch(post)
+    if 'config[plus_news_page_size]' not in settings or 'config[plus_news_feed_limit]' not in owner.fetch(feed):
         raise RuntimeError("Missing native administration of news and RSS settings")
+    if any(name not in settings for name in ("config[plus_announce_default]", "config[plus_announce_sticky]")):
+        raise RuntimeError("The posting ACP is missing the announcement expiry policy")
     submit(feed, owner.fetch(feed), "acp_board", {"submit": "1", "config[plus_news_feed]": "0"})
     guest.fetch("news_rss.php", expected_status=404)
     submit(feed, owner.fetch(feed), "acp_board", {"submit": "1", "config[plus_news_feed]": "1"})
-    submit(post, owner.fetch(post), "acp_board", {"submit": "1", "config[plus_news_publish]": "0"})
-    if "plus_news_category" in owner.fetch("posting.php?mode=post&f=1") or 'data-news-topic="2"' not in guest.fetch("app.php/news"):
+    submit(post, owner.fetch(post), "acp_board", {"submit": "1", "config[plus_news_publish]": "0", "config[plus_announce_default]":"13"})
+    editor = owner.fetch("posting.php?mode=post&f=1")
+    if "Standarddauer von 13 Tagen" not in editor:
+        raise RuntimeError("Changing the ACP announcement duration did not update the editor")
+    if "plus_news_category" in editor or 'data-news-topic="2"' not in guest.fetch("app.php/news"):
         raise RuntimeError("Disabling new publications changed existing articles or left the selector active")
-    submit(post, owner.fetch(post), "acp_board", {"submit": "1", "config[plus_news_publish]": "1"})
+    submit(post, owner.fetch(post), "acp_board", {"submit": "1", "config[plus_news_publish]": "1", "config[plus_announce_default]":"7"})
     form = "plus-news-category"
     path = edit_url("Announcements")
     html = owner.fetch(path)

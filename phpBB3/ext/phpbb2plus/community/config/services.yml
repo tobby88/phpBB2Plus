@@ -92,6 +92,21 @@ services:
         arguments: ['@dbal.conn', '@request', '@language', '@auth', '@user', '@content.visibility', '@config']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.announcements:
+        class: phpbb2plus\community\service\announcements
+        arguments: ['@dbal.conn', '@config']
+    phpbb2plus.community.announcement_events:
+        class: phpbb2plus\community\event\announcements
+        arguments: ['@phpbb2plus.community.announcements', '@config', '@auth', '@request', '@language']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.announcement_cron:
+        class: phpbb2plus\community\cron\announcements
+        arguments: ['@phpbb2plus.community.announcements']
+        calls:
+            - [set_name, [phpbb2plus.community.announcement_cron]]
+        tags:
+            - { name: cron.task }
     phpbb2plus.community.attachment_upload:
         class: phpbb2plus\community\attachment\upload
         decorates: attachment.upload

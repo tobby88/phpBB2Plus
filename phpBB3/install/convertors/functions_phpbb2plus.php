@@ -195,6 +195,14 @@ function plus_convert_visibility($deleted)
 	return (int) $deleted ? ITEM_DELETED : ITEM_APPROVED;
 }
 
+function plus_announcement_limit($type,$days,$field)
+{
+	if (!\phpbb2plus\community\service\announcements::is_announcement($type)) { return 0; }
+	$default = get_config_value('announcement_duration');
+	$values = \phpbb2plus\community\service\announcements::storage($days,$default === false ? 7 : (int) $default);
+	return $values[$field === 'seconds' ? 0 : 1];
+}
+
 function plus_shout_flags($bbcode, $smilies)
 {
 	return OPTION_FLAG_LINKS | ($bbcode ? OPTION_FLAG_BBCODE : 0) | ($smilies ? OPTION_FLAG_SMILIES : 0);

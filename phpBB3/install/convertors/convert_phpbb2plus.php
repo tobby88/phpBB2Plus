@@ -72,6 +72,8 @@ if (!$get_info)
 	}
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
+	$config_schema['settings']['plus_announce_default'] = 'announcement_duration';
+	$config_schema['settings']['plus_announce_sticky'] = 'announcement_prune_strategy';
 	foreach (array('publish'=>'allow_news','page_size'=>'news_item_num','trim'=>'news_item_trim','title_trim'=>'news_title_trim',
 		'feed'=>'allow_rss','feed_limit'=>'news_rss_item_count','feed_abstract'=>'news_rss_show_abstract',
 		'feed_language'=>'news_rss_language','feed_ttl'=>'news_rss_ttl') as $new=>$old)
@@ -204,6 +206,8 @@ if (!$get_info)
 		}
 		if ($section['target'] === TOPICS_TABLE)
 		{
+			$section[] = array('topic_time_limit',array('topics.topic_type','topics.topic_announce_duration','seconds'),'plus_announcement_limit');
+			$section[] = array('plus_announce_days',array('topics.topic_type','topics.topic_announce_duration','days'),'plus_announcement_limit');
 			$section[] = array('plus_description','topics.topic_desc','plus_topic_description');
 			$section[] = array('plus_news_cat','topics.news_id','intval');
 			$section[] = array('plus_cal_start','topics.topic_calendar_time','intval');

@@ -1,0 +1,7 @@
+{% if S_PLUS_ANNOUNCE_LENGTH %}
+<dl>
+	<dt><label for="topic_time_limit">{{ lang('STICK_TOPIC_FOR') }}{{ lang('COLON') }}</label></dt>
+	<dd><input type="number" name="topic_time_limit" id="topic_time_limit" class="inputbox autowidth" min="-1" max="{{ PLUS_ANNOUNCE_MAX }}" value="{{ TOPIC_TIME_LIMIT }}"> {{ lang('DAYS') }}</dd>
+	<dd>{{ PLUS_ANNOUNCE_HINT }}<input type="hidden" name="plus_announce_revision" value="{{ PLUS_ANNOUNCE_REVISION|e }}"></dd>
+</dl>
+{% endif %}
