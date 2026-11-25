@@ -13,11 +13,20 @@ require_once './includes/functions_user.php';
 $name = 'NoticeNewMember';
 if ($argv[2] === 'create')
 {
-	$result = $db->sql_query("SELECT group_id FROM " . GROUPS_TABLE . " WHERE group_name='REGISTERED'");
-	$group = (int) $db->sql_fetchfield('group_id');
+	// Use the synthetic member whose password has already passed the normal browser login.
+	$result = $db->sql_query("SELECT u.user_password, g.group_id FROM " . USERS_TABLE . ' u, ' . GROUPS_TABLE . " g
+		WHERE u.user_id = 2 AND u.username = 'ModernMember' AND g.group_name = 'REGISTERED'");
+	$member = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
-	$id = user_add(array('username' => $name, 'user_email' => 'new-notice@example.invalid', 'user_type' => USER_NORMAL, 'group_id' => $group,
-		'user_lang' => 'en', 'user_password' => $phpbb_container->get('passwords.manager')->hash(getenv('PLUS_TEST_MODERN_PASSWORD'))));
+	if (!$member || $member['user_password'] === '') { throw new RuntimeException('Missing authenticated notice fixture member'); }
+	$id = user_add(array(
+		'username' => $name,
+		'user_email' => 'new-notice@example.invalid',
+		'user_type' => USER_NORMAL,
+		'group_id' => (int) $member['group_id'],
+		'user_lang' => 'en',
+		'user_password' => $member['user_password'],
+	));
 	if ((int) $id <= ANONYMOUS) { throw new RuntimeException('Creating the notice recipient fixture failed'); }
 }
 elseif ($argv[2] === 'remove')
