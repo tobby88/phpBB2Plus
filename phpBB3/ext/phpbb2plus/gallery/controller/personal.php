@@ -104,6 +104,54 @@ class personal
 		return $title;
 	}
 
+	public function management_bookmark($source)
+	{
+		$source = (int) $source;
+		$id = $this->request->variable('cat_id', 0, false, request_interface::GET);
+		$mode = $this->request->variable('action', '', false, request_interface::GET);
+		if ($id < 0 || !in_array($mode, array('', 'edit', 'delete'), true)) { throw new NotFoundHttpException(); }
+		if (empty($this->user->data['is_registered']))
+		{
+			login_box($this->helper->route('phpbb2plus_gallery_personal_manage_legacy', array('source' => $source, 'cat_id' => $id, 'action' => $mode), false));
+		}
+		$actor = (int) $this->user->data['user_id'];
+		$owner = $source ? ($this->legacy ? $this->legacy->member_id($source) : 0) : $actor;
+		if (!empty($this->user->data['user_perm_from']) || ($owner !== $actor && !$this->access->administrator())) { throw new NotFoundHttpException(); }
+		$this->service->owner($owner);
+		try
+		{
+			$tree = $this->service->tree($owner);
+			if (!$tree && !$id)
+			{
+				$this->service->review($owner, $tree, 0, 'start');
+				$mode = 'start';
+			}
+			else
+			{
+				if ($id && (!isset($tree[$id]) || !$this->access->may_manage_personal($tree[$id]))) { throw new NotFoundHttpException(); }
+				$manageable = array_filter($tree, array($this->access, 'may_manage_personal'));
+				if (!$manageable || ($mode === 'delete' && !$id)) { throw new NotFoundHttpException(); }
+				if ($mode === 'edit' && !$id)
+				{
+					// A historic root edit omitted cat_id. Multiple imported roots require an explicit choice.
+					$roots = array_filter($manageable, function ($cat) { return !(int) $cat['parent_id']; });
+					if (count($roots) === 1) { $id = (int) key($roots); }
+					else { $mode = ''; }
+				}
+				if ($mode !== '') { $this->service->review($owner, $tree, $id, $mode); }
+			}
+		}
+		catch (\DomainException $e) { throw new NotFoundHttpException(); }
+		$params = array('owner' => $owner);
+		$route = 'phpbb2plus_gallery_personal';
+		if ($mode !== '')
+		{
+			$route = 'phpbb2plus_gallery_personal_form';
+			$params += array('category' => $id, 'mode' => $mode);
+		}
+		return new RedirectResponse($this->helper->route($route, $params, false));
+	}
+
 	private function action($owner, $category, $mode)
 	{
 		return $this->helper->route('phpbb2plus_gallery_personal_form', array('owner' => $owner, 'category' => $category, 'mode' => $mode));

@@ -44,6 +44,11 @@ phpbb2plus_gallery_personal_legacy:
     defaults: { _controller: phpbb2plus.gallery.personal_controller:bookmark }
     requirements: { source: '-1|0|[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_gallery_personal_manage_legacy:
+    path: /album/legacy/member/{source}/manage
+    defaults: { _controller: phpbb2plus.gallery.personal_controller:management_bookmark }
+    requirements: { source: '0|[1-9][0-9]*' }
+    methods: [GET, HEAD]
 phpbb2plus_gallery_personal_form:
     path: /album/member/{owner}/{category}/{mode}
     defaults: { _controller: phpbb2plus.gallery.personal_controller:form }
