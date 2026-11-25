@@ -38,14 +38,14 @@ class editor
 		$editing = in_array($mode, array('new','edit'), true);
 		$form = array('title' => $a['title'] ?? '', 'description' => $a['description'] ?? '', 'body' => $a['editor_text'] ?? '',
 			'category' => $a ? (int) $a['cat_id'] : $this->request->variable('category', 0), 'type' => $a ? (int) $a['type_id'] : 0, 'guest' => '');
-		$revision = $a ? (int) $a['revision'] : 0;
+		$revision = $this->editor->form_revision($a);
 		$error = '';
 		$nonce = bin2hex(random_bytes(16));
 		$csrf = 'plus_kb_' . $mode . '_' . $id;
 		if ($this->request->server('REQUEST_METHOD') === 'POST')
 		{
 			if (!check_form_key($csrf)) { throw new AccessDeniedHttpException(); }
-			$revision = $this->request->variable('revision', -1, false, request_interface::POST);
+			$revision = $this->request->variable('revision', '', false, request_interface::POST);
 			$nonce = $this->request->variable('submission', '', false, request_interface::POST);
 			try
 			{
@@ -84,7 +84,11 @@ class editor
 			{
 				$this->template->assign_block_vars('kb_cats', array('ID' => $cat['cat_id'], 'NAME' => $cat['title'], 'CURRENT' => $form['category'] === (int) $cat['cat_id']));
 			}
-			foreach ($this->editor->types() as $type)
+			if ($a && (int) $a['type_id'] === 0)
+			{
+				$this->template->assign_block_vars('kb_types', array('ID' => 0, 'NAME' => $this->language->lang('PLUS_KB_NO_TYPE'), 'CURRENT' => $form['type'] === 0));
+			}
+			foreach ($this->articles->types() as $type)
 			{
 				$this->template->assign_block_vars('kb_types', array('ID' => $type['type_id'], 'NAME' => $type['title'], 'CURRENT' => $form['type'] === (int) $type['type_id']));
 			}

@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_KB_NO_TYPE' => 'No article type',
 	'PLUS_KB' => 'Knowledge Base', 'PLUS_KB_CATEGORIES' => 'Categories', 'PLUS_KB_ARTICLES' => 'Articles',
 	'PLUS_KB_EMPTY' => 'No matching articles.', 'PLUS_KB_PENDING' => 'Awaiting approval', 'PLUS_KB_ALPHABETICAL' => 'Title',
 	'PLUS_KB_NEWEST' => 'Newest first', 'PLUS_KB_VIEWED' => 'Most viewed', 'PLUS_KB_VIEWS' => 'Views %s',

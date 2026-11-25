@@ -30,18 +30,28 @@ foreach (array('ModernMember'=>array(true,0,true),'HistoricMember'=>array(false,
 		throw new RuntimeException('Explicit Arcade, album and Knowledge Base roles diverged for ' . $name);
 	}
 }
-$desk = new \phpbb2plus\knowledgebase\acp\articles_info();
-$access = $desk->module()['modes']['manage']['auth'];
 require_once './includes/functions_module.php';
-if (p_master::module_auth($access, 0)) { throw new RuntimeException('An unrelated Arcade moderator can access the Knowledge Base desk'); }
-foreach (array(ACL_YES, ACL_NO) as $grant)
+$reviews = (new \phpbb2plus\knowledgebase\acp\articles_info())->module()['modes']['manage']['auth'];
+$types = (new \phpbb2plus\knowledgebase\acp\types_info())->module()['modes']['manage']['auth'];
+if (p_master::module_auth($reviews, 0) || p_master::module_auth($types, 0))
+{ throw new RuntimeException('An unrelated Arcade moderator can administer the Knowledge Base'); }
+foreach (array('a_plus_kb_articles', 'a_plus_kb_types', '') as $option)
 {
-	$writer->acl_set('user', 0, 87, array('a_plus_kb_articles' => $grant));
+	$may_review = $option === 'a_plus_kb_articles';
+	$may_classify = $option === 'a_plus_kb_types';
+	$writer->acl_set('user', 0, 87, array('a_plus_kb_articles' => $may_review ? ACL_YES : ACL_NO, 'a_plus_kb_types' => $may_classify ? ACL_YES : ACL_NO));
 	$auth->acl_clear_prefetch(87);
 	$result = $db->sql_query('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=87');
 	$user->data = $db->sql_fetchrow($result) + array('is_registered' => true, 'is_bot' => false);
 	$db->sql_freeresult($result);
 	$auth->acl($user->data);
-	if ((bool) p_master::module_auth($access, 0) !== ($grant === ACL_YES) || (bool) $kb->moderator() !== ($grant === ACL_YES) || $auth->acl_get('a_plus_kb'))
-	{ throw new RuntimeException('Granting or removing article administration changed the wrong capabilities'); }
+	if ((bool) p_master::module_auth($reviews, 0) !== $may_review || (bool) $kb->moderator() !== $may_review
+		|| (bool) p_master::module_auth($types, 0) !== $may_classify || $auth->acl_get('a_plus_kb'))
+	{ throw new RuntimeException('Delegating an article desk gave the wrong Knowledge Base capabilities'); }
 }
+// Rows converted by earlier releases predate native label encoding.
+$type_table = $table_prefix . 'plus_kb_types';
+$db->sql_query("INSERT INTO $type_table " . $db->sql_build_array('INSERT', array('title' => 'Legacy &amp; handbooks')));
+$id = (int) $db->sql_nextid();
+if ($kb->types()[$id]['title'] !== 'Legacy &amp; handbooks') { throw new RuntimeException('An earlier type label was decoded twice'); }
+$db->sql_query("DELETE FROM $type_table WHERE type_id=$id");

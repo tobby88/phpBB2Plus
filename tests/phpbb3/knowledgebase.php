@@ -5,6 +5,9 @@ function seed_knowledgebase($db)
 	$db->query("UPDATE phpbb_kb_config SET config_value='1' WHERE config_name='allow_rating'");
 	$db->query("INSERT INTO phpbb_kb_categories (category_id,category_name,category_details,parent,cat_order) VALUES (8,'Wissensarchiv','Historische Artikel',1,3)");
 	$db->query("INSERT INTO phpbb_kb_types (id,type) VALUES (2,'Anleitung')");
+	$db->query("INSERT INTO phpbb_kb_types (id,type) VALUES (9,'Sterne 🌠 &amp;amp; Zeichen')");
+	$db->query("INSERT INTO phpbb_kb_categories (category_id,category_name,category_details,parent,cat_order)
+		VALUES (9,'Pflanzen 🌿','Gärten &amp;amp; Parks 🌼',8,10)");
 	$db->query("INSERT INTO phpbb_kb_articles (article_id,article_category_id,article_title,article_description,article_date,article_author_id,username,
 		bbcode_uid,article_body,article_type,approved,topic_id,views,article_rating,article_totalvotes) VALUES
 		(201,8,'Öffentliche Anleitung','Beschreibung &amp; Grüße','100201',1,'','testuid','Einstieg[toc]\n[b:testuid]Grüße[/b:testuid] Wissensprobe[page]Fortsetzung[toc]\nZweite Wissensseite',2,1,1,17,16.5000,2),

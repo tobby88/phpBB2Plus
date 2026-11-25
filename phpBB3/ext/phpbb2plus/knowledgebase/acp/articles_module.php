@@ -2,6 +2,7 @@
 namespace phpbb2plus\knowledgebase\acp;
 
 use phpbb\request\request_interface;
+use phpbb2plus\knowledgebase\service\articles;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class articles_module
@@ -39,13 +40,13 @@ class articles_module
 				if ($request->server('REQUEST_METHOD') === 'POST')
 				{
 					if (!check_form_key($key)) { trigger_error('FORM_INVALID', E_USER_WARNING); }
-					$editor->moderate($action, $id, $request->variable('revision', -1, false, request_interface::POST));
+					$editor->moderate($action, $id, $request->variable('revision', '', false, request_interface::POST));
 					redirect($back);
 				}
 				$article = $editor->context($action, $id);
 				add_form_key($key);
 				$template->assign_vars(array('KB_REVIEW' => true, 'KB_DELETE' => $action === 'delete',
-					'KB_TITLE' => $article['title'], 'KB_SUMMARY' => $article['description'], 'KB_REVISION' => $article['revision'],
+					'KB_TITLE' => $article['title'], 'KB_SUMMARY' => $article['description'], 'KB_REVISION' => $editor->form_revision($article),
 					'KB_ACTION' => $language->lang('PLUS_KB_ACTION_' . strtoupper($action)), 'U_BACK' => $back,
 					'U_SAVE' => $back . '&amp;article_id=' . $id . '&amp;action=' . $action,
 					'U_ARTICLE' => $helper->route('phpbb2plus_kb_article', array('article' => $id))));
@@ -67,7 +68,7 @@ class articles_module
 		$template->assign_var('PAGE_NUMBER', $pagination->on_page($count, $limit, $start));
 		$names = array_flip($states);
 		$result = $db->sql_query_limit("SELECT a.article_id,a.title,a.description,a.approval,a.author_id,a.author_name,a.author_removed,
-			c.title AS category,t.title AS article_type,u.username FROM {$p}articles a
+			c.title AS category,c.label_encoded AS category_encoded,t.title AS article_type,t.label_encoded AS type_encoded,u.username FROM {$p}articles a
 			LEFT JOIN {$p}cats c ON c.cat_id=a.cat_id LEFT JOIN {$p}types t ON t.type_id=a.type_id
 			LEFT JOIN " . USERS_TABLE . ' u ON u.user_id=a.author_id' . $where .
 			' ORDER BY CASE a.approval WHEN 2 THEN 0 WHEN 1 THEN 2 ELSE 1 END, a.article_id DESC', $limit, $start);
@@ -80,7 +81,8 @@ class articles_module
 				? html_entity_decode($row['username'], ENT_QUOTES, 'UTF-8') : $row['author_name'];
 			if ($private_names && $row['author_removed']) { $author = $language->lang('PLUS_KB_FORMER'); }
 			$template->assign_block_vars('kb_articles', array('TITLE' => $row['title'], 'SUMMARY' => $row['description'],
-				'CATEGORY' => $row['category'], 'TYPE' => $row['article_type'], 'AUTHOR' => $author !== '' ? $author : $language->lang('GUEST'),
+				'CATEGORY' => articles::label($row['category'], $row['category_encoded']), 'TYPE' => articles::label($row['article_type'], $row['type_encoded']),
+				'AUTHOR' => $author !== '' ? $author : $language->lang('GUEST'),
 				'STATUS' => $language->lang('ACP_PLUS_KB_' . strtoupper($names[(int) $row['approval']] ?? 'pending')),
 				'ACTION' => $language->lang($approved ? 'PLUS_KB_ACTION_UNAPPROVE' : 'PLUS_KB_ACTION_APPROVE'),
 				'U_ARTICLE' => $helper->route('phpbb2plus_kb_article', array('article' => $id)),

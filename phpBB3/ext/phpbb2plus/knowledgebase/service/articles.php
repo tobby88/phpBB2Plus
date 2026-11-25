@@ -36,6 +36,29 @@ class articles
 
 	public function refresh() { $this->settings = $this->categories = null; }
 
+	public static function encode_label($value)
+	{
+		return utf8_encode_ucr(utf8_htmlspecialchars($value));
+	}
+
+	public static function label($value, $encoded)
+	{
+		return $encoded ? html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8') : (string) $value;
+	}
+
+	public function types()
+	{
+		$result = $this->db->sql_query('SELECT type_id,title,label_encoded FROM ' . $this->prefix . 'types ORDER BY title,type_id');
+		$types = array();
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$row['title'] = self::label($row['title'], $row['label_encoded']);
+			$types[(int) $row['type_id']] = $row;
+		}
+		$this->db->sql_freeresult($result);
+		return $types;
+	}
+
 	public function moderator()
 	{
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_gets('m_plus_kb', 'a_plus_kb', 'a_plus_kb_articles');
@@ -60,7 +83,12 @@ class articles
 		{
 			$this->categories = array();
 			$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'cats ORDER BY sort_order,cat_id');
-			while ($row = $this->db->sql_fetchrow($result)) { $this->categories[(int) $row['cat_id']] = $row; }
+			while ($row = $this->db->sql_fetchrow($result))
+			{
+				$row['title'] = self::label($row['title'], $row['label_encoded']);
+				$row['description'] = self::label($row['description'], $row['label_encoded']);
+				$this->categories[(int) $row['cat_id']] = $row;
+			}
 			$this->db->sql_freeresult($result);
 		}
 		return $this->categories;
@@ -81,12 +109,13 @@ class articles
 
 	public function find($id)
 	{
-		$result = $this->db->sql_query('SELECT a.*,u.username,u.user_colour,t.title AS type_name FROM ' . $this->prefix . 'articles a
+		$result = $this->db->sql_query('SELECT a.*,u.username,u.user_colour,t.title AS type_name,t.label_encoded FROM ' . $this->prefix . 'articles a
 			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=a.author_id LEFT JOIN ' . $this->prefix . 'types t ON t.type_id=a.type_id
 			WHERE a.article_id=' . (int) $id . ' AND ' . $this->visible_sql());
 		$article = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
 		if (!$article) { throw new NotFoundHttpException(); }
+		$article['type_name'] = self::label($article['type_name'], $article['label_encoded']);
 		return $article;
 	}
 

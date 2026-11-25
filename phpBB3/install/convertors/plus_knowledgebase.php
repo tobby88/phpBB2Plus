@@ -6,6 +6,11 @@ function plus_kb_plain($text)
 	return html_entity_decode((string) $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+function plus_kb_label($text)
+{
+	return \phpbb2plus\knowledgebase\service\articles::encode_label(plus_kb_plain($text));
+}
+
 function plus_kb_setting($name, $value)
 {
 	if ($name !== 'admin_id') { return $value; }
@@ -138,9 +143,9 @@ function plus_kb_schema($prefix, $truncate)
 		array('target' => $p . 'cats', 'primary' => 'kb_categories.category_id', 'autoincrement' => 'cat_id',
 			'query_first' => array('target', $truncate . $p . 'cats'), array('cat_id','kb_categories.category_id','intval'),
 			array('parent_id','kb_categories.parent','intval'), array('sort_order','kb_categories.cat_order','intval'),
-			array('title','kb_categories.category_name','plus_kb_plain'), array('description','kb_categories.category_details','plus_kb_plain')),
+			array('title','kb_categories.category_name','plus_kb_label'), array('description','kb_categories.category_details','plus_kb_label'), array('label_encoded',1,'')),
 		array('target' => $p . 'types', 'primary' => 'kb_types.id', 'autoincrement' => 'type_id',
-			'query_first' => array('target', $truncate . $p . 'types'), array('type_id','kb_types.id','intval'), array('title','kb_types.type','plus_kb_plain')),
+			'query_first' => array('target', $truncate . $p . 'types'), array('type_id','kb_types.id','intval'), array('title','kb_types.type','plus_kb_label'), array('label_encoded',1,'')),
 		array('target' => $p . 'articles', 'primary' => 'kb_articles.article_id', 'autoincrement' => 'article_id',
 			'query_first' => array(array('target', $truncate . $p . 'articles'), array('target', $truncate . $p . 'pages')),
 			array('article_id','kb_articles.article_id','intval'), array('cat_id','kb_articles.article_category_id','intval'),

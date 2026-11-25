@@ -1,9 +1,9 @@
 """Browse migrated multi-page articles, moderation, search, topics and historical voting receipts."""
 import re
 import time
-from html import unescape
+from html import escape, unescape
 from urllib.parse import urlencode, urljoin
-from http_board import Browser, Page, admin_url, submit_form
+from http_board import Browser, FormFields, Page, admin_url, submit_form
 from gallery import submit
 
 
@@ -159,3 +159,55 @@ def administration(owner):
     if title in after or "Ungeprüfte Anleitung" not in after:
         raise RuntimeError("Deleting an article changed the wrong entry or lost the selected queue")
     owner.fetch(article, expected_status=404)
+
+
+def type_administration(owner):
+    panel = acp_panel(owner, "Artikeltypen verwalten")
+    guest = Browser(owner.base)
+    article = "app.php/knowledge/article/201"
+    editor = article + "/edit"
+    category = guest.fetch("app.php/knowledge/category/8")
+    if "Pflanzen 🌿" not in category or "Gärten &amp;amp; Parks 🌼" not in category:
+        raise RuntimeError("A converted category lost a four-byte character or literal entity")
+
+    def action(page, suffix):
+        matches = [unescape(u) for u in re.findall(r'<a[^>]* href="([^"]+)"', page) if unescape(u).endswith(suffix)]
+        if len(matches) != 1:
+            raise RuntimeError("Expected one article type operation for " + suffix)
+        return urljoin(panel, matches[0])
+
+    listing = owner.fetch(panel)
+    if "Sterne 🌠 &amp;amp; Zeichen" not in listing:
+        raise RuntimeError("The article types lost their converted label")
+    create = action(listing, "&action=create")
+    original = owner.fetch(create)
+    title = "Ä" * 250 + " 📘 &"
+    listing = submit_form(owner, create, original, "kb-type", {"title": title})
+    found = re.search(r'<a href="([^"]+type_id=(\d+)&amp;action=edit)">' + re.escape(escape(title)) + '</a>', listing)
+    if not found:
+        raise RuntimeError("An article type near the 255-character limit was truncated")
+    edit, created = urljoin(panel, unescape(found[1])), found[2]
+    if "inzwischen geändert" not in submit_form(owner, create, original, "kb-type", {"title": title}):
+        raise RuntimeError("Retrying the same create form added a duplicate article type")
+    name = "Märchen 🐉 &amp; „Bücher“"
+    rename = owner.fetch(edit)
+    if FormFields(rename, "kb-type").values["title"] != title:
+        raise RuntimeError("An article type was escaped twice in its edit form")
+    listing = submit_form(owner, edit, rename, "kb-type", {"title": name})
+    remove = action(listing, "type_id=2&action=delete")
+    previous = owner.fetch(editor)
+    review = owner.fetch(remove)
+    if "anderen Artikeltyp" not in submit_form(owner, remove, review, "kb-type", {"destination": ""}):
+        raise RuntimeError("An empty destination silently detached articles from their type")
+    listing = submit_form(owner, remove, review, "kb-type", {"destination": created})
+    if escape(name) not in guest.fetch(article) or "Wissensprobe" not in guest.fetch(article):
+        raise RuntimeError("Reassigning a type lost the article or its new label")
+    guest.fetch("app.php/knowledge/article/202", expected_status=404)
+    if "inzwischen geändert" not in submit_form(owner, editor, previous, "kb-editor", {}, 422):
+        raise RuntimeError("An old article editor could overwrite its new type")
+    remove = action(listing, "type_id=" + created + "&action=delete")
+    submit_form(owner, remove, owner.fetch(remove), "kb-type", {"destination": "0"})
+    edit_article = owner.fetch(editor)
+    if (FormFields(edit_article, "kb-editor").values["type"] != "0" or escape(name) in guest.fetch(article)
+            or "Wissensprobe" not in submit_form(owner, editor, edit_article, "kb-editor", {})):
+        raise RuntimeError("The article or its unassigned type was lost on editing")

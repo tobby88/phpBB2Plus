@@ -1,0 +1,27 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_KB_TYPES}</h1>
+{% if KB_FORM %}
+<form id="kb-type" method="post" action="{U_SAVE}">
+	<fieldset><legend>{{ KB_LABEL|e }}</legend>
+		{% if KB_ERROR %}<div class="errorbox"><p>{{ KB_ERROR|e }}</p></div>{% endif %}
+		{% if KB_DELETE %}
+		<p><strong>{{ KB_TYPE_NAME|e }}</strong> &middot; {{ KB_AFFECTED|e }}</p>
+		<dl><dt><label for="kb-destination">{L_ACP_PLUS_KB_TYPE_DEST}</label></dt><dd>
+			<select id="kb-destination" name="destination" required><option value="">{L_SELECT_OPTION}</option><option value="0">{L_ACP_PLUS_KB_TYPE_NONE}</option>
+			{% for choice in loops.kb_choices %}<option value="{{ choice.ID }}">{{ choice.TITLE|e }}</option>{% endfor %}</select>
+		</dd></dl>
+		{% else %}
+		<dl><dt><label for="kb-name">{L_ACP_PLUS_KB_TYPE_NAME}</label></dt><dd><input id="kb-name" name="title" type="text" class="inputbox" maxlength="255" value="{{ KB_TYPE_NAME|e('html_attr') }}" required></dd></dl>
+		{% endif %}
+		<input type="hidden" name="state" value="{KB_STATE}">{S_FORM_TOKEN}
+	</fieldset>
+	<fieldset class="submit-buttons"><button class="button1" type="submit">{{ KB_LABEL|e }}</button> <a href="{U_BACK}">{L_CANCEL}</a></fieldset>
+</form>
+{% else %}
+<p><a class="button2" href="{U_CREATE}">{L_ACP_PLUS_KB_TYPE_CREATE}</a></p>
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_KB_TYPE_NAME}</th><th>{L_ACP_PLUS_KB_ARTICLES_TOTAL}</th><th>{L_ACTION}</th></tr></thead><tbody>
+{% for type in loops.kb_types %}<tr><td><a href="{{ type.U_EDIT }}">{{ type.TITLE|e }}</a></td><td>{{ type.TOTAL }}</td><td><a href="{{ type.U_DELETE }}">{L_DELETE}</a></td></tr>
+{% else %}<tr><td colspan="3">{L_ACP_PLUS_KB_TYPES_EMPTY}</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -47,12 +47,11 @@ class editor
 		return $a;
 	}
 
-	public function types()
+	public static function form_revision($article)
 	{
-		$result = $this->db->sql_query('SELECT type_id,title FROM ' . $this->prefix . 'types ORDER BY title,type_id');
-		$rows = $this->db->sql_fetchrowset($result);
-		$this->db->sql_freeresult($result);
-		return $rows;
+		// Moving an article between categories or types invalidates an open editor,
+		// while the content revision used by the notification queue stays current.
+		return $article ? (int) $article['revision'] . ':' . (int) $article['cat_id'] . ':' . (int) $article['type_id'] : '';
 	}
 
 	public function prepare($form)
@@ -116,8 +115,9 @@ class editor
 				if (!hash_equals($saved['payload'], $digest)) { throw new \DomainException('FORM_INVALID'); }
 				return (int) $saved['article_id'];
 			}
-			if ($a && (int) $a['revision'] !== $revision) { throw new \DomainException('PLUS_KB_CONFLICT'); }
-			if (!$form['category'] || !$this->articles->trail($form['category']) || !in_array($form['type'], array_map('intval', array_column($this->types(), 'type_id')), true))
+			if (self::form_revision($a) !== $revision) { throw new \DomainException('PLUS_KB_CONFLICT'); }
+			$keep_untyped = $a && (int) $a['type_id'] === 0 && $form['type'] === 0;
+			if (!$form['category'] || !$this->articles->trail($form['category']) || (!$keep_untyped && !isset($this->articles->types()[$form['type']])))
 			{ throw new \DomainException('PLUS_KB_INVALID_CATEGORY'); }
 			$forum = array('m_edit','m_delete','m_lock','m_approve','m_move','m_split','m_merge');
 			$can_publish = $this->articles->moderator() || (!$a && !empty($this->user->data['is_registered']) &&
@@ -125,7 +125,7 @@ class editor
 			$approval = $can_publish || !(int) $this->articles->setting($a ? 'approve_edit' : 'approve_new', 1) ? 1 : ($a ? 2 : 0);
 			$row = array('cat_id' => $form['category'], 'type_id' => $form['type'], 'title' => $form['title'], 'description' => $form['description'],
 				'created_at' => time(), 'editor_text' => $form['body'], 'search_text' => preg_replace('/\[\/?[a-z][a-z0-9]*(?:[=:\s][^\]\r\n]*)?\]/i', ' ', $form['body']),
-				'approval' => $approval, 'revision' => $a ? $revision + 1 : 1);
+				'approval' => $approval, 'revision' => $a ? (int) $a['revision'] + 1 : 1);
 			if ($a) { $this->db->sql_query("UPDATE $table SET " . $this->db->sql_build_array('UPDATE', $row) . ' WHERE article_id=' . (int) $id); }
 			else
 			{
@@ -159,7 +159,7 @@ class editor
 			// Rating writes take the same row lock before inserting their receipt.
 			$this->db->sql_query('UPDATE ' . $this->prefix . 'articles SET article_id=article_id' . $where);
 			$a = $this->context($mode, $id);
-			if ((int) $a['revision'] !== $expected) { throw new \DomainException('PLUS_KB_CONFLICT'); }
+			if (self::form_revision($a) !== $expected) { throw new \DomainException('PLUS_KB_CONFLICT'); }
 			if ($mode === 'delete')
 			{
 				$this->publication->remove($a);
