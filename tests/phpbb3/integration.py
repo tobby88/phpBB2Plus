@@ -223,6 +223,22 @@ def download_category_checks(admin, target, web):
     download_categories.administration(admin, verify)
 
 
+def media_administration(base, member, ordinary, pending, target, web):
+    # Private album admission changes membership. Run it after download
+    # submissions and keep cache invalidation after all gallery writes.
+    guest = Browser(base)
+    with ThreadPoolExecutor(max_workers=1) as worker:
+        categories = worker.submit(download_category_checks, member.separate_client(), target, web)
+        gallery_management_bookmarks.browse(member, ordinary, pending, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_management_bookmarks.php", target, phase, cwd=web, capture=True))
+        gallery_personal.browse(base, member, ordinary, pending,
+                                lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
+        gallery_cache.browse(member, pending, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_cache.php", target, phase, cwd=web, capture=True),
+            lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
+        categories.result()
+
+
 def download_upgrades(target, web):
     fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php", "download_mail.php")]
     # Start at the common parent of these dependent migrations and run the normal updater once.
@@ -256,18 +272,8 @@ def module_administration(base, member, ordinary, pending, fixture, target, web,
         gallery_run.result()
         if include_downloads:
             download_run.result()
-            category_run = workers.submit(download_category_checks, member.separate_client(), target, web)
-        # All membership-sensitive KB and download cases are now finished. The
-        # download category tree is independent of these private album operations.
-        gallery_management_bookmarks.browse(member, ordinary, pending, Browser(base), lambda phase: php(
-            ROOT / "tests/phpbb3/gallery_management_bookmarks.php", target, phase, cwd=web, capture=True))
-        gallery_personal.browse(base, member, ordinary, pending,
-                                lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
-        gallery_cache.browse(member, pending, Browser(base), lambda phase: php(
-            ROOT / "tests/phpbb3/gallery_cache.php", target, phase, cwd=web, capture=True),
-            lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
-        if include_downloads:
-            category_run.result()
+    if include_downloads:
+        media_administration(base, member, ordinary, pending, target, web)
     print(f"Module administration and gallery workflows: {monotonic()-started:.1f}s", flush=True)
 
 
@@ -275,9 +281,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--offline", action="store_true")
-    parser.add_argument("--suite", choices=("all", "forum", "downloads"), default="all",
+    parser.add_argument("--suite", choices=("all", "forum", "media", "downloads"), default="all",
                         help="Run the full converted board or one of the independent CI suites")
     args = parser.parse_args()
+    media_only = args.suite in ("media", "downloads")
     if os.environ.get("PLUS_TEST_DATABASE") != "1":
         parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
     start = monotonic()
@@ -323,7 +330,7 @@ def main():
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
                 login(base, "ModernMember", "incorrect", expect_success=False)
                 php(fixture, "hashes-unchanged", target)
-                if args.suite == "downloads":
+                if media_only:
                     member, _ = delegation.authenticate(base, "ModernMember")
                 else:
                     member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
@@ -332,15 +339,17 @@ def main():
                 php(fixture, "signed-in", target)
                 def file_roles(phase):
                     php(ROOT / "tests/phpbb3/delegation_files.php", target, phase, cwd=web)
-                if args.suite == "downloads":
+                if media_only:
                     delegation.module_roles(base, file_roles)
                     download_checks(base, member, ordinary, pending, fixture, target, web)
-                    download_category_checks(member, target, web)
+                    php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
+                    media_administration(base, member, ordinary, pending, target, web)
                     php(fixture, "download-voter", target)
                     php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                     php(fixture, "download-departed", target)
+                    gallery.departed(base, ordinary)
                     download_upgrades(target, web)
-                    print(f"Verified {count} upstream files, conversion and download workflows in {monotonic()-start:.1f}s")
+                    print(f"Verified {count} upstream files, conversion, downloads and album management in {monotonic()-start:.1f}s")
                     return
                 board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
                 print_topics.browse(base, member, ordinary, lambda phase: php(
@@ -471,7 +480,8 @@ def main():
                 if args.suite == "all":
                     php(fixture, "download-departed", target)
                 former_names(base, ordinary, removed=True, founder=member)
-                gallery.departed(base, ordinary)
+                if args.suite == "all":
+                    gallery.departed(base, ordinary)
                 post_icons.browse(member, ordinary, json.loads(php(fixture, "post-icons", target, capture=True)))
                 php(ROOT / "tests/phpbb3/mysql_search.php", target, cwd=web)
                 author_results(base, ordinary, removed=True, founder=member)
