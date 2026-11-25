@@ -42,7 +42,13 @@ class navigation implements EventSubscriberInterface
 	{
 		$uri = $this->request->server('REQUEST_URI', '');
 		$method = $this->request->server('REQUEST_METHOD', '');
-		if (in_array($method, array('HEAD', 'GET'), true) && $uri !== '' && substr($uri, -1) === '/' && strpos($uri, '?') === false)
+		if (!in_array($method, array('HEAD', 'GET'), true)) { return; }
+		$category = $this->request->variable('c', 0);
+		if ($category > 0)
+		{
+			redirect($this->helper->route('phpbb2plus_community_forum_link', array('alias'=>'forumc' . $category), false));
+		}
+		if ($uri !== '' && substr($uri, -1) === '/' && strpos($uri, '?') === false)
 		{
 			redirect($this->helper->route('phpbb2plus_community_portal', array(), false));
 		}

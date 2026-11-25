@@ -136,6 +136,7 @@ if (!$get_info)
 		if ($section['target'] === USERS_TABLE)
 		{
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
+			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			foreach (\phpbb2plus\calendar\service\settings::MEMBER as $name=>$default)
 			{
 				$section[] = array('plus_cal_' . $name, 'users.user_calendar_' . $name, 'intval');

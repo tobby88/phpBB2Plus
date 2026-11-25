@@ -117,6 +117,9 @@ elseif (in_array($argv[1], array('converted', 'hashes-unchanged', 'signed-in'), 
 	}
 	check_fixture((int) $users[0]['user_id'] !== 1 && $users[0]['user_lang'] === 'en' && $users[1]['user_lang'] === 'de', 'User ID or locale not converted');
 	if ($argv[1] !== 'converted') { return; }
+	$historic_id = (int) $users[0]['user_id'];
+	$origin = $db->query("SELECT user_id,plus_legacy_id FROM p3_users WHERE user_id IN (1,2,$historic_id) ORDER BY user_id")->fetch_all(MYSQLI_ASSOC);
+	check_fixture(array_map('intval', array_column($origin, 'plus_legacy_id')) === array(0,2,1), 'Wrong original profile IDs after conversion');
 	verify_native_content($db, (int) $users[0]['user_id']);
 	verify_custom_profiles($db);
 	verify_gallery($db, (int) $users[0]['user_id']);

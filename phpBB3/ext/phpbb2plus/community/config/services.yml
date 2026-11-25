@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.community.legacy:
+        class: phpbb2plus\community\controller\legacy
+        arguments: ['@dbal.conn', '@auth', '@user', '%core.root_path%', '%core.php_ext%']
     profilefields.type.plus_multi:
         class: phpbb2plus\community\profile\multiple
         arguments: ['@profilefields.lang_helper', '@request', '@template', '@user']

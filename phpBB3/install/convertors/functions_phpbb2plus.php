@@ -54,6 +54,12 @@ function plus_convert_birthday($days)
 	return sprintf('%2d-%2d-%4d', $date->format('j'), $date->format('n'), $date->format('Y'));
 }
 
+function plus_legacy_account_id($source_id)
+{
+	// The upstream converter maps a real source user 1 away from native Anonymous.
+	return max(0, (int) $source_id);
+}
+
 function plus_registration_ip($ip)
 {
 	$ip = trim((string) $ip);

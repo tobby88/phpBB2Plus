@@ -18,6 +18,7 @@ from build_phpbb3 import assemble, PACKAGES
 import arcade
 import attachments
 import custom_profiles
+import legacy_links
 import downloads
 import profile_media
 import topic_calendar
@@ -152,7 +153,9 @@ def main():
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                 profiles(base, ordinary, member)
                 custom_profiles.exercise(base, pending)
-                profile_media.browse(ordinary, member, json.loads(php(fixture, "profile-media", target, capture=True)))
+                media = json.loads(php(fixture, "profile-media", target, capture=True))
+                profile_media.browse(ordinary, member, media)
+                legacy_links.browse(base, member, media["member"])
                 topic_calendar.browse(base, member, ordinary, pending)
                 custom_profiles.administration(member)
                 for action in ("disable", "enable"):

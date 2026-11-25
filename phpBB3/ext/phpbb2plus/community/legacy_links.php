@@ -16,8 +16,24 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$extra = array();
 	$anchor = '';
 	$path = '';
+	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'profile':
+			$mode = $query['mode'] ?? '';
+			if (in_array($mode, array('viewprofile','email'), true))
+			{
+				if ($id = $positive('u')) { $path = 'legacy/member/' . $id . '/' . $mode; }
+			}
+			elseif (in_array($mode, array('editprofile','signature','register','sendpassword','activate'), true))
+			{
+				$base = './';
+				$path = 'ucp.php';
+				$extra = in_array($mode, array('editprofile','signature'), true)
+					? array('i'=>'ucp_profile', 'mode'=>$mode === 'editprofile' ? 'profile_info' : 'signature')
+					: array('mode'=>$mode === 'activate' ? 'resend_act' : $mode);
+			}
+			break;
 		case 'portal': $path = 'portal'; break;
 		case 'calendar': case 'calendar_scheduler':
 			$path = 'calendar';
@@ -97,7 +113,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 	}
 	if ($path === '') { http_response_code(404); return; }
-	if ($entry !== 'calendar' && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','profile'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
-	header('Location: ./app.php/' . $path . $search . $anchor, true, 302);
+	header('Location: ' . $base . $path . $search . $anchor, true, 302);
 }

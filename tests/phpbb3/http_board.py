@@ -109,7 +109,7 @@ def server(web, root):
             options.extend(["-d", "zend_extension=" + str(dll)])
     with log_file.open("wb") as log:
         proc = subprocess.Popen([binary, *options, "-d", "disable_functions=mail", "-d", "display_errors=0",
-                                 "-S", f"127.0.0.1:{port}", "-t", str(web)],
+                                 "-S", f"127.0.0.1:{port}", "-t", str(web), str(Path(__file__).with_name("rewrite_router.php").resolve())],
                                 cwd=web, stdout=log, stderr=log,
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         try:
