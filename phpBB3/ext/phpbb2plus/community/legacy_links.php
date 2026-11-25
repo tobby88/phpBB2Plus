@@ -3,9 +3,11 @@
 // Only send read requests to local destinations. phpBB checks access at the destination.
 function phpbb2plus_redirect_legacy($entry, array $query)
 {
-	if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', array('GET', 'HEAD'), true))
+	$method = $_SERVER['REQUEST_METHOD'] ?? '';
+	$search_post = $entry === 'album_search' && $method === 'POST';
+	if (!$search_post && !in_array($method, array('GET', 'HEAD'), true))
 	{
-		header('Allow: GET, HEAD');
+		header($entry === 'album_search' ? 'Allow: GET, HEAD, POST' : 'Allow: GET, HEAD');
 		http_response_code(405);
 		return;
 	}
@@ -157,6 +159,15 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'album_cat': case 'album_upload':
 			if ($id = $positive('cat_id')) { $path = 'album/category/' . $id . ($entry === 'album_upload' ? '/upload' : ''); }
 			break;
+		case 'album_search':
+			$path = 'album/search';
+			foreach (array('mode','search') as $key)
+			{
+				if (isset($query[$key]) && is_string($query[$key])) { $extra[$key] = $query[$key]; }
+			}
+			if (isset($query['sid']) && is_string($query['sid']) && preg_match('/^[a-f0-9]{32}$/D', $query['sid'])) { $extra['sid'] = $query['sid']; }
+			header('Cache-Control: private, no-store');
+			break;
 		case 'album_showpage': case 'album_pic': case 'album_picm': case 'album_thumbnail': case 'album_edit': case 'album_delete':
 			$suffix = array('album_showpage' => '', 'album_pic' => '/full', 'album_picm' => '/medium', 'album_thumbnail' => '/small',
 				'album_edit' => '/manage/edit', 'album_delete' => '/manage/delete');
@@ -246,5 +257,6 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	}
 	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','staff','privmsg'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
-	header('Location: ' . $base . $path . $search . $anchor, true, 302);
+	// The read-only album form also accepted POST. Keep its search text in the request body.
+	header('Location: ' . $base . $path . $search . $anchor, true, $search_post ? 307 : 302);
 }
