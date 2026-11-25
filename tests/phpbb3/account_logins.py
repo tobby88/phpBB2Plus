@@ -45,6 +45,27 @@ def change_reminded_password(base, actor):
         raise RuntimeError("The native password form did not restore the fixture's original sign-in")
 
 
+def reassign_tracker(admin, delegate, panel, form):
+    owner = admin_url(admin)
+    account = owner + "&i=-phpbb2plus-community-acp-delegations_module&mode=manage&account=59"
+    assigned = FormFields(admin.fetch(account), "jr-manage").values.get("grant[]")
+    if assigned != ["a_plus_ct_settings"]:
+        raise RuntimeError("The converted tracker administrator did not receive exactly its original module")
+    opened = delegate.fetch(panel)
+    submit_form(admin, account, admin.fetch(account), "jr-manage", {"save": "1", "grant[]": None})
+    try:
+        refused = submit_form(delegate, panel, opened, form, {"config[plus_login_limit]": "9"}, status=403)
+        if "You are not authorised to administer this board." not in refused:
+            raise RuntimeError("The native ACP did not end access after the last module was removed")
+        visible = admin.fetch(owner + "&i=-phpbb2plus-community-acp-tracker_settings_module&mode=manage")
+        if FormFields(visible, form).values.get("config[plus_login_limit]") != "3":
+            raise RuntimeError("A previously opened form changed the policy after the assignment ended")
+    finally:
+        submit_form(admin, account, admin.fetch(account), "jr-manage", {"save": "1", "grant[]": assigned})
+    if form not in Page(delegate.fetch(panel)).forms:
+        raise RuntimeError("The restored assignment did not reopen the tracker settings")
+
+
 def browse(base, member, admin, fixture):
     guest_page = Browser(base).fetch(BOOKMARK)
     reminder = 'id="plus-password-reminder"'
@@ -123,6 +144,7 @@ def browse(base, member, admin, fixture):
             raise RuntimeError("The history-only policy did not preserve the log and disable network comparison")
     finally:
         settings(1, 1)
+    reassign_tracker(admin, delegate, delegated_panel, form)
     change_reminded_password(base, delegate)
     if reminder not in member.fetch("index.php"):
         raise RuntimeError("Another member's password change dismissed the original reminder")
