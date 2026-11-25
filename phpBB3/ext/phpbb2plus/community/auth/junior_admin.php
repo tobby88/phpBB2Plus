@@ -33,27 +33,52 @@ class junior_admin
 		if (empty($userdata['plus_jr_delegate']) || empty($userdata['is_registered']) || !isset($userdata['user_perm_from']) || (int) $userdata['user_perm_from'] !== 0 ||
 			(int) ($userdata['user_type'] ?? USER_IGNORE) !== USER_NORMAL) { return array(); }
 		$id = (int) $userdata['user_id'];
-		$result = $this->db->sql_query("SELECT j.rights_json, e.ext_active FROM {$this->table} j JOIN " . EXT_TABLE .
-			" c ON c.ext_name='phpbb2plus/community' AND c.ext_active=1 LEFT JOIN " . EXT_TABLE .
-			" e ON e.ext_name='phpbb2plus/knowledgebase' WHERE j.user_id=$id");
+		$result = $this->db->sql_query("SELECT rights_json FROM {$this->table} WHERE user_id=$id");
 		$row = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
 		if (!$row) { return array(); }
 		$rights = json_decode($row['rights_json'], true);
 		if (!is_array($rights)) { return array(); }
-		$rights = array_intersect(array_column(self::MODULES, 2), $rights);
-		if (!$rights) { return array(); }
-		// Native unset and NEVER have the same cached bit. Honour explicit denials from the
-		// account, its roles and its active groups before exposing even a single module.
-		$existing = $auth->acl_raw_data($id, array_merge(array('a_'), $rights), 0);
-		$existing = $existing[$id][0] ?? array();
-		if ((int) ($existing['a_'] ?? ACL_NO) === ACL_NEVER) { return array(); }
 		$allowed = array();
-		foreach ($rights as $right)
+		foreach ($this->states($id, $auth, $rights) as $right => $state)
 		{
-			if (isset($auth->acl_options['global'][$right]) && self::supported_option($right) && (int) ($existing[$right] ?? ACL_NO) !== ACL_NEVER &&
-				($row['ext_active'] || strpos($right, 'a_plus_kb_') !== 0)) { $allowed[$right] = true; }
+			if ($state === 'available' || $state === 'native') { $allowed[$right] = true; }
 		}
 		return $allowed;
+	}
+
+	/** The same native never/extension checks drive both the ACP editor and the effective login. */
+	public function states($id, $auth, array $requested)
+	{
+		$modules = array();
+		$needed = array('phpbb2plus/community');
+		foreach (self::MODULES as $definition)
+		{
+			$right = $definition[2];
+			if (!in_array($right, $requested, true)) { continue; }
+			$parts = explode('\\', ltrim($definition[3], '\\'));
+			$extension = isset($parts[1]) ? $parts[0] . '/' . $parts[1] : '';
+			$modules[$right] = $extension;
+			if ($extension !== '') { $needed[] = $extension; }
+		}
+		if (!$modules) { return array(); }
+		$result = $this->db->sql_query('SELECT ext_name FROM ' . EXT_TABLE . ' WHERE ext_active=1 AND ' .
+			$this->db->sql_in_set('ext_name', array_values(array_unique($needed))));
+		$enabled = array_flip(array_column($this->db->sql_fetchrowset($result), 'ext_name'));
+		$this->db->sql_freeresult($result);
+		// Native unset and NEVER have the same cached bit. Honour explicit denials from the
+		// account, its roles and its active groups before exposing even a single module.
+		$existing = $auth->acl_raw_data((int) $id, array_merge(array('a_'), array_keys($modules)), 0);
+		$existing = $existing[$id][0] ?? array();
+		$states = array();
+		foreach ($modules as $right => $extension)
+		{
+			$setting = (int) ($existing[$right] ?? ACL_NO);
+			if (!isset($enabled['phpbb2plus/community'], $auth->acl_options['global'][$right]) ||
+				($extension !== '' && !isset($enabled[$extension])) || !self::supported_option($right)) { $states[$right] = 'unavailable'; }
+			elseif ($setting === ACL_NEVER || (int) ($existing['a_'] ?? ACL_NO) === ACL_NEVER) { $states[$right] = 'never'; }
+			else { $states[$right] = $setting === ACL_YES ? 'native' : 'available'; }
+		}
+		return $states;
 	}
 }

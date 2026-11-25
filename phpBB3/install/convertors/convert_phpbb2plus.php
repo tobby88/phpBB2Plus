@@ -49,6 +49,8 @@ if (!$get_info)
 	$convertor['schema'][0]['execute_first'] = ($convertor['schema'][0]['execute_first'] ?? '') . ' plus_import_post_icons();';
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_media_issues');
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_action_import');
+	// A fresh conversion replaces native accounts; old locally managed IDs must not follow them.
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_jr_delegations');
 	// Category listing grants depend on the final visibility of their descendant forums.
 	$convertor['execute_last'][] = 'plus_forum_permissions();';
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';

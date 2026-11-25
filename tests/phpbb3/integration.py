@@ -33,6 +33,7 @@ import announcement_duration
 import legacy_links
 import downloads
 import delegation
+import delegation_administration
 import historical_actions
 import profile_media
 import topic_calendar
@@ -231,7 +232,11 @@ def main():
                 colours.administration(member, media["member"])
                 portal.administration(base, member)
                 custom_profiles.administration(member)
+                def delegation_fixture(operation):
+                    php(ROOT / "tests/phpbb3/delegation_management.php", target, operation, cwd=web)
+                delegation_fixture("backfill")
                 junior, junior_entry = delegation.browse(base)
+                delegation_administration.manage(member, junior, junior_entry, delegation_fixture)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)
                     if action == "disable":

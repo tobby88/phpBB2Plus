@@ -5,10 +5,13 @@ services:
         arguments: ['@config', '@config_text', '@phpbb2plus.community.junior_admin']
     phpbb2plus.community.junior_admin:
         class: phpbb2plus\community\auth\junior_admin
-        arguments: ['@dbal.conn', '%core.table_prefix%plus_jr_records']
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_jr_delegations']
+    phpbb2plus.community.delegations:
+        class: phpbb2plus\community\auth\delegations
+        arguments: ['@dbal.conn', '%core.table_prefix%', '@phpbb2plus.community.junior_admin', '@log']
     phpbb2plus.community.junior_admin_events:
         class: phpbb2plus\community\event\junior_admin
-        arguments: ['@auth', '@user', '@template', '%core.root_path%%core.adm_relative_path%index.%core.php_ext%', '@dbal.conn', '%core.table_prefix%plus_jr_records']
+        arguments: ['@auth', '@user', '@template', '%core.root_path%%core.adm_relative_path%index.%core.php_ext%', '@dbal.conn', '%core.table_prefix%']
         tags:
             - { name: event.listener }
     phpbb2plus.community.delegation_report:

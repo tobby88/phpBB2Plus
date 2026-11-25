@@ -1,0 +1,25 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_JR_MANAGE' => 'Delegated ACP modules', 'PLUS_JR_LIST' => 'Account list', 'PLUS_JR_FIRST' => 'First assigned',
+	'PLUS_JR_UPDATED' => 'Last updated', 'PLUS_JR_MODULES' => 'Assigned modules', 'PLUS_JR_NOTE_LABEL' => 'Administrator’s note',
+	'PLUS_JR_VISIBLE' => 'Show this note on the member’s own delegated ACP overview',
+	'PLUS_JR_PRIVATE_HELP' => 'An unchecked note is visible only to administrators who manage these assignments.', 'PLUS_JR_SOURCE_MODULE' => 'Source module',
+	'PLUS_JR_SOURCE' => 'Original conversion record', 'PLUS_JR_SOURCE_ID' => 'Original module identifier', 'PLUS_JR_DECISION' => 'Conversion decision',
+	'PLUS_JR_WAS_VISIBLE' => 'Visible to this member on the source board', 'PLUS_JR_WAS_PRIVATE' => 'Private to administrators on the source board',
+	'PLUS_JR_SAVED' => 'The delegation was saved.', 'PLUS_JR_UNCHANGED' => 'There were no changes.',
+	'PLUS_JR_EMPTY' => 'No accounts have recorded delegations.', 'PLUS_JR_NO_CHANGE' => 'You cannot change this account’s delegation.',
+	'PLUS_JR_FOUNDER' => 'Founders have native administrative access.', 'PLUS_JR_INACTIVE' => 'This account is inactive. Existing assignments can be revoked.',
+	'PLUS_JR_STALE' => 'The delegation changed after you opened it. Review the current settings before saving.',
+	'PLUS_JR_LONG_NOTE' => 'The note exceeds 60,000 UTF-8 bytes.', 'PLUS_JR_INVALID_GRANT' => 'One of the selected modules cannot be granted to this account.',
+	'PLUS_JR_STATE_NATIVE' => 'Already allowed by native permissions', 'PLUS_JR_STATE_NEVER' => 'Blocked by a native Never',
+	'PLUS_JR_STATE_UNAVAILABLE' => 'The matching module permission is unavailable',
+	'PLUS_JR_DECISION_DELEGATED' => 'Imported', 'PLUS_JR_DECISION_MODIFIED_SOURCE_MODULE' => 'Modified source module',
+	'PLUS_JR_DECISION_MANUAL_REVIEW' => 'Requires manual review', 'PLUS_JR_DECISION_UNRESOLVED_MODULE' => 'Unknown source module',
+	'PLUS_JR_DECISION_AMBIGUOUS_MODULE' => 'Ambiguous source module', 'PLUS_JR_DECISION_INVALID_HASH' => 'Invalid module identifier',
+	'PLUS_JR_DECISION_OVERSIZED_LIST' => 'Oversized source list', 'PLUS_JR_DECISION_SOURCE_REGISTRY_UNAVAILABLE' => 'Source registry unavailable',
+	'PLUS_JR_DECISION_TARGET_MODULE_TOO_BROAD' => 'Target module grants broader access', 'PLUS_JR_DECISION_TARGET_OPTION_UNAVAILABLE' => 'Target permission unavailable',
+	'PLUS_JR_DECISION_INACTIVE_ACCOUNT' => 'Inactive source account', 'PLUS_JR_DECISION_MISSING_ACCOUNT' => 'Missing source account',
+	'PLUS_JR_DECISION_UNKNOWN_ACCOUNT_LEVEL' => 'Unknown account level', 'PLUS_JR_DECISION_FULL_ADMINISTRATOR' => 'Full source administrator',
+	'LOG_PLUS_JR_UPDATED' => '<strong>Changed delegated ACP modules or note</strong><br>» %s',
+));

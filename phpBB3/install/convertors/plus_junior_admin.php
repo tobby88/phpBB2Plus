@@ -174,17 +174,5 @@ function plus_jr_schema($prefix, $truncate)
 function plus_jr_finish()
 {
 	global $db, $table_prefix;
-	$table = $table_prefix . 'plus_jr_records';
-	// The ordinary ACP permission family also implies public staff privileges in phpBB.
-	// Keep the imported rights confined to their modules. The custom ACL service reads
-	// them at request time and never writes them into native permission bitstrings.
-	$eligible = "SELECT j.user_id FROM $table j WHERE j.user_id>" . ANONYMOUS . " AND j.account_state='active' AND j.rights_json<>'[]'";
-	$db->sql_transaction('begin');
-	try
-	{
-		$db->sql_query('UPDATE ' . USERS_TABLE . " SET plus_jr_delegate=0 WHERE plus_jr_delegate=1 AND (user_type<>" . USER_NORMAL . " OR user_id NOT IN ($eligible))");
-		$db->sql_query('UPDATE ' . USERS_TABLE . ' SET plus_jr_delegate=1 WHERE plus_jr_delegate=0 AND user_type=' . USER_NORMAL . " AND user_id IN ($eligible)");
-		$db->sql_transaction('commit');
-	}
-	catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
+	\phpbb2plus\community\auth\delegations::import($db, $table_prefix);
 }

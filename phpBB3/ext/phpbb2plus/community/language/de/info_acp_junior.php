@@ -1,0 +1,25 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_JR_MANAGE' => 'Delegierte ACP-Module', 'PLUS_JR_LIST' => 'Kontenübersicht', 'PLUS_JR_FIRST' => 'Erstmals zugewiesen',
+	'PLUS_JR_UPDATED' => 'Zuletzt geändert', 'PLUS_JR_MODULES' => 'Zugewiesene Module', 'PLUS_JR_NOTE_LABEL' => 'Vermerk der Administration',
+	'PLUS_JR_VISIBLE' => 'Diesem Mitglied den Vermerk in seiner eigenen ACP-Übersicht anzeigen',
+	'PLUS_JR_PRIVATE_HELP' => 'Ohne Häkchen ist der Vermerk nur für die zuständigen Rechteverwalter sichtbar.', 'PLUS_JR_SOURCE_MODULE' => 'Quellmodul',
+	'PLUS_JR_SOURCE' => 'Ursprünglicher Konvertierungsbericht', 'PLUS_JR_SOURCE_ID' => 'Ursprüngliche Modulkennung', 'PLUS_JR_DECISION' => 'Ergebnis der Konvertierung',
+	'PLUS_JR_WAS_VISIBLE' => 'Im alten Forum für dieses Mitglied sichtbar', 'PLUS_JR_WAS_PRIVATE' => 'Im alten Forum nur für die Administration sichtbar',
+	'PLUS_JR_SAVED' => 'Die Delegation wurde gespeichert.', 'PLUS_JR_UNCHANGED' => 'Es gab keine Änderungen.',
+	'PLUS_JR_EMPTY' => 'Für kein Konto sind Delegationen erfasst.', 'PLUS_JR_NO_CHANGE' => 'Die Delegation dieses Kontos kannst du nicht ändern.',
+	'PLUS_JR_FOUNDER' => 'Gründer haben native Administratorrechte.', 'PLUS_JR_INACTIVE' => 'Dieses Konto ist inaktiv. Bestehende Zuweisungen können entzogen werden.',
+	'PLUS_JR_STALE' => 'Die Delegation wurde zwischenzeitlich geändert. Prüfe die aktuellen Einstellungen vor dem Speichern.',
+	'PLUS_JR_LONG_NOTE' => 'Der Vermerk überschreitet 60.000 UTF-8-Bytes.', 'PLUS_JR_INVALID_GRANT' => 'Eines der ausgewählten Module lässt sich diesem Konto nicht zuweisen.',
+	'PLUS_JR_STATE_NATIVE' => 'Bereits durch native Rechte erlaubt', 'PLUS_JR_STATE_NEVER' => 'Durch ein natives „Nie“ gesperrt',
+	'PLUS_JR_STATE_UNAVAILABLE' => 'Das zugehörige Modulrecht ist nicht verfügbar',
+	'PLUS_JR_DECISION_DELEGATED' => 'Übernommen', 'PLUS_JR_DECISION_MODIFIED_SOURCE_MODULE' => 'Angepasstes Quellmodul',
+	'PLUS_JR_DECISION_MANUAL_REVIEW' => 'Manuelle Prüfung erforderlich', 'PLUS_JR_DECISION_UNRESOLVED_MODULE' => 'Unbekanntes Quellmodul',
+	'PLUS_JR_DECISION_AMBIGUOUS_MODULE' => 'Mehrdeutiges Quellmodul', 'PLUS_JR_DECISION_INVALID_HASH' => 'Ungültige Modulkennung',
+	'PLUS_JR_DECISION_OVERSIZED_LIST' => 'Übergroße Quellliste', 'PLUS_JR_DECISION_SOURCE_REGISTRY_UNAVAILABLE' => 'Quellregistrierung nicht verfügbar',
+	'PLUS_JR_DECISION_TARGET_MODULE_TOO_BROAD' => 'Zielmodul umfasst weitergehende Rechte', 'PLUS_JR_DECISION_TARGET_OPTION_UNAVAILABLE' => 'Zielrecht fehlt',
+	'PLUS_JR_DECISION_INACTIVE_ACCOUNT' => 'Inaktives Quellkonto', 'PLUS_JR_DECISION_MISSING_ACCOUNT' => 'Fehlendes Quellkonto',
+	'PLUS_JR_DECISION_UNKNOWN_ACCOUNT_LEVEL' => 'Unbekannte Kontostufe', 'PLUS_JR_DECISION_FULL_ADMINISTRATOR' => 'Vollständige Administration im alten Forum',
+	'LOG_PLUS_JR_UPDATED' => '<strong>Delegierte ACP-Module oder Vermerk geändert</strong><br>» %s',
+));

@@ -1,0 +1,37 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_JR_MANAGE}</h1>
+{% if JR_ERROR %}<div class="errorbox"><p>{{ JR_ERROR|e }}</p></div>{% endif %}
+{% if JR_SAVED %}<div class="successbox"><p>{{ JR_SAVED|e }}</p></div>{% endif %}
+{% if S_JR_ACCOUNT %}
+<p><a href="{U_JR_LIST}">&laquo; {L_PLUS_JR_LIST}</a></p>
+<h2>{{ JR_USER|e }}</h2>
+{% if JR_START or JR_UPDATED %}<p>{L_PLUS_JR_FIRST} {{ JR_START|e }} &middot; {L_PLUS_JR_UPDATED} {{ JR_UPDATED|e }}</p>{% endif %}
+{% if S_JR_FOUNDER %}<p>{L_PLUS_JR_FOUNDER}</p>{% else %}
+{% if S_JR_INACTIVE %}<p>{L_PLUS_JR_INACTIVE}</p>{% endif %}
+<form method="post" id="jr-manage" action="{U_JR_SAVE}">
+	<fieldset><legend>{L_PLUS_JR_MODULES}</legend>
+	{% for module in loops.jr_modules %}
+		<p><label><input type="checkbox" name="grant[]" value="{{ module.OPTION|e('html_attr') }}"{% if module.SELECTED %} checked="checked"{% endif %}{% if module.DISABLED %} disabled="disabled"{% endif %}> {{ module.LABEL|e }}</label>{% if module.STATE %} &mdash; {{ module.STATE|e }}{% endif %}</p>
+	{% endfor %}
+	</fieldset>
+	<fieldset><legend>{L_PLUS_JR_NOTE_LABEL}</legend>
+	<label for="jr-note">{L_PLUS_JR_NOTE_LABEL}</label><br><textarea id="jr-note" name="note" rows="4" cols="70">{{ JR_NOTE|e }}</textarea>
+	<p><label><input type="checkbox" name="visible" value="1"{% if S_JR_VISIBLE %} checked="checked"{% endif %}> {L_PLUS_JR_VISIBLE}</label></p><p>{L_PLUS_JR_PRIVATE_HELP}</p></fieldset>
+	<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{JR_REVISION}">{S_FORM_TOKEN}<button class="button1" type="submit" name="save" value="1">{L_SUBMIT}</button></fieldset>
+</form>
+{% endif %}
+{% if S_JR_SOURCE %}
+<details><summary>{L_PLUS_JR_SOURCE}</summary>
+{% if S_JR_OLD_NOTE %}<p>{{ JR_OLD_NOTE|e }} &middot; {% if S_JR_OLD_VISIBLE %}{L_PLUS_JR_WAS_VISIBLE}{% else %}{L_PLUS_JR_WAS_PRIVATE}{% endif %}</p>{% endif %}
+{% if loops.jr_reports %}<table class="table1"><thead><tr><th>{L_PLUS_JR_SOURCE_MODULE}</th><th>{L_PLUS_JR_SOURCE_ID}</th><th>{L_PLUS_JR_DECISION}</th></tr></thead>
+<tbody>{% for record in loops.jr_reports %}<tr><td>{{ record.ROUTE|e }}</td><td>{{ record.HASH|e }}</td><td>{{ record.RESULT|e }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</details>{% endif %}
+{% else %}
+<form method="post" id="jr-lookup" action="{U_JR_LIST}"><fieldset><label for="jr-user">{L_USERNAME}</label>
+<input type="text" id="jr-user" name="username" size="30" required> <button class="button2" type="submit">{L_SELECT}</button></fieldset></form>
+<table class="table1"><thead><tr><th>{L_USERNAME}</th><th>{L_PLUS_JR_MODULES}</th></tr></thead><tbody>
+{% for account in loops.jr_accounts %}<tr><td>{% if account.URL %}<a href="{{ account.URL }}">{{ account.NAME|e }}</a>{% else %}{{ account.NAME|e }}{% endif %}</td><td>{{ account.COUNT }}</td></tr>
+{% else %}<tr><td colspan="2">{L_PLUS_JR_EMPTY}</td></tr>{% endfor %}</tbody></table>
+{% if U_JR_PREV %}<a href="{U_JR_PREV}">{L_PREVIOUS}</a>{% endif %} {% if U_JR_NEXT %}<a href="{U_JR_NEXT}">{L_NEXT}</a>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

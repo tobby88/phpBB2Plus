@@ -10,16 +10,16 @@ class junior_admin implements EventSubscriberInterface
 	private $template;
 	private $adm;
 	private $db;
-	private $table;
+	private $prefix;
 
-	public function __construct($auth, $user, $template, $adm, $db, $table)
+	public function __construct($auth, $user, $template, $adm, $db, $prefix)
 	{
 		$this->auth = $auth;
 		$this->user = $user;
 		$this->template = $template;
 		$this->adm = $adm;
 		$this->db = $db;
-		$this->table = $table;
+		$this->prefix = $prefix;
 	}
 
 	public static function getSubscribedEvents()
@@ -38,7 +38,11 @@ class junior_admin implements EventSubscriberInterface
 	public function depart($event)
 	{
 		$ids = array_filter(array_map('intval', $event['user_ids']), static function ($id) { return $id > ANONYMOUS; });
-		if ($ids) { $this->db->sql_query('DELETE FROM ' . $this->table . ' WHERE ' . $this->db->sql_in_set('user_id', $ids)); }
+		if ($ids)
+		{
+			foreach (array('plus_jr_records', 'plus_jr_delegations') as $table)
+			{ $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . ' WHERE ' . $this->db->sql_in_set('user_id', $ids)); }
+		}
 	}
 
 	public function module($event)
