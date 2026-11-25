@@ -76,6 +76,12 @@ a:hover, a.topictitle:hover, a.forumtitle:hover { color: #a54900; }
 	.postbody { float: right; width: calc(100% - var(--plus-profile-width) - 12px); }
 	.rtl .postprofile { float: right; border-width: 0 0 0 1px; }
 	.rtl .postbody { float: left; }
+	/* The native online ribbon shares this corner with the controls after the profile moves left. */
+	.section-viewtopic .has-profile.online { --plus-online-ribbon: 58px; }
+	.section-viewtopic .has-profile.online .post-buttons { margin-inline-end: var(--plus-online-ribbon); }
+	.section-viewtopic .has-profile.online .postbody > div > h3 { padding-inline-end: var(--plus-online-ribbon); }
+	/* Posting previews and the topic review have no author column. */
+	.section-posting .post:not(.has-profile) .postbody { float: none; width: auto; }
 }
 @media (max-width: 700px) {
 	body { padding: 2px; }
