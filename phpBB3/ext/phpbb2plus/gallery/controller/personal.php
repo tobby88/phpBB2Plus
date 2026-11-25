@@ -29,13 +29,26 @@ class personal
 		$this->legacy = $legacy;
 	}
 
+	private function listing_parameters()
+	{
+		$params = array();
+		$method = $this->request->variable('sort_method', '');
+		$direction = $this->request->variable('sort_order', '');
+		if (in_array($method, array('pic_time','pic_title','username','pic_view_count','rating','comments','new_comment','pic_id'), true))
+		{ $params['sort_method'] = $method; }
+		if (in_array($direction, array('ASC','DESC'), true)) { $params['sort_order'] = $direction; }
+		$start = $this->request->variable('start', 0);
+		if ($start > 0) { $params['start'] = $start; }
+		return $params;
+	}
+
 	public function bookmark($source)
 	{
 		$source = (int) $source;
 		$category = 0;
 		if ($source < 1 && empty($this->user->data['is_registered']))
 		{
-			login_box($this->helper->route('phpbb2plus_gallery_personal_legacy', array('source' => $source), false));
+			login_box($this->helper->route('phpbb2plus_gallery_personal_legacy', array('source' => $source) + $this->listing_parameters(), false));
 		}
 		if ($source === -1) { $category = $this->service->historical_guest_root(); }
 		if ($category) { $this->access->category($category); }
@@ -47,13 +60,11 @@ class personal
 			$visible = array_filter($roots, array($this->access, 'visible'));
 			if (!$visible && ($roots || !$this->access->may_create_personal($owner))) { throw new NotFoundHttpException(); }
 			if (count($visible) !== 1)
-			{ return new RedirectResponse($this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner), false)); }
+			{ return new RedirectResponse($this->helper->route('phpbb2plus_gallery_personal', array('owner' => $owner) + $this->listing_parameters(), false)); }
 			$root = reset($visible);
 			$category = (int) $root['cat_id'];
 		}
-		$params = array('category' => $category);
-		$start = $this->request->variable('start', 0);
-		if ($start > 0) { $params['start'] = $start; }
+		$params = array('category' => $category) + $this->listing_parameters();
 		return new RedirectResponse($this->helper->route('phpbb2plus_gallery_category', $params, false));
 	}
 
@@ -90,6 +101,7 @@ class personal
 			$last[$parent] = $id;
 		}
 		$room = $this->service->can_add($tree);
+		$listing = $this->listing_parameters();
 		foreach ($tree as $id => $cat)
 		{
 			if (!$this->access->visible($cat)) { continue; }
@@ -103,7 +115,7 @@ class personal
 				if (isset($next[$id]) && $this->access->may_manage_personal($tree[$next[$id]])) { $urls['U_DOWN'] = $this->action($owner, $id, 'down'); }
 			}
 			$this->template->assign_block_vars('personal_cats', $urls + array('TITLE' => $cat['title'], 'DESCRIPTION' => $cat['description'],
-				'INDENT' => str_repeat('— ', min(12, $cat['depth'])), 'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $id))));
+				'INDENT' => str_repeat('— ', min(12, $cat['depth'])), 'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $id) + $listing)));
 		}
 		return $this->helper->render('@phpbb2plus_gallery/personal.html', utf8_htmlspecialchars($title));
 	}

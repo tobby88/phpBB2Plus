@@ -36,9 +36,12 @@ services:
     phpbb2plus.gallery.access:
         class: phpbb2plus\gallery\service\access
         arguments: ['@dbal.conn', '@user', '@auth', '%core.table_prefix%plus_album_']
+    phpbb2plus.gallery.navigation:
+        class: phpbb2plus\gallery\service\navigation
+        arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.byline', '%core.table_prefix%plus_album_']
     phpbb2plus.gallery.board:
         class: phpbb2plus\gallery\controller\board
-        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@phpbb2plus.gallery.pictures', '@phpbb2plus.gallery.byline', '@phpbb2plus.gallery.personal']
+        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@phpbb2plus.gallery.pictures', '@phpbb2plus.gallery.byline', '@phpbb2plus.gallery.personal', '@phpbb2plus.gallery.navigation', '@config']
     phpbb2plus.gallery.media:
         class: phpbb2plus\gallery\controller\media
         arguments: ['@phpbb2plus.gallery.access', '@config', '%core.root_path%', '@php_ini']

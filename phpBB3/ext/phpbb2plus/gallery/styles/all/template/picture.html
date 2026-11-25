@@ -1,7 +1,11 @@
 <!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
 <!-- INCLUDE overall_header.html -->
 <section class="plus-album-block plus-album-detail" aria-labelledby="album-picture-title">
-<h2 class="plus-album-heading" id="album-picture-title">{{ ALBUM_TITLE|e }}</h2>
+<header class="plus-album-heading plus-album-picture-bar">
+{% if U_ALBUM_PREVIOUS %}<a class="plus-album-previous" rel="prev" href="{U_ALBUM_PREVIOUS}"><span aria-hidden="true">‹</span> {L_PLUS_ALBUM_PREVIOUS}</a>{% endif %}
+<h2 id="album-picture-title">{{ ALBUM_TITLE|e }}</h2>
+{% if U_ALBUM_NEXT %}<a class="plus-album-next" rel="next" href="{U_ALBUM_NEXT}">{L_PLUS_ALBUM_NEXT} <span aria-hidden="true">›</span></a>{% endif %}
+</header>
 {% if S_ALBUM_MEDIA %}
 <figure class="plus-album-photo"><a href="{U_FULL}"><img src="{U_PREVIEW}" alt="{{ ALBUM_TITLE|e }}"></a>
 <figcaption><a href="{U_FULL}">{L_PLUS_ALBUM_ORIGINAL}</a></figcaption></figure>
@@ -22,6 +26,11 @@
 <div class="content plus-album-copy">{{ comment.BODY|e }}</div>{% if comment.EDITED %}<div class="notice">{{ comment.EDITED }}</div>{% endif %}
 {% if comment.U_EDIT %}<a href="{{ comment.U_EDIT }}">{L_EDIT}</a>{% endif %} {% if comment.U_DELETE %}<a href="{{ comment.U_DELETE }}">{L_DELETE}</a>{% endif %}</div></article>
 {% else %}<p class="plus-album-empty">{L_PLUS_ALBUM_NO_COMMENTS}</p>{% endfor %}</section>
+{% if U_ALBUM_COMMENT_SORT %}
+<form class="plus-album-sort" id="album-comment-sort" action="{U_ALBUM_COMMENT_SORT}#album-comments" method="get">
+<label for="album-comment-order">{L_PLUS_ALBUM_COMMENT_ORDER}</label>
+<select id="album-comment-order" name="sort_order"><option value="ASC"{% if ALBUM_COMMENT_ORDER == 'ASC' %} selected{% endif %}>{L_ASCENDING}</option><option value="DESC"{% if ALBUM_COMMENT_ORDER == 'DESC' %} selected{% endif %}>{L_DESCENDING}</option></select>
+{ALBUM_COMMENT_HIDDEN}<button class="button2" type="submit">{L_GO}</button></form>{% endif %}
 {% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
 {% endif %}
 {% if U_DISCUSS %}

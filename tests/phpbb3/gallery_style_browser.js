@@ -56,6 +56,11 @@ async function checkGalleryStyle(frame) {
             !fillsBoard(cat, grid.parentElement) || !crumbs(cat).some(path => path.endsWith("/album"))) {
             throw Error("The category did not use its gallery columns, board width or album navigation at " + width + "px");
         }
+        const sort = cat.querySelector("#album-sort");
+        if (!sort || sort.method !== "get" || sort.elements.sort_method.options.length !== 7 ||
+            sort.elements.sort_order.getBoundingClientRect().right > cat.defaultView.innerWidth) {
+            throw Error("The gallery sort controls do not fit at " + width + "px");
+        }
         const cell = grid.querySelector("a[href*='/album/picture/100']").parentElement;
         const thumb = await image(cell, "img", 16, 10);
         const box = cell.getBoundingClientRect();
@@ -77,6 +82,12 @@ async function checkGalleryStyle(frame) {
             !section.querySelector("time[datetime]") || !section.querySelector("dd.plus-album-copy").textContent.includes("Beschreibung & Grüße") ||
             !["Description", "Beschreibung"].includes(section.querySelector("dd.plus-album-copy").previousElementSibling.textContent)) {
             throw Error("The picture lost its category path, metadata or full-size link at " + width + "px");
+        }
+        const prev = section.querySelector('a[rel="prev"]').getBoundingClientRect();
+        const next = section.querySelector('a[rel="next"]').getBoundingClientRect();
+        const title = section.querySelector("h2").getBoundingClientRect();
+        if (prev.width < 20 || next.width < 20 || prev.right > title.left || title.right > next.left) {
+            throw Error("The gallery arrows overlap the title at " + width + "px");
         }
         const photo = await image(pic, ".plus-album-photo img", 30, 18);
         const figure = section.querySelector("figure").getBoundingClientRect();

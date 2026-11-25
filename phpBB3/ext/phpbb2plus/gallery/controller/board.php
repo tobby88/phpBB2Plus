@@ -1,6 +1,9 @@
 <?php
 namespace phpbb2plus\gallery\controller;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
 class board
 {
 	private $access;
@@ -16,8 +19,10 @@ class board
 	private $discussion;
 	private $pictures;
 	private $personal;
+	private $navigation;
+	private $config;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -32,13 +37,16 @@ class board
 		$this->discussion = $discussion;
 		$this->pictures = $pictures;
 		$this->personal = $personal;
+		$this->navigation = $navigation;
+		$this->config = $config;
 	}
 
-	private function breadcrumbs($cat = null)
+	private function breadcrumbs($cat = null, $listing = array())
 	{
 		$this->language->add_lang('gallery', 'phpbb2plus/gallery');
 		$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => $this->language->lang('PLUS_ALBUM'),
 			'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_gallery_index')));
+		$current = $cat ? (int) $cat['cat_id'] : 0;
 		$parents = array();
 		while ($cat)
 		{
@@ -47,8 +55,9 @@ class board
 		}
 		foreach (array_reverse($parents) as $category)
 		{
+			$params = array('category' => $category['cat_id']) + ((int) $category['cat_id'] === $current ? $listing : array());
 			$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => utf8_htmlspecialchars($category['title']),
-				'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $category['cat_id']))));
+				'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_gallery_category', $params)));
 		}
 	}
 
@@ -59,13 +68,13 @@ class board
 		return $start;
 	}
 
-	private function picture_grid($heading, $columns, $where, $order, $limit, $start = 0)
+	private function picture_grid($heading, $columns, $where, $order, $limit, $start = 0, $context = array())
 	{
 		$this->template->assign_block_vars('album_grids', array('HEADING' => $this->language->lang($heading),
 			'COLUMNS' => $columns, 'MOBILE_COLUMNS' => min(2, $columns)));
 		if ($where === '') { return; }
 		$rate = (int) $this->access->setting('rate', 1) === 1;
-		$rating = $rate || $heading === 'PLUS_ALBUM_HIGHEST' ? ',(SELECT AVG(r.points) FROM ' . $this->prefix .
+		$rating = $rate || $heading === 'PLUS_ALBUM_HIGHEST' ? ',(SELECT COALESCE(AVG(r.points),0) FROM ' . $this->prefix .
 			'ratings r WHERE r.pic_id=p.pic_id AND r.points>0) AS rating' : '';
 		$result = $this->db->sql_query_limit('SELECT p.pic_id,p.title,p.created_at,p.views,p.author_id,p.author_name,p.author_removed,p.storage_name,
 			u.username,u.user_colour' . $rating . ' FROM ' . $this->prefix . 'pics p LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=p.author_id
@@ -76,8 +85,8 @@ class board
 			$this->template->assign_block_vars('album_grids.pictures', array('TITLE' => $pic['title'],
 				'TIME' => $this->user->format_date($pic['created_at']), 'DATETIME' => gmdate('c', $pic['created_at']),
 				'AUTHOR' => $this->byline->display($pic), 'VIEWS' => (int) $pic['views'], 'S_RATE' => $rate,
-				'RATING' => $rate && $pic['rating'] !== null ? number_format((float) $pic['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), '') : '',
-				'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params),
+				'RATING' => $rate && (float) $pic['rating'] > 0 ? number_format((float) $pic['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), '') : '',
+				'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params + $context),
 				'U_THUMB' => $pic['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small')) : ''));
 		}
 		$this->db->sql_freeresult($result);
@@ -134,18 +143,28 @@ class board
 		}
 		if ($id)
 		{
-			$where = 'p.cat_id=' . $id . ($this->access->pending_visible($cat) ? '' : ' AND p.approved=1');
+			$where = $this->navigation->category_filter($cat);
 			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'pics p WHERE ' . $where);
 			$total = (int) $this->db->sql_fetchfield('count');
 			$this->db->sql_freeresult($result);
 			$columns = max(1, min(20, (int) $this->access->setting('cols_per_page', 4)));
-			$limit = max(1, min(60, (int) $this->access->setting('rows_per_page', 3) * $columns));
-			$url = $this->helper->route('phpbb2plus_gallery_category', array('category' => $id));
+			$rows = max(1, min(50, (int) $this->access->setting('rows_per_page', 3)));
+			$limit = min(100, $rows * $columns);
+			$sort = $this->navigation->sort($cat, $this->request->variable('sort_method', ''), $this->request->variable('sort_order', ''));
+			$params = array('category' => $id);
+			$url = $this->helper->route('phpbb2plus_gallery_category', $params + array('sort_method' => $sort[0], 'sort_order' => $sort[1]));
 			$start = $this->page($url, $total, $limit);
-			$sort = array('pic_time' => 'created_at','pic_title' => 'title','pic_view_count' => 'views','pic_id' => 'pic_id');
-			$order = $sort[$this->access->setting('sort_method', 'pic_time')] ?? 'created_at';
-			$direction = strtoupper($this->access->setting('sort_order', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
-			if ($total) { $this->picture_grid('PLUS_ALBUM_PICTURES', $columns, $where, "p.$order $direction,p.pic_id $direction", $limit, $start); }
+			if ($total)
+			{
+				foreach ($this->navigation->methods($cat) as $key => $label)
+				{
+					$this->template->assign_block_vars('album_sorts', array('VALUE' => $key, 'LABEL' => $this->language->lang($label), 'SELECTED' => $key === $sort[0]));
+				}
+				$this->template->assign_vars(array('U_ALBUM_SORT' => $this->helper->route('phpbb2plus_gallery_category', $params),
+					'ALBUM_SORT_ORDER' => $sort[1], 'ALBUM_SORT_HIDDEN' => $this->hidden_fields(array())));
+				$this->picture_grid('PLUS_ALBUM_PICTURES', $columns, $where, $this->navigation->order_by($sort), $limit, $start,
+					array('picture_sort' => $sort[0], 'picture_order' => $sort[1]));
+			}
 		}
 		else { $this->home_grids(); }
 		$title = $cat ? $cat['title'] : $this->language->lang('PLUS_ALBUM');
@@ -160,14 +179,75 @@ class board
 		return $this->helper->render('@phpbb2plus_gallery/index.html', utf8_htmlspecialchars($title));
 	}
 
+	private function hidden_fields($fields)
+	{
+		$sid = $this->request->variable('sid', '');
+		if ($sid !== '' && $sid === $this->user->session_id) { $fields['sid'] = $sid; }
+		return build_hidden_fields($fields);
+	}
+
+	private function comment_order()
+	{
+		return $this->request->variable('sort_order', '') === 'DESC' ? 'DESC' : 'ASC';
+	}
+
+	private function comments_per_page()
+	{
+		return max(1, min(9999, (int) $this->config['posts_per_page']));
+	}
+
+	public function comment_bookmark($comment)
+	{
+		$id = (int) $comment;
+		if ((int) $this->access->setting('comment', 1) !== 1) { throw new NotFoundHttpException(); }
+		$result = $this->db->sql_query('SELECT pic_id FROM ' . $this->prefix . 'comments WHERE comment_id=' . $id);
+		$picture = (int) $this->db->sql_fetchfield('pic_id');
+		$this->db->sql_freeresult($result);
+		$this->access->picture($picture);
+		$direction = $this->comment_order();
+		$result = $this->db->sql_query('SELECT COUNT(*) AS total FROM ' . $this->prefix . 'comments WHERE pic_id=' . $picture .
+			' AND comment_id' . ($direction === 'DESC' ? '>' : '<') . $id);
+		$before = (int) $this->db->sql_fetchfield('total');
+		$this->db->sql_freeresult($result);
+		$limit = $this->comments_per_page();
+		$params = array('picture' => $picture);
+		if ($direction === 'DESC') { $params['sort_order'] = $direction; }
+		if ($before >= $limit) { $params['start'] = intdiv($before, $limit) * $limit; }
+		return new RedirectResponse($this->helper->route('phpbb2plus_gallery_picture', $params, false) . '#comment-' . $id);
+	}
+
 	public function picture($picture)
 	{
 		list($pic, $cat) = $this->access->picture($picture);
-		$this->breadcrumbs($cat);
 		$this->language->add_lang('viewtopic');
 		$id = (int) $pic['pic_id'];
 		$params = array('picture' => $id);
-		$link = $this->helper->route('phpbb2plus_gallery_picture', $params);
+		$context = array();
+		$method = $this->request->variable('picture_sort', '');
+		$order = $this->request->variable('picture_order', '');
+		// Standalone legacy arrows moved forward in time. A visit from a category follows the grid's order.
+		$sort = array('pic_time', 'ASC');
+		if ($method !== '' || $order !== '')
+		{
+			$sort = $this->navigation->sort($cat, $method, $order);
+			$context = array('picture_sort' => $sort[0], 'picture_order' => $sort[1]);
+		}
+		$this->breadcrumbs($cat, $context ? array('sort_method' => $sort[0], 'sort_order' => $sort[1]) : array());
+		if ($this->request->variable('full', 0)) { $context['full'] = 1; }
+		$comment_order = $this->comment_order();
+		if ($comment_order === 'DESC') { $context['sort_order'] = $comment_order; }
+		$neighbours = $this->navigation->neighbours($pic, $cat, $sort);
+		$mode = $this->request->variable('mode', '');
+		if (isset($neighbours[$mode]))
+		{
+			return new RedirectResponse($this->helper->route('phpbb2plus_gallery_picture', array('picture' => $neighbours[$mode] ?: $id) + $context, false));
+		}
+		foreach ($neighbours as $step => $target)
+		{
+			if ($target) { $this->template->assign_var('U_ALBUM_' . strtoupper($step),
+				$this->helper->route('phpbb2plus_gallery_picture', array('picture' => $target) + $context)); }
+		}
+		$link = $this->helper->route('phpbb2plus_gallery_picture', $params + $context);
 		$rate = (int) $this->access->setting('rate', 1) === 1;
 		$comments = (int) $this->access->setting('comment', 1) === 1;
 		if ($rate)
@@ -184,10 +264,11 @@ class board
 			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'comments WHERE pic_id=' . $id);
 			$total = (int) $this->db->sql_fetchfield('count');
 			$this->db->sql_freeresult($result);
-			$start = $this->page($link, $total, 20);
+			$limit = $this->comments_per_page();
+			$start = $this->page($link, $total, $limit);
 			$result = $this->db->sql_query_limit('SELECT c.*,u.username,u.user_colour,e.username AS editor_name,e.user_colour AS editor_colour
 				FROM ' . $this->prefix . 'comments c LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.author_id
-				LEFT JOIN ' . USERS_TABLE . ' e ON e.user_id=c.editor_id WHERE c.pic_id=' . $id . ' ORDER BY c.created_at,c.comment_id', 20, $start);
+				LEFT JOIN ' . USERS_TABLE . ' e ON e.user_id=c.editor_id WHERE c.pic_id=' . $id . ' ORDER BY c.comment_id ' . $comment_order, $limit, $start);
 			while ($comment = $this->db->sql_fetchrow($result))
 			{
 				$edit = '';
@@ -214,6 +295,12 @@ class board
 					'DATETIME' => gmdate('c', $comment['created_at']), 'BODY' => censor_text($comment['body'])));
 			}
 			$this->db->sql_freeresult($result);
+			if ($total > 1)
+			{
+				unset($context['sort_order']);
+				$this->template->assign_vars(array('U_ALBUM_COMMENT_SORT' => $this->helper->route('phpbb2plus_gallery_picture', $params),
+					'ALBUM_COMMENT_ORDER' => $comment_order, 'ALBUM_COMMENT_HIDDEN' => $this->hidden_fields($context)));
+			}
 		}
 		foreach (array('edit','move','approve','unapprove','lock','unlock','delete') as $action)
 		{

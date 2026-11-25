@@ -35,5 +35,13 @@
 {% if not loops.album_grids and not loops.album_categories %}
 <p class="panel plus-album-empty">{L_PLUS_ALBUM_EMPTY}</p>
 {% endif %}
+{% if U_ALBUM_SORT %}
+<form class="plus-album-sort" id="album-sort" action="{U_ALBUM_SORT}" method="get">
+<label for="album-sort-method">{L_PLUS_ALBUM_SORT_BY}</label>
+<select id="album-sort-method" name="sort_method">{% for item in loops.album_sorts %}<option value="{{ item.VALUE }}"{% if item.SELECTED %} selected{% endif %}>{{ item.LABEL }}</option>{% endfor %}</select>
+<label for="album-sort-order">{L_PLUS_ALBUM_ORDER}</label>
+<select id="album-sort-order" name="sort_order"><option value="ASC"{% if ALBUM_SORT_ORDER == 'ASC' %} selected{% endif %}>{L_ASCENDING}</option><option value="DESC"{% if ALBUM_SORT_ORDER == 'DESC' %} selected{% endif %}>{L_DESCENDING}</option></select>
+{ALBUM_SORT_HIDDEN}<button class="button2" type="submit">{L_GO}</button></form>
+{% endif %}
 {% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
 <!-- INCLUDE overall_footer.html -->
