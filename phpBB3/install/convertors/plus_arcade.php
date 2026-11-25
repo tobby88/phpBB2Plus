@@ -131,6 +131,11 @@ function plus_arcade_copy_group($short, $column, $value)
 				$data[$dest] = $dest === 'score_units' ? \phpbb2plus\arcade\service\score::units($row[$field]) : $row[$field];
 			}
 			foreach ($owners as $field => $owner) { $data[$owner] = plus_arcade_owner($row[$field]); }
+			if ($short === 'comment')
+			{
+				foreach (array('comment_text','comment_username') as $field)
+				{ if ($data[$field] !== null) { $data[$field] = utf8_encode_ucr($data[$field]); } }
+			}
 			if (array_key_exists('game_data', $data) && in_array($short, array('scores','game_saves'), true) && $data['game_data'] !== null)
 			{
 				$data = array_replace($data, \phpbb2plus\arcade\service\saved_game::pack($data['game_data']));

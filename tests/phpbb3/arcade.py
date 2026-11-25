@@ -50,7 +50,9 @@ def comments(base, founder, member, pending):
     if "/arcade/game/60/comments" not in member.fetch(game) or "/arcade/game/60/comments" in guest.fetch(game):
         raise RuntimeError("The game links to the wrong comment view for its reader")
     original = member.fetch(path)
-    if "Schöne Farben &amp; Formen" not in original or "AlterSpielname" in original or "HistoricMember" not in original:
+    def text_with_emoji(html):
+        return unescape(re.sub(r'<img\b[^>]*\balt="([^"]*)"[^>]*>',r'\1',html))
+    if "Schöne Farben & Formen 🎲" not in text_with_emoji(original) or "AlterSpielname" in original or "HistoricMember" not in original:
         raise RuntimeError("The converted comment text or author is wrong")
     if "arcade-add-comment" in Page(pending.fetch(path)).forms:
         raise RuntimeError("Comment form offered before recording a score")
@@ -73,10 +75,10 @@ def comments(base, founder, member, pending):
     if founder.fetch(path).count("Rätsel &amp; Grüße") != 1 or member.fetch("ucp.php?i=pm&folder=inbox").count(">New arcade comment<") != 1:
         raise RuntimeError("A repeated comment or its privately delivered notification was lost or duplicated")
     edit = Page(founder.fetch(path + "/" + cid + "/edit")).forms["arcade-change-comment"]
-    send(founder, edit, {"body": "Zweiter Entwurf"})
+    send(founder, edit, {"body": "Zweiter Entwurf 🎮"})
     send(founder, edit, {"body": "Veralteter Entwurf"}, 409)
     listing = member.fetch(path + "?order=desc")
-    if listing.index("Zweiter Entwurf") > listing.index("Schöne Farben") or "Edited once by" not in listing:
+    if listing.index("Zweiter Entwurf") > listing.index("Schöne Farben") or "Zweiter Entwurf 🎮" not in text_with_emoji(listing) or "Edited once by" not in listing:
         raise RuntimeError("Comment order or latest editor is wrong")
     remove = Page(founder.fetch(path + "/" + cid + "/delete")).forms["arcade-change-comment"]
     send(founder, remove, {})
@@ -84,6 +86,23 @@ def comments(base, founder, member, pending):
     if "Zweiter Entwurf" in member.fetch(path) or "Rätsel &amp; Grüße" in member.fetch(path):
         raise RuntimeError("A deleted comment returned when the original form was retried")
     member.fetch(path + "?focus=" + cid, expected_status=404)
+
+    prefs = "ucp.php?i=ucp_prefs&mode=personal"
+    if Page(pending.fetch(prefs),checked=True).forms["ucp"][1].get("plus_arcade_pm") != "0":
+        raise RuntimeError("The original arcade notification opt-out was lost")
+    def receive(enabled):
+        form = Page(member.fetch(prefs),checked=True).forms["ucp"]
+        data = dict(form[1], submit="1", plus_arcade_pm=str(int(enabled)))
+        time.sleep(max(0, int(data["creation_time"]) + 1.05 - time.time()))
+        member.fetch(urljoin(urljoin(base,prefs),form[0]),data)
+        selected = Page(member.fetch(prefs),checked=True).forms["ucp"][1]
+        if selected.get("plus_arcade_pm") != str(int(enabled)):
+            raise RuntimeError("The native UCP did not save the arcade notification preference")
+    receive(False)
+    send(founder,Page(founder.fetch(path)).forms["arcade-add-comment"],{"body":"Stille Antwort"})
+    if member.fetch("ucp.php?i=pm&folder=inbox").count(">New arcade comment<") != 1:
+        raise RuntimeError("A disabled game notification still sent a private message")
+    receive(True)
 
 
 def movie():

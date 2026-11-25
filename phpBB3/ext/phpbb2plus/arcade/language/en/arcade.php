@@ -42,6 +42,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ARC_NEWEST' => 'Show newest first',
 	'PLUS_ARC_OLDEST' => 'Show oldest first',
 	'PLUS_ARC_COMMENT_PM' => 'New arcade comment',
+	'PLUS_ARC_RECEIVE_PM' => 'Receive arcade notifications by private message',
 	'PLUS_ARC_COMMENT_PM_TEXT' => 'A player replied to a game discussion you started.',
 	'PLUS_ARC_FORMER' => 'Former member',
 	'PLUS_ARC_DECIMAL' => '.',

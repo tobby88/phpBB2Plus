@@ -9,17 +9,19 @@ class comments
 	private $db;
 	private $catalog;
 	private $user;
+	private $auth;
 	private $config;
 	private $language;
 	private $prefix;
 	private $root;
 	private $php_ext;
 
-	public function __construct($db,$catalog,$user,$config,$language,$prefix,$root,$php_ext)
+	public function __construct($db,$catalog,$user,$auth,$config,$language,$prefix,$root,$php_ext)
 	{
 		$this->db = $db;
 		$this->catalog = $catalog;
 		$this->user = $user;
+		$this->auth = $auth;
 		$this->config = $config;
 		$this->language = $language;
 		$this->prefix = $prefix;
@@ -111,10 +113,13 @@ class comments
 
 	private function notify_first($owner,$game,$comment)
 	{
-		if (!(int) $this->catalog->setting('games_pm_comment',0) || !$this->config['allow_privmsg']) { return; }
-		$row = $this->one('SELECT c.owner_id,u.user_type,u.user_allow_pm,u.user_lang FROM ' . $this->prefix . 'comments c
-			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.owner_id WHERE c.target_game=' . (int) $game . ' ORDER BY c.comment_id');
+		if (!(int) $this->catalog->setting('games_pm_comment',0) || !(int) $this->catalog->setting('games_use_pms',0) || !$this->config['allow_privmsg'] ||
+			empty($this->user->data['user_allow_pm']) || !$this->auth->acl_get('u_sendpm')) { return; }
+		$row = $this->one('SELECT c.owner_id,u.user_type,u.user_allow_pm,u.user_lang,m.block_pm FROM ' . $this->prefix . 'comments c
+			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.owner_id LEFT JOIN ' . $this->prefix . 'members m ON m.user_id=c.owner_id
+			WHERE c.target_game=' . (int) $game . ' ORDER BY c.comment_id');
 		if (!$row || (int) $row['owner_id'] <= ANONYMOUS || (int) $row['owner_id'] === $owner || empty($row['user_allow_pm']) ||
+			$row['block_pm'] === null || (int) $row['block_pm'] !== 0 ||
 			!in_array((int) $row['user_type'],array(USER_NORMAL,USER_FOUNDER),true)) { return; }
 		include_once $this->root . 'includes/functions_privmsgs.' . $this->php_ext;
 		$locale = clone $this->language;
@@ -171,7 +176,7 @@ class comments
 			if ($action === 'add')
 			{
 				$values = array('target_game'=>$game_id,'owner_id'=>$owner,'comment_game_name'=>$game['game_name'],'comment_user_id'=>$owner,
-					'comment_username'=>$this->user->data['username'],'author_ip'=>$this->user->ip,'comment_time'=>$now,'comment_text'=>utf8_htmlspecialchars($raw));
+					'comment_username'=>$this->user->data['username'],'author_ip'=>$this->user->ip,'comment_time'=>$now,'comment_text'=>utf8_encode_ucr(utf8_htmlspecialchars($raw)));
 				$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT',$values));
 				$id = (int) $this->db->sql_nextid();
 				$this->db->sql_query('INSERT INTO ' . $this->prefix . 'comment_receipts ' . $this->db->sql_build_array('INSERT',array(
@@ -181,7 +186,7 @@ class comments
 			elseif ($action === 'edit')
 			{
 				if ((int) $row['comment_edit_count'] >= 65535) { throw new \DomainException('PLUS_ARC_COMMENT_CHANGED'); }
-				$change = array('comment_text'=>utf8_htmlspecialchars($raw),'comment_edit_count'=>(int) $row['comment_edit_count']+1,
+				$change = array('comment_text'=>utf8_encode_ucr(utf8_htmlspecialchars($raw)),'comment_edit_count'=>(int) $row['comment_edit_count']+1,
 					'editor_id'=>$owner,'comment_edit_user_id'=>$owner,'comment_edit_time'=>$now);
 				$this->db->sql_query("UPDATE $table SET " . $this->db->sql_build_array('UPDATE',$change) . " WHERE comment_id=$id AND target_game=$game_id");
 			}

@@ -44,6 +44,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ARC_NEWEST' => 'Neueste zuerst anzeigen',
 	'PLUS_ARC_OLDEST' => 'Älteste zuerst anzeigen',
 	'PLUS_ARC_COMMENT_PM' => 'Neuer Spielkommentar',
+	'PLUS_ARC_RECEIVE_PM' => 'Benachrichtigungen der Spielhalle per privater Nachricht erhalten',
 	'PLUS_ARC_COMMENT_PM_TEXT' => 'Ein Spieler hat auf eine von dir begonnene Diskussion zu einem Spiel geantwortet.',
 	'ACL_A_PLUS_ARCADE' => 'Kann die Spielhalle verwalten',
 	'ACL_M_PLUS_ARCADE' => 'Kann die Spielhalle moderieren',

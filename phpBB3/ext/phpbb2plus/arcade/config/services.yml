@@ -1,7 +1,12 @@
 services:
     phpbb2plus.arcade.comments:
         class: phpbb2plus\arcade\service\comments
-        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@user', '@config', '@language', '%core.table_prefix%plus_arc_', '%core.root_path%', '%core.php_ext%']
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@user', '@auth', '@config', '@language', '%core.table_prefix%plus_arc_', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.arcade.preferences:
+        class: phpbb2plus\arcade\event\preferences
+        arguments: ['@dbal.conn', '@user', '@request', '@language', '@template', '%core.table_prefix%plus_arc_members']
+        tags:
+            - { name: event.listener }
     phpbb2plus.arcade.discussion:
         class: phpbb2plus\arcade\controller\discussion
         arguments: ['@phpbb2plus.arcade.comments', '@phpbb2plus.arcade.catalog', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '@config', '@?phpbb2plus.community.former_members']

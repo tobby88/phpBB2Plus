@@ -1,0 +1,7 @@
+<dl>
+	<dt><label for="plus_arcade_pm_yes">{L_PLUS_ARC_RECEIVE_PM}{L_COLON}</label></dt>
+	<dd>
+		<label><input type="radio" class="radio" name="plus_arcade_pm" id="plus_arcade_pm_yes" value="1"{% if PLUS_ARC_RECEIVE_PM %} checked="checked"{% endif %}> {L_YES}</label>
+		<label><input type="radio" class="radio" name="plus_arcade_pm" id="plus_arcade_pm_no" value="0"{% if not PLUS_ARC_RECEIVE_PM %} checked="checked"{% endif %}> {L_NO}</label>
+	</dd>
+</dl>

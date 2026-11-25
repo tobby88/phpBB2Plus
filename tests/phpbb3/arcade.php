@@ -1,6 +1,7 @@
 <?php
 function seed_arcade($db)
 {
+	$db->query('UPDATE phpbb_users SET games_block_pm=0 WHERE user_id=1');
 	$db->query("ALTER TABLE phpbb_users ADD user_points DECIMAL(30,8) DEFAULT 3, ADD user_cash BIGINT UNSIGNED DEFAULT 0");
 	$db->query("UPDATE phpbb_users SET user_points=9007199254740993.12345678,user_cash=18446744073709551615 WHERE user_id=1");
 	$db->query("INSERT INTO phpbb_config (config_name,config_value) VALUES ('points_name','Fixture credits') ON DUPLICATE KEY UPDATE config_value='Fixture credits'");
@@ -31,7 +32,7 @@ function seed_arcade($db)
 	$db->query("UPDATE phpbb_ina_data SET config_value='10' WHERE config_name='games_default_rate'");
 	$db->query("INSERT INTO phpbb_ina_game_saves (user_id,game_id,game_data,saved_at) VALUES (1,60,'Spielstand ü=7 🎮',11007)");
 	$db->query("INSERT INTO phpbb_ina_comment (comment_id,comment_game_name,comment_user_id,comment_username,comment_time,comment_text,comment_edit_user_id)
-		VALUES (71,'puzzle',1,'AlterSpielname',11008,'Schöne Farben &amp; Formen',2)");
+		VALUES (71,'puzzle',1,'AlterSpielname',11008,'Schöne Farben &amp; Formen 🎲',2)");
 	$db->query("INSERT INTO phpbb_ina_rate (rate_game_name,rate_user_id,rate_user_ip,rate_point) VALUES ('puzzle',1,'7f000001',7)");
 	$db->query("INSERT INTO phpbb_ina_tour (tour_id,tour_name,tour_desc,start_id,start_date,tour_max_players,tour_player_turns,tour_active)
 		VALUES (31,'Frühlingsrunde','Spielprobe',1,11009,8,3,1)");
