@@ -1,4 +1,9 @@
 services:
+    phpbb2plus.community.removed_posts:
+        class: phpbb2plus\community\event\removed_posts
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@config', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.post_icons:
         class: phpbb2plus\community\event\post_icons
         arguments: ['@dbal.conn', '@config', '@user', '@auth', '@template', '@request', '@cache']

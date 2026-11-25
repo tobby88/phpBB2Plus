@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_PORTAL' => 'Portal',
+	'PLUS_REMOVED_POSTS'=>array(1=>'Deleted post', 2=>'%d deleted posts'),
 	'PLUS_PORTAL_DOWNLOADS'=>'Recent downloads (0 to hide)', 'PLUS_PORTAL_PICTURES'=>'Album pictures (0 to hide)',
 	'PLUS_PORTAL_PICTURE_SIZE'=>'Maximum preview size in pixels', 'PLUS_PORTAL_PICTURE_PERSONAL'=>'Include personal albums',
 	'PLUS_PORTAL_PICTURE_RANDOM'=>'Select pictures at random', 'PLUS_PORTAL_PICTURE_CATEGORIES'=>'Show pictures from these albums',

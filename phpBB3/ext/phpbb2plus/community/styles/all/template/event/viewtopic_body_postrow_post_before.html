@@ -1,1 +1,6 @@
+{% if postrow.PLUS_REMOVED_BEFORE %}
+{% if postrow.PLUS_REMOVED_BEFORE_ID %}<a id="{{ postrow.PLUS_REMOVED_BEFORE_ID }}" class="anchor"></a>{% endif %}
+<div class="post bg2 plus-removed-post"{% if postrow.PLUS_REMOVED_BEFORE_ID %} id="p{{ postrow.PLUS_REMOVED_BEFORE_ID }}"{% endif %}>
+<p class="notice">{{ postrow.PLUS_REMOVED_BEFORE }}</p></div>
+{% endif %}
 {% if postrow.POST_ID %}<a id="{{ postrow.POST_ID }}" class="anchor"></a>{% endif %}

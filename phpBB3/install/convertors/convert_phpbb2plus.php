@@ -210,6 +210,7 @@ if (!$get_info)
 		}
 		if ($section['target'] === POSTS_TABLE)
 		{
+			$section[] = array('plus_public_post', 1, '');
 			$section[] = array('post_delete_time', 'posts.post_deleted_time', 'intval');
 			$section[] = array('post_delete_user', 'posts.post_deleted_by', 'plus_convert_optional_user');
 		}

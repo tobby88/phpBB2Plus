@@ -24,6 +24,7 @@ import portal
 import custom_profiles
 import colours
 import post_icons
+import removed_posts
 import legacy_links
 import downloads
 import profile_media
@@ -204,6 +205,7 @@ def main():
                 gallery.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
                 former_names(base, ordinary)
+                removed_posts.converted(base, ordinary, member)
                 php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                 former_names(base, ordinary, removed=True, founder=member)
                 gallery.departed(base, ordinary)
@@ -211,6 +213,11 @@ def main():
                 php(ROOT / "tests/phpbb3/mysql_search.php", target, cwd=web)
                 author_results(base, ordinary, removed=True, founder=member)
                 login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+                removal_fixture = ROOT / "tests/phpbb3/removed_posts.php"
+                positions = json.loads(php(removal_fixture, target, cwd=web, capture=True))
+                removed_posts.native(base, positions)
+                php(removal_fixture, target, positions["posts"][4], cwd=web)
+                removed_posts.restored(base, positions)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 

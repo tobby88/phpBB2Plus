@@ -1,0 +1,5 @@
+{% if postrow.PLUS_REMOVED_AFTER %}
+{% if postrow.PLUS_REMOVED_AFTER_ID %}<a id="{{ postrow.PLUS_REMOVED_AFTER_ID }}" class="anchor"></a>{% endif %}
+<div class="post bg2 plus-removed-post"{% if postrow.PLUS_REMOVED_AFTER_ID %} id="p{{ postrow.PLUS_REMOVED_AFTER_ID }}"{% endif %}>
+<p class="notice">{{ postrow.PLUS_REMOVED_AFTER }}</p></div>
+{% endif %}
