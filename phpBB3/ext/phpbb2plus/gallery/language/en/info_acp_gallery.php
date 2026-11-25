@@ -2,6 +2,15 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_PERSONAL_ALBUMS' => 'Personal photo albums',
+	'ACP_PLUS_ALBUM_UPLOADS' => 'Photo album uploads', 'LOG_PLUS_ALBUM_UPLOADS' => '<strong>Changed the photo album upload settings</strong>',
+	'PLUS_ALBUM_CFG_MEDIA_EXPLAIN' => 'Resizing applies to new uploads that exceed the permitted dimensions. Pictures keep their aspect ratio. The file size limit applies to the stored picture and each supplied thumbnail.',
+	'PLUS_ALBUM_CFG_GD_VERSION' => 'Thumbnails', 'PLUS_ALBUM_CFG_AUTO' => 'Generate automatically',
+	'PLUS_ALBUM_CFG_GD1' => 'Generate automatically (legacy GD1 mode)', 'PLUS_ALBUM_CFG_MANUAL' => 'Upload with each picture',
+	'PLUS_ALBUM_CFG_THUMBNAIL_SIZE' => 'Maximum thumbnail edge in pixels',
+	'PLUS_ALBUM_CFG_MAX_FILE_SIZE' => 'Maximum file size in bytes', 'PLUS_ALBUM_CFG_MAX_WIDTH' => 'Maximum picture width in pixels',
+	'PLUS_ALBUM_CFG_MAX_HEIGHT' => 'Maximum picture height in pixels', 'PLUS_ALBUM_CFG_RESIZE_PIC' => 'Resize oversized pictures during upload',
+	'PLUS_ALBUM_CFG_RESIZE_WIDTH' => 'Target width in pixels', 'PLUS_ALBUM_CFG_RESIZE_HEIGHT' => 'Target height in pixels',
+	'PLUS_ALBUM_CFG_RESIZE_QUALITY' => 'JPEG quality when resizing (0–100)',
 	'LOG_PLUS_PERSONAL_ALBUMS' => '<strong>Changed the personal photo album settings</strong>',
 	'PLUS_ALBUM_CFG_EXPLAIN' => 'You can assign permission to create a personal album to individual members and groups. Selecting album administrators also restricts further uploads to personal albums to those administrators. Default visibility applies to newly created albums. For quotas, −1 means unlimited and 0 prevents further pictures or subalbums.',
 	'PLUS_ALBUM_CFG_PERSONAL_GALLERY' => 'Who can create a personal album',
@@ -15,6 +24,6 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_CFG_SELECTED' => 'Members with the user permission',
 	'PLUS_ALBUM_CFG_PRIVATE' => 'Private', 'PLUS_ALBUM_CFG_MODS' => 'Album moderators', 'PLUS_ALBUM_CFG_ADMINS' => 'Album administrators',
 	'PLUS_ALBUM_CFG_YES' => 'Yes', 'PLUS_ALBUM_CFG_NO' => 'No', 'PLUS_ALBUM_CFG_IMPORTED' => 'Imported value (%s)',
-	'PLUS_ALBUM_CONFIG_INVALID' => 'Check “%s”. Choose one of the listed policies or enter a whole number between −1 and 2147483647 for a quota.',
+	'PLUS_ALBUM_CONFIG_INVALID' => 'Check the value for “%s”.',
 	'PLUS_ALBUM_CONFIG_CHANGED' => 'The album settings have changed. Review the current values before saving.',
 ));

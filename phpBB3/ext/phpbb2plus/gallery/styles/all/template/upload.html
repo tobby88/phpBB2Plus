@@ -10,6 +10,7 @@
 {% if ALBUM_ERROR %}<p class="error">{{ ALBUM_ERROR|e }}</p>{% endif %}
 <dl><dt><label for="album-files">{L_PLUS_ALBUM_FILES}</label><br><span>{{ lang('PLUS_ALBUM_COUNT', ALBUM_COUNT) }}</span></dt>
 <dd><input type="file" id="album-files" name="photos[]" accept="image/jpeg,image/png,image/gif" required{% if ALBUM_COUNT > 1 %} multiple{% endif %}></dd></dl>
+{% if S_RESIZE %}<p>{L_PLUS_ALBUM_RESIZE_HINT}</p>{% endif %}
 {% if S_MANUAL_PREVIEWS %}<dl><dt><label for="album-previews">{L_PLUS_ALBUM_PREVIEWS}</label><br><span>{{ lang('PLUS_ALBUM_PREVIEW_FILES', PREVIEW_BOUND) }}</span></dt>
 <dd><input type="file" id="album-previews" name="previews[]" accept="image/jpeg,image/png,image/gif" required{% if ALBUM_COUNT > 1 %} multiple{% endif %}></dd></dl>{% endif %}
 <dl><dt><label for="album-title">{L_SUBJECT}</label><br><span>{L_PLUS_ALBUM_FILENAME_TITLE}</span></dt><dd><input class="inputbox" id="album-title" name="title" maxlength="255" value="{{ ALBUM_TITLE|e('html_attr') }}"></dd></dl>

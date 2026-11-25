@@ -128,6 +128,7 @@ def browse(base, administrator, member, owner, check):
         raise RuntimeError("An inactive owner still has an advertised member directory")
     check("active")
     gallery_media.manual(administrator, owner, guest, root, check)
+    gallery_media.resize(administrator, owner, root, check)
 
 
 def configuration(administrator, owner, guest, root):

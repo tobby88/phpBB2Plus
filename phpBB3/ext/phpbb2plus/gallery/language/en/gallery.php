@@ -1,6 +1,8 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_RESIZE_HINT' => 'Pictures exceeding the dimension limits are resized before storage. Resizing an animated GIF keeps its first frame.',
+	'PLUS_ALBUM_RESIZE_FAILED' => 'The picture could not be resized. Please upload a smaller copy.',
 	'PLUS_ALBUM_PREVIEWS' => 'Thumbnails', 'PLUS_ALBUM_PREVIEW_FILES' => 'Select one thumbnail for each picture, in the same format and order. The longest edge may be up to %d pixels.',
 	'PLUS_ALBUM_BAD_PREVIEW' => 'Each picture needs a matching thumbnail in the same format and within the indicated dimensions.',
 	'PLUS_ALBUM_NO_FILE_SLOTS' => 'The PHP configuration allows too few files per request for this upload.',

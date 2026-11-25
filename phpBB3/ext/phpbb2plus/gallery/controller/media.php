@@ -1,6 +1,7 @@
 <?php
 namespace phpbb2plus\gallery\controller;
 
+use phpbb2plus\gallery\service\raster;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
@@ -36,20 +37,6 @@ class media
 			throw new ServiceUnavailableHttpException();
 		}
 		return $size;
-	}
-
-	private function rotate_jpeg($image, $path)
-	{
-		if (!function_exists('exif_read_data')) { return $image; }
-		$exif = @exif_read_data($path, 'IFD0', true);
-		$o = (int) ($exif['IFD0']['Orientation'] ?? 1);
-		if (in_array($o, array(2,5,7), true)) { imageflip($image, IMG_FLIP_HORIZONTAL); }
-		if ($o === 4) { imageflip($image, IMG_FLIP_VERTICAL); }
-		$angles = array(3 => 180, 5 => 90, 6 => -90, 7 => -90, 8 => 90);
-		if (!isset($angles[$o])) { return $image; }
-		$rotated = imagerotate($image, $angles[$o], 0);
-		if (!$rotated) { throw new ServiceUnavailableHttpException(); }
-		return $rotated;
 	}
 
 	private function apply_mark($image, $path, $position, $strength)
@@ -108,7 +95,7 @@ class media
 		$mark_size = $strength ? $this->image_info($mark, 'image/png') : array(0,0);
 		$mark_hash = $strength ? hash_file('sha256', $mark) : '';
 		if ($strength && !$mark_hash) { throw new ServiceUnavailableHttpException(); }
-		$key = implode(':', array('v1', $pic['storage_name'], $preview, $width, $height, $size, $quality, $strength, $position, $mark_hash));
+		$key = implode(':', array('v2', $pic['storage_name'], $preview, $width, $height, $size, $quality, $strength, $position, $mark_hash));
 		$cached = $directory . '/gallery_cache_' . substr($pic['storage_name'], 8) . '_' . hash_hmac('sha256', $key, $this->config['plus_gallery_media_key']);
 		$use_cache = $size === 'small' ? (int) $this->access->setting('thumbnail_cache', 1) : (int) $this->access->setting('midthumb_cache', 1, 'sp');
 		if ($use_cache && is_file($cached) && !is_link($cached)) { return $this->response($cached, $mime); }
@@ -119,28 +106,16 @@ class media
 			throw new ServiceUnavailableHttpException();
 		}
 		$image = @$decoders[$mime]($source);
+		if ($image && $mime === 'image/jpeg') { $image = raster::orient($image, raster::orientation($source)); }
 		if (!$image) { throw new ServiceUnavailableHttpException(); }
-		if ($mime === 'image/jpeg') { $image = $this->rotate_jpeg($image, $source); }
 		if ($strength) { $this->apply_mark($image, $mark, $position, $strength); }
-		$ratio = $size === 'full' ? 1 : min(1, $width/imagesx($image), $height/imagesy($image));
-		if ($ratio < 1)
-		{
-			$w = max(1, (int) round(imagesx($image) * $ratio));
-			$h = max(1, (int) round(imagesy($image) * $ratio));
-			$scaled = imagecreatetruecolor($w, $h);
-			if (!$scaled) { throw new ServiceUnavailableHttpException(); }
-			imagealphablending($scaled, false);
-			imagesavealpha($scaled, true);
-			if (!imagecopyresampled($scaled, $image, 0, 0, 0, 0, $w, $h, imagesx($image), imagesy($image))) { throw new ServiceUnavailableHttpException(); }
-			$image = $scaled;
-		}
+		if ($size !== 'full') { $image = raster::fit($image, $width, $height, $mime); }
+		if (!$image) { throw new ServiceUnavailableHttpException(); }
 		$temp = tempnam($directory, 'album-');
 		try
 		{
 			if (!$temp || dirname($temp) !== $directory) { throw new ServiceUnavailableHttpException(); }
-			if ($mime === 'image/jpeg') { $written = imagejpeg($image, $temp, $quality); }
-			elseif ($mime === 'image/png') { $written = imagepng($image, $temp); }
-			else { $written = imagegif($image, $temp); }
+			$written = raster::encode($image, $temp, $mime, $quality);
 			if (!$written || !filesize($temp)) { throw new ServiceUnavailableHttpException(); }
 			if ($use_cache)
 			{

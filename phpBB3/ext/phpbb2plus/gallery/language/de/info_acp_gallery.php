@@ -2,6 +2,15 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_PERSONAL_ALBUMS' => 'Persönliche Fotoalben',
+	'ACP_PLUS_ALBUM_UPLOADS' => 'Fotoalbum-Uploads', 'LOG_PLUS_ALBUM_UPLOADS' => '<strong>Einstellungen für Fotoalbum-Uploads geändert</strong>',
+	'PLUS_ALBUM_CFG_MEDIA_EXPLAIN' => 'Die Bildverkleinerung greift bei neuen Uploads oberhalb der zulässigen Bildmaße. Das Seitenverhältnis bleibt erhalten. Die Dateigrößengrenze gilt für das gespeicherte Bild und jede mitgelieferte Vorschau.',
+	'PLUS_ALBUM_CFG_GD_VERSION' => 'Vorschaubilder', 'PLUS_ALBUM_CFG_AUTO' => 'Automatisch erzeugen',
+	'PLUS_ALBUM_CFG_GD1' => 'Automatisch erzeugen (ursprünglicher GD1-Modus)', 'PLUS_ALBUM_CFG_MANUAL' => 'Mit jedem Bild hochladen',
+	'PLUS_ALBUM_CFG_THUMBNAIL_SIZE' => 'Maximale Kantenlänge einer Vorschau in Pixeln',
+	'PLUS_ALBUM_CFG_MAX_FILE_SIZE' => 'Maximale Dateigröße in Bytes', 'PLUS_ALBUM_CFG_MAX_WIDTH' => 'Maximale Bildbreite in Pixeln',
+	'PLUS_ALBUM_CFG_MAX_HEIGHT' => 'Maximale Bildhöhe in Pixeln', 'PLUS_ALBUM_CFG_RESIZE_PIC' => 'Zu große Bilder beim Upload verkleinern',
+	'PLUS_ALBUM_CFG_RESIZE_WIDTH' => 'Zielbreite in Pixeln', 'PLUS_ALBUM_CFG_RESIZE_HEIGHT' => 'Zielhöhe in Pixeln',
+	'PLUS_ALBUM_CFG_RESIZE_QUALITY' => 'JPEG-Qualität beim Verkleinern (0–100)',
 	'LOG_PLUS_PERSONAL_ALBUMS' => '<strong>Einstellungen für persönliche Fotoalben geändert</strong>',
 	'PLUS_ALBUM_CFG_EXPLAIN' => 'Die Berechtigung zum Anlegen persönlicher Alben lässt sich einzelnen Mitgliedern und Gruppen zuweisen. Bei einer Beschränkung auf Album-Administratoren dürfen nur diese weitere Bilder in persönliche Alben hochladen. Die Standard-Sichtbarkeit gilt für neu angelegte Alben. Bei Mengenbegrenzungen steht −1 für unbegrenzt, 0 verhindert weitere Bilder oder Unteralben.',
 	'PLUS_ALBUM_CFG_PERSONAL_GALLERY' => 'Wer ein persönliches Album anlegen darf',
@@ -15,6 +24,6 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_CFG_SELECTED' => 'Mitglieder mit der Benutzerberechtigung',
 	'PLUS_ALBUM_CFG_PRIVATE' => 'Privat', 'PLUS_ALBUM_CFG_MODS' => 'Album-Moderatoren', 'PLUS_ALBUM_CFG_ADMINS' => 'Album-Administratoren',
 	'PLUS_ALBUM_CFG_YES' => 'Ja', 'PLUS_ALBUM_CFG_NO' => 'Nein', 'PLUS_ALBUM_CFG_IMPORTED' => 'Übernommener Wert (%s)',
-	'PLUS_ALBUM_CONFIG_INVALID' => 'Prüfe den Wert für „%s“. Zulässig sind die angebotenen Auswahlmöglichkeiten und ganze Mengen von −1 bis 2147483647.',
+	'PLUS_ALBUM_CONFIG_INVALID' => 'Prüfe den Wert für „%s“.',
 	'PLUS_ALBUM_CONFIG_CHANGED' => 'Die Album-Einstellungen wurden inzwischen geändert. Prüfe die aktuellen Werte vor dem Speichern.',
 ));

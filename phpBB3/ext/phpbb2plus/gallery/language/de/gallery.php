@@ -1,6 +1,8 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_RESIZE_HINT' => 'Bei zu großen Bildmaßen wird das Bild vor dem Speichern verkleinert. Bei animierten GIFs bleibt dabei das erste Einzelbild erhalten.',
+	'PLUS_ALBUM_RESIZE_FAILED' => 'Das Bild ließ sich nicht verkleinern. Bitte lade eine kleinere Fassung hoch.',
 	'PLUS_ALBUM_PREVIEWS' => 'Vorschaubilder', 'PLUS_ALBUM_PREVIEW_FILES' => 'Wähle pro Bild eine Vorschau im selben Dateiformat und in derselben Reihenfolge. Die längste Seite darf %d Pixel haben.',
 	'PLUS_ALBUM_BAD_PREVIEW' => 'Jedes Bild braucht eine passende Vorschau im selben Dateiformat innerhalb der angegebenen Größe.',
 	'PLUS_ALBUM_NO_FILE_SLOTS' => 'Die PHP-Konfiguration erlaubt für diesen Upload zu wenige Dateien pro Anfrage.',

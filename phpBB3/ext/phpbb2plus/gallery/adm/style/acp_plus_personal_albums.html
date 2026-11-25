@@ -1,12 +1,12 @@
 <!-- INCLUDE overall_header.html -->
-<h1>{L_ACP_PLUS_PERSONAL_ALBUMS}</h1>
+<h1>{{ ALBUM_SETTINGS_TITLE|e }}</h1>
 {% if ALBUM_ERROR %}<div class="errorbox"><p>{{ ALBUM_ERROR|e }}</p></div>{% elseif S_SAVED %}<div class="successbox"><p>{L_CONFIG_UPDATED}</p></div>{% endif %}
-<form id="album-personal-settings" action="{U_ACTION}" method="post">
-<fieldset><legend>{L_ACP_PLUS_PERSONAL_ALBUMS}</legend>
-<p>{L_PLUS_ALBUM_CFG_EXPLAIN}</p>
+<form id="album-{% if S_MEDIA %}media{% else %}personal{% endif %}-settings" action="{U_ACTION}" method="post">
+<fieldset><legend>{{ ALBUM_SETTINGS_TITLE|e }}</legend>
+<p>{{ ALBUM_SETTINGS_EXPLAIN|e }}</p>
 {% for field in loops.controls %}<dl><dt><label for="opt-{{ field.NAME }}">{{ field.LABEL|e }}</label></dt><dd>
 {% if field.IS_SELECT %}<select name="{{ field.NAME }}" id="opt-{{ field.NAME }}">{% for option in field.options %}<option value="{{ option.VALUE|e('html_attr') }}"{% if option.SELECTED %} selected{% endif %}>{{ option.LABEL|e }}</option>{% endfor %}</select>
-{% else %}<input type="number" id="opt-{{ field.NAME }}" name="{{ field.NAME }}" value="{{ field.VALUE|e('html_attr') }}" step="1" max="2147483647" required>{% endif %}
+{% else %}<input type="number" id="opt-{{ field.NAME }}" name="{{ field.NAME }}" value="{{ field.VALUE|e('html_attr') }}" step="1" min="{{ field.MIN }}" max="{{ field.MAX }}" required>{% endif %}
 </dd></dl>{% endfor %}
 </fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{REVISION}">{S_FORM_TOKEN}
 <button class="button1" type="submit">{L_SUBMIT}</button></fieldset></form>

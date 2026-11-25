@@ -79,6 +79,27 @@ elseif ($argv[2] === 'preview_cleanup')
 	if (is_file($thumb) || is_file($dir . '/' . $name) || (int) album_fixture_value("SELECT COUNT(*) FROM $trash WHERE storage_name='$name'"))
 	{ throw new RuntimeException('The expired receipt failed to remove its protected thumbnail and original'); }
 }
+elseif ($argv[2] === 'resize_rendered')
+{
+	$dir = realpath($config['upload_path']);
+	foreach (array('PNG resized' => array(20,12,'image/png'), 'Portrait resized' => array(2,18,'image/jpeg')) as $title => $want)
+	{
+		$result = $db->sql_query("SELECT storage_name,media_type,width,height,bytes FROM {$g}pics WHERE title='" . $db->sql_escape($title) . "'");
+		$pic = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if (!$pic || !preg_match('/^gallery_[a-f0-9]{64}$/D', $pic['storage_name'])) { throw new RuntimeException('Missing resized upload'); }
+		$file = $dir . '/' . $pic['storage_name'];
+		$actual = getimagesize($file);
+		if (array((int) $pic['width'], (int) $pic['height'], $pic['media_type']) !== $want ||
+			array($actual[0],$actual[1],$actual['mime']) !== $want || (int) $pic['bytes'] !== filesize($file))
+		{ throw new RuntimeException('Resized size, proportions, MIME type or orientation disagree with the stored file'); }
+		if ($title === 'PNG resized')
+		{
+			$image = imagecreatefrompng($file);
+			if ((imagecolorat($image, 0, 0) >> 24) !== 127) { throw new RuntimeException('A transparent uploaded PNG lost its alpha channel'); }
+		}
+	}
+}
 elseif ($argv[2] === 'complete')
 {
 	$roots = (int) album_fixture_value("SELECT COUNT(*) FROM {$g}cats WHERE owner_id=87 AND parent_id=0");
