@@ -43,7 +43,7 @@
 {% if grid.pictures %}
 <ul class="plus-album-grid" style="--album-columns:{{ grid.COLUMNS }}; --album-mobile-columns:{{ grid.MOBILE_COLUMNS }}">
 {% for pic in grid.pictures %}
-<li><a href="{{ pic.U_PICTURE }}">{% if pic.U_THUMB %}<img loading="lazy" src="{{ pic.U_THUMB }}" alt="">{% else %}<span>{L_PLUS_ALBUM_MISSING_IMAGE}</span>{% endif %}<strong>{{ pic.TITLE|e }}</strong></a>
+<li><a href="{{ pic.U_FULL ?: pic.U_PICTURE }}"{% if pic.U_FULL %} target="_blank" rel="noopener noreferrer"{% endif %}>{% if pic.U_THUMB %}<img loading="lazy" src="{{ pic.U_THUMB }}" alt="">{% else %}<span>{L_PLUS_ALBUM_MISSING_IMAGE}</span>{% endif %}<strong>{{ pic.TITLE|e }}</strong></a>
 <dl class="plus-album-caption">
 <dt>{L_AUTHOR}</dt><dd>{{ pic.AUTHOR }}</dd>
 {% if pic.U_CATEGORY %}<dt>{L_PLUS_ALBUM}</dt><dd><a href="{{ pic.U_CATEGORY }}">{{ pic.CATEGORY|e }}</a></dd>{% endif %}

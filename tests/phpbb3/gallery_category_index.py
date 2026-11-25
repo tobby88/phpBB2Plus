@@ -1,6 +1,7 @@
 """Read the public and personal album directories through four real browser sessions."""
 from html import unescape
 import re
+from gallery import category_grid
 
 
 def browse(administrator, member, applicant, guest, check):
@@ -103,7 +104,15 @@ def browse(administrator, member, applicant, guest, check):
         row = rows(guest, 880)[881]
         if "/album/picture/28004/full" not in latest(row, "picture")[1] or row.count('target="_blank" rel="noopener noreferrer"') != 2:
             raise RuntimeError("The configured full-size picture links did not open separately")
+        grid_url = "app.php/album/category/883"
+        popup_grid = category_grid(guest.fetch(grid_url))
+        image = re.search(r'<a href="([^"]*/album/picture/28004/full(?:\?[^"]*)?)" target="_blank" rel="noopener noreferrer">', popup_grid)
+        if not image or not guest.fetch(unescape(image[1]), raw=True).startswith(b"\x89PNG\r\n\x1a\n"):
+            raise RuntimeError("A normal gallery thumbnail did not open its full image")
         check("minimal")
+        inline_grid = category_grid(guest.fetch(grid_url))
+        if 'target="_blank"' in inline_grid or not re.search(r'<a href="[^"]*/album/picture/28004(?:\?[^"]*)?">', inline_grid):
+            raise RuntimeError("Disabling the full-image popup did not restore the picture page")
         row = rows(guest, 880)[881]
         if children(row) or any(key in row for key in ("data-album-new", "data-album-count", "plus-album-index-thumb", "data-album-last-")):
             raise RuntimeError("Disabled directory details remained visible")

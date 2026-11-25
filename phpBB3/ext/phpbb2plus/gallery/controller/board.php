@@ -90,6 +90,7 @@ class board
 
 	private function grid_rows($heading, $pictures, $columns, $rate, $context = array())
 	{
+		$popup = (int) $this->access->setting('fullpic_popup', 0) === 1;
 		$this->template->assign_block_vars('album_grids', array('HEADING' => $this->language->lang($heading),
 			'S_CATEGORY' => $heading === 'PLUS_ALBUM_PICTURES', 'S_RECENT' => $heading === 'PLUS_ALBUM_RECENT',
 			'COLUMNS' => $columns, 'MOBILE_COLUMNS' => min(2, $columns)));
@@ -108,6 +109,7 @@ class board
 				'AUTHOR' => $this->byline->display($pic), 'VIEWS' => (int) $pic['views'], 'S_RATE' => $rate,
 				'RATING' => $rate && (float) $pic['rating'] > 0 ? number_format((float) $pic['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), '') : '',
 				'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params + $context),
+				'U_FULL' => $popup && $pic['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')) : '',
 				'U_THUMB' => $pic['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small')) : ''));
 		}
 	}
