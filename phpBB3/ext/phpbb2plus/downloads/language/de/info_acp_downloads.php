@@ -1,0 +1,26 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DOWNLOADS'=>'Downloads', 'ACP_PLUS_DL_CATEGORIES'=>'Downloadkategorien verwalten',
+	'ACP_PLUS_DL_NAME'=>'Kategorie', 'ACP_PLUS_DL_DESC'=>'Beschreibung', 'ACP_PLUS_DL_ACTIONS'=>'Aktionen',
+	'ACP_PLUS_DL_CREATE'=>'Kategorie erstellen', 'ACP_PLUS_DL_EDIT'=>'Kategorie bearbeiten', 'ACP_PLUS_DL_DELETE'=>'Kategorie entfernen',
+	'ACP_PLUS_DL_UP'=>'Nach oben', 'ACP_PLUS_DL_DOWN'=>'Nach unten', 'ACP_PLUS_DL_ROOT'=>'Oberste Ebene', 'ACP_PLUS_DL_PARENT'=>'Übergeordnete Kategorie',
+	'ACP_PLUS_DL_ALLOW_FILES'=>'Downloads in dieser Kategorie zulassen', 'ACP_PLUS_DL_ALLOW_RATINGS'=>'Bewertungen zulassen',
+	'ACP_PLUS_DL_ALLOW_COMMENTS'=>'Kommentare zulassen', 'ACP_PLUS_DL_INITIAL'=>'Anfänglicher Zugriff',
+	'ACP_PLUS_DL_PRIVATE'=>'Nur Downloadadministratoren', 'ACP_PLUS_DL_LEGACY'=>'Historische paFileDB-Vorgaben (auch Gäste können lesen und einreichen)',
+	'ACP_PLUS_DL_AFFECTED'=>'Downloads in dieser Kategorie (%1$d) · Unterkategorien (%2$d) · Downloads in den Unterkategorien (%3$d) · Gruppen- und Benutzerfreigaben im Teilbaum (%4$d)',
+	'ACP_PLUS_DL_MOVE_ACCESS'=>'Verschobene Kategorien behalten ihre eigenen Freigaben. Zusätzlich gelten die Leserechte ihrer neuen übergeordneten Kategorien.',
+	'ACP_PLUS_DL_REMOVE_HELP'=>'Die Dateiauswahl betrifft alle Downloads der entfernten Kategorien. Verschobene Unterkategorien behalten ihre Dateien und Freigaben. Verschobene Downloads unterliegen den Zugriffsrechten des Ziels. Beim Entfernen gehen die Freigaben der entfernten Kategorien verloren.',
+	'ACP_PLUS_DL_CHILDREN'=>'Unterkategorien', 'ACP_PLUS_DL_MOVE_CHILDREN'=>'Mit ihrem Inhalt verschieben', 'ACP_PLUS_DL_DELETE_CHILDREN'=>'Alle Unterkategorien entfernen',
+	'ACP_PLUS_DL_CHILD_TARGET'=>'Neue übergeordnete Kategorie', 'ACP_PLUS_DL_FILES'=>'Downloads', 'ACP_PLUS_DL_MOVE_FILES'=>'Downloads mit ihren zugehörigen Daten verschieben',
+	'ACP_PLUS_DL_DELETE_FILES'=>'Downloads mit Dateien, Spiegelservern, Kommentaren und Bewertungen löschen', 'ACP_PLUS_DL_FILE_DEST'=>'Ziel für verschobene Downloads',
+	'ACP_PLUS_DL_CONFIRM'=>'Ich bestätige das Entfernen der Kategorie mit der gewählten Behandlung ihrer Inhalte.',
+	'ACP_PLUS_DL_EMPTY'=>'Es gibt noch keine Downloadkategorien.', 'ACP_PLUS_DL_INVALID_PARENT'=>'Übergeordnete Kategorie prüfen',
+	'ACP_PLUS_DL_CATALOGUE_CHANGED'=>'Die Kategorien, ihre Freigaben oder die betroffenen Downloads wurden inzwischen geändert. Öffne das Formular bitte erneut.',
+	'ACP_PLUS_DL_CATEGORY_INVALID'=>'Gib einen gültigen Kategorienamen und gültige Kategorieangaben ein.',
+	'ACP_PLUS_DL_TREE_INVALID'=>'Wähle eine gültige übergeordnete Kategorie außerhalb des betroffenen Teilbaums.',
+	'ACP_PLUS_DL_FOLDER_CONFLICT'=>'Eine Kategorie ohne eigene Downloads kann keine weitere solche Ordnerkategorie direkt enthalten.',
+	'ACP_PLUS_DL_FOLDER_HAS_FILES'=>'Verschiebe oder entferne zuerst die direkt enthaltenen Downloads, bevor du die Kategorie in einen Ordner umwandelst.',
+	'ACP_PLUS_DL_REMOVAL_CHOICE'=>'Wähle die Behandlung der Unterkategorien und Downloads und bestätige das Entfernen.',
+	'ACP_PLUS_DL_FILE_TARGET'=>'Wähle für die Downloads eine bestehen bleibende Kategorie, die Dateien zulässt.',
+));

@@ -187,6 +187,7 @@ class submissions
 		{
 			foreach (array('file'=>$file, 'preview'=>$preview) as $kind => $item) { $assets[$kind] = $this->media->reserve($item); }
 			$this->db->sql_transaction('begin');
+			$this->access->lock_catalogue(false);
 			$this->db->sql_query('UPDATE ' . $this->prefix . 'categories SET cat_id=cat_id WHERE cat_id=' . $category);
 			$this->access->refresh();
 			if (!$this->access->can_submit($category)) { throw new NotFoundHttpException(); }
@@ -250,7 +251,7 @@ class submissions
 				$row['cat_id'] = $category;
 				$this->db->sql_query('UPDATE ' . $this->prefix . 'files SET ' . $this->db->sql_build_array('UPDATE', $row) . ' WHERE file_id=' . (int) $id);
 				$this->save_fields($id, $fields, true);
-			});
+			}, true);
 		}
 		catch (\Throwable $e)
 		{
@@ -259,16 +260,30 @@ class submissions
 		}
 	}
 
-	private function purge($file)
+	public function purge_category_files($ids)
 	{
-		$where = ' WHERE file_id=' . (int) $file['file_id'];
-		$names = array($file['storage_name'], $file['preview_name']);
-		$result = $this->db->sql_query('SELECT storage_name FROM ' . $this->prefix . 'mirrors' . $where);
-		while ($mirror = $this->db->sql_fetchrow($result)) { $names[] = $mirror['storage_name']; }
-		$this->db->sql_freeresult($result);
-		foreach (array_unique($names) as $name) { $this->media->queue($name); }
-		foreach (array('mirrors','field_values','comments','votes','visitors','files') as $table)
-		{ $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . $where); }
+		if (!$this->access->catalogue_admin() || !$this->db->get_transaction()) { throw new NotFoundHttpException(); }
+		$this->purge($ids);
+	}
+
+	private function purge($ids)
+	{
+		foreach (array_chunk($ids, 200) as $batch)
+		{
+			$where = ' WHERE ' . $this->db->sql_in_set('file_id', $batch);
+			$files = $this->prefix . 'files';
+			$result = $this->db->sql_query("SELECT storage_name AS name FROM $files" . $where .
+				" UNION SELECT preview_name AS name FROM $files" . $where . ' UNION SELECT storage_name AS name FROM ' . $this->prefix . 'mirrors' . $where);
+			$queue = array();
+			while ($row = $this->db->sql_fetchrow($result))
+			{
+				if (preg_match('/^download_[a-f0-9]{64}$/D', $row['name'])) { $queue[] = array('storage_name'=>$row['name'],'queued_at'=>time()); }
+			}
+			$this->db->sql_freeresult($result);
+			foreach (array_chunk($queue,200) as $group) { $this->db->sql_multi_insert($this->prefix . 'media_queue',$group); }
+			foreach (array('mirrors','field_values','comments','votes','visitors','files') as $table)
+			{ $this->db->sql_query('DELETE FROM ' . $this->prefix . $table . $where); }
+		}
 		// Keep submission receipts through their form lifetime so a retry cannot recreate a removed item.
 	}
 
@@ -277,7 +292,7 @@ class submissions
 		$this->access->write($id, function ($current) use ($revision) {
 			if (!$this->access->can_manage($current, 'delete_file')) { throw new NotFoundHttpException(); }
 			if ((int) $current['review_revision'] !== $revision) { throw new \DomainException('PLUS_DL_EDIT_CHANGED', 409); }
-			$this->purge($current);
+			$this->purge(array((int) $current['file_id']));
 		});
 	}
 
@@ -297,7 +312,7 @@ class submissions
 					',review_revision=review_revision+1' . $where);
 				return $cat;
 			}
-			$this->purge($file);
+			$this->purge(array($id));
 			return $cat;
 		});
 	}

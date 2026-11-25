@@ -1,0 +1,26 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DOWNLOADS'=>'Downloads', 'ACP_PLUS_DL_CATEGORIES'=>'Manage download categories',
+	'ACP_PLUS_DL_NAME'=>'Category', 'ACP_PLUS_DL_DESC'=>'Description', 'ACP_PLUS_DL_ACTIONS'=>'Actions',
+	'ACP_PLUS_DL_CREATE'=>'Create category', 'ACP_PLUS_DL_EDIT'=>'Edit category', 'ACP_PLUS_DL_DELETE'=>'Remove category',
+	'ACP_PLUS_DL_UP'=>'Move up', 'ACP_PLUS_DL_DOWN'=>'Move down', 'ACP_PLUS_DL_ROOT'=>'Top level', 'ACP_PLUS_DL_PARENT'=>'Parent category',
+	'ACP_PLUS_DL_ALLOW_FILES'=>'Allow downloads in this category', 'ACP_PLUS_DL_ALLOW_RATINGS'=>'Allow ratings',
+	'ACP_PLUS_DL_ALLOW_COMMENTS'=>'Allow comments', 'ACP_PLUS_DL_INITIAL'=>'Initial access',
+	'ACP_PLUS_DL_PRIVATE'=>'Download administrators only', 'ACP_PLUS_DL_LEGACY'=>'Historical paFileDB defaults (guests can also read and submit)',
+	'ACP_PLUS_DL_AFFECTED'=>'Downloads in this category (%1$d) · Subcategories (%2$d) · Downloads in subcategories (%3$d) · Group and user grants in the subtree (%4$d)',
+	'ACP_PLUS_DL_MOVE_ACCESS'=>'Moved categories keep their own grants. Read access also depends on the new parent categories.',
+	'ACP_PLUS_DL_REMOVE_HELP'=>'The file choice applies to every download in categories being removed. Moved subcategories keep their files and grants. Moved downloads use the access rules of their destination. Removing a category also removes its grants.',
+	'ACP_PLUS_DL_CHILDREN'=>'Subcategories', 'ACP_PLUS_DL_MOVE_CHILDREN'=>'Move with their contents', 'ACP_PLUS_DL_DELETE_CHILDREN'=>'Remove all subcategories',
+	'ACP_PLUS_DL_CHILD_TARGET'=>'New parent for subcategories', 'ACP_PLUS_DL_FILES'=>'Downloads', 'ACP_PLUS_DL_MOVE_FILES'=>'Move downloads with their related data',
+	'ACP_PLUS_DL_DELETE_FILES'=>'Delete downloads with files, mirrors, comments and ratings', 'ACP_PLUS_DL_FILE_DEST'=>'Destination for moved downloads',
+	'ACP_PLUS_DL_CONFIRM'=>'I confirm removal of the category and my choices for its contents.',
+	'ACP_PLUS_DL_EMPTY'=>'There are no download categories yet.', 'ACP_PLUS_DL_INVALID_PARENT'=>'Check parent category',
+	'ACP_PLUS_DL_CATALOGUE_CHANGED'=>'The categories, grants or affected downloads have changed. Open the current form before continuing.',
+	'ACP_PLUS_DL_CATEGORY_INVALID'=>'Enter a valid category name and category details.',
+	'ACP_PLUS_DL_TREE_INVALID'=>'Choose a valid parent outside the affected subtree.',
+	'ACP_PLUS_DL_FOLDER_CONFLICT'=>'A folder that does not accept files cannot directly contain another folder of this kind.',
+	'ACP_PLUS_DL_FOLDER_HAS_FILES'=>'Move or remove the direct downloads before changing this category to a folder.',
+	'ACP_PLUS_DL_REMOVAL_CHOICE'=>'Choose how to handle both subcategories and downloads, then confirm removal.',
+	'ACP_PLUS_DL_FILE_TARGET'=>'Select a surviving category that accepts files for the moved downloads.',
+));

@@ -32,4 +32,5 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_DL_EDIT_CHANGED'=>'Der Download wurde inzwischen bearbeitet oder sein Freigabestatus geändert. Öffne die aktuelle Fassung vor dem Fortfahren.',
 	'PLUS_DL_RELOAD'=>'Aktuelle Fassung zum Bearbeiten öffnen', 'PLUS_DL_BAD_DESTINATION'=>'Wähle eine für dich verfügbare Zielkategorie.',
 	'PLUS_DL_MISSING_LICENSE'=>'Bisherige Lizenz Nr. %d (nicht verfügbar)',
+	'ACL_A_PLUS_DL_CATEGORIES'=>'Kann Downloadkategorien verwalten',
 ));

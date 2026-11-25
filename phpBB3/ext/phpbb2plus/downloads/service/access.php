@@ -40,6 +40,26 @@ class access
 
 	public function admin() { return !empty($this->user->data['is_registered']) && $this->auth->acl_get('a_plus_downloads'); }
 
+	public function catalogue_admin()
+	{
+		return defined('IN_ADMIN') && IN_ADMIN && !empty($this->user->data['session_admin']) &&
+			$this->auth->acl_gets('a_plus_downloads', 'a_plus_dl_categories');
+	}
+
+	// A category change must finish before a file can enter or leave its subtree.
+	// MySQL/MariaDB uploads and file edits can share the stable lock row with one another.
+	public function lock_catalogue($exclusive)
+	{
+		$where = " WHERE config_name='plus_download_media_key'";
+		if (!$exclusive && in_array($this->db->get_sql_layer(), array('mysqli','mysql'), true))
+		{
+			$result = $this->db->sql_query('SELECT config_name FROM ' . CONFIG_TABLE . $where . ' LOCK IN SHARE MODE');
+			$this->db->sql_freeresult($result);
+			return;
+		}
+		$this->db->sql_query('UPDATE ' . CONFIG_TABLE . ' SET config_value=config_value' . $where);
+	}
+
 	public function enabled() { return !(int) $this->setting('settings_disable', 0) || $this->admin(); }
 
 	public function open()
@@ -149,12 +169,13 @@ class access
 
 	public static function plain($value) { return html_entity_decode((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 
-	public function write($id, callable $operation)
+	public function write($id, callable $operation, $can_move = false)
 	{
 		$id = (int) $id;
 		$this->db->sql_transaction('begin');
 		try
 		{
+			if ($can_move) { $this->lock_catalogue(false); }
 			$this->db->sql_query('UPDATE ' . $this->prefix . "files SET file_id=file_id WHERE file_id=$id");
 			$this->refresh();
 			$result = $operation($this->file($id));

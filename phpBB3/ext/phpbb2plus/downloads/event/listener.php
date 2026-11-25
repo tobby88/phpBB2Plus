@@ -36,6 +36,7 @@ class listener implements EventSubscriberInterface
 		$this->language->add_lang('downloads', 'phpbb2plus/downloads');
 		$permissions = $event['permissions'];
 		$permissions['a_plus_downloads'] = array('lang' => 'ACL_A_PLUS_DOWNLOADS', 'cat' => 'misc');
+		$permissions['a_plus_dl_categories'] = array('lang'=>'ACL_A_PLUS_DL_CATEGORIES', 'cat'=>'misc');
 		$event['permissions'] = $permissions;
 	}
 
