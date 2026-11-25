@@ -60,15 +60,18 @@ function plus_import_account_logins($source_user)
 		$after = null;
 		do
 		{
-			$result = $src_db->sql_query_limit("SELECT ct_login_id,ct_login_time,ct_login_ip FROM $source WHERE ct_user_id=$source_user" .
+			$result = $src_db->sql_query_limit("SELECT ct_login_id,ct_login_time,BINARY ct_login_ip AS ct_login_ip FROM $source WHERE ct_user_id=$source_user" .
 				($after === null ? '' : ' AND ct_login_id>' . $after) . ' ORDER BY ct_login_id', 200);
 			$rows = array();
 			while ($row = $src_db->sql_fetchrow($result))
 			{
 				$after = (string) $row['ct_login_id'];
 				if (!ctype_digit($after)) { throw new \RuntimeException('Invalid numeric key in CrackerTracker login history.'); }
+				// The historical viewer displayed this field as text. Preserve an old
+				// label verbatim, independently of the two validated network addresses.
+				$address = utf8_encode_ucr(htmlspecialchars((string) $row['ct_login_ip'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
 				$rows[] = array('user_id' => $id, 'owner_binding' => $binding,
-					'login_time' => (int) $row['ct_login_time'], 'login_ip' => plus_login_address($row['ct_login_ip']));
+					'login_time' => (int) $row['ct_login_time'], 'login_ip' => $address);
 			}
 			$src_db->sql_freeresult($result);
 			if ($rows) { $db->sql_multi_insert($table, $rows); }

@@ -5,7 +5,7 @@
 	{% if loops.account_login|length %}
 		<table class="table1" id="plus-account-logins">
 			<thead><tr><th scope="col">{{ lang('PLUS_LOGIN_WHEN') }}</th><th scope="col">{{ lang('PLUS_LOGIN_ADDRESS') }}</th></tr></thead>
-			<tbody>{% for login in loops.account_login %}<tr class="{{ loop.index is odd ? 'bg1' : 'bg2' }}"><td>{{ login.WHEN }}</td><td>{{ login.ADDRESS }}</td></tr>{% endfor %}</tbody>
+			<tbody>{% for login in loops.account_login %}<tr class="{{ loop.index is odd ? 'bg1' : 'bg2' }}"><td>{{ login.WHEN|e }}</td><td>{{ login.ADDRESS|e }}</td></tr>{% endfor %}</tbody>
 		</table>
 	{% else %}<p>{{ lang('PLUS_LOGIN_EMPTY') }}</p>{% endif %}
 {% else %}<p>{{ lang('PLUS_LOGIN_HISTORY_OFF') }}</p>{% endif %}

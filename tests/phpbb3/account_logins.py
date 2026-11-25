@@ -1,7 +1,9 @@
 """Read the migrated member's private history and exercise the two independent board settings."""
+import os
 import re
+from html import unescape
 
-from http_board import Browser, FormFields, Page, admin_url, submit_form
+from http_board import Browser, FormFields, Page, admin_url, login, submit_form
 
 
 BOOKMARK = "ct_login_history.php"
@@ -9,7 +11,7 @@ BOOKMARK = "ct_login_history.php"
 
 def addresses(body):
     table = re.search(r'<table[^>]*id="plus-account-logins".*?</table>', body, re.S)
-    return re.findall(r'<td>[^<]*</td><td>([^<]*)</td>', table[0]) if table else []
+    return [unescape(value) for value in re.findall(r'<td>[^<]*</td><td>([^<]*)</td>', table[0])] if table else []
 
 
 def disabled(base, member):
@@ -28,7 +30,7 @@ def browse(base, member, admin, fixture):
     if addresses(page) != ["127.0.0.1", "2001:db8:11::82", "2001:db8:11::81"]:
         raise RuntimeError("The portal login, per-member retention or ordering of tied legacy logins changed")
     admin_history = addresses(admin.fetch(BOOKMARK))
-    if admin_history != ["127.0.0.1", "127.0.0.1", "198.51.100.82"]:
+    if admin_history != ["127.0.0.1", "127.0.0.1", "Alt & <Netz> 📷"]:
         raise RuntimeError("The native login and ACP reauthentication did not each record one login for their own account")
     banner = member.fetch("index.php")
     if ('id="plus-login-notice"' not in banner or "2001:db8:33::/48" not in banner or
@@ -76,3 +78,12 @@ def browse(base, member, admin, fixture):
             raise RuntimeError("The history-only policy did not preserve the log and disable network comparison")
     finally:
         settings(1, 1)
+
+    remembered = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], remember=True)
+    before = addresses(remembered.fetch(BOOKMARK))
+    if before[:2] != ["127.0.0.1", "198.51.100.41"] or not any(c.name.endswith("_k") and c.value for c in remembered.cookies):
+        raise RuntimeError("The explicit remembered login did not record exactly one new entry")
+    sid = next(c for c in remembered.cookies if c.name.endswith("_sid"))
+    remembered.cookies.clear(sid.domain, sid.path, sid.name)
+    if addresses(remembered.fetch(BOOKMARK)) != before:
+        raise RuntimeError("Resuming the native remember-me cookie added a second login or lost the account session")

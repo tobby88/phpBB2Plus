@@ -1,6 +1,8 @@
 <?php
 namespace phpbb2plus\community\ucp;
 
+use phpbb\request\request_interface;
+
 class logins_module
 {
 	public $u_action;
@@ -18,8 +20,9 @@ class logins_module
 		if ($request->is_set_post('change'))
 		{
 			if (!check_form_key('plus_account_logins')) { trigger_error('FORM_INVALID', E_USER_WARNING); }
-			$action = $request->variable('change', '');
-			$value = $action === 'preference' ? $request->variable('network_warning', '') : $request->variable('notice_context', '');
+			$action = $request->variable('change', '', false, request_interface::POST);
+			$field = $action === 'preference' ? 'network_warning' : 'notice_context';
+			$value = $request->variable($field, '', false, request_interface::POST);
 			if (!$history->update_choice($id, $action, $value)) { trigger_error('PLUS_LOGIN_CHANGED_AGAIN', E_USER_WARNING); }
 			redirect($this->u_action);
 		}
@@ -27,7 +30,7 @@ class logins_module
 		foreach ($history->recent($id) as $row)
 		{
 			$template->assign_block_vars('account_login', array('WHEN' => $user->format_date((int) $row['login_time']),
-				'ADDRESS' => $row['login_ip'] === '' ? $language->lang('PLUS_LOGIN_UNKNOWN_IP') : $row['login_ip']));
+				'ADDRESS' => $row['login_ip'] === '' ? $language->lang('PLUS_LOGIN_UNKNOWN_IP') : html_entity_decode($row['login_ip'], ENT_QUOTES, 'UTF-8')));
 		}
 		$notice = !empty($config['plus_login_network_check']) ? $history->notice($user->data) : false;
 		$template->assign_vars(array('U_ACTION' => $this->u_action, 'S_PLUS_LOGIN_PANEL' => true,

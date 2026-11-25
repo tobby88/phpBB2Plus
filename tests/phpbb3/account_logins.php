@@ -7,7 +7,7 @@ function seed_account_logins($db, $enabled)
 	$db->query("UPDATE phpbb_users SET ct_enable_ip_warn=0 WHERE user_id=2");
 	$missing = (int) $db->query('SELECT MAX(user_id)+1 FROM phpbb_users')->fetch_row()[0];
 	$db->query("INSERT INTO phpbb_ctracker_loginhistory (ct_login_id,ct_user_id,ct_login_time,ct_login_ip) VALUES
-		(10,1,1570000000,NULL),(82,2,1560000000,'198.51.100.82'),(83,87,1560000000,'198.51.100.87'),
+		(10,1,1570000000,NULL),(82,2,1560000000,'Alt & <Netz> 📷'),(83,87,1560000000,'198.51.100.87'),
 		(91,-1,1690000000,'203.0.113.91'),(92,$missing,1690000000,'203.0.113.92'),
 		(9223372036854775810,1,1600000000,'2001:db8:11::81'),(9223372036854775811,1,1600000000,'2001:db8:11::82')");
 	// A lowered display limit can leave dormant histories longer than a wizard batch.

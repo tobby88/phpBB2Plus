@@ -16,7 +16,7 @@ class v137_account_logins extends \phpbb\db\migration\migration
 			)),
 			'add_tables' => array($this->table_prefix . 'plus_account_logins' => array(
 				'COLUMNS' => array('entry_id' => array('BINT', null, 'auto_increment'), 'user_id' => array('UINT', 0),
-					'owner_binding' => array('VCHAR:32', ''), 'login_time' => array('BINT', 0), 'login_ip' => array('VCHAR:45', '')),
+					'owner_binding' => array('VCHAR:32', ''), 'login_time' => array('BINT', 0), 'login_ip' => array('VCHAR:512', '')),
 				'PRIMARY_KEY' => 'entry_id',
 				'KEYS' => array('account_time' => array('INDEX', array('user_id', 'login_time', 'entry_id'))),
 			)),
