@@ -5,6 +5,14 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 {
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
 	$read_form = in_array($entry, array('album_search', 'album_personal_index'), true);
+	if ($entry === 'dload')
+	{
+		// The original form posted its action to the bare dload.php address.
+		$action = $query['action'] ?? '';
+		if ($method === 'POST' && isset($_POST['action']) && $_POST['action'] !== '') { $action = $_POST['action']; }
+		$read_form = $action === 'search';
+		if ($read_form) { $query['action'] = 'search'; }
+	}
 	if (!in_array($method, array('GET', 'HEAD'), true) && !($read_form && $method === 'POST'))
 	{
 		header($read_form ? 'Allow: GET, HEAD, POST' : 'Allow: GET, HEAD');
@@ -224,8 +232,22 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 					if ($cat = $positive('cat_id')) { $path = 'downloads/category/' . $cat . '/review'; }
 					break;
 				case 'search':
-					$path = 'downloads';
-					if (isset($query['search_keywords']) && is_string($query['search_keywords'])) { $extra['q'] = $query['search_keywords']; }
+					$path = 'downloads/search';
+					foreach (array('search_keywords', 'search_author') as $key)
+					{
+						if (isset($query[$key]) && is_string($query[$key])) { $extra[$key] = $query[$key]; }
+					}
+					$filters = array('search_terms' => array('all', 'any'), 'comments_search' => array('YES', 'NO'),
+						'sort_method' => array('file_name', 'file_time', 'file_dls', 'file_rating', 'rating', 'file_update_time'),
+						'sort_order' => array('ASC', 'DESC'));
+					foreach ($filters as $key => $values)
+					{
+						if (in_array($query[$key] ?? '', $values, true)) { $extra[$key] = $query[$key]; }
+					}
+					foreach (array('cat_id', 'search_id') as $key) { if ($value = $positive($key)) { $extra[$key] = $value; } }
+					if (isset($query['sid']) && is_string($query['sid']) && preg_match('/^[a-f0-9]{32}$/D', $query['sid'])) { $extra['sid'] = $query['sid']; }
+					header('Cache-Control: private, no-store');
+					header('Referrer-Policy: no-referrer');
 					break;
 				case 'category':
 					if ($cat = $positive('cat_id') ?: $nested) { $path = 'downloads/category/' . $cat; }

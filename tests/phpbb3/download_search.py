@@ -1,5 +1,6 @@
 """Search public download text and authorized comments, then revisit scoped results in the same session."""
 import re
+from http.client import HTTPConnection
 from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from urllib.request import Request
 from http_board import Browser, FormFields, Page, submit_form
@@ -26,6 +27,22 @@ def browse(base, member, ordinary, verify):
 
     def search(actor=guest, **query):
         return actor.fetch(path + "?" + urlencode(query))
+
+    # The old form sends its action and words in the body to the bare PHP entry point.
+    origin = urlsplit(base)
+    body = {"action": "search", "search_keywords": "Polarstern", "cat_id": "10830"}
+    conn = HTTPConnection(origin.hostname, origin.port, timeout=15)
+    try:
+        conn.request("POST", origin.path + "dload.php", urlencode(body), {"Content-Type": "application/x-www-form-urlencoded"})
+        response = conn.getresponse()
+        target = urlsplit(urljoin(base, response.getheader("Location", "")))
+        if (response.status != 307 or target.netloc != origin.netloc or target.path != origin.path + path or target.query
+                or "no-store" not in response.getheader("Cache-Control", "")):
+            raise RuntimeError("The historical download form did not privately forward its search to the local catalogue")
+    finally:
+        conn.close()
+    if ids(guest.fetch(target.geturl(), body)) != [10841]:
+        raise RuntimeError("The old download search form lost its submitted terms or chosen category")
 
     def post(**query):
         request = Request(urljoin(base, path), data=urlencode(dict(defaults, **query)).encode())

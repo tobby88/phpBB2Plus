@@ -43,6 +43,7 @@ import download_file_actions
 import download_file_editor
 import download_permissions
 import download_reports
+import download_search
 import download_settings
 import download_licenses
 import download_mirrors
@@ -196,6 +197,8 @@ def download_checks(base, admin, historical, applicant, fixture, target, web, ga
         permissions.result()
         download_reports.browse(base, historical, applicant, lambda phase: php(
             ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
+        download_search.browse(base, historical, applicant, lambda phase: php(
+            ROOT / "tests/phpbb3/download_search.php", target, phase, cwd=web))
         # The settings test temporarily closes the download area and restores its global policy.
         download_settings.administration(admin, historical, lambda phase: php(
             ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
@@ -208,12 +211,16 @@ def download_category_checks(admin, target, web):
     download_categories.administration(admin, verify)
 
 
-def download_report_upgrade(target, web):
-    fixture = ROOT / "tests/phpbb3/download_reports.php"
+def download_upgrades(target, web):
+    fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php")]
+    # The search migration depends on the reports migration. Revert both once,
+    # seed real data in the earlier schema, then run the normal native updater.
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
-    php(fixture, target, "older", cwd=web)
+    for fixture in fixtures:
+        php(fixture, target, "older", cwd=web)
     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
-    php(fixture, target, "upgraded", cwd=web)
+    for fixture in fixtures:
+        php(fixture, target, "upgraded", cwd=web)
 
 
 def module_administration(base, member, ordinary, pending, fixture, target, web, include_downloads):
@@ -292,6 +299,7 @@ def main():
                 (web / "install").rename(root / "finished-installer")
                 php(fixture, "converted", target)
                 php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
+                php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
                 php(statistics_fixture, "converted", target)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True))
                 converted = monotonic()
@@ -311,7 +319,7 @@ def main():
                     php(fixture, "download-voter", target)
                     php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                     php(fixture, "download-departed", target)
-                    download_report_upgrade(target, web)
+                    download_upgrades(target, web)
                     print(f"Verified {count} upstream files, conversion and download workflows in {monotonic()-start:.1f}s")
                     return
                 board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
@@ -451,7 +459,7 @@ def main():
                 delete_policy.exercise(ordinary, member, lambda phase: php(
                     ROOT / "tests/phpbb3/delete_policy.php", target, phase, cwd=web))
                 if args.suite == "all":
-                    download_report_upgrade(target, web)
+                    download_upgrades(target, web)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 

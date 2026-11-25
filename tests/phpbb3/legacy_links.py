@@ -69,6 +69,10 @@ def browse(base, owner, historic_id):
         ("dload.php?action=user_upload&do=delete&file_id=50", "app.php/downloads/file/50/delete", {}, ""),
         ("dload.php?action=mcp&cat_id=2", "app.php/downloads/category/2/review", {}, ""),
         ("dload.php?action=stats", "app.php/downloads/stats", {}, ""),
+        ("dload.php?action=search&search_author=H%2A&cat_id=21&search_terms=all&comments_search=YES&sort_method=rating&sort_order=ASC",
+         "app.php/downloads/search", {"search_author": "H*", "cat_id": 21, "search_terms": "all", "comments_search": "YES",
+                                      "sort_method": "rating", "sort_order": "ASC"}, ""),
+        ("dload.php?action=search&search_id=128&start=4", "app.php/downloads/search", {"search_id": 128, "start": 4}, ""),
         ("dload.php?action=toplist&mode=newest&days=14&selected_date=1136034000", "app.php/downloads/toplist",
          {"mode": "newest", "days": 14, "selected_date": 1136034000}, ""),
         ("dload.php?action=toplist&mode=rating&most_type=per&most_num=5&start=2", "app.php/downloads/toplist",
@@ -103,6 +107,7 @@ def browse(base, owner, historic_id):
     if "Private fixture text" in guest.fetch("fpost40.html") or "Private fixture text" not in owner.fetch("fpost40.html"):
         raise RuntimeError("Old post link changed the forum's read permissions")
     guest.fetch("profile.php?mode=register", {}, expected_status=405)
+    guest.fetch("dload.php?action=search", {"action": "user_upload"}, expected_status=405)
 
 
 def groups(base, owner, member, pending, native_group):
