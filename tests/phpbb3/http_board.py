@@ -88,6 +88,19 @@ class FormFields(HTMLParser):
             self.values[self.textarea] += text
 
 
+def submit_form(actor, url, page, name, changes, status=200):
+    """Submit an already displayed form, retaining its token and original revision."""
+    action, _ = Page(page).forms[name]
+    fields = FormFields(page, name).values
+    for key, value in changes.items():
+        if value is None:
+            fields.pop(key, None)
+        else:
+            fields[key] = value
+    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
+    return actor.fetch(urljoin(urljoin(actor.base, url), action), fields, expected_status=status)
+
+
 class LoopbackRedirect(HTTPRedirectHandler):
     def __init__(self, origin):
         self.origin = origin

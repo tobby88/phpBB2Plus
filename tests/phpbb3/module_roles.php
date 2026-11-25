@@ -30,4 +30,18 @@ foreach (array('ModernMember'=>array(true,0,true),'HistoricMember'=>array(false,
 		throw new RuntimeException('Explicit Arcade, album and Knowledge Base roles diverged for ' . $name);
 	}
 }
-// The subsequent browser workflow submits an article as the Arcade moderator and checks its approval state.
+$desk = new \phpbb2plus\knowledgebase\acp\articles_info();
+$access = $desk->module()['modes']['manage']['auth'];
+require_once './includes/functions_module.php';
+if (p_master::module_auth($access, 0)) { throw new RuntimeException('An unrelated Arcade moderator can access the Knowledge Base desk'); }
+foreach (array(ACL_YES, ACL_NO) as $grant)
+{
+	$writer->acl_set('user', 0, 87, array('a_plus_kb_articles' => $grant));
+	$auth->acl_clear_prefetch(87);
+	$result = $db->sql_query('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=87');
+	$user->data = $db->sql_fetchrow($result) + array('is_registered' => true, 'is_bot' => false);
+	$db->sql_freeresult($result);
+	$auth->acl($user->data);
+	if ((bool) p_master::module_auth($access, 0) !== ($grant === ACL_YES) || (bool) $kb->moderator() !== ($grant === ACL_YES) || $auth->acl_get('a_plus_kb'))
+	{ throw new RuntimeException('Granting or removing article administration changed the wrong capabilities'); }
+}

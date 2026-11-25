@@ -1,0 +1,27 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_KB_ARTICLES}</h1>
+{% if KB_REVIEW %}
+<form id="kb-review" action="{U_SAVE}" method="post">
+	<fieldset><legend>{{ KB_ACTION|e }}</legend>
+		<p><strong><a href="{U_ARTICLE}">{{ KB_TITLE|e }}</a></strong></p>
+		{% if KB_SUMMARY %}<p>{{ KB_SUMMARY|e }}</p>{% endif %}
+		{% if KB_DELETE %}<p>{L_ACP_PLUS_KB_DELETE_EXPLAIN}</p>{% endif %}
+		<input type="hidden" name="revision" value="{KB_REVISION}">{S_FORM_TOKEN}
+	</fieldset>
+	<fieldset class="submit-buttons"><button class="button1" type="submit">{{ KB_ACTION|e }}</button> <a href="{U_BACK}">{L_CANCEL}</a></fieldset>
+</form>
+{% else %}
+<p class="quick">
+{% for filter in loops.kb_filters %}
+	{% if filter.ACTIVE %}<strong>{{ filter.NAME|e }}</strong>{% else %}<a href="{{ filter.URL }}">{{ filter.NAME|e }}</a>{% endif %}{% if not loop.last %} &middot; {% endif %}
+{% endfor %}
+</p>
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_KB_ARTICLE}</th><th>{L_PLUS_KB_CATEGORY}</th><th>{L_PLUS_KB_TYPE}</th><th>{L_AUTHOR}</th><th>{L_STATUS}</th><th>{L_ACTION}</th></tr></thead>
+<tbody>{% for a in loops.kb_articles %}
+<tr><td><a href="{{ a.U_ARTICLE }}">{{ a.TITLE|e }}</a>{% if a.SUMMARY %}<br>{{ a.SUMMARY|e }}{% endif %}</td>
+<td>{{ a.CATEGORY|e }}</td><td>{{ a.TYPE|e }}</td><td>{{ a.AUTHOR|e }}</td><td>{{ a.STATUS|e }}</td>
+<td><a href="{{ a.U_ACTION }}">{{ a.ACTION|e }}</a> &middot; <a href="{{ a.U_DELETE }}">{L_DELETE}</a></td></tr>
+{% else %}<tr><td colspan="6">{L_ACP_PLUS_KB_EMPTY}</td></tr>{% endfor %}</tbody></table>
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

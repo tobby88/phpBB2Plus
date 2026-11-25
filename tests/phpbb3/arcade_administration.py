@@ -1,22 +1,9 @@
 """Use the native Arcade control panel and propose a tournament as a converted member."""
 from html import unescape
 import re
-import time
 from urllib.parse import urljoin
 
-from http_board import FormFields, Page, admin_url
-
-
-def form(actor, url, page, name, changes, status=200):
-    action, _ = Page(page).forms[name]
-    fields = FormFields(page, name).values
-    for key, value in changes.items():
-        if value is None:
-            fields.pop(key, None)
-        else:
-            fields[key] = value
-    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
-    return actor.fetch(urljoin(urljoin(actor.base, url), action), fields, expected_status=status)
+from http_board import FormFields, Page, admin_url, submit_form as form
 
 
 def panel_for(owner, title):

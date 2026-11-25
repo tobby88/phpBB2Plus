@@ -46,6 +46,7 @@ class listener implements EventSubscriberInterface
 	{
 		$permissions = $event['permissions'];
 		$permissions['a_plus_kb'] = array('lang' => 'ACL_A_PLUS_KB', 'cat' => 'misc');
+		$permissions['a_plus_kb_articles'] = array('lang' => 'ACL_A_PLUS_KB_ARTICLES', 'cat' => 'misc');
 		$permissions['m_plus_kb'] = array('lang' => 'ACL_M_PLUS_KB', 'cat' => 'misc');
 		$event['permissions'] = $permissions;
 	}

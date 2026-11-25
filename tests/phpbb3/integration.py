@@ -227,6 +227,7 @@ def main():
                 php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
                 knowledgebase.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
+                knowledgebase.administration(member)
                 gallery.browse(base, member, ordinary, pending)
                 php(ROOT / "tests/phpbb3/gallery_cleanup.php", target, cwd=web)
                 former_names(base, ordinary)

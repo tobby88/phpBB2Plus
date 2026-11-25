@@ -38,7 +38,7 @@ class articles
 
 	public function moderator()
 	{
-		return !empty($this->user->data['is_registered']) && ($this->auth->acl_get('m_plus_kb') || $this->auth->acl_get('a_plus_kb'));
+		return !empty($this->user->data['is_registered']) && $this->auth->acl_gets('m_plus_kb', 'a_plus_kb', 'a_plus_kb_articles');
 	}
 
 	public function may_rate()

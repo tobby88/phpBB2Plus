@@ -3,7 +3,7 @@ import re
 import time
 from html import unescape
 from urllib.parse import urlencode, urljoin
-from http_board import Browser, Page
+from http_board import Browser, Page, admin_url, submit_form
 from gallery import submit
 
 
@@ -106,3 +106,56 @@ def publication(base, guest, author, reviewer, administrator):
     guest.fetch(topic, expected_status=404)
     if "Welche Jahreszeit?" not in guest.fetch("viewtopic.php?t=1"):
         raise RuntimeError("Article deletion did not remove just the managed discussion")
+
+
+def acp_panel(owner, title):
+    entry = admin_url(owner)
+    tab = re.search(r'<a href="([^"]+)">Erweiterungen</a>', owner.fetch(entry))
+    if not tab:
+        raise RuntimeError("The native Extensions tab is missing from the ACP")
+    page = owner.fetch(urljoin(entry, unescape(tab[1])))
+    links = re.findall(r'<a href="([^"]+)"><span>' + re.escape(title) + r'</span>', page)
+    if len(links) != 1:
+        raise RuntimeError("Expected exactly one Knowledge Base ACP entry for " + title)
+    return urljoin(entry, unescape(links[0]))
+
+
+def administration(owner):
+    panel = acp_panel(owner, "Artikel verwalten")
+    guest = Browser(owner.base)
+    article = "app.php/knowledge/article/203"
+    title = "Überarbeitete Anleitung"
+    listing = owner.fetch(panel)
+
+    def link(page, fragment):
+        urls = [unescape(url) for url in re.findall(r'<a href="([^"]+)"', page) if fragment in unescape(url)]
+        if len(urls) != 1:
+            raise RuntimeError("Expected one Knowledge Base ACP link for " + fragment)
+        return urljoin(panel, urls[0])
+
+    pending = link(listing, "&status=pending")
+    published = link(listing, "&status=published")
+    edited = link(listing, "&status=edited")
+    queue = owner.fetch(edited)
+    if (title not in queue or "Ungeprüfte Anleitung" in queue or "Öffentliche Anleitung" in queue
+            or "Ungeprüfte Anleitung" not in owner.fetch(pending) or title in owner.fetch(published)):
+        raise RuntimeError("The article desk lost the distinction between edits, new submissions and published articles")
+    delete = link(queue, "article_id=203&action=delete")
+    approve = link(queue, "article_id=203&action=approve")
+    original = owner.fetch(delete)
+    review = owner.fetch(approve)
+    guest.fetch(article, expected_status=404)
+    after = submit_form(owner, approve, review, "kb-review", {})
+    if title in after or title not in guest.fetch(article):
+        raise RuntimeError("Approving an edit failed to publish it or lost the ACP queue filter")
+    conflict = submit_form(owner, delete, original, "kb-review", {})
+    if "inzwischen geändert" not in conflict:
+        raise RuntimeError("A stale ACP deletion confirmation was accepted after publication")
+    withdraw = link(owner.fetch(published), "article_id=203&action=unapprove")
+    submit_form(owner, withdraw, owner.fetch(withdraw), "kb-review", {})
+    guest.fetch(article, expected_status=404)
+    delete = link(owner.fetch(pending), "article_id=203&action=delete")
+    after = submit_form(owner, delete, owner.fetch(delete), "kb-review", {})
+    if title in after or "Ungeprüfte Anleitung" not in after:
+        raise RuntimeError("Deleting an article changed the wrong entry or lost the selected queue")
+    owner.fetch(article, expected_status=404)

@@ -155,9 +155,11 @@ class editor
 	{
 		$this->locked(function () use ($mode, $id, $expected)
 		{
+			$where = ' WHERE article_id=' . (int) $id;
+			// Rating writes take the same row lock before inserting their receipt.
+			$this->db->sql_query('UPDATE ' . $this->prefix . 'articles SET article_id=article_id' . $where);
 			$a = $this->context($mode, $id);
 			if ((int) $a['revision'] !== $expected) { throw new \DomainException('PLUS_KB_CONFLICT'); }
-			$where = ' WHERE article_id=' . (int) $id;
 			if ($mode === 'delete')
 			{
 				$this->publication->remove($a);
