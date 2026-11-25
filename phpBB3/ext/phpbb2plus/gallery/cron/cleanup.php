@@ -60,10 +60,13 @@ class cleanup extends \phpbb\cron\task\base
 			$prefix = 'gallery_cache_' . $match[1] . '_';
 			$cached = glob($dir . DIRECTORY_SEPARATOR . $prefix . '*', GLOB_NOSORT);
 			if ($cached === false) { return; }
-			foreach (array_merge($cached, array($dir . DIRECTORY_SEPARATOR . $name, $dir . DIRECTORY_SEPARATOR . 'gallery_small_' . $match[1])) as $path)
+			$small = 'gallery_small_' . $match[1];
+			$owned = array($name, $small, $name . '.part', $small . '.part');
+			foreach ($owned as $file) { $cached[] = $dir . DIRECTORY_SEPARATOR . $file; }
+			foreach ($cached as $path)
 			{
 				$file = basename($path);
-				if ($file !== $name && $file !== 'gallery_small_' . $match[1] && !preg_match('/^' . $prefix . '[a-f0-9]{64}$/D', $file)) { continue; }
+				if (!in_array($file, $owned, true) && !preg_match('/^' . $prefix . '[a-f0-9]{64}$/D', $file)) { continue; }
 				if (is_link($path) || (file_exists($path) && (!is_file($path) || !@unlink($path)))) { return; }
 			}
 		}

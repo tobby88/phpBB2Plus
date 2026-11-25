@@ -151,15 +151,28 @@ class uploads
 			if (hash_file('sha256', $target) !== $image['hash']) { throw new \RuntimeException('An existing album original differs from its receipt.'); }
 			return;
 		}
-		$temp = tempnam($dir, 'album-');
+		// The durable gallery receipt also identifies the staging file if PHP exits
+		// before it can run finally. Only the gallery writer or its collector owns it.
+		$temp = $target . '.part';
+		if (is_link($temp) || (file_exists($temp) && (!is_file($temp) || !unlink($temp))))
+		{ throw new \RuntimeException('Invalid gallery staging destination.'); }
+		$output = fopen($temp, 'xb');
+		if (!$output) { throw new \RuntimeException('Could not stage an album file.'); }
+		$input = null;
 		try
 		{
-			if (!$temp || dirname($temp) !== $dir || !copy($image['path'], $temp) || hash_file('sha256', $temp) !== $image['hash'] || !rename($temp, $target))
+			$input = fopen($image['path'], 'rb');
+			if (!$input || stream_copy_to_stream($input, $output) !== $image['bytes'] || !fflush($output))
+			{ throw new \RuntimeException('Could not copy an album file.'); }
+			fclose($output);
+			if (hash_file('sha256', $temp) !== $image['hash'] || !rename($temp, $target))
 			{ throw new \RuntimeException('Could not store a verified album original.'); }
 		}
 		finally
 		{
-			if ($temp && is_file($temp)) { unlink($temp); }
+			if (is_resource($input)) { fclose($input); }
+			if (is_resource($output)) { fclose($output); }
+			if (is_file($temp) && !is_link($temp)) { unlink($temp); }
 		}
 	}
 

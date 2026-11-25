@@ -74,9 +74,18 @@ elseif ($argv[2] === 'preview_cleanup')
 	}
 	$db->sql_freeresult($result);
 	if (!$found) { throw new RuntimeException('The removed album original and manual thumbnail have no cleanup receipt'); }
+	// These represent an interrupted publication in this disposable directory.
+	foreach (array($dir . '/' . $name . '.part', $thumb . '.part') as $partial)
+	{
+		$handle = fopen($partial, 'xb');
+		if (!$handle) { throw new RuntimeException('Could not stage fixture remnants'); }
+		fwrite($handle, 'partial');
+		fclose($handle);
+	}
 	$db->sql_query("UPDATE $trash SET removed_at=1 WHERE storage_name='$name'");
 	$phpbb_container->get('phpbb2plus.gallery.cleanup')->run();
-	if (is_file($thumb) || is_file($dir . '/' . $name) || (int) album_fixture_value("SELECT COUNT(*) FROM $trash WHERE storage_name='$name'"))
+	if (is_file($thumb) || is_file($dir . '/' . $name) || is_file($thumb . '.part') || is_file($dir . '/' . $name . '.part') ||
+		(int) album_fixture_value("SELECT COUNT(*) FROM $trash WHERE storage_name='$name'"))
 	{ throw new RuntimeException('The expired receipt failed to remove its protected thumbnail and original'); }
 }
 elseif ($argv[2] === 'resize_rendered')
