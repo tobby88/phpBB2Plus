@@ -3,6 +3,7 @@ namespace phpbb2plus\downloads\controller;
 
 use phpbb\request\request_interface;
 use phpbb2plus\downloads\service\access;
+use phpbb2plus\downloads\service\field_data;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -93,6 +94,7 @@ class submissions
 		if (!$id && !$this->request->is_set_post('author') && !empty($this->user->data['is_registered']))
 		{ $form['author'] = access::plain($this->user->data['username']); }
 		$form['license'] = $this->request->variable('license', 0, false, request_interface::POST);
+		$form['fields_revision'] = $this->request->variable('fields_revision','',false,request_interface::POST);
 		$fields = $this->request->raw_variable('field', array(), request_interface::POST);
 		$existing = $id ? $this->submissions->saved_fields($id) : array();
 		$revision = $posted ? $this->request->variable('revision', -1, false, request_interface::POST) : (int) ($item['review_revision'] ?? 0);
@@ -123,6 +125,7 @@ class submissions
 		}
 		$error = '';
 		$status = 200;
+		$fields_changed = false;
 		if ($posted)
 		{
 			if (!check_form_key($csrf)) { throw new AccessDeniedHttpException(); }
@@ -139,6 +142,7 @@ class submissions
 			catch (\DomainException $e)
 			{
 				$error = $this->language->lang($e->getMessage());
+				$fields_changed = $e->getMessage() === 'PLUS_DL_FIELDS_CHANGED';
 				$status = $e->getCode() ?: 422;
 			}
 		}
@@ -149,7 +153,8 @@ class submissions
 		{
 			$this->template->assign_block_vars('dl_licenses', array('ID'=>$license,'TITLE'=>$title,'SELECTED'=>$form['license'] === $license));
 		}
-		foreach ($this->submissions->fields() as $key => $definition)
+		$definitions = $this->submissions->fields();
+		foreach ($definitions as $key => $definition)
 		{
 			if ($definition['type'] < 0 || $definition['type'] > 5) { continue; }
 			$value = $fields[$key] ?? '';
@@ -164,7 +169,7 @@ class submissions
 		foreach ($form as $key => $value) { $this->template->assign_var('DL_' . strtoupper($key), $value); }
 		add_form_key($csrf);
 		$this->template->assign_vars(array('DL_NONCE'=>bin2hex(random_bytes(16)),'DL_ERROR'=>$error,
-			'DL_STALE'=>$status === 409,'U_DL_SUBMIT'=>$url));
+			'DL_STALE'=>$status === 409 && !$fields_changed,'DL_FIELDS_REVISION'=>field_data::revision($definitions),'U_DL_SUBMIT'=>$url));
 		return $this->helper->render('@phpbb2plus_downloads/submit.html', $this->language->lang($item ? 'PLUS_DL_EDIT' : 'PLUS_DL_SUBMIT'), $status);
 	}
 

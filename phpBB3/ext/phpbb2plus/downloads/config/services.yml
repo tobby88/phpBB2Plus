@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.downloads.fields:
+        class: phpbb2plus\downloads\service\fields
+        arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@user', '@log', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.licenses:
         class: phpbb2plus\downloads\service\licenses
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@user', '@log', '%core.table_prefix%plus_dl_']

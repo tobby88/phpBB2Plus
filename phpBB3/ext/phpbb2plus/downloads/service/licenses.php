@@ -23,16 +23,7 @@ class licenses
 
 	public static function selection($values)
 	{
-		if (!is_array($values) || !$values || count($values)>500) { throw new \DomainException('ACP_PLUS_DL_LICENSE_SELECTION'); }
-		$ids = array();
-		foreach ($values as $value)
-		{
-			if ((!is_int($value) && !is_string($value)) || !preg_match('/^[1-9][0-9]{0,9}$/D',(string) $value) ||
-				$value > 4294967295 || isset($ids[$value])) { throw new \DomainException('ACP_PLUS_DL_LICENSE_SELECTION'); }
-			$ids[(int) $value] = (int) $value;
-		}
-		sort($ids,SORT_NUMERIC);
-		return $ids;
+		return catalogue_selection::ids($values,'ACP_PLUS_DL_LICENSE_SELECTION');
 	}
 
 	public function listing()

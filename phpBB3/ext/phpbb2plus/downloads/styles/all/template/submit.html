@@ -37,7 +37,7 @@
 <dl><dt><label for="dl-preview-url">{L_PLUS_DL_PREVIEW_URL}</label></dt><dd><input class="inputbox" type="url" id="dl-preview-url" name="preview_url" value="{{ DL_PREVIEW_URL|e('html_attr') }}"></dd></dl>
 {% if DL_HAS_PREVIEW %}<dl><dt><label for="dl-remove-preview">{L_PLUS_DL_REMOVE_PREVIEW}</label></dt><dd><input type="checkbox" id="dl-remove-preview" name="remove_preview" value="1"{% if DL_REMOVE_PREVIEW %} checked{% endif %}></dd></dl>{% endif %}
 </fieldset></div></div>
-<fieldset class="submit-buttons">{% if DL_EDITING %}<input type="hidden" name="revision" value="{DL_REVISION}">{% else %}<input type="hidden" name="nonce" value="{DL_NONCE}">{% endif %}{S_FORM_TOKEN}
+<fieldset class="submit-buttons"><input type="hidden" name="fields_revision" value="{DL_FIELDS_REVISION}">{% if DL_EDITING %}<input type="hidden" name="revision" value="{DL_REVISION}">{% else %}<input type="hidden" name="nonce" value="{DL_NONCE}">{% endif %}{S_FORM_TOKEN}
 {% if not DL_STALE %}<button class="button1" type="submit">{% if DL_EDITING %}{L_PLUS_DL_SAVE_FILE}{% else %}{L_PLUS_DL_SUBMIT}{% endif %}</button>{% endif %}</fieldset>
 </form>{% endif %}
 <!-- INCLUDE overall_footer.html -->

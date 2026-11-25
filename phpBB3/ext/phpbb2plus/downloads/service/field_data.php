@@ -3,11 +3,13 @@ namespace phpbb2plus\downloads\service;
 
 class field_data
 {
+	public static function revision($definitions) { return hash('sha256',serialize($definitions)); }
+
 	public static function definition($row)
 	{
 		$source = json_decode($row['source_json'],true);
 		return array('type'=>(int) $row['field_type'],'title'=>access::plain($row['title']),
-			'description'=>access::plain($row['description']),'pattern'=>$source['regex'] ?? '',
+			'description'=>access::plain($row['description']),'pattern'=>$source['plus_field_rule'] ?? $source['regex'] ?? '',
 			'options'=>array_map(array(access::class,'plain'),json_decode($row['options_json'],true) ?: array()));
 	}
 

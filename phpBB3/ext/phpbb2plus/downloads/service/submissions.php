@@ -57,11 +57,12 @@ class submissions
 		return $values;
 	}
 
-	private function field_values($input, $previous = array())
+	private function field_values($input, $previous, $revision)
 	{
 		if (!is_array($input)) { throw new \DomainException('PLUS_DL_BAD_FIELD'); }
 		$stored = array();
 		$fields = $this->fields();
+		if (!hash_equals(field_data::revision($fields),$revision)) { throw new \DomainException('PLUS_DL_FIELDS_CHANGED',409); }
 		if (array_diff_key($input, $fields)) { throw new \DomainException('PLUS_DL_BAD_FIELD'); }
 		foreach ($fields as $id => $field)
 		{
@@ -203,7 +204,7 @@ class submissions
 			$this->access->refresh();
 			if (!$this->access->can_submit($category)) { throw new NotFoundHttpException(); }
 			$this->check_license($form['license']);
-			$fields = $this->field_values($input);
+			$fields = $this->field_values($input,array(),$form['fields_revision']);
 			$identity = array();
 			foreach ($assets as $kind => $asset) { $identity[$kind] = $asset ? array($asset['name'], $asset['hash']) : null; }
 			$digest = hash('sha256', serialize(array($form, $fields, $identity)));
@@ -255,7 +256,7 @@ class submissions
 				$metadata = json_decode($current['source_json'], true);
 				$this->validate($form, $assets['file'], $assets['preview'], true, $remove_preview, $metadata);
 				if ((int) $current['license_id'] !== $form['license']) { $this->check_license($form['license']); }
-				$fields = $this->field_values($input, $this->saved_fields($id));
+				$fields = $this->field_values($input,$this->saved_fields($id),$form['fields_revision']);
 				foreach ($assets as $asset) { $this->media->publish($asset); }
 				$row = $this->file_changes($form, $assets, $current, $remove_preview);
 				$row['review_revision'] = $revision + 1;
