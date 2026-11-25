@@ -145,6 +145,12 @@ function plus_retained_byline($name, $removed)
 	return (int) $removed ? plus_convert_byline($name) : '';
 }
 
+function plus_topic_description($source)
+{
+	// The Plus editor stored entity-escaped plain text. Decode exactly one layer.
+	return htmlspecialchars_decode(plus_convert_byline($source),ENT_QUOTES);
+}
+
 function plus_search_author_clean($name,$poster,$removed)
 {
 	return (int) $removed || (int) $poster <= 0 ? \phpbb2plus\community\service\former_members::stored_clean(plus_convert_byline($name)) : '';

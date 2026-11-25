@@ -1,0 +1,5 @@
+{% if S_PLUS_DESCRIPTION %}
+<dl><dt><label for="plus-description">{L_PLUS_TOPIC_DESCRIPTION}{L_COLON}</label></dt>
+<dd><input type="text" class="inputbox autowidth" name="plus_description" id="plus-description" size="45" maxlength="255" value="{{ PLUS_DESCRIPTION|e }}">
+<input type="hidden" name="plus_description_revision" value="{{ PLUS_DESCRIPTION_REVISION|e }}"></dd></dl>
+{% endif %}

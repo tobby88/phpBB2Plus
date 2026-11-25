@@ -83,6 +83,11 @@ services:
     phpbb2plus.community.quota_management:
         class: phpbb2plus\community\attachment\management
         arguments: ['@dbal.conn', '@config', '@cache.driver', '%core.table_prefix%plus_attach_']
+    phpbb2plus.community.topic_descriptions:
+        class: phpbb2plus\community\event\topic_descriptions
+        arguments: ['@dbal.conn', '@request', '@language', '@auth', '@user', '@content.visibility', '@config']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.attachment_upload:
         class: phpbb2plus\community\attachment\upload
         decorates: attachment.upload

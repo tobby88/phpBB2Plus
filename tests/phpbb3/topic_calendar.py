@@ -1,5 +1,5 @@
 """Read multi-day events, restricted topics and private birthdays through the calendar."""
-from http_board import Browser, Page, admin_url
+from http_board import Browser, FormFields, Page, admin_url
 from html import unescape
 import os
 import re
@@ -85,6 +85,12 @@ def preferences(base, owner, member, guest):
 def edit_event(base, owner, member, pending):
     new = "posting.php?mode=post&f=1"
     allowed, restricted = member.fetch(new), pending.fetch(new)
+    guest = Browser(base)
+    listing = guest.fetch("viewforum.php?f=1")
+    descriptions = re.findall(r'<span class="plus-topic-description">(.*?)</span>', listing, re.S)
+    if (not any("Grüße &amp; &lt;Plan&gt;" in text and '<img' in text for text in descriptions)
+            or "Geschlossene Beschreibung" in listing or "Geschlossene Beschreibung" not in owner.fetch("viewforum.php?f=7")):
+        raise RuntimeError("The converted descriptions lost plain text, a smiley or their audience")
     for field in ("plus_cal_present", "plus_news_category"):
         if field in restricted or field not in allowed:
             raise RuntimeError("The native post editor ignored the imported publishing permission for " + field)
@@ -94,7 +100,12 @@ def edit_event(base, owner, member, pending):
     subject = dict(subject=title, message="Lokaler Test des Kalendereditors.", post="1")
 
     def form(path):
-        action, fields = Page(owner.fetch(path)).forms["postform"]
+        page = owner.fetch(path)
+        action, fields = Page(page).forms["postform"]
+        controls = FormFields(page, "postform").values
+        if "plus_description" not in controls:
+            raise RuntimeError("The first-post editor is missing its topic description")
+        fields["plus_description"] = controls["plus_description"]
         fields.update(subject, plus_cal_start_date="2008-04-07", plus_cal_start_time="", plus_cal_end_date="2008-04-08", plus_cal_end_time="")
         return urljoin(urljoin(base, path), unescape(action)), fields
 
@@ -103,10 +114,13 @@ def edit_event(base, owner, member, pending):
         return owner.fetch(action, fields)
 
     action, fields = form(new)
+    fields["plus_description"] = "Treffen & Getränke [b]vor Ort[/b]"
     invalid = submit(action, dict(fields, plus_cal_end_date="2008-04-06"))
     if "Prüfe Datum und Uhrzeit" not in invalid:
         raise RuntimeError("Calendar validation did not return the first-post editor")
     preview = submit(action, dict(fields, post="", preview="1", plus_news_category="2"))
+    if FormFields(preview, "postform").values.get("plus_description") != fields["plus_description"]:
+        raise RuntimeError("Preview discarded the new topic description")
     if not re.search(r'<option value="2" selected', preview) or title in owner.fetch("app.php/news/category/2"):
         raise RuntimeError("The native preview lost or prematurely published the news classification")
     submit(action, dict(fields, plus_news_category="2"))
@@ -117,8 +131,11 @@ def edit_event(base, owner, member, pending):
         raise RuntimeError("The native new-topic form did not store the inclusive all-day interval")
     topic_page = owner.fetch(unescape(topic.group(1)))
     reply = re.search(r'href="([^"]*posting\.php\?[^"]*mode=reply[^"]*)"', topic_page)
-    if not reply or 'name="plus_news_category"' in owner.fetch(unescape(reply.group(1))):
-        raise RuntimeError("News publication should only be available on a topic's first post")
+    reply_page = owner.fetch(unescape(reply.group(1))) if reply else ""
+    if not reply_page or 'name="plus_news_category"' in reply_page or 'name="plus_description"' in reply_page:
+        raise RuntimeError("News and description fields should only be available on a topic's first post")
+    if "Treffen &amp; Getränke [b]vor Ort[/b]" not in guest.fetch("viewforum.php?f=1"):
+        raise RuntimeError("The new description did not appear as plain text beneath the forum topic")
     if title not in member.fetch("app.php/news/category/2") or title not in Browser(base).fetch("app.php/portal"):
         raise RuntimeError("Publishing a native topic did not put its first post in the news category")
     edit = re.search(r'href="([^"]*posting\.php\?[^"]*mode=edit[^"]*)"', topic_page)
@@ -126,17 +143,26 @@ def edit_event(base, owner, member, pending):
         raise RuntimeError("The calendar event is missing from its native topic")
     editor = unescape(edit.group(1))
     action, old = form(editor)
-    change = dict(old, plus_cal_start_date="2008-04-10", plus_cal_start_time="12:15:22", plus_cal_end_date="", plus_news_category="1")
+    if old["plus_description"] != fields["plus_description"]:
+        raise RuntimeError("Editing the first post did not reload its description")
+    change = dict(old, plus_cal_start_date="2008-04-10", plus_cal_start_time="12:15:22", plus_cal_end_date="",
+                  plus_news_category="1", plus_description="Neue Beschreibung")
     submit(action, change)
     if title in owner.fetch(agenda + "08") or title not in owner.fetch(agenda + "10"):
         raise RuntimeError("Editing the first post did not move the event")
     if title in owner.fetch("app.php/news/category/2") or title not in owner.fetch("app.php/news/category/1"):
         raise RuntimeError("Editing a native first post did not move the news article")
-    stale = submit(action, dict(old, plus_news_category="2"))
+    stale = submit(action, dict(old, plus_news_category="2", plus_description="Parallele Bearbeitung"))
+    if "Themenbeschreibung wurde inzwischen geändert" not in stale:
+        raise RuntimeError("A concurrent description edit went undetected")
     if "Termin wurde inzwischen geändert" not in stale or "Nachrichtenkategorie wurde inzwischen geändert" not in stale:
         raise RuntimeError("A second editor could overwrite a later calendar or news edit")
     action, current = form(editor)
-    submit(action, dict(current, plus_cal_remove="1", plus_news_category="0"))
+    if current["plus_description"] != "Neue Beschreibung":
+        raise RuntimeError("A stale editor overwrote the description")
+    submit(action, dict(current, plus_cal_remove="1", plus_news_category="0", plus_description=""))
+    if "Neue Beschreibung" in guest.fetch("viewforum.php?f=1"):
+        raise RuntimeError("Clearing the topic description left it in the forum list")
     if title in owner.fetch(agenda + "10") or title not in owner.fetch(unescape(topic.group(1))):
         raise RuntimeError("Removing the date did not preserve the forum topic")
     if title in owner.fetch("app.php/news"):
