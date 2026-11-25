@@ -41,6 +41,19 @@ if (!$auth->acl_get('a_') || !$auth->acl_get('a_words') || !$auth->acl_get('a_pl
 { throw new RuntimeException('Junior Admin entrance or the scoped module grant changed'); }
 define('IN_ADMIN', true);
 if ($auth->acl_get('a_')) { throw new RuntimeException('The ACP entrance changed native administrator status inside the panel'); }
+$db->sql_transaction('begin');
+try
+{
+	$db->sql_query('UPDATE ' . EXT_TABLE . " SET ext_active=0 WHERE ext_name='phpbb2plus/knowledgebase'");
+	$account = $subject();
+	$auth->acl($account);
+	if (!$auth->acl_get('a_words') || $auth->acl_get('a_plus_kb_types') || $auth->acl_get('a_plus_kb_articles'))
+	{ throw new RuntimeException('The loaded container retained rights for a disabled Knowledge Base'); }
+	$db->sql_query('UPDATE ' . EXT_TABLE . " SET ext_active=0 WHERE ext_name='phpbb2plus/community'");
+	$auth->acl($account);
+	if ($auth->has_delegated_acp()) { throw new RuntimeException('The loaded container retained a disabled Community delegation'); }
+}
+finally { $db->sql_transaction('rollback'); }
 try
 {
 	$writer->acl_set('user', 0, 91, array('a_words' => ACL_NEVER));

@@ -33,7 +33,8 @@ class junior_admin
 		if (empty($userdata['plus_jr_delegate']) || empty($userdata['is_registered']) || !isset($userdata['user_perm_from']) || (int) $userdata['user_perm_from'] !== 0 ||
 			(int) ($userdata['user_type'] ?? USER_IGNORE) !== USER_NORMAL) { return array(); }
 		$id = (int) $userdata['user_id'];
-		$result = $this->db->sql_query("SELECT j.rights_json, e.ext_active FROM {$this->table} j LEFT JOIN " . EXT_TABLE .
+		$result = $this->db->sql_query("SELECT j.rights_json, e.ext_active FROM {$this->table} j JOIN " . EXT_TABLE .
+			" c ON c.ext_name='phpbb2plus/community' AND c.ext_active=1 LEFT JOIN " . EXT_TABLE .
 			" e ON e.ext_name='phpbb2plus/knowledgebase' WHERE j.user_id=$id");
 		$row = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);

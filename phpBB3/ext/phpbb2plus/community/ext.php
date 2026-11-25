@@ -3,6 +3,20 @@ namespace phpbb2plus\community;
 
 class ext extends \phpbb\extension\base
 {
+	private function finish_cli_transition()
+	{
+		if (PHP_SAPI !== 'cli') { return; }
+		// The web ACP flushes caches during core.garbage_collection. The native
+		// console ends at console.terminate after the manager has saved ext_active.
+		$this->container->get('dispatcher')->addListener(\Symfony\Component\Console\ConsoleEvents::TERMINATE, array($this, 'purge_cli_cache'));
+	}
+
+	public function purge_cli_cache()
+	{
+		$this->container->get('dispatcher')->removeListener(\Symfony\Component\Console\ConsoleEvents::TERMINATE, array($this, __FUNCTION__));
+		$this->container->get('cache.driver')->purge();
+	}
+
 	public function enable_step($old_state)
 	{
 		if (parent::enable_step($old_state)) { return true; }
@@ -19,6 +33,7 @@ class ext extends \phpbb\extension\base
 			$db->sql_transaction('commit');
 		}
 		catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
+		$this->finish_cli_transition();
 		return false;
 	}
 
@@ -44,6 +59,7 @@ class ext extends \phpbb\extension\base
 			$db->sql_transaction('commit');
 		}
 		catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
+		$this->finish_cli_transition();
 		return false;
 	}
 }

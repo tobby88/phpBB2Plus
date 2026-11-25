@@ -5,7 +5,7 @@ import shutil
 import time
 from urllib.parse import urljoin
 
-from http_board import Page, admin_url, login
+from http_board import Browser, Page, admin_url, login
 
 
 def source_modules(source, target):
@@ -53,9 +53,16 @@ def browse(base):
 
 
 def suspended(junior, entry):
+    if "login" not in Page(Browser(junior.base).fetch("ucp.php?mode=login")).forms:
+        raise RuntimeError("The guest login form was lost when Community was disabled")
     page = junior.fetch("index.php")
     if "mode=logout" not in page or "adm/index.php?" in page:
         raise RuntimeError("Disabling Community did not suspend delegation for the signed-in member")
     denied = junior.fetch(entry, expected_status=403)
     if "You are not authorised to administer this board." not in denied:
         raise RuntimeError("phpBB did not return its native ACP entrance denial")
+
+
+def resumed(junior):
+    if "Your delegated administration" not in junior.fetch(admin_url(junior)):
+        raise RuntimeError("Community activation did not restore the scoped ACP session")

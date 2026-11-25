@@ -233,11 +233,13 @@ def main():
                 junior, junior_entry = delegation.browse(base)
                 for action in ("disable", "enable"):
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/community", "--no-interaction", cwd=web)
+                    if action == "disable":
+                        delegation.suspended(junior, junior_entry)
+                    else:
+                        delegation.resumed(junior)
                     php("bin/phpbbcli.php", "extension:" + action, "phpbb2plus/colours", "--no-interaction", cwd=web)
                     php("bin/phpbbcli.php", "cache:purge", "--no-interaction", cwd=web)
                     php(fixture, "colours-" + action, target)
-                    if action == "disable":
-                        delegation.suspended(junior, junior_entry)
                     php(ROOT / "tests/phpbb3/forum_access.php", target, action, cwd=web)
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
