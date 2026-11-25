@@ -119,6 +119,8 @@ class portal
 			foreach ($this->shouts->listing(5) as $shout) { $this->template->assign_block_vars('plus_shouts',$shout); }
 		}
 		$this->template->assign_vars(array('U_PLUS_SHOUTBOX'=>$show_shouts ? $this->helper->route('phpbb2plus_community_shouts') : '',
+			'U_PLUS_RANKS'=>$this->user->data['is_registered'] && $this->auth->acl_gets('u_viewprofile', 'a_user', 'a_useradd', 'a_userdel')
+				? $this->helper->route('phpbb2plus_community_ranks') : '',
 			'PLUS_WELCOME'=>welcome::render($prefs['plus_portal_welcome'],$this->paths->get_web_root_path()),'S_PLUS_RECENT'=>$recent>0,
 			'S_PLUS_STATS'=>(bool) $this->config['plus_portal_stats'],'PLUS_POSTS'=>$this->language->lang('TOTAL_POSTS_COUNT',(int) $this->config['num_posts']),
 			'PLUS_TOPICS'=>$this->language->lang('TOTAL_TOPICS',(int) $this->config['num_topics']),

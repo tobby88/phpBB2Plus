@@ -55,7 +55,9 @@ class ranks
 		unset($rank);
 		foreach ($special as $id => &$rank) { $rank['condition'] = 'user_rank = ' . (int) $id; }
 		unset($rank);
-		uasort($special, static function ($a, $b) { return strnatcasecmp($a['rank_title'], $b['rank_title']); });
+		uasort($special, static function ($a, $b) {
+			return strnatcasecmp($a['rank_title'], $b['rank_title']) ?: (int) $a['rank_id'] <=> (int) $b['rank_id'];
+		});
 		return array(array_reverse($normal, true) + $special, $assignment . ' ELSE 0 END');
 	}
 
@@ -77,11 +79,18 @@ class ranks
 		if ($selected && !isset($catalogue[$selected])) { throw new NotFoundHttpException(); }
 		$active = $this->db->sql_in_set('user_type', array(USER_NORMAL, USER_FOUNDER)) . ' AND user_id <> ' . ANONYMOUS;
 		$counts = array();
-		if ($catalogue)
+		if ($selected)
+		{
+			$result = $this->db->sql_query('SELECT COUNT(*) AS members FROM ' . USERS_TABLE . ' WHERE ' .
+				$active . ' AND ' . $catalogue[$selected]['condition']);
+			$counts[$selected] = (int) $this->db->sql_fetchfield('members');
+			$this->db->sql_freeresult($result);
+		}
+		elseif ($catalogue)
 		{
 			// Aggregate the member table once. Only fetch names shown on this page.
 			$result = $this->db->sql_query('SELECT ' . $assignment . ' AS assigned_rank, COUNT(*) AS members FROM ' .
-				USERS_TABLE . ' WHERE ' . $active . ' GROUP BY assigned_rank');
+				USERS_TABLE . ' WHERE ' . $active . ' GROUP BY ' . $assignment);
 			while ($row = $this->db->sql_fetchrow($result)) { $counts[(int) $row['assigned_rank']] = (int) $row['members']; }
 			$this->db->sql_freeresult($result);
 		}
