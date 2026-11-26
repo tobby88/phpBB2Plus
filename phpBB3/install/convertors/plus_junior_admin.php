@@ -78,6 +78,7 @@ function plus_jr_registry()
 		'admin_links_cat.php' => 'fc151f2c9eb7087eb75334e046dcaf4516975c159d4ba8d6fc019e79191fffae',
 		'admin_links_config.php' => '9d09344b11f3f4bc2f4610db7f9deb101cd1ee510b77bf5d5a39009e68940f66',
 		'admin_flags.php' => '9476a8fb3a1bee3a8b856476f70b0957b765de637c889ef683d42052c9d62a41',
+		'admin_reg_ip.php' => 'b60f490e5204eb0855adf84a40891ab48986ee3ee86332319e5a1578ad59f324',
 		'admin_pa_file.php' => '4993fafef0f0f5702e1bb5f23163da0b5372838f9bb67d856dccce3e729e8adb',
 		'admin_pa_settings.php' => 'f8b7ebf1eefe344f2e22bd0eb31097755b4b7f66271ba6ff105bad7837eca6f3',
 		'admin_pa_fchecker.php' => 'f1d2f21d23ec2b9d2b59858a0dace8074df9b974c0f38babd17150588112f45d',
@@ -182,6 +183,14 @@ function plus_jr_registry()
 		'admin_links.php' => $link_writes,
 		'admin_links_config.php' => $link_settings,
 		'admin_links_cat.php' => $link_settings + array('includes/functions_link_categories.php'=>'710e02aa8c62532d567d8fa8dae443daccde41c0ba518298b6223d95152b83d1'),
+		'admin_reg_ip.php' => array(
+			'pagestart.php' => '472b9cf9f94bf3ac132a9a4fc101a861ddc74dd374620915840500aa3a18887d',
+			'includes/functions_jr_admin.php' => '2b790b97d59b8fe505cbc34d0963a8acf7412a6db865158347c284a2b8bb369e',
+			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+			'includes/functions_username.php' => 'cf916c3af3a6e7ea2703debdab9fd9e146a4f511222ebc38f6c0f1f540617fa4',
+			'includes/functions.php' => '53228ac8b7b580c2a61efde2f82684a993e127bccfbcf08a2e17a2111e641091',
+			'includes/php_compat.php' => 'efc40a50b10beed315b050826a3792a251d877199e818f816f23ecbc5e9517ee',
+		),
 		'admin_flags.php' => $board_writes + array(
 			'includes/functions_flags_storage.php' => '7a445923f0c0a98d4eb7c55ebfd103db3f5f7b1f267d63d7bacc865a029429e8',
 		),

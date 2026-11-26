@@ -10,6 +10,7 @@ function delegation_fixture_grants()
 function delegation_fixture_roles()
 {
 	return array(
+		275 => array('RegistrationNetworkJunior', 'UsersRegistration IPadmin_reg_ip.php', 'a_plus_reg_network'),
 		35 => array('LinkAddJunior', 'LinksAdd_newadmin_links.php?mode=add',
 			array('a_plus_wl_create','a_plus_wl_edit','a_plus_wl_delete','a_plus_wl_review')),
 		36 => array('LinkManageJunior', 'LinksManageadmin_links.php?mode=view',
@@ -108,5 +109,7 @@ function verify_delegation($db)
 			'Isolated delegation for ' . $role[0] . ' was not reconstructed: ' . $row['report_json']);
 	}
 	$delegates = array_map('intval', array_column($db->query('SELECT user_id FROM p3_users WHERE plus_jr_delegate=1 ORDER BY user_id')->fetch_all(MYSQLI_ASSOC), 'user_id'));
-	check_fixture($delegates === array_merge(array_keys(delegation_fixture_roles()), array(91)), 'An unintended account received delegated privileges');
+	$expected_ids = array_merge(array_keys(delegation_fixture_roles()), array(91));
+	sort($expected_ids, SORT_NUMERIC);
+	check_fixture($delegates === $expected_ids, 'An unintended account received delegated privileges');
 }

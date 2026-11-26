@@ -1,0 +1,23 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_REG_NETWORK}</h1>
+<form id="plus-registration-lookup" action="{U_REG_NETWORK}" method="post">
+	<fieldset><legend>{L_FIND_USERNAME}</legend><label>{L_USERNAME} <input type="text" name="username" value="{{ NETWORK_USERNAME|e('html_attr') }}" maxlength="255" required /></label>
+	<button class="button2" type="submit">{L_SEARCH}</button>{S_FORM_TOKEN}</fieldset>
+</form>
+{% if S_NETWORK_UNKNOWN %}<p>{L_PLUS_REG_NO_USER}</p>{% endif %}
+{% if S_NETWORK_FOUND %}
+	<fieldset><legend>{{ NETWORK_USERNAME|e }}</legend>
+		<dl><dt>{L_PLUS_REG_ADDRESS}</dt><dd>{% if NETWORK_IP %}{{ NETWORK_IP|e }}{% else %}{L_PLUS_REG_UNKNOWN_IP}{% endif %}</dd></dl>
+		<dl><dt>{L_PLUS_REG_HOST}</dt><dd>{% if NETWORK_HOST|length %}{{ NETWORK_HOST|e }}{% else %}{L_PLUS_REG_UNKNOWN_HOST}{% endif %}</dd></dl>
+	</fieldset>
+	<h2>{L_PLUS_REG_MATCHES}</h2>
+	{% if loops.network_member %}
+	<table class="table1"><thead><tr><th>{L_USERNAME}</th><th>{L_EMAIL_ADDRESS}</th><th>{L_JOINED}</th><th>{L_POSTS}</th></tr></thead><tbody>
+	{% for member in loops.network_member %}<tr data-registration-user="{{ member.ID }}"><td>
+		{% if member.U_ACCOUNT %}<a href="{{ member.U_ACCOUNT }}">{{ member.NAME|e }}</a>{% else %}{{ member.NAME|e }}{% endif %}
+	</td><td>{{ member.EMAIL|e }}</td><td>{{ member.JOINED }}</td><td>{{ member.POSTS }}</td></tr>{% endfor %}
+	</tbody></table>
+	{% else %}<p>{L_PLUS_REG_NONE}</p>{% endif %}
+	{% if U_NETWORK_NEXT %}<p><a rel="next" href="{U_NETWORK_NEXT}">{L_NEXT}</a></p>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

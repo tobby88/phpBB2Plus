@@ -38,6 +38,14 @@ services:
         arguments: ['@config', '@user', '@request', '@template', '@language', '@auth']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.registration_network:
+        class: phpbb2plus\community\profile\registration_network
+        arguments: ['@dbal.conn', '@auth', '@user']
+    phpbb2plus.community.registration_network_events:
+        class: phpbb2plus\community\event\registration_network
+        arguments: ['@phpbb2plus.community.registration_network', '@template', '@language', '%core.php_ext%']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.card_bans:
         class: phpbb2plus\community\event\card_bans
         arguments: ['@dbal.conn', '@user', '@config']

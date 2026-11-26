@@ -24,6 +24,7 @@ require __DIR__ . '/arcade.php';
 require __DIR__ . '/downloads.php';
 require __DIR__ . '/banners.php';
 require __DIR__ . '/delegation.php';
+require __DIR__ . '/registration_network_data.php';
 require __DIR__ . '/historical_actions.php';
 require __DIR__ . '/credits.php';
 require __DIR__ . '/warning_cards.php';
@@ -124,6 +125,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	seed_profile_media($db);
 	seed_custom_profiles($db);
 	seed_delegation($db);
+	seed_registration_network($db);
 	seed_historical_actions($db);
 	seed_credits($db);
 	$db->query("UPDATE phpbb_portal SET portal_value='<center>Grüße aus dem <b>Archiv</b><br><a href=\"ftopic1.html\">Forum</a><img src=\"templates/fisubsilversh/images/news/topicnews.gif\" alt=\"Briefkopf\"></center>' WHERE portal_name='welcome_text'");

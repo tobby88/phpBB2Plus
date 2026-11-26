@@ -19,7 +19,7 @@ def source_modules(source, target):
     shutil.copyfile(source / "admin/pagestart.php", directory / "pagestart.php")
     for file in (source / "admin").glob("admin_*.php"):
         shutil.copyfile(file, directory / file.name)
-    for path in ("includes/functions_jr_admin_auth.php", "includes/functions_stats.php", "includes/functions_module.php",
+    for path in ("includes/functions_jr_admin_auth.php", "includes/functions_username.php", "includes/functions_stats.php", "includes/functions_module.php",
                  "includes/functions_link_admin.php", "includes/functions_link_submission.php", "includes/functions_link_categories.php",
                  "includes/functions_link_settings.php", "includes/php_compat.php", "includes/functions.php",
                  "includes/functions_flags_storage.php", "includes/functions_board_config.php", "includes/functions_connection_ownership.php",

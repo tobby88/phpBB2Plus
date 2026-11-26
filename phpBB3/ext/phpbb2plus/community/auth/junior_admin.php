@@ -14,6 +14,8 @@ class junior_admin
 	);
 
 	public const MODULES = array(
+		'admin_reg_ip.php' => array('Users', 'Registration IP', array(
+			'a_plus_reg_network' => array('phpbb2plus\community\acp\registration_network_module', 'view'))),
 		'admin_arcade_cats.php' => array('Arcade', 'Categories', array('a_plus_arc_categories' => array('phpbb2plus\arcade\acp\categories_module', 'manage'))),
 		'admin_arcade_log.php' => array('Arcade', 'Error_Log', array('a_plus_arc_log' => array('phpbb2plus\arcade\acp\diagnostics_module', 'manage'))),
 		'admin_links.php?mode=add' => array('Links','Add_new',self::LINK_ENTRIES),

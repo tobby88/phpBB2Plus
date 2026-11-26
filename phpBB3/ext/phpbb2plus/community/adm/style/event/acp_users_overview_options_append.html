@@ -3,3 +3,7 @@
 <dd><strong>{{ PLUS_CARD_COUNT }}</strong><br><span>{{ lang('PLUS_CARDS_SOURCE') }}</span>
 {% if PLUS_CARD_THRESHOLD %}<br><span>{{ lang('PLUS_CARDS_THRESHOLD', PLUS_CARD_THRESHOLD) }}</span>{% endif %}</dd></dl>
 {% endif %}
+{% if U_REG_NETWORK_ACCOUNT %}
+<dl><dt>{L_PLUS_REG_HOST}</dt><dd>{% if REG_NETWORK_HOST|length %}{{ REG_NETWORK_HOST|e }}{% else %}{L_PLUS_REG_UNKNOWN_HOST}{% endif %}
+<br /><a href="{U_REG_NETWORK_ACCOUNT}">{L_PLUS_REG_MATCHES}</a></dd></dl>
+{% endif %}

@@ -282,7 +282,11 @@ if (!$get_info)
 		if ($section['target'] === USERS_TABLE)
 		{
 			$section[] = array('plus_colour_id','users.user_color_group','intval');
-			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
+			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_account_registration_ip');
+			if ((new \phpbb\db\tools\factory())->get($src_db)->sql_column_exists($convert->src_table_prefix . 'users', 'user_reg_host'))
+			{
+				$section[] = array('plus_reg_host', array('users.user_id', 'users.user_reg_host'), 'plus_account_registration_host');
+			}
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			$away_tools=(new \phpbb\db\tools\factory())->get($src_db);
 			foreach (array('user_absence'=>'plus_away','user_absence_mode'=>'plus_away_mode') as $old=>$native)

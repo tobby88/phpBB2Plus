@@ -98,6 +98,19 @@ function plus_registration_ip($ip)
 	return preg_match('/^[0-9a-f]{8}$/iD', $ip) ? decode_ip($ip) : '';
 }
 
+function plus_account_registration_ip($ip)
+{
+	$address = plus_registration_ip($ip);
+	// A valid IPv6 address with an embedded IPv4 suffix may exceed the native
+	// 40-character representation. Store the same address in canonical notation.
+	return $address !== '' ? inet_ntop(inet_pton($address)) : '';
+}
+
+function plus_account_registration_host($source_user, $host)
+{
+	return (int) $source_user > 0 ? (string) $host : '';
+}
+
 function plus_calendar_end($start, $duration)
 {
 	$start = (int) $start; $duration = (int) $duration;
