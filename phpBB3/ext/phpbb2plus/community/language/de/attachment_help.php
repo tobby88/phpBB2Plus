@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ATTACH_RULES_LINK' => 'Erlaubte Dateitypen und Größen',
+	'PLUS_ATTACH_POST_RULES' => 'Anhangregeln für dieses Forum',
+	'PLUS_ATTACH_PM_RULES' => 'Anhangregeln für private Nachrichten',
+	'PLUS_ATTACH_GROUP' => 'Dateigruppe', 'PLUS_ATTACH_TYPES' => 'Dateiendungen', 'PLUS_ATTACH_FILE_LIMIT' => 'Höchstgröße je Datei',
+	'PLUS_ATTACH_NO_LIMIT' => 'Kein Größenlimit des Forums', 'PLUS_ATTACH_NO_TYPES' => 'Hier sind derzeit keine Dateitypen für Anhänge freigegeben.',
 	'PLUS_HELP_FILE_EDIT'=>'Wie füge ich einem Beitrag eine Datei hinzu oder ändere einen Anhang?',
 	'PLUS_HELP_FILE_EDIT_ANSWER'=>'Öffne den vollständigen Beitragseditor und wähle im Reiter „Dateianhänge“ die Datei aus. Dort kannst du einen Dateikommentar eintragen. Solange du den Beitrag bearbeiten darfst, kannst du im selben Reiter weitere Dateien hinzufügen, Kommentare ändern oder einzelne Anhänge löschen. Sende den Beitrag anschließend ab.',
 	'PLUS_HELP_FILE_INLINE'=>'Wie zeige ich einen Anhang an einer bestimmten Stelle im Beitrag?',

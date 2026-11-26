@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ATTACH_RULES_LINK' => 'Allowed file types and sizes',
+	'PLUS_ATTACH_POST_RULES' => 'Attachment rules for this forum',
+	'PLUS_ATTACH_PM_RULES' => 'Attachment rules for private messages',
+	'PLUS_ATTACH_GROUP' => 'File group', 'PLUS_ATTACH_TYPES' => 'File extensions', 'PLUS_ATTACH_FILE_LIMIT' => 'Maximum size per file',
+	'PLUS_ATTACH_NO_LIMIT' => 'No board size limit', 'PLUS_ATTACH_NO_TYPES' => 'No file types are currently enabled for attachments here.',
 	'PLUS_HELP_FILE_EDIT'=>'How do I add a file to a post or change an attachment?',
 	'PLUS_HELP_FILE_EDIT_ANSWER'=>'Open the full post editor and select the file on the Attachments tab. You can add a file comment there. While you can edit the post, you can use the same tab to add more files, change comments or delete individual attachments. Submit the post to save your changes.',
 	'PLUS_HELP_FILE_INLINE'=>'How do I place an attachment at a particular point in a post?',

@@ -238,6 +238,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'ranks':
 			$path = 'ranks';
 			break;
+		case 'attach_rules':
+			$forum = $query['f'] ?? '0';
+			if (is_string($forum) && preg_match('/^(?:0|[1-9][0-9]{0,9})$/D', $forum))
+			{
+				$path = 'attachment/rules/' . $forum;
+			}
+			break;
 		case 'recent':
 			$path = 'topics/recent';
 			if (in_array($query['mode'] ?? '', array('today','yesterday','last24','lastweek','lastXdays'), true))

@@ -163,6 +163,11 @@ if (!$get_info)
 		foreach ($section as $key => &$field)
 		{
 			if (!is_int($key)) { continue; }
+			if ($section['target'] === EXTENSION_GROUPS_TABLE && $field[0] === 'allow_in_pm')
+			{
+				// The Plus upload and download handlers required an enabled group for private messages too.
+				$field = array('allow_in_pm', 'extension_groups.allow_group', '');
+			}
 			if ($field[2] === 'phpbb_prepare_message') { $field[2] = 'plus_convert_message'; }
 			if ($field[0] === 'icon_id' && in_array($section['target'],array(TOPICS_TABLE,POSTS_TABLE),true))
 			{

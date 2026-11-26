@@ -1,0 +1,13 @@
+{% include 'overall_header.html' %}
+<h2>{{ PLUS_ATTACH_TITLE|e }}</h2>
+<div class="panel"><div class="inner">
+{% if PLUS_ATTACH_GROUPS %}
+<table class="table1" id="plus-attach-rules">
+	<thead><tr><th scope="col">{{ lang('PLUS_ATTACH_GROUP') }}</th><th scope="col">{{ lang('PLUS_ATTACH_TYPES') }}</th><th scope="col">{{ lang('PLUS_ATTACH_FILE_LIMIT') }}</th></tr></thead>
+	<tbody>{% for group in PLUS_ATTACH_GROUPS %}
+	<tr class="{{ loop.index is odd ? 'bg1' : 'bg2' }}"><th scope="row">{{ group.NAME|e }}</th><td>{{ group.EXTENSIONS|join(', ')|e }}</td><td>{{ group.SIZE|e }}</td></tr>
+	{% endfor %}</tbody>
+</table>
+{% else %}<p>{{ lang('PLUS_ATTACH_NO_TYPES') }}</p>{% endif %}
+</div></div>
+{% include 'overall_footer.html' %}

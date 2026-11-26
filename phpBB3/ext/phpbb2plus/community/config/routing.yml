@@ -1,3 +1,8 @@
+phpbb2plus_community_attachment_rules:
+    path: /attachment/rules/{forum}
+    defaults: { _controller: phpbb2plus.community.attachment_rules:show }
+    requirements: { forum: '0|[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD]
 phpbb2plus_community_forum_link:
     path: /{alias}.html
     defaults: { _controller: phpbb2plus.community.legacy:forum_link }
