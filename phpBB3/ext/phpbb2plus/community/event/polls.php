@@ -9,18 +9,41 @@ class polls implements EventSubscriberInterface
 	private $db;
 	private $user;
 	private $prefix;
+	private $auth;
+	private $request;
 
-	public function __construct($db, $user, $prefix)
+	public function __construct($db, $user, $prefix, $auth, $request)
 	{
 		$this->db = $db;
 		$this->user = $user;
 		$this->prefix = $prefix;
+		$this->auth = $auth;
+		$this->request = $request;
 	}
 
 	public static function getSubscribedEvents()
 	{
-		return array('core.viewtopic_modify_poll_data'=>'converted_guest_vote',
+		return array('core.viewtopic_modify_poll_data'=>array(array('moderator_vote', PHP_INT_MAX), array('converted_guest_vote', 0)),
 			'core.delete_user_before'=>'remove_members', 'core.delete_topics_before_query'=>'remove_topics');
+	}
+
+	public function moderator_vote($event)
+	{
+		$topic = $event['topic_data'];
+		if ($event['s_can_vote'] || empty($this->user->data['is_registered']) ||
+			($topic['topic_status'] != ITEM_LOCKED && $topic['forum_status'] != ITEM_LOCKED)) { return; }
+
+		$forum = (int) $event['forum_id'];
+		if (!$this->auth->acl_get('m_lock', $forum) || !$this->auth->acl_get('f_list', $forum) ||
+			!$this->auth->acl_get('f_read', $forum) || !$this->auth->acl_get('f_vote', $forum)) { return; }
+		if ($topic['poll_length'] && (int) $topic['poll_start'] + (int) $topic['poll_length'] <= time()) { return; }
+		$voted = $event['cur_voted_id'];
+		if ($voted && (in_array(VOTE_CONVERTED, $voted) || !$topic['poll_vote_change'] || !$this->auth->acl_get('f_votechg', $forum))) { return; }
+
+		// Only lift the topic/forum lock for a qualifying voter. Other listeners
+		// can still restrict the ballot, and phpBB handles the form and the vote.
+		$event['s_can_vote'] = true;
+		$event['s_display_results'] = (bool) $voted || $this->request->variable('view', '') === 'viewpoll';
 	}
 
 	public function remove_members($event)

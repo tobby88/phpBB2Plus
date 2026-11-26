@@ -2,6 +2,12 @@
 // Additional records for the disposable Plus source and its converted target.
 function seed_poll_conversion($db)
 {
+	$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id,topic_status,topic_vote)
+		VALUES (603,12,'Locked ballot',2,1000000000,603,603,1,1)");
+	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time) VALUES (603,603,12,2,'c0000203',1000000000)");
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES (603,'Locked ballot','Moderator ballot fixture')");
+	$db->query("INSERT INTO phpbb_vote_desc (vote_id,topic_id,vote_text,vote_start,vote_length) VALUES (603,603,'Locked ballot question',1000000000,0)");
+	$db->query("INSERT INTO phpbb_vote_results VALUES (603,1,'First',1),(603,2,'Second',0)");
 	$db->query('UPDATE phpbb_topics SET topic_vote=0 WHERE topic_id=602');
 	$db->query('UPDATE phpbb_vote_results SET vote_option_id=IF(vote_option_id=1,127,250) WHERE vote_id=602');
 	$db->query("INSERT INTO phpbb_vote_voters VALUES (21,-1,'c0000205'),(21,1,'c0000204')");

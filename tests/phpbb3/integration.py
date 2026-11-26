@@ -37,6 +37,7 @@ import removed_shadow_links
 import age_pruning
 import print_topics
 import announcement_duration
+import locked_polls
 import legacy_links
 import mail_links
 import downloads
@@ -370,6 +371,8 @@ def main():
                     if "Duration fixture 701" not in ambiguous or "Doppelte Antwort" in ambiguous or 'class="topic_poll"' in ambiguous:
                         raise RuntimeError("A held ballot must leave its announcement readable without publishing the question")
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
+                if not media_only:
+                    locked_polls.exercise(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/locked_polls.php", target, phase, cwd=web))
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 member_notice.imported(base, ordinary, member, media_only)
                 php(fixture, "signed-in", target)
