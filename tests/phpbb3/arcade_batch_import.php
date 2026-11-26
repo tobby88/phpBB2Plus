@@ -25,6 +25,12 @@ $path=static function($key,$name) use ($config) {
 $phase=$argv[2];
 if ($phase==='prepare')
 {
+	$definitions = $phpbb_container->get('acl.permissions')->get_permissions();
+	$label = $definitions['a_plus_arc_import']['lang'] ?? '';
+	if ($label !== 'ACL_A_PLUS_ARC_IMPORT' || !$phpbb_container->get('language')->is_set($label))
+	{
+		throw new RuntimeException('The native permissions editor is missing the Arcade import label');
+	}
 	$rights=$rows("SELECT rights_json FROM {$table_prefix}plus_jr_delegations WHERE user_id=$actor");
 	if (!$rights || json_decode($rights[0]['rights_json'],true)!==array('a_plus_arc_import')) { throw new RuntimeException('Missing source Import-only grant'); }
 	$stored=array('history'=>$history(),'cats'=>$rows("SELECT cat_id,total_games,cat_type FROM {$p}categories WHERE cat_id IN(-1,10)"),
