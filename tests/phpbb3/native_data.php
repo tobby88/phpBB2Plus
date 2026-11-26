@@ -96,7 +96,8 @@ function seed_missing_pm_accounts($db)
 	$missing = (int) $db->query('SELECT MAX(user_id)+1 FROM phpbb_users')->fetch_row()[0];
 	// These are source fixtures for distinct inbox, sent and saved copies.
 	$rows = array(116 => array(0, 2, $missing), 117 => array(3, $missing, 2), 118 => array(2, 2, $missing),
-		119 => array(4, $missing, 2), 120 => array(1, $missing, $missing), 121 => array(4, -1, 2), 122 => array(3, 2, -1));
+		119 => array(4, $missing, 2), 120 => array(1, $missing, $missing), 121 => array(4, -1, 2), 122 => array(3, 2, -1),
+		123 => array(1, $missing, 2), 124 => array(1, 2, $missing), 125 => array(5, $missing, 2), 126 => array(5, 2, $missing));
 	foreach ($rows as $id => list($type, $sender, $recipient))
 	{
 		$db->query("INSERT INTO phpbb_privmsgs (privmsgs_id,privmsgs_type,privmsgs_subject,privmsgs_from_userid,
@@ -143,12 +144,13 @@ function verify_native_content($db, $recipient)
 	$boxes = array();
 	while ($row = $rows->fetch_assoc()) { $boxes[(int) $row['user_id']][(int) $row['msg_id']] = array_map('intval', array_slice($row, 2)); }
 	check_fixture(count($boxes[$recipient]) === 4 && count($boxes[2]) === 4, 'Incorrect PM ownership');
-	$owners = $db->query('SELECT msg_id,user_id,author_id FROM p3_privmsgs_to WHERE msg_id BETWEEN 116 AND 122 ORDER BY msg_id,user_id')->fetch_all();
+	$owners = $db->query('SELECT msg_id,user_id,author_id FROM p3_privmsgs_to WHERE msg_id BETWEEN 116 AND 126 ORDER BY msg_id,user_id')->fetch_all();
 	check_fixture(array_map(static function ($row) { return array_map('intval', $row); }, $owners)
 		=== array(array(117,2,1), array(118,2,2)), 'A missing source account acquired a destination mailbox or displaced its valid correspondent');
-	$addresses = $db->query('SELECT msg_id,author_id,to_address FROM p3_privmsgs WHERE msg_id BETWEEN 116 AND 122 ORDER BY msg_id')->fetch_all();
+	$addresses = $db->query('SELECT msg_id,author_id,to_address FROM p3_privmsgs WHERE msg_id BETWEEN 116 AND 126 ORDER BY msg_id')->fetch_all();
 	$expected_addresses = array(116 => array(2,''), 117 => array(1,'u_2'), 118 => array(2,''), 119 => array(1,'u_2'),
-		120 => array(1,''), 121 => array(1,'u_2'), 122 => array(2,''));
+		120 => array(1,''), 121 => array(1,'u_2'), 122 => array(2,''), 123 => array(1,'u_2'), 124 => array(2,''),
+		125 => array(1,'u_2'), 126 => array(2,''));
 	check_fixture(count($addresses) === count($expected_addresses), 'A message body was discarded with its missing mailbox');
 	foreach ($addresses as list($id, $author, $address))
 	{

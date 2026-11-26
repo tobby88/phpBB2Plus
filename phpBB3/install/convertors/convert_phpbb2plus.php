@@ -182,8 +182,14 @@ if (!$get_info)
 			{
 				// Each native folder mapping chooses its own source owner. A
 				// retired numeric ID can be reused by the converter for old ID 1.
-				$section['left_join'] = 'privmsgs LEFT JOIN users ON users.user_id = ' . $field[1];
-				$section['where'] .= ' AND users.user_id > 0';
+				$peer = $field[1] === 'privmsgs.privmsgs_to_userid' ? 'privmsgs.privmsgs_from_userid' : 'privmsgs.privmsgs_to_userid';
+				$section['left_join'] = array(
+					'privmsgs LEFT JOIN users ON users.user_id = ' . $field[1],
+					'privmsgs LEFT JOIN users AS pm_peer ON pm_peer.user_id = ' . $peer . ' AND privmsgs.privmsgs_type IN (1,5)',
+				);
+				// The original maintenance rules cancelled new and unread deliveries
+				// if either participant had left. Completed copies need only their owner.
+				$section['where'] .= ' AND users.user_id > 0 AND (privmsgs.privmsgs_type NOT IN (1,5) OR pm_peer.user_id > 0)';
 			}
 			if ($section['target'] === POLL_VOTES_TABLE && $field[0] === 'vote_user_ip')
 			{
