@@ -189,8 +189,11 @@ def assemble(output, cache, offline=False):
         # directly under the active style, including the localized online marker.
         base_theme = web / "styles/prosilver/theme"
         theme = images.parent
-        for language in ("de", "en"):
+        for language, legacy_language in (("de", "german"), ("en", "english")):
             shutil.copytree(base_theme / language, theme / language)
+            for action in ("search", "stats", "toplist", "upload", "viewall", "download", "rate", "email"):
+                name = f"icon_pa_{action}.gif"
+                shutil.copyfile(old_images / f"lang_{legacy_language}" / name, theme / language / name)
         shutil.copyfile(base_theme / "images/no_avatar.gif", images / "no_avatar.gif")
         for name in ("bidi.css", "print.css", "plupload.css", "tweaks.css"):
             (theme / name).write_text(f'@import url("../../prosilver/theme/{name}");\n', encoding="utf-8")

@@ -1,16 +1,14 @@
 <!-- INCLUDE @phpbb2plus_downloads/header.html -->
-<h2>{% if DL_ICON %}<img src="{{ DL_ICON }}" alt=""> {% endif %}{{ DL_TITLE|e }}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
-{% if U_DL_RECOMMEND or U_DL_EDIT or U_DL_DELETE or U_DL_QUEUE %}<div class="action-bar">
-{% if U_DL_RECOMMEND %}<a class="button" href="{U_DL_RECOMMEND}">{L_PLUS_DL_RECOMMEND}</a>{% endif %}
+{% if U_DL_EDIT or U_DL_DELETE or U_DL_QUEUE %}<div class="action-bar">
 {% if U_DL_EDIT %}<a class="button" href="{U_DL_EDIT}">{L_PLUS_DL_EDIT}</a>{% endif %}
 {% if U_DL_DELETE %}<a class="button" href="{U_DL_DELETE}">{L_PLUS_DL_DELETE}</a>{% endif %}
 {% if U_DL_QUEUE %}<a class="button" href="{U_DL_QUEUE}">{L_PLUS_DL_REVIEW}</a>{% endif %}</div>{% endif %}
-<div class="panel"><div class="inner">
+<section class="panel dl-file" aria-labelledby="dl-file-title">
+<h2 id="dl-file-title">{% if DL_ICON %}<img src="{{ DL_ICON }}" alt=""> {% endif %}{{ DL_TITLE|e }}</h2>
 {% if DL_PENDING %}<p class="notice">{L_PLUS_DL_PENDING}</p>{% endif %}{% if DL_BROKEN %}<p class="notice">{L_PLUS_DL_BROKEN}</p>{% endif %}
-{% if DL_SUMMARY %}<p>{{ DL_SUMMARY|e }}</p>{% endif %}{% if DL_DETAIL %}<div class="content">{{ DL_DETAIL|e|nl2br }}</div>{% endif %}
-{% if U_DL_PREVIEW %}<p><a href="{U_DL_PREVIEW}">{% if DL_PREVIEW_LINK %}{L_PLUS_DL_PREVIEW}{% else %}<img class="postimage" src="{U_DL_PREVIEW}" alt="{L_PLUS_DL_PREVIEW}">{% endif %}</a></p>{% elseif U_DL_REMOTE_PREVIEW %}<p><a href="{U_DL_REMOTE_PREVIEW}" rel="noreferrer">{L_PLUS_DL_PREVIEW}</a></p>{% endif %}
 <dl id="dl-file-details">
+{% if DL_SUMMARY or DL_DETAIL %}<dt>{L_PLUS_DL_DESCRIPTION}</dt><dd>{% if DL_SUMMARY %}{{ DL_SUMMARY|e }}{% endif %}{% if DL_SUMMARY and DL_DETAIL %}<br>{% endif %}{{ DL_DETAIL|e|nl2br }}</dd>{% endif %}
 <dt>{L_PLUS_DL_PUBLISHER}</dt><dd>{{ DL_PUBLISHER }}</dd>
 {% if DL_CREATOR %}<dt>{L_AUTHOR}</dt><dd>{{ DL_CREATOR|e }}</dd>{% endif %}{% if DL_VERSION %}<dt>{L_PLUS_DL_VERSION}</dt><dd>{{ DL_VERSION|e }}</dd>{% endif %}
 <dt>{L_PLUS_DL_DATE}</dt><dd>{DL_DATE}</dd>
@@ -19,14 +17,20 @@
 <dt>{L_FILESIZE}</dt><dd>{DL_SIZE}</dd>
 {% if S_DL_RATINGS %}<dt id="rating">{L_PLUS_DL_RATING}</dt><dd>{{ DL_SCORE|e }}{% if DL_VOTES %} ({{ DL_VOTES|e }}){% endif %}</dd>{% endif %}
 <dt>{L_PLUS_DL_COUNT}</dt><dd>{{ DL_COUNT }}</dd>
-{% for field in loops.dl_fields %}<dt>{{ field.TITLE|e }}</dt><dd>{% if field.MULTILINE %}{{ field.VALUE|e|nl2br }}{% else %}{{ field.VALUE|e }}{% endif %}</dd>{% endfor %}</dl>
-{% if U_DL_DOCS %}<p><a href="{U_DL_DOCS}" rel="noreferrer">{L_PLUS_DL_DOCS}</a></p>{% endif %}
+{% for field in loops.dl_fields %}<dt>{{ field.TITLE|e }}</dt><dd>{% if field.MULTILINE %}{{ field.VALUE|e|nl2br }}{% else %}{{ field.VALUE|e }}{% endif %}</dd>{% endfor %}
+{% if U_DL_PREVIEW or U_DL_REMOTE_PREVIEW %}<dt>{L_PLUS_DL_PREVIEW}</dt><dd>{% if U_DL_PREVIEW %}<a href="{U_DL_PREVIEW}">{% if DL_PREVIEW_LINK %}{L_PLUS_DL_PREVIEW}{% else %}<img class="postimage" src="{U_DL_PREVIEW}" alt="{L_PLUS_DL_PREVIEW}">{% endif %}</a>{% else %}<a href="{U_DL_REMOTE_PREVIEW}" rel="noreferrer">{L_PLUS_DL_PREVIEW}</a>{% endif %}</dd>{% endif %}
+{% if U_DL_DOCS %}<dt>{L_PLUS_DL_DOCS}</dt><dd><a href="{U_DL_DOCS}" rel="noreferrer">{L_PLUS_DL_DOCS}</a></dd>{% endif %}
+</dl></section>
 <div id="downloads">{% if loops.dl_mirrors %}<h3>{L_PLUS_DL_DOWNLOAD_SOURCES}</h3>{% endif %}
-{% if U_DL_MAIN %}<a class="button1" href="{U_DL_MAIN}">{% if loops.dl_mirrors %}{L_PLUS_DL_PRIMARY_SOURCE}{% else %}{L_PLUS_DL_GET}{% endif %}</a>{% elseif DL_UNAVAILABLE %}<p>{L_PLUS_DL_MISSING}</p>{% endif %}
-{% for m in loops.dl_mirrors %}<a class="button2" href="{{ m.URL }}">{{ m.LABEL|e }}</a> {% endfor %}</div>
+{% if DL_UNAVAILABLE %}<p>{L_PLUS_DL_MISSING}</p>{% endif %}
+<div class="dl-actions">
+{% if U_DL_MAIN %}{% if DL_ART_LANG and not loops.dl_mirrors %}<a href="{U_DL_MAIN}"><img src="{T_THEME_PATH}/{{ DL_ART_LANG }}/icon_pa_download.gif" width="82" height="25" alt="{L_PLUS_DL_GET}"></a>{% else %}<a class="button" href="{U_DL_MAIN}">{% if loops.dl_mirrors %}{L_PLUS_DL_PRIMARY_SOURCE}{% else %}{L_PLUS_DL_GET}{% endif %}</a>{% endif %}{% endif %}
+{% for m in loops.dl_mirrors %}<a class="button" href="{{ m.URL }}">{{ m.LABEL|e }}</a>{% endfor %}
+{% if U_DL_RECOMMEND %}<a{% if not DL_ART_LANG %} class="button"{% endif %} href="{U_DL_RECOMMEND}" title="{L_PLUS_DL_RECOMMEND}">{% if DL_ART_LANG %}<img src="{T_THEME_PATH}/{{ DL_ART_LANG }}/icon_pa_email.gif" width="82" height="25" alt="{L_PLUS_DL_RECOMMEND}">{% else %}{L_PLUS_DL_RECOMMEND}{% endif %}</a>{% endif %}
 </div></div>
 {% if U_DL_RATE %}<form id="dl-rate" class="panel" method="post" action="{U_DL_RATE}">{S_FORM_TOKEN}<input type="hidden" name="nonce" value="{DL_NONCE}">
-<label for="dl-points">{L_PLUS_DL_RATING}</label> <select id="dl-points" name="points">{% for v in 1..10 %}<option value="{{ v }}">{{ v }}</option>{% endfor %}</select> <button class="button2" type="submit">{L_PLUS_DL_VOTE}</button></form>{% endif %}
+<label for="dl-points">{L_PLUS_DL_RATING}</label> <select id="dl-points" name="points">{% for v in 1..10 %}<option value="{{ v }}">{{ v }}</option>{% endfor %}</select>
+<button class="{% if DL_ART_LANG %}dl-image-button{% else %}button2{% endif %}" type="submit">{% if DL_ART_LANG %}<img src="{T_THEME_PATH}/{{ DL_ART_LANG }}/icon_pa_rate.gif" width="82" height="25" alt="{L_PLUS_DL_VOTE}">{% else %}{L_PLUS_DL_VOTE}{% endif %}</button></form>{% endif %}
 {% for c in loops.dl_comments %}<div id="comment-{{ c.ID }}" class="post bg{{ loop.index is odd ? '1' : '2' }}"><div class="inner"><h3>{{ c.TITLE|e }}</h3><p class="author">{{ c.AUTHOR }} · {{ c.DATE }}</p><div class="content">{{ c.BODY }}</div>
 {% if c.U_DELETE %}<p><a href="{{ c.U_DELETE }}">{L_PLUS_DL_DELETE_COMMENT}</a></p>{% endif %}</div></div>{% endfor %}
 {% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}

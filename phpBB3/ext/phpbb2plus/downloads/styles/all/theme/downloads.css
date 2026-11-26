@@ -4,3 +4,41 @@
 #dl-category-menu li { padding-inline-start: min(25%, calc(var(--dl-depth, 0) * 1.3em)); }
 #dl-category-menu a { display: inline-block; padding: .3em .4em; overflow-wrap: anywhere; }
 #dl-category-menu [aria-current] { font-weight: bold; }
+
+#dl-tools, .dl-actions, .dl-quick-search, #dl-rate {
+	display: flex; align-items: center; flex-wrap: wrap; gap: .45em .75em;
+}
+#dl-tools { justify-content: center; gap: .25em clamp(.5em, 3vw, 3em); margin-block: .5em; }
+#dl-tools a { display: inline-flex; align-items: center; min-height: 32px; }
+#dl-tools img, .dl-actions img, .dl-image-button img { display: block; }
+.dl-quick-search input.inputbox { max-width: 100%; min-width: 0; }
+.dl-file { padding: 0; overflow-wrap: anywhere; }
+.dl-file h2 { margin: 0; padding: .5em; }
+.dl-file h2 img { vertical-align: middle; }
+#dl-file-details {
+	display: grid; grid-template-columns: minmax(0, 20%) minmax(0, 1fr);
+	gap: 1px; margin: 0; line-height: 1.45;
+}
+#dl-file-details dt, #dl-file-details dd { margin: 0; padding: .35em .65em; }
+#dl-file-details dt { font-weight: bold; }
+#dl-file-details .postimage { max-width: min(100%, 16em); max-height: 10em; width: auto; height: auto; vertical-align: middle; }
+.dl-file + #downloads { margin-block: .75em; }
+#downloads .dl-actions { gap: .5em; }
+#downloads .dl-actions .button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+#dl-rate button.dl-image-button { padding: 0; border: 0; background: transparent; cursor: pointer; }
+.dl-table th, .dl-table td { overflow-wrap: anywhere; }
+@media (min-width: 701px) {
+	#dl-categories, .dl-results { table-layout: fixed; }
+	#dl-categories th:first-child { width: 64%; }
+	#dl-categories th:last-child { width: 9%; }
+	.dl-results th:first-child { width: 36%; }
+	.dl-results.dl-single-category th:first-child { width: 50%; }
+	.dl-results.dl-single-category th:nth-child(2) { width: 20%; }
+}
+@media (max-width: 700px) {
+	#dl-file-details { grid-template-columns: minmax(0, 38%) minmax(0, 1fr); }
+	.dl-table table.responsive tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.dl-table table.responsive td:first-child { grid-column: 1 / -1; }
+	.dl-table table.responsive td:first-child > dfn { display: none !important; }
+	#dl-tools a { min-height: 36px; }
+}

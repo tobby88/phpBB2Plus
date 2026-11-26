@@ -35,6 +35,11 @@ class public_listing
 		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),
 			'U_VIEW_FORUM'=>$home));
 		$this->template->assign_var('U_DL_HOME',$home);
+		$locale = substr($this->language->get_used_language(),0,2);
+		if ($this->user->style['style_path'] === 'fisubsilversh' && in_array($locale,array('de','en'),true))
+		{
+			$this->template->assign_var('DL_ART_LANG',$locale);
+		}
 		$children = array();
 		foreach ($cats as $id=>$row) { $children[(int) $row['parent_id']][]=$id; }
 		$pending = array();

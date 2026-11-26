@@ -1,15 +1,12 @@
 <!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{{ DL_TITLE|e }}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
-{% if U_DL_SUBMIT or U_DL_QUEUE %}<div class="action-bar">
-{% if U_DL_SUBMIT %}<a class="button" href="{U_DL_SUBMIT}">{L_PLUS_DL_SUBMIT}</a>{% endif %}
-{% if U_DL_QUEUE %}<a class="button" href="{U_DL_QUEUE}">{L_PLUS_DL_REVIEW}</a>{% endif %}
-</div>{% endif %}
-{% if S_DL_SEARCH %}<form method="get" action="{U_DL_SEARCH}" class="action-bar"><label for="dl-search">{L_PLUS_DL_SEARCH}</label> <input class="inputbox autowidth" type="search" id="dl-search" name="q" value="{{ DL_QUERY|e }}"><button class="button2" type="submit">{L_SEARCH}</button></form>{% endif %}
-{% if loops.dl_cats %}<div class="forabg"><div class="inner"><table class="table1" id="dl-categories"><thead><tr><th>{L_PLUS_DL_CATEGORIES}</th><th>{L_PLUS_DL_FILES}</th><th>{L_PLUS_DL_LAST_FILE}</th></tr></thead><tbody>
-{% for cat in loops.dl_cats %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.SUMMARY %}<br>{{ cat.SUMMARY|e }}{% endif %}
+{% if U_DL_QUEUE %}<p class="action-bar"><a class="button" href="{U_DL_QUEUE}">{L_PLUS_DL_REVIEW}</a></p>{% endif %}
+{% if S_DL_SEARCH %}<form method="get" action="{U_DL_SEARCH}" class="action-bar dl-quick-search"><label for="dl-search">{L_PLUS_DL_SEARCH}</label> <input class="inputbox autowidth" type="search" id="dl-search" name="q" value="{{ DL_QUERY|e }}"><button class="button2" type="submit">{L_SEARCH}</button></form>{% endif %}
+{% if loops.dl_cats %}<div class="forabg dl-table"><div class="inner"><table class="table1" id="dl-categories"><thead><tr><th scope="col">{L_PLUS_DL_CATEGORIES}</th><th scope="col">{L_PLUS_DL_LAST_FILE}</th><th scope="col">{L_PLUS_DL_FILES}</th></tr></thead><tbody>
+{% for cat in loops.dl_cats %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}{% if cat.RECENT %} dl-recent{% endif %}"><td><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.SUMMARY %}<br>{{ cat.SUMMARY|e }}{% endif %}
 {% if cat.children %}<br>{% for child in cat.children %}<a href="{{ child.URL }}">{{ child.TITLE|e }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td>
-<td>{{ cat.COUNT }}</td><td>{% if cat.LAST_URL %}<a href="{{ cat.LAST_URL }}">{{ cat.LAST|e }}</a>{% if cat.RECENT %} <strong>{L_PLUS_DL_NEW_FILE}</strong>{% endif %}<br>{{ cat.DATE|e }}{% else %}&ndash;{% endif %}</td></tr>
+<td>{% if cat.LAST_URL %}<a href="{{ cat.LAST_URL }}">{{ cat.LAST|e }}</a>{% if cat.RECENT %} <strong>{L_PLUS_DL_NEW_FILE}</strong>{% endif %}<br>{{ cat.DATE|e }}{% else %}&ndash;{% endif %}</td><td>{{ cat.COUNT }}</td></tr>
 {% endfor %}</tbody></table></div></div>{% endif %}
 {% if loops.ranked %}
 <!-- INCLUDE @phpbb2plus_downloads/result_rows.html -->

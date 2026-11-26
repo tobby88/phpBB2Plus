@@ -1,6 +1,7 @@
 /* FI Subsilver Shadow inherits the phpBB3 templates, icons and responsive controls. */
 @import url("../../prosilver/theme/stylesheet.css");
 @import url("forum-icons.css");
+@import url("downloads.css");
 
 html, body { background-color: #ecf0f6; color: #172536; }
 body, h1, h2, h3, .content, .postbody, .postprofile, .topiclist, .button {

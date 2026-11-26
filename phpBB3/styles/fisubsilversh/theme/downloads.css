@@ -1,0 +1,24 @@
+.dl-file {
+	border: 1px solid #006699; box-shadow: 0 2px 2px #aeb7c0;
+	background: #fff; color: #172536;
+}
+.dl-file #dl-file-title, .dl-table table.table1 thead th {
+	padding: .55em; background: #005b9c url("images/cellpic3.gif") repeat-x;
+	color: #fff; font: bold 1.1em/1.4 Verdana, Arial, sans-serif; text-align: center; text-transform: none;
+}
+#dl-file-details dt { background: #d9e2ec; color: #253e53; }
+#dl-file-details dd { background: #eaedf4; color: #172536; }
+.dl-table table.table1 tbody td { padding-block: .5em; color: #263c50; vertical-align: middle; }
+.dl-table table.table1 tbody td:first-child > a:first-of-type { font-weight: bold; }
+#dl-sort-form fieldset {
+	padding: .5em; margin-top: -.3em; background: #d9e2ec url("images/cellpic1.gif") repeat-x;
+	border: 1px solid #a8b8c7;
+}
+@media (min-width: 701px) {
+	#dl-categories td:first-child {
+		padding-inline-start: 42px; background: #eaedf4 url("images/folder.gif") no-repeat 8px center;
+	}
+	#dl-categories .dl-recent td:first-child { background-image: url("images/folder_new.gif"); }
+	.rtl #dl-categories td:first-child { background-position: right 8px center; }
+	#dl-categories td:not(:first-child), .dl-single-category td:not(:first-child) { background: #d9e2ec; text-align: center; }
+}
