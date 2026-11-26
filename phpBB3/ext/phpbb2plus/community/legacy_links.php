@@ -6,6 +6,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
 	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
 	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
+	if ($entry === 'arcade_modcp' && $method === 'POST')
+	{
+		// Old selector forms can open a list. A score change needs a new native confirmation.
+		$read_form = $sort_redirect = in_array($_POST['action'] ?? '', array('', 'scores', 'at_scores'), true) &&
+			!isset($_POST['confirm']) && !isset($_POST['player_id']);
+		$query = array_intersect_key($_POST, array_flip(array('mode','cat_id','game_id','action','start'))) + $query;
+	}
 	if ($entry === 'arcade_highscore' && $method === 'POST')
 	{
 		$query = array_intersect_key($_POST, array_flip(array('month', 'date'))) + $query;
@@ -68,6 +75,21 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'arcade_modcp':
+			$category = $query['cat_id'] ?? '0';
+			$action = $query['action'] ?? '';
+			if (($query['mode'] ?? '') !== 'mod' || !is_string($category) || !preg_match('/^(?:-1|0|[1-9][0-9]{0,8})$/D', $category) ||
+				!in_array($action, array('', 'scores', 'at_scores', 'delete_score', 'delete_at_score'), true)) { break; }
+			$extra['category'] = (int) $category;
+			if ($action !== '')
+			{
+				if (!($extra['game'] = $positive('game_id'))) { break; }
+				$extra['board'] = in_array($action, array('at_scores', 'delete_at_score'), true) ? 'all' : 'current';
+			}
+			if ($start = $positive('start')) { $extra['start'] = $start; }
+			header('Cache-Control: private, no-store');
+			$path = 'arcade/moderation';
+			break;
 		case 'ct_login_history':
 			$base = './';
 			$path = 'ucp.php';

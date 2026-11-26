@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_ARCADE_SCORES' => 'Arcade leaderboards',
+	'LOG_PLUS_ARC_SCORE_DELETE_CURRENT' => 'Removed result %1$d from the current leaderboard for game %2$d',
+	'LOG_PLUS_ARC_SCORE_DELETE_ALL' => 'Removed result %1$d from the all-time leaderboard for game %2$d',
+	'LOG_PLUS_ARC_SCORE_EDIT_CURRENT' => 'Corrected result %1$d on the current leaderboard for game %2$d',
+	'LOG_PLUS_ARC_SCORE_EDIT_ALL' => 'Corrected result %1$d on the all-time leaderboard for game %2$d',
 	'ACP_PLUS_ARCADE_SETTINGS' => 'Arcade settings',
 	'ACP_PLUS_ARCADE_TOURNAMENTS' => 'Arcade tournaments',
 	'LOG_PLUS_ARC_TOUR_CREATE' => 'Created arcade tournament %d',

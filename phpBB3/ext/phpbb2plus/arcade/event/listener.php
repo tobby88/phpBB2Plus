@@ -50,6 +50,7 @@ class listener implements EventSubscriberInterface
 		$this->language->add_lang('arcade', 'phpbb2plus/arcade');
 		$perms = $event['permissions'];
 		$perms['a_plus_arcade'] = array('lang' => 'ACL_A_PLUS_ARCADE', 'cat' => 'misc');
+		$perms['a_plus_arc_scores'] = array('lang' => 'ACL_A_PLUS_ARC_SCORES', 'cat' => 'misc');
 		$perms['m_plus_arcade'] = array('lang' => 'ACL_M_PLUS_ARCADE', 'cat' => 'misc');
 		$event['permissions'] = $perms;
 	}

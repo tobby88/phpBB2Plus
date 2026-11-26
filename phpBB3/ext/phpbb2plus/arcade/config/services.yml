@@ -1,4 +1,10 @@
 services:
+    phpbb2plus.arcade.score_moderation:
+        class: phpbb2plus\arcade\service\score_moderation
+        arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.sessions', '@log']
+    phpbb2plus.arcade.score_panel:
+        class: phpbb2plus\arcade\controller\score_panel
+        arguments: ['@phpbb2plus.arcade.score_moderation', '@user', '@language', '@template', '@request', '@controller.helper', '@?phpbb2plus.community.former_members']
     phpbb2plus.arcade.tournament_management:
         class: phpbb2plus\arcade\service\tournament_management
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.tournaments', '%core.table_prefix%plus_arc_', '@log', '@user']
@@ -49,7 +55,7 @@ services:
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '%core.table_prefix%plus_arc_']
     phpbb2plus.arcade.board:
         class: phpbb2plus\arcade\controller\board
-        arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.wallet', '@phpbb2plus.arcade.activity', '@phpbb2plus.arcade.tournaments', '@phpbb2plus.arcade.standings', '@phpbb2plus.arcade.artwork', '@?phpbb2plus.community.former_members', '@?phpbb2plus.community.legacy']
+        arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.wallet', '@phpbb2plus.arcade.activity', '@phpbb2plus.arcade.tournaments', '@phpbb2plus.arcade.standings', '@phpbb2plus.arcade.artwork', '@phpbb2plus.arcade.score_moderation', '@?phpbb2plus.community.former_members', '@?phpbb2plus.community.legacy']
     phpbb2plus.arcade.standings:
         class: phpbb2plus\arcade\service\standings
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@config', '%core.table_prefix%plus_arc_']

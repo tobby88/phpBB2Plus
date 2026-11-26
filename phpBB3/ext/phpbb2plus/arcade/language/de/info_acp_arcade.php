@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_ARCADE_SCORES' => 'Spielhallen-Bestenlisten',
+	'LOG_PLUS_ARC_SCORE_DELETE_CURRENT' => 'Ergebnis %1$d aus der aktuellen Bestenliste von Spiel %2$d entfernt',
+	'LOG_PLUS_ARC_SCORE_DELETE_ALL' => 'Ergebnis %1$d aus der ewigen Bestenliste von Spiel %2$d entfernt',
+	'LOG_PLUS_ARC_SCORE_EDIT_CURRENT' => 'Ergebnis %1$d in der aktuellen Bestenliste von Spiel %2$d korrigiert',
+	'LOG_PLUS_ARC_SCORE_EDIT_ALL' => 'Ergebnis %1$d in der ewigen Bestenliste von Spiel %2$d korrigiert',
 	'ACP_PLUS_ARCADE_SETTINGS' => 'Spielhallen-Einstellungen',
 	'ACP_PLUS_ARCADE_TOURNAMENTS' => 'Spielhallen-Turniere',
 	'LOG_PLUS_ARC_TOUR_CREATE' => 'Spielhallen-Turnier %d angelegt',

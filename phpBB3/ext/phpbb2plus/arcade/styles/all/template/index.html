@@ -1,7 +1,8 @@
 <!-- INCLUDECSS @phpbb2plus_arcade/standings.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ ARC_TITLE|e }}</h2>
-{% if U_ARC_FAVOURITES or U_ARC_MY_AWARDS or U_ARC_TOURNAMENTS or U_ARC_MONTHLY or U_ARC_POINTS %}<nav class="arc-standings-nav" aria-label="{L_PLUS_ARC}">
+{% if U_ARC_FAVOURITES or U_ARC_MY_AWARDS or U_ARC_TOURNAMENTS or U_ARC_MONTHLY or U_ARC_POINTS or U_ARC_MOD %}<nav class="arc-standings-nav" aria-label="{L_PLUS_ARC}">
+{% if U_ARC_MOD %}<a href="{{ U_ARC_MOD }}">{L_PLUS_ARC_MOD}</a>{% endif %}
 {% if U_ARC_FAVOURITES %}<a href="{{ U_ARC_FAVOURITES }}">{L_PLUS_ARC_FAVOURITES}</a>{% endif %}
 {% if U_ARC_MY_AWARDS %}<a href="{{ U_ARC_MY_AWARDS }}">{L_PLUS_ARC_MY_AWARDS}</a>{% endif %}
 {% if U_ARC_MONTHLY %}<a href="{{ U_ARC_MONTHLY }}">{L_PLUS_ARC_MONTH}</a>{% endif %}

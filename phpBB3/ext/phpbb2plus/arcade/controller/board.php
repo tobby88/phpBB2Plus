@@ -26,8 +26,9 @@ class board
 	private $tournaments;
 	private $standings;
 	private $artwork;
+	private $moderation;
 
-	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $tournaments, $standings, $artwork, $names = null, $legacy = null)
+	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $tournaments, $standings, $artwork, $moderation, $names = null, $legacy = null)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -45,6 +46,7 @@ class board
 		$this->tournaments = $tournaments;
 		$this->standings = $standings;
 		$this->artwork = $artwork;
+		$this->moderation = $moderation;
 	}
 
 	private function header()
@@ -109,6 +111,11 @@ class board
 		}
 		$where = $this->catalog->game_filter($id) . $this->catalog->title_filter($term, $type);
 		$member = (int) $this->user->data['user_id'];
+		$moderated = $this->moderation->categories();
+		if ($moderated && (!$id || isset($moderated[$id])))
+		{
+			$this->template->assign_var('U_ARC_MOD', $this->helper->route('phpbb2plus_arcade_moderate', $id ? array('category' => $id) : array()));
+		}
 		if ((int) $this->catalog->setting('games_show_mhm', 1))
 		{
 			$this->template->assign_var('U_ARC_MONTHLY', $this->helper->route('phpbb2plus_arcade_monthly'));
@@ -352,6 +359,12 @@ class board
 				'ARC_CURRENCY' => catalog::plain($account['currency_name']) ?: $this->language->lang('PLUS_ARC_POINTS'), 'ARC_COST' => (int) $g['game_charge']));
 		}
 		$params = array('game' => (int) $g['game_id']);
+		$category = (int) $g['cat_id'];
+		if (isset($this->moderation->categories()[$category]))
+		{
+			$this->template->assign_var('U_ARC_MOD', $this->helper->route('phpbb2plus_arcade_moderate',
+				$params + array('category' => $category, 'board' => $board === 'all' ? 'all' : 'current')));
+		}
 		if ($this->catalog->comment_limit($g)) { $this->template->assign_var('U_ARC_COMMENTS',$this->helper->route('phpbb2plus_arcade_comments',$params)); }
 		$title = catalog::plain($g['game_desc'] ?: $g['game_name']);
 		if ($this->catalog->can_play($g))

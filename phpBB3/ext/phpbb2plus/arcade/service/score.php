@@ -45,4 +45,18 @@ class score
 		$fraction = rtrim(substr($digits, -4), '0');
 		return (substr($v, 0, 1) === '-' ? '-' : '') . substr($digits, 0, -4) . ($fraction !== '' ? $separator . $fraction : '');
 	}
+
+	public static function refresh_winner($db, $prefix, $game, $all)
+	{
+		$table = $prefix . ($all ? 'all_scores' : 'scores');
+		$result = $db->sql_query_limit("SELECT s.owner_id,s.player_id FROM $table s WHERE s.game_name='" . $db->sql_escape($game['game_name']) .
+			"' AND ((s.owner_id=0 AND s.player_id=-1 AND s.author_removed=0) OR EXISTS (SELECT 1 FROM " . USERS_TABLE .
+			' u WHERE u.user_id=s.owner_id AND s.owner_id>0)) ORDER BY s.score_units ' . ($game['reverse_list'] ? 'ASC' : 'DESC') .
+			',s.recorded_at,s.player_id,s.row_id', 1);
+		$winner = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		$values = array(($all ? 'all_winner_id' : 'winner_id') => (int) ($winner['owner_id'] ?? 0),
+			($all ? 'at_highscore_id' : 'highscore_id') => (int) ($winner['player_id'] ?? 0));
+		$db->sql_query('UPDATE ' . $prefix . 'games SET ' . $db->sql_build_array('UPDATE', $values) . ' WHERE game_id=' . (int) $game['game_id']);
+	}
 }

@@ -1,3 +1,7 @@
+phpbb2plus_arcade_moderate:
+    path: /arcade/moderation
+    defaults: { _controller: phpbb2plus.arcade.score_panel:front }
+    methods: [GET, HEAD, POST]
 phpbb2plus_arcade_monthly:
     path: /arcade/monthly
     defaults: { _controller: phpbb2plus.arcade.board:standings, monthly: true }

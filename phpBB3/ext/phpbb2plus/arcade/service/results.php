@@ -77,9 +77,7 @@ class results
 					if ($remove) { $this->db->sql_query("DELETE FROM $table WHERE " . $this->db->sql_in_set('row_id', $remove)); }
 				} while (count($remove) === 150);
 			}
-			$top = $this->first("SELECT owner_id FROM $table WHERE $game_where$order");
-			$field = $all ? 'all_winner_id' : 'winner_id';
-			$this->db->sql_query('UPDATE ' . $this->prefix . "games SET $field=" . (int) $top['owner_id'] . ' WHERE game_id=' . (int) $game['game_id']);
+			score::refresh_winner($this->db, $this->prefix, $game, $all);
 		}
 		return array('record' => $changed && $this->better($units, $old_top, $reverse), 'previous' => (int) ($old_top['owner_id'] ?? 0));
 	}
@@ -152,8 +150,7 @@ class results
 		{
 			if ($row) { return saved_game::unpack($row); }
 			if (!$this->catalog->scores_available($game)) { return ''; }
-			$legacy = $this->first('SELECT game_data,save_encoded FROM ' . $this->prefix . "scores WHERE owner_id=$id AND game_name='" . $this->db->sql_escape($game['game_name']) .
-				"' AND game_data IS NOT NULL ORDER BY score_units " . ($game['reverse_list'] ? 'ASC' : 'DESC') . ',recorded_at DESC,row_id');
+			$legacy = saved_game::from_score($this->db, $this->prefix, $game, $id);
 			return $legacy ? saved_game::unpack($legacy) : '';
 		}
 		$values = saved_game::pack($data) + array('saved_at' => (string) time());

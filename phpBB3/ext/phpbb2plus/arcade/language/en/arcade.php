@@ -1,6 +1,15 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACL_A_PLUS_ARC_SCORES' => 'Can correct and remove arcade scores',
+	'PLUS_ARC_MOD' => 'Moderate leaderboards',
+	'PLUS_ARC_MOD_UNASSIGNED' => 'Uncategorised games (0)', 'PLUS_ARC_MOD_PENDING' => 'Uncategorised games (−1)',
+	'PLUS_ARC_MOD_FILES' => 'Game files and dimensions', 'PLUS_ARC_MOD_AUTOSIZE' => 'Automatic dimensions',
+	'PLUS_ARC_MOD_DATE' => 'Recorded', 'PLUS_ARC_MOD_DURATION' => 'Playing time',
+	'PLUS_ARC_MOD_DELETE' => 'Remove this score from this leaderboard?', 'PLUS_ARC_MOD_EDIT' => 'Correct this score',
+	'PLUS_ARC_MOD_NUMBER' => 'Enter a valid score with up to ten digits before the decimal point.',
+	'PLUS_ARC_SCORE_CHANGED' => 'This result has changed. Open the leaderboard again to review the current score.',
+	'PLUS_ARC_MOD_AMBIGUOUS' => 'These scores cannot be assigned to a single game. Check the internal game names.',
 	'PLUS_ARC_FAVOURITES'=>'My favourite games',
 	'PLUS_ARC_FAV_ADD'=>'Add to favourites','PLUS_ARC_FAV_REMOVE'=>'Remove from favourites',
 	'PLUS_ARC_RATING'=>'Game rating','PLUS_ARC_RATE'=>'Rate game','PLUS_ARC_RATING_EMPTY'=>'No ratings yet.',

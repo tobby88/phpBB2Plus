@@ -1,6 +1,15 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACL_A_PLUS_ARC_SCORES' => 'Kann Spielhallen-Ergebnisse korrigieren und entfernen',
+	'PLUS_ARC_MOD' => 'Bestenlisten moderieren',
+	'PLUS_ARC_MOD_UNASSIGNED' => 'Spiele ohne Kategorie (0)', 'PLUS_ARC_MOD_PENDING' => 'Spiele ohne Kategorie (−1)',
+	'PLUS_ARC_MOD_FILES' => 'Spieldateien und Fenstergröße', 'PLUS_ARC_MOD_AUTOSIZE' => 'Automatische Fenstergröße',
+	'PLUS_ARC_MOD_DATE' => 'Erzielt am', 'PLUS_ARC_MOD_DURATION' => 'Spielzeit',
+	'PLUS_ARC_MOD_DELETE' => 'Dieses Ergebnis aus dieser Bestenliste entfernen?', 'PLUS_ARC_MOD_EDIT' => 'Ergebnis korrigieren',
+	'PLUS_ARC_MOD_NUMBER' => 'Bitte gib einen gültigen Punktestand mit höchstens zehn Vorkommastellen ein.',
+	'PLUS_ARC_SCORE_CHANGED' => 'Dieses Ergebnis hat sich geändert. Öffne die Bestenliste erneut, um den aktuellen Punktestand zu sehen.',
+	'PLUS_ARC_MOD_AMBIGUOUS' => 'Diese Ergebnisse lassen sich keinem einzelnen Spiel zuordnen. Bitte prüfe die internen Spielnamen.',
 	'PLUS_ARC_FAVOURITES'=>'Meine Lieblingsspiele',
 	'PLUS_ARC_FAV_ADD'=>'Zu den Favoriten hinzufügen','PLUS_ARC_FAV_REMOVE'=>'Aus den Favoriten entfernen',
 	'PLUS_ARC_RATING'=>'Spielbewertung','PLUS_ARC_RATE'=>'Spiel bewerten','PLUS_ARC_RATING_EMPTY'=>'Noch keine Bewertungen.',

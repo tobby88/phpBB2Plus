@@ -1,0 +1,37 @@
+{% if ARC_CATEGORY %}
+<p><a href="{{ U_ARC_CATEGORIES|e }}">{{ lang('PLUS_ARC_CATEGORIES') }}</a> › <a href="{{ U_ARC_CAT|e }}">{{ ARC_CATEGORY|e }}</a>
+{% if ARC_GAME %} › <a href="{{ U_ARC_BOARD|e }}">{{ ARC_GAME|e }} · {{ ARC_BOARD_LABEL }}</a>{% endif %}</p>
+{% endif %}
+{% if ARC_ERROR %}<p class="error" role="alert">{{ ARC_ERROR }}</p>{% endif %}
+{% if loops.arc_cats %}
+<ul>{% for cat in loops.arc_cats %}<li><a href="{{ cat.URL|e }}">{{ cat.TITLE|e }}</a></li>{% endfor %}</ul>
+{% elseif S_ARC_GAMES %}
+<div class="arc-mod-scroll"><table class="table1">
+<thead><tr><th scope="col">{{ lang('PLUS_ARC_GAME_TITLE') }}</th><th scope="col">{{ lang('PLUS_ARC_MOD_FILES') }}</th><th scope="col">{{ lang('PLUS_ARC_BOARD') }}</th></tr></thead><tbody>
+{% for game in loops.arc_games %}<tr class="{{ cycle(['bg1','bg2'], loop.index0) }}"><td>{{ game.TITLE|e }}{% if game.DETAIL %}<br>{{ game.DETAIL|e|nl2br }}{% endif %}</td>
+<td>{{ game.NAME|e }}{% if game.PATH %}<br>{{ game.PATH|e }}{% endif %}{% if game.IMAGE %}<br>{{ game.IMAGE|e }}{% endif %}
+{% if game.AUTO %}<br>{{ lang('PLUS_ARC_MOD_AUTOSIZE') }}{% elseif game.WIDTH and game.HEIGHT %}<br>{{ game.WIDTH }} × {{ game.HEIGHT }}{% endif %}</td>
+<td><a href="{{ game.U_CURRENT|e }}">{{ lang('PLUS_ARC_CURRENT') }}</a><br><a href="{{ game.U_ALL|e }}">{{ lang('PLUS_ARC_ALL') }}</a></td></tr>
+{% else %}<tr><td colspan="3">{{ lang('PLUS_ARC_EMPTY') }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% elseif S_ARC_SCORES %}
+<div class="arc-mod-scroll"><table class="table1"><thead><tr>
+<th scope="col">{{ lang('PLUS_ARC_PLACE') }}</th><th scope="col">{{ lang('USERNAME') }}</th><th scope="col">{{ lang('PLUS_ARC_POINTS') }}</th>
+<th scope="col">{{ lang('PLUS_ARC_MOD_DATE') }}</th><th scope="col">{{ lang('PLUS_ARC_MOD_DURATION') }}</th><th scope="col">{{ lang('IP') }}</th><th scope="col">{{ lang('OPTIONS') }}</th></tr></thead><tbody>
+{% for row in loops.arc_scores %}<tr class="{{ cycle(['bg1','bg2'], loop.index0) }}"><td>{{ row.RANK }}</td><td>{{ row.PLAYER }}</td><td>{{ row.SCORE|e }}</td><td>{{ row.DATE }}</td><td>{{ row.DURATION }}</td><td>{{ row.IP|e }}</td>
+<td>{% if row.U_EDIT %}<a href="{{ row.U_EDIT|e }}">{{ lang('EDIT') }}</a> · {% endif %}<a href="{{ row.U_DELETE|e }}">{{ lang('DELETE') }}</a></td></tr>
+{% else %}<tr><td colspan="7">{{ lang('PLUS_ARC_NO_SCORES') }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% elseif S_ARC_FORM %}
+<form id="arc-score-review" action="{{ U_ARC_FORM|e }}" method="post"><fieldset>
+<legend>{{ lang(S_ARC_EDIT ? 'PLUS_ARC_MOD_EDIT' : 'PLUS_ARC_MOD_DELETE') }}</legend>
+<p>{{ ARC_PLAYER }} · {{ ARC_ORIGINAL|e }}{% if ARC_DATE %} · {{ ARC_DATE }}{% endif %}</p>
+{% if S_ARC_EDIT %}<p><label for="arc-score-value">{{ lang('PLUS_ARC_POINTS') }}</label>
+<input id="arc-score-value" class="inputbox autowidth" type="text" inputmode="decimal" name="score" value="{{ ARC_VALUE|e }}" maxlength="128" required></p>{% endif %}
+<input type="hidden" name="confirm" value="1"><input type="hidden" name="revision" value="{{ ARC_REVISION }}">{{ S_FORM_TOKEN }}
+<button type="submit" class="button1">{{ lang(S_ARC_EDIT ? 'SUBMIT' : 'DELETE') }}</button> <a href="{{ U_ARC_BOARD|e }}">{{ lang('CANCEL') }}</a>
+</fieldset></form>
+{% endif %}
+{% if ARC_PAGE %}<p>{{ ARC_PAGE }}
+{% if U_ARC_PREV %}<a href="{{ U_ARC_PREV|e }}">{{ lang('PREVIOUS') }}</a>{% endif %}
+{% if U_ARC_NEXT %}<a href="{{ U_ARC_NEXT|e }}">{{ lang('NEXT') }}</a>{% endif %}</p>{% endif %}

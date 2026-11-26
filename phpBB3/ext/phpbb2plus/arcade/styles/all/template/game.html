@@ -21,6 +21,7 @@
 </div></div>{% endif %}
 <div class="action-bar">{% for board in loops.arc_boards %}<a class="button2" href="{{ board.URL }}">{{ board.LABEL }}</a> {% endfor %}</div>
 {% if U_ARC_COMMENTS %}<p><a href="{{ U_ARC_COMMENTS }}">{L_PLUS_ARC_COMMENTS}</a></p>{% endif %}
+{% if U_ARC_MOD %}<p><a href="{{ U_ARC_MOD }}">{L_PLUS_ARC_MOD}</a></p>{% endif %}
 {% if ARC_BOARD %}<div class="forumbg"><div class="inner"><table class="table1"><thead><tr><th>{L_PLUS_ARC_PLACE}</th><th>{L_USERNAME}</th><th>{L_PLUS_ARC_POINTS}</th><th>{L_DATE}</th></tr></thead>
 <tbody>{% for row in loops.arc_scores %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><td>{{ row.POSITION }}</td><td>{{ row.PLAYER }}{% if row.U_AWARDS %} · <a href="{{ row.U_AWARDS }}">{L_PLUS_ARC_AWARDS}</a>{% endif %}</td><td>{{ row.POINTS }}</td><td>{% if ARC_MONTH %}{{ row.MONTH }}{% else %}{{ row.TIME }}{% endif %}</td></tr>
 {% else %}<tr><td colspan="4">{L_PLUS_ARC_NO_SCORES}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
