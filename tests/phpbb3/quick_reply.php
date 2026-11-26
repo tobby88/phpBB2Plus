@@ -25,6 +25,7 @@ $fixture_posts = static function () use ($db) {
 };
 switch ($argv[2])
 {
+	case 'converted-off':
 	case 'setup':
 	case 'setup-off':
 		$forum = $read('SELECT forum_flags FROM ' . FORUMS_TABLE . ' WHERE forum_id=1', 'forum_flags');
@@ -32,6 +33,7 @@ switch ($argv[2])
 			' OR plus_recovery_role<>0) AND (forum_flags & ' . FORUM_FLAG_QUICK_REPLY . ')<>0', 'total');
 		if ((int) $config['allow_quick_reply'] !== (int) ($argv[2] === 'setup') || !($forum & FORUM_FLAG_QUICK_REPLY) || $unrelated)
 		{ throw new RuntimeException('The converter lost the Plus quick-reply setting or enabled a synthetic/non-posting forum'); }
+		if ($argv[2] === 'converted-off') { break; }
 		if ($store->get($key) !== null || $fixture_posts()) { throw new RuntimeException('A quick-reply fixture already exists'); }
 		$settings = array('posts_per_page' => 1, 'allow_sig' => 1, 'email_enable' => 1, 'allow_topic_notify' => 1,
 			'allow_bbcode' => 1, 'allow_smilies' => 1, 'allow_quick_reply' => 1);

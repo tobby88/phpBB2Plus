@@ -51,6 +51,7 @@ import locked_polls
 import poll_administration
 import legacy_links
 import legacy_login
+import quick_reply
 import moderation_bookmarks
 import mail_links
 import admin_contact
@@ -426,6 +427,8 @@ def main():
             os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
             # The independent media installation covers boards that disabled pruning globally.
             php(fixture, "seed-pruning-off" if media_only else "seed", source)
+            if media_only:
+                php(ROOT / "tests/phpbb3/quick_reply.php", source, "source-off")
             statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
             php(statistics_fixture, "seed", source)
             if forum_suite:
@@ -469,6 +472,8 @@ def main():
                     print(f"Verified {count} upstream files and converted {args.suite} workflows in {monotonic()-start:.1f}s")
                     return
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)
+                if media_only:
+                    php(ROOT / "tests/phpbb3/quick_reply.php", target, "converted-off", cwd=web)
                 if not media_only:
                     recovery = ("bin/phpbbcli.php", "phpbb2plus:recovery:posts")
                     ids = php(*recovery, cwd=web, capture=True).splitlines()
@@ -510,6 +515,8 @@ def main():
                 if forum_suite:
                     smilie_signs.browse(member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/smilie_signs.php", target, phase, cwd=web, capture=True))
+                    quick_reply.browse(member, ordinary, Browser(base), lambda phase: php(
+                        ROOT / "tests/phpbb3/quick_reply.php", target, phase, cwd=web, capture=True))
                 php(fixture, "signed-in", target)
                 def login_fixture(phase):
                     php(ROOT / "tests/phpbb3/login_networks.php", target, phase, cwd=web)
