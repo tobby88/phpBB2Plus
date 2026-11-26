@@ -90,7 +90,7 @@ services:
             - { name: event.listener }
     phpbb2plus.community.polls:
         class: phpbb2plus\community\event\polls
-        arguments: ['@dbal.conn', '@user']
+        arguments: ['@dbal.conn', '@user', '%core.table_prefix%']
         tags:
             - { name: event.listener }
     phpbb2plus.community.legacy:

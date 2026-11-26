@@ -45,8 +45,10 @@ function plus_removed_topics()
 		{
 			$db->sql_query("DELETE v FROM $poll_table v JOIN $topics t ON t.topic_id=v.topic_id WHERE $erased");
 		}
-		$db->sql_query("UPDATE $topics t SET t.poll_title='',t.poll_start=0,t.poll_length=0,t.poll_last_vote=0,t.poll_max_options=1,t.poll_vote_change=0
-			WHERE (t.poll_title<>'' OR t.poll_start<>0 OR t.poll_length<>0 OR t.poll_last_vote<>0 OR t.poll_vote_change<>0 OR t.poll_max_options<>1) AND $erased");
+		\phpbb2plus\community\service\poll_recovery::discard($db, $table_prefix,
+			"EXISTS (SELECT 1 FROM $topics t WHERE t.topic_id=h.topic_id AND $erased)");
+		$db->sql_query("UPDATE $topics t SET t.poll_title='',t.poll_start=0,t.poll_length=0,t.poll_last_vote=0,t.poll_max_options=1,t.poll_vote_change=0,t.plus_poll_epoch=0
+			WHERE (t.poll_title<>'' OR t.poll_start<>0 OR t.poll_length<>0 OR t.poll_last_vote<>0 OR t.poll_vote_change<>0 OR t.poll_max_options<>1 OR t.plus_poll_epoch<>0) AND $erased");
 		\phpbb2plus\community\service\removed_topic_shadows::hide($db, 0, false);
 		$db->sql_transaction('commit');
 	}

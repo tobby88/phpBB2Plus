@@ -18,6 +18,12 @@ function seed_poll_conversion($db)
 	for ($id = 1; $id <= 127; $id++) { $choices[] = "(14407,$id,'Option $id',$id)"; }
 	$db->query('INSERT INTO phpbb_vote_results VALUES ' . implode(',', $choices));
 	$db->query("INSERT INTO phpbb_vote_voters VALUES (14401,2,'c0000203'),(14402,-1,'c0000203'),(14403,2,'c0000204'),(14490,2,'c0000203')");
+	$db->query("INSERT INTO phpbb_vote_voters VALUES (602,87,'c0000257'),(14405,87,'c0000257')");
+	// Historical erasure takes precedence even if a second ballot claimed the same topic.
+	$db->query("INSERT INTO phpbb_vote_desc (vote_id,topic_id,vote_text,vote_start,vote_length)
+		VALUES (14409,805100,'Previously erased question',0,0)");
+	$db->query("INSERT INTO phpbb_vote_results VALUES (14409,2,'Previously erased choice',1)");
+	$db->query("INSERT INTO phpbb_vote_voters VALUES (14409,87,'c0000257')");
 }
 
 function verify_poll_conversion($db)
@@ -41,9 +47,13 @@ function verify_poll_conversion($db)
 	check_fixture(html_entity_decode($header[0], ENT_QUOTES, 'UTF-8') === str_repeat('📷',245) && array_map('intval', array_slice($header,1)) === array(1,0,1),
 		'An unlimited epoch poll lost its full question or became closed');
 	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_plus_poll_choices WHERE source_id=14407')->fetch_row()[0] === 127 &&
-		(int) $db->query('SELECT COUNT(*) FROM p3_plus_poll_receipts')->fetch_row()[0] === 3 &&
-		!$db->query('SELECT 1 FROM p3_plus_poll_receipts WHERE source_id NOT IN (14401,14402,14403)')->fetch_row(),
+		(int) $db->query('SELECT COUNT(*) FROM p3_plus_poll_receipts')->fetch_row()[0] === 4 &&
+		!$db->query('SELECT 1 FROM p3_plus_poll_receipts WHERE source_id NOT IN (14401,14402,14403,14405)')->fetch_row() &&
+		!$db->query('SELECT 1 FROM p3_plus_poll_choices WHERE source_id IN (14409,805100)')->fetch_row(),
 		'Raw choices or historical participation became detached from their unresolved source polls');
+	check_fixture($db->query("SELECT 1 FROM p3_poll_votes WHERE topic_id=602 AND vote_user_id=87 AND vote_user_ip='192.0.2.87'")->fetch_row() &&
+		$db->query("SELECT 1 FROM p3_plus_poll_receipts WHERE source_id=14405 AND user_id=87 AND vote_ip='192.0.2.87'")->fetch_row(),
+		'An existing vote lost its living owner during conversion');
 	$topic = $db->query('SELECT poll_title,poll_start FROM p3_topics WHERE topic_id=602')->fetch_row();
 	check_fixture($topic && $topic[0] === 'Ballot 602' && (int) $topic[1] === 1000000000, 'A stale source topic flag suppressed a valid poll');
 }

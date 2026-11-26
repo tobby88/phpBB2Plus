@@ -352,6 +352,7 @@ def main():
                     if [file["source_id"] for file in record["attachments"]] != [50] or record["attachments"][0]["attach_id"] == 50:
                         raise RuntimeError("The recovery command did not identify the detached copy of the shared file")
                     verify_poll_recovery(web)
+                    php(ROOT / "tests/phpbb3/poll_lifecycle.php", target, cwd=web)
                 php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)
