@@ -16,8 +16,9 @@ class actions
 	private $helper;
 	private $language;
 	private $template;
+	private $listing;
 
-	public function __construct($access, $feedback, $request, $helper, $language, $template)
+	public function __construct($access, $feedback, $request, $helper, $language, $template, $listing)
 	{
 		$this->access = $access;
 		$this->feedback = $feedback;
@@ -25,6 +26,7 @@ class actions
 		$this->helper = $helper;
 		$this->language = $language;
 		$this->template = $template;
+		$this->listing = $listing;
 	}
 
 	public function publish($file, $operation)
@@ -59,6 +61,7 @@ class actions
 			return new RedirectResponse($back,303);
 		}
 		add_form_key($form);
+		$this->listing->navigation('', (int) $f['cat_id']);
 		$this->template->assign_vars(array('DL_TITLE'=>access::plain($c['title']), 'DL_REVISION'=>feedback::revision($c), 'U_DL_FILE'=>$back,
 			'U_DL_REMOVE'=>$this->helper->route('phpbb2plus_downloads_remove',$params + array('comment'=>(int) $comment))));
 		return $this->helper->render('@phpbb2plus_downloads/remove.html',$this->language->lang('PLUS_DL_DELETE_COMMENT'));

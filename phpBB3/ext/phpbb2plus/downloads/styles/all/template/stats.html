@@ -1,4 +1,4 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{L_PLUS_DL_STATS}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 <div class="panel"><div class="inner">
@@ -12,4 +12,4 @@
 <th>{L_PLUS_DL_CLIENT_DOWNLOADS}</th><th>{L_PLUS_DL_CLIENT_VOTES}</th></tr></thead><tbody>
 {% for row in group.rows %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}"><th scope="row">{{ row.LABEL|e }}</th><td>{{ row.VISITORS }}</td><td>{{ row.VOTES }}</td></tr>{% endfor %}
 </tbody></table></div></div>{% endfor %}
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

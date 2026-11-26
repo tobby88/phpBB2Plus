@@ -29,8 +29,24 @@ class public_listing
 
 	public function navigation($active = '',$category = 0)
 	{
+		$cats = $this->access->categories();
+		if ($category && !$this->access->visible($category)) { throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException(); }
+		$home = $this->helper->route('phpbb2plus_downloads_index');
 		$this->template->assign_block_vars('navlinks',array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),
-			'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_index')));
+			'U_VIEW_FORUM'=>$home));
+		$this->template->assign_var('U_DL_HOME',$home);
+		$children = array();
+		foreach ($cats as $id=>$row) { $children[(int) $row['parent_id']][]=$id; }
+		$pending = array();
+		foreach (array_reverse($children[0] ?? array()) as $id) { $pending[]=array($id,0); }
+		while ($pending)
+		{
+			list($id,$depth) = array_pop($pending);
+			if (!$this->access->visible($id)) { continue; }
+			$this->template->assign_block_vars('dl_jump',array('TITLE'=>access::plain($cats[$id]['title']),'DEPTH'=>$depth,'CURRENT'=>$id===$category,
+				'URL'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$id))));
+			foreach (array_reverse($children[$id] ?? array()) as $child) { $pending[]=array($child,$depth+1); }
+		}
 		foreach (array('viewall'=>'VIEWALL','search'=>'ADVANCED','stats'=>'STATS','toplist'=>'TOPLIST') as $route=>$link)
 		{
 			if ($route === $active || ($route === 'viewall' && !(int) $this->access->setting('settings_viewall',1)) ||
@@ -39,8 +55,6 @@ class public_listing
 			$this->template->assign_var('U_DL_' . $link,$this->helper->route('phpbb2plus_downloads_' . $route,$params));
 		}
 		if (!$category) { return; }
-		if (!$this->access->visible($category)) { throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException(); }
-		$cats = $this->access->categories();
 		$path = array();
 		for ($id=$category; $id; $id=(int) $cats[$id]['parent_id']) { $path[]=$id; }
 		foreach (array_reverse($path) as $id)

@@ -1,7 +1,7 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2><a href="{U_DL_FILE}">{{ DL_TITLE|e }}</a></h2>
 <div class="panel"><div class="inner"><h3>{{ DL_LICENSE|e }}</h3>
 {% if DL_LICENSE_CHANGED %}<p class="notice">{L_PLUS_DL_LICENSE_CHANGED}</p>{% endif %}
 <div class="content" style="white-space: pre-line">{{ DL_TERMS|raw }}</div>
 <form id="dl-license" method="post" action="{U_DL_ACCEPT}"><input type="hidden" name="license_revision" value="{DL_LICENSE_REVISION}">{S_FORM_TOKEN}<fieldset class="submit-buttons"><button class="button1" type="submit" name="accept" value="1">{L_PLUS_DL_ACCEPT}</button> <a class="button2" href="{U_DL_FILE}">{L_CANCEL}</a></fieldset></form></div></div>
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

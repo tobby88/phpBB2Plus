@@ -52,7 +52,7 @@ services:
         arguments: ['@dbal.conn', '@phpbb2plus.downloads.access', '@phpbb2plus.downloads.submissions', '%core.table_prefix%plus_dl_']
     phpbb2plus.downloads.submissions_controller:
         class: phpbb2plus\downloads\controller\submissions
-        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.submissions', '@dbal.conn', '@request', '@user', '@controller.helper', '@template', '@language', '@pagination', '%core.table_prefix%plus_dl_']
+        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.submissions', '@dbal.conn', '@request', '@user', '@controller.helper', '@template', '@language', '@pagination', '%core.table_prefix%plus_dl_', '@phpbb2plus.downloads.public_listing']
     phpbb2plus.downloads.submissions:
         class: phpbb2plus\downloads\service\submissions
         arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.media', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_dl_', '@log']
@@ -85,10 +85,10 @@ services:
         arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@config', '@text_formatter.renderer', '%core.table_prefix%plus_dl_', '@symfony_request']
     phpbb2plus.downloads.actions:
         class: phpbb2plus\downloads\controller\actions
-        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.feedback', '@request', '@controller.helper', '@language', '@template']
+        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.feedback', '@request', '@controller.helper', '@language', '@template', '@phpbb2plus.downloads.public_listing']
     phpbb2plus.downloads.delivery:
         class: phpbb2plus\downloads\controller\delivery
-        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@symfony_request', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%', '@path_helper']
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@symfony_request', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%', '@path_helper', '@phpbb2plus.downloads.public_listing']
     phpbb2plus.downloads.events:
         class: phpbb2plus\downloads\event\listener
         arguments: ['@controller.helper', '@template', '@language', '@dbal.conn', '%core.table_prefix%plus_dl_']

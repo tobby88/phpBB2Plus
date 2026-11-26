@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_JUMP'=>'Zu einer Kategorie wechseln',
 	'PLUS_DL_LAST_DOWNLOAD'=>'Zuletzt heruntergeladen','PLUS_DL_UNKNOWN_SIZE'=>'Unbekannt',
 	'PLUS_DL_VOTE_COUNT'=>array(1=>'1 Stimme',2=>'%d Stimmen'),
 	'PLUS_DL_RECOMMEND'=>'Datei empfehlen','PLUS_DL_MAIL_NOTE'=>'Dieser Download könnte dich interessieren.',

@@ -20,8 +20,9 @@ class submissions
 	private $language;
 	private $pagination;
 	private $prefix;
+	private $listing;
 
-	public function __construct($access, $submissions, $db, $request, $user, $helper, $template, $language, $pagination, $prefix)
+	public function __construct($access, $submissions, $db, $request, $user, $helper, $template, $language, $pagination, $prefix, $listing)
 	{
 		$this->access = $access;
 		$this->submissions = $submissions;
@@ -33,20 +34,14 @@ class submissions
 		$this->language = $language;
 		$this->pagination = $pagination;
 		$this->prefix = $prefix;
+		$this->listing = $listing;
 	}
 
 	private function heading($id = 0)
 	{
 		$this->access->open();
 		$this->language->add_lang('downloads', 'phpbb2plus/downloads');
-		$this->template->assign_block_vars('navlinks', array('FORUM_NAME'=>$this->language->lang('PLUS_DL'),
-			'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_index')));
-		if ($id)
-		{
-			$cat = $this->access->categories()[$id];
-			$this->template->assign_block_vars('navlinks', array('FORUM_NAME'=>utf8_htmlspecialchars(access::plain($cat['title'])),
-				'U_VIEW_FORUM'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$id))));
-		}
+		$this->listing->navigation('', $id);
 	}
 
 	public function choose()

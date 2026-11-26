@@ -23,7 +23,7 @@ $set = static function ($key,$value) use ($db,$p,$insert) {
 	$db->sql_query("DELETE FROM {$p}settings WHERE config_name='" . $db->sql_escape($key) . "'");
 	$insert($p.'settings',array('config_name'=>$key,'config_value'=>(string) $value));
 };
-$keys = array('settings_viewall','settings_file_page','settings_newdays','sort_method','sort_order','auth_viewall','auth_search');
+$keys = array('settings_viewall','settings_file_page','settings_newdays','sort_method','sort_order','auth_viewall','auth_search','auth_stats','auth_toplist');
 $db->sql_transaction('begin');
 switch ($argv[2])
 {
@@ -31,7 +31,7 @@ switch ($argv[2])
 		$before = $rows("SELECT config_name,config_value FROM {$p}settings WHERE " . $db->sql_in_set('config_name',$keys));
 		$set('test_download_listing',json_encode($before));
 		foreach (array('settings_viewall'=>1,'settings_file_page'=>2,'settings_newdays'=>2,'sort_method'=>'file_dls','sort_order'=>'ASC',
-			'auth_viewall'=>0,'auth_search'=>0) as $name=>$value) { $set($name,$value); }
+			'auth_viewall'=>0,'auth_search'=>0,'auth_stats'=>0,'auth_toplist'=>0) as $name=>$value) { $set($name,$value); }
 		$cat = $rows("SELECT * FROM {$p}categories WHERE cat_id=21")[0];
 		$hidden = $rows("SELECT * FROM {$p}categories WHERE cat_id=22")[0];
 		foreach (array(

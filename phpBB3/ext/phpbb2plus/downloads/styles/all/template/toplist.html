@@ -1,4 +1,4 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{L_PLUS_DL_TOPLIST}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 <div class="panel"><div class="inner"><p>{% for tab in loops.modes %}{% if not loop.first %} &middot; {% endif %}{% if tab.CURRENT %}<strong>{{ tab.LABEL|e }}</strong>{% else %}<a href="{{ tab.URL }}">{{ tab.LABEL|e }}</a>{% endif %}{% endfor %}</p>
@@ -10,4 +10,4 @@
 {% if DL_FILE_LIST %}<h3>{{ DL_CAPTION|e }}</h3>
 {% if loops.ranked %}<!-- INCLUDE @phpbb2plus_downloads/result_rows.html -->{% else %}<p>{L_PLUS_DL_EMPTY}</p>{% endif %}{% endif %}
 {% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

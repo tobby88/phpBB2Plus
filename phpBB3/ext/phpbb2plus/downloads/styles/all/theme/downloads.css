@@ -1,0 +1,6 @@
+#dl-category-menu { clear: both; margin-block: 1em; }
+#dl-category-menu summary { cursor: pointer; font-weight: bold; padding: .5em 0; }
+#dl-category-menu ul { margin: 0; padding: 0; list-style: none; }
+#dl-category-menu li { padding-inline-start: min(25%, calc(var(--dl-depth, 0) * 1.3em)); }
+#dl-category-menu a { display: inline-block; padding: .3em .4em; overflow-wrap: anywhere; }
+#dl-category-menu [aria-current] { font-weight: bold; }

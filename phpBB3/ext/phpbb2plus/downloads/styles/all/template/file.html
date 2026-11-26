@@ -1,4 +1,4 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{% if DL_ICON %}<img src="{{ DL_ICON }}" alt=""> {% endif %}{{ DL_TITLE|e }}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 {% if U_DL_RECOMMEND or U_DL_EDIT or U_DL_DELETE or U_DL_QUEUE %}<div class="action-bar">
@@ -34,4 +34,4 @@
 <fieldset class="fields1"><dl><dt><label for="dl-subject">{L_SUBJECT}</label></dt><dd><input type="text" class="inputbox" id="dl-subject" name="subject"></dd></dl>
 <dl><dt><label for="dl-message">{L_MESSAGE}</label></dt><dd><textarea class="inputbox" id="dl-message" name="message" rows="5" required></textarea></dd></dl></fieldset>
 {S_FORM_TOKEN}<input type="hidden" name="nonce" value="{DL_NONCE}"><fieldset class="submit-buttons"><button class="button1" type="submit">{L_SUBMIT}</button></fieldset></div></form>{% endif %}
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

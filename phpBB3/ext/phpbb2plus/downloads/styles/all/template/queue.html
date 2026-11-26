@@ -1,4 +1,4 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{% if DL_DELETING %}{L_PLUS_DL_DELETE}{% else %}{L_PLUS_DL_REVIEW}{% endif %}</h2>
 {% if DL_CONFIRM %}
 <form id="{% if DL_DELETING %}dl-delete{% else %}dl-review{% endif %}" method="post" action="{U_DL_REVIEW}" class="panel"><div class="inner">
@@ -13,4 +13,4 @@
 {% if f.U_REJECT %} &middot; <a href="{{ f.U_REJECT }}">{L_PLUS_DL_REJECT}</a>{% endif %}</td></tr>{% else %}<tr><td colspan="2">{L_PLUS_DL_EMPTY}</td></tr>{% endfor %}
 </tbody></table></div></div>{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
 {% endif %}
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

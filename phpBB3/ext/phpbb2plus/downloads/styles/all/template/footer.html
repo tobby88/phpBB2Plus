@@ -1,0 +1,14 @@
+{% if loops.dl_jump %}
+<nav id="dl-category-menu" aria-label="{L_PLUS_DL_JUMP}">
+	<details>
+		<summary>{L_PLUS_DL_JUMP}</summary>
+		<ul>
+			<li><a href="{U_DL_HOME}">{L_PLUS_DL}</a></li>
+			{% for cat in loops.dl_jump %}
+			<li style="--dl-depth: {{ cat.DEPTH }}"><a href="{{ cat.URL }}"{% if cat.CURRENT %} aria-current="location"{% endif %}>{{ cat.TITLE|e }}</a></li>
+			{% endfor %}
+		</ul>
+	</details>
+</nav>
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

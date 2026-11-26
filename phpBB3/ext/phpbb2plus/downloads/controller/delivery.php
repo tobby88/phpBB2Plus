@@ -26,8 +26,9 @@ class delivery
 	private $prefix;
 	private $root;
 	private $paths;
+	private $listing;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $http, $config, $prefix, $root, $paths)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $http, $config, $prefix, $root, $paths, $listing)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -41,6 +42,7 @@ class delivery
 		$this->prefix = $prefix;
 		$this->root = $root;
 		$this->paths = $paths;
+		$this->listing = $listing;
 	}
 
 	private function local_path($name)
@@ -116,6 +118,7 @@ class delivery
 
 	private function agreement($f, $mirror, $license, $changed)
 	{
+		$this->listing->navigation('', (int) $f['cat_id']);
 		$id = (int) $f['file_id'];
 		$revision = $this->revision($f,$license);
 		add_form_key($this->form_key($id,$mirror,$revision));

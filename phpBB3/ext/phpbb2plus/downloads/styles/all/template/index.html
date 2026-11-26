@@ -1,4 +1,4 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{{ DL_TITLE|e }}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 {% if U_DL_SUBMIT or U_DL_QUEUE %}<div class="action-bar">
@@ -19,4 +19,4 @@
 </fieldset></form>
 <div class="pagination"><span id="dl-page">{DL_PAGE}</span>{% if loops.pagination %} <!-- INCLUDE pagination.html -->{% endif %}</div>
 {% elseif not loops.dl_cats %}<p>{L_PLUS_DL_EMPTY}</p>{% endif %}
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

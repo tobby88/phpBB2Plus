@@ -1,4 +1,4 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{L_PLUS_DL_ADVANCED}</h2>
 <!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 {% if DL_EXPIRED %}<p class="notice">{L_PLUS_DL_SEARCH_EXPIRED}</p>{% endif %}
@@ -14,4 +14,4 @@
 <dl><dt><label for="dl-comments">{L_PLUS_DL_SEARCH_COMMENTS}</label></dt><dd><select id="dl-comments" name="comments_search"><option value="YES"{% if DL_COMMENTS %} selected{% endif %}>{L_YES}</option><option value="NO"{% if not DL_COMMENTS %} selected{% endif %}>{L_NO}</option></select></dd></dl>
 <dl><dt><label for="dl-sort">{L_SORT_BY}</label></dt><dd><!-- INCLUDE @phpbb2plus_downloads/sort_controls.html --></dd></dl>
 </fieldset><fieldset class="submit-buttons"><button class="button1" type="submit">{L_SEARCH}</button></fieldset></div></form>
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

@@ -1,4 +1,4 @@
-<!-- INCLUDE overall_header.html -->
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{% if DL_EDITING %}{L_PLUS_DL_EDIT}{% else %}{L_PLUS_DL_SUBMIT}{% endif %}</h2>
 {% if DL_CHOOSE %}
 <div class="panel"><div class="inner"><h3>{L_PLUS_DL_CHOOSE_CATEGORY}</h3><ul>
@@ -40,4 +40,4 @@
 <fieldset class="submit-buttons"><input type="hidden" name="fields_revision" value="{DL_FIELDS_REVISION}">{% if DL_EDITING %}<input type="hidden" name="revision" value="{DL_REVISION}">{% else %}<input type="hidden" name="nonce" value="{DL_NONCE}">{% endif %}{S_FORM_TOKEN}
 {% if not DL_STALE %}<button class="button1" type="submit">{% if DL_EDITING %}{L_PLUS_DL_SAVE_FILE}{% else %}{L_PLUS_DL_SUBMIT}{% endif %}</button>{% endif %}</fieldset>
 </form>{% endif %}
-<!-- INCLUDE overall_footer.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

@@ -23,10 +23,20 @@ def browse(base, member, ordinary, verify):
             raise RuntimeError("The viewer did not find the permitted directory")
         return match[1]
 
+    def category_menu(page):
+        menu = re.search(r'<nav id="dl-category-menu".*?</nav>', page, re.S)
+        if not menu:
+            raise RuntimeError("The download category menu is missing")
+        return menu[0]
+
     for actor, count, child, last in ((guest, 6, False, "Bravo"), (ordinary, 6, False, "Bravo"),
                                       (member, 7, True, "Inherited listing file")):
         home = actor.fetch(root)
         row = directory_row(home)
+        menu = category_menu(home)
+        expected = [10930, 10932, 10933, 10931] if child else [10930, 10931]
+        if list(map(int, re.findall(r'/downloads/category/(1093\d)\b', menu))) != expected:
+            raise RuntimeError("The category menu lost its hierarchy, order or inherited visibility")
         if (f"<td>{count}</td>" not in row or f">{last}</a>" not in row or "Public listing shelf" not in row or
                 ("Shared listing shelf" in row) != child or "dl-sort-form" in home or "/downloads/all" not in home or
                 "Waiting listing file" in home or "Folder-only file" in home):
@@ -43,6 +53,14 @@ def browse(base, member, ordinary, verify):
             raise RuntimeError("A guest or deleted submitter was attributed to a profile, or a known empty file lost its size")
 
     initial = guest.fetch(folder)
+    for page in (initial, guest.fetch(root + "/file/10941")):
+        menu = category_menu(page)
+        if (not re.search(r'<a href="[^"]*/category/10931[^"]*" aria-current="location">Public listing shelf</a>', menu) or
+                "Shared listing shelf" in menu or "Inherited listing shelf" in menu):
+            raise RuntimeError("The category or file menu missed the current public folder or disclosed a private branch")
+    for path in ("/search", "/stats", "/toplist", "/file/50/get/0"):
+        if "Public listing shelf" not in category_menu(guest.fetch(root + path)):
+            raise RuntimeError("The directory menu could not be reached from a download tool or licence")
     defaults = FormFields(initial, "dl-sort-form").values
     if (defaults.get("sort_method") != "file_dls" or defaults.get("sort_order") != "ASC" or
             fixture_ids(initial) != [10942, 10941, 10944, 10945] or "/downloads/file/10944/preview" not in initial):
