@@ -56,6 +56,7 @@ import topic_readers
 import arcade_diagnostics
 import arcade_game_editor
 import arcade_provisioning
+import arcade_batch_import
 import recommend
 import attachment_rules
 import attachment_upload_types
@@ -63,6 +64,7 @@ import member_attachments
 import birthday_greeting
 import absence
 import absence_contact
+import absence_registration
 import mailbox_counters
 import smilie_signs
 import downloads
@@ -286,11 +288,6 @@ def media_administration(base, member, ordinary, pending, target, web):
     # Private album admission changes membership. Run it after download
     # submissions and keep cache invalidation after all gallery writes.
     guest = Browser(base)
-    member_attachments.browse(base, member, ordinary)
-    attachment_rules.browse(member, ordinary, pending, guest, lambda phase: php(
-        ROOT / "tests/phpbb3/attachment_rules.php", target, phase, cwd=web, capture=True))
-    attachment_upload_types.browse(member, ordinary, pending, lambda phase: php(
-        ROOT / "tests/phpbb3/attachment_upload_types.php", target, phase, cwd=web, capture=True))
     with ThreadPoolExecutor(max_workers=1) as worker:
         categories = worker.submit(download_category_checks, member.separate_client(), target, web)
         gallery_management_bookmarks.browse(member, ordinary, pending, guest, lambda phase: php(
@@ -314,7 +311,22 @@ def arcade_management(base, admin, moderator, member, target, web):
     arcade_category_administration.exercise(base, admin, moderator, lambda phase: php(
         tests / "arcade_category_administration.php", target, phase, cwd=web, capture=True))
     arcade_game_editor.browse(base, lambda phase: php(tests / "arcade_game_editor.php", target, phase, cwd=web, capture=True), moderator, member)
+    arcade_batch_import.browse(base, web, target, php)
     arcade_provisioning.browse(base, web, target, php)
+
+
+def account_management(base, admin, moderator, member, target, web):
+    def fixture(name):
+        return lambda phase: php(ROOT / "tests/phpbb3" / (name + ".php"), target, phase, cwd=web, capture=True)
+
+    member_attachments.browse(base, admin, moderator)
+    attachment_rules.browse(admin, moderator, member, Browser(base), fixture("attachment_rules"))
+    attachment_upload_types.browse(admin, moderator, member, fixture("attachment_upload_types"))
+    birthday_greeting.browse(base, moderator, admin, fixture("birthday_greeting"))
+    absence.browse(base, moderator, admin, fixture("absence"))
+    absence_contact.browse(base, moderator, admin, fixture("absence_contact"))
+    mailbox_counters.browse(base, admin, fixture("mailbox_counters"))
+    absence_registration.browse(base, fixture("absence_registration"))
 
 
 def extension_upgrades(target, web, suite="all"):
@@ -333,7 +345,7 @@ def extension_upgrades(target, web, suite="all"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
         preserved.append(tests / "gallery_rating_policy.php")
-    if suite in ("arcade", "all"):
+    if suite in ("arcade", "management", "all"):
         # The diagnostics and game migrations depend on v113 and roll back with it.
         migrations.append("arcade/migrations/v113_category_administration")
         preserved.extend((tests / "arcade_category_administration.php", tests / "arcade_diagnostics.php"))
@@ -382,11 +394,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--offline", action="store_true")
-    parser.add_argument("--suite", choices=("all", "forum", "media", "downloads", "arcade"), default="all",
+    parser.add_argument("--suite", choices=("all", "forum", "media", "downloads", "arcade", "management"), default="all",
                         help="Run the full converted board or one of the independent CI suites")
     args = parser.parse_args()
     media_only = args.suite in ("media", "downloads")
     forum_suite = args.suite in ("forum", "all")
+    account_suite = args.suite in ("management", "all")
     if os.environ.get("PLUS_TEST_DATABASE") != "1":
         parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
     start = monotonic()
@@ -400,7 +413,7 @@ def main():
         print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
         with database() as target, database() as source:
             install(web, root, target)
-            if media_only or args.suite == "all":
+            if account_suite:
                 php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
             php("bin/phpbbcli.php", "--version", cwd=web)
             fixture = ROOT / "tests/phpbb3/legacy_database.php"
@@ -414,9 +427,10 @@ def main():
             if forum_suite:
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
+                php(ROOT / "tests/phpbb3/smilie_signs.php", source, "source")
+            if account_suite:
                 php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
                 php(ROOT / "tests/phpbb3/absence.php", source, "source")
-                php(ROOT / "tests/phpbb3/smilie_signs.php", source, "source")
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
@@ -436,16 +450,19 @@ def main():
                 if forum_suite:
                     php(fixture, "original-topology", source)
                 (web / "install").rename(root / "finished-installer")
-                if forum_suite:
+                if account_suite:
                     php(ROOT / "tests/phpbb3/absence.php", target, "converted", cwd=web)
-                if args.suite == "arcade":
+                    php(ROOT / "tests/phpbb3/birthday_greeting.php", target, "converted", cwd=web)
+                if args.suite in ("arcade", "management"):
                     php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
                     admin, _ = delegation.authenticate(base, "ModernMember")
                     moderator = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
                     player = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                     arcade_management(base, admin, moderator, player, target, web)
-                    extension_upgrades(target, web, "arcade")
-                    print(f"Verified {count} upstream files, converted Arcade management and local game creation in {monotonic()-start:.1f}s")
+                    if account_suite:
+                        account_management(base, admin, moderator, player, target, web)
+                    extension_upgrades(target, web, args.suite)
+                    print(f"Verified {count} upstream files and converted {args.suite} workflows in {monotonic()-start:.1f}s")
                     return
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)
                 if not media_only:
@@ -466,7 +483,6 @@ def main():
                 if not media_only:
                     php(ROOT / "tests/phpbb3/topic_readers.php", target, "converted", cwd=web)
                     php(ROOT / "tests/phpbb3/recommend.php", target, "converted", cwd=web)
-                    php(ROOT / "tests/phpbb3/birthday_greeting.php", target, "converted", cwd=web)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True), with_recovery=not media_only)
                 converted = monotonic()
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
@@ -598,14 +614,8 @@ def main():
                 admin_contact.browse(Browser(base), ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/admin_contact.php", target, phase, cwd=web, capture=True))
                 recommend.browse(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/recommend.php", target, phase, cwd=web))
-                birthday_greeting.browse(base, ordinary, member, lambda phase: php(
-                    ROOT / "tests/phpbb3/birthday_greeting.php", target, phase, cwd=web, capture=True))
-                absence.browse(base, ordinary, member, lambda phase: php(
-                    ROOT / "tests/phpbb3/absence.php", target, phase, cwd=web, capture=True))
-                absence_contact.browse(base, ordinary, member, lambda phase: php(
-                    ROOT / "tests/phpbb3/absence_contact.php", target, phase, cwd=web, capture=True))
-                mailbox_counters.browse(base, member, lambda phase: php(
-                    ROOT / "tests/phpbb3/mailbox_counters.php", target, phase, cwd=web, capture=True))
+                if account_suite:
+                    account_management(base, member, ordinary, pending, target, web)
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 weblinks.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
