@@ -21,7 +21,8 @@ def browse(base, member, change):
     limit = int(change("seed"))
     try:
         if (search(guest, search_word="probe & test_100%") != [900101] or search(guest, search_word="%") != [900101]
-                or search(guest, search_word="pro", search_type=1) != [900102] or search(guest, search_type=3) != [900101]):
+                or search(guest, search_word="🎮") != [900101] or search(guest, search_word="pro", search_type=1) != [900102]
+                or search(guest, search_type=3) != [900101]):
             raise RuntimeError("Arcade title searches lost literal characters, prefixes, digits or the fallback game name")
         if (search(guest, root, search_word="Nur im Verein") or search(member, root, search_word="Nur im Verein") != [900103]
                 or search(member, category, search_word="Nur im Verein")):
@@ -50,5 +51,8 @@ def browse(base, member, change):
         link(base, "activity.php?mode=search&search_type=3&search_word=0-9", root, {"search_type": 3, "search_word": "0-9"})
         if ids(guest.fetch("activity.php?mode=cat&cat_id=10", {"search_word": "probe & test_100%"})) != [900101]:
             raise RuntimeError("The historical search form did not reach the matching game")
+        change("ambiguous")
+        if search(member, search_word="Probe", sort_mode="comments", order="DESC") != [900101, 900102]:
+            raise RuntimeError("An unreadable game discussion contributed to directory sorting")
     finally:
         change("cleanup")

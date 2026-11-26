@@ -15,7 +15,7 @@ if ($argv[2] === 'seed')
 			'game_charge' => $guests, 'instructions' => $name);
 		$db->sql_query("INSERT INTO {$p}games " . $db->sql_build_array('INSERT', $row));
 	};
-	$game(900101, 'digit', '09 Probe &amp; Test_100%', 10, 12, 0);
+	$game(900101, 'digit', '09 Probe &amp; Test_100% &#127918;', 10, 12, 0);
 	$game(900102, 'ProbeFallback', '', 10, 2, 1);
 	$game(900103, 'clubprobe', 'Nur im Verein', 12, 0, 0);
 	$db->sql_query("INSERT INTO {$p}ratings (target_game,rate_point) VALUES (900101,2),(900102,9)");
@@ -30,11 +30,15 @@ if ($argv[2] === 'seed')
 	$db->sql_multi_insert($p . 'games', $pages);
 	echo $limit;
 }
+elseif ($argv[2] === 'ambiguous')
+{
+	$db->sql_query("INSERT INTO {$p}games (game_id,game_name,game_desc,cat_id) VALUES (900104,'ProbeFallback','Hidden duplicate',12)");
+}
 elseif ($argv[2] === 'cleanup')
 {
 	$db->sql_query("DELETE FROM {$p}comments WHERE comment_id=900101 AND target_game=900102");
 	$db->sql_query("DELETE FROM {$p}ratings WHERE target_game IN (900101,900102)");
-	$db->sql_query("DELETE FROM {$p}games WHERE game_id BETWEEN 900101 AND 900103 OR game_id BETWEEN 900200 AND 900300");
+	$db->sql_query("DELETE FROM {$p}games WHERE game_id BETWEEN 900101 AND 900104 OR game_id BETWEEN 900200 AND 900300");
 }
 else { throw new InvalidArgumentException('Unknown Arcade directory fixture phase'); }
 $db->sql_transaction('commit');

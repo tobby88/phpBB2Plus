@@ -151,9 +151,10 @@ class catalog
 			'game_played' => 'g.played', 'default' => 'g.game_id', 'allow_guest' => 'g.allow_guest',
 			'game_instructions' => 'LOWER(g.instructions)', 'game_charge' => 'g.game_charge', 'game_bonus' => 'g.game_bonus');
 		if ($ratings) { $sorts['rating'] = '(SELECT AVG(v.rate_point) FROM ' . $this->prefix . 'ratings v WHERE v.target_game=g.game_id)'; }
-		if (!empty($this->user->data['is_registered']) && (int) $this->setting('games_comments', 0))
+		if ($this->comment_limit())
 		{
-			$sorts['comments'] = '(SELECT COUNT(*) FROM ' . $this->prefix . 'comments c WHERE c.target_game=g.game_id)';
+			$sorts['comments'] = 'CASE WHEN ' . $this->unique_game_condition() . ' THEN (SELECT COUNT(*) FROM ' .
+				$this->prefix . 'comments c WHERE c.target_game=g.game_id) ELSE 0 END';
 		}
 		return $sorts;
 	}
@@ -167,10 +168,23 @@ class catalog
 		$prefix = $type === 1 ? '' : $any;
 		$matches = array();
 		// Converted captions can contain literal text or the original HTML entities.
-		$terms = array_unique(array($term, utf8_htmlspecialchars($term), utf8_encode_ucr(utf8_htmlspecialchars($term))));
-		foreach ($terms as $text)
+		$terms = array();
+		foreach (array_unique(array($term, utf8_htmlspecialchars($term))) as $plain)
 		{
-			$matches[] = "LOWER($title) " . $this->db->sql_like_expression($prefix . utf8_strtolower($text) . $any);
+			$terms[] = $plain;
+			$hex = utf8_encode_ucr($plain);
+			if ($hex !== $plain)
+			{
+				$terms[] = $hex;
+				$terms[] = preg_replace_callback('/&#x([a-f0-9]{5,6});/i', static function ($match) {
+					return '&#' . hexdec($match[1]) . ';';
+				}, $hex);
+			}
+		}
+		foreach (array_unique($terms) as $text)
+		{
+			$literal = str_replace('\\', '\\\\', utf8_strtolower($text));
+			$matches[] = "LOWER($title) " . $this->db->sql_like_expression($prefix . $literal . $any);
 		}
 		return ' AND (' . implode(' OR ', $matches) . ')';
 	}
@@ -190,14 +204,14 @@ class catalog
 		return $unique;
 	}
 
-	public function comment_limit($game)
+	public function comment_limit($game = null)
 	{
 		if (empty($this->user->data['is_registered']) || !empty($this->user->data['is_bot']) ||
 			(int) $this->setting('games_comments',0) !== 1 ||
 			(int) $this->user->data['user_posts'] < (int) $this->setting('games_posts_required',0) ||
 			(int) $this->user->data['user_rank'] < (int) $this->setting('games_rank_required',0)) { return 0; }
 		$size = (int) $this->setting('games_comment_size',0);
-		return $size > 0 && $size <= 65535 && $this->unique_name($game) ? $size : 0;
+		return $size > 0 && $size <= 65535 && ($game === null || $this->unique_name($game)) ? $size : 0;
 	}
 
 	public function same_boards($game)
@@ -218,12 +232,17 @@ class catalog
 			((int) $this->user->data['user_id'] === (int) $member || $this->auth->acl_get('u_viewprofile'));
 	}
 
+	private function unique_game_condition()
+	{
+		$games = $this->prefix . 'games';
+		return "g.game_name<>'' AND NOT EXISTS
+			(SELECT 1 FROM $games other WHERE other.game_name=g.game_name AND other.game_id<>g.game_id)";
+	}
+
 	/** Scores are keyed by name. Never attribute one name shared by several games to a visible category. */
 	public function ranked_game_filter()
 	{
-		$games = $this->prefix . 'games';
-		return $this->game_filter() . " AND g.game_avail=1 AND g.game_show_score=1 AND g.game_name<>'' AND NOT EXISTS
-			(SELECT 1 FROM $games other WHERE other.game_name=g.game_name AND other.game_id<>g.game_id)";
+		return $this->game_filter() . ' AND g.game_avail=1 AND g.game_show_score=1 AND ' . $this->unique_game_condition();
 	}
 
 	/** Rank only eligible games. Use the same score and tie order as the game's leaderboard. */
