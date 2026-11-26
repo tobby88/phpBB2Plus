@@ -50,6 +50,10 @@ if (!$get_info)
 	$convertor['schema'][0]['execute_first'] = ($convertor['schema'][0]['execute_first'] ?? '') . ' plus_import_post_icons();';
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_media_issues');
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_action_import');
+	foreach (array(POLL_VOTES_TABLE, $table_prefix . 'plus_poll_review', $table_prefix . 'plus_poll_choices', $table_prefix . 'plus_poll_receipts') as $table)
+	{
+		$convertor['query_first'][] = array('target', $convert->truncate_statement . $table);
+	}
 	// A fresh conversion replaces native accounts; old locally managed IDs must not follow them.
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_jr_delegations');
 	// Category listing grants depend on the final visibility of their descendant forums.
@@ -59,6 +63,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_enable_post_icons();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
+	$convertor['execute_last'][] = 'plus_publish_poll_receipts();';
 	$convertor['execute_last'][] = 'plus_kb_moderators();';
 	$convertor['execute_last'][] = 'plus_gallery_personal_permissions();';
 	$convertor['execute_last'][] = 'plus_jr_finish();';
@@ -115,6 +120,31 @@ if (!$get_info)
 	$published_pm = plus_published_pm_condition($src_db, $convert->src_table_prefix);
 	foreach ($convertor['schema'] as $section)
 	{
+		if ($section['target'] === TOPICS_TABLE)
+		{
+			// A topic has exactly one native row even if several source polls claim it.
+			$section['left_join'] = array_values(array_filter((array) $section['left_join'], static function ($join) {
+				return strpos($join, 'LEFT JOIN vote_desc ') === false;
+			}));
+			foreach ($section as $index => $field)
+			{
+				if (is_int($index) && in_array($field[0], array('poll_title', 'poll_start', 'poll_length'), true))
+				{
+					$section[$index] = array($field[0], $field[0] === 'poll_title' ? '' : 0, '');
+				}
+			}
+		}
+		if ($section['target'] === POLL_OPTIONS_TABLE)
+		{
+			$schema[] = array('target' => POLL_OPTIONS_TABLE, 'primary' => 'vote_desc.vote_id', 'query_first' => $section['query_first'],
+				array('', array('vote_desc.vote_id', 'vote_desc.topic_id', 'vote_desc.vote_text', 'vote_desc.vote_start', 'vote_desc.vote_length'), 'plus_import_poll'));
+			continue;
+		}
+		if ($section['target'] === POLL_VOTES_TABLE)
+		{
+			$schema[] = plus_poll_receipt_schema($table_prefix);
+			continue;
+		}
 		if (isset($section['where']) && in_array($section['target'], array(PRIVMSGS_TABLE, PRIVMSGS_TO_TABLE), true))
 		{
 			$section['where'] .= ' AND (' . $published_pm . ')';
@@ -196,10 +226,6 @@ if (!$get_info)
 				// if either participant had left. Completed copies need only their owner.
 				$section['where'] .= ' AND users.user_id > 0 AND (privmsgs.privmsgs_type NOT IN (1,5) OR pm_peer.user_id > 0)';
 			}
-			if ($section['target'] === POLL_VOTES_TABLE && $field[0] === 'vote_user_ip')
-			{
-				$field[2] = 'plus_registration_ip';
-			}
 			if ($section['target'] === TOPICS_TABLE && $field[0] === 'topic_poster')
 			{
 				$joins = (array) $section['left_join'];
@@ -226,13 +252,6 @@ if (!$get_info)
 			}
 		}
 		unset($field);
-		if ($section['target'] === POLL_VOTES_TABLE)
-		{
-			// A deleted account's numeric ID may now belong to a different member.
-			// The option totals already include these votes independently of the receipts.
-			$section['left_join'] = 'vote_voters LEFT JOIN users ON users.user_id=vote_voters.vote_user_id';
-			$section['where'] .= ' AND (vote_voters.vote_user_id=-1 OR (vote_voters.vote_user_id>0 AND users.user_id IS NOT NULL))';
-		}
 		if ($section['target'] === SMILIES_TABLE)
 		{
 			$section = array('target' => SMILIES_TABLE, 'primary' => 'smilies.smilies_id', 'autoincrement' => 'smiley_id',

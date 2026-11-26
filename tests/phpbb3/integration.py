@@ -122,6 +122,19 @@ def database():
         php(tool, "drop", name)
 
 
+def verify_poll_recovery(web):
+    command = ("bin/phpbbcli.php", "phpbb2plus:recovery:polls")
+    held = [json.loads(line) for line in php(*command, cwd=web, capture=True).splitlines()]
+    if len(held) != 7 or any(set(row) != {"source_id", "topic_id", "reason"} for row in held):
+        raise RuntimeError("The poll recovery overview must show only IDs and reasons")
+    records = [json.loads(line) for line in php(*command, "14401", cwd=web, capture=True).splitlines()]
+    header, *options = records
+    if header["question"] != "Doppelte Antwort 📷" or header["receipts"] != 1 or header["reason"] != "duplicate-option-id":
+        raise RuntimeError("The original question or participation count is missing from poll recovery")
+    if [(option["vote_option_text"], int(option["vote_result"])) for option in options] != [("Erste", 7), ("Zweite", 19)]:
+        raise RuntimeError("Poll recovery did not preserve both distinct answers with the same source option number")
+
+
 def install(web, settings_dir, name):
     config = settings_dir / "install.yml"
     quote = json.dumps
@@ -338,6 +351,7 @@ def main():
                         raise RuntimeError("The recovery command did not list and retrieve the imported post text")
                     if [file["source_id"] for file in record["attachments"]] != [50] or record["attachments"][0]["attach_id"] == 50:
                         raise RuntimeError("The recovery command did not identify the detached copy of the shared file")
+                    verify_poll_recovery(web)
                 php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)
@@ -351,6 +365,9 @@ def main():
                     member, _ = delegation.authenticate(base, "ModernMember")
                 else:
                     member = login(base, "ModernMember", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+                    ambiguous = member.fetch("viewtopic.php?t=701")
+                    if "Duration fixture 701" not in ambiguous or "Doppelte Antwort" in ambiguous or 'class="topic_poll"' in ambiguous:
+                        raise RuntimeError("A held ballot must leave its announcement readable without publishing the question")
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 member_notice.imported(base, ordinary, member, media_only)

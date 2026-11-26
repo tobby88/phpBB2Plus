@@ -13,6 +13,7 @@ function check_fixture($ok, $message)
 	if (!$ok) { throw new RuntimeException($message); }
 }
 require __DIR__ . '/native_data.php';
+require __DIR__ . '/poll_conversion.php';
 require __DIR__ . '/news.php';
 require __DIR__ . '/profile_media.php';
 require __DIR__ . '/custom_profiles.php';
@@ -179,6 +180,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	seed_warning_cards($db);
 	seed_account_logins($db, $argv[1] === 'seed-pruning-off');
 	seed_missing_pm_accounts($db, $argv[1] === 'seed');
+	seed_poll_conversion($db);
 	seed_missing_post_authors($db);
 	// The forum suite also covers a historical link entry that must fall back to plain text.
 	$notice = $argv[1] === 'seed-pruning-off' ? "Grüße &amp; Rückblick 📷\n&lt;Hinweis&gt; & Abschluss" : '0';
@@ -296,6 +298,7 @@ elseif (in_array($argv[1], array('converted', 'converted-pruning-off', 'hashes-u
 	verify_native_content($db, (int) $users[0]['user_id']);
 	if (in_array($argv[1], array('converted', 'converted-pruning-off'), true))
 	{
+		verify_poll_conversion($db);
 		$count = $db->query("SELECT config_value FROM p3_config WHERE config_name='plus_pm_unfinished'")->fetch_row();
 		check_fixture($count && (int) $count[0] === ($argv[1] === 'converted' ? 3 : 1), 'The conversion count of unfinished private messages is incorrect');
 	}

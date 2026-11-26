@@ -34,6 +34,11 @@ services:
         arguments: ['@dbal.conn', '%core.table_prefix%']
         tags:
             - { name: console.command }
+    phpbb2plus.community.review_polls:
+        class: phpbb2plus\community\console\review_polls
+        arguments: ['@dbal.conn', '%core.table_prefix%']
+        tags:
+            - { name: console.command }
     phpbb2plus.community.post_delete_policy:
         class: phpbb2plus\community\event\post_delete_policy
         arguments: ['@config', '@auth', '@request', '@language', '@phpbb2plus.community.confirmed_deletions', '@phpbb2plus.community.erased_files']

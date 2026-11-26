@@ -173,9 +173,10 @@ function verify_native_content($db, $recipient)
 
 	$poll = $db->query('SELECT poll_title,poll_start FROM p3_topics WHERE topic_id=1')->fetch_assoc();
 	$options = $db->query('SELECT poll_option_text,poll_option_total FROM p3_poll_options WHERE topic_id=1 ORDER BY poll_option_id')->fetch_all();
-	$voter = $db->query('SELECT poll_option_id,vote_user_id,vote_user_ip FROM p3_poll_votes WHERE topic_id=1')->fetch_assoc();
-	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_poll_votes WHERE topic_id=1')->fetch_row()[0] === 1,
-		'A retired account receipt was attached to a different native member');
+	$voter = $db->query('SELECT poll_option_id,vote_user_id,vote_user_ip FROM p3_poll_votes WHERE topic_id=1 AND vote_user_id=' . $recipient)->fetch_assoc();
+	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_poll_votes WHERE topic_id=1')->fetch_row()[0] === 2 &&
+		$db->query("SELECT 1 FROM p3_poll_votes WHERE topic_id=1 AND vote_user_id=1 AND poll_option_id=127 AND vote_user_ip='192.0.2.5'")->fetch_row(),
+		'A former member receipt lost its anonymous guest identity or was assigned to a replacement account');
 	check_fixture($poll['poll_title'] === 'Welche Jahreszeit?' && (int) $poll['poll_start'] === 1000000000
 		&& count($options) === 2 && $options[0][0] === 'Frühling' && (int) $options[0][1] === 2
 		&& $options[1][0] === 'Herbst' && (int) $options[1][1] === 1
