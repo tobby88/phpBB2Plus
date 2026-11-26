@@ -64,6 +64,7 @@ import birthday_greeting
 import absence
 import absence_contact
 import mailbox_counters
+import smilie_signs
 import downloads
 import download_categories
 import download_checker
@@ -415,6 +416,7 @@ def main():
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
                 php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
                 php(ROOT / "tests/phpbb3/absence.php", source, "source")
+                php(ROOT / "tests/phpbb3/smilie_signs.php", source, "source")
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
@@ -485,6 +487,9 @@ def main():
                     locked_polls.exercise(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/locked_polls.php", target, phase, cwd=web))
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 member_notice.imported(base, ordinary, member, media_only)
+                if forum_suite:
+                    smilie_signs.browse(member, ordinary, lambda phase: php(
+                        ROOT / "tests/phpbb3/smilie_signs.php", target, phase, cwd=web, capture=True))
                 php(fixture, "signed-in", target)
                 def login_fixture(phase):
                     php(ROOT / "tests/phpbb3/login_networks.php", target, phase, cwd=web)
