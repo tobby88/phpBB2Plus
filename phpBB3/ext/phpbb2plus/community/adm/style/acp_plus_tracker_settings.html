@@ -18,6 +18,15 @@
 		<dl><dt><label for="plus-pw-days">{{ lang('PLUS_PW_REMINDER_DAYS') }}</label></dt>
 			<dd><input id="plus-pw-days" type="number" name="config[plus_pw_reminder_days]" min="6" max="365" value="{{ PW_DAYS }}"> {{ lang('DAYS') }}</dd></dl>
 	</fieldset>
+	<fieldset><legend>{{ lang('PLUS_TRACKER_FRIEND') }}</legend>
+		<dl><dt><label for="plus-friend-policy">{{ lang('PLUS_TRACKER_FRIEND_POLICY') }}</label></dt><dd>
+			<select id="plus-friend-policy" name="config[plus_friend_protection]">
+				<option value="0"{% if FRIEND_MODE == 0 %} selected{% endif %}>{{ lang('PLUS_TRACKER_FRIEND_NATIVE') }}</option>
+				<option value="1"{% if FRIEND_MODE == 1 %} selected{% endif %}>{{ lang('PLUS_TRACKER_FRIEND_LIMIT') }}</option>
+				<option value="2"{% if FRIEND_MODE == 2 %} selected{% endif %}>{{ lang('PLUS_TRACKER_FRIEND_HOLD') }}</option></select></dd></dl>
+		<dl><dt><label for="plus-friend-minutes">{{ lang('PLUS_TRACKER_FRIEND_MINUTES') }}</label></dt>
+			<dd><input id="plus-friend-minutes" type="number" name="config[plus_friend_minutes]" min="1" max="180" value="{{ FRIEND_MINUTES }}"></dd></dl>
+	</fieldset>
 	<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ REVISION }}">
 	<input type="submit" class="button1" value="{{ lang('SUBMIT') }}">{{ S_FORM_TOKEN }}</fieldset>
 </form>

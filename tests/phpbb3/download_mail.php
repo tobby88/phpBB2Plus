@@ -71,12 +71,12 @@ switch ($phase[0])
 		$old=array();
 		foreach ($values as $key=>$value) { $old[$key]=$config[$key]; }
 		$old['default_lang']=$config['default_lang'];
-		$subjects=$rows('SELECT user_id,user_emailtime FROM ' . USERS_TABLE . " WHERE username IN ('HistoricMember','DepartingFixture')");
+		$subjects=$rows('SELECT user_id,user_emailtime,plus_mail_success FROM ' . USERS_TABLE . " WHERE username IN ('HistoricMember','DepartingFixture')");
 		$cats=$rows("SELECT cat_id,access_levels FROM {$p}categories WHERE cat_id IN (21,23,25)");
 		$insert($p.'settings',array('config_name'=>'test_download_mail','config_value'=>json_encode(array($old,$subjects,$cats))));
 		$db->sql_query("UPDATE {$p}settings SET config_value='1' WHERE config_name='massmail_protection'");
 		foreach ($values as $key=>$value) { $config->set($key,$value); }
-		foreach ($subjects as $person) { $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_emailtime=0 WHERE user_id=' . (int) $person['user_id']); }
+		foreach ($subjects as $person) { $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_emailtime=0,plus_mail_success=0 WHERE user_id=' . (int) $person['user_id']); }
 		$set_level(21,1); $set_level(23,0); $set_level(25,0);
 		$file=$rows("SELECT * FROM {$p}files WHERE file_id=50")[0];
 		$insert($p.'files',array('file_id'=>11050,'cat_id'=>25,'title'=>'Guest recommendation')+$file);
@@ -106,7 +106,8 @@ switch ($phase[0])
 		list($old,$subjects,$cats)=json_decode($settings['config_value'],true);
 		foreach ($old as $key=>$value) { $config->set($key,$value); }
 		foreach ($subjects as $person)
-		{ $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_emailtime=' . (int) $person['user_emailtime'] . ' WHERE user_id=' . (int) $person['user_id']); }
+		{ $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_emailtime=' . (int) $person['user_emailtime'] .
+			',plus_mail_success=' . (int)$person['plus_mail_success'] . ' WHERE user_id=' . (int) $person['user_id']); }
 		foreach ($cats as $cat)
 		{ $db->sql_query("UPDATE {$p}categories SET " . $db->sql_build_array('UPDATE',array('access_levels'=>$cat['access_levels'])) . ' WHERE cat_id=' . (int) $cat['cat_id']); }
 		$db->sql_query("DELETE FROM {$p}files WHERE file_id=11050");

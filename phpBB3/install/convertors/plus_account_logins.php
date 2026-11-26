@@ -46,19 +46,23 @@ function plus_login_settings()
 		$config->set('plus_pw_age_policy', 1);
 	}
 	$table = $convert->src_table_prefix . 'ctracker_config';
+	$tools = (new \phpbb\db\tools\factory())->get($src_db);
 	$keys = array('login_history' => 'plus_login_history', 'login_history_count' => 'plus_login_limit',
 		'login_ip_check' => 'plus_login_network_check', 'pw_control' => 'plus_pw_reminder', 'pw_validity' => 'plus_pw_reminder_days');
 	$settings = array('login_history' => '0', 'login_history_count' => '10', 'login_ip_check' => '0', 'pw_control' => '0', 'pw_validity' => '30');
-	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($table))
+	$mail = array('massmail_protection'=>'1','massmail_time'=>'20');
+	if ($tools->sql_table_exists($table))
 	{
 		// The installed tracker supplied defaults for missing or invalid numeric settings.
 		$settings['login_history'] = $settings['login_ip_check'] = '1';
+		$mail = array_fill_keys(array_keys($mail), '');
 		$result = $src_db->sql_query("SELECT ct_config_name,ct_config_value FROM $table WHERE " .
-			$src_db->sql_in_set('ct_config_name', array_keys($settings)));
+			$src_db->sql_in_set('ct_config_name', array_keys($settings + $mail)));
 		while ($row = $src_db->sql_fetchrow($result))
 		{
 			$name = $row['ct_config_name'];
 			$value = (string) $row['ct_config_value'];
+			if (isset($mail[$name])) { $mail[$name] = $value; }
 			if (isset($keys[$name]) && \phpbb2plus\community\service\tracker_settings::accepts($keys[$name], $value))
 			{
 				$settings[$name] = $value;
@@ -67,8 +71,57 @@ function plus_login_settings()
 		$src_db->sql_freeresult($result);
 	}
 	foreach ($keys as $source => $target) { $config->set($target, (int) $settings[$source]); }
+	// The general recommendation policy belongs to the board, independently of paFileDB and its delegated ACP.
+	list($mail_mode,$minutes) = plus_friend_policy($mail);
+	$config->set('plus_friend_protection', $mail_mode);
+	$config->set('plus_friend_minutes', $minutes);
+	$host = (string) ($source_config['server_name'] ?? '');
+	$port = (int) ($source_config['server_port'] ?? 0);
+	$scheme = !empty($source_config['cookie_secure']) || $port === 443 ? 'https://' : 'http://';
+	$path = trim((string) ($source_config['script_path'] ?? ''), '/');
+	$origin = $scheme . $host . ($port > 0 && $port !== 80 && $port !== 443 ? ':' . $port : '') . ($path !== '' ? '/' . $path : '');
+	$config->set('plus_friend_source_board', strlen($origin) <= 255 && preg_match('/^(?:[a-z0-9][a-z0-9.-]*|\[[a-f0-9:]+\])$/iD',$host)
+		&& !preg_match('~[\\\\?#\x00-\x20]~',$path) && filter_var($origin,FILTER_VALIDATE_URL) ? $origin : '');
+	plus_friend_recent_mail($tools);
 }
 
+function plus_friend_policy($mail)
+{
+	if (!in_array($mail['massmail_protection'],array('0','1'),true) || !preg_match('/^[0-9]{1,6}$/D',$mail['massmail_time']))
+	{
+		return array(2,20);
+	}
+	return array((int)$mail['massmail_protection'],max(1,min(180,(int)$mail['massmail_time'])));
+}
+
+function plus_friend_recent_mail($tools)
+{
+	global $db, $src_db, $convert;
+	$users=$convert->src_table_prefix . 'users';
+	$limits=$convert->src_table_prefix . 'ctracker_rate_limits';
+	$has_limits=$tools->sql_table_exists($limits);
+	// Only recent senders can still have a waiting period. Old boards without delivery receipts have their native timestamp.
+	$join=$has_limits ? " LEFT JOIN $limits l ON l.bucket_hash=SHA2(CONCAT('mail-user',CHAR(0),'user:',u.user_id),256)" : '';
+	$success=$has_limits ? 'COALESCE(l.updated_at,u.user_emailtime)' : 'u.user_emailtime';
+	$now=time();
+	$after=0;
+	do
+	{
+		$result=$src_db->sql_query_limit("SELECT u.user_id,u.user_emailtime,$success AS last_success FROM $users u$join
+			WHERE u.user_id>$after AND u.user_emailtime>=" . ($now-10800) . ' ORDER BY u.user_id',200);
+		$rows=$src_db->sql_fetchrowset($result);
+		$src_db->sql_freeresult($result);
+		foreach ($rows as $row)
+		{
+			$after=(int)$row['user_id'];
+			// A future success is a short in-flight lease. user_emailtime already covers that period.
+			$at=(int)$row['last_success'];
+			if ($at>$now) { $at=0; }
+			$db->sql_query('UPDATE ' . USERS_TABLE . ' SET plus_mail_success=' . max(0,$at) .
+				',user_emailtime=' . max(0,(int)$row['user_emailtime']) . ' WHERE plus_legacy_id=' . $after);
+		}
+	} while (count($rows)===200);
+}
 function plus_import_account_logins($source_user)
 {
 	global $db, $src_db, $convert, $table_prefix;

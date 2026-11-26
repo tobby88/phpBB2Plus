@@ -129,6 +129,7 @@ class recommendations implements EventSubscriberInterface
 		}
 		if ($this->user->check_ban($id,$ip,$address,true)) { throw new \DomainException('NO_AUTH_OPERATION'); }
 		return array('id'=>$id,'name'=>$name,'address'=>$address,'emailtime'=>(int) $fresh['user_emailtime'],'logged'=>$logged,
+			'board_success'=>isset($fresh['plus_mail_success']) ? (int)$fresh['plus_mail_success'] : null,
 			'key'=>$this->sender_key($id,$logged,$ip));
 	}
 
@@ -166,7 +167,8 @@ class recommendations implements EventSubscriberInterface
 		$cooldown=$enabled==='0' ? 0 : max(1,min(180,(int) $minutes))*60;
 		$recent=$this->row("SELECT receipt FROM $this->table WHERE sender_key='" . $actor['key'] . "' AND (attempted_at>" . ($now-$flood) .
 			' OR (status=' . self::IN_FLIGHT . ' AND attempted_at>' . ($now-self::LEASE) . ') OR (status=' . self::ACCEPTED . ' AND finished_at>' . ($now-$cooldown) . '))');
-		if ($recent || ($actor['logged'] && $actor['emailtime']>$now-$flood)) { throw new \DomainException('PLUS_DL_MAIL_WAIT'); }
+		if ($recent || ($actor['logged'] && ($actor['emailtime']>$now-$flood || $actor['board_success']>$now-$cooldown)))
+		{ throw new \DomainException('PLUS_DL_MAIL_WAIT'); }
 		$data=array('attempted_at'=>$now,'finished_at'=>0,'status'=>self::IN_FLIGHT);
 		if ($existing) { $this->db->sql_query('UPDATE ' . $this->table . ' SET ' . $this->db->sql_build_array('UPDATE',$data) . $where); }
 		else { $this->db->sql_query('INSERT INTO ' . $this->table . ' ' . $this->db->sql_build_array('INSERT',$data+array('receipt'=>$receipt,'sender_key'=>$actor['key']))); }
@@ -183,7 +185,9 @@ class recommendations implements EventSubscriberInterface
 		{
 			if ($actor['logged'])
 			{
-				$this->db->sql_query('UPDATE ' . USERS_TABLE . " SET user_emailtime=$now WHERE user_id=" . $actor['id'] . ' AND user_emailtime=' . ($claim['at']+self::LEASE));
+				$shared=$success && $actor['board_success']!==null ? ",plus_mail_success=GREATEST(plus_mail_success,$now)" : '';
+				$this->db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_emailtime=CASE WHEN user_emailtime=' . ($claim['at']+self::LEASE) .
+					" THEN $now ELSE user_emailtime END$shared WHERE user_id=" . $actor['id']);
 			}
 			$this->db->sql_query('UPDATE ' . $this->table . ' SET finished_at=' . $now . ',status=' . ($success ? self::ACCEPTED : self::FAILED) .
 				" WHERE receipt='" . $claim['receipt'] . "' AND attempted_at=" . $claim['at'] . ' AND status=' . self::IN_FLIGHT);

@@ -57,7 +57,11 @@ function plus_forum_read_grants($forum,$groups,$rows)
 			$conditional = $read_only;
 		}
 	}
-	return array('f_list'=>$view,'f_read'=>$both,'f_list_topics'=>$both,'f_search'=>$both,'f_print'=>$both,'f_plus_read_if_listed'=>$conditional);
+	// Plus offered a topic recommendation to signed-in readers, including members of read-only archives.
+	$email=$both;
+	unset($email['group_id'][$groups['GUESTS']]);
+	if (isset($groups['BOTS'])) { unset($email['group_id'][$groups['BOTS']]); }
+	return array('f_list'=>$view,'f_read'=>$both,'f_list_topics'=>$both,'f_search'=>$both,'f_print'=>$both,'f_email'=>$email,'f_plus_read_if_listed'=>$conditional);
 }
 
 function plus_forum_permissions()
@@ -67,7 +71,7 @@ function plus_forum_permissions()
 		'f_announce'=>'auth_announce','f_announce_global'=>'auth_global_announce','f_poll'=>'auth_pollcreate','f_vote'=>'auth_vote',
 		'f_delete'=>'auth_delete','f_softdelete'=>'auth_delete');
 	if (defined('MOD_ATTACHMENT')) { $mapping += array('f_attach'=>'auth_attachments','f_download'=>'auth_download'); }
-	$names = array_merge(array_keys($mapping),array('f_list','f_read','f_list_topics','f_search','f_print','f_plus_read_if_listed','f_postcount'));
+	$names = array_merge(array_keys($mapping),array('f_list','f_read','f_list_topics','f_search','f_print','f_email','f_plus_read_if_listed','f_postcount'));
 	$r = $db->sql_query('SELECT auth_option,auth_option_id FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option',$names));
 	$options = array_column($db->sql_fetchrowset($r),'auth_option_id','auth_option');
 	$db->sql_freeresult($r);
@@ -158,6 +162,7 @@ function plus_forum_permissions()
 		$phpbb_container->get('config_text')->set('plus_read_scopes',implode(',',$conditional_forums));
 		$config->set('plus_conditional_read',(int) (bool) $conditional_forums);
 		$config->set('plus_print_read_acl', 1);
+		$config->set('plus_friend_read_acl', 1);
 		$config->set('plus_post_delete_policy', (string) get_config_value('post_delete_allow_permanent') === '1' ? 1 : 0);
 		$db->sql_transaction('commit');
 	}

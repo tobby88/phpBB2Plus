@@ -1,6 +1,9 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_TRACKER_FRIEND'=>'Forum and topic recommendations', 'PLUS_TRACKER_FRIEND_POLICY'=>'Sending policy',
+	'PLUS_TRACKER_FRIEND_NATIVE'=>'Apply the board flood interval', 'PLUS_TRACKER_FRIEND_LIMIT'=>'Also wait after each successful recommendation',
+	'PLUS_TRACKER_FRIEND_HOLD'=>'Suspend recommendations', 'PLUS_TRACKER_FRIEND_MINUTES'=>'Minutes between successful recommendations',
 	'ACP_PLUS_TRACKER_SETTINGS' => 'CrackerTracker settings',
 	'ACL_A_PLUS_CT_SETTINGS' => 'Can manage CrackerTracker settings',
 	'PLUS_TRACKER_SETTINGS_CHANGED' => 'These settings have changed. Reopen the form to review the current values.',

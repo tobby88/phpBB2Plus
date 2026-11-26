@@ -6,6 +6,7 @@ class tracker_settings
 	public const RANGES = array(
 		'plus_login_history' => array(0, 1), 'plus_login_limit' => array(1, 60),
 		'plus_login_network_check' => array(0, 1), 'plus_pw_reminder' => array(0, 1), 'plus_pw_reminder_days' => array(6, 365),
+		'plus_friend_protection' => array(0, 2), 'plus_friend_minutes' => array(1, 180),
 	);
 
 	public static function accepts($name, $value)
@@ -25,6 +26,6 @@ class tracker_settings
 		while ($row = $db->sql_fetchrow($result)) { $values[$row['config_name']] = (int) $row['config_value']; }
 		$db->sql_freeresult($result);
 		return $values + array('plus_login_history' => 0, 'plus_login_limit' => 10, 'plus_login_network_check' => 0,
-			'plus_pw_reminder' => 0, 'plus_pw_reminder_days' => 30);
+			'plus_pw_reminder' => 0, 'plus_pw_reminder_days' => 30, 'plus_friend_protection' => 1, 'plus_friend_minutes' => 20);
 	}
 }

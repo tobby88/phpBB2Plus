@@ -1,0 +1,11 @@
+Subject: Eine Forumsempfehlung von {FROM_USERNAME}
+
+Hallo {TO_USERNAME},
+
+{FROM_USERNAME} empfiehlt dir das Forum „{SITENAME}“:
+
+{PLUS_BOARD_URL}
+
+{MESSAGE}
+
+Du kannst direkt an {FROM_USERNAME} antworten. Bei Fragen zum Forum erreichst du das Team unter {BOARD_CONTACT}.

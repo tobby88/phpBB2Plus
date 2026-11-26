@@ -83,7 +83,10 @@ class conditional_read extends \phpbb\auth\auth
 
 	private function rights()
 	{
-		return empty($this->board_config['plus_print_read_acl']) ? self::RIGHTS : array_merge(self::RIGHTS, array('f_print'));
+		$rights = self::RIGHTS;
+		if (!empty($this->board_config['plus_print_read_acl'])) { $rights[] = 'f_print'; }
+		if (!empty($this->board_config['plus_friend_read_acl'])) { $rights[] = 'f_email'; }
+		return $rights;
 	}
 
 	private function complete(&$row,$keys,$rights = null)

@@ -1,0 +1,11 @@
+Subject: A forum recommendation from {FROM_USERNAME}
+
+Hello {TO_USERNAME},
+
+{FROM_USERNAME} recommends visiting the forum “{SITENAME}”:
+
+{PLUS_BOARD_URL}
+
+{MESSAGE}
+
+You can reply directly to {FROM_USERNAME}. For questions about the forum, contact {BOARD_CONTACT}.

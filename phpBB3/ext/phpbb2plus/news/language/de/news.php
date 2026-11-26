@@ -5,6 +5,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_NEWS_EMPTY'=>'Für diese Auswahl gibt es keine Nachrichten.', 'PLUS_NEWS_FEED'=>'RSS-Feed',
 	'PLUS_NEWS_FILTER'=>'Nachrichten filtern', 'PLUS_NEWS_COMMENTS'=>'Kommentare',
 	'PLUS_NEWS_PRINT'=>'Druckansicht',
+	'PLUS_NEWS_EMAIL'=>'Artikel per E-Mail empfehlen',
 	'ACL_F_PLUS_NEWS'=>'Kann Themen als Nachrichten veröffentlichen', 'PLUS_NEWS_CATEGORY'=>'Als Nachricht in dieser Kategorie veröffentlichen',
 	'PLUS_NEWS_NONE'=>'Nicht als Nachricht veröffentlichen', 'PLUS_NEWS_RETIRED'=>'Archivierte Kategorie #%d',
 	'PLUS_NEWS_CONFLICT'=>'Die Nachrichtenkategorie wurde inzwischen geändert. Prüfe die aktuelle Auswahl vor dem Speichern.',

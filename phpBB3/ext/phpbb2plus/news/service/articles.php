@@ -165,7 +165,11 @@ class articles
 			{
 				$print = $this->printer ? $this->printer->url($id) : append_sid($this->root . 'viewtopic.' . $this->ext, 't=' . $id . '&amp;view=print');
 			}
-			yield $this->category_data($row) + array('ID'=>$id, 'TITLE'=>$title, 'U_PRINT'=>$print, 'BODY'=>$this->body($row,$files[$post] ?? array(),$feed,$trim),
+			$email = !$feed && $this->config['email_enable'] && (int) ($this->config['plus_friend_protection'] ?? 0) !== 2
+				&& !empty($this->user->data['is_registered']) && empty($this->user->data['user_perm_from']) && $this->auth->acl_get('u_sendemail')
+				&& $this->auth->acl_get('f_email',(int) $row['forum_id'])
+				? append_sid($this->root . 'memberlist.' . $this->ext,'mode=email&amp;t=' . $id) : '';
+			yield $this->category_data($row) + array('ID'=>$id, 'TITLE'=>$title, 'U_EMAIL'=>$email, 'U_PRINT'=>$print, 'BODY'=>$this->body($row,$files[$post] ?? array(),$feed,$trim),
 				'AUTHOR'=>get_username_string('full',(int) $row['user_id'],$row['username'],$row['user_colour'],$row['post_username']),
 				'DATE'=>$this->user->format_date($row['topic_time']), 'TIME'=>(int) $row['topic_time'],
 				'REPLIES'=>max(0,(int) $row['topic_posts_approved']-1), 'VIEWS'=>(int) $row['topic_views'],

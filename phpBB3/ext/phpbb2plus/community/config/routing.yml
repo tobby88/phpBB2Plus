@@ -100,3 +100,7 @@ phpbb2plus_community_shout_write:
     path: /shoutbox
     defaults: { _controller: phpbb2plus.community.shouts:write }
     methods: [POST]
+phpbb2plus_community_friend:
+    path: /recommend
+    defaults: { _controller: phpbb2plus.community.board_mail:board }
+    methods: [GET, HEAD, POST]

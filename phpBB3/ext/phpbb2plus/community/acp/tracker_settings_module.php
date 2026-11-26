@@ -89,7 +89,8 @@ class tracker_settings_module
 		$template->assign_vars(array('U_ACTION' => $this->u_action, 'REVISION' => hash('sha256', serialize($current)),
 			'S_HISTORY' => (bool) $current['plus_login_history'], 'LOGIN_LIMIT' => $current['plus_login_limit'],
 			'S_NETWORK' => (bool) $current['plus_login_network_check'], 'S_PW_REMINDER' => (bool) $current['plus_pw_reminder'],
-			'PW_DAYS' => $current['plus_pw_reminder_days']));
+			'PW_DAYS' => $current['plus_pw_reminder_days'], 'FRIEND_MODE' => $current['plus_friend_protection'],
+			'FRIEND_MINUTES' => $current['plus_friend_minutes']));
 	}
 
 	private function member_notice($language)

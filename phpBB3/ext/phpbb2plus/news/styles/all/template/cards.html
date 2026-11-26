@@ -5,6 +5,6 @@
 <p class="author">{plus_news.AUTHOR} &middot; {plus_news.DATE} &middot; <a href="{plus_news.U_CATEGORY}">{plus_news.CATEGORY}</a></p>
 <!-- IF plus_news.IMAGE --><a class="plus-news-icon" href="{plus_news.U_CATEGORY}" title="{plus_news.CATEGORY}"><img src="{plus_news.IMAGE}" alt="{plus_news.CATEGORY}"></a><!-- ENDIF -->
 <div class="content">{plus_news.BODY}</div>
-<p class="plus-news-comments"><a href="{plus_news.U_TOPIC}">{L_PLUS_NEWS_COMMENTS} ({plus_news.REPLIES})</a><!-- IF plus_news.U_PRINT --> &middot; <a href="{plus_news.U_PRINT}">{L_PLUS_NEWS_PRINT}</a><!-- ENDIF --></p>
+<p class="plus-news-comments"><a href="{plus_news.U_TOPIC}">{L_PLUS_NEWS_COMMENTS} ({plus_news.REPLIES})</a><!-- IF plus_news.U_PRINT --> &middot; <a href="{plus_news.U_PRINT}">{L_PLUS_NEWS_PRINT}</a><!-- ENDIF --><!-- IF plus_news.U_EMAIL --> &middot; <a href="{plus_news.U_EMAIL}">{L_PLUS_NEWS_EMAIL}</a><!-- ENDIF --></p>
 </article>
 <!-- END plus_news -->

@@ -333,3 +333,17 @@ services:
         arguments: ['@phpbb2plus.community.password_policy', '@config', '@user', '@auth', '@dbal.conn', '@request', '@template', '@language']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.recommendations:
+        class: phpbb2plus\community\mail\recommendations
+        arguments: ['@dbal.conn', '@config', '@auth', '@user', '%core.table_prefix%plus_friend_mail']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.topic_mail:
+        parent: message.form.topic
+        decorates: message.form.topic
+        class: phpbb2plus\community\mail\topic_form
+        calls:
+            - [set_policy, ['@phpbb2plus.community.recommendations']]
+    phpbb2plus.community.board_mail:
+        class: phpbb2plus\community\controller\recommend
+        arguments: ['@message.form.topic', '@request', '@template', '@controller.helper', '@user', '%core.root_path%', '%core.php_ext%']
