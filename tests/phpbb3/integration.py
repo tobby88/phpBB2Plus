@@ -286,14 +286,19 @@ def extension_upgrades(target, web):
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v137_account_logins", "--no-interaction", cwd=web)
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v150_country_flag_administration", "--no-interaction", cwd=web)
+    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/gallery/migrations/v114_rating_settings", "--no-interaction", cwd=web)
     flags = ROOT / "tests/phpbb3/country_flag_administration.php"
     catalogue = php(flags, target, "older", cwd=web, capture=True)
+    rating_fixture = ROOT / "tests/phpbb3/gallery_rating_policy.php"
+    ratings = php(rating_fixture, target, "older", cwd=web, capture=True)
     php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "older", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "older", cwd=web)
     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
     if php(flags, target, "upgraded", cwd=web, capture=True) != catalogue:
         raise RuntimeError("The flag catalogue upgrade changed native options or member selections")
+    if php(rating_fixture, target, "upgraded", cwd=web, capture=True) != ratings:
+        raise RuntimeError("Installing the ratings ACP changed the gallery configuration or existing votes")
     php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "upgraded", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "upgraded", cwd=web)

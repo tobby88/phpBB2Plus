@@ -84,8 +84,13 @@ def artwork(base, member, pending, recover, reimport):
     if guest.fetch(path + "60/icon", raw=True) != puzzle:
         raise RuntimeError("The extension upgrade lost the picture stored by an earlier conversion")
     guest.fetch(path + "61/icon", expected_status=404)
+    category = "app.php/arcade/category/"
+    guest.fetch(category + "10/icon", expected_status=404)
     for _ in range(2):
-        if "Verified artwork for 5 of 5 games" not in reimport() or guest.fetch(path + "61/icon", raw=True) != clock:
+        summary = reimport()
+        if ("Verified artwork for 5 of 5 games" not in summary or "Verified artwork for 2 of 3 configured category pictures" not in summary
+                or guest.fetch(path + "61/icon", raw=True) != clock or guest.fetch(category + "10/icon", raw=True) != png(16, 12, b"\x40\x80\xa0")
+                or member.fetch(category + "12/icon", raw=True) != png(11, 13, b"\x31\x80\x50")):
             raise RuntimeError("Restoring missing original artwork from the offline board was not repeatable")
     with tempfile.TemporaryDirectory() as incomplete:
         default = Path(incomplete) / "templates/fisubsilversh/images/games.gif"
@@ -93,5 +98,6 @@ def artwork(base, member, pending, recover, reimport):
         default.write_bytes(fallback)
         if ("Verified artwork for 2 of 5 games" not in reimport(incomplete)
                 or guest.fetch(path + "60/icon", raw=True) != puzzle or guest.fetch(path + "61/icon", raw=True) != clock
-                or member.fetch(path + "62/icon", raw=True) != png(8, 12, b"\x96\x34\x68")):
+                or member.fetch(path + "62/icon", raw=True) != png(8, 12, b"\x96\x34\x68")
+                or member.fetch(category + "12/icon", raw=True) != png(11, 13, b"\x31\x80\x50")):
             raise RuntimeError("An incomplete backup replaced individual game pictures with the shared default")

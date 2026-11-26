@@ -27,6 +27,14 @@ $match = $db->sql_in_set('setting_name', $names);
 $db->sql_transaction('begin');
 switch ($argv[2])
 {
+	case 'older':
+	case 'upgraded':
+		$modules = policy_rows('SELECT module_id FROM ' . MODULES_TABLE . " WHERE module_class='acp' AND module_langname='ACP_PLUS_ALBUM_RATINGS' AND module_mode='ratings'");
+		if (count($modules) !== (int) ($argv[2] === 'upgraded')) { throw new RuntimeException('Unexpected rating ACP module during the upgrade'); }
+		$settings = policy_rows("SELECT scope,setting_name,setting_value FROM {$g}settings WHERE scope IN ('album','sp') ORDER BY scope,setting_name");
+		$votes = policy_rows("SELECT pic_id,user_id,points,honour_points FROM {$g}ratings ORDER BY pic_id,user_id,points,honour_points");
+		echo hash('sha256', serialize(array($settings,$votes)));
+		break;
 	case 'seed':
 		if (policy_rows("SELECT cat_id FROM {$g}cats WHERE cat_id=940") || policy_rows("SELECT pic_id FROM {$g}pics WHERE pic_id BETWEEN 29000 AND 29002") ||
 			policy_rows("SELECT scope FROM {$g}settings WHERE scope IN ('qasalbum','qassp')"))

@@ -46,6 +46,7 @@ switch ($argv[2])
 		break;
 	case 'recover-artwork':
 		$db->sql_query("UPDATE {$p}games SET icon_storage='',icon_mime='',icon_bytes=0 WHERE game_id IN (60,61)");
+		$db->sql_query("UPDATE {$p}categories SET icon_storage='',icon_mime='',icon_bytes=0 WHERE cat_id IN (10,12)");
 		$migration = new \phpbb2plus\arcade\migrations\v110_artwork($config, $db, $phpbb_container->get('dbal.tools'), $phpbb_root_path, $phpEx, $table_prefix);
 		if ($migration->recover(0) !== true) { throw new RuntimeException('Incomplete artwork migration'); }
 		break;
