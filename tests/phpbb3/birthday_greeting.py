@@ -1,7 +1,7 @@
 """Open private birthday greetings through a native notification on a converted board."""
 from concurrent.futures import ThreadPoolExecutor
 
-from http_board import Browser
+from http_board import Browser, FormFields, submit_form
 
 
 def browse(base, member, other, fixture):
@@ -21,6 +21,12 @@ def browse(base, member, other, fixture):
             raise RuntimeError("The native birthday notification or its private greeting was missing")
         if "Geburtstagsgrüße vom Forum" in other.fetch(notifications) or "Happy birthday! You turn " in other.fetch(url):
             raise RuntimeError("A different member received the birthday owner's notification or message")
+        settings = "ucp.php?i=ucp_notifications&mode=notification_options"
+        options = member.fetch(settings)
+        preference = "phpbb2plus.community.notification.birthday_notification.method.board"
+        if preference not in FormFields(options, "ucp").values:
+            raise RuntimeError("The member's notification preferences lacked an enabled birthday option")
+        submit_form(member, settings, options, "ucp", {preference: None, "submit": "1"})
         fixture("opt-out")
         member.fetch("index.php")
         fixture("silent")

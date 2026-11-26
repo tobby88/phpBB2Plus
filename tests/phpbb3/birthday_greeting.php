@@ -54,8 +54,10 @@ elseif ($phase === 'due' || $phase === 'opt-out')
 	$db->sql_query('UPDATE ' . USERS_TABLE . " SET plus_next_birthday=$year,user_birthday='$birthday'" . $where);
 	if ($phase === 'opt-out')
 	{
+		birthday_expect((string) birthday_value('SELECT notify FROM ' . USER_NOTIFICATIONS_TABLE .
+			" WHERE user_id=$historic AND item_type='$type' AND method='notification.method.board'") === '0',
+			'The native notification preferences did not record the member opt-out.');
 		$manager->delete_notifications($type, $historic);
-		$manager->delete_subscription($type, 0, 'notification.method.board', $historic);
 	}
 }
 elseif ($phase === 'delivered' || $phase === 'silent')
