@@ -1,6 +1,7 @@
 <?php
 namespace phpbb2plus\community\event;
 
+use phpbb\request\request_interface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class password_forms implements EventSubscriberInterface
@@ -36,11 +37,10 @@ class password_forms implements EventSubscriberInterface
 
 	private function prepare($username, $reset_user = 0)
 	{
-		if (!$this->rules->enabled()) { return; }
 		$this->username = $username;
 		$this->reset_user = $reset_user;
-		$this->language->add_lang('password_rules', 'phpbb2plus/community');
 		require_once __DIR__ . '/../password/validate.php';
+		if ($this->rules->enabled()) { $this->language->add_lang('password_rules', 'phpbb2plus/community'); }
 	}
 
 	public function registration($event) { $this->prepare($event['data']['username']); }
@@ -60,6 +60,15 @@ class password_forms implements EventSubscriberInterface
 
 	public function validate($password)
 	{
+		if (!$this->reset_user && $this->request->is_set_post('password_confirm') &&
+			$this->request->untrimmed_variable('new_password', '', true, request_interface::POST) === $password)
+		{
+			$confirm = $this->request->untrimmed_variable('password_confirm', '', true, request_interface::POST);
+			// These older native forms use loose comparison. Catch numeric spellings
+			// they regard as equal, leaving other confirmation errors to phpBB.
+			if ($confirm !== $password && $confirm == $password) { return 'NEW_PASSWORD_ERROR'; }
+		}
+		if (!$this->rules->enabled()) { return false; }
 		$username = $this->username;
 		if ($password !== '' && $this->reset_user && !empty($this->config['plus_pw_no_name']))
 		{

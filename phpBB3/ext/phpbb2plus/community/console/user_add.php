@@ -10,16 +10,13 @@ class user_add extends \phpbb\console\command\user\add
 
 	protected function validate_user_data()
 	{
+		// Use the same HTML escaping and Unicode normalization as the web forms.
+		$cast = new \phpbb\request\type_cast_helper();
+		$original = $this->data['new_password'] ?? '';
+		$cast->set_var($this->data['new_password'], $original, 'string', true, false);
 		if ($this->rules->enabled())
 		{
-			// The native CLI receives plain strings. Encode them just as the
-			// registration form does so that e.g. an ampersand also works at web login.
-			$cast = new \phpbb\request\type_cast_helper();
-			$original = $this->data['new_password'] ?? '';
-			foreach (array('username', 'new_password') as $field)
-			{
-				$cast->set_var($this->data[$field], $this->data[$field] ?? '', 'string', true);
-			}
+			$cast->set_var($this->data['username'], $this->data['username'] ?? '', 'string', true);
 			$name = htmlspecialchars_decode($this->data['username'], ENT_COMPAT);
 			$error = $this->rules->error($original, $name) ?:
 				$this->rules->name_error(htmlspecialchars_decode($this->data['new_password'], ENT_COMPAT), $name);

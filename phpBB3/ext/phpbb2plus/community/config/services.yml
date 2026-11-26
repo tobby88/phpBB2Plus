@@ -260,6 +260,10 @@ services:
     phpbb2plus.community.password_policy:
         class: phpbb2plus\community\password\policy
         arguments: ['@config']
+    phpbb2plus.community.account_request:
+        parent: request
+        decorates: request
+        class: phpbb2plus\community\password\account_request
     phpbb2plus.community.password_manager:
         parent: passwords.manager
         decorates: passwords.manager

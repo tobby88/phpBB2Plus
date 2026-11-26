@@ -75,6 +75,7 @@ def check_board(base, owner, fixture, restrictions, sink):
         finally:
             restrictions("cards-unexempt")
         fixture("rehash-marked")
+        password = " " + password + " "
         refused(False)
         fixture("check-rehashed-marker")
         fixture("expired")
@@ -93,7 +94,7 @@ def check_board(base, owner, fixture, restrictions, sink):
         refused_reset = submit_form(guest, link, form, "reset_password",
                                     {"submit": "1", "new_password": "RenewalMember", "new_password_confirm": "RenewalMember"})
         password_rules.rejected(refused_reset, "name")
-        replacement = "R2-" + secrets.token_hex(14)
+        replacement = "  R2-" + secrets.token_hex(14) + " "
         submit_form(guest, link, refused_reset, "reset_password",
                     {"submit": "1", "new_password": replacement, "new_password_confirm": replacement})
         password = replacement

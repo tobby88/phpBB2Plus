@@ -1,7 +1,7 @@
 <?php
 namespace phpbb2plus\community\auth;
 
-use phpbb\request\request_interface;
+use phpbb2plus\community\password\account_request;
 
 class password_login extends \phpbb\auth\provider\db
 {
@@ -15,7 +15,9 @@ class password_login extends \phpbb\auth\provider\db
 
 	public function login($username, $password)
 	{
-		$result = parent::login($username, $password);
+		$result = $this->renewal_manager->with_login_input($password, function ($input) use ($username) {
+			return parent::login($username, $input);
+		});
 		$previous = $this->renewal_manager->take_weak_hash();
 		if ($result['status'] === LOGIN_SUCCESS && $previous !== '')
 		{
@@ -29,16 +31,9 @@ class password_login extends \phpbb\auth\provider\db
 		}
 		if ($result['status'] === LOGIN_SUCCESS && $this->rules->enabled())
 		{
-			// The DB provider checks the trimmed, HTML-escaped credential. Use the
-			// stored account name even when the member typed a different letter case.
-			$field = 'password';
-			if (!$this->request->is_set_post($field))
-			{
-				$credential = $this->request->variable('credential', '', false, request_interface::POST);
-				if (preg_match('/^[a-f0-9]{32}$/D', $credential)) { $field .= '_' . $credential; }
-			}
-			$result['plus_weak_password'] = (bool) $this->rules->submitted_error($this->request, $field,
-				trim($password), $result['user_row']['username']);
+			// Use the stored name even if the member signed in with another letter case.
+			$result['plus_weak_password'] = (bool) $this->rules->submitted_error($this->request,
+				account_request::login_field($this->request), $password, $result['user_row']['username']);
 		}
 		return $result;
 	}

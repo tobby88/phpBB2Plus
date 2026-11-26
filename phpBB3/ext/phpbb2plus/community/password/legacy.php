@@ -49,12 +49,12 @@ class legacy implements driver_interface
 		// phpBB3 supplies an HTML-escaped, normalized value. The phpBB2 form
 		// hashed the original bytes after addslashes(), including for bcrypt.
 		$raw = htmlspecialchars_decode($password, ENT_COMPAT);
-		if ($this->request->is_set_post('password'))
+		foreach (array(account_request::login_field($this->request), 'cur_password') as $field)
 		{
-			$submitted = $this->request->untrimmed_variable('password', '', true, request_interface::POST);
-			if (trim($submitted) === $password)
+			if ($this->request->is_set_post($field) && $this->request->untrimmed_variable($field, '', true, request_interface::POST) === $password)
 			{
-				$raw = $this->request->raw_variable('password', '', request_interface::POST);
+				$raw = $this->request->raw_variable($field, '', request_interface::POST);
+				break;
 			}
 		}
 		if (!is_string($raw) || $raw === '' || strpos($raw, "\0") !== false)

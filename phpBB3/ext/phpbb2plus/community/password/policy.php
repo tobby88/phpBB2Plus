@@ -29,7 +29,7 @@ class policy
 			// phpBB removes NUL while reading a form field.
 			if (!is_string($submitted) || strpos($submitted, "\0") !== false) { return 'PLUS_PW_INVALID'; }
 			$canonical = $request->untrimmed_variable($field, '', true, request_interface::POST);
-			if ($canonical === $password || trim($canonical) === $password) { $original = $submitted; }
+			if ($canonical === $password) { $original = $submitted; }
 		}
 		if ($optional && $password === '') { return false; }
 		$name = htmlspecialchars_decode($username, ENT_COMPAT);

@@ -37,27 +37,28 @@ def exercise(base, owner, fixture):
     try:
         fixture("registration-open")
         fixture("cli-rules")
-        cli_password = "Cli4&" + sha256(environ["PLUS_TEST_MODERN_PASSWORD"].encode()).hexdigest()[:18]
+        cli_password = " Cli4&" + sha256(environ["PLUS_TEST_MODERN_PASSWORD"].encode()).hexdigest()[:18] + " "
         login(base, "CliPolicy9", cli_password)
         guest = Browser(base)
         path = "ucp.php?mode=register"
         form = submit_form(guest, path, guest.fetch(path), "agreement", {"agreed": "1"})
         has_hint(form)
         name = "PolicyMember8"
+        registered = " 界界٣ "
         for candidate, reason in ((name, "name"), ("letters²", "digits"), ("界٣", "bytes"),
-                                  ("A1" + "\\" * 36, "bytes"), ("e\u0301" * 24 + "1", "bytes"), ("界界٣", None)):
+                                  ("A1" + "\\" * 36, "bytes"), ("e\u0301" * 24 + "1", "bytes"), (registered, None)):
             form = submit_form(guest, path, form, "register", {"submit": "1", "username": name,
                                "new_password": candidate, "password_confirm": candidate, "email": "policy8@example.invalid"})
             if reason:
                 rejected(form, reason)
-        account = login(base, name, "界界٣")
+        account = login(base, name, registered)
         personal = "ucp.php?i=ucp_profile&mode=reg_details"
         form = account.fetch(personal)
         has_hint(form)
         # 72 historical bytes, including an ampersand and one double-counted quote.
-        replacement = "A1&" + "x" * 67 + "'"
+        replacement = " A1&" + "x" * 65 + "' "
         for candidate, reason in ((name, "name"), (replacement + "o", "bytes"), (replacement, None)):
-            form = submit_form(account, personal, form, "ucp", {"submit": "1", "cur_password": "界界٣",
+            form = submit_form(account, personal, form, "ucp", {"submit": "1", "cur_password": registered,
                                "new_password": candidate, "password_confirm": candidate})
             if reason:
                 rejected(form, reason)
@@ -65,7 +66,7 @@ def exercise(base, owner, fixture):
         manage = admin_url(owner) + "&i=acp_users&mode=overview&username=" + name
         form = owner.fetch(manage)
         has_hint(form)
-        replacement = "A4-" + secrets.token_hex(12)
+        replacement = "A4-" + secrets.token_hex(12) + "  "
         for candidate, reason in ((name, "name"), (replacement, None)):
             form = submit_form(owner, manage, form, "user_overview", {"update": "1", "new_password": candidate,
                                "password_confirm": candidate})
@@ -99,6 +100,10 @@ def check_existing(base, owner, name, manage, settings):
     if 'class="errorbox"' not in change("界界٣"):
         raise RuntimeError("Enabling a stricter native complexity rule no longer affects new passwords")
     configure(0, 0)
+    typo = submit_form(owner, manage, owner.fetch(manage), "user_overview",
+                       {"update": "1", "new_password": " 123456", "password_confirm": "123456"})
+    if 'class="errorbox"' not in typo:
+        raise RuntimeError("The account form accepted a confirmation with a missing leading space")
     weak = "".join(secrets.choice(string.ascii_lowercase) for _ in range(20))
     change(weak)
     configure(1, 0)

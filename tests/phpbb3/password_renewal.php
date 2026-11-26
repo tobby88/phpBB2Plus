@@ -30,7 +30,7 @@ elseif ($phase === 'consumed')
 }
 elseif ($phase === 'rehash-marked')
 {
-	$old = \phpbb2plus\community\password\legacy::import(password_hash(addslashes(getenv('PLUS_TEST_MODERN_PASSWORD')), PASSWORD_BCRYPT));
+	$old = \phpbb2plus\community\password\legacy::import(password_hash(addslashes(' ' . getenv('PLUS_TEST_MODERN_PASSWORD') . ' '), PASSWORD_BCRYPT));
 	$fields = array('user_password' => $old, 'plus_pw_weak_hash' => hash('sha256', $old), 'user_passchg' => time());
 	$db->sql_query('UPDATE ' . USERS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $fields) . ' WHERE ' . $where);
 }
@@ -42,6 +42,11 @@ elseif ($phase === 'check-rehashed-marker')
 	if (!$row || strpos($row['user_password'], \phpbb2plus\community\password\legacy::PREFIX) === 0 ||
 		!hash_equals(hash('sha256', $row['user_password']), $row['plus_pw_weak_hash']))
 	{ throw new RuntimeException('Native rehash lost the existing account renewal marker'); }
+	$input = '';
+	(new \phpbb\request\type_cast_helper())->set_var($input, ' ' . getenv('PLUS_TEST_MODERN_PASSWORD') . ' ', 'string', true, false);
+	$passwords = $phpbb_container->get('passwords.manager');
+	if (!$passwords->check($input, $row['user_password']) || $passwords->check(trim($input), $row['user_password']))
+	{ throw new RuntimeException('Native rehash did not preserve the exact migrated password'); }
 }
 elseif ($phase === 'restricted' || $phase === 'released')
 {
@@ -95,7 +100,7 @@ elseif ($phase === 'cli-rules')
 	$app->register_container_commands($phpbb_container->get('console.command_collection'));
 	$command = $app->find('user:add');
 	$name = 'CliPolicy9';
-	$valid_input = 'Cli4&' . substr(hash('sha256', getenv('PLUS_TEST_MODERN_PASSWORD')), 0, 18);
+	$valid_input = ' Cli4&' . substr(hash('sha256', getenv('PLUS_TEST_MODERN_PASSWORD')), 0, 18) . ' ';
 	foreach (array($name => false, $valid_input => true) as $candidate => $valid)
 	{
 		$input = new \Symfony\Component\Console\Input\ArrayInput(array('--username' => $name,
