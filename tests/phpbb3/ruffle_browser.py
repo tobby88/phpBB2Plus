@@ -95,6 +95,7 @@ setInterval(async () => {
         profile = Path(root) / ("chromium-" + token)
         args = [browser, "--headless", "--disable-background-networking", "--disable-component-update", "--disable-sync",
                 "--no-first-run", "--no-default-browser-check", "--autoplay-policy=no-user-gesture-required",
+                "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost",
                 "--user-data-dir=" + str(profile), base + probe.name]
         process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
