@@ -90,6 +90,7 @@ import gallery_cache
 import gallery_media_policy
 import gallery_rating_policy
 import gallery_progress
+import gallery_hotlink
 import gallery_management_bookmarks
 import knowledgebase
 from ruffle_browser import playback
@@ -566,6 +567,8 @@ def main():
                     guest = Browser(base)
                     gallery_progress.browse(admin, guest, lambda phase: php(
                         ROOT / "tests/phpbb3/gallery_progress.php", target, phase, cwd=web, capture=True))
+                    gallery_hotlink.browse(admin, reader, applicant, guest, lambda phase: php(
+                        ROOT / "tests/phpbb3/gallery_hotlink.php", target, phase, cwd=web, capture=True))
                     gallery_navigation.browse(admin, reader, guest, lambda phase: php(
                         ROOT / "tests/phpbb3/gallery_navigation.php", target, phase, cwd=web, capture=True))
                     gallery_previews.browse(admin, reader, applicant, guest, lambda phase: php(
