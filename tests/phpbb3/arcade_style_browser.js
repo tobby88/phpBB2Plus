@@ -12,6 +12,11 @@ async function checkArcadeStyle(frame) {
         icon.loading = "eager";
         await icon.decode();
         if (icon.naturalWidth !== 16 || icon.naturalHeight !== 12) { throw Error("The category picture did not load"); }
+        const statistics = doc.querySelector(".arc-statistics");
+        if (!statistics?.querySelector("#arc-chart-popular li") || !statistics.querySelector("#arc-record-current h3") ||
+                win.getComputedStyle(statistics).gridTemplateColumns.trim().split(/\s+/).length !== (narrow ? 1 : 2)) {
+            throw Error("The Arcade homepage statistics did not fit at " + width + "px");
+        }
         const form = doc.getElementById("arc-directory-options");
         if (!form?.elements.search_word?.labels?.length || !form.elements.sort_mode?.labels?.length ||
                 !form.elements.search_type?.getAttribute("aria-label") || !form.elements.order?.getAttribute("aria-label")) {

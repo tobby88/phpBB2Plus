@@ -125,12 +125,14 @@ class board
 	private function statistics($member)
 	{
 		$limit = max(1, min(100, (int) $this->catalog->setting('games_total_top', 10)));
-		$newest = (bool) $this->catalog->setting('games_new_games', 1);
-		foreach (array('popular', $newest ? 'recent' : 'least') as $chart)
+		$popular = $this->catalog->chart_games('popular', $limit);
+		if (!$popular) { return; }
+		$second = $this->catalog->setting('games_new_games', 1) ? 'recent' : 'least';
+		foreach (array('popular' => $popular, $second => $this->catalog->chart_games($second, $limit)) as $chart => $games)
 		{
 			$this->template->assign_block_vars('arc_charts', array('KEY' => $chart,
 				'TITLE' => $this->language->lang('PLUS_ARC_CHART_' . strtoupper($chart))));
-			foreach ($this->catalog->chart_games($chart, $limit) as $game)
+			foreach ($games as $game)
 			{
 				$this->template->assign_block_vars('arc_charts.games', array('TITLE' => catalog::plain($game['game_desc'] ?: $game['game_name']),
 					'URL' => $game['allow_guest'] || !empty($this->user->data['is_registered'])
