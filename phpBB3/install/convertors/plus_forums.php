@@ -50,7 +50,55 @@ function plus_insert_forums()
 	catch (\Throwable $error) { $db->sql_transaction('rollback'); throw $error; }
 }
 
-/** Allocate non-overlapping IDs and validate the entire tree before changing any target rows. */
+/** Retain every sound edge, cutting just one edge per cycle or missing parent. */
+function plus_detach_broken_branches(&$nodes)
+{
+	$done = array();
+	$detached = false;
+	foreach (array_keys($nodes) as $key)
+	{
+		$path = array();
+		while ($key !== '' && !isset($done[$key]))
+		{
+			if (isset($path[$key]))
+			{
+				$cycle = array_slice(array_keys($path), $path[$key]);
+				sort($cycle, SORT_STRING);
+				$key = $cycle[0];
+				$reason = 'cycle';
+			}
+			else
+			{
+				$path[$key] = count($path);
+				$parent = $nodes[$key]['parent'];
+				if ($parent === '' || isset($nodes[$parent])) { $key = $parent; continue; }
+				$reason = 'missing-parent';
+			}
+			$nodes[$key]['old_parent'] = $nodes[$key]['parent'];
+			$nodes[$key]['reason'] = $reason;
+			$nodes[$key]['parent'] = 'recovery';
+			$detached = true;
+			break;
+		}
+		foreach ($path as $visited => $offset) { $done[$visited] = true; }
+	}
+	return $detached;
+}
+
+function plus_recovery_label($key)
+{
+	global $phpbb_container;
+	static $language = null;
+	if (!$language)
+	{
+		$language = clone $phpbb_container->get('language');
+		$language->set_user_language(plus_convert_locale(get_config_value('default_lang')), true);
+		$language->add_lang('conversion', 'phpbb2plus/community');
+	}
+	return $language->lang($key);
+}
+
+/** Allocate native category IDs and rebuild nested-set bounds from the source relationships. */
 function plus_forum_layout($categories, $forums)
 {
 	$nodes = $children = array();
@@ -72,12 +120,14 @@ function plus_forum_layout($categories, $forums)
 			'parent' => $parent && ($type !== 'c' || $parent !== $id) ? $type . $parent : '',
 			'order' => (int) $category['cat_order'] + ($category['cat_main_type'] ? 0 : 9000000));
 	}
+	if (plus_detach_broken_branches($nodes))
+	{
+		// A generated recovery container must never take a possible phpBB2 forum number.
+		$nodes['recovery'] = array('id'=>max(65536, $next_id + 1), 'type'=>'c', 'parent'=>'', 'order'=>PHP_INT_MAX,
+			'row'=>array('cat_id'=>0, 'cat_title'=>plus_recovery_label('PLUS_RECOVERED_FORUMS'), 'cat_desc'=>''));
+	}
 	foreach ($nodes as $key => $node)
 	{
-		if ($node['parent'] !== '' && !isset($nodes[$node['parent']]))
-		{
-			throw new \RuntimeException('Unknown parent ' . $node['parent'] . ' of Plus forum/category ' . $key);
-		}
 		$children[$node['parent']][] = $key;
 	}
 	foreach ($children as &$siblings)
@@ -98,10 +148,6 @@ function plus_forum_layout($categories, $forums)
 		}
 	};
 	$walk('');
-	if ($position !== count($nodes) * 2)
-	{
-		throw new \RuntimeException('A cycle in the Plus forum tree must be resolved before conversion.');
-	}
 	return $nodes;
 }
 
@@ -138,10 +184,12 @@ function plus_restore_forum_tree()
 				$db->sql_query("DELETE FROM $table WHERE $where");
 			}
 		}
-		foreach ($nodes as $node)
+		foreach ($nodes as $key => $node)
 		{
 			$fields = array('parent_id' => $node['parent'] === '' ? 0 : $nodes[$node['parent']]['id'],
-				'forum_parents' => '', 'left_id' => $node['left_id'], 'right_id' => $node['right_id']);
+				'forum_parents' => '', 'left_id' => $node['left_id'], 'right_id' => $node['right_id'],
+				'plus_recovery_role'=>(int) ($key === 'recovery'), 'plus_recovery_parent'=>utf8_encode_ucr($node['old_parent'] ?? ''),
+				'plus_recovery_reason'=>$node['reason'] ?? '');
 			$row = $node['row'];
 			if ($node['type'] === 'c')
 			{

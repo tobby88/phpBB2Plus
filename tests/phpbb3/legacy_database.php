@@ -14,6 +14,7 @@ function check_fixture($ok, $message)
 }
 require __DIR__ . '/native_data.php';
 require __DIR__ . '/poll_conversion.php';
+require __DIR__ . '/forum_recovery.php';
 require __DIR__ . '/news.php';
 require __DIR__ . '/profile_media.php';
 require __DIR__ . '/custom_profiles.php';
@@ -181,6 +182,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	seed_account_logins($db, $argv[1] === 'seed-pruning-off');
 	seed_missing_pm_accounts($db, $argv[1] === 'seed');
 	seed_poll_conversion($db);
+	if ($argv[1] === 'seed') { seed_forum_recovery($db); }
 	seed_missing_post_authors($db);
 	// The forum suite also covers a historical link entry that must fall back to plain text.
 	$notice = $argv[1] === 'seed-pruning-off' ? "Grüße &amp; Rückblick 📷\n&lt;Hinweis&gt; & Abschluss" : '0';
@@ -299,6 +301,7 @@ elseif (in_array($argv[1], array('converted', 'converted-pruning-off', 'hashes-u
 	if (in_array($argv[1], array('converted', 'converted-pruning-off'), true))
 	{
 		verify_poll_conversion($db);
+		verify_forum_recovery($db, $argv[1] === 'converted');
 		$count = $db->query("SELECT config_value FROM p3_config WHERE config_name='plus_pm_unfinished'")->fetch_row();
 		check_fixture($count && (int) $count[0] === ($argv[1] === 'converted' ? 3 : 1), 'The conversion count of unfinished private messages is incorrect');
 	}
@@ -342,7 +345,7 @@ elseif (in_array($argv[1], array('converted', 'converted-pruning-off', 'hashes-u
 		'Conflicting source schedules must yield one forum with no active or guessed rule');
 	$description = $db->query('SELECT forum_desc FROM p3_forums WHERE forum_id=15')->fetch_row()[0];
 	check_fixture(html_entity_decode($description, ENT_QUOTES, 'UTF-8') === 'Übersicht & Rückblick 📷', 'Conversion lost the UTF-8 forum description');
-	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_forums WHERE forum_type=0 AND plus_legacy_category=0')->fetch_row()[0] === 0,
+	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_forums WHERE forum_type=0 AND plus_legacy_category=0 AND plus_recovery_role=0')->fetch_row()[0] === 0,
 		'Conversion retained a provisional category');
 	$shout = $db->query('SELECT author_id,hidden_by FROM p3_plus_shouts WHERE shout_id=7')->fetch_assoc();
 	check_fixture($shout && (int) $shout['author_id'] === (int) $users[0]['user_id']

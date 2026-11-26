@@ -25,6 +25,7 @@ import statistics_administration
 import attachments
 import attachment_quotas
 import forum_permissions
+import forum_recovery
 import news
 import portal
 import custom_profiles
@@ -373,6 +374,7 @@ def main():
                         raise RuntimeError("A held ballot must leave its announcement readable without publishing the question")
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 if not media_only:
+                    forum_recovery.browse(base, member)
                     locked_polls.exercise(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/locked_polls.php", target, phase, cwd=web))
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 member_notice.imported(base, ordinary, member, media_only)
