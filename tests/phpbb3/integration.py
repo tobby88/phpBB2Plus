@@ -52,6 +52,7 @@ import poll_administration
 import legacy_links
 import legacy_login
 import acronym_dictionary
+import explicit_acronym
 import account_pruning
 import inline_editor
 import quick_reply
@@ -428,6 +429,8 @@ def main():
         print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
         with database() as target, database() as source:
             install(web, root, target)
+            if forum_suite:
+                php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
             if account_suite:
                 php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
             php("bin/phpbbcli.php", "--version", cwd=web)
@@ -445,6 +448,7 @@ def main():
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
                 php(ROOT / "tests/phpbb3/smilie_signs.php", source, "source")
+                php(ROOT / "tests/phpbb3/explicit_acronym.php", source, "source")
             if forum_suite or account_suite:
                 php(ROOT / "tests/phpbb3/acronym_dictionary.php", source, "source")
             if account_suite:
@@ -526,6 +530,8 @@ def main():
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 member_notice.imported(base, ordinary, member, media_only)
                 if forum_suite:
+                    explicit_acronym.browse(member, ordinary, lambda phase: php(
+                        ROOT / "tests/phpbb3/explicit_acronym.php", target, phase, cwd=web, capture=True))
                     smilie_signs.browse(member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/smilie_signs.php", target, phase, cwd=web, capture=True))
                     quick_reply.browse(member, ordinary, Browser(base), lambda phase: php(
