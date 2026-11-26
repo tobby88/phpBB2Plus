@@ -38,20 +38,7 @@ class credit_entries
 
 	public function may_manage($reload = false)
 	{
-		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($this->user->data['is_registered']) || empty($this->user->data['session_admin']) ||
-			!empty($this->user->data['user_perm_from'])) { return false; }
-		if ($reload)
-		{
-			$actor = $this->row('SELECT u.*,s.session_admin FROM ' . USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE .
-				" s ON s.session_user_id=u.user_id WHERE s.session_id='" . $this->db->sql_escape($this->user->session_id) .
-				"' AND u.user_id=" . (int) $this->user->data['user_id']);
-			if (!$actor || !$actor['session_admin'] || $actor['user_perm_from'] ||
-				!in_array((int) $actor['user_type'], array(USER_NORMAL, USER_FOUNDER), true)) { return false; }
-			$actor['is_registered'] = true;
-			$actor['is_bot'] = false;
-			$this->auth->acl($actor);
-		}
-		return $this->auth->acl_get('a_plus_credits');
+		return \phpbb2plus\community\auth\admin_session::allows($this->db, $this->auth, $this->user, 'a_plus_credits', $reload);
 	}
 
 	private function row($sql)

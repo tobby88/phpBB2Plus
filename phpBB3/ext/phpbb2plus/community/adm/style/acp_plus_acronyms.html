@@ -1,0 +1,29 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_ACRONYMS}</h1>
+{% if S_ACRONYM_FORM %}
+<p><a href="{U_BACK}">{L_BACK}</a></p>
+<form id="plus-acronym" method="post" action="{U_SAVE}">
+	<fieldset>
+	{% if FORM_ERROR %}<div class="errorbox"><p>{{ FORM_ERROR|e }}</p></div>{% endif %}
+	{% if S_DELETE %}<legend>{L_DELETE}</legend><p>{{ lang('PLUS_ACRONYM_DELETE', TERM)|e }}</p>
+	{% else %}
+	<legend>{L_ACP_PLUS_ACRONYMS}</legend>
+	<dl><dt><label for="acronym-term">{L_PLUS_ACRONYM_TERM}</label></dt><dd><input id="acronym-term" name="term" value="{{ TERM|e }}" maxlength="80" required></dd></dl>
+	<dl><dt><label for="acronym-meaning">{L_PLUS_ACRONYM_MEANING}</label></dt><dd><input id="acronym-meaning" name="meaning" value="{{ MEANING|e }}" maxlength="255" size="55" required></dd></dl>
+	{% endif %}
+	<input type="hidden" name="revision" value="{REVISION}">
+	{S_FORM_TOKEN}
+	<p class="submit-buttons"><button class="button1" type="submit" name="confirm" value="1">{% if S_DELETE %}{L_DELETE}{% else %}{L_SUBMIT}{% endif %}</button></p>
+	</fieldset>
+</form>
+{% else %}
+<p>{L_PLUS_ACRONYM_EXPLAIN}</p>
+<p><a href="{U_ADD}">{L_PLUS_ACRONYM_ADD}</a></p>
+<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_ACRONYM_TERM}</th><th>{L_PLUS_ACRONYM_MEANING}</th><th>{L_OPTIONS}</th></tr></thead><tbody>
+{% for row in loops.acronyms %}
+<tr><td>{{ row.TERM|e }}</td><td>{{ row.MEANING|e }}</td><td><a href="{{ row.U_EDIT }}">{L_EDIT}</a> &middot; <a href="{{ row.U_DELETE }}">{L_DELETE}</a></td></tr>
+{% else %}<tr><td colspan="3">{L_PLUS_ACRONYM_EMPTY}</td></tr>{% endfor %}
+</tbody></table>
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

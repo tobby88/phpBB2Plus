@@ -18,6 +18,11 @@ require_once __DIR__ . '/plus_actions.php';
 require_once __DIR__ . '/plus_account_logins.php';
 require_once __DIR__ . '/plus_member_notice.php';
 require_once __DIR__ . '/plus_credits.php';
+
+function plus_acronym_text($value)
+{
+	return \phpbb2plus\community\service\acronym_dictionary::encode($value);
+}
 require_once __DIR__ . '/plus_cards.php';
 require_once __DIR__ . '/plus_memberships.php';
 require_once __DIR__ . '/plus_news.php';

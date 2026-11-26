@@ -129,6 +129,8 @@ class articles
 				if ($files) { $html .= '<div class="attachments">' . implode('<br>',$files) . '</div>'; }
 			}
 		}
+		$decorated = $this->dispatcher->trigger_event('phpbb2plus.community.acronym_html', array('html' => $html));
+		$html = $decorated['html'];
 		if ($limit > 0)
 		{
 			$plain = strip_tags(str_ireplace(array('<br>','<br/>','<br />','</p>','</div>'),' ',$html));

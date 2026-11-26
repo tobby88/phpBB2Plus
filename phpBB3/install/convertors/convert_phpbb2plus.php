@@ -502,6 +502,13 @@ if (!$get_info)
 			'where' => 'ctracker_loginhistory.ct_user_id=users.user_id AND users.user_id>0');
 	}
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_credits');
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_acronyms');
+	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'acronyms'))
+	{
+		$convertor['schema'][] = array('target' => $table_prefix . 'plus_acronyms', 'primary' => 'acronyms.acronym_id',
+			array('acronym_id', 'acronyms.acronym_id', 'intval'), array('term_text', 'acronyms.acronym', 'plus_acronym_text'),
+			array('definition_text', 'acronyms.description', 'plus_acronym_text'));
+	}
 	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'hacks_list'))
 	{
 		$convertor['schema'][] = plus_credits_schema($table_prefix);

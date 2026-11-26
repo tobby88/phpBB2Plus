@@ -99,6 +99,7 @@ function plus_jr_registry()
 		'admin_album_auth.php' => '6a79dbf47486d217b4660903ef30efa8b35a85c99daa72b04bd88766e2742767',
 		'admin_arcade_games.php' => 'b4318ce3863b0ea4d3681d53fd50ea15c1726b47e932368d87aaac12c0e6dd7c',
 		'admin_hacks_list.php' => '12e39f97b24f72134803b9d4e82dbf0453240bc5c18ddda038278d4a3d73e9f1',
+		'admin_acronyms.php' => '3d455815073f5beb82e843b190a3d9a78488de47f52ee2568803eed8eb04e68b',
 	);
 	// These controllers share or delegate their actual write authority. A customised
 	// or absent helper can narrow the source grant despite an unchanged menu entry.
@@ -138,7 +139,15 @@ function plus_jr_registry()
 		'includes/functions.php' => '53228ac8b7b580c2a61efde2f82684a993e127bccfbcf08a2e17a2111e641091',
 		'includes/functions_link_settings.php' => 'd29ceb470891dfc3285e6de7f741e301c6b9625b46da3c840494f2e6fff400b3',
 	);
+	$board_writes = array(
+		'includes/functions_board_config.php' => '6f8bfd8b56abae2ac271ef236b1c916ca0fb96f68b74ca1a58680474a6a09568',
+		'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+		'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+		'includes/functions_moderator_identity.php' => '2cd91513548a3754831dc59ee50be5ffccecfbfba2b4f0921e6850b8f89e9c67',
+		'includes/functions_connection_ownership.php' => '1c8277a28b18946baaad0fca9f2f64959fe07d09ede4fd6ec2f37223b153576e',
+	);
 	$dependencies = array(
+		'admin_acronyms.php' => $board_writes + array('includes/functions_content_admin.php' => '7b1e555aa1a56dea597f60d910bc46526b17cfdc2020ec41b565f015c0c8e199'),
 		'admin_arcade_log.php' => array(
 			'pagestart.php'=>'472b9cf9f94bf3ac132a9a4fc101a861ddc74dd374620915840500aa3a18887d',
 			'includes/functions_jr_admin.php'=>'2b790b97d59b8fe505cbc34d0963a8acf7412a6db865158347c284a2b8bb369e',
@@ -173,13 +182,8 @@ function plus_jr_registry()
 		'admin_links.php' => $link_writes,
 		'admin_links_config.php' => $link_settings,
 		'admin_links_cat.php' => $link_settings + array('includes/functions_link_categories.php'=>'710e02aa8c62532d567d8fa8dae443daccde41c0ba518298b6223d95152b83d1'),
-		'admin_flags.php' => array(
+		'admin_flags.php' => $board_writes + array(
 			'includes/functions_flags_storage.php' => '7a445923f0c0a98d4eb7c55ebfd103db3f5f7b1f267d63d7bacc865a029429e8',
-			'includes/functions_board_config.php' => '6f8bfd8b56abae2ac271ef236b1c916ca0fb96f68b74ca1a58680474a6a09568',
-			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
-			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
-			'includes/functions_moderator_identity.php' => '2cd91513548a3754831dc59ee50be5ffccecfbfba2b4f0921e6850b8f89e9c67',
-			'includes/functions_connection_ownership.php' => '1c8277a28b18946baaad0fca9f2f64959fe07d09ede4fd6ec2f37223b153576e',
 		),
 		'admin_arcade_games.php?mode=edit_games' => array(
 			'admin_arcade_scores.php' => '8d3dbbd349ec9b53a551d191bccc10c1863129475ac40303098fb3234358e48d',

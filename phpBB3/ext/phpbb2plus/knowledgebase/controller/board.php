@@ -22,7 +22,9 @@ class board
 	private $editor;
 	private $replies;
 
-	public function __construct($articles, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $root, $php_ext, $editor, $replies, $names = null)
+	private $dispatcher;
+
+	public function __construct($articles, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $root, $php_ext, $editor, $replies, $names = null, $dispatcher = null)
 	{
 		$this->articles = $articles;
 		$this->db = $db;
@@ -36,6 +38,7 @@ class board
 		$this->root = $root;
 		$this->php_ext = $php_ext;
 		$this->names = $names;
+		$this->dispatcher = $dispatcher;
 		$this->editor = $editor;
 		$this->replies = $replies;
 	}
@@ -275,9 +278,15 @@ class board
 		$start = $topic ? $this->discussion_replies($topic, $params, $page, $print) : 0;
 		$this->template->assign_vars(array('KB_TITLE' => $a['title'], 'KB_SUMMARY' => $a['description'], 'KB_TYPE' => $a['type_name'],
 			'KB_PENDING' => (int) $a['approval'] !== 1, 'KB_AUTHOR' => $this->author($a), 'KB_DATE' => $this->user->format_date($a['created_at']),
-			'KB_VIEWS' => $a['views'], 'KB_PRINT' => $print, 'KB_BODY' => generate_text_for_display($part['content'], $part['bbcode_uid'], $part['bbcode_bitfield'], $part['bbcode_options']),
+			'KB_VIEWS' => $a['views'], 'KB_PRINT' => $print, 'KB_BODY' => $this->article_body($part),
 			'U_KB_PRINT' => $this->helper->route('phpbb2plus_kb_article', $params + array('page' => $page, 'print' => 1) + ($start ? array('start' => $start) : array()))));
 		return $this->helper->render('@phpbb2plus_knowledgebase/article.html', utf8_htmlspecialchars($a['title']));
+	}
+
+	private function article_body($part)
+	{
+		$html = generate_text_for_display($part['content'], $part['bbcode_uid'], $part['bbcode_bitfield'], $part['bbcode_options']);
+		return $this->dispatcher ? $this->dispatcher->trigger_event('phpbb2plus.community.acronym_html', array('html' => $html))['html'] : $html;
 	}
 
 	public function rate($article)

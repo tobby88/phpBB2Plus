@@ -51,6 +51,7 @@ import locked_polls
 import poll_administration
 import legacy_links
 import legacy_login
+import acronym_dictionary
 import quick_reply
 import moderation_bookmarks
 import mail_links
@@ -435,6 +436,7 @@ def main():
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
                 php(ROOT / "tests/phpbb3/smilie_signs.php", source, "source")
+                php(ROOT / "tests/phpbb3/acronym_dictionary.php", source, "source")
             if account_suite:
                 php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
                 php(ROOT / "tests/phpbb3/absence.php", source, "source")
@@ -573,6 +575,8 @@ def main():
                 rank_overview.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/rank_overview.php", target, phase, cwd=web))
                 legacy_links.browse(base, member, media["member"])
+                php(ROOT / "tests/phpbb3/acronym_dictionary.php", target, "converted", cwd=web)
+                acronym_dictionary.browse(base, member, ordinary)
                 legacy_login.browse(web, base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], member)
                 moderation_bookmarks.browse(base, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/moderation_bookmarks.php", target, phase, cwd=web))

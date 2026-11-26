@@ -23,6 +23,7 @@ def source_modules(source, target):
                  "includes/functions_link_admin.php", "includes/functions_link_submission.php", "includes/functions_link_categories.php",
                  "includes/functions_link_settings.php", "includes/php_compat.php", "includes/functions.php",
                  "includes/functions_flags_storage.php", "includes/functions_board_config.php", "includes/functions_connection_ownership.php",
+                 "includes/functions_content_admin.php",
                  "includes/functions_arcade_score_storage.php", "includes/functions_arcade_action_storage.php",
                  "includes/functions_arcade_category_storage.php", "includes/functions_arcade_last_play.php",
                  "includes/functions_arcade_rankings.php", "includes/constants_arcade.php", "includes/functions_arcade.php",

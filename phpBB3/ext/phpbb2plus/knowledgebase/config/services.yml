@@ -10,7 +10,7 @@ services:
         arguments: ['@dbal.conn', '@auth', '@user', '@content.visibility', '%core.table_prefix%plus_kb_']
     phpbb2plus.knowledgebase.board:
         class: phpbb2plus\knowledgebase\controller\board
-        arguments: ['@phpbb2plus.knowledgebase.articles', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_kb_', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.knowledgebase.editor', '@phpbb2plus.knowledgebase.replies', '@?phpbb2plus.community.former_members']
+        arguments: ['@phpbb2plus.knowledgebase.articles', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_kb_', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.knowledgebase.editor', '@phpbb2plus.knowledgebase.replies', '@?phpbb2plus.community.former_members', '@dispatcher']
     phpbb2plus.knowledgebase.replies:
         class: phpbb2plus\knowledgebase\service\replies
         arguments: ['@dbal.conn', '@auth', '@user', '@config', '@content.visibility', '@dispatcher', '@profilefields.manager']

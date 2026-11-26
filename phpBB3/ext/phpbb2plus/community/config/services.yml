@@ -1,4 +1,15 @@
 services:
+    phpbb2plus.community.acronym_dictionary:
+        class: phpbb2plus\community\service\acronym_dictionary
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_acronyms']
+    phpbb2plus.community.acronym_entries:
+        class: phpbb2plus\community\service\acronym_entries
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_acronyms', '@auth', '@user', '@cache.driver']
+    phpbb2plus.community.acronym_events:
+        class: phpbb2plus\community\event\acronyms
+        arguments: ['@phpbb2plus.community.acronym_dictionary', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.quick_reply:
         class: phpbb2plus\community\event\quick_reply
         arguments: ['@config', '@auth', '@language', '%core.root_path%', '%core.php_ext%']

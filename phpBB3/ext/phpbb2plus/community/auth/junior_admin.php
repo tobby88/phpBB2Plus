@@ -52,6 +52,7 @@ class junior_admin
 		'admin_cracker_tracker.php?modu=9' => array('ctracker_module_category', 'ctracker_module_9',
 			array('a_plus_ct_settings' => array('phpbb2plus\community\acp\tracker_settings_module', 'manage'))),
 		'admin_hacks_list.php' => array('General', 'Hacks_List', array('a_plus_credits' => array('phpbb2plus\community\acp\credits_module', 'manage'))),
+		'admin_acronyms.php' => array('General', 'Acronyms', array('a_plus_acronyms' => array('phpbb2plus\community\acp\acronyms_module', 'manage'))),
 	);
 
 	private $db;
