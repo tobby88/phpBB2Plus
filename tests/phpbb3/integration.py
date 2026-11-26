@@ -50,6 +50,7 @@ import announcement_duration
 import locked_polls
 import poll_administration
 import legacy_links
+import legacy_login
 import mail_links
 import admin_contact
 import topic_readers
@@ -562,6 +563,7 @@ def main():
                 rank_overview.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/rank_overview.php", target, phase, cwd=web))
                 legacy_links.browse(base, member, media["member"])
+                legacy_login.browse(web, base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], member)
                 legacy_links.groups(base, member, ordinary, pending, int(php(fixture, "group-bookmarks", target, capture=True)))
                 credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
