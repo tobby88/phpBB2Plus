@@ -1,0 +1,43 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{{ DIRECTORY_TITLE }}</h1>
+<form id="plus-member-directory" action="{U_DIRECTORY_FORM}" method="get">
+	<fieldset><legend>{L_SEARCH}</legend>
+		<dl><dt><label for="directory-query">{L_PLUS_DIRECTORY_QUERY}</label></dt>
+			<dd><input type="search" id="directory-query" name="q" value="{{ DIRECTORY_QUERY|e('html_attr') }}" maxlength="255" /></dd></dl>
+		<dl><dt><label for="directory-alpha">{L_PLUS_DIRECTORY_INITIAL}</label></dt><dd><select id="directory-alpha" name="alpha">
+			<option value="">{L_PLUS_DIRECTORY_ALL}</option>{% for item in loops.directory_alpha %}
+			<option value="{{ item.VALUE }}"{% if item.SELECTED %} selected{% endif %}>{{ item.LABEL }}</option>{% endfor %}</select></dd></dl>
+		<dl><dt><label for="directory-sort">{L_SORT_BY}</label></dt><dd><select id="directory-sort" name="sort">
+			{% for item in loops.directory_sort %}<option value="{{ item.VALUE }}"{% if item.SELECTED %} selected{% endif %}>{{ item.LABEL }}</option>{% endfor %}</select>
+			<select name="order" aria-label="{L_PLUS_DIRECTORY_ORDER}"><option value="ASC"{% if ASCENDING %} selected{% endif %}>{L_PLUS_DIRECTORY_ASC}</option>
+			<option value="DESC"{% if not ASCENDING %} selected{% endif %}>{L_PLUS_DIRECTORY_DESC}</option></select></dd></dl>
+		<dl><dt><label for="directory-size">{L_PLUS_DIRECTORY_SIZE}</label></dt>
+			<dd><input type="number" id="directory-size" name="show" min="1" max="200" value="{{ DIRECTORY_SIZE }}" /></dd></dl>
+		{DIRECTORY_CONTEXT}<p class="submit-buttons"><button class="button2" type="submit">{L_SEARCH}</button></p>
+	</fieldset>
+</form>
+<p>{{ DIRECTORY_TOTAL }}</p>
+{% if loops.directory_row %}
+<table class="table1" id="plus-directory-results"><thead><tr>
+	{% if S_MEMBER_DIRECTORY %}<th>{L_PLUS_DIRECTORY_ID}</th>{% endif %}<th>{L_USERNAME}</th><th>{L_EMAIL_ADDRESS}</th>
+	{% if S_MEMBER_DIRECTORY %}<th>{L_POSTS}</th><th>{L_JOINED}</th><th>{L_LAST_VISIT}</th><th>{L_PLUS_DIRECTORY_ACTIVE}</th>{% endif %}
+	{% if S_DIRECTORY_ACTIONS %}<th>{L_ACTION}</th>{% endif %}
+</tr></thead><tbody>
+{% for member in loops.directory_row %}<tr class="{{ cycle(['row1', 'row2'], loop.index0) }}">
+	{% if S_MEMBER_DIRECTORY %}<td class="directory-id">{{ member.ID }}</td>{% endif %}
+	<td class="directory-name">{% if not S_MEMBER_DIRECTORY and member.U_EDIT %}<a href="{{ member.U_EDIT }}">{{ member.NAME|e }}</a>{% else %}
+		<span{% if member.COLOUR %} style="color:#{{ member.COLOUR }}"{% endif %}>{{ member.NAME|e }}</span>{% endif %}
+		{% if member.BANNED %}<strong>({L_PLUS_DIRECTORY_BAN})</strong>{% endif %}</td>
+	<td class="directory-email">{% if member.MAILTO %}<a href="{{ member.MAILTO|e }}">{{ member.EMAIL|e }}</a>{% else %}{{ member.EMAIL|e }}{% endif %}</td>
+	{% if S_MEMBER_DIRECTORY %}<td class="directory-posts">{{ member.POSTS }}</td><td>{{ member.JOINED }}</td>
+		<td class="directory-visit">{% if member.VISITED %}{{ member.VISITED }}{% else %}–{% endif %}</td>
+		<td class="directory-active">{% if member.ACTIVE %}{L_YES}{% else %}{L_NO}{% endif %}</td>{% endif %}
+	{% if S_DIRECTORY_ACTIONS %}<td class="directory-actions">
+		{% if member.U_EDIT %}<a href="{{ member.U_EDIT }}">{L_EDIT}</a>{% endif %}
+		{% if member.U_GLOBAL %}<a href="{{ member.U_GLOBAL }}">{L_ACP_USERS_PERMISSIONS}</a>{% endif %}
+		{% if member.U_LOCAL %}<a href="{{ member.U_LOCAL }}">{L_ACP_USERS_FORUM_PERMISSIONS}</a>{% endif %}</td>{% endif %}
+</tr>{% endfor %}
+</tbody></table>
+{% endif %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

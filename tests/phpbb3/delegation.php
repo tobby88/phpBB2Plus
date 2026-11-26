@@ -11,6 +11,8 @@ function delegation_fixture_roles()
 {
 	return array(
 		275 => array('RegistrationNetworkJunior', 'UsersRegistration IPadmin_reg_ip.php', 'a_plus_reg_network'),
+		277 => array('EmailDirectoryJunior', 'UsersEmail_Listadmin_email_list.php', 'a_plus_mail_list'),
+		278 => array('MemberDirectoryJunior', 'UsersUsers Listadmin_users_list.php', 'a_plus_user_list'),
 		35 => array('LinkAddJunior', 'LinksAdd_newadmin_links.php?mode=add',
 			array('a_plus_wl_create','a_plus_wl_edit','a_plus_wl_delete','a_plus_wl_review')),
 		36 => array('LinkManageJunior', 'LinksManageadmin_links.php?mode=view',

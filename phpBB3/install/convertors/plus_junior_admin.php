@@ -72,6 +72,8 @@ function plus_jr_registry()
 	// A locally modified module can expose fewer actions under the same name. These
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
+		'admin_email_list.php' => '164c9a5edfb8c0a53cb35aa027623f3876a7d003f2d50066cee0cd47982ec178',
+		'admin_users_list.php' => '11e357d485426fa66235176050094915e76d47ca4a8ce13cec0bfc45a9feb287',
 		'admin_arcade_cats.php' => '1f783390224f152c354e205f56ec52e4dc47d10e276c7595038498dc0bf03daf',
 		'admin_arcade_log.php' => '667e4ab70846777eaddfe4753e820b360b83ea2aa03373ee71106da357350848',
 		'admin_links.php' => '653aa54f528987a56e61e2320f4f15aba1562bbc98cc1e64b1c01346cab5bce9',
@@ -277,6 +279,16 @@ function plus_jr_registry()
 	$dependencies['admin_arcade_games.php?mode=add_game'] = array_diff_key($dependencies['admin_arcade_games.php?mode=edit_games'],
 		array('admin_arcade_scores.php'=>true,'includes/functions_arcade_score_storage.php'=>true));
 	$dependencies['admin_arcade_games.php?mode=import_game'] = $dependencies['admin_arcade_games.php?mode=add_game'];
+	$directory_gate = array(
+		'pagestart.php' => '472b9cf9f94bf3ac132a9a4fc101a861ddc74dd374620915840500aa3a18887d',
+		'includes/functions_jr_admin.php' => '2b790b97d59b8fe505cbc34d0963a8acf7412a6db865158347c284a2b8bb369e',
+		'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+	);
+	$dependencies['admin_email_list.php'] = $directory_gate + array(
+		'templates/fisubsilversh/admin/admin_users_email_list_body.tpl' => '31e04539c31896dbde5a825a9800dfd06408be012549839b22180dab3aeca9eb');
+	$dependencies['admin_users_list.php'] = $directory_gate + array(
+		'templates/fisubsilversh/admin/admin_users_list_body.tpl' => '8d9532f1aac528e99d25f405ee06ab8ef353ea3d67033e515d2e0f7082ab834d',
+		'includes/functions_color_groups.php' => 'e6e3cb7405a00b2baa4a916e09bfeb6cc7d5ccd37fb2d32ae2db4dc533c8fe5a');
 	$registry = array();
 	foreach ($files as $file)
 	{
@@ -298,6 +310,11 @@ function plus_jr_registry()
 					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$route] ?? $dependencies[$file] ?? array()))
 				{
 					$options = array_keys($map[2]);
+					if ($route === 'admin_users_list.php')
+					{
+						// Preserve the outstanding source actions without granting native user, ban or group administration.
+						$record['unmapped_bulk_actions'] = array('activate', 'deactivate', 'ban', 'unban', 'group');
+					}
 					if (count($options) === 1) { $record['option'] = $options[0]; }
 					else { $record['options'] = $options; }
 				}
