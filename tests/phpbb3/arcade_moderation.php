@@ -15,6 +15,36 @@ $one = static function ($sql) use ($db) {
 $member = (int) $one('SELECT user_id FROM ' . USERS_TABLE . " WHERE username_clean='historicmember'")['user_id'];
 $founder = (int) $one('SELECT user_id FROM ' . USERS_TABLE . " WHERE username_clean='modernmember'")['user_id'];
 if ($member <= ANONYMOUS || $member === $founder || !$founder) { throw new RuntimeException('Missing converted players'); }
+if ($argv[2] === 'verify-lock')
+{
+	// A second connection models a simultaneous Arcade operation and an independently saved category assignment.
+	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+	$other = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'),
+		$argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
+	try
+	{
+		$db->sql_query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+		$phpbb_container->get('phpbb2plus.arcade.sessions')->locked(static function () use ($other, $one, $p, $member) {
+			$other->begin_transaction();
+			try
+			{
+				$other->query("SELECT state_id FROM {$p}state WHERE state_id=1 FOR UPDATE NOWAIT");
+				throw new RuntimeException('Two connections acquired the Arcade coordinator at once');
+			}
+			catch (mysqli_sql_exception $e) { if (!in_array($e->getCode(), array(1205,3572), true)) { throw $e; } }
+			finally { $other->rollback(); }
+			$other->query("UPDATE {$p}categories SET moderator_id=$member WHERE cat_id=901001");
+			if ((int) $one("SELECT moderator_id FROM {$p}categories WHERE cat_id=901001")['moderator_id'] !== $member)
+			{ throw new RuntimeException('The coordinator opened a stale permission snapshot'); }
+		});
+	}
+	finally
+	{
+		$other->query("UPDATE {$p}categories SET moderator_id=0 WHERE cat_id=901001");
+		$other->close();
+	}
+	return;
+}
 $db->sql_transaction('begin');
 switch ($argv[2])
 {

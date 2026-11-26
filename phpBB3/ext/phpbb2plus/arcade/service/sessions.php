@@ -37,8 +37,8 @@ class sessions
 		try
 		{
 			$table = $this->prefix . 'state';
-			$this->db->sql_query("UPDATE $table SET state_id=1 WHERE state_id=1");
-			$result = $this->db->sql_query("SELECT state_id FROM $table WHERE state_id=1");
+			// Take the coordinator lock without opening a read snapshot before the operation locks its own rows.
+			$result = $this->db->sql_query("SELECT state_id FROM $table WHERE state_id=1 FOR UPDATE");
 			$exists = $this->db->sql_fetchfield('state_id') !== false;
 			$this->db->sql_freeresult($result);
 			if (!$exists) { throw new \RuntimeException('Arcade coordinator missing.'); }

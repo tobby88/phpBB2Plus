@@ -16,6 +16,7 @@ def exercise(base, founder, moderator, ordinary, db):
     guest = Browser(base)
     db("seed")
     try:
+        db("verify-lock")
         if (route.split("app.php")[1] not in moderator.fetch("app.php/arcade") or
                 "/arcade/moderation" in ordinary.fetch("app.php/arcade") or "/arcade/moderation" in guest.fetch("app.php/arcade")):
             raise RuntimeError("The directory offers score moderation to the wrong players")
