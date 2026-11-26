@@ -49,6 +49,7 @@ import locked_polls
 import poll_administration
 import legacy_links
 import mail_links
+import admin_contact
 import downloads
 import download_categories
 import download_checker
@@ -529,6 +530,8 @@ def main():
                     php(ROOT / "tests/phpbb3/profile_defaults.php", target, cwd=web)
                     custom_profiles.visibility_after_toggle(base, action == "enable")
                 native_content(base, member, ordinary)
+                admin_contact.browse(Browser(base), ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/admin_contact.php", target, phase, cwd=web, capture=True))
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 weblinks.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
