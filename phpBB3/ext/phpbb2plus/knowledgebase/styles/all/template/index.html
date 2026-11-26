@@ -5,6 +5,7 @@
 {% if U_KB_NEW %}<div class="action-bar"><a class="button" href="{U_KB_NEW}">{L_PLUS_KB_ACTION_NEW}</a></div>{% endif %}
 <form class="action-bar" id="kb-search" method="get" action="{U_SEARCH}"><fieldset>
 <label for="kb-query">{L_SEARCH}</label> <input class="inputbox search" id="kb-query" name="q" maxlength="240" value="{{ KB_QUERY|e('html_attr') }}">
+<label for="kb-match">{L_PLUS_KB_MATCH}</label> <select id="kb-match" name="match"><option value="any"{% if KB_MATCH_ANY %} selected{% endif %}>{L_PLUS_KB_MATCH_ANY}</option><option value="all"{% if not KB_MATCH_ANY %} selected{% endif %}>{L_PLUS_KB_MATCH_ALL}</option></select>
 <label for="kb-sort">{L_SORT_BY}</label> <select id="kb-sort" name="order">{% for key in ['default','alphabetical','newest','viewed'] %}<option value="{{ key }}"{% if KB_SORT == key %} selected{% endif %}>{{ lang('PLUS_KB_' ~ key|upper) }}</option>{% endfor %}</select>
 <input type="submit" class="button2" value="{L_GO}"></fieldset></form>
 {% if loops.kb_cats %}

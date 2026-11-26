@@ -2,7 +2,7 @@
 import re
 import time
 from html import escape, unescape
-from urllib.parse import urlencode, urljoin
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from http_board import Browser, FormFields, Page, admin_url, submit_form
 from gallery import submit
 
@@ -85,6 +85,42 @@ def listings(guest, editor, category, public, moderated):
         raise RuntimeError("The directory or search results exposed or incorrectly hid a former member's name")
 
 
+def search_modes(guest, editor):
+    index = "app.php/knowledge"
+
+    def ids(page):
+        return {int(number) for number in re.findall(r'<a class="topictitle" href="[^"]*/knowledge/article/(\d+)', page)}
+
+    words = "Wissensprobe Fundstück"
+    for match, expected in (("any", {201, 212}), ("all", set())):
+        form = {"search_keywords": words, "search_terms": match}
+        if ids(guest.fetch("kb_search.php?mode=results", form)) != expected:
+            raise RuntimeError("The original Knowledge Base form lost its search terms or matching mode")
+    if ids(guest.fetch("kb_search.php?" + urlencode({"search_keywords": words}))) != {201, 212}:
+        raise RuntimeError("An old search bookmark did not default to any word")
+    if ids(guest.fetch(index + "?" + urlencode({"q": words}))):
+        raise RuntimeError("Existing native Knowledge Base bookmarks changed their all-word meaning")
+    for path, query, expected in ((index, "Wissensprobe OR Fundstück NOT Grüße", {212}),
+                                  (index + "/category/8", words, {201}), (index, "Wissens*be", {201}),
+                                  (index, "EditorFixture OR Wissensprobe", set())):
+        if ids(guest.fetch(path + "?" + urlencode({"q": query, "match": "any"}))) != expected:
+            raise RuntimeError("Article search lost its operators, category or former-member visibility")
+    if ids(editor.fetch(index + "?" + urlencode({"q": words, "match": "any"}))) != {201, 202, 212}:
+        raise RuntimeError("Article search lost the reviewer's access to pending submissions")
+    query = {"q": "Anleitung Diskussionsthema Verknüpfter Lesemappenbrief Fundstück Archivbrief", "match": "any", "order": "alphabetical"}
+    page = guest.fetch(index + "?" + urlencode(query))
+    for href in re.findall(r'href="([^"]+)"', page):
+        href = unescape(href)
+        params = parse_qs(urlsplit(href).query)
+        if params.get("start") == ["5"] and params.get("q") == [query["q"]]:
+            if params.get("match") != ["any"] or params.get("order") != ["alphabetical"]:
+                raise RuntimeError("The second search page discarded its matching mode or order")
+            second = ids(guest.fetch(urljoin(guest.base + index, href)))
+            if second and not ids(page).intersection(second):
+                return
+    raise RuntimeError("Could not reach distinct Knowledge Base results on the second page")
+
+
 def browse(base, administrator, editor, reader):
     guest = Browser(base)
     index = "app.php/knowledge"
@@ -100,6 +136,7 @@ def browse(base, administrator, editor, reader):
     if "Ungeprüfte Anleitung" not in moderated or "Ungeprüfte Anleitung" in reader.fetch(index + "/category/8"):
         raise RuntimeError("Approved and pending memberships have incorrect Knowledge Base permissions")
     listings(guest, editor, category, public, moderated)
+    search_modes(guest, editor)
     if "Überarbeitete Anleitung" not in reader.fetch(article + "203"):
         raise RuntimeError("The author cannot read an edit in the moderation queue")
     guest.fetch(article + "202", expected_status=404)

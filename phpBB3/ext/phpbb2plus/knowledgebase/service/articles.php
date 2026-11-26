@@ -152,17 +152,29 @@ class articles
 		return $article;
 	}
 
-	public function search_sql($query)
+	public function search_sql($query, $match)
 	{
 		$terms = preg_split('/\s+/u', trim($query), -1, PREG_SPLIT_NO_EMPTY);
 		if (!$terms || count($terms) > 12 || utf8_strlen($query) > 240) { return '1=0'; }
-		$conditions = array();
-		foreach (array_unique($terms) as $term)
+		$operators = array('OR' => ' OR ', 'AND' => ' AND ', 'NOT' => ' AND NOT ');
+		$operator = $match === 'any' ? ' OR ' : ' AND ';
+		$wildcard = $this->db->get_any_char();
+		$expression = '';
+		foreach ($terms as $term)
 		{
-			$like = $this->db->sql_like_expression($this->db->get_any_char() . $term . $this->db->get_any_char());
-			$conditions[] = "(a.title $like OR a.description $like OR a.search_text $like)";
+			$keyword = strtoupper($term);
+			if ($match !== '' && isset($operators[$keyword]))
+			{
+				if ($match === 'any') { $operator = $operators[$keyword]; }
+				continue;
+			}
+			if ($match !== '') { $term = str_replace('*', $wildcard, $term); }
+			$like = $this->db->sql_like_expression($wildcard . $term . $wildcard);
+			$condition = "(a.title $like OR a.description $like OR a.search_text $like)";
+			// The original any-word search applies operators in input order.
+			$expression = $expression === '' ? $condition : '(' . $expression . $operator . $condition . ')';
 		}
-		return implode(' AND ', $conditions);
+		return $expression === '' ? '1=0' : $expression;
 	}
 
 	public function pages($id)

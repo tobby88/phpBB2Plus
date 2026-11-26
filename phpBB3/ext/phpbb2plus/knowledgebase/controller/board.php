@@ -142,6 +142,8 @@ class board
 		$this->navigation();
 		$cats = $this->articles->category_list();
 		$query = htmlspecialchars_decode($this->request->variable('q', '', true), ENT_QUOTES);
+		$match = $this->request->variable('match', '');
+		if (!in_array($match, array('any', 'all'), true)) { $match = ''; }
 		$view = $this->request->variable('order', '');
 		$params = $id ? array('category' => $id) : array();
 		$route = $id ? 'phpbb2plus_kb_category' : 'phpbb2plus_kb_index';
@@ -169,7 +171,8 @@ class board
 		if ($query !== '')
 		{
 			$params['q'] = $query;
-			$where .= ' AND ' . ($this->names && $this->names->hidden() && $this->names->matches_search($query) ? '1=0' : $this->articles->search_sql($query));
+			if ($match !== '') { $params['match'] = $match; }
+			$where .= ' AND ' . ($this->names && $this->names->hidden() && $this->names->matches_search($query) ? '1=0' : $this->articles->search_sql($query, $match));
 		}
 		$from = $this->prefix . 'articles a';
 		$result = $this->db->sql_query("SELECT COUNT(*) AS total FROM $from WHERE $where");
@@ -191,7 +194,8 @@ class board
 		$this->db->sql_freeresult($result);
 		$title = $id ? $cats[$id]['title'] : $this->language->lang('PLUS_KB');
 		if ($this->editor->allowed('new')) { $this->template->assign_var('U_KB_NEW', $this->helper->route('phpbb2plus_kb_submit', $id ? array('category' => $id) : array())); }
-		$this->template->assign_vars(array('KB_TITLE' => $title, 'KB_QUERY' => $query, 'KB_SORT' => $view, 'U_SEARCH' => $url));
+		$this->template->assign_vars(array('KB_TITLE' => $title, 'KB_QUERY' => $query, 'KB_SORT' => $view, 'U_SEARCH' => $url,
+			'KB_MATCH_ANY' => $match === 'any' || ($query === '' && $match === '')));
 		return $this->helper->render('@phpbb2plus_knowledgebase/index.html', utf8_htmlspecialchars($title));
 	}
 

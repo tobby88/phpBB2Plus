@@ -4,8 +4,12 @@
 function phpbb2plus_redirect_legacy($entry, array $query)
 {
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
-	$read_form = in_array($entry, array('album_search', 'album_personal_index'), true);
+	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search'), true);
 	$sort_redirect = $entry === 'album_personal_index';
+	if ($entry === 'kb_search' && $method === 'POST')
+	{
+		$query = array_intersect_key($_POST, array_flip(array('search_keywords', 'search_terms'))) + $query;
+	}
 	if ($method === 'POST' && in_array($entry, array('album', 'album_cat'), true))
 	{
 		// The original gallery took the album identity from the form first and
@@ -344,7 +348,14 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if ($mode === '' || $mode === 'search')
 			{
 				$path = 'knowledge';
-				if (isset($query['search_keywords']) && is_string($query['search_keywords'])) { $extra['q'] = $query['search_keywords']; }
+				if (isset($query['search_keywords']) && is_string($query['search_keywords']) && $query['search_keywords'] !== '')
+				{
+					if (strlen($query['search_keywords']) > 960) { http_response_code(400); return; }
+					$extra['q'] = $query['search_keywords'];
+					$extra['match'] = ($query['search_terms'] ?? '') === 'all' ? 'all' : 'any';
+				}
+				elseif ($mode === 'search') { $anchor = '#kb-query'; }
+				if ($mode === 'search') { header('Cache-Control: private, no-store'); }
 			}
 			elseif ($mode === 'add') { $path = 'knowledge/new'; }
 			elseif ($mode === 'stats')
@@ -374,7 +385,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	}
 	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
-	// Only search forms need to retain their body at the destination.
-	$status = $method === 'POST' ? ($sort_redirect ? 303 : 307) : 302;
+	// The album and download search handlers accept the original POST bodies.
+	$status = $method === 'POST' ? ($sort_redirect || $entry === 'kb_search' ? 303 : 307) : 302;
 	header('Location: ' . $base . $path . $search . $anchor, true, $status);
 }
