@@ -1,0 +1,28 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_USER_PRUNING' => 'Prune accounts by activity',
+	'PLUS_PRUNE_EXPLAIN' => 'Choose a rule to preview accounts registered longer ago than the specified number of days. Protected accounts, currently signed-in members and pending registrations that own posts despite a post count of zero are excluded. You can then select individual accounts.',
+	'PLUS_PRUNE_RULE_0' => 'No posts',
+	'PLUS_PRUNE_RULE_1' => 'Never signed in',
+	'PLUS_PRUNE_RULE_2' => 'Never signed in and registration still awaiting activation',
+	'PLUS_PRUNE_RULE_3' => 'Last signed in more than 60 days ago or never signed in',
+	'PLUS_PRUNE_RULE_4' => 'Fewer than one post per ten days between registration and the last visit',
+	'PLUS_PRUNE_DAYS' => 'Registered more than this many days ago',
+	'PLUS_PRUNE_LAST_VISIT' => 'Last active',
+	'PLUS_PRUNE_MIN_AGE' => 'Registered more than %d days ago.',
+	'PLUS_PRUNE_CHOOSE' => 'Select the accounts to review on the next screen.',
+	'PLUS_PRUNE_REVIEW' => 'Review selected accounts',
+	'PLUS_PRUNE_CONFIRM' => 'The following accounts will be permanently deleted. Their posts will be retained.',
+	'PLUS_PRUNE_REMOVE' => 'Permanently delete the displayed accounts',
+	'PLUS_PRUNE_NOTIFY' => 'Email the affected members after deletion',
+	'PLUS_PRUNE_NONE' => 'No matching accounts on this page.',
+	'PLUS_PRUNE_CHANGED' => 'Accounts skipped because their status changed: %d.',
+	'PLUS_PRUNE_RESULT' => 'Accounts deleted: %1$d. Accounts skipped: %2$d.',
+	'PLUS_PRUNE_INTERRUPTED' => 'The permission or confirmed session expired. Processing stopped.',
+	'PLUS_PRUNE_MAIL_FAILED' => 'Unable to send an email notification for %d deleted accounts.',
+	'PLUS_PRUNE_SELECT' => 'Select at least one account from the displayed preview.',
+	'PLUS_PRUNE_EXPIRED' => 'The preview expired. Please start a new selection.',
+	'PLUS_PRUNE_BACK' => 'Return to the selection rules',
+	'LOG_PLUS_ACCOUNT_PRUNED' => '<strong>Deleted account during activity pruning, posts retained</strong><br />» %1$s (ID %2$d)',
+));

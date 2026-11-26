@@ -1,0 +1,9 @@
+Subject: Your user account on {SITENAME}
+
+Hello {USERNAME},
+
+The administrators of {SITENAME} deleted your account during an inactive-account review. Your posts have been retained.
+
+{U_BOARD}
+
+{EMAIL_SIG}

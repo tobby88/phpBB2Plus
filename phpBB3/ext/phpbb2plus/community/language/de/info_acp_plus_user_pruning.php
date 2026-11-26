@@ -1,0 +1,28 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_USER_PRUNING' => 'Benutzerkonten nach Aktivität bereinigen',
+	'PLUS_PRUNE_EXPLAIN' => 'Wähle ein Kriterium und öffne die Vorschau. Sie berücksichtigt das Alter seit der Registrierung. Geschützte Konten, gerade angemeldete Benutzer und ausstehende Registrierungen mit Beiträgen trotz eines Beitragszählers von null sind ausgenommen. Du wählst die zu löschenden Konten anschließend einzeln aus.',
+	'PLUS_PRUNE_RULE_0' => 'Keine Beiträge',
+	'PLUS_PRUNE_RULE_1' => 'Noch nie angemeldet',
+	'PLUS_PRUNE_RULE_2' => 'Noch nie angemeldet und Registrierung noch nicht aktiviert',
+	'PLUS_PRUNE_RULE_3' => 'Seit mehr als 60 Tagen nicht mehr angemeldet oder noch nie angemeldet',
+	'PLUS_PRUNE_RULE_4' => 'Im Zeitraum zwischen Registrierung und letztem Besuch weniger als ein Beitrag je zehn Tage',
+	'PLUS_PRUNE_DAYS' => 'Registrierung länger her als (Tage)',
+	'PLUS_PRUNE_LAST_VISIT' => 'Letzte Aktivität',
+	'PLUS_PRUNE_MIN_AGE' => 'Die Registrierung liegt mehr als %d Tage zurück.',
+	'PLUS_PRUNE_CHOOSE' => 'Markiere die gewünschten Konten. Im nächsten Schritt kannst du die Auswahl prüfen.',
+	'PLUS_PRUNE_REVIEW' => 'Auswahl prüfen',
+	'PLUS_PRUNE_CONFIRM' => 'Die folgenden Konten werden endgültig gelöscht. Ihre Beiträge bleiben erhalten.',
+	'PLUS_PRUNE_REMOVE' => 'Angezeigte Konten endgültig löschen',
+	'PLUS_PRUNE_NOTIFY' => 'Betroffene Benutzer nach dem Löschen per E-Mail benachrichtigen',
+	'PLUS_PRUNE_NONE' => 'Auf dieser Seite gibt es keine passenden Konten.',
+	'PLUS_PRUNE_CHANGED' => 'Inzwischen geänderte oder geschützte Konten übersprungen: %d.',
+	'PLUS_PRUNE_RESULT' => 'Gelöschte Konten: %1$d. Übersprungene Konten: %2$d.',
+	'PLUS_PRUNE_INTERRUPTED' => 'Die Berechtigung oder die bestätigte Sitzung ist abgelaufen. Die Bearbeitung wurde beendet.',
+	'PLUS_PRUNE_MAIL_FAILED' => 'Für %d gelöschte Konten konnte die Benachrichtigung nicht versendet werden.',
+	'PLUS_PRUNE_SELECT' => 'Wähle mindestens ein Konto aus der angezeigten Vorschau.',
+	'PLUS_PRUNE_EXPIRED' => 'Die Vorschau ist abgelaufen. Bitte starte eine neue Auswahl.',
+	'PLUS_PRUNE_BACK' => 'Zur Auswahl der Kriterien',
+	'LOG_PLUS_ACCOUNT_PRUNED' => '<strong>Benutzerkonto bei der Aktivitätsbereinigung gelöscht, Beiträge erhalten</strong><br />» %1$s (ID %2$d)',
+));

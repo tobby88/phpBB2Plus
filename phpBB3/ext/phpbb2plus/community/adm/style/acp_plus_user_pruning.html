@@ -1,0 +1,57 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_USER_PRUNING}</h1>
+{% if PRUNE_ERROR %}
+	<div class="errorbox"><p>{{ PRUNE_ERROR|e }}</p></div>
+{% elseif S_PRUNE_RESULT %}
+	<div id="prune-result" class="successbox"><p>{{ lang('PLUS_PRUNE_RESULT', PRUNE_REMOVED, PRUNE_SKIPPED)|e }}</p></div>
+	{% if loops.removed %}<ul>{% for account in loops.removed %}<li>{{ account.NAME|e }} ({{ account.ID }})</li>{% endfor %}</ul>{% endif %}
+	{% if S_PRUNE_INTERRUPTED %}<div class="errorbox"><p>{L_PLUS_PRUNE_INTERRUPTED}</p></div>{% endif %}
+	{% if PRUNE_MAIL_FAILED %}<p>{{ lang('PLUS_PRUNE_MAIL_FAILED', PRUNE_MAIL_FAILED)|e }}</p>{% endif %}
+{% elseif S_PRUNE_OFFER or S_PRUNE_REVIEW %}
+	<h2>{{ PRUNE_RULE|e }}</h2>
+	<p>{{ lang('PLUS_PRUNE_MIN_AGE', PRUNE_DAYS)|e }}</p>
+	{% if PRUNE_SKIPPED %}<p>{{ lang('PLUS_PRUNE_CHANGED', PRUNE_SKIPPED)|e }}</p>{% endif %}
+	{% if loops.prune_accounts %}
+		<form id="{% if S_PRUNE_REVIEW %}account-prune-delete{% else %}account-prune-review{% endif %}" method="post" action="{U_PRUNE_HOME}">
+			<p>{% if S_PRUNE_REVIEW %}{L_PLUS_PRUNE_CONFIRM}{% else %}{L_PLUS_PRUNE_CHOOSE}{% endif %}</p>
+			<table class="table1"><thead><tr>
+				<th>{L_USERNAME}</th><th>{L_JOINED}</th><th>{L_PLUS_PRUNE_LAST_VISIT}</th><th>{L_POSTS}</th>
+			</tr></thead><tbody>
+			{% for account in loops.prune_accounts %}
+				<tr data-prune-user="{{ account.ID }}"><td>
+				{% if S_PRUNE_OFFER %}<label><input type="checkbox" name="accounts[]" value="{{ account.ID }}" /> {{ account.NAME|e }}</label>
+				{% else %}{{ account.NAME|e }}{% endif %}</td><td>{{ account.JOINED }}</td>
+				<td>{% if account.LAST %}{{ account.LAST }}{% else %}{L_NEVER}{% endif %}</td><td>{{ account.POSTS }}</td></tr>
+			{% endfor %}
+			</tbody></table>
+			{% if S_PRUNE_OFFER and S_PRUNE_CAN_NOTIFY %}<p><label><input type="checkbox" name="notify" value="1" checked /> {L_PLUS_PRUNE_NOTIFY}</label></p>{% endif %}
+			{% if S_PRUNE_REVIEW and S_PRUNE_NOTIFY %}<p>{L_PLUS_PRUNE_NOTIFY}</p>{% endif %}
+			<fieldset class="submit-buttons">
+				<input type="hidden" name="ticket" value="{{ PRUNE_TICKET|e('html_attr') }}" />
+				{% if S_PRUNE_REVIEW %}
+					<input type="hidden" name="step" value="delete" />
+					<button type="submit" name="confirm_delete" value="1" class="button1">{L_PLUS_PRUNE_REMOVE}</button>
+					<a href="{U_PRUNE_HOME}">{L_CANCEL}</a>
+				{% else %}
+					<input type="hidden" name="step" value="review" />
+					<button type="submit" class="button1">{L_PLUS_PRUNE_REVIEW}</button>
+				{% endif %}
+				{S_FORM_TOKEN}
+			</fieldset>
+		</form>
+	{% else %}<p>{L_PLUS_PRUNE_NONE}</p>{% endif %}
+	{% if U_PRUNE_NEXT %}<p><a rel="next" href="{U_PRUNE_NEXT}">{L_NEXT}</a></p>{% endif %}
+{% else %}
+	<p>{L_PLUS_PRUNE_EXPLAIN}</p>
+	{% for rule in loops.prune_rules %}
+		<form method="get" action="{{ U_PRUNE_FILTER|e('html_attr') }}" id="account-prune-rule-{{ rule.ID }}">
+			<fieldset><legend>{{ rule.LABEL|e }}</legend>
+				{PRUNE_CONTEXT}<input type="hidden" name="rule" value="{{ rule.ID }}" />
+				<label>{L_PLUS_PRUNE_DAYS} <input type="number" name="days" value="{{ rule.DAYS }}" min="1" max="36500" required /></label>
+				<button type="submit" class="button2">{L_PREVIEW}</button>
+			</fieldset>
+		</form>
+	{% endfor %}
+{% endif %}
+{% if S_PRUNE_OFFER or S_PRUNE_REVIEW or S_PRUNE_RESULT or PRUNE_ERROR %}<p><a href="{U_PRUNE_HOME}">{L_PLUS_PRUNE_BACK}</a></p>{% endif %}
+<!-- INCLUDE overall_footer.html -->

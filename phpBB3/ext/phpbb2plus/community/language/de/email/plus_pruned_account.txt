@@ -1,0 +1,9 @@
+Subject: Dein Benutzerkonto auf „{SITENAME}“
+
+Hallo {USERNAME},
+
+die Administration hat dein Benutzerkonto auf „{SITENAME}“ bei der Bereinigung inaktiver Konten gelöscht. Deine Beiträge bleiben erhalten.
+
+{U_BOARD}
+
+{EMAIL_SIG}
