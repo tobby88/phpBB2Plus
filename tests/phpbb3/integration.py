@@ -85,6 +85,7 @@ import gallery_search
 import gallery_personal
 import gallery_cache
 import gallery_media_policy
+import gallery_rating_policy
 import gallery_management_bookmarks
 import knowledgebase
 from ruffle_browser import playback
@@ -268,6 +269,8 @@ def media_administration(base, member, ordinary, pending, target, web):
                                 lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
         gallery_media_policy.browse(member, ordinary, pending, guest, lambda phase: php(
             ROOT / "tests/phpbb3/gallery_media_policy.php", target, phase, cwd=web, capture=True))
+        gallery_rating_policy.browse(member, ordinary, pending, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_rating_policy.php", target, phase, cwd=web, capture=True))
         gallery_cache.browse(member, pending, guest, lambda phase: php(
             ROOT / "tests/phpbb3/gallery_cache.php", target, phase, cwd=web, capture=True),
             lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
