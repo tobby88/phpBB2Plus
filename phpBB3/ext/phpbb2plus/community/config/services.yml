@@ -34,9 +34,12 @@ services:
         arguments: ['@dbal.conn', '%core.table_prefix%']
         tags:
             - { name: console.command }
+    phpbb2plus.community.poll_recovery:
+        class: phpbb2plus\community\service\poll_recovery
+        arguments: ['@dbal.conn', '%core.table_prefix%']
     phpbb2plus.community.review_polls:
         class: phpbb2plus\community\console\review_polls
-        arguments: ['@dbal.conn', '%core.table_prefix%']
+        arguments: ['@phpbb2plus.community.poll_recovery']
         tags:
             - { name: console.command }
     phpbb2plus.community.post_delete_policy:

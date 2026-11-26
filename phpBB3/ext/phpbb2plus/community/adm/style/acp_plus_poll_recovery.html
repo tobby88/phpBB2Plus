@@ -1,0 +1,26 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_POLL_REVIEW}</h1>
+{% if POLL_DETAIL %}
+<p><a href="{U_BACK}">{L_BACK}</a></p>
+<h2>{{ POLL_QUESTION|e }}</h2>
+<dl>
+	<dt>{L_ACP_PLUS_POLL_ID}</dt><dd>{{ POLL_SOURCE_ID }}</dd>
+	<dt>{L_ACP_PLUS_POLL_TOPIC}</dt><dd>{{ POLL_TOPIC_ID }}</dd>
+	<dt>{L_ACP_PLUS_POLL_REASON}</dt><dd>{{ POLL_REASON|e }}</dd>
+	<dt>{L_ACP_PLUS_POLL_START}</dt><dd>{{ POLL_START }}</dd>
+	<dt>{L_ACP_PLUS_POLL_DURATION}</dt><dd>{{ POLL_DURATION }}</dd>
+	<dt>{L_ACP_PLUS_POLL_RECEIPTS}</dt><dd>{{ POLL_RECEIPTS }}</dd>
+</dl>
+<table class="table1" id="plus-poll-choices"><thead><tr><th>{L_ACP_PLUS_POLL_OPTION_ID}</th><th>{L_ACP_PLUS_POLL_TEXT}</th><th>{L_ACP_PLUS_POLL_TOTAL}</th></tr></thead>
+<tbody>{% for row in loops.poll_choices %}
+	<tr><td>{{ row.ID|e }}</td><td>{{ row.TEXT|e }}</td><td>{{ row.TOTAL|e }}</td></tr>
+{% else %}<tr><td colspan="3">{L_ACP_PLUS_POLL_NO_OPTIONS}</td></tr>{% endfor %}</tbody></table>
+{% else %}
+<p>{L_ACP_PLUS_POLL_HELP}</p>
+<table class="table1" id="plus-held-polls"><thead><tr><th>{L_ACP_PLUS_POLL_ID}</th><th>{L_ACP_PLUS_POLL_TOPIC}</th><th>{L_ACP_PLUS_POLL_REASON}</th></tr></thead>
+<tbody>{% for row in loops.held_polls %}
+	<tr><td><a href="{{ row.DETAIL }}">{{ row.ID }}</a></td><td>{{ row.TOPIC }}</td><td>{{ row.REASON|e }}</td></tr>
+{% else %}<tr><td colspan="3">{L_ACP_PLUS_POLL_EMPTY}</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->

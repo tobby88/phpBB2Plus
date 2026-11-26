@@ -8,12 +8,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class review_polls extends Command
 {
-	private $db, $prefix;
+	private $recovery;
 
-	public function __construct($db, $prefix)
+	public function __construct($recovery)
 	{
-		$this->db = $db;
-		$this->prefix = $prefix;
+		$this->recovery = $recovery;
 		parent::__construct();
 	}
 
@@ -31,34 +30,26 @@ class review_polls extends Command
 			$output->writeln('<error>Enter a numeric source poll ID.</error>');
 			return 1;
 		}
-		$p = $this->prefix;
 		if ($id === null)
 		{
-			$result = $this->db->sql_query("SELECT source_id,topic_id,reason FROM {$p}plus_poll_review ORDER BY source_id");
-			while ($row = $this->db->sql_fetchrow($result))
+			foreach ($this->recovery->listing() as $row)
 			{
-				$output->writeln(json_encode(array('source_id' => (int) $row['source_id'], 'topic_id' => (int) $row['topic_id'],
-					'reason' => $row['reason']), JSON_THROW_ON_ERROR), OutputInterface::OUTPUT_RAW);
+				$output->writeln(json_encode($row, JSON_THROW_ON_ERROR), OutputInterface::OUTPUT_RAW);
 			}
-			$this->db->sql_freeresult($result);
 			return 0;
 		}
-		$result = $this->db->sql_query("SELECT h.topic_id,h.reason,h.header_json,
-			(SELECT COUNT(*) FROM {$p}plus_poll_receipts r WHERE r.source_id=h.source_id) AS receipts
-			FROM {$p}plus_poll_review h WHERE h.source_id=" . (int) $id);
-		$header = $this->db->sql_fetchrow($result);
-		$this->db->sql_freeresult($result);
+		$header = $this->recovery->header($id);
 		if (!$header)
 		{
 			$output->writeln('<error>No poll with this source ID is awaiting review.</error>');
 			return 1;
 		}
-		$record = array('source_id' => (int) $id, 'topic_id' => (int) $header['topic_id'], 'reason' => $header['reason'],
-			'receipts' => (int) $header['receipts']) + json_decode($header['header_json'], true, 512, JSON_THROW_ON_ERROR);
-		$output->writeln(json_encode($record, JSON_THROW_ON_ERROR), OutputInterface::OUTPUT_RAW);
-		$result = $this->db->sql_query("SELECT choice_json FROM {$p}plus_poll_choices WHERE source_id=" . (int) $id . ' ORDER BY position');
-		while ($row = $this->db->sql_fetchrow($result)) { $output->writeln($row['choice_json'], OutputInterface::OUTPUT_RAW); }
-		$this->db->sql_freeresult($result);
+		unset($header['choices']);
+		$output->writeln(json_encode($header, JSON_THROW_ON_ERROR), OutputInterface::OUTPUT_RAW);
+		foreach ($this->recovery->choices($id) as $row)
+		{
+			$output->writeln(json_encode($row, JSON_THROW_ON_ERROR), OutputInterface::OUTPUT_RAW);
+		}
 		return 0;
 	}
 }

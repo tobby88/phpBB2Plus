@@ -17,7 +17,7 @@ function seed_poll_conversion($db)
 		(14401,701,'Doppelte Antwort 📷',10000,0),(14402,702,'Erste Frage',10000,0),(14403,702,'Zweite Frage',10001,0),
 		(14404,703,'Ohne Antworten',10000,0),(14405,704,'Nummer null',10000,0),
 		(14406,705,REPEAT('📷',245),0,0),(14407,706,'Zu viele Optionen',10000,0),(14408,14480,'Fehlendes Thema',10000,0)");
-	$db->query("INSERT INTO phpbb_vote_results VALUES (14401,1,'Erste',7),(14401,1,'Zweite',19),(14402,2,'Eins',5),
+	$db->query("INSERT INTO phpbb_vote_results VALUES (14401,1,'Erste <Gruppe> &amp; 📷',7),(14401,1,'Zweite',19),(14402,2,'Eins',5),
 		(14403,2,'Zwei',9),(14405,0,'Null',4),(14406,200,'Grüße &amp; 📷',20000001),(14406,255,'Herbst',0),
 		(14408,1,'Verwaist',9),(14490,1,'Ohne Umfrage',3)");
 	$choices = array();

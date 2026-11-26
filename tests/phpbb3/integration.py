@@ -38,6 +38,7 @@ import age_pruning
 import print_topics
 import announcement_duration
 import locked_polls
+import poll_administration
 import legacy_links
 import mail_links
 import downloads
@@ -132,7 +133,7 @@ def verify_poll_recovery(web):
     header, *options = records
     if header["question"] != "Doppelte Antwort 📷" or header["receipts"] != 1 or header["reason"] != "duplicate-option-id":
         raise RuntimeError("The original question or participation count is missing from poll recovery")
-    if [(option["vote_option_text"], int(option["vote_result"])) for option in options] != [("Erste", 7), ("Zweite", 19)]:
+    if [(option["vote_option_text"], int(option["vote_result"])) for option in options] != [("Erste <Gruppe> &amp; 📷", 7), ("Zweite", 19)]:
         raise RuntimeError("Poll recovery did not preserve both distinct answers with the same source option number")
 
 
@@ -432,10 +433,12 @@ def main():
                 legacy_links.groups(base, member, ordinary, pending, int(php(fixture, "group-bookmarks", target, capture=True)))
                 credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
-                with ThreadPoolExecutor(max_workers=1) as worker:
+                with ThreadPoolExecutor(max_workers=2) as worker:
                     credit_run = worker.submit(credits.administration, member.separate_client())
+                    poll_run = worker.submit(poll_administration.browse, member.separate_client())
                     news.administration(base, member)
                     credit_run.result()
+                    poll_run.result()
                     # This test counts the exact number of index page views.
                     # Finish the other ACP logins before and start new ones afterwards.
                     banners.administration(base, member, web)

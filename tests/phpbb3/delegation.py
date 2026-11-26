@@ -190,6 +190,11 @@ def browse(base):
     denied = junior.fetch(entry + "&i=acp_board&mode=settings", expected_status=503)
     if "Module not accessible" not in denied:
         raise RuntimeError("phpBB did not return its native module-access denial")
+    if "Review imported polls" in home:
+        raise RuntimeError("The delegated ACP menu offered archived polls without database-backup permission")
+    held = junior.fetch(entry + "&i=-phpbb2plus-community-acp-poll_recovery_module&mode=review", expected_status=503)
+    if "Module not accessible" not in held or 'id="plus-held-polls"' in held:
+        raise RuntimeError("Poll recovery did not follow the native backup permission")
     return junior, entry
 
 
