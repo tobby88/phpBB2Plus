@@ -37,16 +37,16 @@ class submissions
 		$this->listing = $listing;
 	}
 
-	private function heading($id = 0)
+	private function heading($id = 0, $active = '')
 	{
 		$this->access->open();
 		$this->language->add_lang('downloads', 'phpbb2plus/downloads');
-		$this->listing->navigation('', $id);
+		$this->listing->navigation($active, $id);
 	}
 
 	public function choose()
 	{
-		$this->heading();
+		$this->heading(0, 'submit');
 		$found = false;
 		foreach ($this->access->categories() as $id => $cat)
 		{
@@ -75,7 +75,7 @@ class submissions
 
 	private function editor($category, $item = null)
 	{
-		$this->heading($category);
+		$this->heading($category, $item ? 'edit' : 'submit');
 		$id = $item ? (int) $item['file_id'] : 0;
 		$posted = $this->request->server('REQUEST_METHOD') === 'POST';
 		$csrf = $id ? 'plus_dl_edit_' . $id : 'plus_dl_submit_' . $category;

@@ -1,6 +1,5 @@
 <!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{L_PLUS_DL_TOPLIST}</h2>
-<!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 <div class="panel"><div class="inner"><p>{% for tab in loops.modes %}{% if not loop.first %} &middot; {% endif %}{% if tab.CURRENT %}<strong>{{ tab.LABEL|e }}</strong>{% else %}<a href="{{ tab.URL }}">{{ tab.LABEL|e }}</a>{% endif %}{% endfor %}</p>
 {% if DL_RECENT %}<p>{L_PLUS_DL_LAST_WEEK} <strong>{{ DL_WEEK }}</strong> &middot; {L_PLUS_DL_LAST_MONTH} <strong>{{ DL_MONTH }}</strong></p>
 <p>{% for item in loops.periods %}{% if not loop.first %} &middot; {% endif %}<a href="{{ item.URL }}">{{ item.LABEL|e }}</a>{% endfor %}</p>{% endif %}

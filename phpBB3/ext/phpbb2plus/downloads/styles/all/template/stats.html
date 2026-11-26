@@ -1,6 +1,5 @@
 <!-- INCLUDE @phpbb2plus_downloads/header.html -->
 <h2>{L_PLUS_DL_STATS}</h2>
-<!-- INCLUDE @phpbb2plus_downloads/report_links.html -->
 <div class="panel"><div class="inner">
 <dl class="details">{% for item in loops.figures %}<dt>{{ item.LABEL|e }}</dt><dd id="dl-stat-{{ item.NAME }}">{{ item.VALUE|e }}</dd>{% endfor %}</dl>
 </div></div>

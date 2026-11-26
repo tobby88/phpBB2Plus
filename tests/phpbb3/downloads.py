@@ -129,9 +129,18 @@ def submissions(base, founder, moderator, author, verify):
         return actor.fetch(urljoin(urljoin(base, url), target), dict(fields, **(changes or {})),
                            files=files, expected_status=status, raw=raw)
 
+    def toolbar(path, viewer):
+        return re.search(r'<nav id="dl-tools".*?</nav>', viewer.fetch(path), re.S)[0]
+
     destinations = author.fetch(root + "/submit")
     if "Öffentliche Dateien" not in destinations or "/23/submit" in destinations:
         raise RuntimeError("An upload destination ignored a private parent")
+    if ("/category/21/submit" not in toolbar(root + "/file/50", author) or
+            "/downloads/submit" not in toolbar(root + "/file/50", guest) or
+            "/submit" in toolbar(category, guest) or "/submit" in toolbar(upload, author)):
+        raise RuntimeError("The upload toolbar offered the wrong form for the current category or visitor")
+    if not re.search(r'/en/icon_pa_search\.gif"[^>]*alt="Advanced download search"', toolbar(category, moderator)):
+        raise RuntimeError("The English download toolbar did not serve its localized artwork and label")
     guest.fetch(upload, expected_status=404)
     author.fetch(club + "/submit", expected_status=404)
     moderator.fetch(club + "/review", expected_status=404)

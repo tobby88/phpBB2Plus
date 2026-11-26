@@ -42,15 +42,23 @@ class public_listing
 		}
 		$children = array();
 		foreach ($cats as $id=>$row) { $children[(int) $row['parent_id']][]=$id; }
+		$can_upload_here = $category && $this->access->can_submit($category);
+		$choose_upload = false;
 		$pending = array();
 		foreach (array_reverse($children[0] ?? array()) as $id) { $pending[]=array($id,0); }
 		while ($pending)
 		{
 			list($id,$depth) = array_pop($pending);
 			if (!$this->access->visible($id)) { continue; }
+			if (!$can_upload_here && !$choose_upload && $active !== 'category' && $active !== 'submit' && $this->access->can_submit($id)) { $choose_upload=true; }
 			$this->template->assign_block_vars('dl_jump',array('TITLE'=>access::plain($cats[$id]['title']),'DEPTH'=>$depth,'CURRENT'=>$id===$category,
 				'URL'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$id))));
 			foreach (array_reverse($children[$id] ?? array()) as $child) { $pending[]=array($child,$depth+1); }
+		}
+		if ($active !== 'submit' && ($can_upload_here || $choose_upload))
+		{
+			$this->template->assign_var('U_DL_UPLOAD',$can_upload_here ? $this->helper->route('phpbb2plus_downloads_submit',array('category'=>$category)) :
+				$this->helper->route('phpbb2plus_downloads_destinations'));
 		}
 		foreach (array('viewall'=>'VIEWALL','search'=>'ADVANCED','stats'=>'STATS','toplist'=>'TOPLIST') as $route=>$link)
 		{

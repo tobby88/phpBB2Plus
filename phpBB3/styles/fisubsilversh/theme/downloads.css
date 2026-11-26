@@ -10,6 +10,8 @@
 #dl-file-details dd { background: #eaedf4; color: #172536; }
 .dl-table table.table1 tbody td { padding-block: .5em; color: #263c50; vertical-align: middle; }
 .dl-table table.table1 tbody td:first-child > a:first-of-type { font-weight: bold; }
+.dl-actions a.button, .dl-actions a.button:visited { color: #23415d; }
+.dl-actions a.button:hover, .dl-actions a.button:focus-visible { color: #004980; border-color: #006699; }
 #dl-sort-form fieldset {
 	padding: .5em; margin-top: -.3em; background: #d9e2ec url("images/cellpic1.gif") repeat-x;
 	border: 1px solid #a8b8c7;

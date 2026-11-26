@@ -113,7 +113,7 @@ class catalogue
 				throw new AccessDeniedHttpException();
 			}
 		}
-		$this->listing->navigation($all ? 'viewall' : '',$category);
+		$this->listing->navigation($all ? 'viewall' : ($category ? 'category' : ''),$category);
 		$query = $all ? '' : trim(htmlspecialchars_decode($this->request->variable('q','',true),ENT_QUOTES));
 		$search = $this->access->allows(0,'search');
 		if ($query !== '' && !$search) { throw new NotFoundHttpException(); }
@@ -140,12 +140,10 @@ class catalogue
 		$this->template->assign_vars(array('DL_TITLE'=>$title,'S_DL_SEARCH'=>$search && !$all,'DL_QUERY'=>$query,'U_DL_SEARCH'=>$url,
 			'U_DL_SORT'=>$url,'S_DL_CATALOGUE'=>true,'S_DL_SINGLE_CATEGORY'=>$category && $query===''));
 		$children = $branches = $scope = array();
-		$submit = $category && $this->access->can_submit($category);
 		foreach ($cats as $id=>$cat)
 		{
 			if (!$this->access->visible($id)) { continue; }
 			$children[(int) $cat['parent_id']][] = $id;
-			if (!$category && !$submit && $this->access->can_submit($id)) { $submit=true; }
 			if (!$cat['allow_files'] || !$this->access->allows($id,'view_file')) { continue; }
 			if ($all || $id===$category) { $scope[]=$id; continue; }
 			// The first child below this directory owns the descendant's statistics.
@@ -158,11 +156,6 @@ class catalogue
 			if (!$branch) { continue; }
 			$branches[$id]=$branch;
 			if ($query!=='') { $scope[]=$id; }
-		}
-		if ($submit)
-		{
-			$this->template->assign_var('U_DL_SUBMIT',$category ? $this->helper->route('phpbb2plus_downloads_submit',array('category'=>$category)) :
-				$this->helper->route('phpbb2plus_downloads_destinations'));
 		}
 		if ($category && $this->access->can_review($category))
 		{ $this->template->assign_var('U_DL_QUEUE',$this->helper->route('phpbb2plus_downloads_queue',array('category'=>$category))); }

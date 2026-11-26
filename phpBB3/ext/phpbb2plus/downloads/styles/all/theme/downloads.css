@@ -1,5 +1,12 @@
 #dl-category-menu { clear: both; margin-block: 1em; }
-#dl-category-menu summary { cursor: pointer; font-weight: bold; padding: .5em 0; }
+#dl-category-menu summary { display: flex; align-items: center; gap: .6em; width: fit-content; cursor: pointer; font-weight: bold; padding: .5em; }
+#dl-category-menu summary::-webkit-details-marker { display: none; }
+#dl-category-menu summary::before {
+	content: ""; width: .45em; height: .45em; border: solid currentColor;
+	border-width: 0 2px 2px 0; transform: rotate(-45deg);
+}
+.rtl #dl-category-menu summary::before { transform: rotate(135deg); }
+#dl-category-menu details[open] summary::before { transform: rotate(45deg); }
 #dl-category-menu ul { margin: 0; padding: 0; list-style: none; }
 #dl-category-menu li { padding-inline-start: min(25%, calc(var(--dl-depth, 0) * 1.3em)); }
 #dl-category-menu a { display: inline-block; padding: .3em .4em; overflow-wrap: anywhere; }
