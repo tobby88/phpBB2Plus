@@ -31,7 +31,7 @@ switch ($argv[2])
 		$db->sql_query("UPDATE {$p}categories SET last_user_id=0,last_player=98 WHERE cat_id=902000");
 		break;
 	case 'guest':
-		$db->sql_query("UPDATE {$p}categories SET last_user_id=0,last_player=-1,last_game='overview-offline' WHERE cat_id=902000");
+		$db->sql_query("UPDATE {$p}categories SET last_user_id=" . ANONYMOUS . ",last_player=-1,last_game='overview-offline' WHERE cat_id=902000");
 		break;
 	case 'incomplete':
 		$db->sql_query("UPDATE {$p}categories SET last_user_id=0,last_player=NULL WHERE cat_id=902000");

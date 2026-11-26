@@ -168,7 +168,8 @@ class catalog
 	{
 		if ($row['player_name'] === null)
 		{
-			return $language->lang((int) $row['last_player'] > 0 || $row['last_user_id'] ? 'PLUS_ARC_FORMER' : 'GUEST');
+			$former = (int) $row['last_player'] > 0 || (int) $row['last_user_id'] > ANONYMOUS;
+			return $language->lang($former ? 'PLUS_ARC_FORMER' : 'GUEST');
 		}
 		if (!$row['user_allow_viewonline'] && (int) $row['last_user_id'] !== (int) $this->user->data['user_id'] && !$this->auth->acl_get('u_viewonline'))
 		{ return $language->lang('PLUS_ARC_HIDDEN_PLAYER'); }
