@@ -186,18 +186,24 @@ function plus_recover_topic_routes()
 			$first_group = true;
 			do
 			{
+				$affected_topics = $groups;
 				foreach ($groups as $original)
 				{
 					if (!$first_group) { $numbers->next(); }
 					if (!$numbers->valid()) { throw new \RuntimeException('The native topic number range is exhausted. The original posts remain in the source.'); }
 					plus_make_recovered_topic($original, $numbers->current(), $forum);
+					$affected_topics[] = $numbers->current();
 					$first_group = false;
 				}
+				$attachments = ATTACHMENTS_TABLE;
+				$db->sql_query("UPDATE $attachments a JOIN $posts p ON p.post_id=a.post_msg_id SET a.topic_id=p.topic_id
+					WHERE a.in_message=0 AND a.is_orphan=0 AND a.topic_id<>p.topic_id AND " . $db->sql_in_set('p.plus_recovery_topic', $groups));
+				// A move link may have received the paperclip before its misplaced post was recovered.
+				$db->sql_query("UPDATE $topics t SET topic_attachment=EXISTS (SELECT 1 FROM $attachments a
+					WHERE a.topic_id=t.topic_id AND a.in_message=0 AND a.is_orphan=0) WHERE " . $db->sql_in_set('t.topic_id', $affected_topics));
 				$groups = count($groups) === 200 ? plus_lost_topic_batch(end($groups)) : array();
 			}
 			while ($groups);
-			$db->sql_query('UPDATE ' . ATTACHMENTS_TABLE . " a JOIN $posts p ON p.post_id=a.post_msg_id SET a.topic_id=p.topic_id
-				WHERE p.plus_recovery_topic>=0 AND a.in_message=0 AND a.is_orphan=0 AND a.topic_id<>p.topic_id");
 		}
 		$db->sql_query("UPDATE $posts p $route SET p.plus_recovery_forum=p.forum_id WHERE p.forum_id<>t.forum_id AND p.plus_recovery_forum=-1");
 		$db->sql_query("UPDATE $posts p $route SET p.forum_id=t.forum_id,

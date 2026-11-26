@@ -192,6 +192,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	$db->query("UPDATE phpbb_ctracker_config SET ct_config_value='" . ($notice === '0' ? '0' : '1') . "' WHERE ct_config_name='global_message_type'");
 	$db->query('UPDATE phpbb_users SET ct_global_msg_read=1 WHERE user_id=1');
 }
+elseif ($argv[1] === 'original-topology') { verify_original_topology($db); }
 elseif ($argv[1] === 'cards-reset')
 {
 	$historic = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];

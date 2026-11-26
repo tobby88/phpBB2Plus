@@ -344,6 +344,8 @@ def main():
             print(f"Installation and source fixtures: {seeded-built:.1f}s", flush=True)
             with server(web, root) as base:
                 convert(base, source)
+                if not media_only:
+                    php(fixture, "original-topology", source)
                 (web / "install").rename(root / "finished-installer")
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)
                 if not media_only:

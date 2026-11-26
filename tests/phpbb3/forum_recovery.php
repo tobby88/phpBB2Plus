@@ -25,7 +25,7 @@ function seed_forum_recovery($db)
 		(14721,'Second reply','Second recovered body'),(14722,'0','Original shadow post'),(14723,'Erased private title','Erased recovery fixture'),
 		(14724,'','No historical topic number'),(14725,'No-count reply','Routed to a no-count forum')");
 	$db->query('UPDATE phpbb_users SET user_posts=777 WHERE user_id=89');
-	$db->query('INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2) VALUES (50,14721,0,-1,0)');
+	$db->query('INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2) VALUES (50,14722,0,-1,0)');
 	$db->query('ALTER TABLE phpbb_topics AUTO_INCREMENT=806000');
 	$db->query('INSERT INTO phpbb_topics_watch (topic_id,user_id) VALUES (806000,2),(806002,2)');
 }
@@ -56,6 +56,18 @@ function verify_forum_recovery($db, $damaged)
 	check_fixture((int) $db->query("SELECT COUNT(*) FROM p3_forums WHERE parent_id=$root AND plus_recovery_reason<>''")->fetch_row()[0] === 3,
 		'Each damaged branch needs exactly one recovered root');
 	verify_recovered_topics($db, $root);
+}
+
+function verify_original_topology($db)
+{
+	check_fixture($db->query("SELECT 1 FROM phpbb_categories WHERE cat_id=71 AND cat_main_type='c' AND cat_main=72")->fetch_row() &&
+		$db->query('SELECT 1 FROM phpbb_topics WHERE topic_id=14702 AND forum_id=60002 AND topic_type=3')->fetch_row() &&
+		$db->query('SELECT 1 FROM phpbb_posts WHERE post_id=14720 AND topic_id=14880 AND forum_id=14')->fetch_row() &&
+		$db->query('SELECT 1 FROM phpbb_attachments WHERE attach_id=50 AND post_id=14722')->fetch_row(),
+		'A repair altered an original forum relationship, announcement, post or attachment');
+	check_fixture(!$db->query('SELECT 1 FROM phpbb_topics WHERE topic_id>=806000')->fetch_row() &&
+		(int) $db->query("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='phpbb_topics'")->fetch_row()[0] === 806000,
+		'Allocating a native topic consumed a source topic number');
 }
 
 function verify_recovered_topics($db, $root)
@@ -102,7 +114,10 @@ function verify_recovered_topics($db, $root)
 	check_fixture(array_map(static function ($row) { return array_map('intval', $row); }, $posts) === $expected,
 		'Posts did not follow the canonical forum, lost topic or no-count policy');
 	check_fixture($db->query("SELECT 1 FROM p3_attachments a JOIN p3_posts p ON p.post_id=a.post_msg_id AND p.topic_id=a.topic_id
-		WHERE p.post_id=14721 AND p.forum_id=$forum AND a.in_message=0 AND a.is_orphan=0")->fetch_row(), 'A recovered attachment lost its actual topic');
+		JOIN p3_topics t ON t.topic_id=a.topic_id AND t.topic_attachment=1 WHERE p.post_id=14722 AND p.post_attachment=1
+		AND p.forum_id=$forum AND a.in_message=0 AND a.is_orphan=0")->fetch_row(), 'A recovered file or its paperclip lost its actual topic');
+	check_fixture($db->query('SELECT 1 FROM p3_topics WHERE topic_id=14704 AND topic_moved_id=603 AND topic_attachment=0')->fetch_row(),
+		'A move link retained the attachment indicator for the recovered post');
 	check_fixture(!$db->query("SELECT 1 FROM p3_posts WHERE post_id=14723 AND (post_subject<>'' OR post_text LIKE '%Erased recovery fixture%')")->fetch_row(),
 		'An erased post regained source contents');
 	check_fixture($db->query('SELECT 1 FROM p3_users u WHERE user_id=89 AND user_posts=(SELECT COUNT(*) FROM p3_posts p
