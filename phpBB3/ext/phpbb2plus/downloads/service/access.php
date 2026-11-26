@@ -76,6 +76,11 @@ class access
 		return $this->acp_admin('a_plus_dl_settings',$fresh);
 	}
 
+	public function checker_admin($fresh = false)
+	{
+		return $this->acp_admin('a_plus_dl_checker', $fresh);
+	}
+
 	public function license_admin($fresh = false)
 	{
 		return $this->acp_admin('a_plus_dl_licenses',$fresh);
@@ -128,9 +133,9 @@ class access
 	public function lock_catalogue($exclusive)
 	{
 		$where = " WHERE config_name='plus_download_media_key'";
-		if (!$exclusive && in_array($this->db->get_sql_layer(), array('mysqli','mysql'), true))
+		if (in_array($this->db->get_sql_layer(), array('mysqli','mysql'), true))
 		{
-			$result = $this->db->sql_query('SELECT config_name FROM ' . CONFIG_TABLE . $where . ' LOCK IN SHARE MODE');
+			$result = $this->db->sql_query('SELECT config_name FROM ' . CONFIG_TABLE . $where . ($exclusive ? ' FOR UPDATE' : ' LOCK IN SHARE MODE'));
 			$this->db->sql_freeresult($result);
 			return;
 		}

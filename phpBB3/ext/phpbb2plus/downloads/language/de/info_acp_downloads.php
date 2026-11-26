@@ -1,6 +1,15 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_CHECKER'=>'Download-Dateiprüfung', 'ACP_PLUS_DL_CHECK_RUN'=>'Lokale Dateien prüfen',
+	'ACP_PLUS_DL_CHECK_EXPLAIN'=>'Vergleicht lokale Downloads, Vorschaubilder und Spiegel mit ihren Katalogeinträgen. Der Bericht zeigt auch nicht zugeordnete Download-Dateien und ihre Größe. Dateien und Katalogeinträge bleiben erhalten.',
+	'ACP_PLUS_DL_CHECK_ISSUES'=>'Zu prüfende Dateien', 'ACP_PLUS_DL_CHECK_KIND'=>'Medientyp', 'ACP_PLUS_DL_CHECK_FINDING'=>'Befund',
+	'ACP_PLUS_DL_CHECK_FILE'=>'Download', 'ACP_PLUS_DL_CHECK_PREVIEW'=>'Vorschaubild', 'ACP_PLUS_DL_CHECK_MIRROR'=>'Spiegel',
+	'ACP_PLUS_DL_CHECK_OK'=>'Alle erfassten lokalen Medien sind verfügbar.', 'ACP_PLUS_DL_CHECK_UNUSED'=>'Nicht zugeordnete Download-Dateien',
+	'ACP_PLUS_DL_CHECK_NONE'=>'Alle lokalen Download-Dateien sind zugeordnet.',
+	'ACP_PLUS_DL_CHECK_MISSING'=>'Die gespeicherte Datei ist nicht verfügbar.', 'ACP_PLUS_DL_CHECK_SIZE'=>'Die Dateigröße weicht vom Katalogeintrag ab.',
+	'ACP_PLUS_DL_CHECK_IMPORT'=>'Die lokale Datei war bei der Konvertierung nicht verfügbar.', 'ACP_PLUS_DL_CHECK_REVIEW'=>'Der ursprüngliche Speicherort muss geprüft werden.',
+	'ACP_PLUS_DL_CHECK_UNAVAILABLE'=>'Der geschützte Download-Ordner konnte nicht gelesen werden. Prüfe den Upload-Ordner des Boards und seine Berechtigungen.',
 	'ACP_PLUS_DL_CFG_GROUP_MAIL'=>'Download-Empfehlungen','ACP_PLUS_DL_CFG_MASSMAIL_PROTECTION'=>'Zusätzliche E-Mail-Versandpause des CrackerTrackers anwenden',
 	'ACP_PLUS_DL_CFG_MASSMAIL_TIME'=>'Minuten zwischen erfolgreichen Empfehlungen (1–180)',
 	'ACP_PLUS_DL_ORDER_ASC'=>'Aufsteigend','ACP_PLUS_DL_ORDER_DESC'=>'Absteigend',

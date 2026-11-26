@@ -177,6 +177,7 @@ function plus_dl_rows($short, $r, $subjects)
 			{
 				$preview = plus_dl_asset('preview', $r['file_id'], $r, true);
 				if ($preview['asset_status'] === 'ready') { $data += array('preview_name'=>$preview['storage_name'], 'preview_type'=>$preview['mime']); }
+				elseif ($preview['asset_status'] !== 'remote') { $data['preview_unavailable'] = 1; }
 			}
 			break;
 		case 'mirrors':

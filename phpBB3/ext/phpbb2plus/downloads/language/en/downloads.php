@@ -56,6 +56,7 @@ $lang = array_merge($lang ?? array(), array(
 	'ACL_A_PLUS_DL_DELETE'=>'Can delete download files in the ACP',
 	'ACL_A_PLUS_DL_EDIT'=>'Can create, edit and move download files in the ACP',
 	'ACL_A_PLUS_DL_SETTINGS'=>'Can change global paFileDB download settings','PLUS_DL_NEW_FILE'=>'New',
+	'ACL_A_PLUS_DL_CHECKER'=>'Can inspect local download files and their catalogue references',
 	'PLUS_DL_BAD_URL'=>'Enter a valid HTTP or HTTPS link.', 'PLUS_DL_BAD_LICENSE'=>'Choose an existing licence.',
 	'PLUS_DL_CHOOSE_SOURCE'=>'Choose a local file or a download link. A screenshot also needs only one source.',
 	'PLUS_DL_SUBMISSION_GONE'=>'This submission has already been removed.',

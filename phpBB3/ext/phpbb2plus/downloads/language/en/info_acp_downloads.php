@@ -1,6 +1,15 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'ACP_PLUS_DL_CHECKER'=>'Download file check', 'ACP_PLUS_DL_CHECK_RUN'=>'Check local files',
+	'ACP_PLUS_DL_CHECK_EXPLAIN'=>'Compare local downloads, previews and mirrors with their catalogue entries. The report includes unreferenced download files and their sizes. It leaves files and catalogue entries unchanged.',
+	'ACP_PLUS_DL_CHECK_ISSUES'=>'Files to review', 'ACP_PLUS_DL_CHECK_KIND'=>'Media type', 'ACP_PLUS_DL_CHECK_FINDING'=>'Finding',
+	'ACP_PLUS_DL_CHECK_FILE'=>'Download', 'ACP_PLUS_DL_CHECK_PREVIEW'=>'Preview', 'ACP_PLUS_DL_CHECK_MIRROR'=>'Mirror',
+	'ACP_PLUS_DL_CHECK_OK'=>'All recorded local media are available.', 'ACP_PLUS_DL_CHECK_UNUSED'=>'Unreferenced download files',
+	'ACP_PLUS_DL_CHECK_NONE'=>'Every local download file has a reference.',
+	'ACP_PLUS_DL_CHECK_MISSING'=>'The stored file is unavailable.', 'ACP_PLUS_DL_CHECK_SIZE'=>'The stored file size differs from the catalogue.',
+	'ACP_PLUS_DL_CHECK_IMPORT'=>'The local file was unavailable during conversion.', 'ACP_PLUS_DL_CHECK_REVIEW'=>'The original storage location requires review.',
+	'ACP_PLUS_DL_CHECK_UNAVAILABLE'=>'The protected download folder could not be read. Check the board’s upload directory and permissions.',
 	'ACP_PLUS_DL_CFG_GROUP_MAIL'=>'Download recommendations','ACP_PLUS_DL_CFG_MASSMAIL_PROTECTION'=>'Apply the additional CrackerTracker email cooldown',
 	'ACP_PLUS_DL_CFG_MASSMAIL_TIME'=>'Minutes between successful recommendations (1–180)',
 	'ACP_PLUS_DL_ORDER_ASC'=>'Ascending','ACP_PLUS_DL_ORDER_DESC'=>'Descending',

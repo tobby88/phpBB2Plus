@@ -57,6 +57,7 @@ $lang = array_merge($lang ?? array(), array(
 	'ACL_A_PLUS_DL_DELETE'=>'Kann Download-Dateien im Administrationsbereich löschen',
 	'ACL_A_PLUS_DL_EDIT'=>'Kann Download-Dateien im Administrationsbereich anlegen, bearbeiten und verschieben',
 	'ACL_A_PLUS_DL_SETTINGS'=>'Kann globale paFileDB-Download-Einstellungen ändern','PLUS_DL_NEW_FILE'=>'Neu',
+	'ACL_A_PLUS_DL_CHECKER'=>'Kann lokale Download-Dateien und ihre Katalogzuordnungen prüfen',
 	'PLUS_DL_BAD_URL'=>'Gib einen gültigen HTTP- oder HTTPS-Link an.', 'PLUS_DL_BAD_LICENSE'=>'Wähle eine vorhandene Lizenz.',
 	'PLUS_DL_CHOOSE_SOURCE'=>'Wähle eine lokale Datei oder einen Downloadlink. Auch das Vorschaubild benötigt nur eine Quelle.',
 	'PLUS_DL_SUBMISSION_GONE'=>'Dieser eingereichte Download wurde bereits entfernt.',

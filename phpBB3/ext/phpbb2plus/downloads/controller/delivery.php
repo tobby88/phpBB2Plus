@@ -47,7 +47,7 @@ class delivery
 
 	private function local_path($name)
 	{
-		if (!preg_match('/^download_[a-f0-9]{64}$/D', $name)) { throw new NotFoundHttpException(); }
+		if (!\phpbb2plus\downloads\service\media::owned_name($name)) { throw new NotFoundHttpException(); }
 		$path = $this->root . trim($this->config['upload_path'], '/') . '/' . $name;
 		if (!is_file($path) || is_link($path)) { throw new NotFoundHttpException(); }
 		return $path;

@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.downloads.file_checker:
+        class: phpbb2plus\downloads\service\file_checker
+        arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%']
     phpbb2plus.downloads.recommendations:
         class: phpbb2plus\downloads\service\recommendations
         arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '@user', '@auth', '@request', '%core.table_prefix%plus_dl_mail_receipts', '%core.root_path%', '%core.php_ext%']

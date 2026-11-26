@@ -1,0 +1,22 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_DL_CHECKER}</h1>
+<p>{L_ACP_PLUS_DL_CHECK_EXPLAIN}</p>
+<form id="dl-checker" action="{U_DL_CHECK}" method="post">
+	<p><input class="button1" type="submit" value="{L_ACP_PLUS_DL_CHECK_RUN}"></p>
+	{S_FORM_TOKEN}
+</form>
+{% if S_DL_REPORT %}
+<h2>{L_ACP_PLUS_DL_CHECK_ISSUES}</h2>
+{% if loops.issues %}
+<table class="table1 zebra-table"><thead><tr><th>{L_ACP_PLUS_DL_CHECK_KIND}</th><th>{L_ACP_PLUS_DL_CHECK_FILE}</th><th>{L_ACP_PLUS_DL_CHECK_FINDING}</th></tr></thead>
+<tbody>{% for item in loops.issues %}<tr><td>{{ item.KIND|e }}</td><td>#{{ item.ID }} {{ item.TITLE|e }}</td><td>{{ item.REASON|e }}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p>{L_ACP_PLUS_DL_CHECK_OK}</p>{% endif %}
+<h2>{L_ACP_PLUS_DL_CHECK_UNUSED}</h2>
+{% if loops.unreferenced %}
+<table class="table1 zebra-table"><thead><tr><th>{L_FILENAME}</th><th>{L_FILESIZE}</th></tr></thead><tbody>
+{% for item in loops.unreferenced %}<tr><td><code>{{ item.NAME|e }}</code></td><td>{{ item.SIZE|e }}</td></tr>{% endfor %}
+</tbody></table>
+<p>{L_TOTAL}{L_COLON} {{ DL_TOTAL|e }}</p>
+{% else %}<p>{L_ACP_PLUS_DL_CHECK_NONE}</p>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

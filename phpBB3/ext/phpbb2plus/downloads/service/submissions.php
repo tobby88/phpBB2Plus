@@ -212,7 +212,7 @@ class submissions
 		$preview = $assets['preview'];
 		if (!$previous || $preview || $form['preview_url'] !== '' || $remove_preview)
 		{
-			$row += array('preview_name'=>$preview['storage'] ?? '', 'preview_type'=>$preview['mime'] ?? '');
+			$row += array('preview_name'=>$preview['storage'] ?? '', 'preview_type'=>$preview['mime'] ?? '', 'preview_unavailable'=>0);
 			$metadata['file_ssurl'] = $form['preview_url'];
 			if ($previous) { $this->media->queue($previous['preview_name']); }
 		}

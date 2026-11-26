@@ -61,11 +61,13 @@ class media
 
 	public function queue($name)
 	{
-		if (!preg_match('/^download_[a-f0-9]{64}$/D', $name)) { return 0; }
+		if (!self::owned_name($name)) { return 0; }
 		$this->db->sql_query('INSERT INTO ' . $this->prefix . 'media_queue ' . $this->db->sql_build_array('INSERT',
 			array('storage_name'=>$name, 'queued_at'=>time())));
 		return (int) $this->db->sql_nextid();
 	}
+
+	public static function owned_name($name) { return is_string($name) && preg_match('/^download_[a-f0-9]{64}$/D', $name) === 1; }
 
 	public function reserve($image)
 	{
@@ -93,12 +95,13 @@ class media
 		$this->db->sql_transaction('begin');
 		try
 		{
+			$this->access->lock_catalogue(false);
 			$where = ' WHERE job_id=' . (int) $id;
 			$this->db->sql_query("UPDATE $table SET job_id=job_id" . $where);
 			$result = $this->db->sql_query("SELECT storage_name FROM $table" . $where);
 			$name = $this->db->sql_fetchfield('storage_name');
 			$this->db->sql_freeresult($result);
-			if (is_string($name) && preg_match('/^download_[a-f0-9]{64}$/D', $name))
+			if (self::owned_name($name))
 			{
 				$files = $this->prefix . 'files';
 				$result = $this->db->sql_query_limit("SELECT file_id FROM $files WHERE storage_name='$name' OR preview_name='$name'
