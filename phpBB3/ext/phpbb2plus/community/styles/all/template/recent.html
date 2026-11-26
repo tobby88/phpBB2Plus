@@ -1,0 +1,28 @@
+<!-- INCLUDE overall_header.html -->
+<h2>{L_PLUS_RECENT_TOPICS}</h2>
+<form id="plus-recent-filter" class="panel" method="get" action="{U_PLUS_RECENT}"><fieldset>
+	<label>{L_PLUS_RECENT_PERIOD} <select name="mode">{% for p in loops.periods %}<option value="{{ p.VALUE }}"{% if p.SELECTED %} selected{% endif %}>{{ p.LABEL|e }}</option>{% endfor %}</select></label>
+	<label>{L_PLUS_RECENT_DAY_COUNT} <input type="number" name="amount_days" min="1" max="365" value="{ACTIVITY_DAYS}" class="inputbox autowidth"></label>
+	<button type="submit" class="button2">{L_DISPLAY}</button>
+</fieldset></form>
+<p>{ACTIVITY_COUNT}</p>
+{% if loops.activity %}
+<div class="forumbg"><div class="inner">
+<ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_TOPICS}</div></dt><dd class="posts">{L_REPLIES}</dd><dd class="views">{L_VIEWS}</dd><dd class="lastpost">{L_LAST_POST}</dd></dl></li></ul>
+<ul class="topiclist topics">
+{% for t in loops.activity %}
+	<li class="row bg{{ loop.index is odd ? '1' : '2' }}" data-activity-topic="{{ t.ID }}"><dl class="row-item {{ t.ICON }}">
+		<dt title="{{ t.ALT|e('html_attr') }}"><div class="list-inner">
+			{% if t.UNREAD %}<a href="{{ t.UNREAD }}" title="{L_VIEW_UNREAD_POST}"><i class="icon fa-file fa-fw" aria-hidden="true"></i><span class="sr-only">{L_VIEW_UNREAD_POST}</span></a>{% endif %}
+			{% if t.TYPE %}{{ t.TYPE }} {% endif %}<a class="topictitle" href="{{ t.URL }}">{{ t.TITLE }}</a>
+			{% if t.pagination %}<div class="pagination"><ul>{% for p in t.pagination %}{% if p.S_IS_ELLIPSIS %}<li class="ellipsis"><span>{L_ELLIPSIS}</span></li>{% else %}<li><a href="{{ p.PAGE_URL }}">{{ p.PAGE_NUMBER }}</a></li>{% endif %}{% endfor %}</ul></div>{% endif %}
+			<br><a href="{{ t.FORUM_URL }}">{{ t.FORUM }}</a> · {{ t.FIRST_AUTHOR }}{% if t.FIRST_TIME %} · {{ t.FIRST_TIME }}{% endif %}
+		</div></dt>
+		<dd class="posts">{{ t.REPLIES }}</dd><dd class="views">{{ t.VIEWS }}</dd>
+		<dd class="lastpost">{{ t.LAST_AUTHOR }}<br><a href="{{ t.LAST_URL }}">{{ t.LAST_TIME }}</a></dd>
+	</dl></li>
+{% endfor %}
+</ul></div></div>
+{% endif %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -165,7 +165,13 @@ services:
             - { name: passwords.driver }
     phpbb2plus.community.portal:
         class: phpbb2plus\community\controller\portal
-        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox', '@dispatcher', '@config', '@config_text', '@path_helper']
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox', '@dispatcher', '@config', '@config_text', '@path_helper', '@phpbb2plus.community.topic_activity']
+    phpbb2plus.community.topic_activity:
+        class: phpbb2plus\community\service\topic_activity
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@dispatcher', '@config']
+    phpbb2plus.community.recent:
+        class: phpbb2plus\community\controller\recent
+        arguments: ['@phpbb2plus.community.topic_activity', '@request', '@config', '@user', '@language', '@template', '@controller.helper', '@pagination', '%core.root_path%', '%core.php_ext%']
     phpbb2plus.community.portal_sessions:
         class: phpbb2plus\community\event\portal_sessions
         arguments: ['@dbal.conn']

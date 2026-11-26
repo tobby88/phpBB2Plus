@@ -19,8 +19,9 @@ class portal
 	private $config;
 	private $text;
 	private $paths;
+	private $activity;
 
-	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension, $shouts, $dispatcher, $config, $text, $paths)
+	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension, $shouts, $dispatcher, $config, $text, $paths, $activity)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -36,30 +37,17 @@ class portal
 		$this->config = $config;
 		$this->text = $text;
 		$this->paths = $paths;
+		$this->activity = $activity;
 	}
 
 	private function recent($forums, $limit)
 	{
-		if (!$forums || $limit <= 0) { return; }
-		$sql = 'SELECT t.topic_id,t.forum_id,t.topic_title,f.forum_name,p.post_id,p.post_time,p.post_username,p.poster_id AS user_id,u.username,u.user_colour
-			FROM ' . TOPICS_TABLE . ' t JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=t.forum_id
-			JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_last_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id
-			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=p.poster_id
-			WHERE ' . $this->db->sql_in_set('t.forum_id',$forums) . ' AND t.topic_moved_id=0
-			AND t.topic_visibility=' . ITEM_APPROVED . ' AND p.post_visibility=' . ITEM_APPROVED . '
-			AND ' . $this->visibility->get_forums_visibility_sql('topic',$forums,'t.') . ' AND ' .
-			$this->visibility->get_forums_visibility_sql('post',$forums,'p.') . '
-			ORDER BY p.post_id DESC';
-		$result = $this->db->sql_query_limit($sql,$limit);
-		$rows = array();
-		while ($r = $this->db->sql_fetchrow($result)) { $rows[(int) $r['post_id']] = $r; }
-		$this->db->sql_freeresult($result);
-		$event = $this->dispatcher->trigger_event('phpbb2plus.community.preview_bylines',array('rowset'=>$rows,'post_list'=>array_keys($rows)));
-		foreach ($event['rowset'] as $post=>$r)
+		foreach ($this->activity->page($forums, $limit)['rows'] as $r)
 		{
+			$post = (int) $r['post_id'];
 			$this->template->assign_block_vars('plus_topics',array('TITLE'=>censor_text($r['topic_title']),'FORUM'=>$r['forum_name'],
 				'FORUM_ID'=>(int) $r['forum_id'],'LAST_POST'=>$this->user->format_date($r['post_time']),
-				'AUTHOR'=>get_username_string('full',(int) $r['user_id'],$r['username'],$r['user_colour'],$r['post_username']),
+				'AUTHOR'=>$r['last_author'],
 				'U_TOPIC'=>append_sid($this->root . 'viewtopic.' . $this->extension,'p=' . $post) . '#p' . $post,
 				'U_FORUM'=>append_sid($this->root . 'viewforum.' . $this->extension,'f=' . (int) $r['forum_id'])));
 		}
@@ -104,8 +92,8 @@ class portal
 	public function handle()
 	{
 		$this->language->add_lang('community', 'phpbb2plus/community');
-		$forums = array_diff(array_intersect(array_keys($this->auth->acl_getf('f_list', true)),
-			array_keys($this->auth->acl_getf('f_read', true))),$this->user->get_passworded_forums());
+		$forums = $this->activity->forums();
+		$this->template->assign_var('U_PLUS_RECENT', $this->helper->route('phpbb2plus_community_recent'));
 		$prefs = $this->text->get_array(array('plus_portal_welcome','plus_portal_exclude','plus_portal_poll_forums'));
 		$recent = max(0,min(100,(int) $this->config['plus_portal_recent']));
 		$this->recent(array_diff($forums,explode(',',(string) $prefs['plus_portal_exclude'])),$recent);

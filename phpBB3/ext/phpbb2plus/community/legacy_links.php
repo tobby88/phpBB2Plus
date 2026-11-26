@@ -6,6 +6,11 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
 	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
 	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
+	if ($entry === 'recent' && $method === 'POST')
+	{
+		$read_form = $sort_redirect = true;
+		$query += array_intersect_key($_POST, array_flip(array('mode', 'amount_days')));
+	}
 	if ($entry === 'arcade_modcp' && $method === 'POST')
 	{
 		// Old selector forms can open a list. A score change needs a new native confirmation.
@@ -188,6 +193,14 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 		case 'ranks':
 			$path = 'ranks';
+			break;
+		case 'recent':
+			$path = 'topics/recent';
+			if (in_array($query['mode'] ?? '', array('today','yesterday','last24','lastweek','lastXdays'), true))
+			{ $extra['mode'] = $query['mode']; }
+			if (isset($query['amount_days']) && is_string($query['amount_days']))
+			{ $extra['amount_days'] = max(1, min(365, (int) $query['amount_days'])); }
+			header('Cache-Control: private, no-store');
 			break;
 		case 'profile':
 			$mode = $query['mode'] ?? '';
