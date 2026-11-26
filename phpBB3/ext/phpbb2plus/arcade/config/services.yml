@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.arcade.category_management:
+        class: phpbb2plus\arcade\service\category_management
+        arguments: ['@dbal.conn', '@auth', '@user', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.artwork', '%core.table_prefix%']
     phpbb2plus.arcade.score_moderation:
         class: phpbb2plus\arcade\service\score_moderation
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.sessions', '@log']

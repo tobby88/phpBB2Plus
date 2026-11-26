@@ -21,6 +21,7 @@ import arcade
 import arcade_administration
 import arcade_directory
 import arcade_categories
+import arcade_category_administration
 import arcade_moderation
 import arcade_standings
 import banners
@@ -288,9 +289,10 @@ def extension_upgrades(target, web, suite="all"):
     tests = ROOT / "tests/phpbb3"
     migrations, fixtures, preserved = [], [], []
     if suite in ("forum", "all"):
-        migrations.extend(("community/migrations/v137_account_logins", "community/migrations/v150_country_flag_administration"))
+        migrations.extend(("community/migrations/v137_account_logins", "community/migrations/v150_country_flag_administration",
+                           "arcade/migrations/v113_category_administration"))
         fixtures.append(tests / "login_lifecycle.php")
-        preserved.append(tests / "country_flag_administration.php")
+        preserved.extend((tests / "country_flag_administration.php", tests / "arcade_category_administration.php"))
     if suite in ("media", "downloads", "all"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
@@ -532,6 +534,8 @@ def main():
                     ROOT / "tests/phpbb3/arcade_categories.php", target, phase, cwd=web))
                 arcade_moderation.exercise(base, member, ordinary, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_moderation.php", target, phase, cwd=web))
+                arcade_category_administration.exercise(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/arcade_category_administration.php", target, phase, cwd=web, capture=True))
                 arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
                 arcade_standings.artwork(base, ordinary, pending, lambda: php(

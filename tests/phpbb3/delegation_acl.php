@@ -48,6 +48,16 @@ try
 }
 finally { file_put_contents($arcade, $original); }
 $flag_writer = $root . '/includes/functions_flags_storage.php';
+$category_history = $root . '/includes/functions_arcade_last_play.php';
+$original = file_get_contents($category_history);
+try
+{
+	file_put_contents($category_history, $original . "\n/* Locally modified category sync */\n");
+	$registry = plus_jr_registry();
+	$entry = $registry[md5('ArcadeCategoriesadmin_arcade_cats.php')] ?? array();
+	if (empty($entry['customised']) || isset($entry['option']) || isset($entry['options'])) { throw new RuntimeException('Unreviewed Arcade category scope was activated'); }
+}
+finally { file_put_contents($category_history, $original); }
 $original = file_get_contents($flag_writer);
 try
 {

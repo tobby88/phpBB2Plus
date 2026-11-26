@@ -11,6 +11,7 @@ function delegation_fixture_roles()
 {
 	return array(
 		43 => array('DownloadCheckerJunior', 'DownloadFcheckeradmin_pa_fchecker.php', 'a_plus_dl_checker'),
+		44 => array('ArcadeCategoryJunior', 'ArcadeCategoriesadmin_arcade_cats.php', 'a_plus_arc_categories'),
 		45 => array('ArcadeScoresJunior', 'ArcadeEditadmin_arcade_games.php?mode=edit_games', 'a_plus_arc_scores'),
 		46 => array('DownloadCategoryJunior', 'DownloadCat_manage_titleadmin_pa_category.php', 'a_plus_dl_categories'),
 		47 => array('DownloadAccessJunior', 'DownloadPermissionsadmin_pa_catauth.php', 'a_plus_dl_perms'),

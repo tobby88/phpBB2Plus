@@ -65,6 +65,7 @@ function plus_jr_registry()
 	// A locally modified module can expose fewer actions under the same name. These
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
+		'admin_arcade_cats.php' => '1f783390224f152c354e205f56ec52e4dc47d10e276c7595038498dc0bf03daf',
 		'admin_flags.php' => '9476a8fb3a1bee3a8b856476f70b0957b765de637c889ef683d42052c9d62a41',
 		'admin_pa_file.php' => '4993fafef0f0f5702e1bb5f23163da0b5372838f9bb67d856dccce3e729e8adb',
 		'admin_pa_settings.php' => 'f8b7ebf1eefe344f2e22bd0eb31097755b4b7f66271ba6ff105bad7837eca6f3',
@@ -115,6 +116,20 @@ function plus_jr_registry()
 		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 	);
 	$dependencies = array(
+		'admin_arcade_cats.php' => array(
+			'includes/functions_arcade_category_storage.php' => '8008d26e6da64b13ef773a0d1ac91a5dd31681654e075f83813b30a4eba8718e',
+			'includes/functions_arcade_last_play.php' => 'a75c6643f49d0c1da75cc3b9924044f4cfce5ce9e9ffc7912fe33e97780074ad',
+			'includes/functions_arcade_import_storage.php' => 'eceb125848d15024831baf5614848aaabba50c985a8fbccc0f2ad1a78184bbca',
+			'includes/functions_username.php' => 'cf916c3af3a6e7ea2703debdab9fd9e146a4f511222ebc38f6c0f1f540617fa4',
+			'includes/functions_post_author.php' => 'b882c580235d597c4171b7534d9e46b167912e6b4ad07af8863f725adbf49049',
+			'includes/functions_arcade.php' => '1a9112338a29f16c662151a46412c4faf745515b50e63231d4ab8cd39e6ffb6f',
+			'includes/php_compat.php' => 'efc40a50b10beed315b050826a3792a251d877199e818f816f23ecbc5e9517ee',
+			'attach_mod/includes/functions_quota_storage.php' => 'f477434f927a74278098e942bc3feb293f9829d1defc3c7fb527baf4a4382cab',
+			'includes/functions_moderator_identity.php' => '2cd91513548a3754831dc59ee50be5ffccecfbfba2b4f0921e6850b8f89e9c67',
+			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+			'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
+		),
 		'admin_flags.php' => array(
 			'includes/functions_flags_storage.php' => '7a445923f0c0a98d4eb7c55ebfd103db3f5f7b1f267d63d7bacc865a029429e8',
 			'includes/functions_board_config.php' => '6f8bfd8b56abae2ac271ef236b1c916ca0fb96f68b74ca1a58680474a6a09568',

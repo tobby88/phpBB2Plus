@@ -1,0 +1,41 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_ARC_CATEGORIES}</h1>
+{% if CAT_ERROR %}<div class="errorbox"><p>{{ CAT_ERROR|e }}</p></div>{% endif %}
+{% if S_CAT_CONFIRM %}
+<form id="arc-category-confirm" action="{U_CAT_SAVE}" method="post">
+	<fieldset><legend>{L_CONFIRM}</legend><p>{{ CAT_CONFIRM|e }}</p>
+	<input type="hidden" name="revision" value="{CAT_REVISION}">{S_FORM_TOKEN}
+	<button type="submit" name="confirm" value="1" class="button1">{L_YES}</button> <a href="{U_CAT_BACK}">{L_CANCEL}</a></fieldset>
+</form>
+{% elseif S_CAT_EDIT %}
+<form id="arc-category-edit" action="{U_CAT_SAVE}" method="post">
+	<fieldset><legend>{{ CAT_HEADING|e }}</legend>
+	<dl><dt><label for="arc-name">{L_PLUS_ARC_CAT_NAME}</label></dt><dd><input id="arc-name" name="name" type="text" maxlength="100" required value="{{ CAT_NAME|e('html_attr') }}"></dd></dl>
+	<dl><dt><label for="arc-type">{L_PLUS_ARC_CAT_TYPE}</label><br><span>{L_PLUS_ARC_CAT_TOPOLOGY}</span></dt><dd>
+	<select id="arc-type" name="type"><option value="p"{% if CAT_TYPE == 'p' %} selected{% endif %}>{L_PLUS_ARC_CAT_TYPE_P}</option>
+	<option value="s"{% if CAT_TYPE == 's' %} selected{% endif %}>{L_PLUS_ARC_CAT_TYPE_S}</option>
+	<option value="l"{% if CAT_TYPE == 'l' %} selected{% endif %}>{L_PLUS_ARC_CAT_TYPE_L}</option></select></dd></dl>
+	<dl><dt><label for="arc-parent">{L_PLUS_ARC_CAT_PARENT_LABEL}</label></dt><dd><select name="parent" id="arc-parent">
+	<option value="0">{L_NONE}</option>{% for row in loops.parents %}<option value="{{ row.ID }}"{% if row.SEL %} selected{% endif %}>{{ row.NAME|e }}</option>{% endfor %}</select></dd></dl>
+	<dl><dt><label for="arc-description">{L_PLUS_ARC_CAT_DESC}</label></dt><dd><textarea id="arc-description" name="description" rows="3" cols="60">{{ CAT_DESCRIPTION|e }}</textarea></dd></dl>
+	<dl><dt><label for="arc-icon">{L_PLUS_ARC_CAT_ICON}</label><br><span>{L_PLUS_ARC_CAT_ICON_HELP}</span></dt><dd><input id="arc-icon" type="text" size="45" maxlength="255" name="icon" value="{{ CAT_ICON|e('html_attr') }}">{% if U_CAT_PICTURE %} <img src="{U_CAT_PICTURE}" style="max-width:60px;max-height:45px;" alt="">{% endif %}</dd></dl>
+	<dl><dt><label for="arc-group">{L_PLUS_ARC_CAT_GROUP}</label></dt><dd><select id="arc-group" name="group">
+	{% for row in loops.groups %}<option value="{{ row.ID }}"{% if row.SEL %} selected{% endif %}>{{ row.NAME|e }}</option>{% endfor %}</select></dd></dl>
+	<dl><dt><label for="arc-mod">{L_MODERATOR}</label></dt><dd><input id="arc-mod" type="text" name="moderator" value="{{ CAT_MODERATOR|e('html_attr') }}">
+	{% if S_CAT_MISSING_MOD %}<label><input type="checkbox" name="clear_moderator" value="1">{L_PLUS_ARC_CAT_CLEAR_MOD}</label>{% endif %}</dd></dl>
+	<dl><dt><label for="arc-special">{L_PLUS_ARC_CAT_SPECIAL}</label><br><span>{L_PLUS_ARC_CAT_SPECIAL_HELP}</span></dt><dd><input id="arc-special" name="special" type="number" min="0" max="32767" value="{{ CAT_SPECIAL|e('html_attr') }}"></dd></dl>
+	<input type="hidden" name="revision" value="{CAT_REVISION}">{S_FORM_TOKEN}
+	<button type="submit" class="button1">{L_SUBMIT}</button> <a href="{U_CAT_BACK}">{L_CANCEL}</a></fieldset>
+</form>
+{% else %}
+{% if S_CAT_REPAIR %}<div class="errorbox"><p>{L_PLUS_ARC_CAT_REPAIR}</p></div>{% endif %}
+<p><a href="{U_CAT_NEW}" class="button2">{L_PLUS_ARC_CAT_NEW}</a> <a href="{U_CAT_RESYNC}" class="button2">{L_PLUS_ARC_CAT_RESYNC}</a></p>
+<table class="table1"><thead><tr><th>#</th><th>{L_PLUS_ARC_CAT_NAME}</th><th>{L_PLUS_ARC_CAT_TYPE}</th><th>{L_OPTIONS}</th></tr></thead><tbody>
+{% for row in loops.cats %}<tr data-cat="{{ row.ID }}"><td>{{ row.ID }}</td><td>{% if row.CHILD %}&#8627; {% endif %}{% if row.U_PICTURE %}<img src="{{ row.U_PICTURE }}" style="max-width:40px;max-height:30px;" alt=""> {% endif %}
+<a href="{{ row.U_EDIT }}">{{ row.NAME|e }}</a>{% if row.DESCRIPTION %}<br>{{ row.DESCRIPTION|e }}{% endif %}</td><td>{{ row.TYPE|e }}</td><td>
+{% if row.UP %}<form id="arc-category-up-{{ row.ID }}" method="post" action="{{ row.U_UP }}" style="display:inline"><input type="hidden" name="revision" value="{{ row.REVISION }}">{S_FORM_TOKEN}<button class="button2" type="submit">{L_MOVE_UP}</button></form>{% endif %}
+{% if row.DOWN %}<form id="arc-category-down-{{ row.ID }}" method="post" action="{{ row.U_DOWN }}" style="display:inline"><input type="hidden" name="revision" value="{{ row.REVISION }}">{S_FORM_TOKEN}<button class="button2" type="submit">{L_MOVE_DOWN}</button></form>{% endif %}
+<a href="{{ row.U_EDIT }}">{L_EDIT}</a> &middot; <a href="{{ row.U_DELETE }}">{L_DELETE}</a>{% if row.U_GAMES %} &middot; <a href="{{ row.U_GAMES }}">{L_PLUS_ARC_CAT_GAMES}</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="4">{L_NO_ENTRIES}</td></tr>{% endfor %}
+</tbody></table>{% endif %}
+<!-- INCLUDE overall_footer.html -->

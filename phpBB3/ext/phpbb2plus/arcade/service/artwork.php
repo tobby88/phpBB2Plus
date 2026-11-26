@@ -90,11 +90,20 @@ class artwork
 		return rtrim($this->root, '/\\') . '/' . trim($this->config['upload_path'], '/\\') . '/' . $name;
 	}
 
-	private function assign($id, $storage, $mime, $bytes, $category = false)
+	private function assign($id, $storage, $mime, $bytes, $category_path = null)
 	{
 		$values = array('icon_storage' => $storage, 'icon_mime' => $mime, 'icon_bytes' => $bytes);
-		$this->db->sql_query('UPDATE ' . $this->prefix . ($category ? 'categories' : 'games') . ' SET ' . $this->db->sql_build_array('UPDATE', $values) .
-			' WHERE ' . ($category ? 'cat_id' : 'game_id') . '=' . (int) $id);
+		$category = $category_path !== null;
+		$table = $this->prefix . ($category ? 'categories' : 'games');
+		$where = ($category ? 'cat_id' : 'game_id') . '=' . (int) $id .
+			($category ? " AND BINARY cat_icon='" . $this->db->sql_escape($category_path) . "'" : '');
+		$this->db->sql_query("UPDATE $table SET " . $this->db->sql_build_array('UPDATE', $values) . " WHERE $where");
+		if (!$category || $this->db->sql_affectedrows()) { return true; }
+		// An idempotent import and a changed category both affect zero rows.
+		$result = $this->db->sql_query("SELECT cat_id FROM $table WHERE $where AND icon_storage='" . $this->db->sql_escape($storage) . "'");
+		$current = (bool) $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		return $current;
 	}
 
 	public function source_root($folder)
@@ -168,12 +177,17 @@ class artwork
 
 	public function import_category($id, $path, $source)
 	{
-		$relative = $this->relative(catalog::plain($path));
-		if ($id < 1 || $relative === '' || !$this->belongs_to_game($relative, '')) { return false; }
+		$relative = $this->category_path(catalog::plain($path));
+		if ($id < 1 || $relative === '') { return false; }
 		$image = $this->copy_image($source, $relative);
 		if (!$image) { return false; }
-		$this->assign($id, $image[0], $image[1], $image[2], true);
-		return true;
+		return $this->assign($id, $image[0], $image[1], $image[2], $path);
+	}
+
+	public function category_path($path)
+	{
+		$relative = $this->relative($path);
+		return $relative !== '' && preg_match('~\.(?:gif|jpe?g|png|webp)$~iD', $relative) && $this->belongs_to_game($relative, '') ? $relative : '';
 	}
 
 	public function category_batch($after, $source)

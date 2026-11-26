@@ -75,7 +75,7 @@ function plus_arcade_artwork_source()
 function plus_arcade_category_artwork($id, $image)
 {
 	list($artwork, $source) = plus_arcade_artwork_source();
-	$artwork->import_category((int) $id, $image, $source);
+	$artwork->import_category((int) $id, utf8_encode_ucr($image), $source);
 }
 
 function plus_arcade_media($id, $name, $directory, $flash, $image)

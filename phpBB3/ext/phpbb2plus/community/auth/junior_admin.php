@@ -7,6 +7,7 @@ class junior_admin
 	private const FILE_ACTIONS = array('phpbb2plus\downloads\acp\file_actions_module', 'manage');
 
 	public const MODULES = array(
+		'admin_arcade_cats.php' => array('Arcade', 'Categories', array('a_plus_arc_categories' => array('phpbb2plus\arcade\acp\categories_module', 'manage'))),
 		'admin_words.php' => array('General', 'Word_Censor', array('a_words' => array('acp_words', 'words'))),
 		'admin_disallow.php' => array('Users', 'Disallow', array('a_names' => array('acp_disallow', 'usernames'))),
 		'admin_ranks.php' => array('Users', 'Ranks', array('a_ranks' => array('acp_ranks', 'ranks'))),

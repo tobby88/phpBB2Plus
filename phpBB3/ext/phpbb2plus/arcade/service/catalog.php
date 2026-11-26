@@ -102,9 +102,23 @@ class catalog
 		if ($this->categories !== null) { return $this->categories; }
 		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'categories WHERE cat_id>0 ORDER BY cat_order,cat_id');
 		$rows = array();
+		$native_groups = null;
 		while ($cat = $this->db->sql_fetchrow($result))
 		{
-			if ($this->admin() || in_array((int) $cat['group_required'], $this->groups(), true)) { $rows[(int) $cat['cat_id']] = $cat; }
+			if (!$this->admin() && !empty($cat['native_group_id']))
+			{
+				if (empty($this->user->data['is_registered'])) { continue; }
+				if ($native_groups === null)
+				{
+					$memberships = $this->db->sql_query('SELECT ug.group_id FROM ' . USER_GROUP_TABLE . ' ug JOIN ' . GROUPS_TABLE .
+						' g ON g.group_id=ug.group_id WHERE ug.user_pending=0 AND ug.user_id=' . (int) $this->user->data['user_id']);
+					$native_groups = array_column($this->db->sql_fetchrowset($memberships), 'group_id', 'group_id');
+					$this->db->sql_freeresult($memberships);
+				}
+				if (!isset($native_groups[$cat['native_group_id']])) { continue; }
+			}
+			elseif (!$this->admin() && !in_array((int) $cat['group_required'], $this->groups(), true)) { continue; }
+			$rows[(int) $cat['cat_id']] = $cat;
 		}
 		$this->db->sql_freeresult($result);
 		$this->categories = array();
@@ -193,6 +207,7 @@ class catalog
 		{
 			$this->db->sql_query('UPDATE ' . $this->prefix . "categories SET total_played=CAST(COALESCE(NULLIF(total_played,''),'0') AS DECIMAL(20,0))+1
 				WHERE cat_type='l' AND cat_id=" . (int) $category['cat_id'] . " AND group_required=" . (int) $category['group_required'] .
+				(isset($category['native_group_id']) ? ' AND native_group_id=' . (int) $category['native_group_id'] : '') .
 				" AND cat_desc='" . $this->db->sql_escape($category['cat_desc']) . "' AND CAST(COALESCE(NULLIF(total_played,''),'0') AS DECIMAL(20,0))<18446744073709551615");
 		}
 		return $url;

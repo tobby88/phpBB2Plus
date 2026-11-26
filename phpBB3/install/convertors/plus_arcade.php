@@ -11,6 +11,7 @@ function plus_arcade_grants()
 {
 	global $src_db, $db, $table_prefix, $convert;
 	$p = $convert->src_table_prefix;
+	\phpbb2plus\arcade\service\category_history::ensure_global($db, $table_prefix . 'plus_arc_');
 	\phpbb2plus\arcade\service\activity::link_games($db,$table_prefix . 'plus_arc_');
 	\phpbb2plus\arcade\service\activity::link_comments($db,$table_prefix . 'plus_arc_');
 	$result = $src_db->sql_query("SELECT group_required FROM ".$p."ina_games WHERE group_required>0 UNION
@@ -135,6 +136,11 @@ function plus_arcade_copy_group($short, $column, $value)
 				$data[$dest] = $dest === 'score_units' ? \phpbb2plus\arcade\service\score::units($row[$field]) : $row[$field];
 			}
 			foreach ($owners as $field => $owner) { $data[$owner] = plus_arcade_owner($row[$field]); }
+			if ($short === 'cat')
+			{
+				foreach (array('cat_name','cat_desc','cat_icon') as $field)
+				{ if ($data[$field] !== null) { $data[$field] = utf8_encode_ucr($data[$field]); } }
+			}
 			if ($short === 'comment')
 			{
 				foreach (array('comment_text','comment_username') as $field)
