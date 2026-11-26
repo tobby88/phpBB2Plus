@@ -94,5 +94,8 @@
 	.plus-album-caption { grid-template-columns: auto minmax(0, 1fr); gap: .15em .6em; }
 	.plus-album-caption dd + dt { margin: 0; }
 }
-#album-upload-status[hidden], #album-upload-status [hidden] { display: none; }
-#album-upload-status progress { max-width: 100%; vertical-align: middle; }
+#album-upload[hidden], #album-upload-status[hidden], #album-upload-status [hidden] { display: none; }
+#album-upload-status progress { width: min(28em, 65%); max-width: 100%; accent-color: #006699; vertical-align: middle; }
+.plus-album-progress-simple { margin-block: .75em; }
+.plus-album-transfer-details { display: grid; grid-template-columns: fit-content(60%) minmax(0, 1fr); gap: .2em .75em; margin-block: .5em; }
+.plus-album-transfer-details dd { margin: 0; font-variant-numeric: tabular-nums; }

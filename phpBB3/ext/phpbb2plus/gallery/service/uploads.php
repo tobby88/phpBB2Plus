@@ -39,6 +39,14 @@ class uploads
 
 	public function resizing() { return (string) $this->access->setting('resize_pic', 0) === '1'; }
 
+	public function progress_options()
+	{
+		return array('S_ALBUM_PROGRESS' => (int) $this->access->setting('show_progress_bar', 1) === 1,
+			'S_SIMPLE_PROGRESS' => (int) $this->access->setting('simple_format', 0) === 1,
+			'S_CLOSE_PROGRESS' => (int) $this->access->setting('close_on_finish', 1) === 1,
+			'ALBUM_IDLE_SECONDS' => max(30, min(86400, (int) $this->access->setting('max_pause', 10))));
+	}
+
 	public function zip_enabled() { return (string) $this->access->setting('zip_uploads', 1) === '1'; }
 
 	public function allowed_types()

@@ -10,10 +10,12 @@ class settings
 		'jpg_allowed' => '1', 'png_allowed' => '1', 'gif_allowed' => '0', 'max_file_size' => '128000', 'max_width' => '800',
 		'max_height' => '600', 'resize_pic' => '0', 'resize_width' => '600', 'resize_height' => '600', 'resize_quality' => '70',
 		'multiple_uploads' => '1', 'max_uploads' => '10', 'zip_uploads' => '1', 'gd_version' => '2',
-		'thumbnail_size' => '125', 'thumbnail_quality' => '75', 'thumbnail_cache' => '1');
+		'thumbnail_size' => '125', 'thumbnail_quality' => '75', 'thumbnail_cache' => '1',
+		'show_progress_bar' => '1', 'simple_format' => '0', 'close_on_finish' => '1', 'max_pause' => '10');
 	const SPECIAL_MEDIA = array('midthumb_use' => '1', 'midthumb_width' => '800', 'midthumb_height' => '600', 'midthumb_cache' => '1',
 		'use_watermark' => '0', 'wut_users' => '0', 'disp_watermark_at' => '3');
-	const MEDIA_GROUPS = array('max_pics' => 'UPLOAD_LIMITS', 'gd_version' => 'THUMBNAILS', 'midthumb_use' => 'MEDIUM', 'use_watermark' => 'WATERMARK');
+	const MEDIA_GROUPS = array('max_pics' => 'UPLOAD_LIMITS', 'gd_version' => 'THUMBNAILS', 'show_progress_bar' => 'UPLOAD_PROGRESS',
+		'midthumb_use' => 'MEDIUM', 'use_watermark' => 'WATERMARK');
 	const DISPLAY = array('rows_per_page' => '3', 'cols_per_page' => '4', 'sort_method' => 'pic_time', 'sort_order' => 'DESC',
 		'show_recent_in_subcats' => '1', 'show_recent_instead_of_nopics' => '1',
 		'personal_show_recent_in_subcats' => '1', 'personal_show_recent_instead_of_nopics' => '1',
@@ -31,8 +33,9 @@ class settings
 		'max_height' => array(1,10000), 'resize_width' => array(1,10000), 'resize_height' => array(1,10000), 'resize_quality' => array(0,100),
 		'max_uploads' => array(1,100), 'last_pic_title_length' => array(1,200), 'desc_length' => array(0,65535), 'thumbnail_quality' => array(0,100),
 		'midthumb_width' => array(1,10000), 'midthumb_height' => array(1,10000), 'rows_per_page' => array(1,50), 'cols_per_page' => array(1,20),
-		'img_rows' => array(1,100), 'img_cols' => array(1,20), 'rate_scale' => array(1,255));
-	const MEDIA_SWITCHES = array('jpg_allowed','png_allowed','gif_allowed','thumbnail_cache','midthumb_use','midthumb_cache','use_watermark','wut_users');
+		'img_rows' => array(1,100), 'img_cols' => array(1,20), 'rate_scale' => array(1,255), 'max_pause' => array(0,86400));
+	const MEDIA_SWITCHES = array('jpg_allowed','png_allowed','gif_allowed','thumbnail_cache','midthumb_use','midthumb_cache','use_watermark','wut_users',
+		'show_progress_bar','simple_format','close_on_finish');
 	const RATING_SWITCHES = array('rate','comment','hon_rate_sep','hon_rate_times','hon_rate_users','disp_late','disp_high','disp_rand');
 	const OPTIONS = array('personal_gallery' => array(0 => 'MEMBERS', 3 => 'SELECTED', 1 => 'ADMINS'),
 		'show_all_in_personal_gallery' => array(1 => 'YES', 0 => 'NO'),

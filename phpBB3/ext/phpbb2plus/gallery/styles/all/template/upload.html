@@ -2,7 +2,7 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{L_PLUS_ALBUM_UPLOAD} &bull; <a href="{U_CATEGORY}">{{ ALBUM_CATEGORY|e }}</a></h2>
 {% if S_ALBUM_SAVED %}
-<div class="panel"><div class="inner"><p>{% if S_ALBUM_PENDING %}{L_PLUS_ALBUM_PENDING}{% else %}{L_PLUS_ALBUM_SAVED}{% endif %}</p>
+<div class="panel"><div class="inner"><p role="status">{% if S_ALBUM_PENDING %}{L_PLUS_ALBUM_PENDING}{% else %}{L_PLUS_ALBUM_SAVED}{% endif %}</p>
 <a href="{U_CATEGORY}">{L_PLUS_ALBUM_BACK}</a></div></div>
 {% else %}
 <form id="album-upload" method="post" action="{U_ALBUM_UPLOAD}" enctype="multipart/form-data" data-sending="{{ lang('PLUS_ALBUM_SENDING')|e('html_attr') }}" data-processing="{{ lang('PLUS_ALBUM_PROCESSING')|e('html_attr') }}" data-error="{{ lang('PLUS_ALBUM_RETRY')|e('html_attr') }}">
@@ -22,8 +22,22 @@
 </fieldset></div></div>
 <fieldset class="submit-buttons"><input type="hidden" name="batch" value="{ALBUM_BATCH}">{S_FORM_TOKEN}
 <input type="submit" class="button1" value="{L_PLUS_ALBUM_UPLOAD}"></fieldset>
-<div class="panel" id="album-upload-status" hidden><progress max="100" value="0"></progress> <span role="status" aria-live="polite"></span> <a href="{U_CATEGORY}" hidden>{L_PLUS_ALBUM_BACK}</a></div>
 </form>
+{% if S_ALBUM_PROGRESS %}
+<section class="{{ S_SIMPLE_PROGRESS ? 'plus-album-progress-simple' : 'panel' }}" id="album-upload-status" aria-labelledby="album-transfer-title" hidden
+ data-close="{{ S_CLOSE_PROGRESS ? '1' : '0' }}" data-idle="{{ ALBUM_IDLE_SECONDS }}"
+ data-transfer-wait="{{ lang('PLUS_ALBUM_TRANSFER_WAIT')|e('html_attr') }}" data-process-wait="{{ lang('PLUS_ALBUM_PROCESS_WAIT')|e('html_attr') }}">
+<h3 id="album-transfer-title"{% if S_SIMPLE_PROGRESS %} class="sr-only"{% endif %}>{L_PLUS_ALBUM_UPLOAD}</h3>
+<p role="status" aria-live="polite"></p>
+<div id="album-upload-details">
+<label for="album-transfer-bar">{L_PLUS_ALBUM_TRANSFER}</label>
+<progress id="album-transfer-bar" max="100"></progress> <span id="album-percent" aria-hidden="true"></span>
+<dl class="plus-album-transfer-details">
+<dt>{L_PLUS_ALBUM_TRANSFERRED}</dt><dd id="album-bytes">—</dd><dt>{L_PLUS_ALBUM_SPEED}</dt><dd id="album-speed">—</dd>
+<dt>{L_PLUS_ALBUM_ELAPSED}</dt><dd id="album-elapsed">00:00:00</dd><dt>{L_PLUS_ALBUM_REMAINING}</dt><dd id="album-remaining">—</dd>
+</dl></div>
+<a href="{U_CATEGORY}" hidden>{L_PLUS_ALBUM_BACK}</a></section>
 <!-- INCLUDEJS @phpbb2plus_gallery/upload.js -->
+{% endif %}
 {% endif %}
 <!-- INCLUDE overall_footer.html -->

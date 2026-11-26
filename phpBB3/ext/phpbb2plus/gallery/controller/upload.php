@@ -79,7 +79,7 @@ class upload
 			'S_ZIP_UNAVAILABLE' => $this->uploads->zip_enabled() && !upload_archive::available(),
 			'S_MANUAL_PREVIEWS' => $this->uploads->manual(), 'PREVIEW_BOUND' => $this->uploads->preview_bound(), 'S_RESIZE' => $this->uploads->resizing(),
 			'S_ALBUM_GUEST' => empty($this->user->data['is_registered']), 'U_ALBUM_UPLOAD' => $this->helper->route('phpbb2plus_gallery_upload', $params),
-			'U_CATEGORY' => $target));
+			'U_CATEGORY' => $target) + $this->uploads->progress_options());
 		return $this->helper->render('@phpbb2plus_gallery/upload.html', $this->language->lang('PLUS_ALBUM_UPLOAD'), $error === '' ? 200 : 422);
 	}
 }

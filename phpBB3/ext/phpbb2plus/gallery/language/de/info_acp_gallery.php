@@ -3,6 +3,11 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ALBUM_CATEGORIES' => 'Fotokategorien',
 	'ACP_PLUS_ALBUM_DISPLAY' => 'Anzeige im Fotoalbum',
+	'PLUS_ALBUM_CFG_UPLOAD_PROGRESS' => 'Fortschritt beim Hochladen',
+	'PLUS_ALBUM_CFG_SHOW_PROGRESS_BAR' => 'Übertragungsfortschritt und Zeiten anzeigen',
+	'PLUS_ALBUM_CFG_SIMPLE_FORMAT' => 'Schlichte Fortschrittsanzeige ohne separate Überschrift verwenden',
+	'PLUS_ALBUM_CFG_CLOSE_ON_FINISH' => 'Übertragungsdetails nach der Speicherbestätigung einklappen',
+	'PLUS_ALBUM_CFG_MAX_PAUSE' => 'Wartehinweis nach so vielen Sekunden ohne Fortschritt anzeigen (frühestens nach 30 Sekunden)',
 	'ACP_PLUS_ALBUM_RATINGS' => 'Fotobewertungen und Kommentare', 'LOG_PLUS_ALBUM_RATINGS' => '<strong>Einstellungen zu Fotobewertungen und Kommentaren geändert</strong>',
 	'PLUS_ALBUM_CFG_RATINGS_EXPLAIN' => 'Diese Einstellungen gelten für die Bildseiten und die Zufallsbewertung. Vorhandene Stimmen bleiben bei einem Wechsel der Skala oder des Bewertungskanals erhalten.',
 	'PLUS_ALBUM_CFG_CATEGORY_GRID' => 'Bilder in einer Kategorie', 'PLUS_ALBUM_CFG_ALBUM_DIRECTORY' => 'Albumverzeichnis',

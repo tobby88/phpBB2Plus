@@ -3,6 +3,11 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ALBUM_CATEGORIES' => 'Photo categories',
 	'ACP_PLUS_ALBUM_DISPLAY' => 'Photo album display',
+	'PLUS_ALBUM_CFG_UPLOAD_PROGRESS' => 'Upload progress',
+	'PLUS_ALBUM_CFG_SHOW_PROGRESS_BAR' => 'Show transfer progress and timing',
+	'PLUS_ALBUM_CFG_SIMPLE_FORMAT' => 'Use a plain progress display without a separate panel heading',
+	'PLUS_ALBUM_CFG_CLOSE_ON_FINISH' => 'Collapse transfer details after saving is confirmed',
+	'PLUS_ALBUM_CFG_MAX_PAUSE' => 'Show a waiting notice after this many seconds without progress (at least 30 seconds)',
 	'ACP_PLUS_ALBUM_RATINGS' => 'Photo ratings and comments', 'LOG_PLUS_ALBUM_RATINGS' => '<strong>Changed photo ratings and comments settings</strong>',
 	'PLUS_ALBUM_CFG_RATINGS_EXPLAIN' => 'These settings apply to picture pages and the random voting round. Existing votes are retained when you change the scale or switch the voting channel.',
 	'PLUS_ALBUM_CFG_CATEGORY_GRID' => 'Pictures in a category', 'PLUS_ALBUM_CFG_ALBUM_DIRECTORY' => 'Album directory',
