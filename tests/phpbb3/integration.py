@@ -1,7 +1,7 @@
 """Install the built distribution in a fresh, disposable MySQL/MariaDB database."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from itertools import islice
 import json
 import os
@@ -225,15 +225,16 @@ def install(web, settings_dir, name):
 
 def verify_upstream(web, cache):
     count = 0
-    # Independent reads of recently extracted files can wait on filesystem filters.
-    # Bound outstanding reads and keep the shared ZIP reader on this thread.
-    with ThreadPoolExecutor(max_workers=8) as readers:
+    # Windows filesystem filters can stall independent reads. On the Linux CI
+    # filesystem, scheduling thousands of short reads costs more than reading in order.
+    with (ThreadPoolExecutor(max_workers=8) if os.name == "nt" else nullcontext()) as readers:
         for url, _, prefix in PACKAGES:
             with zipfile.ZipFile(cache / url.rsplit("/", 1)[1]) as source:
                 files = (info for info in source.infolist() if not info.is_dir())
                 while batch := list(islice(files, 32)):
                     paths = [web / Path(info.filename).relative_to(prefix or ".") for info in batch]
-                    for info, content in zip(batch, readers.map(Path.read_bytes, paths)):
+                    contents = readers.map(Path.read_bytes, paths) if readers else map(Path.read_bytes, paths)
+                    for info, content in zip(batch, contents):
                         if source.read(info) != content:
                             raise ValueError(f"Modified upstream file: {info.filename}")
                         count += 1
@@ -415,6 +416,41 @@ def module_administration(base, member, ordinary, pending, fixture, target, web,
     print(f"Module administration and gallery workflows: {monotonic()-started:.1f}s", flush=True)
 
 
+def seed_source(source, legacy, suite):
+    tests = ROOT / "tests/phpbb3"
+    forum_suite = suite in ("all", "forum")
+    account_suite = suite in ("all", "management")
+    media_only = suite in ("media", "downloads")
+    # The independent media installation covers boards that disabled pruning globally.
+    php(tests / "legacy_database.php", "seed-pruning-off" if media_only else "seed", source)
+    if media_only:
+        php(tests / "quick_reply.php", source, "source-off")
+    php(tests / "board_statistics.php", "seed", source)
+    if forum_suite:
+        php(tests / "topic_readers.php", source, "source")
+        php(tests / "recommend.php", source, "source")
+        php(tests / "smilie_signs.php", source, "source")
+        php(tests / "explicit_acronym.php", source, "source")
+    if forum_suite or account_suite:
+        php(tests / "acronym_dictionary.php", source, "source")
+    if account_suite:
+        php(tests / "birthday_greeting.php", source, "source")
+        php(tests / "inline_editor.php", source, "source")
+        php(tests / "absence.php", source, "source")
+    php(tests / "weblinks.php", source, "source")
+    php(tests / "weblink_logos.php", source, "source")
+    source_files(ROOT / "phpBB2", legacy)
+    board_statistics.source_modules(ROOT / "phpBB2", legacy)
+    delegation.source_modules(ROOT / "phpBB2", legacy)
+    attachments.source_media(legacy)
+    news.source_media(legacy)
+    gallery.source_media(legacy)
+    arcade.source_media(legacy)
+    downloads.source_media(legacy)
+    profile_media.source_media(legacy)
+    weblinks.source_media(ROOT / "phpBB2", legacy)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
@@ -432,53 +468,30 @@ def main():
     with tempfile.TemporaryDirectory(prefix="plus3-integration-") as directory:
         root = Path(directory)
         web = root / "board"
-        assemble(web, args.cache.resolve(), args.offline)
-        count = verify_upstream(web, args.cache.resolve())
-        built = monotonic()
-        print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
         with database() as target, database() as source:
-            install(web, root, target)
-            if forum_suite:
-                # This also exercises conversion after the stock formatter has been cached.
-                php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
-            if account_suite:
-                php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
-            php("bin/phpbbcli.php", "--version", cwd=web)
-            fixture = ROOT / "tests/phpbb3/legacy_database.php"
-            php(fixture, "installed-flags", target)
             os.environ["PLUS_TEST_MODERN_PASSWORD"] = secrets.token_hex(7) + '"&Ü\\'
             os.environ["PLUS_TEST_HISTORIC_PASSWORD"] = secrets.token_hex(7) + "'&ä\\"
-            # The independent media installation covers boards that disabled pruning globally.
-            php(fixture, "seed-pruning-off" if media_only else "seed", source)
-            if media_only:
-                php(ROOT / "tests/phpbb3/quick_reply.php", source, "source-off")
+            fixture = ROOT / "tests/phpbb3/legacy_database.php"
             statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
-            php(statistics_fixture, "seed", source)
-            if forum_suite:
-                php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
-                php(ROOT / "tests/phpbb3/recommend.php", source, "source")
-                php(ROOT / "tests/phpbb3/smilie_signs.php", source, "source")
-                php(ROOT / "tests/phpbb3/explicit_acronym.php", source, "source")
-            if forum_suite or account_suite:
-                php(ROOT / "tests/phpbb3/acronym_dictionary.php", source, "source")
-            if account_suite:
-                php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
-                php(ROOT / "tests/phpbb3/inline_editor.php", source, "source")
-                php(ROOT / "tests/phpbb3/absence.php", source, "source")
-            php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
-            php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
-            source_files(ROOT / "phpBB2", root / "legacy")
-            board_statistics.source_modules(ROOT / "phpBB2", root / "legacy")
-            delegation.source_modules(ROOT / "phpBB2", root / "legacy")
-            attachments.source_media(root / "legacy")
-            news.source_media(root / "legacy")
-            gallery.source_media(root / "legacy")
-            arcade.source_media(root / "legacy")
-            downloads.source_media(root / "legacy")
-            profile_media.source_media(root / "legacy")
-            weblinks.source_media(ROOT / "phpBB2", root / "legacy")
+            # The source and target have separate schemas and directories. Both are ready
+            # before the wizard runs; upstream verification still precedes target installation.
+            with ThreadPoolExecutor(max_workers=1) as worker:
+                legacy = worker.submit(seed_source, source, root / "legacy", args.suite)
+                assemble(web, args.cache.resolve(), args.offline)
+                count = verify_upstream(web, args.cache.resolve())
+                built = monotonic()
+                print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
+                install(web, root, target)
+                if forum_suite:
+                    # This also exercises conversion after the stock formatter has been cached.
+                    php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
+                if account_suite:
+                    php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
+                php("bin/phpbbcli.php", "--version", cwd=web)
+                php(fixture, "installed-flags", target)
+                legacy.result()
             seeded = monotonic()
-            print(f"Installation and source fixtures: {seeded-built:.1f}s", flush=True)
+            print(f"Installation and source fixtures ready after {seeded-start:.1f}s", flush=True)
             with server(web, root) as base:
                 convert(base, source)
                 if forum_suite:
