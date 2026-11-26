@@ -10,6 +10,12 @@ services:
         arguments: ['@phpbb2plus.community.acronym_dictionary', '@language']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.account_registration:
+        class: phpbb2plus\community\event\account_registration
+        arguments: ['@dbal.conn', '@language', '@auth', '@user', '%core.table_prefix%']
+        tags:
+            - { name: event.listener }
+
     phpbb2plus.community.legacy_formatting:
         class: phpbb2plus\community\event\legacy_formatting
         arguments: ['@dbal.conn', '@service_container']

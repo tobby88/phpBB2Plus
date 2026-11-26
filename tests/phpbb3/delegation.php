@@ -41,11 +41,15 @@ function delegation_fixture_roles()
 		60 => array('MemberNoticeJunior', 'ctracker_module_categoryctracker_module_4admin_cracker_tracker.php?modu=4', 'a_plus_ct_notice'),
 		61 => array('CountryFlagJunior', 'UsersFlagsadmin_flags.php', 'a_plus_flags'),
 		62 => array('AcronymJunior', 'GeneralAcronymsadmin_acronyms.php', 'a_plus_acronyms'),
+		276 => array('RegistrationJunior', 'UsersAdd_newadmin_user_register.php', 'a_plus_user_register'),
 	);
 }
 
 function seed_delegation($db)
 {
+	$ids = implode(',', array_keys(delegation_fixture_roles()));
+	if ($db->query("SELECT user_id FROM phpbb_users WHERE user_id IN ($ids) UNION SELECT user_id FROM phpbb_jr_admin_users WHERE user_id IN ($ids)")->num_rows)
+	{ throw new RuntimeException('A reserved Junior Admin fixture ID is already in use'); }
 	$db->query("INSERT INTO phpbb_users(user_id,username,user_active,user_password,user_lang,user_email)
 		SELECT 91,'JuniorFixture',1,user_password,'english','junior@example.invalid' FROM phpbb_users WHERE user_id=2");
 	$db->query("INSERT INTO phpbb_users(user_id,username,user_active,user_password,user_lang,user_email)

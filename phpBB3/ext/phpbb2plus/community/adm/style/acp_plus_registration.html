@@ -1,0 +1,40 @@
+{% include 'overall_header.html' %}
+<h1>{{ lang('ACP_PLUS_USER_REGISTER') }}</h1>
+<p>{{ lang('ACP_PLUS_REGISTER_EXPLAIN') }}</p>
+{% if REGISTER_ERRORS %}<div class="errorbox" role="alert"><p>{{ REGISTER_ERRORS }}</p></div>{% endif %}
+<form id="plus-account-register" action="{{ U_ACTION }}" method="post" autocomplete="off">
+	<fieldset>
+		<legend>{{ lang('ACP_PLUS_REGISTER_DETAILS') }}</legend>
+		<dl><dt><label for="account-name">{{ lang('USERNAME') }}</label></dt>
+			<dd><input id="account-name" type="text" name="username" value="{{ REGISTER_NAME }}" required></dd></dl>
+		<dl><dt><label for="account-email">{{ lang('EMAIL_ADDRESS') }}</label></dt>
+			<dd><input id="account-email" type="email" name="email" value="{{ REGISTER_EMAIL }}" maxlength="60" required></dd></dl>
+		<dl><dt><label for="new-password">{{ lang('NEW_PASSWORD') }}</label><br><span>{{ REGISTER_PASSWORD_HINT }}
+			{% if REGISTER_PLUS_HINT %}{{ REGISTER_PLUS_HINT }}{% endif %}
+			{% if REGISTER_NAME_RULE %}{{ lang('PLUS_PW_NAME_ERROR') }}{% endif %}
+			{% if REGISTER_LETTER_DIGIT_RULE %}{{ lang('PLUS_PW_LETTER_DIGIT_ERROR') }}{% endif %}</span></dt>
+			<dd><input id="new-password" type="password" name="new_password" autocomplete="new-password" required></dd></dl>
+		<dl><dt><label for="password-confirm">{{ lang('CONFIRM_PASSWORD') }}</label></dt>
+			<dd><input id="password-confirm" type="password" name="password_confirm" autocomplete="new-password" required></dd></dl>
+	</fieldset>
+	<fieldset><legend>{{ lang('SETTINGS') }}</legend>
+		<dl><dt><label for="account-lang">{{ lang('LANGUAGE') }}</label></dt>
+			<dd><select id="account-lang" name="lang">{{ REGISTER_LANGUAGES }}</select></dd></dl>
+		<dl><dt><label for="account-style">{{ lang('ACP_PLUS_REGISTER_BOARD_STYLE') }}</label></dt>
+			<dd><select id="account-style" name="style">{{ REGISTER_STYLES }}</select></dd></dl>
+		{% include 'timezone_option.html' %}
+		<dl><dt><label for="dateformat">{{ lang('ACP_PLUS_REGISTER_DATE_FORMAT') }}</label></dt>
+			<dd><input id="dateformat" name="dateformat" type="text" value="{{ REGISTER_DATE_FORMAT }}" maxlength="64" list="register-date-examples" required>
+				<datalist id="register-date-examples">{% for example in loops.register_formats %}<option value="{{ example.FORMAT }}">{{ example.EXAMPLE }}</option>{% endfor %}</datalist></dd></dl>
+	</fieldset>
+	{% if loops.profile_fields %}
+	<fieldset><legend>{{ lang('USER_CUSTOM_PROFILE_FIELDS') }}</legend>
+		{% for field in loops.profile_fields %}
+		<dl><dt><label{% if field.FIELD_ID %} for="{{ field.FIELD_ID }}"{% endif %}>{{ field.LANG_NAME }}{% if field.S_REQUIRED %} *{% endif %}</label>
+			{% if field.LANG_EXPLAIN %}<br><span>{{ field.LANG_EXPLAIN }}</span>{% endif %}</dt><dd>{{ field.FIELD }}</dd></dl>
+		{% endfor %}
+	</fieldset>
+	{% endif %}
+	<fieldset class="submit-buttons">{{ S_FORM_TOKEN }}<button type="submit" name="submit" value="1" class="button1">{{ lang('ACP_PLUS_USER_REGISTER') }}</button></fieldset>
+</form>
+{% include 'overall_footer.html' %}
