@@ -1,0 +1,13 @@
+{% if S_PLUS_AWAY_SIGNUP %}
+<dl><dt><label for="plus-signup-away">{{ lang('PLUS_AWAY_STATUS') }}</label></dt><dd>
+<select id="plus-signup-away" name="plus_signup_away">
+<option value="0"{% if PLUS_SIGNUP_AWAY != '1' %} selected{% endif %}>{{ lang('PLUS_AWAY_AVAILABLE') }}</option>
+<option value="1"{% if PLUS_SIGNUP_AWAY == '1' %} selected{% endif %}>{{ lang('PLUS_AWAY') }}</option>
+</select></dd></dl>
+<dl><dt><label for="plus-signup-kind">{{ lang('PLUS_AWAY_KIND') }}</label></dt><dd>
+<select id="plus-signup-kind" name="plus_signup_kind">
+{% for value,key in {1:'PLUS_AWAY_HOLIDAY',2:'PLUS_AWAY_ILL',3:'PLUS_AWAY_LONG'} %}<option value="{{ value }}"{% if PLUS_SIGNUP_KIND == value %} selected{% endif %}>{{ lang(key) }}</option>{% endfor %}
+</select></dd></dl>
+<dl><dt><label for="plus-signup-note">{{ lang('PLUS_AWAY_NOTE') }}</label><br><span>{{ lang('PLUS_AWAY_NOTE_EXPLAIN') }}</span></dt>
+<dd><textarea id="plus-signup-note" name="plus_signup_note" rows="3" cols="35" class="inputbox">{{ PLUS_SIGNUP_NOTE|e }}</textarea></dd></dl>
+{% endif %}

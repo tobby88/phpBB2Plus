@@ -382,6 +382,11 @@ services:
     phpbb2plus.community.absence_editor:
         class: phpbb2plus\community\controller\absence
         arguments: ['@phpbb2plus.community.absence', '@user', '@auth', '@request', '@template', '@language', '@controller.helper']
+    phpbb2plus.community.absence_signup:
+        class: phpbb2plus\community\event\absence_registration
+        arguments: ['@phpbb2plus.community.absence', '@dbal.conn', '@config', '@request', '@language', '@template']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.absence_pm:
         class: phpbb2plus\community\event\absence_pm
         arguments: ['@phpbb2plus.community.absence', '@dbal.conn', '@user', '@auth', '@language', '@template']

@@ -34,6 +34,19 @@ class absence
 		return $row ? (string)json_decode($row['note_text'],true) : '';
 	}
 
+	public static function valid_note($note)
+	{
+		return is_string($note) && strlen($note)<=65535 && preg_match('//u',$note)===1 && !preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$note);
+	}
+
+	public function store_note($id,$note)
+	{
+		$id=(int)$id;
+		$this->db->sql_query("DELETE FROM $this->notes WHERE user_id=$id");
+		if ($note!=='') { $this->db->sql_query("INSERT INTO $this->notes " .
+			$this->db->sql_build_array('INSERT',array('user_id'=>$id,'note_text'=>json_encode($note)))); }
+	}
+
 	public static function account($row)
 	{
 		return $row && (int)$row['user_id']!==ANONYMOUS && in_array((int)$row['user_type'],array(USER_NORMAL,USER_FOUNDER),true);
@@ -127,13 +140,10 @@ class absence
 				$policy=$this->first('SELECT config_value FROM ' . CONFIG_TABLE . " WHERE config_name='plus_away_members' LOCK IN SHARE MODE");
 				if (!$this->can_set($target,(int)($policy['config_value'] ?? 0))) { throw new \DomainException('NO_AUTH_OPERATION'); }
 				if (!in_array($values['active'],array('0','1'),true) || (!in_array($values['kind'],array('0','1','2','3'),true) &&
-					$values['kind']!==(string)$target['plus_away_mode']) || !is_string($values['note']) || strlen($values['note'])>65535 ||
-					preg_match('//u',$values['note'])!==1 || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$values['note']))
+					$values['kind']!==(string)$target['plus_away_mode']) || !self::valid_note($values['note']))
 				{ throw new \DomainException('PLUS_AWAY_INVALID'); }
 				$fields=array('plus_away'=>(int)$values['active'],'plus_away_mode'=>(int)$values['kind']);
-				$this->db->sql_query("DELETE FROM $this->notes WHERE user_id=$target_id");
-				if ($values['note']!=='') { $this->db->sql_query("INSERT INTO $this->notes " . $this->db->sql_build_array('INSERT',
-					array('user_id'=>$target_id,'note_text'=>json_encode($values['note'])))); }
+				$this->store_note($target_id,$values['note']);
 			}
 			$fields['plus_away_revision']=bin2hex(random_bytes(16));
 			$this->db->sql_query('UPDATE ' . USERS_TABLE . ' SET ' . $this->db->sql_build_array('UPDATE',$fields) . " WHERE user_id=$target_id");
