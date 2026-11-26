@@ -1,0 +1,22 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_MAILBOX}</h1>
+<p>{L_PLUS_MAILBOX_HELP}</p>
+<!-- IF PLUS_MAILBOX_RESULT --><p class="notice">{PLUS_MAILBOX_RESULT}</p><!-- ENDIF -->
+<p>{PLUS_MAILBOX_CHECKED}</p>
+<!-- IF .mailboxes -->
+<table class="table1">
+	<thead><tr><th>{L_PLUS_MAILBOX_ACCOUNT}</th><th>{L_PLUS_MAILBOX_NEW}</th><th>{L_PLUS_MAILBOX_UNREAD}</th><th>{L_ACTION}</th></tr></thead>
+	<tbody>
+	<!-- BEGIN mailboxes -->
+	<tr><td>{mailboxes.ID}</td><td>{mailboxes.STORED_NEW} → {mailboxes.PENDING}</td><td>{mailboxes.STORED_UNREAD} → {mailboxes.UNREAD}</td><td>
+		<form id="mailbox-{mailboxes.ID}" method="post" action="{S_PLUS_MAILBOX_ACTION}">
+			<input type="hidden" name="revision" value="{mailboxes.REVISION}">{S_FORM_TOKEN}
+			<button type="submit" class="button2" name="repair" value="{mailboxes.ID}">{L_PLUS_MAILBOX_REPAIR}</button>
+		</form>
+	</td></tr>
+	<!-- END mailboxes -->
+	</tbody>
+</table>
+<!-- ELSE --><p>{L_PLUS_MAILBOX_MATCH}</p><!-- ENDIF -->
+<!-- IF U_PLUS_MAILBOX_NEXT --><p><a href="{U_PLUS_MAILBOX_NEXT}">{L_PLUS_MAILBOX_NEXT}</a></p><!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->
