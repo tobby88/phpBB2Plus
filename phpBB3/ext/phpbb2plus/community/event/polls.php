@@ -3,6 +3,7 @@ namespace phpbb2plus\community\event;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use phpbb2plus\community\service\poll_recovery;
+use phpbb\request\request_interface;
 
 class polls implements EventSubscriberInterface
 {
@@ -23,8 +24,18 @@ class polls implements EventSubscriberInterface
 
 	public static function getSubscribedEvents()
 	{
-		return array('core.viewtopic_modify_poll_data'=>array(array('moderator_vote', PHP_INT_MAX), array('converted_guest_vote', 0)),
+		return array('core.viewtopic_modify_poll_data'=>array(array('moderator_vote', PHP_INT_MAX),
+			array('converted_guest_vote', 0), array('legacy_results', 0)),
 			'core.delete_user_before'=>'remove_members', 'core.delete_topics_before_query'=>'remove_topics');
+	}
+
+	public function legacy_results($event)
+	{
+		// Old forum, portal and AJAX templates all linked here to read the results.
+		if ($this->request->variable('vote', '', false, request_interface::GET) === 'viewresult')
+		{
+			$event['s_display_results'] = true;
+		}
 	}
 
 	public function moderator_vote($event)

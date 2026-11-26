@@ -339,6 +339,16 @@ def profiles(base, member, owner):
         raise RuntimeError("The edited contact became public")
 
 
+def poll_result_bookmark(guest, path, ballot_page):
+    link = 'class="poll_view_results"'
+    if link not in ballot_page:
+        raise RuntimeError("The open guest ballot did not offer its result view")
+    for suffix in ("&view=viewpoll", "&postdays=0&postorder=asc&vote=viewresult"):
+        page = guest.fetch(path + suffix)
+        if link in page or '<span class="poll_total_vote_cnt">1</span>' not in page:
+            raise RuntimeError("The original result bookmark must open the native totals before voting")
+
+
 def native_content(base, moderator, member):
     poll = member.fetch("viewtopic.php?t=1")
     if "Welche Jahreszeit?" not in poll or "Frühling" not in poll or "Herbst" not in poll:
@@ -351,6 +361,7 @@ def native_content(base, moderator, member):
         raise RuntimeError("The historical guest vote was forgotten")
     path = "viewtopic.php?t=602"
     public = guest.fetch(path)
+    poll_result_bookmark(guest, path, public)
     form = re.search(r'<form\b[^>]*class="topic_poll"[^>]*>.*?</form>', public, re.S)
     if ballot not in public or not form:
         raise RuntimeError("A ballot which explicitly allowed guests was closed")
