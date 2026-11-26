@@ -26,6 +26,7 @@ import arcade_moderation
 import arcade_standings
 import banners
 import weblinks
+import weblink_logos
 import board_statistics
 import statistics_administration
 import attachments
@@ -374,6 +375,7 @@ def main():
             statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
             php(statistics_fixture, "seed", source)
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
+            php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
             board_statistics.source_modules(ROOT / "phpBB2", root / "legacy")
             delegation.source_modules(ROOT / "phpBB2", root / "legacy")
@@ -535,6 +537,8 @@ def main():
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 weblinks.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
+                weblink_logos.browse(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/weblink_logos.php", target, phase, cwd=web, capture=True), web)
                 attachment_quotas.messages(member, ordinary, media["member"])
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
                 attachment_quotas.administration(member, lambda phase: php(ROOT / "tests/phpbb3/attachment_quotas.php", target, phase, cwd=web))
