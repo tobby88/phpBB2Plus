@@ -6,6 +6,11 @@ phpbb2plus_arcade_points:
     path: /arcade/points
     defaults: { _controller: phpbb2plus.arcade.board:standings, monthly: false }
     methods: [GET, HEAD]
+phpbb2plus_arcade_icon:
+    path: /arcade/game/{game}/icon
+    defaults: { _controller: phpbb2plus.arcade.board:icon }
+    requirements: { game: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
 phpbb2plus_arcade_tournaments:
     path: /arcade/tournaments
     defaults: { _controller: phpbb2plus.arcade.events_board:listing, champions: false }

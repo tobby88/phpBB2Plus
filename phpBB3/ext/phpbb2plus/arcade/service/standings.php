@@ -61,7 +61,7 @@ class standings
 		{
 			$periods[] = '(s.highscore_year=' . (int) $month->format('Y') . ' AND s.highscore_mon=' . (int) $month->format('n') . ')';
 		}
-		return 'SELECT g.game_id,g.game_name,g.game_desc,s.highscore_id,s.score_units,s.owner_id,s.author_removed,
+		return 'SELECT g.game_id,g.game_name,g.game_desc,g.icon_storage,s.highscore_id,s.score_units,s.owner_id,s.author_removed,
 			s.highscore_user_id AS legacy_id,s.highscore_player AS display_name' . $this->monthly_from($guest) .
 			' AND (' . implode(' OR ', $periods) . ') AND s.highscore_id=(SELECT r.highscore_id FROM ' . $this->prefix . 'monthly r
 				WHERE r.highscore_game=s.highscore_game AND r.highscore_year=s.highscore_year AND r.highscore_mon=s.highscore_mon

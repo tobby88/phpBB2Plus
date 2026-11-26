@@ -18,6 +18,8 @@ function seed_arcade($db)
 		(63,'closed','games/','Abgeschaltetes Spiel',10,0,0,0,1,1,'10',10,0,0,''),
 		(64,'personal','games/','Persönliche Spielprobe',13,0,1,0,1,1,'10',10,0,0,'')");
 	$db->query("UPDATE phpbb_ina_games SET game_reward=4,game_bonus=2 WHERE game_id=60");
+	$db->query("UPDATE phpbb_ina_games SET image_path='.png' WHERE game_id IN (60,62)");
+	$db->query("UPDATE phpbb_ina_games SET image_path='images/arcade/clock.png' WHERE game_id=61");
 	$db->query("UPDATE phpbb_ina_games SET game_charge=8 WHERE game_id=62");
 	$db->query("INSERT INTO phpbb_ina_scores (game_name,player,player_id,score,date,time_taken,gameData) VALUES
 		('puzzle','AlterSpielname',1,95.1234,11001,20,'state:α'),('puzzle','ModernMember',2,5.5000,11002,25,''),

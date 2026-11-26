@@ -2,6 +2,8 @@
 import json
 import re
 from html import unescape
+from urllib.parse import urljoin
+from gallery import png
 from http_board import Browser, Page
 
 
@@ -55,3 +57,30 @@ def browse(base, founder, member, pending, change):
             raise RuntimeError("A disabled scoreboard remained in the directory or awarded points")
     finally:
         change("cleanup")
+
+
+def artwork(base, member, pending, recover, reimport):
+    guest = Browser(base)
+    path = "app.php/arcade/game/"
+    puzzle = png(12, 8, b"\x22\x77\xaa")
+    clock = png(10, 10, b"\x44\x88\x33")
+    with guest.opener.open(urljoin(base, path + "60/icon"), timeout=15) as response:
+        if (response.headers.get_content_type() != "image/png" or "no-store" not in response.headers.get("Cache-Control", "")
+                or response.read() != puzzle):
+            raise RuntimeError("An imported Arcade picture lost its bytes, content type or access-aware cache policy")
+    if (guest.fetch(path + "61/icon", raw=True) != clock
+            or member.fetch(path + "62/icon", raw=True) != png(8, 12, b"\x96\x34\x68")
+            or not member.fetch(path + "64/icon", raw=True).startswith(b"GIF8")):
+        raise RuntimeError("Shared, restricted or default game artwork did not follow the original paths")
+    guest.fetch(path + "62/icon", expected_status=404)
+    pending.fetch(path + "64/icon", expected_status=404)
+    for relative in ("app.php/arcade", path + "60", "arcade_highscore.php?month=2008-05"):
+        if not re.search(r'<img[^>]*src="[^"]*/arcade/game/60/icon', guest.fetch(relative)):
+            raise RuntimeError("Game artwork is missing on " + relative)
+    recover()
+    if guest.fetch(path + "60/icon", raw=True) != puzzle:
+        raise RuntimeError("The extension upgrade lost the picture stored by an earlier conversion")
+    guest.fetch(path + "61/icon", expected_status=404)
+    for _ in range(2):
+        if "Verified artwork for 5 of 5 games" not in reimport() or guest.fetch(path + "61/icon", raw=True) != clock:
+            raise RuntimeError("Restoring missing original artwork from the offline board was not repeatable")

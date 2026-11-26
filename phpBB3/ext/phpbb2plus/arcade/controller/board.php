@@ -3,6 +3,7 @@ namespace phpbb2plus\arcade\controller;
 
 use phpbb2plus\arcade\service\catalog;
 use phpbb2plus\arcade\service\score;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -24,8 +25,9 @@ class board
 	private $activity;
 	private $tournaments;
 	private $standings;
+	private $artwork;
 
-	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $tournaments, $standings, $names = null, $legacy = null)
+	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $tournaments, $standings, $artwork, $names = null, $legacy = null)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -42,11 +44,14 @@ class board
 		$this->activity = $activity;
 		$this->tournaments = $tournaments;
 		$this->standings = $standings;
+		$this->artwork = $artwork;
 	}
 
 	private function header()
 	{
 		$this->language->add_lang('arcade', 'phpbb2plus/arcade');
+		$this->template->assign_vars(array('ARC_ICON_WIDTH' => max(1, min(500, (int) $this->catalog->setting('games_image_width', 50))),
+			'ARC_ICON_HEIGHT' => max(1, min(500, (int) $this->catalog->setting('games_image_height', 50)))));
 		$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => $this->language->lang('PLUS_ARC'),
 			'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_arcade_index')));
 	}
@@ -115,10 +120,11 @@ class board
 			$count = (int) $this->db->sql_fetchfield('total');
 			$this->db->sql_freeresult($result);
 			$start = $this->start($pagelink, $count, $limit);
-			$result = $this->db->sql_query_limit('SELECT g.game_id,g.game_name,g.game_desc,g.played,g.game_avail' . $from . ' ORDER BY g.game_desc,g.game_id', $limit, $start);
+			$result = $this->db->sql_query_limit('SELECT g.game_id,g.game_name,g.game_desc,g.played,g.game_avail,g.icon_storage' . $from . ' ORDER BY g.game_desc,g.game_id', $limit, $start);
 			while ($game = $this->db->sql_fetchrow($result))
 			{
 				$this->template->assign_block_vars('arc_games', array('TITLE' => catalog::plain($game['game_desc'] ?: $game['game_name']),
+					'ICON' => $this->icon_url($game),
 					'PLAYS' => (int) $game['played'], 'OFFLINE' => !$game['game_avail'], 'URL' => $this->helper->route('phpbb2plus_arcade_game', array('game' => (int) $game['game_id']))));
 			}
 			$this->db->sql_freeresult($result);
@@ -130,6 +136,20 @@ class board
 	private function player($s)
 	{
 		return catalog::player_name($s,$this->language,$this->names ? $this->names->hidden() : empty($this->user->data['is_registered']));
+	}
+
+	private function icon_url($game)
+	{
+		return $game['icon_storage'] === '' ? '' : $this->helper->route('phpbb2plus_arcade_icon', array('game' => (int) $game['game_id']));
+	}
+
+	public function icon($game)
+	{
+		$row = $this->catalog->game((int) $game);
+		$response = new BinaryFileResponse($this->artwork->file($row), 200, array('Content-Type' => $row['icon_mime'],
+			'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; sandbox"), false);
+		$response->headers->set('Cache-Control', 'private, no-store');
+		return $response;
 	}
 
 	private function month_label($month)
@@ -166,6 +186,7 @@ class board
 			{
 				$this->template->assign_block_vars('arc_champions', array(
 					'TITLE' => catalog::plain($row['game_desc'] ?: $row['game_name']), 'PLAYER' => $this->player($row),
+					'ICON' => $this->icon_url($row),
 					'SCORE' => score::display($row['score_units'], $this->language->lang('PLUS_ARC_DECIMAL')),
 					'URL' => $this->helper->route('phpbb2plus_arcade_game', array('game' => (int) $row['game_id'])),
 				));
@@ -343,7 +364,7 @@ class board
 			}
 			$this->db->sql_freeresult($result);
 		}
-		$this->template->assign_vars(array('ARC_TITLE' => $title, 'ARC_INSTRUCTIONS' => catalog::plain($g['instructions']),
+		$this->template->assign_vars(array('ARC_TITLE' => $title, 'ARC_INSTRUCTIONS' => catalog::plain($g['instructions']), 'U_ARC_ICON' => $this->icon_url($g),
 			'ARC_BOARD' => $board !== '', 'ARC_MONTH' => $board === 'month', 'U_ARC_GAME' => $this->helper->route('phpbb2plus_arcade_game', $params)));
 		return $this->helper->render('@phpbb2plus_arcade/game.html', utf8_htmlspecialchars($title));
 	}

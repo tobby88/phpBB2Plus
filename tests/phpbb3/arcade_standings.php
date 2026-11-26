@@ -44,6 +44,11 @@ switch ($argv[2])
 		if (($by_owner[$historic] ?? 0) !== 2) { throw new RuntimeException('A January points table counted the wrong December'); }
 		echo json_encode(array('current' => $now->format('Y-m'), 'previous' => $previous->format('Y-m')));
 		break;
+	case 'recover-artwork':
+		$db->sql_query("UPDATE {$p}games SET icon_storage='',icon_mime='',icon_bytes=0 WHERE game_id IN (60,61)");
+		$migration = new \phpbb2plus\arcade\migrations\v110_artwork($config, $db, $phpbb_container->get('dbal.tools'), $phpbb_root_path, $phpEx, $table_prefix);
+		if ($migration->recover(0) !== true) { throw new RuntimeException('Incomplete artwork migration'); }
+		break;
 	case 'duplicate':
 		$db->sql_query("INSERT INTO {$p}games " . $db->sql_build_array('INSERT', array('game_id' => 900100,
 			'game_name' => 'puzzle', 'game_desc' => 'Hidden duplicate', 'cat_id' => 12, 'game_avail' => 1, 'game_show_score' => 1)));

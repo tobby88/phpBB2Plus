@@ -202,6 +202,6 @@ function plus_arcade_schema($prefix, $truncate)
 		array('blocked','users.arcade_banned','intval'), array('block_pm','users.games_block_pm','intval'));
 	$sections[] = array('target' => $prefix . 'plus_arc_assets', 'primary' => 'ina_games.game_id',
 		'query_first' => array('target', $truncate . $prefix . 'plus_arc_assets'),
-		array('',array('ina_games.game_id','ina_games.game_name','ina_games.game_path','ina_games.game_flash'),'plus_arcade_media'));
+		array('',array('ina_games.game_id','ina_games.game_name','ina_games.game_path','ina_games.game_flash','ina_games.image_path'),'plus_arcade_media'));
 	return array_merge($sections, plus_arcade_wallet_schema($prefix, $truncate));
 }

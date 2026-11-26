@@ -1,4 +1,6 @@
 .arc-standings-nav { display: flex; align-items: center; flex-wrap: wrap; gap: .4em 1.1em; margin: .5em 0 1em; }
+.arc-game-icon { max-width: 100%; object-fit: contain; vertical-align: middle; margin-inline-end: .6em; }
+#arc-champions .arc-game-icon { display: block; margin: 0 auto .4em; }
 .arc-standings h3 { margin: 0; padding: .6em; color: #fff; text-align: center; text-transform: none; }
 #arc-champions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; margin: 0; padding: 0; list-style: none; }
 #arc-champions li, .arc-standings .arc-empty { padding: .8em; margin: 0; color: #243a4d; background: #eaedf4; text-align: center; overflow-wrap: anywhere; }

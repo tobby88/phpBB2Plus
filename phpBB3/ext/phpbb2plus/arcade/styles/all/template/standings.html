@@ -11,7 +11,7 @@
 <section class="forabg arc-standings"><div class="inner">
 <h3>{{ ARC_MONTH_LABEL|e }}</h3>
 {% if loops.arc_champions %}<ul id="arc-champions">{% for game in loops.arc_champions %}<li>
-	<a class="topictitle" href="{{ game.URL }}">{{ game.TITLE|e }}</a><br>{{ game.PLAYER }} &middot; {{ game.SCORE }}
+	<a class="topictitle" href="{{ game.URL }}">{% if game.ICON %}<img class="arc-game-icon" src="{{ game.ICON }}" alt="" loading="lazy" width="{ARC_ICON_WIDTH}" height="{ARC_ICON_HEIGHT}">{% endif %}{{ game.TITLE|e }}</a><br>{{ game.PLAYER }} &middot; {{ game.SCORE }}
 </li>{% endfor %}</ul>{% else %}<p class="arc-empty">{L_PLUS_ARC_NO_SCORES}</p>{% endif %}
 </div></section>
 {% else %}

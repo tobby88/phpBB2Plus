@@ -1,9 +1,12 @@
 """Verify the visible games and native rankings for different viewers."""
 import re
+import shutil
 import struct
 import time
 from html import unescape
+from pathlib import Path
 from urllib.parse import parse_qs, urljoin, urlsplit
+from gallery import png
 from http_board import Browser, Page
 
 
@@ -254,6 +257,14 @@ def source_media(legacy):
     (folder.parent / "timer.swf").write_bytes(movie())
     (folder / "levels/two.txt").write_text("Spielstufe zwei", encoding="utf-8")
     (folder / "club/private.swf").write_bytes(movie())
+    (folder / "puzzle.png").write_bytes(png(12, 8, b"\x22\x77\xaa"))
+    (folder / "club/private.png").write_bytes(png(8, 12, b"\x96\x34\x68"))
+    shared = legacy / "images/arcade"
+    shared.mkdir(parents=True, exist_ok=True)
+    (shared / "clock.png").write_bytes(png(10, 10, b"\x44\x88\x33"))
+    fallback = Path("templates/fisubsilversh/images/games.gif")
+    (legacy / fallback.parent).mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(Path(__file__).resolve().parents[2] / "phpBB2" / fallback, legacy / fallback)
 
 
 def browse(base, administrator, member, pending):

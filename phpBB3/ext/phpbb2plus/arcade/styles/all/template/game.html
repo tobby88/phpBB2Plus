@@ -1,5 +1,6 @@
+<!-- INCLUDECSS @phpbb2plus_arcade/standings.css -->
 <!-- INCLUDE overall_header.html -->
-<h2><a href="{U_ARC_GAME}">{{ ARC_TITLE|e }}</a></h2>
+<h2><a href="{U_ARC_GAME}">{% if U_ARC_ICON %}<img class="arc-game-icon" src="{U_ARC_ICON}" alt="" width="{ARC_ICON_WIDTH}" height="{ARC_ICON_HEIGHT}">{% endif %}{{ ARC_TITLE|e }}</a></h2>
 {% if ARC_WALLET %}<p>{L_PLUS_ARC_BALANCE} {{ ARC_BALANCE }} {{ ARC_CURRENCY|e }}{% if ARC_COST %} · {L_PLUS_ARC_COST} {{ ARC_COST }} {{ ARC_CURRENCY|e }}{% endif %}</p>{% endif %}
 {% if U_ARC_START %}<form id="arcade-play" method="post" action="{U_ARC_START}">{S_FORM_TOKEN}<input type="hidden" name="play_nonce" value="{ARC_NONCE}"><input class="button1" type="submit" value="{L_PLUS_ARC_PLAY}"></form>
 {% elseif ARC_NO_FILE %}<p>{L_PLUS_ARC_NO_FILE}</p>{% elseif ARC_TOUR_RESERVED %}<p>{L_PLUS_ARC_TOUR_RESERVED}</p>{% endif %}

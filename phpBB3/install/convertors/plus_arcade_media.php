@@ -60,11 +60,17 @@ function plus_arcade_directories($board, $root)
 	return $owners;
 }
 
-function plus_arcade_media($id, $name, $directory, $flash)
+function plus_arcade_media($id, $name, $directory, $flash, $image)
 {
-	global $convert, $src_db, $db, $table_prefix, $config, $phpbb_root_path;
+	global $convert, $src_db, $db, $table_prefix, $config, $phpbb_root_path, $phpbb_container;
 	$id = (int) $id;
 	if ($id <= 0) { return; }
+	static $artwork = null, $source = null;
+	if ($artwork === null)
+	{
+		$artwork = new \phpbb2plus\arcade\service\artwork($db, $config, $table_prefix . 'plus_arc_', $phpbb_root_path, $phpbb_container->get('filesystem'));
+		$source = $artwork->source_root($convert->options['forum_path']);
+	}
 	static $games_root = null;
 	if ($games_root === null)
 	{
@@ -125,6 +131,7 @@ function plus_arcade_media($id, $name, $directory, $flash)
 			}
 		}
 		$db->sql_query('UPDATE ' . $table_prefix . 'plus_arc_games SET ' . $db->sql_build_array('UPDATE', array('asset_status'=>$status,'main_asset'=>$main)) . ' WHERE game_id=' . $id);
+		$artwork->import_game(array('game_id' => $id, 'game_name' => $name, 'game_path' => $directory, 'image_path' => $image), $source);
 		$db->sql_transaction('commit');
 	}
 	catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
