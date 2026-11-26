@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_EMBED_DENIED' => 'Diese Website darf das Albumfoto nicht einbetten.',
 	'PLUS_ALBUM_HOT' => 'Zufallsbild bewerten', 'PLUS_ALBUM_HOT_EMPTY' => 'Für die Zufallsbewertung sind derzeit keine Bilder sichtbar.',
 	'PLUS_ALBUM_VOTE_SAVED' => 'Deine Bewertung wurde gespeichert.', 'PLUS_ALBUM_DRAW_AGAIN' => 'Weiteres Zufallsbild',
 	'PLUS_ALBUM_VOTE_UNAVAILABLE' => 'Du kannst dieses Bild derzeit nicht bewerten.',

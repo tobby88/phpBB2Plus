@@ -34,7 +34,9 @@ class personal_module
 			$values = array();
 			foreach (settings::defaults($mode) as $name => $default)
 			{
-				if ($request->is_set_post($name)) { $values[$name] = $request->variable($name, '', false, request_interface::POST); }
+				if (!$request->is_set_post($name)) { continue; }
+				$values[$name] = $name === 'hotlink_allowed' ? htmlspecialchars_decode($request->variable($name, '', true, request_interface::POST), ENT_QUOTES) :
+					$request->variable($name, '', false, request_interface::POST);
 			}
 			try
 			{
@@ -54,6 +56,7 @@ class personal_module
 		}
 		$stored = $settings->snapshot($mode);
 		$groups = array('media' => settings::MEDIA_GROUPS, 'display' => settings::DISPLAY_GROUPS, 'ratings' => settings::RATING_GROUPS);
+		$text_help = array('hon_rate_where' => 'PLUS_ALBUM_CFG_VOTING_CATEGORIES_HELP', 'hotlink_allowed' => 'PLUS_ALBUM_CFG_REFERRERS_HELP');
 		foreach (settings::defaults($mode) as $name => $default)
 		{
 			$current = settings::control_value($name, (string) ($stored[$name] ?? $default));
@@ -65,7 +68,8 @@ class personal_module
 			$template->assign_block_vars('controls', array('NAME' => $name, 'LABEL' => $language->lang('PLUS_ALBUM_CFG_' . strtoupper($name)),
 				'HEADING' => $group ? $language->lang('PLUS_ALBUM_CFG_' . $group) : '',
 				'VALUE' => $value, 'MIN' => min((float) $current, $bounds[0]), 'MAX' => max((float) $current, $bounds[1]),
-				'IS_SELECT' => !empty($options), 'IS_INTERVAL' => $name === 'new_pic_check_interval', 'IS_CATEGORIES' => $name === 'hon_rate_where'));
+				'IS_SELECT' => !empty($options), 'IS_INTERVAL' => $name === 'new_pic_check_interval',
+				'TEXT_HELP' => isset($text_help[$name]) ? $language->lang($text_help[$name]) : ''));
 			foreach ($options as $key => $label)
 			{
 				$template->assign_block_vars('controls.options', array('VALUE' => $key, 'LABEL' => $language->lang('PLUS_ALBUM_CFG_' . $label), 'SELECTED' => (string) $key === $value));

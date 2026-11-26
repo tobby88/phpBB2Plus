@@ -3,7 +3,9 @@ namespace phpbb2plus\gallery\controller;
 
 use phpbb2plus\gallery\service\raster;
 use phpbb2plus\gallery\service\pictures;
+use phpbb2plus\gallery\service\referrers;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
@@ -13,13 +15,17 @@ class media
 	private $config;
 	private $root;
 	private $ini;
+	private $http;
+	private $language;
 
-	public function __construct($access, $config, $root, $ini)
+	public function __construct($access, $config, $root, $ini, $http, $language)
 	{
 		$this->access = $access;
 		$this->config = $config;
 		$this->root = $root;
 		$this->ini = $ini;
+		$this->http = $http;
+		$this->language = $language;
 	}
 
 	private function response($path, $mime)
@@ -53,6 +59,21 @@ class media
 	public function show($picture, $size)
 	{
 		list($pic) = $this->access->picture($picture);
+		if ((int) $this->access->setting('hotlink_prevent', 0) === 1 && $this->http->headers->has('Referer'))
+		{
+			$hosts = array($this->config['server_name']);
+			// phpBB builds its own board links from the request host unless server settings are forced.
+			if (!$this->config['force_server_vars']) { $hosts[] = $this->http->getHost(); }
+			if (!referrers::allows($this->http->headers->get('Referer'), $hosts, $this->access->setting('hotlink_allowed', '')))
+			{
+				$this->language->add_lang('gallery', 'phpbb2plus/gallery');
+				return new Response($this->language->lang('PLUS_ALBUM_EMBED_DENIED'), 403, array(
+					'Content-Type' => 'text/plain; charset=UTF-8',
+					'Cache-Control' => 'private, no-store',
+					'X-Content-Type-Options' => 'nosniff',
+				));
+			}
+		}
 		$directory = realpath($this->root . $this->config['upload_path']);
 		$source = pictures::original_path($directory, $pic['storage_name']);
 		if (!$source || !in_array($size, array('small','medium','full'), true)) { throw new NotFoundHttpException(); }

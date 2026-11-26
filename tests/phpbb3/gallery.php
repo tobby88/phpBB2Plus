@@ -3,6 +3,7 @@ function seed_gallery($db)
 {
 	$db->query("UPDATE phpbb_album_config SET config_value='16' WHERE config_name='thumbnail_size'");
 	$db->query("UPDATE phpbb_album_config SET config_value='3' WHERE config_name='user_pics_limit'");
+	$db->query("UPDATE phpbb_album_config SET config_value='.club.example.invalid, https://www.gallery.example.invalid/show' WHERE config_name='hotlink_allowed'");
 	$db->query("UPDATE phpbb_album_sp_config SET config_value='1' WHERE config_name='use_watermark'");
 	// The album home uses the Supercharged gallery settings, independently of category pagination.
 	$db->query("UPDATE phpbb_album_sp_config SET config_value='3' WHERE config_name='img_cols'");

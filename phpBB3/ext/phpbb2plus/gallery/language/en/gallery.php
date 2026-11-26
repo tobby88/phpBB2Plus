@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ALBUM_EMBED_DENIED' => 'This website cannot embed this album picture.',
 	'PLUS_ALBUM_HOT' => 'Rate a random picture', 'PLUS_ALBUM_HOT_EMPTY' => 'There are currently no pictures available for random rating.',
 	'PLUS_ALBUM_VOTE_SAVED' => 'Your rating has been saved.', 'PLUS_ALBUM_DRAW_AGAIN' => 'Another random picture',
 	'PLUS_ALBUM_VOTE_UNAVAILABLE' => 'You cannot currently rate this picture.',
