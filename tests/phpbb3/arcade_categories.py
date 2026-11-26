@@ -1,7 +1,8 @@
 """Check the category overview through the converted board and its ordinary routes."""
 import http.client
 import re
-from urllib.parse import urljoin, urlsplit
+from html import unescape
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 from gallery import png
 from http_board import Browser
@@ -51,10 +52,15 @@ def charts(guest, member, directory, change):
     for period in ("current", "all"):
         member_records = section(club, "record-" + period)
         public_records = section(public, "record-" + period)
-        if ("DepartingFixture" not in member_records or "4 first places" not in member_records or
-                len(re.findall(r'/awards/' + period + r'\?place=[123]', member_records)) != 3 or
-                "DepartingFixture" in public_records or '/awards/' in public_records):
-            raise RuntimeError("A player's podium totals include inaccessible games or omit the personal award links")
+        if "DepartingFixture" not in member_records or "4 first places" not in member_records:
+            raise RuntimeError("Incorrect member-visible " + period + " leader: " + re.sub(r'<[^>]+>', '', member_records).strip())
+        if "DepartingFixture" in public_records or "/awards" in public_records:
+            raise RuntimeError("Public podiums included private games or a personal link")
+        links = [urlsplit(unescape(url)) for url in re.findall(r'href="([^"]+)"', member_records)]
+        suffix = r'/awards(?:/current)?$' if period == "current" else r'/awards/all$'
+        places = [parse_qs(url.query).get("place") for url in links if re.search(suffix, url.path)]
+        if places != [["1"], ["2"], ["3"]]:
+            raise RuntimeError("Incorrect personal podium links for " + period + ": " + repr(places))
     change("least")
     least = guest.fetch(directory)
     if "Open fixture game" in section(least, "chart-least") or "arc-chart-recent" in least or "arc-record-all" in least:
