@@ -1,7 +1,7 @@
 <!-- INCLUDECSS @phpbb2plus_knowledgebase/knowledgebase.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ KB_TITLE|e }}</h2>
-{% include '@phpbb2plus_knowledgebase/navigation.html' %}
+{% include '@phpbb2plus_knowledgebase/navigation.html' with {'has_search_form': true} %}
 {% if U_KB_NEW %}<div class="action-bar"><a class="button" href="{U_KB_NEW}">{L_PLUS_KB_ACTION_NEW}</a></div>{% endif %}
 <form class="action-bar" id="kb-search" method="get" action="{U_SEARCH}"><fieldset>
 <label for="kb-query">{L_SEARCH}</label> <input class="inputbox search" id="kb-query" name="q" maxlength="240" value="{{ KB_QUERY|e('html_attr') }}">

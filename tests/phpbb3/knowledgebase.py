@@ -22,6 +22,8 @@ def rankings(guest, editor):
         raise RuntimeError("The public most-read ranking included drafts or lost its order or member bylines")
     if title not in guest.fetch("kb.php?mode=stats&stats=latest&start=5") or "Brief der Klasse" not in guest.fetch(ranked + "latest"):
         raise RuntimeError("The legacy statistics bookmark lost the sort or page offset")
+    if '#kb-query">Search articles</a>' not in popular or '#kb-query">Artikel suchen</a>' not in rated:
+        raise RuntimeError("The rankings lost the localized shortcut to article search")
 
 
 def reply_panel(page):
@@ -106,6 +108,9 @@ def browse(base, administrator, editor, reader):
     rankings(guest, editor)
     inline_replies(guest, administrator)
     first = guest.fetch(article + "201")
+    lookup = re.search(r'href="([^"]+)#kb-query">Artikel suchen</a>', first)
+    if not lookup or 'id="kb-query"' not in guest.fetch(urljoin(base + article + "201", unescape(lookup[1]))) or '#kb-query">' in public:
+        raise RuntimeError("Article readers could not reach the Knowledge Base search form")
     legacy = guest.fetch("kb.php?mode=article&k=201&page_num=2&print=true")
     if "Zweite Wissensseite" not in legacy or "Wissensarchiv" not in guest.fetch("kb.php?mode=cat&cat=8"):
         raise RuntimeError("A bookmarked Knowledge Base page no longer opens its original content")
