@@ -463,6 +463,14 @@ if (!$get_info)
 	}
 	$actions = plus_action_schema($src_db, $convert->src_table_prefix, $table_prefix);
 	if ($actions) { $convertor['schema'][] = $actions; }
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_topic_readers');
+	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_readers_import');
+	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'topic_view'))
+	{
+		$convertor['schema'][] = plus_topic_readers_schema($table_prefix . 'plus_readers_import');
+		$convertor['execute_last'][] = 'plus_publish_topic_readers();';
+	}
+	else { $convertor['execute_last'][] = '$config->set("plus_topic_readers", 0);'; }
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_account_logins');
 	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'ctracker_loginhistory'))
 	{

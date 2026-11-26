@@ -24,6 +24,10 @@ $private = $db->sql_query('SELECT COUNT(*) AS total FROM ' . $table_prefix . 'pl
 $remaining = (int) $db->sql_fetchfield('total');
 $db->sql_freeresult($private);
 if ($remaining) { throw new RuntimeException('Native removal left private login history behind'); }
+$result = $db->sql_query('SELECT COUNT(*) AS total FROM ' . $table_prefix . 'plus_topic_readers WHERE user_id=87');
+$reader_rows = (int) $db->sql_fetchfield('total');
+$db->sql_freeresult($result);
+if ($reader_rows) { throw new RuntimeException('Native account removal retained its topic reading history'); }
 $result = $db->sql_query('SELECT poster_id,post_username FROM ' . POSTS_TABLE . ' WHERE post_id=42');
 $post = $db->sql_fetchrow($result);
 $db->sql_freeresult($result);

@@ -6,6 +6,11 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
 	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
 	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
+	if ($entry === 'topic_view_users' && $method === 'POST')
+	{
+		$read_form = $sort_redirect = true;
+		$query = array_intersect_key($_POST, array_flip(array('t', 'mode', 'order'))) + $query;
+	}
 	if ($entry === 'links' && $method === 'POST' && !isset($query['action']))
 	{
 		// Directory searches and sorting use the original read-only form body.
@@ -92,6 +97,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'topic_view_users':
+			if (!($id = $positive('t'))) { break; }
+			$path = 'topic/' . $id . '/readers';
+			if (in_array($query['mode'] ?? '', array('username','email','joined','topic_time','topic_count','website','topten'), true)) { $extra['mode'] = $query['mode']; }
+			if (in_array($query['order'] ?? '', array('ASC','DESC'), true)) { $extra['order'] = $query['order']; }
+			header('Cache-Control: private, no-store');
+			break;
 		case 'topic_watch':
 			// Old notification emails contain only the topic number. The native
 			// form identifies the current member when they confirm unsubscribing.

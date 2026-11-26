@@ -52,6 +52,7 @@ import poll_administration
 import legacy_links
 import mail_links
 import admin_contact
+import topic_readers
 import downloads
 import download_categories
 import download_checker
@@ -297,8 +298,10 @@ def extension_upgrades(target, web, suite="all"):
     migrations, fixtures, preserved = [], [], []
     if suite in ("forum", "all"):
         migrations.extend(("community/migrations/v137_account_logins", "community/migrations/v150_country_flag_administration",
+                           "community/migrations/v151_topic_readers",
                            "arcade/migrations/v113_category_administration"))
         fixtures.append(tests / "login_lifecycle.php")
+        fixtures.append(tests / "topic_readers.php")
         preserved.extend((tests / "country_flag_administration.php", tests / "arcade_category_administration.php"))
     if suite in ("media", "downloads", "all"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
@@ -375,6 +378,8 @@ def main():
             php(fixture, "seed-pruning-off" if media_only else "seed", source)
             statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
             php(statistics_fixture, "seed", source)
+            if not media_only:
+                php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
@@ -410,6 +415,8 @@ def main():
                 php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_checker.php", target, "converted", cwd=web)
                 php(statistics_fixture, "converted", target)
+                if not media_only:
+                    php(ROOT / "tests/phpbb3/topic_readers.php", target, "converted", cwd=web)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True), with_recovery=not media_only)
                 converted = monotonic()
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
@@ -425,6 +432,8 @@ def main():
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
                 if not media_only:
                     forum_recovery.browse(base, member)
+                    topic_readers.browse(base, member, ordinary, lambda phase: php(
+                        ROOT / "tests/phpbb3/topic_readers.php", target, phase, cwd=web))
                     locked_polls.exercise(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/locked_polls.php", target, phase, cwd=web))
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 member_notice.imported(base, ordinary, member, media_only)

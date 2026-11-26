@@ -1,0 +1,16 @@
+{% include 'overall_header.html' %}
+<h2>{{ lang('PLUS_READERS') }} &ndash; <a href="{{ U_READER_TOPIC }}">{{ READER_TOPIC }}</a></h2>
+<div class="action-bar"><div class="pagination">{{ lang('PLUS_READERS_TOTAL', READER_TOTAL) }} {% if pagination %}{% include 'pagination.html' %}{% endif %}</div></div>
+<div class="forabg"><div class="inner">
+<table class="table1" id="plus-topic-readers">
+	<thead><tr><th scope="col">{{ lang('USERNAME') }}</th><th scope="col">{{ lang('PLUS_READERS_LAST') }}</th><th scope="col">{{ lang('VIEWS') }}</th><th scope="col">{{ lang('JOINED') }}</th><th scope="col">{{ lang('POSTS') }}</th></tr></thead>
+	<tbody>{% for reader in readers %}
+		<tr class="{{ loop.index is odd ? 'bg1' : 'bg2' }}" data-reader="{{ reader.ID }}"><td>{{ reader.NAME }}</td><td>{{ reader.LAST }}</td><td>{{ reader.COUNT }}</td><td>{{ reader.JOINED }}</td><td>{{ reader.POSTS }}</td></tr>
+	{% else %}<tr><td colspan="5">{{ lang('PLUS_READERS_EMPTY') }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<form method="get" action="{{ U_READERS_SORT }}"><fieldset class="display-options">
+	<label>{{ lang('SORT_BY') }} <select name="mode">{% for sort in sorts %}<option value="{{ sort.KEY }}"{% if sort.SELECTED %} selected{% endif %}>{{ sort.LABEL }}</option>{% endfor %}</select></label>
+	<select name="order" aria-label="{{ lang('SORT_DIRECTION') }}"><option value="ASC"{% if not S_READER_DESC %} selected{% endif %}>{{ lang('ASCENDING') }}</option><option value="DESC"{% if S_READER_DESC %} selected{% endif %}>{{ lang('DESCENDING') }}</option></select>
+	<input type="submit" class="button2" value="{{ lang('GO') }}">
+</fieldset></form>
+{% include 'overall_footer.html' %}

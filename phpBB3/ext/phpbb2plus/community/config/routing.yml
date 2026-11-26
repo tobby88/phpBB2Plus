@@ -54,6 +54,11 @@ phpbb2plus_community_removed_post:
     defaults: { _controller: phpbb2plus.community.removed_topic:show, topic_id: 0 }
     requirements: { post_id: '[1-9][0-9]{0,9}' }
     methods: [GET, HEAD, POST]
+phpbb2plus_community_topic_readers:
+    path: /topic/{topic_id}/readers
+    defaults: { _controller: phpbb2plus.community.topic_readers:show }
+    requirements: { topic_id: '[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD, POST]
 phpbb2plus_community_post_export:
     path: /post/{post_id}/topic.txt
     defaults: { _controller: phpbb2plus.community.topic_export:download, topic_id: 0 }

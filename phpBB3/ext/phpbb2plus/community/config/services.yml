@@ -120,6 +120,14 @@ services:
     phpbb2plus.community.topic_reader:
         class: phpbb2plus\community\service\topic_reader
         arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@dispatcher', '@config', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.community.topic_readers:
+        class: phpbb2plus\community\controller\topic_readers
+        arguments: ['@phpbb2plus.community.topic_reader', '@phpbb2plus.community.topic_activity', '@dbal.conn', '%core.table_prefix%', '@auth', '@config', '@user', '@language', '@request', '@template', '@pagination', '@controller.helper']
+    phpbb2plus.community.topic_reader_events:
+        class: phpbb2plus\community\event\topic_readers
+        arguments: ['@dbal.conn', '%core.table_prefix%', '@auth', '@config', '@request', '@user', '@language', '@controller.helper', '@template']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.removed_topic:
         class: phpbb2plus\community\controller\removed_topic
         arguments: ['@phpbb2plus.community.topic_reader', '@dbal.conn', '@auth', '@config', '@request', '@language', '@template', '@pagination', '@controller.helper', '%core.root_path%', '%core.php_ext%']
