@@ -8,6 +8,7 @@ function seed_account_logins($db, $enabled)
 	$now = time();
 	$days = $enabled ? 50000 : 0;
 	$db->query("UPDATE phpbb_config SET config_value='$days' WHERE config_name='max_password_age'");
+	$db->query("UPDATE phpbb_config SET config_value='" . ($enabled ? 6 : 0) . "' WHERE config_name='min_password_len'");
 	$db->query("UPDATE phpbb_users SET user_passwd_change=$now WHERE user_passwd_change=0 AND user_id>0 AND user_id<>63");
 	$db->query("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email,user_passwd_change)
 		SELECT 141,'RenewalMember',user_password,'english','renewal@example.invalid',0 FROM phpbb_users WHERE user_id=2");
@@ -50,6 +51,13 @@ function check_imported_logins($db, $member)
 	$tracker = $db->query("SELECT config_value FROM p3_config WHERE config_name='plus_pw_reminder'")->fetch_row()[0];
 	check_fixture((int) $policy === 1 && (int) $interval === ((int) $tracker ? 50000 : 0),
 		'The native mandatory password interval lost the source setting');
+	$rules = $db->query("SELECT config_name,config_value FROM p3_config WHERE config_name IN
+		('plus_pw_rules','plus_pw_min_bytes','plus_pw_no_name','plus_pw_letters_digits','min_pass_chars','pass_complex')")->fetch_all();
+	$values = array_column($rules, 1, 0);
+	check_fixture($values['plus_pw_rules'] === '1' && $values['plus_pw_min_bytes'] === ((int) $tracker ? '6' : '0')
+		&& $values['plus_pw_no_name'] === '1' && $values['plus_pw_letters_digits'] === '0'
+		&& $values['min_pass_chars'] === '1' && $values['pass_complex'] === 'PASS_TYPE_ANY',
+		'The converter changed the source password rules or left a conflicting native character minimum');
 	$markers = $db->query('SELECT plus_pw_renewal_seen FROM p3_users WHERE user_id IN (59,141) ORDER BY user_id')->fetch_all();
 	check_fixture(array_map('intval', array_column($markers, 0)) === array(1,0), 'Known renewal prompt and first login became indistinguishable');
 }

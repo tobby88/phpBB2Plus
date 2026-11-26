@@ -28,6 +28,17 @@ function plus_login_settings()
 	global $config, $convert, $src_db;
 	// get_config_value() conflates the explicit string "0" with an empty value.
 	$source_config = get_config();
+	if (array_intersect_key($source_config, array_flip(array('min_password_len', 'password_not_login', 'force_complex_password'))))
+	{
+		$config->set('plus_pw_min_bytes', max(0, min(72, (int) ($source_config['min_password_len'] ?? 6))));
+		$config->set('plus_pw_no_name', (int) (bool) ($source_config['password_not_login'] ?? 1));
+		$config->set('plus_pw_letters_digits', (int) (bool) ($source_config['force_complex_password'] ?? 0));
+		// Plus measured escaped UTF-8 bytes. A second minimum measured in characters
+		// would reject e.g. two three-byte letters on a board with a six-byte minimum.
+		$config->set('min_pass_chars', 1);
+		$config->set('pass_complex', 'PASS_TYPE_ANY');
+		$config->set('plus_pw_rules', 1);
+	}
 	$age = isset($source_config['max_password_age']) ? (string) $source_config['max_password_age'] : '';
 	if (preg_match('/^[0-9]{1,10}$/D', $age) && (float) $age <= 2147483647)
 	{

@@ -257,3 +257,23 @@ services:
         arguments: ['@dbal.conn', '@config', '@user', '@auth', '@template', '@controller.helper']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.password_policy:
+        class: phpbb2plus\community\password\policy
+        arguments: ['@config']
+    phpbb2plus.community.user_add:
+        parent: console.command.user.add
+        decorates: console.command.user.add
+        class: phpbb2plus\community\console\user_add
+        calls:
+            - [set_rules, ['@phpbb2plus.community.password_policy']]
+    phpbb2plus.community.password_login:
+        parent: auth.provider.db
+        decorates: auth.provider.db
+        class: phpbb2plus\community\auth\password_login
+        calls:
+            - [set_rules, ['@phpbb2plus.community.password_policy']]
+    phpbb2plus.community.password_forms:
+        class: phpbb2plus\community\event\password_forms
+        arguments: ['@phpbb2plus.community.password_policy', '@config', '@user', '@auth', '@dbal.conn', '@request', '@template', '@language']
+        tags:
+            - { name: event.listener }

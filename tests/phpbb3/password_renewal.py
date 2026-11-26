@@ -5,11 +5,13 @@ import secrets
 from html import unescape
 
 from download_mail import mailbox
+import password_rules
 from http_board import Browser, FormFields, Page, admin_url, login, submit_form
 from warning_cards import check_restricted_login
 
 
 def exercise(base, owner, fixture, restrictions):
+    password_rules.exercise(base, owner, fixture)
     with mailbox() as sink:
         check_board(base, owner, fixture, restrictions, sink)
 
@@ -83,8 +85,13 @@ def check_board(base, owner, fixture, restrictions, sink):
         if not reset:
             raise RuntimeError("The synthetic mailbox did not receive the native password reset link")
         link = unescape(reset[0])
+        form = guest.fetch(link)
+        password_rules.has_hint(form)
+        refused_reset = submit_form(guest, link, form, "reset_password",
+                                    {"submit": "1", "new_password": "RenewalMember", "new_password_confirm": "RenewalMember"})
+        password_rules.rejected(refused_reset, "name")
         replacement = "R2-" + secrets.token_hex(14)
-        submit_form(guest, link, guest.fetch(link), "reset_password",
+        submit_form(guest, link, refused_reset, "reset_password",
                     {"submit": "1", "new_password": replacement, "new_password_confirm": replacement})
         password = replacement
         _, page = attempt()

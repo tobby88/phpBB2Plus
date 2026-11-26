@@ -28,5 +28,6 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_PW_RENEW_POLICY_EXPLAIN' => 'Use the phpBB2 Plus login rules for the configured password age. Members get a reminder before expiry and use password recovery when their password expires. Zero days disables expiry.',
 	'PLUS_PW_RENEW_CONTACT' => 'Your password has expired. Please contact the board administrator.',
 	'PLUS_PW_RENEW_UNKNOWN' => 'Please change your password before your next login.',
+	'PLUS_PW_RENEW_WEAK' => 'Your current password no longer meets the board rules. Please change it in your account settings.',
 	'PLUS_PW_RENEW_SOON' => array(1 => 'Your password expires in one day.', 2 => 'Your password expires in %d days.'),
 ));

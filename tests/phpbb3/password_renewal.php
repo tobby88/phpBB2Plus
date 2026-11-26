@@ -53,6 +53,44 @@ elseif (preg_match('/^mail-on:([0-9]{4,5})$/D', $phase, $match))
 	$phpbb_container->get('config_text')->set('plus_test_renewal_mail', json_encode($previous));
 	foreach ($settings as $key => $value) { $config->set($key, $value); }
 }
+elseif ($phase === 'registration-open' || $phase === 'registration-restore')
+{
+	$store = $phpbb_container->get('config_text');
+	$key = 'plus_test_registration_rules';
+	if ($phase === 'registration-open')
+	{
+		$previous = array();
+		foreach (array('require_activation' => USER_ACTIVATION_NONE, 'enable_confirm' => 0, 'coppa_enable' => 0,
+			'check_dnsbl' => 0, 'email_check_mx' => 0) as $name => $value)
+		{
+			$previous[$name] = $config[$name];
+			$config->set($name, $value);
+		}
+		$store->set($key, json_encode($previous));
+	}
+	elseif (($previous = $store->get($key)) !== null)
+	{
+		foreach (json_decode($previous, true, 512, JSON_THROW_ON_ERROR) as $name => $value) { $config->set($name, $value); }
+		$store->delete($key);
+	}
+}
+elseif ($phase === 'cli-rules')
+{
+	$app = new \phpbb\console\application('phpBB Console', PHPBB_VERSION, $language, $config);
+	$app->register_container_commands($phpbb_container->get('console.command_collection'));
+	$command = $app->find('user:add');
+	$name = 'CliPolicy9';
+	$valid_input = 'Cli4&' . substr(hash('sha256', getenv('PLUS_TEST_MODERN_PASSWORD')), 0, 18);
+	foreach (array($name => false, $valid_input => true) as $candidate => $valid)
+	{
+		$input = new \Symfony\Component\Console\Input\ArrayInput(array('--username' => $name,
+			'--email' => 'cli-policy@example.invalid', '--password' => $candidate));
+		$output = new \Symfony\Component\Console\Output\BufferedOutput();
+		$status = $command->run($input, $output);
+		if (($status === 0) !== $valid || (!$valid && !preg_match('/account name|Kontonamen/', $output->fetch())))
+		{ throw new RuntimeException('The registered user:add command did not enforce the account password rules'); }
+	}
+}
 elseif ($phase === 'mail-off')
 {
 	$store = $phpbb_container->get('config_text');
