@@ -4,6 +4,7 @@
 function phpbb2plus_redirect_legacy($entry, array $query)
 {
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
+	if ($entry === 'modcp' || $entry === 'merge') { header('Cache-Control: private, no-store'); }
 	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
 	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
 	if ($entry === 'uacp' && $method === 'POST' && !array_diff_key($_POST, array_flip(array('u','mode','order','start','sid','submit'))))
@@ -111,6 +112,10 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			if (in_array($query['mode'] ?? '', array('username','email','joined','topic_time','topic_count','website','topten'), true)) { $extra['mode'] = $query['mode']; }
 			if (in_array($query['order'] ?? '', array('ASC','DESC'), true)) { $extra['order'] = $query['order']; }
 			header('Cache-Control: private, no-store');
+			break;
+		case 'modcp':
+		case 'merge':
+			$path = phpbb2plus_moderation_bookmark($entry, $query);
 			break;
 		case 'topic_watch':
 			// Old notification emails contain only the topic number. The native
@@ -589,9 +594,41 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		}
 		if (in_array($query['sort_order'] ?? '', array('ASC','DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
 	}
-	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history','topic_watch'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history','topic_watch','modcp','merge'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	// The album and download search handlers accept the original POST bodies.
 	$status = $method === 'POST' ? ($sort_redirect || $entry === 'kb_search' ? 303 : 307) : 302;
 	header('Location: ' . $base . $path . $search . $anchor, true, $status);
+}
+
+function phpbb2plus_moderation_bookmark($entry, array $query)
+{
+	$mode = $entry === 'merge' ? 'merge' : ($query['mode'] ?? '');
+	if (!in_array($mode, array('', 'merge', 'ip', 'split', 'delete', 'move', 'lock', 'unlock', 'sticky', 'announce', 'normalise'), true) ||
+		($mode === 'merge' && $entry !== 'merge')) { return ''; }
+	$selector = $entry === 'merge' ? ($query['fid'] ?? '') : ($query['selected_id'] ?? '');
+	if ($selector !== '')
+	{
+		if ($entry === 'modcp' && $selector === 'Root') { return 'forums.html'; }
+		if (!is_string($selector) || !preg_match('/^([fc])0*([1-9][0-9]{0,7})$/D', $selector, $m) || (int) $m[2] > 16777215) { return ''; }
+		if ($m[1] === 'c') { return $entry === 'modcp' ? 'forumc' . $m[2] . '.html' : ''; }
+		$query['f'] = $m[2];
+	}
+	$ids = array();
+	foreach (array('t' => 'topic', 'p' => 'post', 'f' => 'forum') as $key => $kind)
+	{
+		if (!isset($query[$key]) || $query[$key] === '0' || $query[$key] === '') { continue; }
+		if (!is_string($query[$key]) || !preg_match('/^0*([1-9][0-9]{0,7})$/D', $query[$key], $m) || (int) $m[1] > 16777215) { return ''; }
+		$ids[$kind] = (int) $m[1];
+	}
+	if ($mode === 'ip' && !isset($ids['post'])) { return ''; }
+	$kind = $mode === 'ip' ? 'post' : (array_key_first($ids) ?? 'none');
+	$view = $mode === '' ? 'forum' : $mode;
+	// Historical quick actions can open the native work list. Only the new form can change its contents.
+	if (!in_array($view, array('forum', 'merge', 'split', 'ip'), true)) { $view = isset($ids['topic']) || isset($ids['post']) ? 'topic' : 'forum'; }
+	if ($view === 'split' && $kind !== 'topic' && $kind !== 'post') { return ''; }
+	$start = $query['start'] ?? '';
+	$offset = is_string($start) && preg_match('/^[0-9]{1,10}$/D', $start) ? (int) $start : 0;
+	if ($entry === 'merge') { $offset = min(1000000, $offset); }
+	return 'legacy/moderation/' . $view . '/' . $kind . '/' . ($ids[$kind] ?? 0) . '/' . $offset;
 }

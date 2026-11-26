@@ -12,14 +12,16 @@ class legacy
 	private $user;
 	private $root;
 	private $ext;
+	private $topic_reader;
 
-	public function __construct($db, $auth, $user, $root, $ext)
+	public function __construct($db, $auth, $user, $root, $ext, $topic_reader)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
 		$this->user = $user;
 		$this->root = $root;
 		$this->ext = $ext;
+		$this->topic_reader = $topic_reader;
 	}
 
 	private function destination($script, array $params = array(), $fragment = '')
@@ -77,6 +79,76 @@ class legacy
 		$id = (int) $this->db->sql_fetchfield('user_id');
 		$this->db->sql_freeresult($r);
 		return $id > ANONYMOUS ? $id : 0;
+	}
+
+	private function moderation_forum($id, $permission)
+	{
+		// A bare merge bookmark opens the first readable source in board order.
+		$ids = $id ? array($id) : array_keys($this->auth->acl_getf($permission, true));
+		if (!$ids) { throw new NotFoundHttpException(); }
+		$result = $this->db->sql_query('SELECT f.forum_id FROM ' . FORUMS_TABLE . ' f LEFT JOIN ' . FORUMS_ACCESS_TABLE .
+			" fa ON fa.forum_id=f.forum_id AND fa.session_id='" . $this->db->sql_escape($this->user->session_id) .
+			"' AND fa.user_id=" . (int) $this->user->data['user_id'] . ' WHERE f.forum_type=' . FORUM_POST .
+			" AND (f.forum_password='' OR fa.user_id IS NOT NULL) AND " . $this->db->sql_in_set('f.forum_id', $ids) . ' ORDER BY f.left_id');
+		$forum = 0;
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$candidate = (int) $row['forum_id'];
+			if ($this->auth->acl_get('f_list', $candidate) && $this->auth->acl_get('f_read', $candidate) &&
+				$this->auth->acl_get($permission, $candidate)) { $forum = $candidate; break; }
+		}
+		$this->db->sql_freeresult($result);
+		if (!$forum) { throw new NotFoundHttpException(); }
+		return $forum;
+	}
+
+	public function moderation($view, $kind, $id, $start)
+	{
+		$id = (int) $id;
+		$start = (int) $start;
+		if (($kind === 'none') !== ($id === 0) || ($view === 'ip' && $kind !== 'post') ||
+			(in_array($view, array('split', 'topic'), true) && !in_array($kind, array('topic', 'post'), true)))
+		{
+			throw new NotFoundHttpException();
+		}
+		if (empty($this->user->data['is_registered']) || !empty($this->user->data['is_bot']))
+		{
+			$return = 'app.' . $this->ext . '/legacy/moderation/' . $view . '/' . $kind . '/' . $id . '/' . $start;
+			return $this->destination('ucp', array('mode' => 'login', 'redirect' => $return));
+		}
+		$permissions = array('ip' => 'm_info', 'merge' => 'm_merge', 'split' => 'm_split');
+		$permission = $permissions[$view] ?? 'm_';
+		$params = array('i' => 'main');
+		if ($kind === 'none' && $view === 'forum')
+		{
+			if (!$this->auth->acl_getf_global('m_')) { throw new NotFoundHttpException(); }
+			return $this->destination('mcp', $params + array('mode' => 'front'));
+		}
+		if ($kind === 'forum' || $kind === 'none')
+		{
+			$params += array('mode' => 'forum_view', 'f' => $this->moderation_forum($id, $permission));
+		}
+		else
+		{
+			try
+			{
+				$row = $this->topic_reader->open($kind === 'topic' ? $id : 0, $kind === 'post' ? $id : 0, '', array(), false, false);
+			}
+			catch (AccessDeniedHttpException $e) { throw new NotFoundHttpException(); }
+			$forum = (int) $row['forum_id'];
+			// A public deletion placeholder gives no access to the original post's moderation data.
+			if (!$this->auth->acl_get($permission, $forum) || (int) $row['topic_visibility'] === ITEM_DELETED ||
+				($kind === 'post' && (int) $row['post_visibility'] === ITEM_DELETED)) { throw new NotFoundHttpException(); }
+			if ($view === 'ip')
+			{
+				return $this->destination('mcp', $params + array('mode' => 'post_details', 'p' => $id), '#ip');
+			}
+			$params += array('f' => $forum, 'mode' => $view === 'forum' ? 'forum_view' : 'topic_view');
+			if ($view !== 'forum') { $params['t'] = (int) $row['topic_id']; }
+			if ($view === 'split' || $view === 'merge') { $params['action'] = $view; }
+		}
+		if ($start) { $params['start'] = $start; }
+		return $this->destination('mcp', $params);
 	}
 
 	public function member_link($source, $mode)

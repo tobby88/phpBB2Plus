@@ -31,6 +31,11 @@ phpbb2plus_community_portal:
     path: /portal
     defaults: { _controller: phpbb2plus.community.portal:handle }
     methods: [GET, HEAD]
+phpbb2plus_community_moderation_bookmark:
+    path: /legacy/moderation/{view}/{kind}/{id}/{start}
+    defaults: { _controller: phpbb2plus.community.legacy:moderation }
+    requirements: { view: 'forum|topic|merge|split|ip', kind: 'none|forum|topic|post', id: '[0-9]{1,8}', start: '[0-9]{1,10}' }
+    methods: [GET, HEAD]
 phpbb2plus_community_recent:
     path: /topics/recent
     defaults: { _controller: phpbb2plus.community.recent:view }
