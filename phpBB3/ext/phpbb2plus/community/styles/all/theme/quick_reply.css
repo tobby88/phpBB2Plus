@@ -1,0 +1,3 @@
+#plus-quick-tools { display: flex; clear: both; flex-wrap: wrap; align-items: center; gap: .45em .8em; padding: .55em 0; }
+#plus-quick-tools [hidden] { display: none; }
+#plus-quick-tools [role=status]:not(:empty) { flex-basis: 100%; }

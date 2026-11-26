@@ -84,6 +84,10 @@ async function exercise() {
             await require('./smilie_creator_browser.cjs')({command, find, evaluate, until, url});
             return;
         }
+        if (mode === 'quick-reply') {
+            await require('./quick_reply_browser.cjs')({command, find, evaluate, until, url});
+            return;
+        }
         async function fileSubmit(file, doubleClick = false) {
             const tokenNode = await until(() => find('[name="creation_time"]'), 'the form token');
             const token = (await command('DOM.getAttributes',{nodeId:tokenNode})).attributes;

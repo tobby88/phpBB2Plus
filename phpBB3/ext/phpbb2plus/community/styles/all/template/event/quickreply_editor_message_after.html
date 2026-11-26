@@ -1,0 +1,16 @@
+{% set last = loops.postrow|last %}
+<div id="plus-quick-tools" data-empty="{{ lang('PLUS_QR_NO_SELECTION')|e('html_attr') }}" data-failed="{{ lang('PLUS_QR_QUOTE_FAILED')|e('html_attr') }}">
+	{% if U_PLUS_QR_SMILIES %}<a class="button2" data-qr-smilies href="{{ U_PLUS_QR_SMILIES }}" target="_blank" rel="noopener">{{ lang('SMILIES') }}</a>{% endif %}
+	{% if S_PLUS_QR_QUOTE %}
+		<button class="button2" type="button" data-qr-selection hidden>{{ lang('PLUS_QR_SELECTION') }}</button>
+		{% if last.U_QUOTE and not last.S_POST_HIDDEN and not last.S_POST_DELETED %}
+			<a class="button2" data-qr-last href="{{ last.U_QUOTE }}">{{ lang('PLUS_QR_LAST') }}</a>
+			<label hidden data-qr-option><input type="checkbox" data-qr-include> {{ lang('PLUS_QR_LAST') }}</label>
+		{% endif %}
+	{% endif %}
+	{% if S_PLUS_QR_ATTACH_SIG %}<label><input type="checkbox" name="attach_sig" value="1"{% if S_PLUS_QR_ATTACH_SIG_CHECKED %} checked{% endif %}> {{ lang('ATTACH_SIG') }}</label>{% endif %}
+	{% if S_PLUS_QR_NOTIFY %}<label><input type="checkbox" name="notify" value="1"{% if S_PLUS_QR_NOTIFY_CHECKED %} checked{% endif %}> {{ lang('NOTIFY_REPLY') }}</label>{% endif %}
+	<span role="status" aria-live="polite"></span>
+</div>
+{% INCLUDECSS '@phpbb2plus_community/quick_reply.css' %}
+{% INCLUDEJS '@phpbb2plus_community/quick_reply.js' %}

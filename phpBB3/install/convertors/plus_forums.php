@@ -158,7 +158,7 @@ function plus_forum_layout($categories, $forums, $recovery_forum = 0)
 
 function plus_restore_forum_tree()
 {
-	global $src_db, $db, $convert, $auth;
+	global $src_db, $db, $convert, $auth, $config;
 	$result = $src_db->sql_query('SELECT cat_id, cat_main_type, cat_main, cat_order, cat_title, cat_desc
 		FROM ' . $convert->src_table_prefix . 'categories ORDER BY cat_id');
 	$categories = $src_db->sql_fetchrowset($result);
@@ -175,6 +175,10 @@ function plus_restore_forum_tree()
 	$result = $src_db->sql_query('SELECT config_value FROM ' . $convert->src_table_prefix . "config WHERE config_name='prune_enable'");
 	$prune_enabled = (string) $src_db->sql_fetchfield('config_value') === '1';
 	$src_db->sql_freeresult($result);
+	$result = $src_db->sql_query("SELECT config_value FROM {$convert->src_table_prefix}plus WHERE config_name='show_quickreply'");
+	$quick_reply = $src_db->sql_fetchfield('config_value');
+	$src_db->sql_freeresult($result);
+	$has_quick_reply = in_array($quick_reply, array('0', '1'), true);
 
 	$db->sql_transaction('begin');
 	try
@@ -232,6 +236,9 @@ function plus_restore_forum_tree()
 				// Unlike stock phpBB2, Plus age pruning protects polls and announcements
 				// and treats a sticky topic like an ordinary topic of the same age.
 				$fields['forum_flags'] = (phpbb_forum_flags() & ~(FORUM_FLAG_PRUNE_POLL | FORUM_FLAG_PRUNE_ANNOUNCE)) | FORUM_FLAG_PRUNE_STICKY;
+				// Plus used one board-wide switch for its posting forums. Keep the native per-forum
+				// flag ready even when that switch was off, so admins can re-enable it in one place.
+				if ($has_quick_reply) { $fields['forum_flags'] |= FORUM_FLAG_QUICK_REPLY; }
 				// Plus ran an automatic rule only when exactly one source row existed.
 				if ((int) $row['prune_rules'] !== 1) { $fields['enable_prune'] = 0; }
 			}
@@ -280,4 +287,5 @@ function plus_restore_forum_tree()
 		$db->sql_transaction('rollback');
 		throw $error;
 	}
+	if ($has_quick_reply) { $config->set('allow_quick_reply', $quick_reply); }
 }

@@ -1,4 +1,9 @@
 services:
+    phpbb2plus.community.quick_reply:
+        class: phpbb2plus\community\event\quick_reply
+        arguments: ['@config', '@auth', '@language', '%core.root_path%', '%core.php_ext%']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.smilie_creator:
         class: phpbb2plus\community\controller\smilie_creator
         arguments: ['@config', '@request', '@path_helper', '@controller.helper', '@template', '@language']
