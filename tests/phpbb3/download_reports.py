@@ -23,8 +23,9 @@ def browse(base, member, ordinary, verify):
     verify("seed")
     verify("calendar")
     home = guest.fetch(root)
-    if "Download-Statistik</a>" not in home or "Download-Bestenlisten</a>" not in home:
-        raise RuntimeError("The guest did not find the permitted reports from the converted catalogue")
+    for route, label in (("stats", "Download-Statistik"), ("toplist", "Download-Bestenlisten")):
+        if not re.search(r'<a href="[^"]*/downloads/' + route + r'(?:\?[^"]*)?"[^>]*><img [^>]*alt="' + label + r'"></a>', home):
+            raise RuntimeError("The guest did not find the labelled report link: " + route)
     guest_stats = guest.fetch(stats)
     now = figures(guest_stats)
     if (now["files"] != original["files"] + 3 or now["downloads"] != original["downloads"] + 177000 or
