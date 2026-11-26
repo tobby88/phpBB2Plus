@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urljoin, urlsplit
 
 from attachments import GIF
 from http_board import Browser, FormFields, Page, admin_url, submit_form
+import full_preview
 
 
 @contextmanager
@@ -34,7 +35,7 @@ def chrome_profile():
                 time.sleep(.15)
 
 
-def browser(base, web, topic, post):
+def browser(base, web, topic, post, draft):
     binary = os.environ.get("PLUS_TEST_CHROME")
     if not binary:
         return False
@@ -43,7 +44,8 @@ def browser(base, web, topic, post):
         raise RuntimeError("The inline editing test needs the local disposable board and Chromium")
     probe = Path(web) / ("inline-probe-" + secrets.token_hex(12) + ".php")
     status = Path(web).parent / (probe.stem + ".txt")
-    script = Path(__file__).with_name("inline_editor_browser.js").read_text(encoding="utf-8")
+    script = "\n".join(Path(__file__).with_name(name).read_text(encoding="utf-8") for name in
+                       ("full_preview_browser.js", "inline_editor_browser.js"))
     # The random probe exists only inside this disposable loopback installation. The synthetic
     # sign-in is delivered from its test environment and is never embedded in a persisted file.
     probe.write_text("""<?php
@@ -55,7 +57,7 @@ if (isset($_POST['result'])) {
 }
 ?><!doctype html><meta charset=utf-8><iframe id=board></iframe><output></output><script>
 const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TAG) ?>;
-""" + f"const topic={topic}, post={post};\n" + script + "</script>", encoding="utf-8")
+""" + f"const topic={topic}, post={post}, storedDraft={draft};\n" + script + "</script>", encoding="utf-8")
     try:
         with chrome_profile() as profile:
             cmd = [executable, "--headless", "--no-first-run", "--no-default-browser-check", "--disable-extensions",
@@ -65,7 +67,7 @@ const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TA
             run = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             try:
-                deadline = time.monotonic() + 50
+                deadline = time.monotonic() + 60
                 result = ""
                 while time.monotonic() < deadline:
                     if status.exists():
@@ -212,10 +214,13 @@ def browse(base, owner, member, check, web):
         if not re.search(r'<[^>]+class="error"', expired) or FormFields(expired, "postform").values.get("message") != draft["message"]:
             raise RuntimeError("An expired editor lost the native validation error or discarded the unsaved draft")
         check("intact")
-        if browser(base, web, topic, post):
+        stored, counts = full_preview.exercise(owner, member, edit, check)
+        if browser(base, web, topic, post, stored):
             review = submit_form(member, edit, earlier, "postform", draft)
             if f'id="ppr{post}"' not in review or FormFields(review, "postform").values.get("message") != draft["message"]:
                 raise RuntimeError("Switching a stale inline draft to the full editor lost the native edit review")
             check("changed")
+            if counts != check("preview-counts"):
+                raise RuntimeError("A browser preview changed saved drafts, message, post or attachment counts")
     finally:
         check("cleanup")

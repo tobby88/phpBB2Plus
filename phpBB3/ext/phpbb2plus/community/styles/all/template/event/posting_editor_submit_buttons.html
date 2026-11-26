@@ -1,0 +1,7 @@
+{% if PLUS_FULL_PREVIEW_KIND %}
+{% INCLUDEJS '@phpbb2plus_community/full_preview.js' %}
+<span hidden id="plus-full-preview" data-kind="{{ PLUS_FULL_PREVIEW_KIND }}"
+	data-working="{{ lang('PLUS_FULL_PREVIEW_WORKING')|e('html_attr') }}" data-ready="{{ lang('PLUS_FULL_PREVIEW_READY')|e('html_attr') }}"
+	data-failed="{{ lang('PLUS_FULL_PREVIEW_FAILED')|e('html_attr') }}" data-open="{{ lang('PLUS_FULL_PREVIEW_OPEN')|e('html_attr') }}"
+	data-pending="{{ lang('PLUS_FULL_PREVIEW_ATTACHMENT')|e('html_attr') }}"></span>
+{% endif %}

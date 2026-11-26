@@ -1,8 +1,8 @@
-{% if S_PLUS_INLINE_PREF %}
-<dl><dt><label for="plus-inline-preference">{{ lang('PLUS_INLINE_TITLE') }}{{ lang('COLON') }}</label></dt>
-<dd><select id="plus-inline-preference" name="plus_inline_edit">
-	<option value="-1"{% if PLUS_INLINE_CHOICE == -1 %} selected{% endif %}>{{ lang('PLUS_INLINE_INHERIT') }}</option>
-	<option value="1"{% if PLUS_INLINE_CHOICE == 1 %} selected{% endif %}>{{ lang('YES') }}</option>
-	<option value="0"{% if PLUS_INLINE_CHOICE == 0 %} selected{% endif %}>{{ lang('NO') }}</option>
+{% for pref in loops.plus_editor_prefs %}
+<dl><dt><label for="{{ pref.OPTION }}">{{ pref.LABEL }}{{ lang('COLON') }}</label></dt>
+<dd><select id="{{ pref.OPTION }}" name="{{ pref.OPTION }}">
+	<option value="-1"{% if pref.VALUE == -1 %} selected{% endif %}>{{ lang('PLUS_INLINE_INHERIT') }}</option>
+	<option value="1"{% if pref.VALUE == 1 %} selected{% endif %}>{{ lang('YES') }}</option>
+	<option value="0"{% if pref.VALUE == 0 %} selected{% endif %}>{{ lang('NO') }}</option>
 </select></dd></dl>
-{% endif %}
+{% endfor %}

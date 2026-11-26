@@ -6,6 +6,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class inline_editor implements EventSubscriberInterface
 {
+	private const OPTIONS = array('plus_inline_edit' => 'PLUS_INLINE_TITLE', 'plus_full_preview' => 'PLUS_FULL_PREVIEW');
 	private $config;
 	private $user;
 	private $request;
@@ -31,11 +32,16 @@ class inline_editor implements EventSubscriberInterface
 			'core.acp_board_config_edit_add' => 'board_form');
 	}
 
+	public function enabled($option)
+	{
+		$value = !empty($this->user->data['is_registered']) && empty($this->user->data['is_bot']) ? (int) ($this->user->data[$option] ?? -1) : -1;
+		return !$this->config[$option . '_over'] && $value >= 0 ? (bool) $value : (bool) $this->config[$option];
+	}
+
 	public function prepare_controls()
 	{
 		$this->language->add_lang('inline_editor', 'phpbb2plus/community');
-		$value = (int) ($this->user->data['plus_inline_edit'] ?? -1);
-		$enabled = !$this->config['plus_inline_edit_over'] && $value >= 0 ? (bool) $value : (bool) $this->config['plus_inline_edit'];
+		$enabled = $this->enabled('plus_inline_edit');
 		if ($enabled) { $this->template->assign_var('S_PLUS_INLINE_EDIT', true); }
 		return $enabled;
 	}
@@ -75,24 +81,29 @@ class inline_editor implements EventSubscriberInterface
 
 	public function member_form($event)
 	{
-		if ($this->config['plus_inline_edit_over']) { return; }
 		$this->language->add_lang('inline_editor', 'phpbb2plus/community');
-		$value = (int) $this->user->data['plus_inline_edit'];
-		if ($event['submit'] && $this->request->is_set_post('plus_inline_edit')) { $value = $this->choice(); }
-		$this->template->assign_vars(array('S_PLUS_INLINE_PREF' => true, 'PLUS_INLINE_CHOICE' => $value));
+		foreach (self::OPTIONS as $option => $label)
+		{
+			if ($this->config[$option . '_over']) { continue; }
+			$value = (int) $this->user->data[$option];
+			if ($event['submit'] && $this->request->is_set_post($option)) { $value = $this->choice($option); }
+			$this->template->assign_block_vars('plus_editor_prefs', array('OPTION' => $option, 'LABEL' => $this->language->lang($label), 'VALUE' => $value));
+		}
 	}
 
-	private function choice()
+	private function choice($option)
 	{
-		$value = $this->request->variable('plus_inline_edit', '', false, request_interface::POST);
+		$value = $this->request->variable($option, '', false, request_interface::POST);
 		return in_array($value, array('0', '1'), true) ? (int) $value : -1;
 	}
 
 	public function member_save($event)
 	{
-		if ($this->config['plus_inline_edit_over'] || !$this->request->is_set_post('plus_inline_edit')) { return; }
 		$values = $event['sql_ary'];
-		$values['plus_inline_edit'] = $this->choice();
+		foreach (array_keys(self::OPTIONS) as $option)
+		{
+			if (!$this->config[$option . '_over'] && $this->request->is_set_post($option)) { $values[$option] = $this->choice($option); }
+		}
 		$event['sql_ary'] = $values;
 	}
 
@@ -103,7 +114,10 @@ class inline_editor implements EventSubscriberInterface
 		$display = $event['display_vars'];
 		$fields = array('legend_plus_inline_edit' => 'PLUS_INLINE_TITLE',
 			'plus_inline_edit' => array('lang' => 'PLUS_INLINE_DEFAULT', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => false),
-			'plus_inline_edit_over' => array('lang' => 'PLUS_INLINE_FORCE', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => false));
+			'plus_inline_edit_over' => array('lang' => 'PLUS_INLINE_FORCE', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => false),
+			'legend_plus_full_preview' => 'PLUS_FULL_PREVIEW',
+			'plus_full_preview' => array('lang' => 'PLUS_FULL_PREVIEW_DEFAULT', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => false),
+			'plus_full_preview_over' => array('lang' => 'PLUS_INLINE_FORCE', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => false));
 		$vars = array();
 		foreach ($display['vars'] as $name => $row)
 		{

@@ -66,6 +66,7 @@
         }
         expect(doc.querySelector('[href*="mode=logout"]'), 'Native login did not establish the synthetic session (' +
             (doc.querySelector('.error,#message p')?.textContent || doc.title).trim().slice(0,140) + ')');
+        await exerciseFullPreviews(frame, load, next, step, expect, renderedText);
         await step('cancel');
         doc = await load(thread);
         frame.style.width = '390px';

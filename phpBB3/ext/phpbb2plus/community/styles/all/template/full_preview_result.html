@@ -1,0 +1,5 @@
+<div data-plus-preview-result="{{ PLUS_FULL_PREVIEW_KIND }}">
+{% if ERROR %}<p class="error">{{ ERROR }}</p>{% endif %}
+{% if S_POST_REVIEW %}{% include 'posting_review.html' %}{% endif %}
+{% if S_DISPLAY_PREVIEW %}{% include 'posting_preview.html' %}{% endif %}
+</div>

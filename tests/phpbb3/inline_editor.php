@@ -5,7 +5,8 @@ if ($argv[2] === 'source')
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 	$old = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
 	$old->query("UPDATE phpbb_config SET config_value=IF(config_name='use_ajax_edit_over','1','0') WHERE config_name IN ('use_ajax_edit','use_ajax_edit_over')");
-	$old->query('UPDATE phpbb_users SET user_use_ajax_edit=IF(user_id=1,1,0) WHERE user_id IN (1,2)');
+	$old->query("UPDATE phpbb_config SET config_value=IF(config_name='use_ajax_preview','1','0') WHERE config_name IN ('use_ajax_preview','use_ajax_preview_over')");
+	$old->query('UPDATE phpbb_users SET user_use_ajax_edit=IF(user_id=1,1,0),user_use_ajax_preview=IF(user_id=1,0,1) WHERE user_id IN (1,2)');
 	return;
 }
 define('IN_PHPBB', true);
@@ -18,10 +19,10 @@ function inline_rows($sql)
 	$r = $db->sql_query($sql); $rows = $db->sql_fetchrowset($r); $db->sql_freeresult($r); return $rows;
 }
 function inline_check($ok, $why) { if (!$ok) { throw new RuntimeException($why); } }
-function inline_personal_edit($member, $option, $rows)
+function inline_personal_grant($member, $forum, $option, $rows)
 {
 	global $db, $auth;
-	$db->sql_query('DELETE FROM ' . ACL_USERS_TABLE . " WHERE forum_id=1 AND user_id=$member AND auth_role_id=0 AND auth_option_id=$option");
+	$db->sql_query('DELETE FROM ' . ACL_USERS_TABLE . " WHERE forum_id=$forum AND user_id=$member AND auth_role_id=0 AND auth_option_id=$option");
 	foreach ($rows as $row) { $db->sql_query('INSERT INTO ' . ACL_USERS_TABLE . ' ' . $db->sql_build_array('INSERT', $row)); }
 	$auth->acl_clear_prefetch($member);
 }
@@ -36,31 +37,55 @@ if ($type === 'prepare')
 	inline_check(!inline_rows('SELECT topic_id FROM ' . TOPICS_TABLE . " WHERE forum_id=1 AND topic_poster=$member AND topic_title='Inline editor fixture'") &&
 		!inline_rows('SELECT attach_id FROM ' . ATTACHMENTS_TABLE . " WHERE poster_id=$member AND real_filename='inline-edit-fixture.gif'"),
 		'The synthetic editor topic or its attachment already exists');
-	$prefs = array_column(inline_rows('SELECT user_id,plus_inline_edit FROM ' . USERS_TABLE . " WHERE user_id IN (2,$member)"), 'plus_inline_edit', 'user_id');
+	$members = inline_rows('SELECT user_id,plus_inline_edit,plus_full_preview FROM ' . USERS_TABLE . " WHERE user_id IN (2,$member)");
+	$prefs = array_column($members, 'plus_inline_edit', 'user_id');
+	$previews = array_column($members, 'plus_full_preview', 'user_id');
 	inline_check((int) $prefs[$member] === 1 && (int) $prefs[2] === 0, 'Converted members lost distinct editing choices');
+	inline_check((int) $config['plus_full_preview'] === 1 && !(int) $config['plus_full_preview_over'] && !(int) $previews[$member] && (int) $previews[2] === 1,
+		'Full editor preview source choices did not convert independently');
 	$state->set($key, json_encode(array('settings' => array_intersect_key(iterator_to_array($config),
-		array_flip(array('plus_inline_edit', 'plus_inline_edit_over', 'flood_interval', 'edit_time', 'search_interval', 'search_anonymous_interval', 'display_unapproved_posts'))),
-		'prefs' => $prefs, 'topic' => 0, 'listing' => array(),
+		array_flip(array('plus_inline_edit', 'plus_inline_edit_over', 'plus_full_preview', 'plus_full_preview_over', 'flood_interval', 'edit_time', 'search_interval', 'search_anonymous_interval', 'display_unapproved_posts'))),
+		'prefs' => $prefs, 'previews' => $previews, 'topic' => 0, 'listing' => array(),
 		'grants' => array_column(inline_rows('SELECT session_id FROM ' . FORUMS_ACCESS_TABLE . " WHERE forum_id=1 AND user_id=$member"), 'session_id'),
 		'forum' => inline_rows('SELECT forum_flags,forum_status,forum_password FROM ' . FORUMS_TABLE . ' WHERE forum_id=1')[0])));
 	$config->set('flood_interval', 0);
 	$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET forum_flags=forum_flags | ' . FORUM_FLAG_POST_REVIEW . ' WHERE forum_id=1');
 }
-elseif ($type === 'upgrade')
+elseif ($type === 'upgrade' || $type === 'preview-upgrade')
 {
-	$name = '\phpbb2plus\community\migrations\v159_inline_editor';
-	$before = inline_rows('SELECT user_id,plus_inline_edit FROM ' . USERS_TABLE . ' WHERE plus_inline_edit<>-1');
+	$field = $type === 'upgrade' ? 'plus_inline_edit' : 'plus_full_preview';
+	$name = $type === 'upgrade' ? '\phpbb2plus\community\migrations\v159_inline_editor' : '\phpbb2plus\community\migrations\v165_full_preview';
+	$before = inline_rows("SELECT user_id,$field FROM " . USERS_TABLE . " WHERE $field<>-1");
 	$m = $phpbb_container->get('migrator');
 	for ($n = 0; $n < 12 && inline_rows('SELECT migration_name FROM ' . $table_prefix . "migrations WHERE migration_name='" .
 		$db->sql_escape($name) . "'"); ++$n) { $m->revert($name); }
 	$tools = $phpbb_container->get('dbal.tools');
-	inline_check(!$tools->sql_column_exists(USERS_TABLE, 'plus_inline_edit'), 'Previous editor schema was not restored');
+	inline_check(!$tools->sql_column_exists(USERS_TABLE, $field), 'Previous editor schema was not restored');
 	$m->load_migration_state(); $m->set_migrations(array($name));
 	for ($n = 0; $n < 16 && !$m->finished(); ++$n) { $m->update(); }
-	inline_check($m->finished() && (int) $config['plus_inline_edit'] === 1 && !(int) $config['plus_inline_edit_over'] &&
-		!inline_rows('SELECT user_id FROM ' . USERS_TABLE . ' WHERE plus_inline_edit<>-1'), 'Upgraded members did not inherit the board default');
-	foreach ($before as $row) { $db->sql_query('UPDATE ' . USERS_TABLE . ' SET plus_inline_edit=' . (int) $row['plus_inline_edit'] . ' WHERE user_id=' . (int) $row['user_id']); }
-	foreach ($saved['settings'] as $k => $v) { if ($k !== 'flood_interval') { $config->set($k, $v); } }
+	inline_check($m->finished() && (int) $config[$field] === 1 && !(int) $config[$field . '_over'] &&
+		!inline_rows('SELECT user_id FROM ' . USERS_TABLE . " WHERE $field<>-1"), 'Upgraded members did not inherit the board default');
+	foreach ($before as $row) { $db->sql_query('UPDATE ' . USERS_TABLE . " SET $field=" . (int) $row[$field] . ' WHERE user_id=' . (int) $row['user_id']); }
+	foreach (array($field, $field . '_over') as $k) { $config->set($k, $saved['settings'][$k]); }
+}
+elseif ($type === 'preview-force') { $config->set('plus_full_preview_over', 1); $config->set('plus_full_preview', 0); }
+elseif ($type === 'preview-open') { $config->set('plus_full_preview', 1); $config->set('plus_full_preview_over', 0); }
+elseif ($type === 'preview-draft')
+{
+	$db->sql_query('INSERT INTO ' . DRAFTS_TABLE . ' ' . $db->sql_build_array('INSERT', array('user_id' => $member, 'forum_id' => 1, 'topic_id' => 0,
+		'save_time' => time(), 'draft_subject' => 'Stored editor preview', 'draft_message' => '[b]Earlier draft[/b]')));
+	$saved['draft'] = (int) $db->sql_nextid();
+	$state->set($key, json_encode($saved)); echo $saved['draft'];
+}
+elseif ($type === 'preview-counts')
+{
+	$counts = array();
+	foreach (array(DRAFTS_TABLE, POSTS_TABLE, TOPICS_TABLE, POLL_OPTIONS_TABLE, PRIVMSGS_TABLE, PRIVMSGS_TO_TABLE, ATTACHMENTS_TABLE) as $table)
+	{
+		$counts[] = (int) inline_rows("SELECT COUNT(*) AS n FROM $table")[0]['n'];
+	}
+	$counts[] = inline_rows('SELECT draft_subject,draft_message FROM ' . DRAFTS_TABLE . ' WHERE draft_id=' . (int) $saved['draft'] . " AND user_id=$member");
+	echo json_encode($counts);
 }
 elseif ($type === 'open') { $config->set('plus_inline_edit_over', 0); }
 elseif ($type === 'locate')
@@ -126,23 +151,26 @@ elseif ($type === 'forum-lock' || $type === 'forum-open' || $type === 'forum-pas
 	$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', array('forum_password' => $password,
 		'forum_status' => $type === 'forum-lock' ? ITEM_LOCKED : $saved['forum']['forum_status'])) . ' WHERE forum_id=1');
 }
-elseif ($type === 'deny-edit')
+elseif ($type === 'deny-edit' || $type === 'preview-pm-off')
 {
-	$option = (int) inline_rows('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='f_edit'")[0]['auth_option_id'];
-	$saved['edit_option'] = $option;
-	$saved['original_grant'] = inline_rows('SELECT * FROM ' . ACL_USERS_TABLE . " WHERE forum_id=1 AND user_id=$member AND auth_role_id=0 AND auth_option_id=$option");
+	$permission = $type === 'deny-edit' ? 'f_edit' : 'u_sendpm';
+	$forum = $type === 'deny-edit' ? 1 : 0;
+	$option = (int) inline_rows('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='$permission'")[0]['auth_option_id'];
+	$rows = inline_rows('SELECT * FROM ' . ACL_USERS_TABLE . " WHERE forum_id=$forum AND user_id=$member AND auth_role_id=0 AND auth_option_id=$option");
+	$saved['grants_before_denial'][$permission] = array($forum, $option, $rows);
 	$state->set($key, json_encode($saved));
-	inline_personal_edit($member, $option, array(array('forum_id' => 1, 'user_id' => $member, 'auth_role_id' => 0, 'auth_option_id' => $option, 'auth_setting' => ACL_NEVER)));
+	inline_personal_grant($member, $forum, $option, array(array('forum_id' => $forum, 'user_id' => $member, 'auth_role_id' => 0, 'auth_option_id' => $option, 'auth_setting' => ACL_NEVER)));
 }
-elseif ($type === 'restore-edit')
+elseif ($type === 'restore-edit' || $type === 'preview-pm-on')
 {
-	inline_personal_edit($member, $saved['edit_option'], $saved['original_grant']);
-	unset($saved['edit_option'], $saved['original_grant']);
+	$permission = $type === 'restore-edit' ? 'f_edit' : 'u_sendpm';
+	inline_personal_grant($member, ...$saved['grants_before_denial'][$permission]);
+	unset($saved['grants_before_denial'][$permission]);
 	$state->set($key, json_encode($saved));
 }
 elseif ($type === 'cleanup' && $saved)
 {
-	if (isset($saved['edit_option'])) { inline_personal_edit($member, $saved['edit_option'], $saved['original_grant']); }
+	foreach ($saved['grants_before_denial'] ?? array() as $grant) { inline_personal_grant($member, ...$grant); }
 	if (!empty($saved['listing']))
 	{
 		// Only these lightweight, non-counting rows were inserted directly.
@@ -168,6 +196,8 @@ elseif ($type === 'cleanup' && $saved)
 	$db->sql_query('DELETE FROM ' . FORUMS_ACCESS_TABLE . " WHERE forum_id=1 AND user_id=$member" .
 		($saved['grants'] ? ' AND ' . $db->sql_in_set('session_id', $saved['grants'], true) : ''));
 	foreach ($saved['prefs'] as $id => $val) { $db->sql_query('UPDATE ' . USERS_TABLE . ' SET plus_inline_edit=' . (int) $val . ' WHERE user_id=' . (int) $id); }
+	foreach ($saved['previews'] as $id => $val) { $db->sql_query('UPDATE ' . USERS_TABLE . ' SET plus_full_preview=' . (int) $val . ' WHERE user_id=' . (int) $id); }
+	if (!empty($saved['draft'])) { $db->sql_query('DELETE FROM ' . DRAFTS_TABLE . ' WHERE draft_id=' . (int) $saved['draft'] . " AND user_id=$member"); }
 	$state->delete($key);
 }
 else { exit(2); }

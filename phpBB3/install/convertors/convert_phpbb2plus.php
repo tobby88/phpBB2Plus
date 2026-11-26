@@ -297,9 +297,12 @@ if (!$get_info)
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
-			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_use_ajax_edit'))
+			foreach (array('user_use_ajax_edit' => 'plus_inline_edit', 'user_use_ajax_preview' => 'plus_full_preview') as $field => $option)
 			{
-				$section[] = array('plus_inline_edit', 'users.user_use_ajax_edit', 'intval');
+				if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', $field))
+				{
+					$section[] = array($option, 'users.' . $field, 'intval');
+				}
 			}
 			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_global_msg_read'))
 			{
