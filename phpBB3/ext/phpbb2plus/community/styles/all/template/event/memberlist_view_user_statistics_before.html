@@ -1,1 +1,7 @@
 {% if S_WARNINGS and PLUS_CARD_COUNT %}<dt>{{ lang('PLUS_CARDS_COUNT') }}{{ lang('COLON') }}</dt> <dd>{{ PLUS_CARD_COUNT }}</dd>{% endif %}
+{% if U_PLUS_MEMBER_ATTACHMENTS %}
+<dt>{{ lang('PLUS_MEMBER_ATTACHMENTS') }}{{ lang('COLON') }}</dt>
+<dd><a href="{{ U_PLUS_MEMBER_ATTACHMENTS }}">{{ lang('PLUS_MEMBER_ATTACH_MANAGE') }}</a><br>
+{% if PLUS_UPLOAD_LIMIT %}<progress max="100" value="{{ PLUS_UPLOAD_PERCENT }}" aria-label="{{ lang('PLUS_MEMBER_ATTACHMENTS') }}">{{ PLUS_UPLOAD_PERCENT }}%</progress>
+{{ lang('PLUS_MEMBER_ATTACH_QUOTA', PLUS_UPLOAD_USED, PLUS_UPLOAD_LIMIT) }}{% else %}{{ lang('PLUS_MEMBER_ATTACH_USED', PLUS_UPLOAD_USED) }}{% endif %}</dd>
+{% endif %}

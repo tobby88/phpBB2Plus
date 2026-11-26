@@ -6,6 +6,11 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
 	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
 	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
+	if ($entry === 'uacp' && $method === 'POST' && !array_diff_key($_POST, array_flip(array('u','mode','order','start','sid','submit'))))
+	{
+		$read_form = $sort_redirect = true;
+		$query = array_intersect_key($_POST, array_flip(array('u','mode','order','start'))) + $query;
+	}
 	if ($entry === 'topic_view_users' && $method === 'POST')
 	{
 		$read_form = $sort_redirect = true;
@@ -244,6 +249,17 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			{
 				$path = 'attachment/rules/' . $forum;
 			}
+			break;
+		case 'uacp':
+			$id = $positive('u');
+			if (!$id || $id > 8388607) { break; }
+			$sorts = array('real_filename'=>'a', 'filename'=>'a', 'a.real_filename'=>'a', 'comment'=>'b', 'extension'=>'c',
+				'filesize'=>'d', 'downloads'=>'e', 'download_count'=>'e', 'post_time'=>'f', 'filetime'=>'f');
+			$mode = is_string($query['mode'] ?? null) ? $query['mode'] : '';
+			$direction = ($query['order'] ?? '') === 'DESC' ? 'd' : 'a';
+			$path = 'legacy/member/' . $id . '/attachments/' . ($sorts[$mode] ?? 'a') . '/' . $direction . '/' . $positive('start');
+			unset($query['start']);
+			header('Cache-Control: private, no-store');
 			break;
 		case 'recent':
 			$path = 'topics/recent';
