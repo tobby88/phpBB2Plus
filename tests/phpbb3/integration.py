@@ -280,28 +280,30 @@ def media_administration(base, member, ordinary, pending, target, web):
         categories.result()
 
 
-def extension_upgrades(target, web):
-    fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php")]
-    # Start at the common parent of these dependent migrations and run the normal updater once.
-    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
-    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v137_account_logins", "--no-interaction", cwd=web)
-    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v150_country_flag_administration", "--no-interaction", cwd=web)
-    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/gallery/migrations/v114_rating_settings", "--no-interaction", cwd=web)
-    flags = ROOT / "tests/phpbb3/country_flag_administration.php"
-    catalogue = php(flags, target, "older", cwd=web, capture=True)
-    rating_fixture = ROOT / "tests/phpbb3/gallery_rating_policy.php"
-    ratings = php(rating_fixture, target, "older", cwd=web, capture=True)
-    php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "older", cwd=web)
+def extension_upgrades(target, web, suite="all"):
+    # The forum and media jobs each run on both PHP versions. Exercise each migration
+    # with its own workflows' data, including all groups on a single-board full run.
+    tests = ROOT / "tests/phpbb3"
+    migrations, fixtures, preserved = [], [], []
+    if suite in ("forum", "all"):
+        migrations.extend(("community/migrations/v137_account_logins", "community/migrations/v150_country_flag_administration"))
+        fixtures.append(tests / "login_lifecycle.php")
+        preserved.append(tests / "country_flag_administration.php")
+    if suite in ("media", "downloads", "all"):
+        migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
+        fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
+        preserved.append(tests / "gallery_rating_policy.php")
+    for migration in migrations:
+        php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "older", cwd=web)
+    snapshots = {fixture: php(fixture, target, "older", cwd=web, capture=True) for fixture in preserved}
     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
-    if php(flags, target, "upgraded", cwd=web, capture=True) != catalogue:
-        raise RuntimeError("The flag catalogue upgrade changed native options or member selections")
-    if php(rating_fixture, target, "upgraded", cwd=web, capture=True) != ratings:
-        raise RuntimeError("Installing the ratings ACP changed the gallery configuration or existing votes")
-    php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "upgraded", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "upgraded", cwd=web)
+    for fixture, original in snapshots.items():
+        if php(fixture, target, "upgraded", cwd=web, capture=True) != original:
+            raise RuntimeError("The upgrade changed stored data checked by " + fixture.name)
 
 
 def module_administration(base, member, ordinary, pending, fixture, target, web, include_downloads):
@@ -430,7 +432,7 @@ def main():
                     php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
                     php(fixture, "download-departed", target)
                     gallery.departed(base, ordinary)
-                    extension_upgrades(target, web)
+                    extension_upgrades(target, web, args.suite)
                     print(f"Verified {count} upstream files, conversion, downloads and album management in {monotonic()-start:.1f}s")
                     return
                 account_logins.disabled(base, ordinary)
@@ -606,8 +608,7 @@ def main():
                 prune_admin, _ = delegation.authenticate(base, "ModernMember")
                 age_pruning.browse(prune_admin, lambda phase: php(
                     ROOT / "tests/phpbb3/age_pruning.php", target, phase, cwd=web))
-                if args.suite == "all":
-                    extension_upgrades(target, web)
+                extension_upgrades(target, web, args.suite)
                 print(f"Application requests and native actions: {monotonic()-converted:.1f}s", flush=True)
     print(f"Verified {count} upstream files, installation, conversion and logins in {monotonic()-start:.1f}s")
 
