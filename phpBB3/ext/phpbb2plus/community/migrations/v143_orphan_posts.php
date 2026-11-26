@@ -17,4 +17,10 @@ class v143_orphan_posts extends \phpbb\db\migration\migration
 	{
 		return array('drop_tables' => array($this->table_prefix . 'plus_orphan_posts'));
 	}
+
+	public function update_data()
+	{
+		// Only a run against the Plus source can count its unfinished writes.
+		return array(array('config.add', array('plus_pm_unfinished', -1)));
+	}
 }

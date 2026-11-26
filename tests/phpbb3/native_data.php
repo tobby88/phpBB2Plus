@@ -95,19 +95,30 @@ function seed_native_content($db)
 	}
 }
 
-function seed_missing_pm_accounts($db)
+function seed_missing_pm_accounts($db, $write_journal)
 {
 	$missing = (int) $db->query('SELECT MAX(user_id)+1 FROM phpbb_users')->fetch_row()[0];
 	// These are source fixtures for distinct inbox, sent and saved copies.
 	$rows = array(116 => array(0, 2, $missing), 117 => array(3, $missing, 2), 118 => array(2, 2, $missing),
 		119 => array(4, $missing, 2), 120 => array(1, $missing, $missing), 121 => array(4, -1, 2), 122 => array(3, 2, -1),
 		123 => array(1, $missing, 2), 124 => array(1, 2, $missing), 125 => array(5, $missing, 2), 126 => array(5, 2, $missing));
+	$rows[109] = array(6, 2, 1); // Internal, unfinished sent-box copy.
+	$rows[129] = array(7, 2, 1); // Custom source folder with no native equivalent.
+	if ($write_journal) { $rows[127] = array(1, 2, 1); $rows[128] = array(3, 2, 1); }
 	foreach ($rows as $id => list($type, $sender, $recipient))
 	{
 		$db->query("INSERT INTO phpbb_privmsgs (privmsgs_id,privmsgs_type,privmsgs_subject,privmsgs_from_userid,
 			privmsgs_to_userid,privmsgs_date,privmsgs_ip) VALUES ($id,$type,'Mailbox fixture $id',$sender,$recipient,1000010000,'c0000205')");
 		$db->query("INSERT INTO phpbb_privmsgs_text (privmsgs_text_id,privmsgs_text,privmsgs_bbcode_uid)
 			VALUES ($id,'Fixture body $id','privtest')");
+	}
+	if ($write_journal)
+	{
+		$db->query("UPDATE phpbb_privmsgs SET privmsgs_write_payload=IF(privmsgs_id=127,'{}','') WHERE privmsgs_id IN (127,128)");
+	}
+	else
+	{
+		$db->query('ALTER TABLE phpbb_privmsgs DROP COLUMN privmsgs_write_payload');
 	}
 }
 
@@ -120,6 +131,21 @@ function seed_missing_post_authors($db)
 
 function verify_native_content($db, $recipient)
 {
+	foreach (array('privmsgs', 'privmsgs_to') as $table)
+	{
+		check_fixture(!$db->query("SELECT 1 FROM p3_$table WHERE msg_id IN (109,127,128)")->fetch_row(), 'An unfinished source message became available in phpBB');
+	}
+	check_fixture($db->query('SELECT 1 FROM p3_privmsgs WHERE msg_id=129')->fetch_row() &&
+		!$db->query('SELECT 1 FROM p3_privmsgs_to WHERE msg_id=129')->fetch_row(), 'An unknown source folder lost its body or gained a mailbox');
+	$detached = $db->query('SELECT a.poster_id,a.is_orphan,a.in_message,a.post_msg_id,a.topic_id,q.attach_id FROM p3_plus_attach_refs r
+		JOIN p3_attachments a ON a.attach_id=r.attach_id LEFT JOIN p3_plus_attach_payers q ON q.attach_id=a.attach_id
+		WHERE (r.source_id=50 AND r.in_message=0 AND r.parent_id=143001) OR (r.source_id=63 AND r.in_message=1 AND r.parent_id=109)')->fetch_all();
+	check_fixture(count($detached) === 2, 'A file attached to missing content was not preserved');
+	foreach ($detached as $copy)
+	{
+		check_fixture(array_map('intval', array_slice($copy, 0, 5)) === array(0,1,0,0,0) && $copy[5] === null,
+			'A file without a native parent became owned, attached or chargeable');
+	}
 	$orphans = $db->query('SELECT source_id,source_json FROM p3_plus_orphan_posts ORDER BY source_id')->fetch_all(MYSQLI_ASSOC);
 	check_fixture(array_map('intval', array_column($orphans, 'source_id')) === array(143001, 143002, 143003),
 		'Only forum texts with no source header should be held for recovery');

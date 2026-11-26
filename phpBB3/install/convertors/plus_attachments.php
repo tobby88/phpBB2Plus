@@ -23,7 +23,7 @@ function plus_check_attachment_source()
 }
 
 /** Every source association becomes a native attachment owned by its post or PM. */
-function plus_attachment_parents($id)
+function plus_attachment_parents($id, $copies)
 {
 	global $src_db, $convert;
 	$p = $convert->src_table_prefix;
@@ -43,21 +43,31 @@ function plus_attachment_parents($id)
 			'pm_state'=>$pm && $row['privmsgs_type'] !== null ? (int) $row['privmsgs_type'] : -1);
 	}
 	$src_db->sql_freeresult($result);
-	return $parents ? array_values($parents) : array(array('in_message'=>0,'parent_id'=>0,'payers'=>array()));
+	if (!$parents) { $parents[] = array('in_message'=>0,'parent_id'=>0,'payers'=>array()); }
+	if ($copies && count($parents) === 1) { return array(); }
+	$matched = $unassigned = array();
+	foreach ($parents as $parent)
+	{
+		$parent['owner'] = plus_attachment_parent($parent);
+		if ($parent['owner']) { $matched[] = $parent; }
+		else { $unassigned[] = $parent; }
+	}
+	// A shared file's original ID and download count belong to a surviving
+	// association even if a broken reference sorts before it on the source.
+	$parents = array_merge($matched, $unassigned);
+	return $copies ? array_slice($parents, 1) : array_slice($parents, 0, 1);
 }
 
-function plus_attachment_parent($source, $parent)
+function plus_attachment_parent($parent)
 {
 	global $db;
-	// The native orphan handler treats poster_id as the account that owns a draft upload.
-	if (!$parent['parent_id']) { return array('poster_id' => 0, 'topic_id' => 0); }
+	if (!$parent['parent_id']) { return false; }
 	$sql = $parent['in_message']
 		? 'SELECT author_id AS poster_id, 0 AS topic_id FROM ' . PRIVMSGS_TABLE . ' WHERE msg_id = '
 		: 'SELECT poster_id, topic_id FROM ' . POSTS_TABLE . ' WHERE post_id = ';
 	$result = $db->sql_query($sql . $parent['parent_id']);
 	$row = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
-	if (!$row) { throw new \RuntimeException('Missing converted post or PM for attachment ' . $source); }
 	return $row;
 }
 
@@ -75,8 +85,7 @@ function plus_attachment_copies($id)
 function plus_import_attachment($id, $copies)
 {
 	global $db, $src_db, $convert, $config, $phpbb_root_path, $table_prefix;
-	$parents = plus_attachment_parents($id);
-	$parents = $copies ? array_slice($parents, 1) : array_slice($parents, 0, 1);
+	$parents = plus_attachment_parents($id, $copies);
 	if (!$parents) { return; }
 
 	$result = $src_db->sql_query('SELECT physical_filename, real_filename, download_count, comment, extension, mimetype, filetime, thumbnail
@@ -95,8 +104,16 @@ function plus_import_attachment($id, $copies)
 
 	foreach ($parents as $parent)
 	{
-		$owner = plus_attachment_parent($id, $parent);
 		$reference = array('source_id'=>$id,'in_message'=>$parent['in_message'],'parent_id'=>$parent['parent_id']);
+		$owner = $parent['owner'];
+		if (!$owner)
+		{
+			// Keep the historical reference in the map. The native file has
+			// no post, mailbox or owner who could claim it as a draft upload.
+			$parent['parent_id'] = $parent['in_message'] = 0;
+			$parent['payers'] = array();
+			$owner = array('poster_id' => 0, 'topic_id' => 0);
+		}
 		$physical = 'plus_' . hash_hmac('sha256', implode(':', $reference), $config['plus_media_key']);
 		plus_copy_media($source, $target . '/' . $physical);
 		if ($thumb) { plus_copy_media($thumb, $target . '/thumb_' . $physical); }

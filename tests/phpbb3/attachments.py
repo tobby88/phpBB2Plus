@@ -18,12 +18,13 @@ def verify_storage(web, encoded):
     rows = json.loads(encoded)
     uploaded = web / "files"
     expected = {(48, 0, 31), (48, 0, 805200), (48, 0, 805300), (50, 0, 32), (50, 0, 40),
-                (63, 1, 111), (63, 1, 112), (80, 0, 0)}
+                (50, 0, 143001), (63, 1, 109), (63, 1, 111), (63, 1, 112), (80, 0, 0)}
     associations = {(int(r["source_id"]), int(r["in_message"]), int(r["parent_id"])) for r in rows}
     if len(rows) != len(expected) or associations != expected:
         raise RuntimeError("Incorrect attachment ownership or shared association")
     if len({r["physical_filename"] for r in rows}) != len(rows):
         raise RuntimeError("Deleting one native attachment could remove another owner's file")
+    detached = {(80, 0), (48, 31), (48, 805200), (50, 143001), (63, 109)}
     for row in rows:
         source = int(row["source_id"])
         original = PNG if source == 63 else GIF
@@ -32,7 +33,7 @@ def verify_storage(web, encoded):
             raise RuntimeError("Attachment bytes or size changed during transfer")
         if source == 50 and (uploaded / ("thumb_" + file.name)).read_bytes() != GIF:
             raise RuntimeError("A shared attachment lost its thumbnail")
-        if bool(int(row["is_orphan"])) != (source == 80 or (source == 48 and int(row["parent_id"]) in (31, 805200))):
+        if bool(int(row["is_orphan"])) != ((source, int(row["parent_id"])) in detached):
             raise RuntimeError("Unassociated source attachments must stay private")
     if sum(int(row["download_count"]) for row in rows) != 17:
         raise RuntimeError("The shared download counter was multiplied")

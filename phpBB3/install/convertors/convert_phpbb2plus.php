@@ -112,8 +112,13 @@ if (!$get_info)
 	}
 
 	$schema = array();
+	$published_pm = plus_published_pm_condition($src_db, $convert->src_table_prefix);
 	foreach ($convertor['schema'] as $section)
 	{
+		if (isset($section['where']) && in_array($section['target'], array(PRIVMSGS_TABLE, PRIVMSGS_TO_TABLE), true))
+		{
+			$section['where'] .= ' AND (' . $published_pm . ')';
+		}
 		if ($section['target'] === BANLIST_TABLE)
 		{
 			if (isset($section['query_first'])) { $schema = array_merge($schema, plus_card_ban_schema($section)); }

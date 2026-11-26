@@ -147,7 +147,8 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 		VALUES (50,'public.gif','Frühling.gif',14,'gif','image/gif',0,10000000,1),
 		(63,'letter.png','Brief.png',3,'png','image/png',0,10000001,0),(80,'unlinked.gif','Entwurf.gif',0,'gif','image/gif',0,10000002,0)");
 	$db->query("INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2)
-		VALUES (50,32,0,-1,0),(50,32,0,-1,0),(50,32,0,2,0),(50,40,0,2,0),(63,0,111,2,1),(63,0,112,2,1)");
+		VALUES (50,32,0,-1,0),(50,32,0,-1,0),(50,32,0,2,0),(50,40,0,2,0),(63,0,111,2,1),(63,0,112,2,1),
+		(50,143001,0,2,0),(63,0,109,2,1)");
 	$db->query("INSERT INTO phpbb_quota_limits (quota_limit_id,quota_desc,quota_limit) VALUES
 		(9,'Klein & fein',50),(10,'Medium fixture',100),(11,'Group fixture',300),(12,'Full range',18446744073709551615)");
 	$db->query("INSERT INTO phpbb_attach_quota (user_id,group_id,quota_type,quota_limit_id) VALUES
@@ -177,7 +178,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	$db->query('INSERT INTO phpbb_forum_prune (forum_id,prune_days,prune_freq) VALUES (1,10,1),(1,90,7),(7,90,7),(11,10,1),(14,10,1),(14,10,1),(15,0,2)');
 	seed_warning_cards($db);
 	seed_account_logins($db, $argv[1] === 'seed-pruning-off');
-	seed_missing_pm_accounts($db);
+	seed_missing_pm_accounts($db, $argv[1] === 'seed');
 	seed_missing_post_authors($db);
 	// The forum suite also covers a historical link entry that must fall back to plain text.
 	$notice = $argv[1] === 'seed-pruning-off' ? "Grüße &amp; Rückblick 📷\n&lt;Hinweis&gt; & Abschluss" : '0';
@@ -293,6 +294,11 @@ elseif (in_array($argv[1], array('converted', 'converted-pruning-off', 'hashes-u
 	$origin = $db->query("SELECT user_id,plus_legacy_id FROM p3_users WHERE user_id IN (1,2,$historic_id) ORDER BY user_id")->fetch_all(MYSQLI_ASSOC);
 	check_fixture(array_map('intval', array_column($origin, 'plus_legacy_id')) === array(0,2,1), 'Wrong original profile IDs after conversion');
 	verify_native_content($db, (int) $users[0]['user_id']);
+	if (in_array($argv[1], array('converted', 'converted-pruning-off'), true))
+	{
+		$count = $db->query("SELECT config_value FROM p3_config WHERE config_name='plus_pm_unfinished'")->fetch_row();
+		check_fixture($count && (int) $count[0] === ($argv[1] === 'converted' ? 3 : 1), 'The conversion count of unfinished private messages is incorrect');
+	}
 	verify_news($db);
 	verify_custom_profiles($db);
 	verify_gallery($db, (int) $users[0]['user_id']);

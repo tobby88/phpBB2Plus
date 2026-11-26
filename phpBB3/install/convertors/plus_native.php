@@ -2,6 +2,19 @@
 if (!defined('IN_PHPBB')) { exit; }
 
 /** Apply Plus semantics to the core PM and subscription tables. */
+function plus_published_pm_condition($src_db, $prefix)
+{
+	// Type 6 is the Plus read checkpoint. An unfamiliar custom type can
+	// retain its original body without receiving any native mailbox entry.
+	$condition = 'privmsgs.privmsgs_type <> 6';
+	$tools = (new \phpbb\db\tools\factory())->get($src_db);
+	if ($tools->sql_column_exists($prefix . 'privmsgs', 'privmsgs_write_payload'))
+	{
+		$condition .= ' AND privmsgs.privmsgs_write_payload IS NULL';
+	}
+	return $condition;
+}
+
 function plus_pm_recipient($source_id)
 {
 	$id = plus_existing_author($source_id);
@@ -20,7 +33,13 @@ function plus_pm_unread($type)
 
 function plus_sync_new_pms()
 {
-	global $db;
+	global $db, $src_db, $convert, $config;
+	$prefix = $convert->src_table_prefix;
+	$result = $src_db->sql_query('SELECT COUNT(*) AS unfinished FROM ' . $prefix . 'privmsgs privmsgs WHERE NOT (' .
+		plus_published_pm_condition($src_db, $prefix) . ')');
+	$unfinished = (int) $src_db->sql_fetchfield('unfinished');
+	$src_db->sql_freeresult($result);
+	$config->set('plus_pm_unfinished', $unfinished);
 	$result = $db->sql_query('SELECT user_id, COUNT(*) AS pending FROM ' . PRIVMSGS_TO_TABLE . '
 		WHERE pm_new = 1 AND folder_id = ' . PRIVMSGS_NO_BOX . ' GROUP BY user_id');
 	$rows = $db->sql_fetchrowset($result);

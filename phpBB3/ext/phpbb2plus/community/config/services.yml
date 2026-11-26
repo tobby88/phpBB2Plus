@@ -31,7 +31,7 @@ services:
             - { name: console.command }
     phpbb2plus.community.orphan_posts:
         class: phpbb2plus\community\console\orphan_posts
-        arguments: ['@dbal.conn', '%core.table_prefix%plus_orphan_posts']
+        arguments: ['@dbal.conn', '%core.table_prefix%']
         tags:
             - { name: console.command }
     phpbb2plus.community.post_delete_policy:
