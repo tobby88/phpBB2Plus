@@ -51,6 +51,8 @@ switch ($argv[2])
 		) as list($id,$title,$added,$updated,$count))
 		{
 			$insert($p.'files',array('file_id'=>$id,'cat_id'=>$id===10948 ? 10933 : ($id===10949 ? 10930 : 10931),
+				'owner_id'=>$id===10941 ? 0 : ($id===10942 ? 2147483000 : $file['owner_id']),
+				'file_bytes'=>$id===10941 ? 0 : $file['file_bytes'],
 				'title'=>$title,'summary'=>'Listing sample','pinned'=>(int) ($id<10943),'approved'=>(int) ($id!==10947),
 				'added_at'=>$now-900+$added,'updated_at'=>$now-900+$updated,'downloads'=>$count)+$file);
 		}

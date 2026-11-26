@@ -42,11 +42,14 @@ class library
 	public function file($file)
 	{
 		$id = (int) $file;
-		$f = $this->access->file($id);
+		$f = $this->access->file($id, true);
 		$cat = (int) $f['cat_id'];
 		$this->language->add_lang('downloads','phpbb2plus/downloads');
 		$this->listing->navigation('',$cat);
 		$raw = json_decode($f['source_json'], true) ?: array();
+		$bytes = $f['asset_status'] === 'ready' ? (int) $f['file_bytes'] :
+			filter_var($raw['file_size'] ?? 0, FILTER_VALIDATE_INT, array('options'=>array('min_range'=>1)));
+		$updated = (int) $f['updated_at'];
 		$title = access::plain($f['title']);
 		$download = $this->access->allows($cat, 'download');
 		if ($this->mail->can($f)) { $this->template->assign_var('U_DL_RECOMMEND',$this->helper->route('phpbb2plus_downloads_recommend',array('file'=>$id))); }
@@ -62,7 +65,12 @@ class library
 		$this->template->assign_vars(array('DL_TITLE'=>$title, 'DL_SUMMARY'=>access::plain($f['summary']), 'DL_DETAIL'=>access::plain($raw['file_longdesc'] ?? ''),
 			'DL_PREVIEW_LINK'=>(bool) $f['preview_link'],'DL_ICON'=>file_display::icon_url($f['icon_name'],$this->paths->get_web_root_path()),
 			'DL_CREATOR'=>access::plain($raw['file_creator'] ?? ''), 'DL_VERSION'=>access::plain($raw['file_version'] ?? ''), 'DL_COUNT'=>(int) $f['downloads'],
-			'DL_DATE'=>$this->user->format_date((int) $f['added_at']), 'DL_BYTES'=>(int) $f['file_bytes'], 'DL_PENDING'=>!$f['approved'], 'DL_BROKEN'=>(bool) $f['broken'],
+			'DL_PUBLISHER'=>$f['username'] === null ? $this->language->lang('GUEST') : get_username_string('full',(int) $f['owner_id'],$f['username'],$f['user_colour']),
+			'DL_DATE'=>$this->user->format_date((int) $f['added_at']),
+			'DL_UPDATED'=>$updated && $updated !== (int) $f['added_at'] ? $this->user->format_date($updated) : $this->language->lang('NEVER'),
+			'DL_LAST_DOWNLOAD'=>$f['last_download'] ? $this->user->format_date((int) $f['last_download']) : $this->language->lang('NEVER'),
+			'DL_SIZE'=>$bytes === false ? $this->language->lang('PLUS_DL_UNKNOWN_SIZE') : get_formatted_filesize($bytes),
+			'DL_PENDING'=>!$f['approved'], 'DL_BROKEN'=>(bool) $f['broken'],
 			'U_DL_DOCS'=>utf8_htmlspecialchars(access::external($raw['file_docsurl'] ?? '')), 'U_DL_PREVIEW'=>$f['preview_name'] ?
 				$this->helper->route('phpbb2plus_downloads_preview', array('file'=>$id)) : '', 'U_DL_REMOTE_PREVIEW'=>$f['preview_name'] ? '' : utf8_htmlspecialchars(access::external($raw['file_ssurl'] ?? ''))));
 		if ($download)
@@ -96,7 +104,8 @@ class library
 			$result = $this->db->sql_query('SELECT COUNT(*) AS votes,AVG(points) AS average FROM ' . $this->prefix . "votes WHERE file_id=$id");
 			$rating = $this->db->sql_fetchrow($result);
 			$this->db->sql_freeresult($result);
-			if ($rating['votes']) { $this->template->assign_vars(array('DL_VOTES'=>(int) $rating['votes'], 'DL_AVERAGE'=>round((float) $rating['average'], 2))); }
+			$this->template->assign_vars(array('S_DL_RATINGS'=>true, 'DL_SCORE'=>$this->listing->score($rating['average']),
+				'DL_VOTES'=>$rating['votes'] ? $this->language->lang('PLUS_DL_VOTE_COUNT',(int) $rating['votes']) : ''));
 		}
 		$feedback = array();
 		foreach (array('rate','comment') as $operation)

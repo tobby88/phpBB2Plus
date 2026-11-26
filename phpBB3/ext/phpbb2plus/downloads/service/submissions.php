@@ -204,6 +204,7 @@ class submissions
 		if (!$previous || $file || $form['url'] !== '')
 		{
 			$row += array('storage_name'=>$file['storage'] ?? '', 'file_bytes'=>$file['bytes'] ?? 0, 'asset_status'=>$file ? 'ready' : 'remote');
+			if ($file || $form['url'] !== ($metadata['file_dlurl'] ?? '')) { unset($metadata['file_size']); }
 			$metadata['real_name'] = $file['name'] ?? '';
 			$metadata['file_dlurl'] = $form['url'];
 			if ($previous) { $this->media->queue($previous['storage_name']); }

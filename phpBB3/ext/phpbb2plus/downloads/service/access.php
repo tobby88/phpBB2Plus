@@ -216,18 +216,20 @@ class access
 		return true;
 	}
 
-	public function file($id)
+	public function file($id, $with_publisher = false)
 	{
 		$this->open();
-		$file = $this->file_row($id);
+		$file = $this->file_row($id, $with_publisher);
 		if (!$this->visible((int) $file['cat_id'], true) || (!$file['approved'] && !$this->allows((int) $file['cat_id'], 'mod') &&
 			(empty($this->user->data['is_registered']) || (int) $file['owner_id'] !== (int) $this->user->data['user_id']))) { throw new NotFoundHttpException(); }
 		return $file;
 	}
 
-	private function file_row($id)
+	private function file_row($id, $with_publisher = false)
 	{
-		$result = $this->db->sql_query('SELECT * FROM ' . $this->prefix . 'files WHERE file_id=' . (int) $id);
+		$columns = $with_publisher ? ',u.username,u.user_colour' : '';
+		$join = $with_publisher ? ' LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=f.owner_id AND u.user_id>' . ANONYMOUS : '';
+		$result = $this->db->sql_query('SELECT f.*' . $columns . ' FROM ' . $this->prefix . 'files f' . $join . ' WHERE f.file_id=' . (int) $id);
 		$row = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);
 		if (!$row) { throw new NotFoundHttpException(); }

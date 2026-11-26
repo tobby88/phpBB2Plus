@@ -36,6 +36,11 @@ def browse(base, member, ordinary, verify):
             "Inherited listing shelf" not in directory or "dl-sort-form" in directory):
         raise RuntimeError("The folder did not retain its configured order or nested links")
     guest.fetch(root + "/category/10933", expected_status=404)
+    for file_id in (10941, 10942):
+        detail = guest.fetch(f"{root}/file/{file_id}")
+        if ("<dt>Eingereicht von</dt><dd>Gast</dd>" not in detail or
+                (file_id == 10941 and "<dt>Größe</dt><dd>0 Bytes</dd>" not in detail)):
+            raise RuntimeError("A guest or deleted submitter was attributed to a profile, or a known empty file lost its size")
 
     initial = guest.fetch(folder)
     defaults = FormFields(initial, "dl-sort-form").values

@@ -39,6 +39,17 @@ def browse(base, founder, member, pending):
     if member.fetch(root + "/file/51/get/0", raw=True) != b"Club fixture" or "Ungeprüfter Entwurf" not in member.fetch(root + "/file/52"):
         raise RuntimeError("Approved group access or access to the owner's draft was lost")
     detail = guest.fetch(root + "/file/50")
+    publisher = re.search(r"<dt>Eingereicht von</dt><dd>(.*?)</dd>", detail, re.S)
+    if (not publisher or "HistoricMember</a>" not in publisher[1] or
+            any(markup not in detail for markup in ("<dt>Autor</dt><dd>Fiktive Autorin</dd>", "<dt>Hinzugefügt am</dt>",
+                                                     f"<dt>Größe</dt><dd>{len(PAYLOAD)} Bytes</dd>",
+                                                     "<dt>Zuletzt heruntergeladen</dt><dd>Niemals</dd>", "9 / 10 (2 Stimmen)"))):
+        raise RuntimeError("The converted file lost its submitter, creator, size, dates or original rating")
+    external = member.fetch(root + "/file/54")
+    if ("<dt>File size</dt><dd>1 KiB</dd>" not in external or
+            not all(re.search(r"<dt>" + label + r"</dt><dd>[^<]*2024[^<]*</dd>", external)
+                    for label in ("Last update", "Last downloaded"))):
+        raise RuntimeError("The stored size or timestamps of an external download were lost")
     sources = guest.fetch(root + "/file/50/download")
     if "Downloadquellen" not in sources or "Originaldatei" not in sources or "Lokale Kopie &amp;amp; 📡" not in sources:
         raise RuntimeError("The source chooser did not distinguish the original and its literal mirror label")
@@ -53,7 +64,9 @@ def browse(base, founder, member, pending):
         raise RuntimeError("The protected download screenshot differs from the source")
     guest.fetch(root + "/file/50/get/9", expected_status=404)
     guest.fetch(root + "/file/53/get/0", expected_status=404)
-    if "Originaldatei" not in guest.fetch(root + "/file/53"):
+    missing = guest.fetch(root + "/file/53")
+    if any(text not in missing for text in ("Originaldatei", "<dt>Größe</dt><dd>Unbekannt</dd>",
+                                             "<dt>Letzte Änderung</dt><dd>Niemals</dd>", ">Ohne Bewertung</dd>")):
         raise RuntimeError("Missing files should retain their metadata and explain their status")
     for mirror, expected in ((0, PAYLOAD), (8, MIRROR)):
         path = root + f"/file/50/get/{mirror}"
@@ -65,6 +78,8 @@ def browse(base, founder, member, pending):
         time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
         if member.fetch(urljoin(urljoin(base, path), action), fields, raw=True) != expected:
             raise RuntimeError("A licensed download or mirror returned different bytes")
+    if "<dt>Zuletzt heruntergeladen</dt><dd>Niemals</dd>" in guest.fetch(root + "/file/50"):
+        raise RuntimeError("A successful protected download did not update the file details")
     feedback(base, pending, founder, guest)
 
 

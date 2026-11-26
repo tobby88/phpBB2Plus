@@ -1,6 +1,8 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_DL_LAST_DOWNLOAD'=>'Zuletzt heruntergeladen','PLUS_DL_UNKNOWN_SIZE'=>'Unbekannt',
+	'PLUS_DL_VOTE_COUNT'=>array(1=>'1 Stimme',2=>'%d Stimmen'),
 	'PLUS_DL_RECOMMEND'=>'Datei empfehlen','PLUS_DL_MAIL_NOTE'=>'Dieser Download könnte dich interessieren.',
 	'PLUS_DL_MAIL_YOUR_NAME'=>'Dein Name','PLUS_DL_MAIL_YOUR_ADDRESS'=>'Deine Antwortadresse','PLUS_DL_MAIL_TO_NAME'=>'Name des Empfängers (optional)',
 	'PLUS_DL_MAIL_TO_ADDRESS'=>'E-Mail-Adresse des Empfängers','PLUS_DL_MAIL_SENT'=>'Deine Empfehlung wurde versendet.',

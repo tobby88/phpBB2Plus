@@ -105,7 +105,8 @@ def administration(owner, member, verify):
     replacement = dict(public, icon="zip.gif", url="https://example.invalid/replacement.txt", remove_preview="1")
     if 'class="successbox"' not in post(owner, url, owner.fetch(url), replacement):
         raise RuntimeError("The local original and preview could not be replaced")
-    if "zip.gif" not in guest.fetch(entry + str(new)) or "/preview" in guest.fetch(entry + str(new)):
+    changed = guest.fetch(entry + str(new))
+    if "zip.gif" not in changed or "/preview" in changed or "<dt>Größe</dt><dd>Unbekannt</dd>" not in changed:
         raise RuntimeError("Replacing the local media left the old presentation active")
     remove = panel + f"&action=delete&ids=10501,{new}"
     submit_form(owner, remove, owner.fetch(remove), "dl-files-confirm", {"confirm": "1"})

@@ -20,6 +20,8 @@ function seed_downloads($db)
 		(53,1,'Kein Original',21,'','missing.txt','missing-53.txt','','','','','',0,20003,1,0,''),
 		(54,1,'Privatfreigabe',24,'','external.txt','','Fixture download','','','','',0,20004,1,1,'https://example.invalid/fixture.txt')");
 	$db->query("UPDATE phpbb_pa_files SET file_posticon='pdf.gif',file_sshot_link=1 WHERE file_id=53");
+	$db->query("UPDATE phpbb_pa_files SET file_update_time=file_time WHERE file_id=53");
+	$db->query("UPDATE phpbb_pa_files SET file_size=1024,file_update_time=1728000000,file_last=1730000000 WHERE file_id=54");
 	$db->query("INSERT INTO phpbb_pa_mirrors (mirror_id,file_id,unique_name,file_dir,file_dlurl,mirror_location)
 		VALUES (8,50,'mirror-50.txt','pafiledb/uploads/','','Lokale Kopie &amp; 📡'),(9,51,'','','https://example.invalid/club.txt','Beispielserver'),
 		(10,53,'','','https://example.invalid/alternate.txt','')");
