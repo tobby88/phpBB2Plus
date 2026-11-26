@@ -62,6 +62,7 @@ import attachment_upload_types
 import member_attachments
 import birthday_greeting
 import absence
+import absence_contact
 import downloads
 import download_categories
 import download_checker
@@ -595,6 +596,8 @@ def main():
                     ROOT / "tests/phpbb3/birthday_greeting.php", target, phase, cwd=web, capture=True))
                 absence.browse(base, ordinary, member, lambda phase: php(
                     ROOT / "tests/phpbb3/absence.php", target, phase, cwd=web, capture=True))
+                absence_contact.browse(base, ordinary, member, lambda phase: php(
+                    ROOT / "tests/phpbb3/absence_contact.php", target, phase, cwd=web, capture=True))
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 weblinks.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
