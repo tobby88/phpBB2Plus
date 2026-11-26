@@ -1,0 +1,7 @@
+Subject: Website awaiting review
+
+Hello {USERNAME},
+
+A member suggested “{WEBSITE_TITLE}” for the website directory on {SITENAME}. You can review the entry under “Manage website directory” in the Administration Control Panel.
+
+{EMAIL_SIG}

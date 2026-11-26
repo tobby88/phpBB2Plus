@@ -1,0 +1,22 @@
+<!-- INCLUDE overall_header.html -->
+<h2><a href="{U_WL}">{L_WL_TITLE}</a></h2>
+<nav class="action-bar"><a class="button" href="{U_WL}">{L_WL_INDEX}</a> <a class="button" href="{U_WL_NEW}">{L_WL_NEW}</a> <a class="button" href="{U_WL_POP}">{L_WL_POP}</a> <a class="button" href="{U_WL_SEARCH}">{L_WL_SEARCH}</a>
+{% if U_WL_SUBMIT %}<a class="button" href="{U_WL_SUBMIT}">{L_WL_SUBMIT}</a>{% endif %}</nav>
+<h3>{{ WL_HEADING|e }}</h3>
+{% if WL_VIEW == 'index' %}
+<div class="panel"><ul>{% for cat in loops.wl_categories %}<li data-link-category="{{ cat.ID }}"><a href="{{ cat.URL }}">{{ cat.TITLE|e }}</a> ({{ cat.COUNT }})</li>{% else %}<li>{L_WL_EMPTY}</li>{% endfor %}</ul></div>
+{% if WL_MARKUP %}<details class="panel"><summary>{L_WL_LINK_US}</summary><pre><code>{{ WL_MARKUP|e }}</code></pre></details>{% endif %}
+{% else %}
+{% if WL_VIEW == 'search' %}<form method="get" action="{U_WL}" class="panel" id="wl-search"><input type="hidden" name="t" value="search">
+<label>{L_WL_TERMS} <input type="search" class="inputbox autowidth" name="search_keywords" maxlength="100" value="{{ WL_QUERY|e('html_attr') }}"></label> <button class="button2">{L_SEARCH}</button></form>{% endif %}
+{% if WL_VIEW == 'sub_pages' %}<form method="get" action="{U_WL}" class="panel" id="wl-sort"><input type="hidden" name="t" value="sub_pages"><input type="hidden" name="cat" value="{WL_CAT}">
+<label>{L_SORT_BY} <select name="mode">{% for key, label in {'link_joined':'WL_JOINED','link_hits':'WL_HITS','link_title':'WL_NAME','link_desc':'WL_DESCRIPTION'} %}<option value="{{ key }}"{% if WL_SORT == key %} selected{% endif %}>{{ lang(label) }}</option>{% endfor %}</select></label>
+<label>{L_SORT_DIRECTION} <select name="order"><option value="DESC"{% if WL_ORDER == 'DESC' %} selected{% endif %}>{L_DESCENDING}</option><option value="ASC"{% if WL_ORDER == 'ASC' %} selected{% endif %}>{L_ASCENDING}</option></select></label> <button class="button2">{L_GO}</button></form>{% endif %}
+{% for link in loops.wl_links %}<article class="panel bg1" data-weblink="{{ link.ID }}"><div class="inner">
+<h3><a href="{{ link.URL }}" rel="noreferrer">{{ link.TITLE|e }}</a></h3>
+{% if link.LOGO %}<a href="{{ link.URL }}" rel="noreferrer"><img src="{{ link.LOGO|e('html_attr') }}" alt="{{ link.TITLE|e('html_attr') }}" width="{WL_WIDTH}" height="{WL_HEIGHT}" loading="lazy" referrerpolicy="no-referrer"></a>{% endif %}
+<p>{{ link.DESCRIPTION|e|nl2br }}</p><p>{{ link.CATEGORY|e }} · {{ link.AUTHOR }} · {{ link.JOINED }} · {{ lang('WL_HITS') }} {{ link.HITS }}</p>
+</div></article>{% else %}{% if WL_VIEW != 'search' or WL_QUERY %}<p>{L_WL_EMPTY}</p>{% endif %}{% endfor %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

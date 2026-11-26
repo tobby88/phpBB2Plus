@@ -6,6 +6,11 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
 	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
 	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
+	if ($entry === 'links' && $method === 'POST' && !isset($query['action']))
+	{
+		// Directory searches and sorting use the original read-only form body.
+		$read_form = true;
+	}
 	if ($entry === 'recent' && $method === 'POST')
 	{
 		$read_form = $sort_redirect = true;
@@ -95,6 +100,20 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			$base = './';
 			$path = 'viewtopic.php';
 			$extra = array('t' => (int) $number[1], 'unwatch' => 'topic');
+			header('Cache-Control: private, no-store');
+			break;
+		case 'link_register':
+			$path = 'links/submit';
+			break;
+		case 'links':
+			$path = 'links';
+			if (($query['action'] ?? '') === 'go' && ($id = $positive('link_id'))) { $path .= '/visit/' . $id; break; }
+			if (in_array($query['t'] ?? '',array('index','new','pop','sub_pages','search'),true)) { $extra['t'] = $query['t']; }
+			if ($category = $positive('cat')) { $extra['cat'] = $category; }
+			if (in_array($query['mode'] ?? '',array('link_hits','link_joined','link_title','link_desc'),true)) { $extra['mode'] = $query['mode']; }
+			if (in_array($query['order'] ?? '',array('ASC','DESC'),true)) { $extra['order'] = $query['order']; }
+			if (isset($query['search_keywords']) && is_string($query['search_keywords']) && preg_match('/^.{0,100}$/usD',$query['search_keywords']))
+			{ $extra['search_keywords'] = $query['search_keywords']; }
 			header('Cache-Control: private, no-store');
 			break;
 		case 'arcade_modcp':

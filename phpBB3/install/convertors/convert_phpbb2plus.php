@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 if (!$get_info)
 {
-	foreach (array('community','gallery','knowledgebase','arcade','downloads','calendar','news','colours','banners') as $module)
+	foreach (array('community','gallery','knowledgebase','arcade','downloads','calendar','news','colours','banners','weblinks') as $module)
 	{
 		$extension = 'phpbb2plus/' . $module;
 		$result = $db->sql_query("SELECT ext_active FROM " . EXT_TABLE . " WHERE ext_name = '" . $db->sql_escape($extension) . "'");
@@ -455,6 +455,11 @@ if (!$get_info)
 	$convertor['schema'] = array_merge($convertor['schema'], plus_gallery_schema($table_prefix, $convert->truncate_statement),
 		plus_kb_schema($table_prefix, $convert->truncate_statement), plus_arcade_schema($table_prefix, $convert->truncate_statement),
 		plus_dl_schema($table_prefix, $convert->truncate_statement), plus_banner_schema($table_prefix, $convert->truncate_statement));
+	if (plus_weblink_source($src_db,$convert->src_table_prefix))
+	{
+		$convertor['schema'] = array_merge($convertor['schema'],plus_weblink_schema($table_prefix,$convert->truncate_statement));
+		$convertor['execute_last'][] = 'plus_weblink_settings();';
+	}
 	$actions = plus_action_schema($src_db, $convert->src_table_prefix, $table_prefix);
 	if ($actions) { $convertor['schema'][] = $actions; }
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_account_logins');

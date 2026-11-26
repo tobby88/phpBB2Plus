@@ -1,0 +1,15 @@
+services:
+    phpbb2plus.weblinks.directory:
+        class: phpbb2plus\weblinks\service\directory
+        arguments: ['@dbal.conn', '@config', '@auth', '@user', '%core.table_prefix%plus_wl_']
+    phpbb2plus.weblinks.pages:
+        class: phpbb2plus\weblinks\controller\pages
+        arguments: ['@phpbb2plus.weblinks.directory', '@phpbb2plus.weblinks.notices', '@request', '@user', '@language', '@config', '@template', '@controller.helper', '@pagination', '%core.root_path%']
+    phpbb2plus.weblinks.notices:
+        class: phpbb2plus\weblinks\service\notices
+        arguments: ['@dbal.conn', '@config', '@auth', '@language', '@user', '@request', '%core.table_prefix%plus_wl_', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.weblinks.listener:
+        class: phpbb2plus\weblinks\event\listener
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_wl_entries']
+        tags:
+            - { name: event.listener }

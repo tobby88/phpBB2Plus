@@ -1,0 +1,7 @@
+Subject: Website wartet auf Freigabe
+
+Hallo {USERNAME},
+
+ein Mitglied hat „{WEBSITE_TITLE}“ für das Linkverzeichnis auf {SITENAME} vorgeschlagen. Du kannst den Eintrag im Administrationsbereich unter „Linkverzeichnis verwalten“ prüfen.
+
+{EMAIL_SIG}

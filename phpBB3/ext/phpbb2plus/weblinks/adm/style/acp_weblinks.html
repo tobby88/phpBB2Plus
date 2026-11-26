@@ -1,0 +1,13 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_WL}</h1>
+<p><a href="{U_WL_PENDING}">{L_WL_PENDING}</a> · <a href="{U_WL_APPROVED}">{L_WL_APPROVED}</a> · <a href="{U_WL_DECLINED}">{L_WL_DECLINED}</a></p>
+{% for row in loops.entries %}<form id="wl-review-{{ row.ID }}" method="post" action="{U_WL_SAVE}">
+<fieldset><legend>{{ row.TITLE|e }}</legend><p>{{ row.CATEGORY|e }} · {{ row.DATE }}</p><p>{{ row.DESCRIPTION|e|nl2br }}</p>
+<p>{L_WL_URL} <code>{{ row.DEST|e }}</code></p>{% if row.LOGO %}<p>{L_WL_LOGO} <code>{{ row.LOGO|e }}</code></p>{% endif %}
+<input type="hidden" name="link_id" value="{{ row.ID }}"><input type="hidden" name="revision" value="{{ row.REV }}">{S_FORM_TOKEN}
+{% if WL_TAB != 1 %}<button name="decision" value="approve" class="button1">{L_WL_APPROVE}</button>{% endif %}
+{% if WL_TAB != 0 %}<button name="decision" value="withdraw" class="button2">{L_WL_WITHDRAW}</button>{% endif %}
+{% if WL_TAB != 2 %}<button name="decision" value="decline" class="button2">{L_WL_DECLINE}</button>{% endif %}
+</fieldset></form>{% else %}<p>{L_WL_EMPTY}</p>{% endfor %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+<!-- INCLUDE overall_footer.html -->

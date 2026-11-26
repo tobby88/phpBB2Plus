@@ -1,0 +1,18 @@
+phpbb2plus_weblinks_home:
+    path: /links
+    defaults: { _controller: phpbb2plus.weblinks.pages:index }
+    methods: [GET, HEAD, POST]
+phpbb2plus_weblinks_submit:
+    path: /links/submit
+    defaults: { _controller: phpbb2plus.weblinks.pages:submit }
+    methods: [GET, HEAD, POST]
+phpbb2plus_weblinks_visit:
+    path: /links/visit/{id}
+    defaults: { _controller: phpbb2plus.weblinks.pages:visit }
+    requirements: { id: '[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD]
+phpbb2plus_weblinks_logo:
+    path: /links/logo/{id}
+    defaults: { _controller: phpbb2plus.weblinks.pages:logo }
+    requirements: { id: '[0-9]{1,10}' }
+    methods: [GET, HEAD]
