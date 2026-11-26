@@ -3,6 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 
 require_once __DIR__ . '/functions_phpbb20.php';
 require_once __DIR__ . '/plus_absence.php';
+require_once __DIR__ . '/plus_inline_editor.php';
 require_once __DIR__ . '/plus_forums.php';
 require_once __DIR__ . '/plus_topology.php';
 require_once __DIR__ . '/plus_topic_readers.php';

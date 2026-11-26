@@ -71,6 +71,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_finish_action_log();';
 	$convertor['execute_last'][] = 'plus_login_settings();';
 	$convertor['execute_last'][] = 'plus_absence_settings();';
+	$convertor['execute_last'][] = 'plus_inline_edit_settings();';
 	$convertor['execute_last'][] = 'plus_import_member_notice();';
 	$convertor['execute_last'][] = 'plus_card_finish();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
@@ -292,6 +293,10 @@ if (!$get_info)
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
+			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_use_ajax_edit'))
+			{
+				$section[] = array('plus_inline_edit', 'users.user_use_ajax_edit', 'intval');
+			}
 			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_global_msg_read'))
 			{
 				$section[] = array('plus_notice_pending', 'users.ct_global_msg_read', 'plus_tracker_flag');

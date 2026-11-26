@@ -23,6 +23,11 @@ services:
         arguments: ['@path_helper', '@config', '@template', '@language', '@controller.helper']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.inline_editor:
+        class: phpbb2plus\community\event\inline_editor
+        arguments: ['@config', '@user', '@request', '@template', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.card_bans:
         class: phpbb2plus\community\event\card_bans
         arguments: ['@dbal.conn', '@user', '@config']

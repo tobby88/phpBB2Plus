@@ -1,0 +1,17 @@
+{% if S_PLUS_INLINE_EDIT %}
+{% INCLUDEJS '@phpbb2plus_community/inline_editor.js' %}
+{% INCLUDECSS '@phpbb2plus_community/inline_editor.css' %}
+<template id="plus-inline-editor">
+<form class="plus-inline-form" method="post" accept-charset="UTF-8">
+	<fieldset><legend>{{ lang('EDIT_POST') }}</legend>
+	<label><span>{{ lang('SUBJECT') }}</span><input class="inputbox" type="text" name="subject"></label>
+	<label><span>{{ lang('MESSAGE') }}</span><textarea class="inputbox" name="message" rows="8"></textarea></label>
+	<div class="plus-inline-actions">
+		<button type="submit" class="button1" name="post" value="1">{{ lang('PLUS_INLINE_SAVE') }}</button>
+		<button type="submit" class="button2" name="preview" value="1">{{ lang('PREVIEW') }}</button>
+		<button type="submit" class="button2" name="plus_inline_expand" value="1">{{ lang('PLUS_INLINE_FULL') }}</button>
+		<button type="button" class="button2" data-inline-cancel>{{ lang('CANCEL') }}</button>
+	</div></fieldset>
+</form>
+</template>
+{% endif %}
