@@ -1,5 +1,6 @@
 """Read the converted media report through the full administrator and the single-purpose delegate."""
 import hashlib
+from delegation import authenticate
 from download_file_actions import english_file_panel
 from http_board import Page, submit_form
 from knowledgebase import acp_panel
@@ -33,6 +34,11 @@ def administration(owner, verify):
         if "Vorschaubild" not in de or "Die Dateigröße weicht vom Katalogeintrag ab." not in de:
             raise RuntimeError("The German report did not explain its actual findings")
         verify("unchanged")
+        junior, entry = authenticate(owner.base, "DownloadCheckerJunior")
+        mapped = entry + "&i=-phpbb2plus-downloads-acp-checker_module&mode=report"
+        if name("orphan") not in submit_form(junior, mapped, junior.fetch(mapped), "dl-checker", {}):
+            raise RuntimeError("The original file-checker-only delegation lost its native report")
+        junior.fetch(entry + "&i=-phpbb2plus-downloads-acp-settings_module&mode=manage", expected_status=503)
         verify("revoke")
         denied = submit_form(actor, url, report, "dl-checker", {}, status=403)
         if "dl-checker" in Page(denied).forms or name("orphan") in denied:

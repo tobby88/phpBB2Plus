@@ -33,7 +33,7 @@ def source_modules(source, target):
                  "pafiledb/includes/functions_file_journal.php", "pafiledb/includes/functions_file_reference.php",
                  "pafiledb/includes/functions_file_storage.php", "pafiledb/includes/functions_file_delete.php",
                  "pafiledb/includes/functions_mutation_storage.php", "pafiledb/includes/functions_mirror_storage.php",
-                 "pafiledb/includes/functions_settings_storage.php",
+                 "pafiledb/includes/functions_settings_storage.php", "pafiledb/includes/functions_file_checker.php",
                  "pafiledb/includes/functions_permission_storage.php", "pafiledb/includes/functions_license_storage.php",
                  "pafiledb/includes/functions_custom_storage.php", "pafiledb/includes/functions_field.php",
                  "album_mod/album_admin_category_storage.php", "album_mod/album_cache_maintenance.php",

@@ -48,6 +48,7 @@ import legacy_links
 import mail_links
 import downloads
 import download_categories
+import download_checker
 import download_fields
 import download_file_actions
 import download_file_editor
@@ -81,6 +82,7 @@ import gallery_category_index
 import gallery_search
 import gallery_personal
 import gallery_cache
+import gallery_media_policy
 import gallery_management_bookmarks
 import knowledgebase
 from ruffle_browser import playback
@@ -228,6 +230,8 @@ def download_checks(base, admin, historical, applicant, fixture, target, web, ga
         downloads.submissions(base, admin, historical, applicant,
                               lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
         permissions.result()
+        download_checker.administration(admin, lambda phase: php(
+            ROOT / "tests/phpbb3/download_checker.php", target, phase, cwd=web))
         download_reports.browse(base, historical, applicant, lambda phase: php(
             ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
         download_search.browse(base, historical, applicant, lambda phase: php(
@@ -258,6 +262,8 @@ def media_administration(base, member, ordinary, pending, target, web):
             ROOT / "tests/phpbb3/gallery_management_bookmarks.php", target, phase, cwd=web, capture=True))
         gallery_personal.browse(base, member, ordinary, pending,
                                 lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
+        gallery_media_policy.browse(member, ordinary, pending, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_media_policy.php", target, phase, cwd=web, capture=True))
         gallery_cache.browse(member, pending, guest, lambda phase: php(
             ROOT / "tests/phpbb3/gallery_cache.php", target, phase, cwd=web, capture=True),
             lambda phase: php(ROOT / "tests/phpbb3/gallery_personal.php", target, phase, cwd=web))
@@ -265,7 +271,7 @@ def media_administration(base, member, ordinary, pending, target, web):
 
 
 def extension_upgrades(target, web):
-    fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php", "download_mail.php")]
+    fixtures = [ROOT / "tests/phpbb3" / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php")]
     # Start at the common parent of these dependent migrations and run the normal updater once.
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v137_account_logins", "--no-interaction", cwd=web)
@@ -365,6 +371,7 @@ def main():
                 php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)
+                php(ROOT / "tests/phpbb3/download_checker.php", target, "converted", cwd=web)
                 php(statistics_fixture, "converted", target)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True), with_recovery=not media_only)
                 converted = monotonic()

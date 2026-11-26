@@ -67,6 +67,7 @@ function plus_jr_registry()
 	$reviewed = array(
 		'admin_pa_file.php' => '4993fafef0f0f5702e1bb5f23163da0b5372838f9bb67d856dccce3e729e8adb',
 		'admin_pa_settings.php' => 'f8b7ebf1eefe344f2e22bd0eb31097755b4b7f66271ba6ff105bad7837eca6f3',
+		'admin_pa_fchecker.php' => 'f1d2f21d23ec2b9d2b59858a0dace8074df9b974c0f38babd17150588112f45d',
 		'admin_statistics.php' => '9dae7adc915d806601d0140450537a82d430d8039f06e095ae763b32972980e1',
 		'admin_pa_custom.php' => '9237b12da9f50adbc87ff38da3b3550063a92d017dc628b410ee65a69927350b',
 		'admin_album_personal.php' => 'd97d4e085e90eac081030134f6894b60b3e4824ee6d1ef88ad82bd1fd36f5d87',
@@ -134,6 +135,10 @@ function plus_jr_registry()
 		),
 		'admin_pa_settings.php' => $download_writes + array(
 			'pafiledb/includes/functions_settings_storage.php' => '840e087ee3913ebf75a0b98382742926e4840b57f69dccd4ba6b37120b536334',
+		),
+		'admin_pa_fchecker.php' => $download_writes + array(
+			'pafiledb/includes/functions_file_checker.php' => '1c674e517cd43f9002875f2d930241baf6264a2a5e1c7586d6f457ec6aea3212',
+			'pafiledb/includes/functions_file_reference.php' => '70fce49b6cbe87232cb86f4dbde01989d8c9eefda95960385656d3f06dc09b04',
 		),
 		'admin_pa_file.php' => $download_writes + array(
 			'pafiledb/includes/functions_file_journal.php' => '72b42922fdc62a44ca30e035375572169c0ea45d9358805d73e4631ad211dbf9',

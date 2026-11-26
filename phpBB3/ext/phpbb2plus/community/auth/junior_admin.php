@@ -18,6 +18,7 @@ class junior_admin
 		'admin_pa_category.php' => array('Download', 'Cat_manage_title', array('a_plus_dl_categories' => array('phpbb2plus\downloads\acp\categories_module', 'manage'))),
 		'admin_pa_catauth.php' => array('Download', 'Permissions', array('a_plus_dl_perms' => array('phpbb2plus\downloads\acp\permissions_module', 'manage'))),
 		'admin_pa_settings.php' => array('Download', 'Settings', array('a_plus_dl_settings' => array('phpbb2plus\downloads\acp\settings_module', 'manage'))),
+		'admin_pa_fchecker.php' => array('Download', 'Fchecker', array('a_plus_dl_checker' => array('phpbb2plus\downloads\acp\checker_module', 'report'))),
 		'admin_pa_file.php' => array('Download', 'File_manage_title', array(
 			'a_plus_dl_edit' => self::FILE_ACTIONS, 'a_plus_dl_approval' => self::FILE_ACTIONS, 'a_plus_dl_delete' => self::FILE_ACTIONS,
 			'a_plus_dl_mirrors' => array('phpbb2plus\downloads\acp\mirrors_module', 'manage'),

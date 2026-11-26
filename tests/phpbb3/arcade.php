@@ -64,7 +64,7 @@ function verify_arcade($db, $member)
 	$currencies = $db->query("SELECT currency_field,balance_text FROM {$p}wallets WHERE owner_id=$member ORDER BY currency_field")->fetch_all(MYSQLI_ASSOC);
 	check_fixture(count($currencies) === 2 && $currencies[0]['balance_text'] === '18446744073709551615' &&
 		$currencies[1]['balance_text'] === '9007199254740993.12345678', 'Balances lost precision during conversion');
-	foreach (array('categories'=>4,'games'=>5,'scores'=>8,'all_scores'=>8,'monthly'=>1,'comments'=>1,'ratings'=>1,'favorites'=>4,'saves'=>1,
+	foreach (array('categories'=>5,'games'=>5,'scores'=>8,'all_scores'=>8,'monthly'=>1,'comments'=>1,'ratings'=>1,'favorites'=>4,'saves'=>1,
 		'tours'=>4,'tour_games'=>6,'invites'=>2,'tour_plays'=>3,'turns'=>2,'players'=>1,'log'=>1,'bans'=>1,'grants'=>2) as $table => $count)
 	{
 		$actual = $db->query("SELECT COUNT(*) FROM $p$table")->fetch_row()[0];
