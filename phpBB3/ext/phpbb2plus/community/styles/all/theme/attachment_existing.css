@@ -1,0 +1,2 @@
+/* Keep native editing and removal controls for old attachments when uploads are closed. */
+#attach-panel-basic, #attach-panel-multi, #attach-panel > .inner > p:first-child { display: none; }

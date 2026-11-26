@@ -24,7 +24,7 @@ function plus_quota_group($old)
 	return isset($groups[(int) $old]) ? (int) $old : 0;
 }
 
-function plus_quota_defaults()
+function plus_attachment_defaults()
 {
 	global $config, $src_db, $convert;
 	// In the old MOD max_filesize applied to individual files in both composers.
@@ -36,6 +36,7 @@ function plus_quota_defaults()
 	while ($row = $src_db->sql_fetchrow($r)) { $config->set($names[$row['config_name']], (string) $row['config_value']); }
 	$src_db->sql_freeresult($r);
 	$config->set('plus_attach_quotas',1);
+	$config->set_atomic('plus_attach_upload_types', '-1', '1');
 }
 
 function plus_quota_schema($prefix, $truncate)

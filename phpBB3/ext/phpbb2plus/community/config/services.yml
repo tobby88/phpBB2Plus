@@ -281,9 +281,12 @@ services:
             - { name: event.listener }
     phpbb2plus.community.attachment_rules:
         class: phpbb2plus\community\controller\attachment_rules
-        arguments: ['@dbal.conn', '@cache', '@config', '@auth', '@user', '@language', '@controller.helper', '@template']
+        arguments: ['@dbal.conn', '@phpbb2plus.community.attachment_types', '@config', '@auth', '@user', '@language', '@controller.helper', '@template']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.attachment_types:
+        parent: cache
+        class: phpbb2plus\community\attachment\upload_types
     phpbb2plus.community.pm_quota_events:
         class: phpbb2plus\community\event\pm_quotas
         arguments: ['@phpbb2plus.community.attachment_quotas', '@dbal.conn', '@user', '@auth', '@language']

@@ -2,6 +2,11 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_ATTACH_RULES_LINK' => 'Erlaubte Dateitypen und Größen',
+	'PLUS_ATTACH_UPLOAD_POLICY' => 'Dateiendungen für neue Anhänge',
+	'PLUS_ATTACH_UPLOAD_POLICY_EXPLAIN' => 'Plus erlaubt Endungen mit bis zu 16 Buchstaben oder Ziffern und schließt ausführbare Skripttypen aus. Die Beschränkung gilt für neue Anhänge in Beiträgen und privaten Nachrichten. Für vorhandene Dateien gelten weiterhin die bisherigen Downloadberechtigungen.',
+	'PLUS_ATTACH_ON_IMPORT' => 'Native Dateigruppen verwenden, bis ein Plus-Forum importiert wird',
+	'PLUS_ATTACH_GROUPS_ONLY' => 'Nur native Dateigruppen verwenden',
+	'PLUS_ATTACH_INHERIT_TYPES' => 'Plus-Beschränkung auf native Dateigruppen anwenden',
 	'PLUS_ATTACH_POST_RULES' => 'Anhangregeln für dieses Forum',
 	'PLUS_ATTACH_PM_RULES' => 'Anhangregeln für private Nachrichten',
 	'PLUS_ATTACH_GROUP' => 'Dateigruppe', 'PLUS_ATTACH_TYPES' => 'Dateiendungen', 'PLUS_ATTACH_FILE_LIMIT' => 'Höchstgröße je Datei',

@@ -75,7 +75,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
 	{
-		$convertor['execute_last'][] = 'plus_quota_defaults();';
+		$convertor['execute_last'][] = 'plus_attachment_defaults();';
 	}
 	$convertor['execute_last'][] = 'plus_finish_news();';
 	$convertor['execute_last'][] = 'plus_portal_settings();';
