@@ -12,12 +12,12 @@ $rows = static function ($sql) use ($db) {
 $phase = $argv[2]; $key = 'plus_test_member_directory'; $text = $phpbb_container->get('config_text');
 $state = json_decode((string) $text->get($key), true);
 $scopes = array('a_plus_mail_list','a_plus_user_list');
-if ($phase === 'before-upgrade' || $phase === 'after-upgrade')
+if ($phase === 'older' || $phase === 'upgraded')
 {
 	$rights = array_column($rows('SELECT auth_option FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option', $scopes) . ' ORDER BY auth_option'), 'auth_option');
 	$modes = array_column($rows('SELECT module_mode FROM ' . MODULES_TABLE . " WHERE module_basename='" .
 		$db->sql_escape('\phpbb2plus\community\acp\member_directory_module') . "' ORDER BY module_mode"), 'module_mode');
-	$installed = $phase === 'after-upgrade';
+	$installed = $phase === 'upgraded';
 	if ($rights !== ($installed ? $scopes : array()) || $modes !== ($installed ? array('emails','members') : array()))
 	{ throw new RuntimeException('Both directory modes and permissions must follow their own upgrade'); }
 }

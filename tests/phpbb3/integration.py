@@ -75,6 +75,7 @@ import absence_contact
 import absence_registration
 import acp_registration
 import registration_network
+import member_directory
 import mailbox_counters
 import smilie_signs
 import downloads
@@ -345,6 +346,7 @@ def account_management(base, admin, moderator, member, target, web):
     account_pruning.browse(base, web, target, php)
     registration_network.browse(base, web, target, php)
     acp_registration.browse(admin, fixture("acp_registration"))
+    member_directory.browse(base, web, target, php)
 
 
 def extension_upgrades(target, web, suite="all"):
@@ -369,6 +371,9 @@ def extension_upgrades(target, web, suite="all"):
         # The diagnostics and game migrations depend on v113 and roll back with it.
         migrations.append("arcade/migrations/v113_category_administration")
         preserved.extend((tests / "arcade_category_administration.php", tests / "arcade_diagnostics.php"))
+    if suite in ("management", "all"):
+        migrations.append("community/migrations/v166_member_directory")
+        fixtures.append(tests / "member_directory.php")
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
