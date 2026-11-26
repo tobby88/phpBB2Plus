@@ -1,0 +1,9 @@
+{% include 'overall_header.html' %}
+<form id="plus-legacy-logout" action="{{ U_PLUS_LOGOUT_ACTION }}" method="post">
+	<div class="panel"><div class="inner"><h2>{{ lang('LOGOUT') }}</h2><p>{{ lang('PLUS_LEGACY_LOGOUT_CONFIRM') }}</p>
+		<input type="hidden" name="sid" value="{{ PLUS_LOGOUT_SID|e('html_attr') }}">
+		<fieldset class="submit-buttons"><button class="button1" type="submit">{{ lang('LOGOUT') }}</button>
+			<a class="button2" href="{{ U_PLUS_LOGOUT_CANCEL|e }}">{{ lang('CANCEL') }}</a></fieldset>
+	</div></div>
+</form>
+{% include 'overall_footer.html' %}
