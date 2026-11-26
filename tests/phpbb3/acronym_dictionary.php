@@ -24,7 +24,17 @@ if ($argv[2] === 'source')
 }
 define('IN_PHPBB', true);
 $phpbb_root_path = './'; $phpEx = 'php'; require './common.php';
-if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1] || $argv[2] !== 'converted') { exit(2); }
+if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1]) { exit(2); }
+if (in_array($argv[2], array('older', 'upgraded'), true))
+{
+	$result = $db->sql_query('SELECT * FROM ' . $table_prefix . 'plus_acronyms ORDER BY acronym_id');
+	$rows = $db->sql_fetchrowset($result);
+	$db->sql_freeresult($result);
+	if (count($rows) < 3) { throw new RuntimeException('Reverting or reapplying the module lost stored dictionary entries'); }
+	echo json_encode($rows, JSON_THROW_ON_ERROR);
+	return;
+}
+if ($argv[2] !== 'converted') { exit(2); }
 $dictionary = $phpbb_container->get('phpbb2plus.community.acronym_dictionary');
 $short = '<abbr title="Kölner Forum">KöFo</abbr>';
 $long = '<abbr title="KöFo &amp; &quot;Arbeitsgruppe&quot; 🧭">KöFo AG</abbr>';

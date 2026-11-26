@@ -347,6 +347,8 @@ def extension_upgrades(target, web, suite="all"):
         fixtures.append(tests / "login_lifecycle.php")
         fixtures.append(tests / "topic_readers.php")
         preserved.append(tests / "country_flag_administration.php")
+        migrations.append("community/migrations/v161_acronym_dictionary")
+        preserved.append(tests / "acronym_dictionary.php")
     if suite in ("media", "downloads", "all"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))

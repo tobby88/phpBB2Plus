@@ -21,5 +21,13 @@ class v161_acronym_dictionary extends \phpbb\db\migration\migration
 				'module_basename' => '\phpbb2plus\community\acp\acronyms_module', 'modes' => array('manage')))));
 	}
 
-	public function revert_schema() { return array('drop_tables' => array($this->table_prefix . 'plus_acronyms')); }
+	public function revert_schema()
+	{
+		$table = $this->table_prefix . 'plus_acronyms';
+		if (!$this->db_tools->sql_table_exists($table)) { return array(); }
+		$result = $this->db->sql_query_limit('SELECT acronym_id FROM ' . $table, 1);
+		$used = (bool) $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		return $used ? array() : array('drop_tables' => array($table));
+	}
 }
