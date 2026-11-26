@@ -58,6 +58,13 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		{
 			$query = array_intersect_key($_POST, array_flip(array('cat_id', 'sort_method', 'sort_order', 'start'))) + $query;
 		}
+		if ($action === 'mcp' && $method === 'POST')
+		{
+			// The separate pa_mcp.tpl selector posted its view and category. Approval forms use the native review.
+			$fields = array_flip(array('action','mode','mode_js','cat_id','cat_js_id','sort_method','sort_order','start','go','sid'));
+			$read_form = $sort_redirect = isset($_POST['mode_js']) && !array_diff_key($_POST, $fields);
+			if ($read_form) { $query = array_intersect_key($_POST, $fields) + $query; }
+		}
 	}
 	if (!in_array($method, array('GET', 'HEAD'), true) && !($read_form && $method === 'POST'))
 	{
@@ -384,7 +391,19 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 					{ $path = $cat ? 'downloads/category/' . $cat . '/submit' : 'downloads/submit'; }
 					break;
 				case 'mcp':
-					if ($cat = $positive('cat_id')) { $path = 'downloads/category/' . $cat . '/review'; }
+					$views = array(''=>'overview', 'approved'=>'pending', 'broken'=>'broken', 'file_cat'=>'published', 'all_file'=>'published');
+					$mode = $query['mode'] ?? '';
+					$category_key = $mode === '' && isset($query['cat_js_id']) ? 'cat_js_id' : 'cat_id';
+					if ($mode === '') { $mode = $query['mode_js'] ?? ''; }
+					if (!is_string($mode) || !isset($views[$mode]) || (isset($query[$category_key]) && !($cat = $positive($category_key)))) { break; }
+					$path = 'downloads/moderation';
+					header('Cache-Control: private, no-store');
+					if (isset($query[$category_key])) { $extra['cat_id'] = $cat; }
+					if ($mode !== '') { $extra['status'] = $views[$mode]; }
+					if (in_array($query['sort_method'] ?? '', array('file_name','file_time','file_dls','file_rating','rating','file_update_time'),true))
+					{ $extra['sort_method'] = $query['sort_method']; }
+					if (in_array($query['sort_order'] ?? '', array('ASC','DESC'),true)) { $extra['sort_order'] = $query['sort_order']; }
+					if ($start = $positive('start')) { $extra['start'] = $start; }
 					break;
 				case 'search':
 					$path = 'downloads/search';

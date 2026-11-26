@@ -376,6 +376,51 @@ class submissions
 		}
 	}
 
+	/** Preview or confirm a category moderator's complete selection. A mixed or stale selection changes no files. */
+	public function moderate_selection($category, $action, $selection, $revisions, $confirmation = null)
+	{
+		if (!in_array($action, array('approve','withdraw'), true)) { throw new \DomainException('PLUS_DL_MOD_SELECT', 400); }
+		$ids = catalogue_selection::ids($selection, 'PLUS_DL_MOD_SELECT');
+		$apply = $confirmation !== null;
+		$this->db->sql_transaction('begin');
+		try
+		{
+			$this->access->lock_catalogue(false);
+			if (!$this->access->refresh_moderator()) { throw new NotFoundHttpException(); }
+			$categories = $category ? array($category) : array_keys($this->access->directory());
+			$allowed = array_filter($categories, array($this->access, 'can_review'));
+			if (!$allowed) { throw new NotFoundHttpException(); }
+			$where = $this->db->sql_in_set('file_id', $ids) . ' AND ' . $this->db->sql_in_set('cat_id', $allowed);
+			$table = $this->prefix . 'files';
+			$lock = $apply && in_array($this->db->get_sql_layer(), array('mysql','mysqli'), true) ? ' FOR UPDATE' : '';
+			if ($apply && !$lock) { $this->db->sql_query("UPDATE $table SET file_id=file_id WHERE $where"); }
+			$r = $this->db->sql_query("SELECT file_id,cat_id,title,approved,broken,review_revision FROM $table WHERE $where ORDER BY file_id" . $lock);
+			$rows = $this->db->sql_fetchrowset($r);
+			$this->db->sql_freeresult($r);
+			if (count($rows) !== count($ids)) { throw new NotFoundHttpException(); }
+			$changed = array();
+			foreach ($rows as $row)
+			{
+				$id = (int) $row['file_id'];
+				if (!isset($revisions[$id]) || (string) $revisions[$id] !== (string) $row['review_revision'])
+				{
+					throw new \DomainException('PLUS_DL_MOD_CHANGED', 409);
+				}
+				if ((bool) $row['approved'] !== ($action === 'approve')) { $changed[] = $id; }
+			}
+			if (!$changed) { throw new \DomainException('PLUS_DL_MOD_UNCHANGED', 400); }
+			$state = hash('sha256', serialize(array((int) $this->user->data['user_id'], $category, $action, $rows)));
+			if ($apply)
+			{
+				if (!hash_equals($state, $confirmation)) { throw new \DomainException('PLUS_DL_MOD_CHANGED', 409); }
+				$this->set_approval($changed, $action === 'approve');
+			}
+			if (!$this->db->sql_transaction('commit')) { throw new \RuntimeException('Could not complete download moderation'); }
+			return array('rows'=>$rows, 'state'=>$state, 'changed'=>$changed);
+		}
+		catch (\Throwable $e) { if ($this->db->get_transaction()) { $this->db->sql_transaction('rollback'); } throw $e; }
+	}
+
 	private function purge($ids)
 	{
 		foreach (array_chunk($ids, 200) as $batch)

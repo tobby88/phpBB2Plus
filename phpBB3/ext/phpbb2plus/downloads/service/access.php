@@ -300,10 +300,35 @@ class access
 			$this->visible($id) && $this->allows($id, 'upload');
 	}
 
+	public function moderates($id)
+	{
+		return !empty($this->user->data['is_registered']) && empty($this->user->data['is_bot']) && empty($this->user->data['user_perm_from']) &&
+			$this->visible($id, true) && $this->allows($id, 'mod');
+	}
+
 	public function can_review($id)
 	{
-		return !empty($this->user->data['is_registered']) && $this->visible($id, true) &&
-			($this->admin() || ($this->setting('validator', 'validator_admin') === 'validator_mod' && $this->allows($id, 'mod')));
+		return $this->moderates($id) && ($this->admin() || $this->setting('validator', 'validator_admin') === 'validator_mod');
+	}
+
+	public function refresh_moderator()
+	{
+		if (empty($this->user->data['is_registered']) || !empty($this->user->data['user_perm_from'])) { return false; }
+		$id = (int) $this->user->data['user_id'];
+		$lock = in_array($this->db->get_sql_layer(), array('mysql','mysqli'), true) ? ' LOCK IN SHARE MODE' : '';
+		$r = $this->db->sql_query('SELECT u.* FROM ' . USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE . " s ON s.session_user_id=u.user_id
+			WHERE u.user_id=$id AND s.session_id='" . $this->db->sql_escape($this->user->session_id) . "'" . $lock);
+		$actor = $this->db->sql_fetchrow($r);
+		$this->db->sql_freeresult($r);
+		if (!$actor || $actor['user_perm_from'] || !in_array((int) $actor['user_type'], array(USER_NORMAL,USER_FOUNDER), true)) { return false; }
+		// Keep the memberships used by category moderation current until the selected files are updated.
+		$r = $this->db->sql_query($this->active_groups_sql($id) . $lock);
+		$this->db->sql_freeresult($r);
+		$actor['is_registered'] = true;
+		$actor['is_bot'] = false;
+		$this->auth->acl($actor);
+		$this->refresh();
+		return true;
 	}
 
 	public function can_manage($file, $action)

@@ -47,6 +47,11 @@ phpbb2plus_downloads_review:
     defaults: { _controller: phpbb2plus.downloads.submissions_controller:review }
     requirements: { file: '[1-9][0-9]*', action: 'approve|withdraw|reject' }
     methods: [GET, POST]
+phpbb2plus_downloads_moderation:
+    path: /downloads/moderation
+    defaults: { _controller: phpbb2plus.downloads.moderation_controller:view }
+    methods: [GET, HEAD, POST]
+
 phpbb2plus_downloads_category:
     path: /downloads/category/{category}
     defaults: { _controller: phpbb2plus.downloads.catalogue_controller:view }

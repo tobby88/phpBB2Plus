@@ -1,0 +1,32 @@
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
+<h2>{L_PLUS_DL_MODERATION}</h2>
+{% if DL_MOD_ERROR %}
+<div class="panel"><p class="error">{{ DL_MOD_ERROR|e }}</p><a href="{U_DL_MOD}">{L_BACK}</a></div>
+{% elseif DL_MOD_CONFIRM %}
+<form id="dl-mod-confirm" class="panel" method="post" action="{U_DL_MOD}"><div class="inner">
+<p>{{ DL_MOD_QUESTION|e }}</p><ul>{% for f in loops.selection %}<li>{{ f.NAME|e }} (#{{ f.ID }})<input type="hidden" name="ids[]" value="{{ f.ID }}"><input type="hidden" name="rev[{{ f.ID }}]" value="{{ f.REV }}"></li>{% endfor %}</ul>
+<input type="hidden" name="state" value="{{ DL_MOD_STATE }}"><input type="hidden" name="operation" value="{{ DL_OPERATION }}">
+<fieldset class="submit-buttons">{S_FORM_TOKEN}<button name="confirm" value="1" class="button1">{L_CONFIRM}</button> <a href="{U_DL_MOD}">{L_CANCEL}</a></fieldset>
+</div></form>
+{% else %}
+{% if DL_MOD_SAVED %}<p class="success">{{ lang('PLUS_DL_MOD_SAVED')|e }}</p>{% endif %}
+<form id="dl-mod-filters" method="get" action="{U_DL_MOD_FILTER}" class="panel"><div class="inner"><fieldset>
+<label>{L_PLUS_DL_CATEGORY} <select name="cat_id"><option value="0">{L_PLUS_DL_MOD_ALL}</option>{% for c in loops.mod_categories %}<option value="{{ c.ID }}"{% if c.SELECTED %} selected{% endif %}>{{ c.NAME|e }}</option>{% endfor %}</select></label>
+<label>{L_DISPLAY} <select name="status">{% for f in loops.mod_filters %}<option value="{{ f.VALUE }}"{% if f.SELECTED %} selected{% endif %}>{{ f.NAME|e }}</option>{% endfor %}</select></label>
+<label for="dl-sort">{L_SORT_BY}</label> <!-- INCLUDE @phpbb2plus_downloads/sort_controls.html -->
+<button class="button2">{L_GO}</button></fieldset></div></form>
+{% for g in loops.mod_groups %}
+<h3>{{ g.LABEL|e }} ({{ g.COUNT }})</h3>
+<form id="dl-mod-{{ g.FILTER }}" method="post" action="{U_DL_MOD}">
+<div class="forumbg"><div class="inner"><table class="table1"><thead><tr>{% if g.REVIEW %}<th>{L_SELECT}</th>{% endif %}<th>{L_PLUS_DL_TITLE}</th><th>{L_PLUS_DL_CATEGORY}</th><th>{L_STATUS}</th></tr></thead><tbody>
+{% for f in g.files %}<tr>{% if g.REVIEW %}<td><input type="checkbox" name="ids[]" value="{{ f.ID }}" aria-label="{{ f.NAME|e('html_attr') }}"><input type="hidden" name="rev[{{ f.ID }}]" value="{{ f.REV }}"></td>{% endif %}
+<td><a href="{{ f.URL }}">{{ f.NAME|e }}</a></td><td>{{ f.CATEGORY|e }}</td><td>{% if f.APPROVED %}{L_PLUS_DL_PUBLISHED_FILES}{% else %}{L_PLUS_DL_PENDING_FILES}{% endif %}</td></tr>
+{% else %}<tr><td colspan="3">{L_PLUS_DL_EMPTY}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if g.REVIEW %}<fieldset class="submit-buttons">{S_FORM_TOKEN}
+{% if g.APPROVE %}<button class="button2" name="operation" value="approve">{L_PLUS_DL_APPROVE}</button>{% endif %}
+{% if g.WITHDRAW %}<button class="button2" name="operation" value="withdraw">{L_PLUS_DL_WITHDRAW}</button>{% endif %}</fieldset>{% endif %}
+</form>{% if g.U_ALL %}<p><a href="{{ g.U_ALL }}">{{ g.LABEL|e }} ({{ g.COUNT }})</a></p>{% endif %}
+{% endfor %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

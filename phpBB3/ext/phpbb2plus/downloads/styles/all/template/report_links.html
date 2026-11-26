@@ -1,4 +1,4 @@
-{% if U_DL_ADVANCED or U_DL_STATS or U_DL_TOPLIST or U_DL_UPLOAD or U_DL_VIEWALL %}
+{% if U_DL_ADVANCED or U_DL_STATS or U_DL_TOPLIST or U_DL_UPLOAD or U_DL_VIEWALL or U_DL_MODERATION %}
 <nav id="dl-tools" aria-label="{L_PLUS_DL}">
 {% for icon, action in {
 	'search': [U_DL_ADVANCED, lang('PLUS_DL_ADVANCED')],
@@ -9,5 +9,6 @@
 } %}
 	{% if action[0] %}<a href="{{ action[0] }}" title="{{ action[1]|e }}">{% if DL_ART_LANG %}<img src="{T_THEME_PATH}/{{ DL_ART_LANG }}/icon_pa_{{ icon }}.gif" width="59" height="18" alt="{{ action[1]|e }}">{% else %}{{ action[1]|e }}{% endif %}</a>{% endif %}
 {% endfor %}
+{% if U_DL_MODERATION %}<a href="{{ U_DL_MODERATION }}">{{ lang('PLUS_DL_MODERATION')|e }}</a>{% endif %}
 </nav>
 {% endif %}

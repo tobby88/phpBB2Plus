@@ -42,12 +42,15 @@ class public_listing
 		}
 		$can_upload_here = $category && $this->access->can_submit($category);
 		$choose_upload = false;
+		$moderation = false;
 		foreach ($this->access->directory() as $id=>$depth)
 		{
+			if (!$moderation && $active !== 'moderation' && $this->access->moderates($id)) { $moderation = true; }
 			if (!$can_upload_here && !$choose_upload && $active !== 'category' && $active !== 'submit' && $this->access->can_submit($id)) { $choose_upload=true; }
 			$this->template->assign_block_vars('dl_jump',array('TITLE'=>access::plain($cats[$id]['title']),'DEPTH'=>$depth,'CURRENT'=>$id===$category,
 				'URL'=>$this->helper->route('phpbb2plus_downloads_category',array('category'=>$id))));
 		}
+		if ($moderation) { $this->template->assign_var('U_DL_MODERATION', $this->helper->route('phpbb2plus_downloads_moderation')); }
 		if ($active !== 'submit' && ($can_upload_here || $choose_upload))
 		{
 			$this->template->assign_var('U_DL_UPLOAD',$can_upload_here ? $this->helper->route('phpbb2plus_downloads_submit',array('category'=>$category)) :

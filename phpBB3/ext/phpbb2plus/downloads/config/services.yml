@@ -1,4 +1,7 @@
 services:
+    phpbb2plus.downloads.moderation_controller:
+        class: phpbb2plus\downloads\controller\moderation
+        arguments: ['@phpbb2plus.downloads.access', '@phpbb2plus.downloads.submissions', '@dbal.conn', '%core.table_prefix%plus_dl_', '@request', '@language', '@template', '@controller.helper', '@pagination', '@phpbb2plus.downloads.public_listing']
     phpbb2plus.downloads.file_checker:
         class: phpbb2plus\downloads\service\file_checker
         arguments: ['@phpbb2plus.downloads.access', '@dbal.conn', '@config', '%core.table_prefix%plus_dl_', '%core.root_path%']
