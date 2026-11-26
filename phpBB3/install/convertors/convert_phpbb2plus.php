@@ -106,7 +106,7 @@ if (!$get_info)
 	}
 	foreach (\phpbb2plus\calendar\service\settings::MEMBER + \phpbb2plus\calendar\service\settings::BOARD as $name=>$default)
 	{
-		$config_schema['settings']['plus_cal_' . $name] = 'calendar_' . $name;
+		$config_schema['settings']['plus_cal_' . $name] = $name === 'birthday_days' ? 'birthday_check_day' : 'calendar_' . $name;
 		if (isset(\phpbb2plus\calendar\service\settings::MEMBER[$name])) { $config_schema['settings']['plus_cal_' . $name . '_over'] = 'calendar_' . $name . '_over'; }
 	}
 	if (defined('MOD_ATTACHMENT'))

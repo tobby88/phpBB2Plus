@@ -55,6 +55,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	$statement->bind_param('s', $historic);
 	$statement->execute();
 	$db->query("UPDATE phpbb_config SET config_value='german' WHERE config_name='default_lang'");
+	$db->query("UPDATE phpbb_config SET config_value='9' WHERE config_name='birthday_check_day'");
 	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_username,
 		post_time,post_edit_time,post_edit_count,post_edit_user_id,post_author_removed,post_deleted,post_deleted_time,post_deleted_by)
 		VALUES (31,1,1,-1,'7f000001','AliasFixture',10000,10100,1,1,1,1,10200,2)");

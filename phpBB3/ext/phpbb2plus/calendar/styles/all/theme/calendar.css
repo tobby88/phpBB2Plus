@@ -10,6 +10,15 @@ table.plus-cal-grid th { background: #48647d; color: white; }
 .plus-cal-grid [aria-current], .plus-cal-hours [aria-current] { font-weight: bold; text-decoration: underline; }
 .plus-cal-hours a { display: inline-block; padding: .3em; }
 .plus-cal-strip summary { cursor: pointer; font-weight: bold; }
+.plus-mini-calendar table { width: 100%; table-layout: fixed; text-align: center; }
+.plus-mini-calendar caption { padding: .25em 0 .5em; font-weight: bold; }
+.plus-mini-calendar caption a { display: inline-block; padding: 0 .5em; font-size: 1.3em; }
+.plus-mini-calendar abbr { text-decoration: none; }
+.plus-mini-calendar td { padding: .25em 0; }
+.plus-mini-calendar [aria-current="date"] { font-weight: bold; outline: 1px solid currentColor; }
+.plus-mini-calendar ul { margin: .4em 0 .5em 1.25em; }
+.plus-mini-calendar li { margin-bottom: .4em; overflow-wrap: anywhere; }
+.plus-mini-calendar select { max-width: 100%; }
 .plus-cal-days { display: flex; flex-wrap: wrap; }
 .plus-cal-cell { flex: 1 1 7em; min-width: 0; padding: .4em; border-inline-start: 1px solid #a9b7c5; }
 .plus-cal-cell h4 { margin: 0 0 .25em; }

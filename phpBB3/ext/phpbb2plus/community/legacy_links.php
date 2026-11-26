@@ -289,7 +289,12 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			}
 			elseif ($topic = $positive('topic_id') ?: $positive('news_id')) { $base = './'; $path = 'viewtopic.php'; $extra['t'] = $topic; }
 			elseif ($cat = $positive('cat_id')) { $path = 'news/category/' . $cat; }
-			else { $path = $entry === 'portal' ? 'portal' : 'news'; }
+			else
+			{
+				$path = $entry === 'portal' ? 'portal' : 'news';
+				if ($entry === 'portal' && isset($query['month']) && is_string($query['month']) && preg_match('/^-?[0-9]{1,4}$/D', $query['month']))
+				{ $extra['month'] = max(-1200, min(1200, (int) $query['month'])); }
+			}
 			break;
 		case 'calendar': case 'calendar_scheduler':
 			$path = 'calendar';

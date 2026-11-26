@@ -4,6 +4,18 @@ namespace phpbb2plus\calendar\service;
 /** Calendar dates are civil dates in the editor's timezone. Stored ends are inclusive. */
 class period
 {
+	public static function month_cells(\DateTimeImmutable $day, $week_start)
+	{
+		$first = $day->modify('first day of this month')->setTime(0, 0);
+		$next = $first->modify('first day of next month')->setTime(0,0);
+		$offset = ((int) $first->format('w') - $week_start + 7) % 7;
+		$date = $first->modify('-' . $offset . ' days');
+		for ($cell = 0; $date < $next || $cell % 7; $cell++, $date = $date->modify('+1 day')->setTime(0,0))
+		{
+			yield $date->format('Y-m-d') => $date;
+		}
+	}
+
 	public static function values($start, $end, \DateTimeZone $zone)
 	{
 		$empty = array('start_date'=>'','start_time'=>'','end_date'=>'','end_time'=>'');

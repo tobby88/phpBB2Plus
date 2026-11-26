@@ -77,6 +77,7 @@ import member_notice
 import profile_media
 import rank_overview
 import topic_calendar
+import portal_calendar
 import gallery
 import gallery_navigation
 import gallery_activity
@@ -482,6 +483,8 @@ def main():
                 legacy_links.groups(base, member, ordinary, pending, int(php(fixture, "group-bookmarks", target, capture=True)))
                 credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
+                portal_calendar.exercise(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/portal_calendar.php", target, phase, cwd=web, capture=True))
                 with ThreadPoolExecutor(max_workers=2) as worker:
                     credit_run = worker.submit(credits.administration, member.separate_client())
                     poll_run = worker.submit(poll_administration.browse, member.separate_client())

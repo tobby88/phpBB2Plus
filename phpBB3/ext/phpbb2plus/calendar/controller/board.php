@@ -67,12 +67,9 @@ class board
 		$first = $day->modify('first day of this month');
 		$next = $first->modify('first day of next month');
 		$week = $this->settings->get('week_start') ? 1 : 0;
-		$offset = ((int) $first->format('w') - $week + 7) % 7;
-		$first_cell = $first->modify('-' . $offset . ' days');
 		$cells = array();
-		for ($date=$first_cell; $date < $next || count($cells)%7; $date=$date->modify('+1 day'))
+		foreach (\phpbb2plus\calendar\service\period::month_cells($day, $week) as $key => $date)
 		{
-			$key = $date->format('Y-m-d');
 			$cells[$key] = array('date'=>$date,'count'=>0,'items'=>array());
 		}
 		$limit = $this->settings->get('nb_row');

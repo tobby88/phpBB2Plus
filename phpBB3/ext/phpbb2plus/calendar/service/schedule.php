@@ -57,15 +57,16 @@ class schedule
 		return array($filter, array_keys($posts), $choices);
 	}
 
-	public function topics($start, $end, $forums)
+	public function topics($start, $end, $forums, $limit = 0)
 	{
 		if (!$forums) { return; }
 		$sql = 'SELECT t.topic_id,t.topic_title,t.plus_cal_start,t.plus_cal_end,f.forum_name FROM ' . TOPICS_TABLE .
 			' t JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=t.forum_id WHERE ' . $this->db->sql_in_set('t.forum_id',$forums) .
 			' AND ' . $this->visibility->get_forums_visibility_sql('topic',$forums,'t.') . '
-			AND t.topic_moved_id=0 AND t.plus_cal_start>0 AND t.plus_cal_start<' . (int) $end .
-			' AND t.plus_cal_end>=' . (int) $start . ' ORDER BY t.plus_cal_start,t.plus_cal_end DESC,t.topic_id';
-		$result = $this->db->sql_query($sql);
+			AND t.topic_moved_id=0 AND t.plus_cal_start>0' . ($end === null ? '' : ' AND t.plus_cal_start<' . (int) $end) .
+			' AND t.plus_cal_end>=' . (int) $start . ($limit ? ' AND t.topic_visibility<>' . ITEM_DELETED : '') .
+			' ORDER BY t.plus_cal_start,' . ($limit ? '' : 't.plus_cal_end DESC,') . 't.topic_id';
+		$result = $limit ? $this->db->sql_query_limit($sql, $limit) : $this->db->sql_query($sql);
 		try
 		{
 			while ($r = $this->db->sql_fetchrow($result))
@@ -76,6 +77,21 @@ class schedule
 			}
 		}
 		finally { $this->db->sql_freeresult($result); }
+	}
+
+	public function posting_forums($readable)
+	{
+		$forums = array_intersect($readable, array_keys($this->auth->acl_getf('f_post', true)), array_keys($this->auth->acl_getf('f_plus_calendar', true)));
+		if (!$forums || !empty($this->user->data['is_bot'])) { return array(); }
+		$result = $this->db->sql_query('SELECT forum_id,forum_name,forum_status FROM ' . FORUMS_TABLE . ' WHERE forum_type=' . FORUM_POST .
+			' AND ' . $this->db->sql_in_set('forum_id',$forums) . ' ORDER BY left_id');
+		$choices = array();
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			if ((int) $row['forum_status'] !== ITEM_LOCKED || $this->auth->acl_get('m_edit', (int) $row['forum_id'])) { $choices[] = $row; }
+		}
+		$this->db->sql_freeresult($result);
+		return $choices;
 	}
 
 	public function birthdays($first, $until)

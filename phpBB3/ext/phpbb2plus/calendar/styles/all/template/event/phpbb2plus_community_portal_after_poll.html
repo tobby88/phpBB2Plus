@@ -1,0 +1,18 @@
+{% INCLUDECSS '@phpbb2plus_calendar/calendar.css' %}
+<section id="plus-mini-calendar" class="panel plus-mini-calendar"><h3><a href="{{ U_MINI_FULL }}">{{ lang('PLUS_CALENDAR') }}</a></h3>
+<table><caption>
+{% if U_MINI_PREV %}<a href="{{ U_MINI_PREV }}" rel="prev" aria-label="{{ lang('PREVIOUS') }}">&#x2039;</a>{% endif %}
+<span>{{ MINI_MONTH }}</span>
+{% if U_MINI_NEXT %}<a href="{{ U_MINI_NEXT }}" rel="next" aria-label="{{ lang('NEXT') }}">&#x203a;</a>{% endif %}
+</caption><thead><tr>{% for day in loops.mini_head %}<th scope="col"><abbr title="{{ day.FULL }}">{{ day.SHORT }}</abbr></th>{% endfor %}</tr></thead><tbody>
+{% for week in loops.mini_week %}<tr>{% for day in week.day %}<td{% if day.INSIDE %} data-date="{{ day.DATE }}"{% if day.TODAY %} aria-current="date"{% endif %}{% endif %}>
+{% if day.INSIDE %}{% if day.URL %}<a href="{{ day.URL }}">{{ day.NUMBER }}</a>{% else %}{{ day.NUMBER }}{% endif %}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+</tbody></table>
+{% if loops.mini_birthday %}<h4>{{ lang('BIRTHDAYS') }}</h4><ul>{% for member in loops.mini_birthday %}<li data-cal-birthday>{{ member.WHEN }} · <a href="{{ member.URL }}">{{ member.TITLE }}</a>{% if member.AGE %} ({{ member.AGE }}){% endif %}</li>{% endfor %}</ul>{% endif %}
+<h4>{{ lang('PLUS_MINI_EVENTS') }}</h4>
+{% if loops.mini_event %}<ul>{% for event in loops.mini_event %}<li data-cal-topic="{{ event.TOPIC_ID }}"><a href="{{ event.URL }}">{{ event.TITLE }}</a><br>{{ event.WHEN }}</li>{% endfor %}</ul>
+{% else %}<p>{{ lang('PLUS_MINI_NO_EVENTS') }}</p>{% endif %}
+{% if loops.mini_forum %}<form method="get" action="{{ U_MINI_POST }}" id="plus-mini-new-event">
+	<input type="hidden" name="mode" value="post">{% if MINI_SID %}<input type="hidden" name="sid" value="{{ MINI_SID }}">{% endif %}
+	<label for="plus-mini-event-forum">{{ lang('FORUM') }}</label> <select name="f" id="plus-mini-event-forum">{% for forum in loops.mini_forum %}<option value="{{ forum.ID }}">{{ forum.NAME }}</option>{% endfor %}</select>
+	<button class="button2" type="submit">{{ lang('PLUS_MINI_ADD_EVENT') }}</button></form>{% endif %}</section>

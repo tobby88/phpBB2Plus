@@ -1,4 +1,14 @@
 services:
+    phpbb2plus.calendar.portal:
+        class: phpbb2plus\calendar\event\portal
+        arguments: ['@phpbb2plus.calendar.schedule', '@request', '@user', '@auth', '@config', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.calendar.day_search:
+        class: phpbb2plus\calendar\event\day_search
+        arguments: ['@dbal.conn', '@request', '@user', '@auth', '@content.visibility', '@language', '@template', '@pagination']
+        tags:
+            - { name: event.listener }
     phpbb2plus.calendar.settings:
         class: phpbb2plus\calendar\service\settings
         arguments: ['@config', '@user']
