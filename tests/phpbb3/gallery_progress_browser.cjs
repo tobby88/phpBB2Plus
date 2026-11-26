@@ -74,7 +74,13 @@ async function exercise() {
             if (result.exceptionDetails) throw Error('Unable to inspect the local browser page');
             return result.result.value;
         }
-        if (mode === 'smilie-creator') {
+        if (mode === 'member-tools') {
+            const {cookies, agent} = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
+            await command('Network.enable');
+            await command('Network.setUserAgentOverride', {userAgent: agent});
+            for (const [name, value] of cookies) await command('Network.setCookie', {name, value, url});
+            await command('Network.setCookie', {name:'cookie_consent', value:'1', url});
+            await require('./member_profile_browser.cjs')({command, evaluate, until, url});
             await require('./smilie_creator_browser.cjs')({command, find, evaluate, until, url});
             return;
         }

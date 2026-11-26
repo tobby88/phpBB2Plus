@@ -1,10 +1,5 @@
 // Exercise the real posting editor, its popup and the return to the draft.
 module.exports = async function ({command, find, evaluate, until, url}) {
-    const {cookies, agent} = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
-    await command('Network.enable');
-    await command('Network.setUserAgentOverride', {userAgent: agent});
-    for (const [name, value] of cookies) await command('Network.setCookie', {name, value, url});
-    await command('Network.setCookie', {name:'cookie_consent', value:'1', url});
     await command('Page.navigate', {url});
     await until(() => find('a[data-sign-target="message"]'), 'the sign button in the posting form');
     await until(() => evaluate('document.readyState === "complete"'), 'the editor script');

@@ -46,7 +46,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	$modern = password_hash(addslashes(getenv('PLUS_TEST_MODERN_PASSWORD')), PASSWORD_BCRYPT);
 	$statement->bind_param('s', $modern);
 	$statement->execute();
-	$db->query("UPDATE phpbb_users SET user_birthday=0,user_reg_ip='2001:db8::7',
+	$db->query("UPDATE phpbb_users SET user_birthday=0,user_reg_ip='2001:db8::7',user_sig='Signatur aus dem Testforum.',
 		user_from='Fixture Town',user_signal='Example.42',user_threema='ABCD0123',user_tg='examplefixture',
 		user_fb='https://www.facebook.com/example.fixture',user_twr='examplefixture' WHERE user_id=2");
 	$statement = $db->prepare("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email)

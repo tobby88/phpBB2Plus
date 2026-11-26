@@ -86,6 +86,7 @@ a:hover, a.topictitle:hover, a.forumtitle:hover { color: #a54900; }
 	.section-viewtopic .has-profile.online .postbody > div > h3 { padding-inline-end: var(--plus-online-ribbon); }
 	/* Posting previews and the topic review have no author column. */
 	.section-posting .post:not(.has-profile) .postbody { float: none; width: auto; }
+	#viewprofile .panel > .inner > .postbody { float: none; width: auto; }
 }
 @media (max-width: 700px) {
 	body { padding: 2px; }

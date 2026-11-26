@@ -101,7 +101,7 @@ def browse(admin, member, phase):
             # Pass the disposable board session only through stdin to this browser.
             session = {"cookies": [(c.name, c.value) for c in admin.cookies], "agent": dict(admin.opener.addheaders)["User-agent"]}
             child = subprocess.run([node, "--experimental-websocket", str(Path(__file__).with_name("gallery_progress_browser.cjs")),
-                                    chrome, profile, urljoin(admin.base, posting), "smilie-creator"], input=json.dumps(session),
+                                    chrome, profile, urljoin(admin.base, posting), "member-tools"], input=json.dumps(session),
                                    text=True, encoding="utf-8", capture_output=True, timeout=55)
             if child.returncode:
-                raise RuntimeError("The Chromium sign popup failed: " + child.stderr[-250:])
+                raise RuntimeError("The signed-in Chromium check failed: " + child.stderr[-250:])
