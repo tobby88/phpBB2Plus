@@ -6,18 +6,22 @@ from urllib.parse import urljoin
 from http_board import Browser, Page, admin_url, login, submit_form
 
 
+def check_restricted_login(base, username, password):
+    guest = Browser(base)
+    login_page = "ucp.php?mode=login"
+    response = submit_form(guest, login_page, guest.fetch(login_page), "login",
+                           {"username": username, "password": password, "login": "1"})
+    # phpBB may offer its founder recovery login form on the login route.
+    if ("banned from this board" not in response and "gesperrt" not in response and "login" not in Page(response).forms
+            or "mode=logout" in guest.fetch("index.php")):
+        raise RuntimeError(f"The imported restriction did not block login for {username}")
+
+
 def exercise(owner, historic, password, fixture):
     # The native DB login normally does not apply email bans to existing users,
     # and the upstream converter promotes legacy administrators to founders.
     for username in ("EmailCardFixture", "ImportedFounderFixture"):
-        guest = Browser(owner.base)
-        login_page = "ucp.php?mode=login"
-        response = submit_form(guest, login_page, guest.fetch(login_page), "login",
-                               {"username": username, "password": password, "login": "1"})
-        # phpBB may offer its founder recovery login form on the login route.
-        if ("banned from this board" not in response and "gesperrt" not in response and "login" not in Page(response).forms
-                or "mode=logout" in guest.fetch("index.php")):
-            raise RuntimeError(f"The imported restriction did not block login for {username}")
+        check_restricted_login(owner.base, username, password)
     fixture("cards-exempt")
     try:
         email_session = login(owner.base, "EmailCardFixture", password)

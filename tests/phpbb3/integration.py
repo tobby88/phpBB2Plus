@@ -356,7 +356,7 @@ def main():
                     member_notice.manage(base, ordinary, member, lambda phase: php(
                         ROOT / "tests/phpbb3/member_notice_member.php", target, phase, cwd=web))
                     password_renewal.exercise(base, member, lambda phase: php(
-                        ROOT / "tests/phpbb3/password_renewal.php", target, phase, cwd=web))
+                        ROOT / "tests/phpbb3/password_renewal.php", target, phase, cwd=web), lambda phase: php(fixture, phase, target))
                     delegation.module_roles(base, file_roles)
                     download_checks(base, member, ordinary, pending, fixture, target, web)
                     php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)

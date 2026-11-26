@@ -28,6 +28,14 @@ elseif ($phase === 'consumed')
 	if ((int) $member['user_passchg'] !== 0 || (int) $member['plus_pw_renewal_seen'] !== 1)
 	{ throw new RuntimeException('The first explicit renewal prompt did not survive the session'); }
 }
+elseif ($phase === 'restricted' || $phase === 'released')
+{
+	$result = $db->sql_query("SELECT user_passchg, plus_pw_renewal_seen FROM " . USERS_TABLE . " WHERE user_id = 63 AND username = 'ImportedFounderFixture'");
+	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$row || (int) $row['user_passchg'] !== 0 || (int) $row['plus_pw_renewal_seen'] !== (int) ($phase === 'released'))
+	{ throw new RuntimeException('Unexpected first-renewal state on the ' . $phase . ' fixture account'); }
+}
 elseif ($phase === 'expire-session')
 {
 	$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id = 141 AND session_autologin = 1');

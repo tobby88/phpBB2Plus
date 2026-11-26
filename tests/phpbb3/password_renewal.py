@@ -5,15 +5,16 @@ import secrets
 from html import unescape
 
 from download_mail import mailbox
-from http_board import Browser, FormFields, Page, admin_url, submit_form
+from http_board import Browser, FormFields, Page, admin_url, login, submit_form
+from warning_cards import check_restricted_login
 
 
-def exercise(base, owner, fixture):
+def exercise(base, owner, fixture, restrictions):
     with mailbox() as sink:
-        check_board(base, owner, fixture, sink)
+        check_board(base, owner, fixture, restrictions, sink)
 
 
-def check_board(base, owner, fixture, sink):
+def check_board(base, owner, fixture, restrictions, sink):
     password = os.environ["PLUS_TEST_MODERN_PASSWORD"]
     settings = admin_url(owner) + "&i=acp_board&mode="
     field = "config[chg_passforce]"
@@ -44,7 +45,7 @@ def check_board(base, owner, fixture, sink):
             raise RuntimeError("An expired password did not return the native recovery path as a guest")
         recovery = re.search(r'href="([^"]*(?:forgot_password|mode=sendpassword)[^"]*)"', page)
         if not recovery_enabled:
-            if recovery or not re.search(r"Administration|administrator", page):
+            if recovery or not re.search(r"wende dich an die Administration|contact the board administrator", page):
                 raise RuntimeError("Disabled self-service recovery did not direct the member to an administrator")
         elif not recovery:
             raise RuntimeError("The expired member could not open the native password recovery form")
@@ -60,6 +61,17 @@ def check_board(base, owner, fixture, sink):
     try:
         if interval("registration", 1200) != "1200" or interval("security", 7) != "7":
             raise RuntimeError("One native ACP page did not save the converted renewal setting")
+        fixture("restricted")
+        check_restricted_login(base, "ImportedFounderFixture", password)
+        fixture("restricted")
+        restrictions("cards-exempt")
+        try:
+            released = login(base, "ImportedFounderFixture", password)
+            if "new_password" not in released.fetch("change_password.php"):
+                raise RuntimeError("A reinstated founder could not renew a password of unknown age")
+            fixture("released")
+        finally:
+            restrictions("cards-unexempt")
         fixture("expired")
         refused(False)
         fixture("mail-on:" + str(sink.server_address[1]))

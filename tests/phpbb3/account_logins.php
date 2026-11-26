@@ -8,7 +8,7 @@ function seed_account_logins($db, $enabled)
 	$now = time();
 	$days = $enabled ? 50000 : 0;
 	$db->query("UPDATE phpbb_config SET config_value='$days' WHERE config_name='max_password_age'");
-	$db->query("UPDATE phpbb_users SET user_passwd_change=$now WHERE user_passwd_change=0 AND user_id>0");
+	$db->query("UPDATE phpbb_users SET user_passwd_change=$now WHERE user_passwd_change=0 AND user_id>0 AND user_id<>63");
 	$db->query("INSERT INTO phpbb_users (user_id,username,user_password,user_lang,user_email,user_passwd_change)
 		SELECT 141,'RenewalMember',user_password,'english','renewal@example.invalid',0 FROM phpbb_users WHERE user_id=2");
 	$old = $now - 100 * 86400;
