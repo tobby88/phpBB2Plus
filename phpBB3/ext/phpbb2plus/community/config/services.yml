@@ -244,6 +244,11 @@ services:
         arguments: ['@phpbb2plus.community.attachment_quotas', '@user', '@attachment.delete']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.attachment_help:
+        class: phpbb2plus\community\event\attachment_help
+        arguments: ['@config', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.pm_quota_events:
         class: phpbb2plus\community\event\pm_quotas
         arguments: ['@phpbb2plus.community.attachment_quotas', '@dbal.conn', '@user', '@auth', '@language']

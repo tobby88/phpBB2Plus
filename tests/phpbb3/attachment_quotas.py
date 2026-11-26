@@ -5,7 +5,7 @@ from html import unescape
 from urllib.parse import parse_qs, urljoin, urlsplit
 
 from attachments import GIF, PNG
-from http_board import FormFields, Page, admin_url
+from http_board import Browser, FormFields, Page, admin_url
 
 
 def administration(owner, check):
@@ -78,7 +78,20 @@ def administration(owner, check):
     submit(owner.fetch(panel), {key: previous[key] for key in ("base_pm", "post_level", "pm_level")} | {"save":"1"})
 
 
+def help_pages(member):
+    english = member.fetch("faq.php")
+    german = Browser(member.base).fetch("app.php/help/faq")
+    for question in ("How do I add a file to a post or change an attachment?",
+                     "How do I send a file in a private message?", "Why can a small file exceed my storage allowance?"):
+        if english.count(question) != 2:
+            raise RuntimeError("A Plus attachment question is missing from the English FAQ links or answers")
+    if ("Wie füge ich einem Beitrag eine Datei hinzu" not in german or "Im Beitrag anzeigen" not in german
+            or "PLUS_HELP_FILE_" in german or "How do I add a file" in member.fetch("faq.php?mode=bbcode")):
+        raise RuntimeError("The original FAQ bookmark lost German instructions or changed the native BBCode guide")
+
+
 def browse(member):
+    help_pages(member)
     path = "posting.php?mode=reply&t=1"
 
     def submit(page, filename=None, remove=False):

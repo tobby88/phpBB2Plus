@@ -17,6 +17,23 @@ function quota_fixture_scalar($sql,$name)
 $id = (int) quota_fixture_scalar("SELECT user_id FROM " . USERS_TABLE . " WHERE username='HistoricMember'",'user_id');
 if (!$id || $id === ANONYMOUS) { throw new RuntimeException('Missing converted quota fixture member'); }
 $policy = $phpbb_container->get('phpbb2plus.community.attachment_quotas');
+if ($argv[2] === 'before')
+{
+	foreach (array(array(0,0,1,1,false,false,false),array(0,1,0,1,false,false,false),
+		array(0,1,1,0,false,true,false),array(1,0,1,1,true,false,true)) as $settings)
+	{
+		list($posts,$pm,$messages,$limits,$post_help,$pm_help,$quota_help) = $settings;
+		$settings = new \phpbb\config\config(array('allow_attachments'=>$posts,'allow_pm_attach'=>$pm,
+			'allow_privmsg'=>$messages,'plus_attach_quotas'=>$limits));
+		$help = new \phpbb2plus\community\event\attachment_help($settings, $phpbb_container->get('language'));
+		$event = new \phpbb\event\data(array('block_name'=>'HELP_FAQ_BLOCK_ATTACHMENTS','questions'=>array('native'=>'native_answer')));
+		$help->extend_attachments($event);
+		$questions = $event['questions'];
+		if ($questions['native'] !== 'native_answer' || isset($questions['PLUS_HELP_FILE_EDIT']) !== $post_help
+			|| isset($questions['PLUS_HELP_FILE_PM']) !== $pm_help || isset($questions['PLUS_HELP_FILE_QUOTA']) !== $quota_help)
+		{ throw new RuntimeException('The attachment FAQ ignored board settings or removed a native question'); }
+	}
+}
 $p = $table_prefix . 'plus_attach_';
 if ($argv[2] === 'before')
 {
