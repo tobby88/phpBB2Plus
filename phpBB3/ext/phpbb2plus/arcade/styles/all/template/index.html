@@ -32,8 +32,8 @@
 {% else %}<li class="row"><p class="responsive-center">{L_PLUS_ARC_EMPTY}</p></li>{% endfor %}</ul></div></div>
 {% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
 {% if loops.arc_charts %}<div class="arc-statistics">
-{% for chart in loops.arc_charts %}<section class="panel" id="arc-chart-{{ chart.KEY }}"><h3>{{ chart.TITLE }}</h3><ol>
-{% for game in chart.games %}<li>{% if game.URL %}<a href="{{ game.URL }}">{{ game.TITLE|e }}</a>{% else %}{{ game.TITLE|e }}{% endif %}</li>{% endfor %}</ol></section>{% endfor %}
+{% for chart in loops.arc_charts %}<section class="panel" id="arc-chart-{{ chart.KEY }}"><h3>{{ chart.TITLE }}</h3>{% if chart.games %}<ol>
+{% for game in chart.games %}<li>{% if game.URL %}<a href="{{ game.URL }}">{{ game.TITLE|e }}</a>{% else %}{{ game.TITLE|e }}{% endif %}</li>{% endfor %}</ol>{% else %}<p>{L_PLUS_ARC_EMPTY}</p>{% endif %}</section>{% endfor %}
 {% for record in loops.arc_records %}<section class="panel" id="arc-record-{{ record.KEY }}"><h3>{{ record.TITLE }}</h3>
 {% if record.PLAYER %}<p>{L_PLUS_ARC_LEADER} · {{ record.PLAYER }} ({{ lang('PLUS_ARC_FIRSTS', record.WINS) }})</p>{% else %}<p>{L_PLUS_ARC_NO_SCORES}</p>{% endif %}
 {% if record.places %}<p>{L_PLUS_ARC_MY_AWARDS}</p><ul>{% for place in record.places %}<li><a href="{{ place.URL }}">{{ lang('PLUS_ARC_AWARD_COUNT', place.PLACE, place.COUNT) }}</a></li>{% endfor %}</ul>{% endif %}</section>{% endfor %}

@@ -74,6 +74,10 @@ switch ($argv[2])
 		break;
 	case 'least':
 		$db->sql_query("UPDATE {$p}settings SET config_value='0' WHERE config_name IN ('games_new_games','games_at_highscore')");
+		$db->sql_query("UPDATE {$p}categories SET special_play=2 WHERE cat_id=902000");
+		break;
+	case 'eligible-least':
+		$db->sql_query("UPDATE {$p}categories SET special_play=1 WHERE cat_id=902000");
 		break;
 	case 'stats-off':
 		$db->sql_query("UPDATE {$p}settings SET config_value='0' WHERE config_name='games_show_stats'");

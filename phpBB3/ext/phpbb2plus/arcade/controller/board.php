@@ -122,13 +122,15 @@ class board
 		return $this->artwork->response($cats[(int) $category]);
 	}
 
-	private function statistics($member)
+	private function statistics($member, $category)
 	{
+		$id = (int) ($category['cat_id'] ?? 0);
 		$limit = max(1, min(100, (int) $this->catalog->setting('games_total_top', 10)));
-		$popular = $this->catalog->chart_games('popular', $limit);
+		$popular = $this->catalog->chart_games('popular', $limit, $id);
 		if (!$popular) { return; }
 		$second = $this->catalog->setting('games_new_games', 1) ? 'recent' : 'least';
-		foreach (array('popular' => $popular, $second => $this->catalog->chart_games($second, $limit)) as $chart => $games)
+		$show_second = !$id || $second === 'recent' || $this->catalog->enough_for_least_played($id, (int) $category['special_play']);
+		foreach (array('popular' => $popular, $second => $show_second ? $this->catalog->chart_games($second, $limit, $id) : array()) as $chart => $games)
 		{
 			$this->template->assign_block_vars('arc_charts', array('KEY' => $chart,
 				'TITLE' => $this->language->lang('PLUS_ARC_CHART_' . strtoupper($chart))));
@@ -139,6 +141,7 @@ class board
 						? $this->helper->route('phpbb2plus_arcade_game', array('game' => (int) $game['game_id'])) : ''));
 			}
 		}
+		if ($id) { return; }
 		$periods = $this->catalog->setting('games_at_highscore', 1) ? array('current','all') : array('current');
 		foreach ($periods as $period)
 		{
@@ -182,8 +185,8 @@ class board
 		if (!$favourites) { $this->category_list($id); }
 		$where = $this->catalog->game_filter($id) . $this->catalog->title_filter($term, $type);
 		$member = (int) $this->user->data['user_id'];
-		if (!$id && !$favourites && $term === '' && !$this->request->variable('start', 0) && (int) $this->catalog->setting('games_show_stats', 1))
-		{ $this->statistics($member); }
+		if (!$favourites && $term === '' && !$this->request->variable('start', 0) && (int) $this->catalog->setting('games_show_stats', 1))
+		{ $this->statistics($member, $cats[$id] ?? null); }
 		$moderated = $this->moderation->categories();
 		if ($moderated && (!$id || isset($moderated[$id])))
 		{

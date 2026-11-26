@@ -221,14 +221,30 @@ class catalog
 		return $sorts;
 	}
 
-	public function chart_games($chart, $limit)
+	private function chart_source($category)
 	{
-		$order = array('popular' => 'g.played DESC', 'recent' => 'g.date_added DESC', 'least' => 'g.played ASC');
-		$result = $this->db->sql_query_limit('SELECT g.game_id,g.game_name,g.game_desc,g.allow_guest FROM ' . $this->prefix . 'games g
-			WHERE g.game_avail=1 AND ' . $this->game_filter() . ' ORDER BY ' . $order[$chart] . ',g.game_id', $limit);
+		return ' FROM ' . $this->prefix . 'games g WHERE g.game_avail=1 AND ' . $this->game_filter() .
+			($category ? ' AND g.cat_id=' . (int) $category : '');
+	}
+
+	public function chart_games($chart, $limit, $category)
+	{
+		$order = array('popular' => 'g.played DESC,g.game_id', 'recent' => 'g.date_added DESC,g.game_id' . ($category ? ' DESC' : ''),
+			'least' => 'g.played ASC,g.game_id');
+		$result = $this->db->sql_query_limit('SELECT g.game_id,g.game_name,g.game_desc,g.allow_guest' . $this->chart_source($category) .
+			' ORDER BY ' . $order[$chart], $limit);
 		$rows = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
 		return $rows;
+	}
+
+	public function enough_for_least_played($category, $threshold)
+	{
+		if ($threshold <= 0) { return false; }
+		$result = $this->db->sql_query_limit('SELECT g.game_id' . $this->chart_source($category), 1, $threshold);
+		$enough = $this->db->sql_fetchrow($result) !== false;
+		$this->db->sql_freeresult($result);
+		return $enough;
 	}
 
 	public function award_counts($source)

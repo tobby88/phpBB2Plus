@@ -49,6 +49,11 @@ def charts(guest, member, directory, change):
         raise RuntimeError("Public game charts lost their configured limit, order or guest availability")
     if "Private fixture game" not in section(club, "chart-popular"):
         raise RuntimeError("The group member cannot see the popular game from the private child category")
+    category = directory + "/category/902000"
+    direct = member.fetch(category)
+    if ("Private fixture game" in section(direct, "chart-popular") or "Second public fixture" not in section(direct, "chart-recent")
+            or "arc-record-current" in direct):
+        raise RuntimeError("The category charts included another category or the board-wide podiums")
     for period in ("current", "all"):
         member_records = section(club, "record-" + period)
         public_records = section(public, "record-" + period)
@@ -65,6 +70,11 @@ def charts(guest, member, directory, change):
     least = guest.fetch(directory)
     if "Open fixture game" in section(least, "chart-least") or "arc-chart-recent" in least or "arc-record-all" in least:
         raise RuntimeError("The alternative least-played list or all-time switch was ignored")
+    if "<li>" in section(member.fetch(category), "chart-least"):
+        raise RuntimeError("Child games or an offline game satisfied the category threshold")
+    change("eligible-least")
+    if section(member.fetch(category), "chart-least").count("<li>") != 2:
+        raise RuntimeError("A category above its least-played threshold did not show its games")
     change("stats-off")
     if "arc-chart-popular" in member.fetch(directory):
         raise RuntimeError("The Arcade statistics switch left its homepage panels enabled")
