@@ -73,6 +73,7 @@ import birthday_greeting
 import absence
 import absence_contact
 import absence_registration
+import registration_network
 import mailbox_counters
 import smilie_signs
 import downloads
@@ -341,6 +342,7 @@ def account_management(base, admin, moderator, member, target, web):
     inline_editor.browse(base, admin, moderator, lambda phase: php(
         ROOT / "tests/phpbb3/inline_editor.php", target, phase, cwd=web, capture=True), web)
     account_pruning.browse(base, web, target, php)
+    registration_network.browse(base, web, target, php)
 
 
 def extension_upgrades(target, web, suite="all"):
