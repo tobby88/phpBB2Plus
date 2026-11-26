@@ -27,6 +27,7 @@ import arcade_standings
 import banners
 import weblinks
 import weblink_logos
+import weblinks_admin
 import board_statistics
 import statistics_administration
 import attachments
@@ -539,6 +540,8 @@ def main():
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
                 weblink_logos.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblink_logos.php", target, phase, cwd=web, capture=True), web)
+                weblinks_admin.administration(base, lambda phase: php(
+                    ROOT / "tests/phpbb3/weblinks_admin.php", target, phase, cwd=web))
                 attachment_quotas.messages(member, ordinary, media["member"])
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
                 attachment_quotas.administration(member, lambda phase: php(ROOT / "tests/phpbb3/attachment_quotas.php", target, phase, cwd=web))
