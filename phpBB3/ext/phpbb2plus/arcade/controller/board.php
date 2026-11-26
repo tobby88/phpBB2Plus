@@ -23,8 +23,9 @@ class board
 	private $wallet;
 	private $activity;
 	private $tournaments;
+	private $standings;
 
-	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $tournaments, $names = null, $legacy = null)
+	public function __construct($catalog, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $wallet, $activity, $tournaments, $standings, $names = null, $legacy = null)
 	{
 		$this->catalog = $catalog;
 		$this->db = $db;
@@ -40,6 +41,7 @@ class board
 		$this->wallet = $wallet;
 		$this->activity = $activity;
 		$this->tournaments = $tournaments;
+		$this->standings = $standings;
 	}
 
 	private function header()
@@ -77,6 +79,14 @@ class board
 		}
 		$where = $this->catalog->game_filter($id);
 		$member = (int) $this->user->data['user_id'];
+		if ((int) $this->catalog->setting('games_show_mhm', 1))
+		{
+			$this->template->assign_var('U_ARC_MONTHLY', $this->helper->route('phpbb2plus_arcade_monthly'));
+		}
+		if (!empty($this->user->data['is_registered']))
+		{
+			$this->template->assign_var('U_ARC_POINTS', $this->helper->route('phpbb2plus_arcade_points'));
+		}
 		if ($this->tournaments->available())
 		{
 			$this->template->assign_var('U_ARC_TOURNAMENTS', $this->helper->route('phpbb2plus_arcade_tournaments'));
@@ -120,6 +130,62 @@ class board
 	private function player($s)
 	{
 		return catalog::player_name($s,$this->language,$this->names ? $this->names->hidden() : empty($this->user->data['is_registered']));
+	}
+
+	private function month_label($month)
+	{
+		// Format in the middle of the board month so visitor time zones cannot change its label.
+		return $this->user->format_date($month->modify('+14 days')->getTimestamp(), 'F Y', true);
+	}
+
+	public function standings($monthly)
+	{
+		$this->header();
+		$guest = empty($this->user->data['is_registered']);
+		$route = $monthly ? 'phpbb2plus_arcade_monthly' : 'phpbb2plus_arcade_points';
+		$reason = $this->catalog->board_access();
+		$date = $this->standings->month($monthly ? $this->request->variable('month', '') : '', $monthly ? $this->request->variable('date', 0) : 0);
+		$period = $date->format('Y-m');
+		if ($reason === 'LOGIN' || ($reason === '' && !$monthly && $guest))
+		{
+			login_box($this->helper->route($route, $monthly ? array('month' => $period) : array(), false));
+		}
+		if ($reason !== '') { return $this->helper->message($reason, array(), 'INFORMATION', $reason === 'PLUS_ARC_CLOSED' ? 200 : 403); }
+		$title = $this->language->lang($monthly ? 'PLUS_ARC_MONTH' : 'PLUS_ARC_POINT_STANDINGS');
+		$url = $this->helper->route($route);
+		if ($monthly)
+		{
+			if (!(int) $this->catalog->setting('games_show_mhm', 1)) { throw new NotFoundHttpException(); }
+			$months = array_unique(array_merge($this->standings->available_months($guest), array($period)));
+			rsort($months, SORT_STRING);
+			foreach ($months as $key)
+			{
+				$this->template->assign_block_vars('arc_months', array('KEY' => $key, 'LABEL' => $this->month_label($this->standings->month($key)), 'ACTIVE' => $key === $period));
+			}
+			foreach ($this->standings->monthly($date, $guest) as $row)
+			{
+				$this->template->assign_block_vars('arc_champions', array(
+					'TITLE' => catalog::plain($row['game_desc'] ?: $row['game_name']), 'PLAYER' => $this->player($row),
+					'SCORE' => score::display($row['score_units'], $this->language->lang('PLUS_ARC_DECIMAL')),
+					'URL' => $this->helper->route('phpbb2plus_arcade_game', array('game' => (int) $row['game_id'])),
+				));
+			}
+			$this->template->assign_vars(array('ARC_MONTH_LABEL' => $this->month_label($date),
+				'U_ARC_PREVIOUS' => $period > '1000-01' ? $this->helper->route($route, array('month' => $date->modify('-1 month')->format('Y-m'))) : '',
+				'U_ARC_NEXT' => $period < '9999-12' ? $this->helper->route($route, array('month' => $date->modify('+1 month')->format('Y-m'))) : ''));
+		}
+		else
+		{
+			$players = $this->standings->points($date);
+			$start = $this->start($url, count($players), 25);
+			foreach (array_slice($players, $start, 25) as $row)
+			{
+				$this->template->assign_block_vars('arc_totals', array('RANK' => ++$start, 'PLAYER' => $this->player($row),
+					'MONTHLY' => $row['monthly'], 'ALL_TIME' => $row['all_time'], 'POINTS' => $row['points']));
+			}
+		}
+		$this->template->assign_vars(array('ARC_TITLE' => $title, 'ARC_MONTHLY' => $monthly, 'U_ARC_STANDINGS' => $url));
+		return $this->helper->render('@phpbb2plus_arcade/standings.html', $title);
 	}
 
 	public function feedback($game,$operation)

@@ -1,0 +1,27 @@
+<!-- INCLUDECSS @phpbb2plus_arcade/standings.css -->
+<!-- INCLUDE overall_header.html -->
+<h2>{{ ARC_TITLE|e }}</h2>
+{% if ARC_MONTHLY %}
+<form class="action-bar arc-standings-nav" method="get" action="{U_ARC_STANDINGS}" id="arc-months">
+	{% if U_ARC_PREVIOUS %}<a rel="prev" href="{U_ARC_PREVIOUS}">{L_PLUS_ARC_PREV_MONTH}</a>{% endif %}
+	<label for="arc-month">{L_PLUS_ARC_SELECT_MONTH} <select name="month" id="arc-month">{% for month in loops.arc_months %}<option value="{{ month.KEY }}"{% if month.ACTIVE %} selected{% endif %}>{{ month.LABEL|e }}</option>{% endfor %}</select></label>
+	<button class="button2" type="submit">{L_GO}</button>
+	{% if U_ARC_NEXT %}<a rel="next" href="{U_ARC_NEXT}">{L_PLUS_ARC_NEXT_MONTH}</a>{% endif %}
+</form>
+<section class="forabg arc-standings"><div class="inner">
+<h3>{{ ARC_MONTH_LABEL|e }}</h3>
+{% if loops.arc_champions %}<ul id="arc-champions">{% for game in loops.arc_champions %}<li>
+	<a class="topictitle" href="{{ game.URL }}">{{ game.TITLE|e }}</a><br>{{ game.PLAYER }} &middot; {{ game.SCORE }}
+</li>{% endfor %}</ul>{% else %}<p class="arc-empty">{L_PLUS_ARC_NO_SCORES}</p>{% endif %}
+</div></section>
+{% else %}
+<p>{L_PLUS_ARC_POINTS_RULES}</p>
+<div class="forumbg arc-standings"><div class="inner"><table class="table1" id="arc-points">
+<thead><tr><th scope="col">{L_PLUS_ARC_PLACE}</th><th scope="col">{L_USERNAME}</th><th scope="col">{L_PLUS_ARC_MONTHLY_WINS}</th><th scope="col">{L_PLUS_ARC_ALL_TIME_WINS}</th><th scope="col">{L_PLUS_ARC_TOTAL_POINTS}</th></tr></thead>
+<tbody>{% for row in loops.arc_totals %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}">
+	<td>{{ row.RANK }}</td><td>{{ row.PLAYER }}</td><td>{{ row.MONTHLY }}</td><td>{{ row.ALL_TIME }}</td><td><strong>{{ row.POINTS }}</strong></td>
+</tr>{% else %}<tr class="bg1"><td colspan="5">{L_PLUS_ARC_NO_SCORES}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -188,13 +188,20 @@ class catalog
 			((int) $this->user->data['user_id'] === (int) $member || $this->auth->acl_get('u_viewprofile'));
 	}
 
+	/** Scores are keyed by name. Never attribute one name shared by several games to a visible category. */
+	public function ranked_game_filter()
+	{
+		$games = $this->prefix . 'games';
+		return $this->game_filter() . " AND g.game_avail=1 AND g.game_show_score=1 AND g.game_name<>'' AND NOT EXISTS
+			(SELECT 1 FROM $games other WHERE other.game_name=g.game_name AND other.game_id<>g.game_id)";
+	}
+
 	/** Rank only eligible games. Use the same score and tie order as the game's leaderboard. */
 	public function award_query($member,$all_time)
 	{
 		$table = $this->prefix . ($all_time ? 'all_scores' : 'scores');
 		$games = $this->prefix . 'games';
-		$scope = $this->game_filter() . " AND g.game_avail=1 AND g.game_show_score=1 AND g.game_name<>'' AND NOT EXISTS
-			(SELECT 1 FROM $games other WHERE other.game_name=g.game_name AND other.game_id<>g.game_id)";
+		$scope = $this->ranked_game_filter();
 		if ($all_time) { $scope .= ' AND g.at_highscore_limit>0'; }
 		$directions = array();
 		foreach (array('DESC'=>'COALESCE(g.reverse_list,0)=0','ASC'=>'g.reverse_list<>0') as $direction=>$order_filter)

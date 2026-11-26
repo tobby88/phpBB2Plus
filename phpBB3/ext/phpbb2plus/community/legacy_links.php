@@ -4,8 +4,12 @@
 function phpbb2plus_redirect_legacy($entry, array $query)
 {
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
-	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search'), true);
-	$sort_redirect = $entry === 'album_personal_index';
+	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
+	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
+	if ($entry === 'arcade_highscore' && $method === 'POST')
+	{
+		$query = array_intersect_key($_POST, array_flip(array('month', 'date'))) + $query;
+	}
 	if ($entry === 'kb_search' && $method === 'POST')
 	{
 		$query = array_intersect_key($_POST, array_flip(array('search_keywords', 'search_terms'))) + $query;
@@ -63,6 +67,14 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 				$path = 'arcade/tournament/' . $id;
 				$anchor = '#game-' . $game;
 			}
+			break;
+		case 'arcade_point_scores':
+			$path = 'arcade/points';
+			break;
+		case 'arcade_highscore':
+			$path = 'arcade/monthly';
+			if (is_string($query['month'] ?? null) && preg_match('/^[1-9][0-9]{3}-(?:0[1-9]|1[0-2])$/D', $query['month'])) { $extra['month'] = $query['month']; }
+			elseif ($months_ago = $positive('date')) { $extra['date'] = min(120, $months_ago); }
 			break;
 		case 'activity':
 			$mode = $query['mode'] ?? '';

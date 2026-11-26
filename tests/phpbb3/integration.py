@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from build_phpbb3 import assemble, PACKAGES
 import arcade
 import arcade_administration
+import arcade_standings
 import banners
 import board_statistics
 import statistics_administration
@@ -485,6 +486,8 @@ def main():
                 attachments.downloads(ordinary)
                 attachments.bookmarks(base, member, ordinary, pending, lambda phase: php(fixture, phase, target))
                 arcade.awards(member, ordinary, pending)
+                arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(
+                    ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
                 arcade.tournaments(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
                 game_source = arcade.browse(base, member, ordinary, pending)
                 php(fixture, "played", target)

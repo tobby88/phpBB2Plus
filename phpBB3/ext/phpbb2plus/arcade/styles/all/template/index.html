@@ -1,9 +1,12 @@
+<!-- INCLUDECSS @phpbb2plus_arcade/standings.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ ARC_TITLE|e }}</h2>
-{% if U_ARC_FAVOURITES or U_ARC_MY_AWARDS or U_ARC_TOURNAMENTS %}<p>
+{% if U_ARC_FAVOURITES or U_ARC_MY_AWARDS or U_ARC_TOURNAMENTS or U_ARC_MONTHLY or U_ARC_POINTS %}<nav class="arc-standings-nav" aria-label="{L_PLUS_ARC}">
 {% if U_ARC_FAVOURITES %}<a href="{{ U_ARC_FAVOURITES }}">{L_PLUS_ARC_FAVOURITES}</a>{% endif %}
-{% if U_ARC_MY_AWARDS %}{% if U_ARC_FAVOURITES %} · {% endif %}<a href="{{ U_ARC_MY_AWARDS }}">{L_PLUS_ARC_MY_AWARDS}</a>{% endif %}
-{% if U_ARC_TOURNAMENTS %}{% if U_ARC_MY_AWARDS or U_ARC_FAVOURITES %} · {% endif %}<a href="{{ U_ARC_TOURNAMENTS }}">{L_PLUS_ARC_TOURS}</a>{% endif %}</p>{% endif %}
+{% if U_ARC_MY_AWARDS %}<a href="{{ U_ARC_MY_AWARDS }}">{L_PLUS_ARC_MY_AWARDS}</a>{% endif %}
+{% if U_ARC_MONTHLY %}<a href="{{ U_ARC_MONTHLY }}">{L_PLUS_ARC_MONTH}</a>{% endif %}
+{% if U_ARC_POINTS %}<a href="{{ U_ARC_POINTS }}">{L_PLUS_ARC_POINT_STANDINGS}</a>{% endif %}
+{% if U_ARC_TOURNAMENTS %}<a href="{{ U_ARC_TOURNAMENTS }}">{L_PLUS_ARC_TOURS}</a>{% endif %}</nav>{% endif %}
 {% if loops.arc_cats %}<div class="forabg"><div class="inner">
 <ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_CATEGORIES}</dt><dd></dd></dl></li></ul>
 <ul class="topiclist forums">{% for cat in loops.arc_cats %}<li class="row"><dl><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.DETAIL %}<br>{{ cat.DETAIL|e }}{% endif %}</div></dt><dd></dd></dl></li>{% endfor %}</ul>

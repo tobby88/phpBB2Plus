@@ -1,3 +1,11 @@
+phpbb2plus_arcade_monthly:
+    path: /arcade/monthly
+    defaults: { _controller: phpbb2plus.arcade.board:standings, monthly: true }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_points:
+    path: /arcade/points
+    defaults: { _controller: phpbb2plus.arcade.board:standings, monthly: false }
+    methods: [GET, HEAD]
 phpbb2plus_arcade_tournaments:
     path: /arcade/tournaments
     defaults: { _controller: phpbb2plus.arcade.events_board:listing, champions: false }
