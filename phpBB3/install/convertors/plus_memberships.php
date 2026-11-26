@@ -32,7 +32,7 @@ function plus_membership_sections($section)
 /** Native options outside the Plus forum policy that originate in a personal phpBB2 posting grant. */
 function plus_personal_post_options()
 {
-	return array('auth_post'=>array('f_post','f_bbcode','f_smilies','f_img','f_sigs','f_postcount','f_report','f_subscribe','f_print','f_email'),
+	return array('auth_post'=>array('f_post','f_bbcode','f_smilies','f_img','f_sigs','f_postcount','f_subscribe','f_print','f_email'),
 		'auth_reply'=>array('f_reply'),'auth_edit'=>array('f_edit'));
 }
 

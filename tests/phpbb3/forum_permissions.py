@@ -30,6 +30,17 @@ def reading(base, member, pending):
             raise RuntimeError("Native post search ignored the combined viewing and reading permissions")
 
 
+def reporting(base, approved, pending):
+    guest = Browser(base)
+    for actor, expected in ((guest, False), (pending, False), (approved, True)):
+        linked = "/post/1/report" in actor.fetch("viewtopic.php?t=1")
+        if linked != expected:
+            raise RuntimeError("The topic lost its independent reporting permission")
+    for actor, post in ((approved, 1), (guest, 601)):
+        if "report" not in Page(actor.fetch(f"app.php/post/{post}/report")).forms:
+            raise RuntimeError("The native reporting form did not open for an eligible reader")
+
+
 def publishing(owner, member, pending):
     def editor(actor, forum, choices, poll):
         page = actor.fetch(f"posting.php?mode=post&f={forum}")

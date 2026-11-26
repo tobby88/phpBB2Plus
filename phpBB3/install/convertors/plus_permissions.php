@@ -67,11 +67,18 @@ function plus_forum_read_grants($forum,$groups,$rows)
 function plus_forum_permissions()
 {
 	global $db, $src_db, $convert, $phpbb_container, $config;
+	$p = $convert->src_table_prefix;
 	$mapping = array('f_plus_calendar'=>'auth_cal','f_plus_news'=>'auth_news','f_sticky'=>'auth_sticky',
 		'f_announce'=>'auth_announce','f_announce_global'=>'auth_global_announce','f_poll'=>'auth_pollcreate','f_vote'=>'auth_vote',
 		'f_delete'=>'auth_delete','f_softdelete'=>'auth_delete');
 	if (defined('MOD_ATTACHMENT')) { $mapping += array('f_attach'=>'auth_attachments','f_download'=>'auth_download'); }
-	$names = array_merge(array_keys($mapping),array('f_list','f_read','f_list_topics','f_search','f_print','f_email','f_plus_read_if_listed','f_postcount'));
+	$tools = (new \phpbb\db\tools\factory())->get($src_db);
+	if ($tools->sql_column_exists($p . 'forums', 'auth_bluecard') && $tools->sql_column_exists($p . 'auth_access', 'auth_bluecard'))
+	{
+		$mapping['f_report'] = 'auth_bluecard';
+	}
+	// Replace the stock posting-role grant even when a customised source removed the reporting module.
+	$names = array_unique(array_merge(array_keys($mapping),array('f_report','f_list','f_read','f_list_topics','f_search','f_print','f_email','f_plus_read_if_listed','f_postcount')));
 	$r = $db->sql_query('SELECT auth_option,auth_option_id FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option',$names));
 	$options = array_column($db->sql_fetchrowset($r),'auth_option_id','auth_option');
 	$db->sql_freeresult($r);
@@ -84,7 +91,6 @@ function plus_forum_permissions()
 		if (!isset($groups[$name])) { throw new \RuntimeException('The destination is missing a native permission group'); }
 	}
 
-	$p = $convert->src_table_prefix;
 	$columns = array_unique(array_merge(array('auth_view','auth_read'),array_values($mapping),array_keys(plus_personal_post_options())));
 	$r = $src_db->sql_query('SELECT forum_id,count_posts,' . implode(',',$columns) . " FROM {$p}forums ORDER BY forum_id");
 	$forums = $src_db->sql_fetchrowset($r);

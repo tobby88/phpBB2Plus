@@ -43,6 +43,17 @@ if ($argv[2] === 'disable' || $argv[2] === 'enable')
 	return;
 }
 if ($argv[2] !== 'membership') { exit(2); }
+// Reporting uses its own original permission, including approved groups and personal grants.
+foreach (array(ANONYMOUS => array(false,false,true,false), $historic => array(true,false,true,true),
+	87 => array(false,false,true,true), 89 => array(false,true,true,true), 2 => array(true,true,true,true)) as $id => $expected)
+{
+	$auth->acl(access_row($id));
+	foreach (array(1,12,14,15) as $index => $forum)
+	{
+		if ((bool) $auth->acl_get('f_report', $forum) !== $expected[$index])
+		{ throw new RuntimeException("Incorrect converted report permission in forum $forum for fixture user $id"); }
+	}
+}
 $r = $db->sql_query('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE forum_id=51');
 $reply_only = (bool) $db->sql_fetchrow($r);
 $db->sql_freeresult($r);

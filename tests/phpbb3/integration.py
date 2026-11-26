@@ -587,6 +587,7 @@ def main():
                 print_topics.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/print_topics.php", phase, target, cwd=web))
                 forum_permissions.publishing(member, ordinary, pending)
+                forum_permissions.reporting(base, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)
                 announcement_duration.exercise(member, lambda step: php(ROOT / "tests/phpbb3/announcement_duration.php", target, step, cwd=web))

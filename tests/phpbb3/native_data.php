@@ -19,6 +19,11 @@ function seed_forum_access($db)
 	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_edit,auth_reply,auth_mod)
 		VALUES (81,15,0,0,1),(82,15,1,0,0),(83,15,0,1,1)');
 	$db->query('UPDATE phpbb_auth_access SET auth_delete=1 WHERE forum_id=15 AND group_id=82');
+	$db->query('UPDATE phpbb_forums SET auth_bluecard=2 WHERE forum_id IN (1,15)');
+	$db->query('UPDATE phpbb_forums SET auth_bluecard=3 WHERE forum_id=12');
+	$db->query('UPDATE phpbb_forums SET auth_bluecard=0 WHERE forum_id=14');
+	$db->query('INSERT INTO phpbb_auth_access (group_id,forum_id,auth_bluecard) VALUES (77,1,1)');
+	$db->query('UPDATE phpbb_auth_access SET auth_bluecard=1 WHERE forum_id=15 AND group_id=82');
 	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,cat_id,forum_order,auth_view,auth_read) VALUES
 		(8,'Listed reading room','',1,32,0,5),(9,'Private reading room','',1,33,2,0),(10,'Two reading circles','',1,34,2,2)");
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user)
