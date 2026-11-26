@@ -97,8 +97,21 @@ switch ($argv[2])
 		break;
 	case 'suspend-delegate':
 	case 'resume-delegate':
-		$rights = $argv[2] === 'resume-delegate' ? '["a_plus_arc_scores"]' : '[]';
-		$db->sql_query("UPDATE {$table_prefix}plus_jr_delegations SET rights_json='$rights' WHERE user_id=45");
+		$store = $phpbb_container->get('config_text');
+		$key = 'plus_test_arcade_saved_rights';
+		if ($argv[2] === 'suspend-delegate')
+		{
+			$original = $one("SELECT rights_json FROM {$table_prefix}plus_jr_delegations WHERE user_id=45");
+			$store->set($key, $original['rights_json']);
+			$rights = '[]';
+		}
+		else
+		{
+			$rights = $store->get($key);
+			if (!is_array(json_decode($rights, true))) { throw new RuntimeException('Missing original Arcade permissions'); }
+			$store->delete($key);
+		}
+		$db->sql_query("UPDATE {$table_prefix}plus_jr_delegations SET " . $db->sql_build_array('UPDATE', array('rights_json' => $rights)) . ' WHERE user_id=45');
 		break;
 	case 'grant-global':
 	case 'revoke-global':
