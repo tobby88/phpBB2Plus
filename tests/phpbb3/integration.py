@@ -57,6 +57,7 @@ import arcade_diagnostics
 import arcade_game_editor
 import recommend
 import attachment_rules
+import attachment_upload_types
 import member_attachments
 import downloads
 import download_categories
@@ -284,6 +285,8 @@ def media_administration(base, member, ordinary, pending, target, web):
         ROOT / "tests/phpbb3/attachment_rules.php", target, phase, cwd=web, capture=True))
     arcade_diagnostics.browse(base, member, lambda phase: php(
         ROOT / "tests/phpbb3/arcade_diagnostics.php", target, phase, cwd=web, capture=True))
+    attachment_upload_types.browse(member, ordinary, pending, lambda phase: php(
+        ROOT / "tests/phpbb3/attachment_upload_types.php", target, phase, cwd=web, capture=True))
     with ThreadPoolExecutor(max_workers=1) as worker:
         categories = worker.submit(download_category_checks, member.separate_client(), target, web)
         gallery_management_bookmarks.browse(member, ordinary, pending, guest, lambda phase: php(
@@ -380,6 +383,8 @@ def main():
         print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
         with database() as target, database() as source:
             install(web, root, target)
+            if media_only or args.suite == "all":
+                php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
             php("bin/phpbbcli.php", "--version", cwd=web)
             fixture = ROOT / "tests/phpbb3/legacy_database.php"
             php(fixture, "installed-flags", target)
