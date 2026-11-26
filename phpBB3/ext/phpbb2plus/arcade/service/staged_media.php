@@ -203,7 +203,7 @@ class staged_media
 		$where = 'ready=1 AND game_id=0';
 		if ($game!==null)
 		{
-			$file = $this->db->sql_escape(media_format::entry_name($game['game_name'],$game['game_flash']));
+			$file = $this->db->sql_escape(media_format::entry_name(game_identity::original($game),$game['game_flash']));
 			$where .= " AND BINARY main_file='$file'";
 		}
 		return $this->rows("SELECT stage_key,game_name,main_file,prepared_at FROM {$this->prefix}staged WHERE $where ORDER BY game_name,prepared_at,stage_key");
@@ -223,7 +223,7 @@ class staged_media
 		$id = (int) $game['game_id'];
 		$key = $stage['stage_key'];
 		if (!$this->db->get_transaction() || $id<1) { throw new \LogicException('Arcade coordinator transaction required.'); }
-		if (media_format::entry_name($game['game_name'],$game['game_flash'])!==$stage['main_file'] || $game['asset_status']==='ready' ||
+		if (media_format::entry_name(game_identity::original($game),$game['game_flash'])!==$stage['main_file'] || $game['asset_status']==='ready' ||
 			$game['main_asset']!=='' || $this->rows("SELECT game_id FROM {$this->prefix}assets WHERE game_id=$id LIMIT 1 FOR UPDATE"))
 		{ throw new \DomainException('PLUS_ARC_ADD_CONFLICT'); }
 		$files = json_decode($stage['manifest_json'],true,512,JSON_THROW_ON_ERROR);

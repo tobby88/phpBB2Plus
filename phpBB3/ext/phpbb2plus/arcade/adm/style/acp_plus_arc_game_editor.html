@@ -1,8 +1,18 @@
 <!-- INCLUDE overall_header.html -->
 <h1>{% if S_ARC_ADD %}{L_ACP_PLUS_ARC_ADD}{% else %}{L_ACP_PLUS_ARC_GAMES}{% endif %}</h1>
-{% if S_ARC_GAME %}
+{% if S_ARC_RENAME %}
+<p><a href="{U_ARC_GAME_EDIT}">&laquo; {L_BACK}</a></p>
+{% if ARC_GAME_ERROR %}<div class="errorbox"><p>{{ ARC_GAME_ERROR|e }} <a href="{U_ARC_RENAME}">{L_PLUS_ARC_EDIT_RELOAD}</a></p></div>{% endif %}
+<form id="arc-game-rename" action="{U_ARC_RENAME}" method="post">
+<fieldset><legend>{L_PLUS_ARC_RENAME}</legend>
+<p>{L_PLUS_ARC_NAME_HELP}</p>
+<dl><dt>{L_PLUS_ARC_EDIT_KEY}</dt><dd>{{ ARC_OLD_NAME|e }} (#{{ ARC_GAME_ID }})</dd></dl>
+<dl><dt><label for="arc-name">{L_PLUS_ARC_NAME_NEW}</label></dt><dd><input id="arc-name" name="new_name" class="text medium" maxlength="50" required value="{{ ARC_NAME|e('html_attr') }}"></dd></dl>
+</fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{ARC_GAME_REVISION}">{S_FORM_TOKEN}
+<button class="button1" type="submit">{L_PLUS_ARC_RENAME}</button></fieldset></form>
+{% elseif S_ARC_GAME %}
 {% if S_ARC_ADD %}<p>{L_PLUS_ARC_ADD_HELP} <code>php bin/phpbbcli.php phpbb2plus:arcade:stage-game --help</code></p>
-{% else %}<p><a href="{U_ARC_GAME_LIST}">&laquo; {L_BACK}</a></p>{% endif %}
+{% else %}<p><a href="{U_ARC_GAME_LIST}">&laquo; {L_BACK}</a> &middot; <a href="{U_ARC_RENAME}">{L_PLUS_ARC_RENAME}</a></p>{% endif %}
 {% if ARC_GAME_ERROR %}<div class="errorbox"><p>{{ ARC_GAME_ERROR|e }} <a href="{U_ARC_GAME_RELOAD}">{L_PLUS_ARC_EDIT_RELOAD}</a></p></div>{% endif %}
 {% if ARC_GAME_SAVED %}<div class="successbox"><p>{L_PLUS_ARC_EDIT_SAVED}</p></div>{% endif %}
 {% if ARC_CREATED %}<div class="successbox"><p>{{ ARC_CREATED|e }}</p></div>{% endif %}

@@ -47,7 +47,7 @@ class artwork
 	private function candidates($game)
 	{
 		$settings = $this->settings();
-		$name = $this->relative($game['game_name']);
+		$name = $this->relative(game_identity::original($game));
 		if ($name === '' || strpos($name, '/') !== false) { return array(); }
 		$folder = $this->relative($game['game_path']);
 		$image = trim((string) $game['image_path']);
@@ -160,10 +160,12 @@ class artwork
 		return false;
 	}
 
-	public function batch($after, $source = null)
+	public function batch($after, $source = null, $with_protocol_name = true)
 	{
 		$where = 'game_id>' . (int) $after . ($source === null ? " AND icon_storage=''" : '');
-		$result = $this->db->sql_query_limit('SELECT game_id,game_name,game_path,image_path,icon_storage,icon_mime,icon_bytes FROM ' . $this->prefix . "games WHERE $where ORDER BY game_id", 100);
+		// v110 also runs this recovery while upgrading, before the original name column exists.
+		$names = $with_protocol_name ? 'game_name,protocol_name' : 'game_name';
+		$result = $this->db->sql_query_limit("SELECT game_id,$names,game_path,image_path,icon_storage,icon_mime,icon_bytes FROM " . $this->prefix . "games WHERE $where ORDER BY game_id", 100);
 		$games = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
 		$found = 0;

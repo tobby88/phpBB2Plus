@@ -2,6 +2,7 @@
 namespace phpbb2plus\arcade\controller;
 
 use phpbb\request\request_interface;
+use phpbb2plus\arcade\service\game_identity;
 use phpbb2plus\arcade\service\score;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -82,7 +83,7 @@ class protocol
 			(!$posted && ((int) $this->catalog->setting('games_cheat_mode', 1) || !$this->param('mode'))) ||
 			($type === 2 && !$posted)) { throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
 		$name = $this->param('game_name', $this->param('gamename', $this->param('gname')));
-		if ($name !== '' && $name !== $game['game_name'] && $name !== html_entity_decode($game['game_name'], ENT_QUOTES, 'UTF-8'))
+		if ($name !== '' && !game_identity::accepts($name,$game,$launch))
 		{ throw new \DomainException('PLUS_ARC_INVALID_SCORE'); }
 		if ($type === 4 || ($ib !== null && $wire === null)) { $wire = $ib; }
 		$this->results->submit($game, $launch, score::from_wire($wire), 'standard');
@@ -129,7 +130,7 @@ class protocol
 		{
 			switch ($this->param('sessdo'))
 			{
-				case 'sessionstart': return $this->text('&connStatus=1&initbar=' . rawurlencode($game['game_name']) . '&val=x');
+				case 'sessionstart': return $this->text('&connStatus=1&initbar=' . rawurlencode(game_identity::for_launch($game,$launch)) . '&val=x');
 				case 'permrequest':
 					$units = score::from_wire($this->param('score'));
 					return $this->text('&validate=1&microone=' . score::display($units) . '|' . rawurlencode($this->param('fakekey')) . '&val=x');

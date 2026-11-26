@@ -132,7 +132,8 @@ class sessions
 			$this->db->sql_freeresult($result);
 			if ($existing !== false) { if ((int) $existing <= time()) { throw new \DomainException('FORM_INVALID'); } return; }
 			$now = time();
-			$row = array('token_key' => $key, 'session_key' => $session, 'user_id' => $user, 'game_id' => $id, 'started_at' => $now, 'expires_at' => $now + 86400);
+			$row = array('token_key' => $key, 'session_key' => $session, 'user_id' => $user, 'game_id' => $id, 'start_name'=>(string)$game['game_name'],
+				'started_at' => $now, 'expires_at' => $now + 86400);
 			if ($tour) { $row += $this->tournaments->begin_turn($tour, $game, $now); }
 			else { $this->wallet->charge($game, $user); }
 			$this->db->sql_query("INSERT INTO $table " . $this->db->sql_build_array('INSERT', $row));

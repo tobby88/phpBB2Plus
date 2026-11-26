@@ -21,6 +21,7 @@ class game_editor
 	private $user;
 	private $prefix;
 	private $media;
+	private $identity;
 
 	public function __construct($db, $access, $sessions, $catalog, $categories, $log, $user, $prefix, $media)
 	{
@@ -33,6 +34,7 @@ class game_editor
 		$this->user = $user;
 		$this->prefix = $prefix;
 		$this->media = $media;
+		$this->identity = new game_identity($db,$prefix);
 	}
 
 	private function rows($sql)
@@ -284,9 +286,7 @@ class game_editor
 	{
 		// A detached historical result still owns its protocol name even when
 		// the old catalogue row is gone. Creation must not adopt that history.
-		$this->unused_identity($name,array('games'=>'game_name','scores'=>'game_name','all_scores'=>'game_name','monthly'=>'highscore_game',
-			'favorites'=>'fav_game_name','comments'=>array('game_name','comment_game_name'),'ratings'=>'rate_game_name','bans'=>'game',
-			'tour_games'=>'game_name','tour_plays'=>'last_played_game','players'=>'last_played','categories'=>'last_game'));
+		$this->identity->available($name);
 		unset($values['game_id']);
 		$values['game_name'] = $name;
 		$values += array('game_path'=>'','image_path'=>'','main_asset'=>'','asset_status'=>'missing','game_use_gl'=>0,'date_added'=>time());
@@ -333,7 +333,7 @@ class game_editor
 		$name = $package ? $stage['game_name'] : $file;
 		if (strlen($name)>50) { throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
 		foreach (array_unique(array($file,explode('.',$file,2)[0])) as $other)
-		{ if ($other!==$name) { $this->unused_identity($other,array('games'=>'game_name')); } }
+		{ if ($other!==$name) { $this->identity->available($other,0,false); } }
 		$title = ucfirst(trim(str_replace('_',' ',$name)));
 		$detect = $options['sizing']==='detect';
 		$values = array('game_desc'=>utf8_encode_ucr(str_replace('&','&amp;',$title)),'game_avail'=>$options['online'],
@@ -389,6 +389,20 @@ class game_editor
 				score::refresh_winner($this->db,$this->prefix,$game,true);
 			}
 			$this->log->add('admin',(int) $this->user->data['user_id'],$this->user->ip,'LOG_PLUS_ARC_EDIT_GAME',false,array((int) $id));
+		});
+	}
+
+	public function rename($id,$revision,$name)
+	{
+		$this->sessions->locked(function () use ($id,$revision,$name) {
+			$this->access->authorize('games',true);
+			$game=$this->find($id,true);
+			if (!hash_equals(self::revision($game),$revision)) { throw new \DomainException('PLUS_ARC_EDIT_STALE'); }
+			if ($this->identity->rename($game,$name))
+			{
+				$this->log->add('admin',(int)$this->user->data['user_id'],$this->user->ip,'LOG_PLUS_ARC_RENAME_GAME',false,
+					array((int)$id,utf8_htmlspecialchars($game['game_name']),utf8_htmlspecialchars($name)));
+			}
 		});
 	}
 }

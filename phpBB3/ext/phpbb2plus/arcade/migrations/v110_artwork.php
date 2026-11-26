@@ -18,7 +18,7 @@ class v110_artwork extends \phpbb\db\migration\migration
 		global $phpbb_container;
 		$artwork = new \phpbb2plus\arcade\service\artwork($this->db, $this->config, $this->table_prefix . 'plus_arc_',
 			$this->phpbb_root_path, $phpbb_container->get('filesystem'));
-		$batch = $artwork->batch((int) $after);
+		$batch = $artwork->batch((int) $after,null,false);
 		return $batch['after'] ?: true;
 	}
 

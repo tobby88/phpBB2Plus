@@ -89,7 +89,28 @@ class games_module
 		add_form_key($form);
 		$action = $adding ? $base : $base . '&amp;game=' . $game_id;
 		$template->assign_vars(array('S_ARC_GAME'=>true,'S_ARC_ADD'=>$adding,'ARC_GAME_ID'=>$game_id,'ARC_GAME_KEY'=>$game['game_name'],'ARC_GAME_TITLE'=>$input['game_desc'],
-			'ARC_GAME_TEXT'=>$input['instructions'],'ARC_GAME_REVISION'=>$revision,'U_ARC_GAME_EDIT'=>$action,'U_ARC_GAME_RELOAD'=>$action));
+			'ARC_GAME_TEXT'=>$input['instructions'],'ARC_GAME_REVISION'=>$revision,'U_ARC_GAME_EDIT'=>$action,'U_ARC_GAME_RELOAD'=>$action,
+			'U_ARC_RENAME'=>$adding ? '' : $action.'&amp;action=rename'));
+	}
+
+	private function rename($service,$id,$lang,$request,$template,$base)
+	{
+		$game=$service->find($id);
+		$url=$base.'&amp;game='.$id;
+		$name=(string)$game['game_name'];
+		$revision=game_editor::revision($game);
+		$form='plus_arc_rename_'.$id;
+		if ($request->server('REQUEST_METHOD')==='POST')
+		{
+			if (!check_form_key($form)) { send_status_line(403,'Forbidden'); trigger_error('FORM_INVALID',E_USER_WARNING); }
+			$name=$request->raw_variable('new_name','',request_interface::POST);
+			$revision=$request->variable('revision','',false,request_interface::POST);
+			try { $service->rename($id,$revision,$name); redirect($url.'&amp;saved=1'); }
+			catch (\DomainException $e) { $template->assign_var('ARC_GAME_ERROR',$lang->lang($e->getMessage())); }
+		}
+		add_form_key($form);
+		$template->assign_vars(array('S_ARC_RENAME'=>true,'ARC_GAME_ID'=>$id,'ARC_NAME'=>$name,'ARC_OLD_NAME'=>$game['game_name'],
+			'ARC_GAME_REVISION'=>$revision,'U_ARC_GAME_EDIT'=>$url,'U_ARC_RENAME'=>$url.'&amp;action=rename'));
 	}
 
 	public function main($id, $mode)
@@ -116,7 +137,8 @@ class games_module
 			$game = $request->variable('game',0,false,request_interface::GET);
 			if ($game)
 			{
-				$this->edit($service,$game,$lang,$request,$template,$base);
+				if ($request->variable('action','',false,request_interface::GET)==='rename') { $this->rename($service,$game,$lang,$request,$template,$base); }
+				else { $this->edit($service,$game,$lang,$request,$template,$base); }
 				return;
 			}
 			list($rows,$total,$size,$start) = $service->listing($offset,$term,$category,$sort,$order);

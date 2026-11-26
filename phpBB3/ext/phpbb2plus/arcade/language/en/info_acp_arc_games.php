@@ -1,6 +1,13 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'PLUS_ARC_RENAME'=>'Rename game identifier',
+	'PLUS_ARC_NAME_NEW'=>'New game identifier',
+	'PLUS_ARC_NAME_HELP'=>'Existing scores, favourites and tournament entries follow the new identifier. The game files and their original score callbacks keep working.',
+	'PLUS_ARC_NAME_INVALID'=>'Enter a valid identifier of up to 50 UTF-8 bytes using letters, numbers, dots, underscores, hyphens, plus signs or ampersands.',
+	'PLUS_ARC_NAME_AMBIGUOUS'=>'The stored identifier cannot be associated unambiguously with this game and its historical rankings.',
+	'PLUS_ARC_NAME_LIST_FULL'=>'The longer identifier would exceed the size of a stored historical ranking list. Choose a shorter identifier.',
+	'LOG_PLUS_ARC_RENAME_GAME'=>'Renamed Arcade game #%1$d from %2$s to %3$s',
 	'ACP_PLUS_ARC_IMPORT'=>'Import local Arcade games',
 	'ACL_A_PLUS_ARC_IMPORT'=>'Can import games from prepared local collections',
 	'PLUS_ARC_IMPORT_BATCH'=>'Prepared collection',

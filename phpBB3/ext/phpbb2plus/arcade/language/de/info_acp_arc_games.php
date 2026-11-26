@@ -1,6 +1,13 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
+	'PLUS_ARC_RENAME'=>'Spielkennung umbenennen',
+	'PLUS_ARC_NAME_NEW'=>'Neue Spielkennung',
+	'PLUS_ARC_NAME_HELP'=>'Bestehende Bestenlisten, Favoriten und Turniereinträge erhalten die neue Kennung. Die Spieldateien und ihre bisherige Punkteübermittlung funktionieren weiter.',
+	'PLUS_ARC_NAME_INVALID'=>'Gib eine gültige Kennung mit höchstens 50 UTF-8-Bytes ein. Erlaubt sind Buchstaben, Zahlen, Punkte, Unterstriche, Bindestriche, Plus- und kaufmännische Und-Zeichen.',
+	'PLUS_ARC_NAME_AMBIGUOUS'=>'Die gespeicherte Kennung lässt sich diesem Spiel und seinen historischen Platzierungen nicht eindeutig zuordnen.',
+	'PLUS_ARC_NAME_LIST_FULL'=>'Die längere Kennung würde eine gespeicherte historische Rangliste zu groß machen. Wähle eine kürzere Kennung.',
+	'LOG_PLUS_ARC_RENAME_GAME'=>'Spielkennung des Arcade-Spiels #%1$d von %2$s in %3$s geändert',
 	'ACP_PLUS_ARC_IMPORT'=>'Lokale Arcade-Spiele importieren',
 	'ACL_A_PLUS_ARC_IMPORT'=>'Kann Spiele aus vorbereiteten lokalen Sammlungen importieren',
 	'PLUS_ARC_IMPORT_BATCH'=>'Vorbereitete Sammlung',
