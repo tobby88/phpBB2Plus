@@ -5,7 +5,9 @@
 <fieldset><legend>{{ ALBUM_SETTINGS_TITLE|e }}</legend>
 <p>{{ ALBUM_SETTINGS_EXPLAIN|e }}</p>
 {% if S_ZIP_MISSING %}<p>{L_PLUS_ALBUM_CFG_ZIP_MISSING}</p>{% endif %}
-{% for field in loops.controls %}<dl><dt><label for="opt-{{ field.NAME }}">{{ field.LABEL|e }}</label>{% if field.IS_INTERVAL %}<br><span id="album-interval-help">{L_PLUS_ALBUM_CFG_INTERVAL_HELP}</span>{% endif %}</dt><dd>
+{% for field in loops.controls %}{% if field.HEADING %}<h2>{{ field.HEADING|e }}</h2>{% endif %}
+{% if field.NAME == 'use_watermark' and S_WATERMARK_MISSING %}<p>{L_PLUS_ALBUM_CFG_MARK_MISSING}</p>{% endif %}
+<dl><dt><label for="opt-{{ field.NAME }}">{{ field.LABEL|e }}</label>{% if field.IS_INTERVAL %}<br><span id="album-interval-help">{L_PLUS_ALBUM_CFG_INTERVAL_HELP}</span>{% endif %}</dt><dd>
 {% if field.IS_SELECT %}<select name="{{ field.NAME }}" id="opt-{{ field.NAME }}">{% for option in field.options %}<option value="{{ option.VALUE|e('html_attr') }}"{% if option.SELECTED %} selected{% endif %}>{{ option.LABEL|e }}</option>{% endfor %}</select>
 {% elseif field.IS_INTERVAL %}<input type="text" id="opt-{{ field.NAME }}" name="{{ field.NAME }}" value="{{ field.VALUE|e('html_attr') }}" maxlength="11" aria-describedby="album-interval-help" required>
 {% else %}<input type="number" id="opt-{{ field.NAME }}" name="{{ field.NAME }}" value="{{ field.VALUE|e('html_attr') }}" step="1" min="{{ field.MIN }}" max="{{ field.MAX }}" required>{% endif %}

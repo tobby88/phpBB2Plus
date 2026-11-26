@@ -6,6 +6,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /** Publish a multipart submission as one album operation, including quota accounting. */
 class uploads
 {
+	const TYPES = array(IMAGETYPE_JPEG => array('jpg_allowed','image/jpeg','imagecreatefromjpeg'),
+		IMAGETYPE_PNG => array('png_allowed','image/png','imagecreatefrompng'), IMAGETYPE_GIF => array('gif_allowed','image/gif','imagecreatefromgif'));
 	private $access;
 	private $db;
 	private $user;
@@ -39,15 +41,33 @@ class uploads
 
 	public function zip_enabled() { return (string) $this->access->setting('zip_uploads', 1) === '1'; }
 
+	public function allowed_types()
+	{
+		$types = array();
+		foreach (self::TYPES as $type => $details)
+		{
+			list($name, $mime, $decoder) = $details;
+			if ((int) $this->access->setting($name, $type === IMAGETYPE_GIF ? 0 : 1) && function_exists($decoder)) { $types[$type] = $mime; }
+		}
+		return $types;
+	}
+
 	public function picture_limit() { return max(1, min(100, (int) $this->access->setting('max_uploads', 10))); }
 
 	public function archive_limit() { return min(upload_archive::MAX_IMAGES, $this->picture_limit()); }
+
+	public function image_limits()
+	{
+		return array('width' => max(0, min(10000, (int) $this->access->setting('max_width', 800))),
+			'height' => max(0, min(10000, (int) $this->access->setting('max_height', 600))),
+			'bytes' => max(0, min(67108864, (int) $this->access->setting('max_file_size', 128000))));
+	}
 
 	private function image_policy()
 	{
 		$current = array();
 		foreach (array('gd_version','thumbnail_size','max_width','max_height','max_file_size','resize_pic','resize_width','resize_height',
-			'resize_quality','jpg_allowed','gif_allowed','png_allowed','zip_uploads','max_uploads','multiple_uploads') as $name) { $current[$name] = $this->access->setting($name, null); }
+			'resize_quality','jpg_allowed','gif_allowed','png_allowed','desc_length','zip_uploads','max_uploads','multiple_uploads') as $name) { $current[$name] = $this->access->setting($name, null); }
 		return $current;
 	}
 
@@ -97,19 +117,19 @@ class uploads
 
 	private function inspect($file, $preview = false)
 	{
-		$types = array(IMAGETYPE_JPEG => array('jpg_allowed','image/jpeg','imagecreatefromjpeg'),
-			IMAGETYPE_PNG => array('png_allowed','image/png','imagecreatefrompng'), IMAGETYPE_GIF => array('gif_allowed','image/gif','imagecreatefromgif'));
 		// inputs() supplies either a verified multipart upload or a private archive-member stream.
 		$path = $file['path'];
 		$bytes = filesize($path);
 		if (!$bytes || $bytes > 67108864) { throw new \DomainException('PLUS_ALBUM_BAD_SIZE'); }
 		$info = @getimagesize($path);
+		$types = $this->allowed_types();
 		if (!$info || !isset($types[$info[2]])) { throw new \DomainException('PLUS_ALBUM_BAD_FILE'); }
-		list($setting, $mime, $decoder) = $types[$info[2]];
-		if (!(int) $this->access->setting($setting, $setting === 'gif_allowed' ? 0 : 1) || !function_exists($decoder)) { throw new \DomainException('PLUS_ALBUM_BAD_FILE'); }
-		$width = $preview ? $this->preview_bound() : min(10000, (int) $this->access->setting('max_width', 800));
-		$height = $preview ? $width : min(10000, (int) $this->access->setting('max_height', 600));
-		$max_bytes = (int) $this->access->setting('max_file_size', 128000);
+		$mime = $types[$info[2]];
+		$decoder = self::TYPES[$info[2]][2];
+		$limits = $this->image_limits();
+		$width = $preview ? $this->preview_bound() : $limits['width'];
+		$height = $preview ? $width : $limits['height'];
+		$max_bytes = $limits['bytes'];
 		$oversize = $info[0] > $width || $info[1] > $height;
 		$resize = !$preview && $oversize && $this->resizing();
 		if ($width < 1 || $height < 1 || min($info[0], $info[1]) < 1 || max($info[0], $info[1]) > 10000 ||

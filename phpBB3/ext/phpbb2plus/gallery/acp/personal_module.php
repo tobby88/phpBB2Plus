@@ -56,7 +56,9 @@ class personal_module
 			$bounds = settings::BOUNDS[$name] ?? array(-1,2147483647);
 			$value = $correction[$name] ?? $current;
 			if ($options && !array_key_exists($value, $options)) { $value = $current; }
+			$group = $mode === 'media' ? (settings::MEDIA_GROUPS[$name] ?? '') : '';
 			$template->assign_block_vars('controls', array('NAME' => $name, 'LABEL' => $language->lang('PLUS_ALBUM_CFG_' . strtoupper($name)),
+				'HEADING' => $group ? $language->lang('PLUS_ALBUM_CFG_' . $group) : '',
 				'VALUE' => $value, 'MIN' => min((float) $current, $bounds[0]), 'MAX' => max((float) $current, $bounds[1]),
 				'IS_SELECT' => !empty($options), 'IS_INTERVAL' => $name === 'new_pic_check_interval'));
 			foreach ($options as $key => $label)
@@ -71,6 +73,7 @@ class personal_module
 		add_form_key($form_key);
 		$template->assign_vars(array('U_ACTION' => $this->u_action, 'REVISION' => settings::revision($stored), 'ALBUM_SETTINGS_SECTION' => $section,
 			'S_ZIP_MISSING' => $mode === 'media' && !upload_archive::available(),
+			'S_WATERMARK_MISSING' => $mode === 'media' && !$settings->watermark_available(),
 			'ALBUM_SETTINGS_TITLE' => $language->lang($this->page_title), 'ALBUM_SETTINGS_EXPLAIN' => $language->lang($explain)));
 	}
 }

@@ -31,9 +31,8 @@ class media
 
 	private function image_info($path, $mime)
 	{
-		$size = is_file($path) && !is_link($path) ? @getimagesize($path) : false;
-		if (!$size || $size['mime'] !== $mime || $size[0] < 1 || $size[1] < 1 ||
-			$size[0] > 10000 || $size[1] > 10000 || $size[0] * $size[1] > 20000000)
+		$size = raster::dimensions($path, $mime);
+		if (!$size)
 		{
 			throw new ServiceUnavailableHttpException();
 		}
@@ -88,7 +87,7 @@ class media
 		}
 		$quality = max(0, min(100, (int) $this->access->setting('thumbnail_quality', 75)));
 		$position = max(0, min(8, (int) $this->access->setting('disp_watermark_at', 3, 'sp')));
-		$mark = $directory . '/gallery_mark_' . hash_hmac('sha256', 'watermark', $this->config['plus_gallery_media_key']);
+		$mark = raster::watermark_path($directory, $this->config['plus_gallery_media_key']);
 		$mark_size = $strength ? $this->image_info($mark, 'image/png') : array(0,0);
 		$mark_hash = $strength ? hash_file('sha256', $mark) : '';
 		if ($strength && !$mark_hash) { throw new ServiceUnavailableHttpException(); }

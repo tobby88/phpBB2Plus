@@ -9,7 +9,7 @@ services:
         alias: phpbb2plus.gallery.settings
     phpbb2plus.gallery.settings:
         class: phpbb2plus\gallery\service\settings
-        arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.admin_access', '%core.table_prefix%plus_album_settings']
+        arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.admin_access', '%core.table_prefix%plus_album_settings', '@config', '%core.root_path%', '@php_ini']
     phpbb2plus.gallery.personal:
         class: phpbb2plus\gallery\service\personal
         arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.hierarchy', '%core.table_prefix%plus_album_']

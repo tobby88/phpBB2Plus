@@ -24,6 +24,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_PREVIEWS' => 'Vorschaubilder', 'PLUS_ALBUM_PREVIEW_FILES' => 'Wähle pro Bild eine Vorschau im selben Dateiformat und in derselben Reihenfolge. Die längste Seite darf %d Pixel haben.',
 	'PLUS_ALBUM_BAD_PREVIEW' => 'Jedes Bild braucht eine passende Vorschau im selben Dateiformat innerhalb der angegebenen Größe.',
 	'PLUS_ALBUM_NO_FILE_SLOTS' => 'Die PHP-Konfiguration erlaubt für diesen Upload zu wenige Dateien pro Anfrage.',
+	'PLUS_ALBUM_NO_FORMATS' => 'Derzeit stehen keine Bildformate zum Hochladen zur Verfügung.',
+	'PLUS_ALBUM_FILE_HINT' => 'Zugelassene Bildformate sind %1$s. Jedes gespeicherte Bild darf bis zu %2$d Byte und %3$d × %4$d Pixel haben.',
 	'PLUS_ALBUM_PERSONAL' => 'Persönliches Album', 'PLUS_ALBUM_OWNER_TITLE' => 'Fotoalbum von %s',
 	'PLUS_ALBUM_CAT_START' => 'Persönliches Album anlegen', 'PLUS_ALBUM_CAT_ADD' => 'Unteralbum anlegen',
 	'PLUS_ALBUM_CAT_EDIT' => 'Album bearbeiten', 'PLUS_ALBUM_CAT_DELETE' => 'Album entfernen',

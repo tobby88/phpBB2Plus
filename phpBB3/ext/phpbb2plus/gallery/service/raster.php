@@ -3,6 +3,18 @@ namespace phpbb2plus\gallery\service;
 
 class raster
 {
+	public static function watermark_path($directory, $key)
+	{
+		return $directory && is_string($key) && $key !== '' ? $directory . '/gallery_mark_' . hash_hmac('sha256', 'watermark', $key) : false;
+	}
+
+	public static function dimensions($path, $mime)
+	{
+		$size = $path && is_file($path) && !is_link($path) ? @getimagesize($path) : false;
+		return $size && $size['mime'] === $mime && $size[0] >= 1 && $size[1] >= 1 &&
+			$size[0] <= 10000 && $size[1] <= 10000 && $size[0] * $size[1] <= 20000000 ? $size : false;
+	}
+
 	/** JPEG APP1 stores a TIFF header. Read bounded segments even when ext-exif is unavailable. */
 	public static function orientation($file)
 	{

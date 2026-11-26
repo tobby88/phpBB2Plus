@@ -29,6 +29,12 @@ class upload
 		$cat = $this->uploads->destination($category);
 		$this->language->add_lang('gallery', 'phpbb2plus/gallery');
 		if ($this->uploads->limit() < 1) { return $this->helper->message('PLUS_ALBUM_NO_FILE_SLOTS', array(), 'INFORMATION', 503); }
+		$types = $this->uploads->allowed_types();
+		if (!$types)
+		{
+			if ($this->request->is_ajax()) { return new JsonResponse(array('message' => $this->language->lang('PLUS_ALBUM_NO_FORMATS')), 422); }
+			return $this->helper->message('PLUS_ALBUM_NO_FORMATS', array(), 'INFORMATION', $this->request->server('REQUEST_METHOD') === 'POST' ? 422 : 200);
+		}
 		$params = array('category' => (int) $category);
 		$target = $this->helper->route('phpbb2plus_gallery_category', $params);
 		$key = 'plus_gallery_upload_' . (int) $category;
@@ -61,9 +67,13 @@ class upload
 			}
 		}
 		add_form_key($key);
+		$limits = $this->uploads->image_limits();
+		$formats = array_map(function ($mime) { return strtoupper(substr($mime, 6)); }, $types);
 		$this->template->assign_vars(array('ALBUM_ERROR' => $error, 'ALBUM_BATCH' => bin2hex(random_bytes(16)),
 			'ALBUM_TITLE' => $fields['title'], 'ALBUM_DESCRIPTION' => $fields['description'], 'ALBUM_GUEST' => $fields['guest_name'],
 			'ALBUM_CATEGORY' => $cat['title'], 'ALBUM_COUNT' => $this->uploads->limit(), 'ALBUM_DESC_LIMIT' => $this->uploads->text_limit(),
+			'ALBUM_ACCEPT' => implode(',', $types),
+			'ALBUM_FILE_HINT' => $this->language->lang('PLUS_ALBUM_FILE_HINT', implode(', ', $formats), $limits['bytes'], $limits['width'], $limits['height']),
 			'S_ZIP' => $this->uploads->zip_enabled() && upload_archive::available(), 'ZIP_LIMIT' => $this->uploads->archive_limit(),
 			'ZIP_BATCH_LIMIT' => min($this->uploads->picture_limit(), $this->uploads->limit() * $this->uploads->archive_limit()),
 			'S_ZIP_UNAVAILABLE' => $this->uploads->zip_enabled() && !upload_archive::available(),
