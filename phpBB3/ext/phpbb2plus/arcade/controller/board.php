@@ -83,6 +83,45 @@ class board
 		return $filters;
 	}
 
+	private function counter($value)
+	{
+		// Keep the full unsigned historical play counter, including on 32-bit PHP.
+		return preg_replace('/\B(?=(?:[0-9]{3})+$)/', $this->language->lang('PLUS_ARC_THOUSANDS'), (string) ($value ?: '0'));
+	}
+
+	private function category_list($parent)
+	{
+		foreach ($this->catalog->category_overview($parent) as $cat)
+		{
+			$id = (int) $cat['cat_id'];
+			$link = $cat['cat_type'] === 'l';
+			if ($link && catalog::category_target($cat) === '') { continue; }
+			$global = $id === -1;
+			$game = !empty($cat['game_id']);
+			$this->template->assign_block_vars('arc_cats', array(
+				'ID' => $id, 'TITLE' => $global ? $this->language->lang('PLUS_ARC_ALL_GAMES') : catalog::plain($cat['cat_name']),
+				'DETAIL' => $link ? '' : catalog::plain($global ? $this->catalog->setting('games_cat_zero', '') : $cat['cat_desc']),
+				'URL' => $global ? '#arc-games' : $this->helper->route('phpbb2plus_arcade_category', array('category' => $id)),
+				'IS_LINK' => $link, 'GAMES' => $this->counter($cat['total_games']), 'PLAYS' => $this->counter($cat['total_played']),
+				'MODERATOR' => !$global && $cat['mod_name'] !== null ? get_username_string('full', $cat['moderator_id'], $cat['mod_name'], $cat['mod_colour']) : '',
+				'LAST_GAME' => $game ? catalog::plain($cat['game_desc'] ?: $cat['game_name']) : '',
+				'U_LAST_GAME' => $game && ($cat['game_avail'] || $this->catalog->admin()) ? $this->helper->route('phpbb2plus_arcade_game', array('game' => (int) $cat['game_id'])) : '',
+				'LAST_PLAYER' => $game ? $this->catalog->last_player($cat, $this->language) : '',
+				'LAST_TIME' => $game ? $this->user->format_date((int) $cat['last_time']) : '',
+				'ICON' => !$global && !empty($cat['icon_storage']) ? $this->helper->route('phpbb2plus_arcade_category_icon', array('category' => $id)) : '',
+			));
+		}
+		$width = max(0, min(500, (int) $this->catalog->setting('games_cat_image_width', 0)));
+		$this->template->assign_vars(array('ARC_CAT_ICON_WIDTH' => $width, 'ARC_CAT_ICON_HEIGHT' => max(1, min(500, (int) $this->catalog->setting('games_cat_image_height', 50)))));
+	}
+
+	public function category_icon($category)
+	{
+		$cats = $this->catalog->categories();
+		if ($this->catalog->board_access() !== '' || !isset($cats[(int) $category])) { throw new NotFoundHttpException(); }
+		return $this->artwork->response($cats[(int) $category]);
+	}
+
 	public function index($category = 0, $favourites = false)
 	{
 		$this->header();
@@ -99,15 +138,12 @@ class board
 		if ($favourites && !$this->activity->favourites_enabled()) { throw new NotFoundHttpException(); }
 		$cats = $this->catalog->categories();
 		if ($id && !isset($cats[$id])) { throw new NotFoundHttpException(); }
-		foreach ($cats as $key => $cat)
+		if ($id && $cats[$id]['cat_type'] === 'l')
 		{
-			if ($favourites || (int) $cat['cat_parent'] !== $id) { continue; }
-			$link = $cat['cat_type'] === 'l';
-			$url = $link ? catalog::plain($cat['cat_desc']) : $this->helper->route('phpbb2plus_arcade_category', array('category' => $key));
-			if ($link && (!filter_var($url, FILTER_VALIDATE_URL) || !in_array(strtolower(parse_url($url, PHP_URL_SCHEME)), array('http','https'), true))) { continue; }
-			$this->template->assign_block_vars('arc_cats', array('TITLE' => catalog::plain($cat['cat_name']), 'DETAIL' => $link ? '' : catalog::plain($cat['cat_desc']),
-				'URL' => $link ? utf8_htmlspecialchars($url) : $url));
+			$url = $this->catalog->visit_link($cats[$id], $this->request->server('REQUEST_METHOD', 'GET') === 'GET');
+			return new RedirectResponse($url, 302, array('Cache-Control' => 'private, no-store', 'Referrer-Policy' => 'no-referrer'));
 		}
+		if (!$favourites) { $this->category_list($id); }
 		$where = $this->catalog->game_filter($id) . $this->catalog->title_filter($term, $type);
 		$member = (int) $this->user->data['user_id'];
 		$moderated = $this->moderation->categories();

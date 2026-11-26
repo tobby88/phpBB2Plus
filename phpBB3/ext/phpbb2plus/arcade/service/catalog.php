@@ -118,7 +118,7 @@ class catalog
 		return $this->categories;
 	}
 
-	public function game_filter($category = 0)
+	public function game_filter($category = 0, $include_offline = false)
 	{
 		$cats = $this->categories();
 		if ($category && (!isset($cats[$category]) || $cats[$category]['cat_type'] === 'l')) { throw new NotFoundHttpException(); }
@@ -131,8 +131,70 @@ class catalog
 		if (!$category) { $cat_sql = "(g.cat_id IS NULL OR g.cat_id<=0 OR $cat_sql)"; }
 		if ($this->admin()) { return 'g.game_id>0 AND ' . $cat_sql; }
 		$levels = $this->staff() ? array(0, 2) : array(0);
-		return 'g.game_id>0 AND g.game_avail=1 AND ' . $cat_sql . ' AND ' . $this->db->sql_in_set('g.level_required', $levels) .
+		return 'g.game_id>0 AND ' . ($include_offline ? '' : 'g.game_avail=1 AND ') . $cat_sql . ' AND ' . $this->db->sql_in_set('g.level_required', $levels) .
 			' AND g.rank_required<=' . (int) $this->user->data['user_rank'] . ' AND ' . $this->db->sql_in_set('g.group_required', $this->groups());
+	}
+
+	public function category_overview($parent)
+	{
+		$ids = array();
+		if (!$parent && $this->setting('games_show_all', 1)) { $ids[] = -1; }
+		foreach ($this->categories() as $id => $category)
+		{
+			if ((int) $category['cat_parent'] === $parent) { $ids[] = $id; }
+		}
+		if (!$ids) { return array(); }
+		$cats = $this->prefix . 'categories';
+		$games = $this->prefix . 'games';
+		// A snapshot stores a name, and may outlive a move or refer to a restricted or ambiguous game.
+		// Historical counts are independent of that link and of the continued existence of the player.
+		$sql = 'SELECT c.*,m.username AS mod_name,m.user_colour AS mod_colour,u.username AS player_name,u.user_colour AS player_colour,
+			u.user_allow_viewonline,g.game_id,g.game_desc,g.game_name,g.game_avail FROM ' . $cats . ' c
+			LEFT JOIN ' . USERS_TABLE . ' m ON m.user_id=c.moderator_id AND c.moderator_id>' . ANONYMOUS . '
+			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=c.last_user_id AND c.last_user_id>' . ANONYMOUS . '
+			LEFT JOIN ' . $games . " g ON c.cat_type<>'l' AND c.last_time>0 AND g.game_name=c.last_game
+				AND (c.last_user_id>" . ANONYMOUS . " OR c.last_player=-1 OR c.last_player>0)
+				AND (c.cat_id=-1 OR c.cat_id=g.cat_id OR (c.cat_type='p' AND EXISTS
+					(SELECT 1 FROM $cats child WHERE child.cat_id=g.cat_id AND child.cat_type='s' AND child.cat_parent=c.cat_id)))
+				AND " . $this->unique_game_condition() . ' AND ' . $this->game_filter(0, true) . '
+			WHERE ' . $this->db->sql_in_set('c.cat_id', $ids) . ' ORDER BY CASE WHEN c.cat_id=-1 THEN 0 ELSE 1 END,c.cat_order,c.cat_id';
+		$result = $this->db->sql_query($sql);
+		$rows = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+		return $rows;
+	}
+
+	public function last_player($row, $language)
+	{
+		if ($row['player_name'] === null)
+		{
+			return $language->lang((int) $row['last_player'] > 0 || $row['last_user_id'] ? 'PLUS_ARC_FORMER' : 'GUEST');
+		}
+		if (!$row['user_allow_viewonline'] && (int) $row['last_user_id'] !== (int) $this->user->data['user_id'] && !$this->auth->acl_get('u_viewonline'))
+		{ return $language->lang('PLUS_ARC_HIDDEN_PLAYER'); }
+		return get_username_string('full', $row['last_user_id'], $row['player_name'], $row['player_colour']);
+	}
+
+	public static function category_target($category)
+	{
+		$url = self::plain($category['cat_desc']);
+		if ($category['cat_type'] !== 'l' || !filter_var($url, FILTER_VALIDATE_URL) || preg_match('/[\\\\\x00-\x20\x7f]/', $url) ||
+			!in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), array('http','https'), true) ||
+			parse_url($url, PHP_URL_USER) !== null) { return ''; }
+		return $url;
+	}
+
+	public function visit_link($category, $count)
+	{
+		$url = self::category_target($category);
+		if ($url === '') { throw new NotFoundHttpException(); }
+		if ($count)
+		{
+			$this->db->sql_query('UPDATE ' . $this->prefix . "categories SET total_played=CAST(COALESCE(NULLIF(total_played,''),'0') AS DECIMAL(20,0))+1
+				WHERE cat_type='l' AND cat_id=" . (int) $category['cat_id'] . " AND group_required=" . (int) $category['group_required'] .
+				" AND cat_desc='" . $this->db->sql_escape($category['cat_desc']) . "' AND CAST(COALESCE(NULLIF(total_played,''),'0') AS DECIMAL(20,0))<18446744073709551615");
+		}
+		return $url;
 	}
 
 	public function game($id)

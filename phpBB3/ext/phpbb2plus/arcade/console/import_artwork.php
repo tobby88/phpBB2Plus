@@ -14,7 +14,7 @@ class import_artwork extends Command
 
 	protected function configure()
 	{
-		$this->setName('phpbb2plus:arcade:import-artwork')->setDescription('Restore Arcade game pictures from an offline phpBB2 Plus board.')
+		$this->setName('phpbb2plus:arcade:import-artwork')->setDescription('Restore Arcade game and category pictures from an offline phpBB2 Plus board.')
 			->addArgument('source-board', InputArgument::REQUIRED, 'Directory containing the original games and design images');
 	}
 
@@ -31,6 +31,16 @@ class import_artwork extends Command
 		}
 		while ($after);
 		$output->writeln(sprintf('Verified artwork for %d of %d games in the source copy.', $found, $checked));
+		$after = $found = $checked = 0;
+		do
+		{
+			$batch = $this->artwork->category_batch($after, $source);
+			$found += $batch['found'];
+			$checked += $batch['checked'];
+			$after = $batch['after'];
+		}
+		while ($after);
+		$output->writeln(sprintf('Verified artwork for %d of %d configured category pictures.', $found, $checked));
 		return 0;
 	}
 }

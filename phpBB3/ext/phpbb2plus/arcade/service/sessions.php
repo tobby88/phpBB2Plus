@@ -96,7 +96,9 @@ class sessions
 			$cats[] = $category;
 			if (!empty($rows[$category]['cat_parent'])) { $cats[] = (int) $rows[$category]['cat_parent']; }
 		}
-		$change = array('last_game' => $game['game_name'], 'last_user_id' => $user === ANONYMOUS ? 0 : $user, 'last_time' => $now);
+		$source_user = (int) ($this->user->data['plus_legacy_id'] ?? 0) ?: $user;
+		$change = array('last_game' => $game['game_name'], 'last_player' => $user === ANONYMOUS ? -1 : $source_user,
+			'last_user_id' => $user === ANONYMOUS ? 0 : $user, 'last_time' => $now);
 		$this->db->sql_query('UPDATE ' . $this->prefix . 'categories SET ' . $this->db->sql_build_array('UPDATE', $change) .
 			",total_played=CASE WHEN total_played='18446744073709551615' THEN total_played ELSE CAST(COALESCE(total_played,'0') AS DECIMAL(20,0))+1 END WHERE " . $this->db->sql_in_set('cat_id', $cats));
 		if ($user === ANONYMOUS) { return; }

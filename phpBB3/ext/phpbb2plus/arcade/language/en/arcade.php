@@ -27,6 +27,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ARC_CLOSED' => 'The arcade is currently closed.',
 	'PLUS_ARC_CATEGORIES' => 'Categories',
 	'PLUS_ARC_GAMES' => 'Games',
+	'PLUS_ARC_ALL_GAMES' => 'All games', 'PLUS_ARC_PLAY_COUNT' => 'Times played', 'PLUS_ARC_LAST_PLAY' => 'Last played',
+	'PLUS_ARC_HIDDEN_PLAYER' => 'Hidden player', 'PLUS_ARC_VISITS' => 'Visits: %s', 'PLUS_ARC_THOUSANDS' => ',',
 	'PLUS_ARC_GAME_TITLE' => 'Game title', 'PLUS_ARC_MATCH' => 'Search mode', 'PLUS_ARC_CONTAINS' => 'Contains',
 	'PLUS_ARC_STARTS' => 'Starts with', 'PLUS_ARC_DIGITS' => 'Starts with a digit',
 	'PLUS_ARC_SORT_ALPHABETICAL' => 'Game title', 'PLUS_ARC_SORT_DATE_ADDED' => 'Date added',

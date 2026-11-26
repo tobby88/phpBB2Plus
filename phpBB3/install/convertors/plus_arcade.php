@@ -203,5 +203,7 @@ function plus_arcade_schema($prefix, $truncate)
 	$sections[] = array('target' => $prefix . 'plus_arc_assets', 'primary' => 'ina_games.game_id',
 		'query_first' => array('target', $truncate . $prefix . 'plus_arc_assets'),
 		array('',array('ina_games.game_id','ina_games.game_name','ina_games.game_path','ina_games.game_flash','ina_games.image_path'),'plus_arcade_media'));
+	$sections[] = array('target' => $prefix . 'plus_arc_categories', 'primary' => 'ina_cat.cat_id', 'where' => "ina_cat.cat_id>0 AND ina_cat.cat_icon<>''",
+		array('', array('ina_cat.cat_id', 'ina_cat.cat_icon'), 'plus_arcade_category_artwork'));
 	return array_merge($sections, plus_arcade_wallet_schema($prefix, $truncate));
 }

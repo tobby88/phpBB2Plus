@@ -20,6 +20,7 @@ from build_phpbb3 import assemble, PACKAGES
 import arcade
 import arcade_administration
 import arcade_directory
+import arcade_categories
 import arcade_moderation
 import arcade_standings
 import banners
@@ -491,6 +492,8 @@ def main():
                 arcade_directory.browse(base, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_directory.php", target, phase, cwd=web, capture=True))
                 arcade_directory.social_bookmarks(base, ordinary, pending)
+                arcade_categories.browse(base, member, ordinary, pending, lambda phase: php(
+                    ROOT / "tests/phpbb3/arcade_categories.php", target, phase, cwd=web))
                 arcade_moderation.exercise(base, member, ordinary, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_moderation.php", target, phase, cwd=web))
                 arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(

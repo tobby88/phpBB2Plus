@@ -1,6 +1,17 @@
 async function checkArcadeStyle(frame) {
-    await checkStylePage(frame, "app.php/arcade", [1180, 390], (doc, width) => {
+    await checkStylePage(frame, "app.php/arcade", [1180, 390], async (doc, width) => {
         const win = doc.defaultView;
+        const category = doc.getElementById("arc-cat-10");
+        const icon = category?.querySelector("img.arc-cat-icon");
+        const narrow = width <= 700;
+        if (!icon || !category.textContent.includes("Spielearchiv") || category.cells.length !== 4 ||
+                win.getComputedStyle(category).display !== (narrow ? "grid" : "table-row") ||
+                (win.getComputedStyle(category.querySelector(".arc-cat-label")).display !== "none") !== narrow) {
+            throw Error("The Arcade category overview lost its headings or layout at " + width + "px");
+        }
+        icon.loading = "eager";
+        await icon.decode();
+        if (icon.naturalWidth !== 16 || icon.naturalHeight !== 12) { throw Error("The category picture did not load"); }
         const form = doc.getElementById("arc-directory-options");
         if (!form?.elements.search_word?.labels?.length || !form.elements.sort_mode?.labels?.length ||
                 !form.elements.search_type?.getAttribute("aria-label") || !form.elements.order?.getAttribute("aria-label")) {

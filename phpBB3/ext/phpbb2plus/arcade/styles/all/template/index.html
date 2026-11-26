@@ -17,10 +17,16 @@
 	{% if ARC_FILTERED %}<a href="{U_ARC_FILTER}">{L_RESET}</a>{% endif %}
 </form>
 {% if loops.arc_cats %}<div class="forabg arc-directory"><div class="inner">
-<ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_CATEGORIES}</dt><dd></dd></dl></li></ul>
-<ul class="topiclist forums">{% for cat in loops.arc_cats %}<li class="row"><dl><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.DETAIL %}<br>{{ cat.DETAIL|e }}{% endif %}</div></dt><dd></dd></dl></li>{% endfor %}</ul>
+<table class="table1" id="arc-categories"><thead><tr><th scope="col">{L_PLUS_ARC_CATEGORIES}</th><th scope="col">{L_PLUS_ARC_GAMES}</th><th scope="col">{L_PLUS_ARC_PLAY_COUNT}</th><th scope="col">{L_PLUS_ARC_LAST_PLAY}</th></tr></thead><tbody>
+{% for cat in loops.arc_cats %}<tr class="row {{ cycle(['bg1','bg2'], loop.index0) }}" id="arc-cat-{{ cat.ID }}">
+<td class="arc-cat-title"><a class="forumtitle" href="{{ cat.URL }}">{% if cat.ICON %}<img class="arc-cat-icon" src="{{ cat.ICON }}" alt="" loading="lazy"{% if ARC_CAT_ICON_WIDTH %} width="{{ ARC_CAT_ICON_WIDTH }}" height="{{ ARC_CAT_ICON_HEIGHT }}"{% endif %}>{% endif %}{{ cat.TITLE|e }}</a>
+{% if cat.DETAIL %}<div>{{ cat.DETAIL|e|nl2br }}</div>{% endif %}{% if cat.MODERATOR %}<div>{{ lang('MODERATOR') }} · {{ cat.MODERATOR }}</div>{% endif %}</td>
+{% if cat.IS_LINK %}<td colspan="3" class="arc-cat-visits">{{ lang('PLUS_ARC_VISITS', cat.PLAYS) }}</td>
+{% else %}<td><span class="arc-cat-label">{L_PLUS_ARC_GAMES} </span>{{ cat.GAMES }}</td><td><span class="arc-cat-label">{L_PLUS_ARC_PLAY_COUNT} </span>{{ cat.PLAYS }}</td>
+<td class="arc-cat-last">{% if cat.LAST_GAME %}<span class="arc-cat-label">{L_PLUS_ARC_LAST_PLAY} </span>{% if cat.U_LAST_GAME %}<a href="{{ cat.U_LAST_GAME }}">{{ cat.LAST_GAME|e }}</a>{% else %}{{ cat.LAST_GAME|e }}{% endif %}<br>{{ cat.LAST_TIME }} · {{ cat.LAST_PLAYER }}{% else %}—{% endif %}</td>{% endif %}
+</tr>{% endfor %}</tbody></table>
 </div></div>{% endif %}
-<div class="forabg arc-directory"><div class="inner"><ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_GAMES}</dt><dd></dd></dl></li></ul>
+<div class="forabg arc-directory" id="arc-games"><div class="inner"><ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_GAMES}</dt><dd></dd></dl></li></ul>
 <ul class="topiclist topics">{% for game in loops.arc_games %}<li class="row"><dl><dt><div class="list-inner"><a class="topictitle" href="{{ game.URL }}">{% if game.ICON %}<img class="arc-game-icon" src="{{ game.ICON }}" alt="" loading="lazy" width="{ARC_ICON_WIDTH}" height="{ARC_ICON_HEIGHT}">{% endif %}{{ game.TITLE|e }}</a>
 {% if game.OFFLINE %}<span class="small">({L_PLUS_ARC_DISABLED})</span>{% endif %}</div></dt>{% if ARC_SHOW_PLAYS %}<dd class="lastpost"><span>{{ lang('PLUS_ARC_PLAYS', game.PLAYS) }}</span></dd>{% else %}<dd></dd>{% endif %}</dl></li>
 {% else %}<li class="row"><p class="responsive-center">{L_PLUS_ARC_EMPTY}</p></li>{% endfor %}</ul></div></div>

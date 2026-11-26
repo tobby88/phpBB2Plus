@@ -27,6 +27,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ARC_CLOSED' => 'Die Spielhalle ist momentan geschlossen.',
 	'PLUS_ARC_CATEGORIES' => 'Kategorien',
 	'PLUS_ARC_GAMES' => 'Spiele',
+	'PLUS_ARC_ALL_GAMES' => 'Alle Spiele', 'PLUS_ARC_PLAY_COUNT' => 'Spielstarts', 'PLUS_ARC_LAST_PLAY' => 'Zuletzt gespielt',
+	'PLUS_ARC_HIDDEN_PLAYER' => 'Verborgener Spieler', 'PLUS_ARC_VISITS' => 'Linkaufrufe: %s', 'PLUS_ARC_THOUSANDS' => '.',
 	'PLUS_ARC_GAME_TITLE' => 'Spieltitel', 'PLUS_ARC_MATCH' => 'Suchart', 'PLUS_ARC_CONTAINS' => 'Enthält',
 	'PLUS_ARC_STARTS' => 'Beginnt mit', 'PLUS_ARC_DIGITS' => 'Beginnt mit einer Ziffer',
 	'PLUS_ARC_SORT_ALPHABETICAL' => 'Spieltitel', 'PLUS_ARC_SORT_DATE_ADDED' => 'Hinzugefügt am',

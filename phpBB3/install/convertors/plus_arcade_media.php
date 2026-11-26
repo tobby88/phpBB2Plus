@@ -60,17 +60,30 @@ function plus_arcade_directories($board, $root)
 	return $owners;
 }
 
-function plus_arcade_media($id, $name, $directory, $flash, $image)
+function plus_arcade_artwork_source()
 {
-	global $convert, $src_db, $db, $table_prefix, $config, $phpbb_root_path, $phpbb_container;
-	$id = (int) $id;
-	if ($id <= 0) { return; }
+	global $convert, $db, $table_prefix, $config, $phpbb_root_path, $phpbb_container;
 	static $artwork = null, $source = null;
 	if ($artwork === null)
 	{
 		$artwork = new \phpbb2plus\arcade\service\artwork($db, $config, $table_prefix . 'plus_arc_', $phpbb_root_path, $phpbb_container->get('filesystem'));
 		$source = $artwork->source_root($convert->options['forum_path']);
 	}
+	return array($artwork, $source);
+}
+
+function plus_arcade_category_artwork($id, $image)
+{
+	list($artwork, $source) = plus_arcade_artwork_source();
+	$artwork->import_category((int) $id, $image, $source);
+}
+
+function plus_arcade_media($id, $name, $directory, $flash, $image)
+{
+	global $convert, $src_db, $db, $table_prefix, $config, $phpbb_root_path, $phpbb_container;
+	$id = (int) $id;
+	if ($id <= 0) { return; }
+	list($artwork, $source) = plus_arcade_artwork_source();
 	static $games_root = null;
 	if ($games_root === null)
 	{

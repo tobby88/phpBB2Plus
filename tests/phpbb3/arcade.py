@@ -262,6 +262,8 @@ def source_media(legacy):
     shared = legacy / "images/arcade"
     shared.mkdir(parents=True, exist_ok=True)
     (shared / "clock.png").write_bytes(png(10, 10, b"\x44\x88\x33"))
+    (shared / "category.png").write_bytes(png(16, 12, b"\x40\x80\xa0"))
+    (shared / "club-category.png").write_bytes(png(11, 13, b"\x31\x80\x50"))
     fallback = Path("templates/fisubsilversh/images/games.gif")
     (legacy / fallback.parent).mkdir(parents=True, exist_ok=True)
     shutil.copyfile(Path(__file__).resolve().parents[2] / "phpBB2" / fallback, legacy / fallback)

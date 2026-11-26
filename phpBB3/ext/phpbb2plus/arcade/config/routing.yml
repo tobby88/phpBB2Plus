@@ -64,6 +64,11 @@ phpbb2plus_arcade_category:
     defaults: { _controller: phpbb2plus.arcade.board:index }
     requirements: { category: '[1-9][0-9]*' }
     methods: [GET, HEAD]
+phpbb2plus_arcade_category_icon:
+    path: /arcade/category/{category}/icon
+    defaults: { _controller: phpbb2plus.arcade.board:category_icon }
+    requirements: { category: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
 phpbb2plus_arcade_favourites:
     path: /arcade/favourites
     defaults: { _controller: phpbb2plus.arcade.board:index, category: 0, favourites: true }

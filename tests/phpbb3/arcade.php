@@ -10,6 +10,8 @@ function seed_arcade($db)
 	$db->query("UPDATE phpbb_ina_data SET config_value='1' WHERE config_name IN ('games_guest_highscore','games_comments','games_rate','games_at_highscore','games_show_mhm','games_tournament_mode')");
 	$db->query("INSERT INTO phpbb_ina_cat (cat_id,cat_name,cat_desc,cat_type,cat_parent,cat_order,group_required,mod_id) VALUES
 		(10,'Spielearchiv','Offene Spiele','p',0,1,0,2),(11,'Clubspiele','','p',0,2,71,1),(12,'Clubturniere','','s',11,1,0,1),(13,'Einzelspieler','','p',0,3,72,1)");
+	$db->query("UPDATE phpbb_ina_cat SET cat_icon=CASE cat_id WHEN 10 THEN 'images/arcade/category.png' WHEN 12 THEN 'images/arcade/club-category.png' ELSE 'games/puzzle/club/private.png' END WHERE cat_id IN (10,12,13)");
+	$db->query("INSERT INTO phpbb_ina_cat (cat_id,cat_name,cat_type,total_games) VALUES (-1,'All games','p',25) ON DUPLICATE KEY UPDATE total_games=25");
 	$db->query("INSERT INTO phpbb_ina_games (game_id,game_name,game_path,game_desc,cat_id,allow_guest,game_avail,reverse_list,game_show_score,game_flash,
 		highscore_limit,at_highscore_limit,highscore_id,at_highscore_id,instructions) VALUES
 		(60,'puzzle','games/puzzle/','Öffentliches Denkspiel',10,1,1,0,1,1,'10',10,1,2,'Steine &amp; Farben'),

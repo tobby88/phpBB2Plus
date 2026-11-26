@@ -90,10 +90,11 @@ class artwork
 		return rtrim($this->root, '/\\') . '/' . trim($this->config['upload_path'], '/\\') . '/' . $name;
 	}
 
-	private function assign($id, $storage, $mime, $bytes)
+	private function assign($id, $storage, $mime, $bytes, $category = false)
 	{
 		$values = array('icon_storage' => $storage, 'icon_mime' => $mime, 'icon_bytes' => $bytes);
-		$this->db->sql_query('UPDATE ' . $this->prefix . 'games SET ' . $this->db->sql_build_array('UPDATE', $values) . ' WHERE game_id=' . (int) $id);
+		$this->db->sql_query('UPDATE ' . $this->prefix . ($category ? 'categories' : 'games') . ' SET ' . $this->db->sql_build_array('UPDATE', $values) .
+			' WHERE ' . ($category ? 'cat_id' : 'game_id') . '=' . (int) $id);
 	}
 
 	public function source_root($folder)
@@ -103,36 +104,41 @@ class artwork
 		return $source;
 	}
 
-	public function import_game($game, $source)
+	private function copy_image($source, $relative)
 	{
 		$types = array('gif' => 'image/gif', 'png' => 'image/png', 'jpeg' => 'image/jpeg', 'jpg' => 'image/jpeg', 'webp' => 'image/webp');
+		$ext = strtolower(pathinfo($relative, PATHINFO_EXTENSION));
+		if (!isset($types[$ext])) { return false; }
+		$file = $source . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+		// Each component must resolve to this exact location inside the offline source.
+		if (realpath($file) !== $file || !is_file($file)) { return false; }
+		if (isset($this->copies[$file])) { return $this->copies[$file]; }
+		$info = @getimagesize($file);
+		if (!$info || $info['mime'] !== $types[$ext]) { return false; }
+		$digest = hash_file('sha256', $file);
+		if ($digest === false) { throw new \RuntimeException('Cannot read the Arcade artwork.'); }
+		$name = 'arcade_icon_' . $digest;
+		$target = $this->upload($name);
+		if (is_link($target)) { throw new \RuntimeException('Unexpected link in Arcade artwork storage.'); }
+		if (!is_file($target))
+		{
+			$stream = fopen($file, 'rb');
+			if (!$stream) { throw new \RuntimeException('Cannot open the Arcade artwork.'); }
+			try { $this->filesystem->dump_file($target, $stream); }
+			finally { fclose($stream); }
+		}
+		if (hash_file('sha256', $target) !== $digest) { throw new \RuntimeException('The copied Arcade artwork did not match the source.'); }
+		return $this->copies[$file] = array($name, $info['mime'], filesize($target));
+	}
+
+	public function import_game($game, $source)
+	{
 		foreach ($this->candidates($game) as $relative)
 		{
-			$ext = strtolower(pathinfo($relative, PATHINFO_EXTENSION));
-			if (!isset($types[$ext]) || !$this->belongs_to_game($relative, $this->relative($game['game_path']))) { continue; }
-			$file = $source . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-			// Each component must resolve to this exact location inside the offline source.
-			if (realpath($file) !== $file || !is_file($file)) { continue; }
-			if (!isset($this->copies[$file]))
-			{
-				$info = @getimagesize($file);
-				if (!$info || $info['mime'] !== $types[$ext]) { continue; }
-				$digest = hash_file('sha256', $file);
-				if ($digest === false) { throw new \RuntimeException('Cannot read the game artwork.'); }
-				$name = 'arcade_icon_' . $digest;
-				$target = $this->upload($name);
-				if (is_link($target)) { throw new \RuntimeException('Unexpected link in Arcade artwork storage.'); }
-				if (!is_file($target))
-				{
-					$stream = fopen($file, 'rb');
-					if (!$stream) { throw new \RuntimeException('Cannot open the game artwork.'); }
-					try { $this->filesystem->dump_file($target, $stream); }
-					finally { fclose($stream); }
-				}
-				if (hash_file('sha256', $target) !== $digest) { throw new \RuntimeException('The copied Arcade artwork did not match the source.'); }
-				$this->copies[$file] = array($name, $info['mime'], filesize($target));
-			}
-			list($name, $mime, $bytes) = $this->copies[$file];
+			if (!$this->belongs_to_game($relative, $this->relative($game['game_path']))) { continue; }
+			$image = $this->copy_image($source, $relative);
+			if (!$image) { continue; }
+			list($name, $mime, $bytes) = $image;
 			if ($relative === $this->settings()['games_default_img'] && !empty($game['icon_storage']) && $game['icon_storage'] !== $name)
 			{
 				// An incomplete offline board may contain only the shared default.
@@ -158,6 +164,31 @@ class artwork
 			$after = (int) $game['game_id'];
 		}
 		return array('after' => count($games) === 100 ? $after : 0, 'found' => $found, 'checked' => count($games));
+	}
+
+	public function import_category($id, $path, $source)
+	{
+		$relative = $this->relative(catalog::plain($path));
+		if ($id < 1 || $relative === '' || !$this->belongs_to_game($relative, '')) { return false; }
+		$image = $this->copy_image($source, $relative);
+		if (!$image) { return false; }
+		$this->assign($id, $image[0], $image[1], $image[2], true);
+		return true;
+	}
+
+	public function category_batch($after, $source)
+	{
+		$result = $this->db->sql_query_limit('SELECT cat_id,cat_icon FROM ' . $this->prefix . 'categories WHERE cat_id>' .
+			(int) $after . " AND cat_icon<>'' ORDER BY cat_id", 100);
+		$rows = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+		$found = 0;
+		foreach ($rows as $row)
+		{
+			$after = (int) $row['cat_id'];
+			$found += (int) $this->import_category($after, $row['cat_icon'], $source);
+		}
+		return array('after' => count($rows) === 100 ? $after : 0, 'found' => $found, 'checked' => count($rows));
 	}
 
 	// Previous conversions already retain validated bitmap assets from each game's own directory.
