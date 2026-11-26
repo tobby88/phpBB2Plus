@@ -54,7 +54,7 @@ function seed_arcade($db)
 	$stored = $db->real_escape_string(addslashes(serialize($turns)));
 	$db->query("UPDATE phpbb_ina_tour_play SET gamedata='$stored' WHERE tour_id=32 AND user_id=1");
 	$db->query("INSERT INTO phpbb_ina_user_data (user_id,first_places,first_list,user_game_time) VALUES (1,2,'puzzle|timer|',39)");
-	$db->query("INSERT INTO phpbb_ina_log (record_no,user_id,name,value,date) VALUES (91,1,'Fixture','Historisches Ereignis',11011)");
+	$db->query("INSERT INTO phpbb_ina_log (record_no,user_id,name,value,date) VALUES (91,1,'Fixture','Historisches Ereignis 🛰 &lt;Quelle&gt; <Café>',11011)");
 	$db->query("INSERT INTO phpbb_ina_banned (username,user_id,game,score,date) VALUES ('Ehemaliger',98,'puzzle',3,'11012')");
 }
 

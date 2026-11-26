@@ -15,6 +15,7 @@ class junior_admin
 
 	public const MODULES = array(
 		'admin_arcade_cats.php' => array('Arcade', 'Categories', array('a_plus_arc_categories' => array('phpbb2plus\arcade\acp\categories_module', 'manage'))),
+		'admin_arcade_log.php' => array('Arcade', 'Error_Log', array('a_plus_arc_log' => array('phpbb2plus\arcade\acp\diagnostics_module', 'manage'))),
 		'admin_links.php?mode=add' => array('Links','Add_new',self::LINK_ENTRIES),
 		'admin_links.php?mode=view' => array('Links','Manage',self::LINK_ENTRIES),
 		'admin_links_cat.php' => array('Links','Category',array('a_plus_wl_categories'=>array('phpbb2plus\weblinks\acp\management_module','categories'))),

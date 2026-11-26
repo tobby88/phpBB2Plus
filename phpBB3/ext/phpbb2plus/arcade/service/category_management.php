@@ -1,27 +1,21 @@
 <?php
 namespace phpbb2plus\arcade\service;
 
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-
 class category_management
 {
 	private $db;
-	private $auth;
-	private $user;
+	private $access;
 	private $sessions;
 	private $artwork;
 	private $prefix;
-	private $delegations;
 
-	public function __construct($db, $auth, $user, $sessions, $artwork, $prefix)
+	public function __construct($db, $access, $sessions, $artwork, $prefix)
 	{
 		$this->db = $db;
-		$this->auth = $auth;
-		$this->user = $user;
+		$this->access = $access;
 		$this->sessions = $sessions;
 		$this->artwork = $artwork;
 		$this->prefix = $prefix . 'plus_arc_';
-		$this->delegations = $prefix . 'plus_jr_delegations';
 	}
 
 	private function rows($sql)
@@ -34,29 +28,7 @@ class category_management
 
 	public function authorize($lock = false)
 	{
-		$data = $this->user->data;
-		if (!defined('IN_ADMIN') || !IN_ADMIN || empty($data['session_admin']) || empty($data['is_registered']) ||
-			!empty($data['user_perm_from']) || !$this->auth->acl_get('a_plus_arc_categories')) { throw new AccessDeniedHttpException(); }
-		if (!$lock) { return; }
-		$id = (int) $data['user_id'];
-		$sid = $this->db->sql_escape($this->user->session_id);
-		$user = $this->rows('SELECT u.* FROM ' . USERS_TABLE . ' u JOIN ' . SESSIONS_TABLE . " s ON u.user_id=s.session_user_id
-			WHERE u.user_id=$id AND s.session_id='$sid' AND s.session_admin=1 LOCK IN SHARE MODE")[0] ?? null;
-		if (!$user || $user['user_perm_from'] || !in_array((int) $user['user_type'], array(USER_NORMAL, USER_FOUNDER), true)) { throw new AccessDeniedHttpException(); }
-		if ((int) $user['user_type'] === USER_FOUNDER) { return; }
-		$auth = clone $this->auth;
-		if (!empty($user['plus_jr_delegate']) && method_exists($auth, 'delegated_module'))
-		{ $this->rows("SELECT user_id FROM {$this->delegations} WHERE user_id=$id LOCK IN SHARE MODE"); }
-		$states = $auth->acl_raw_data($id, array('a_', 'a_plus_arc_categories'), 0)[$id][0] ?? array();
-		$right = (int) ($states['a_plus_arc_categories'] ?? ACL_NO);
-		if ((int) ($states['a_'] ?? ACL_NO) !== ACL_NEVER && $right !== ACL_NEVER)
-		{
-			if ($right === ACL_YES) { return; }
-			$user['is_registered'] = true;
-			$auth->acl($user);
-			if (method_exists($auth, 'delegated_module') && $auth->delegated_module('phpbb2plus\arcade\acp\categories_module', 'manage')) { return; }
-		}
-		throw new AccessDeniedHttpException();
+		$this->access->authorize('categories',$lock);
 	}
 
 	public function records($lock = false)

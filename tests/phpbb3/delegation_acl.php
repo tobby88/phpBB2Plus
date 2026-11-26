@@ -36,6 +36,18 @@ try
 	{ throw new RuntimeException('Changing a mirror handler also suspended the separate settings assignment'); }
 }
 finally { file_put_contents($helper, $original); }
+$log_writer = $root . '/includes/functions_arcade_log_storage.php';
+$original = file_get_contents($log_writer);
+try
+{
+	file_put_contents($log_writer,$original . "\n/* Custom local retention policy */\n");
+	$registry = plus_jr_registry();
+	$log_entry = $registry[md5('ArcadeError_Logadmin_arcade_log.php')];
+	if (empty($log_entry['customised']) || isset($log_entry['option']) ||
+		($registry[md5('ArcadeCategoriesadmin_arcade_cats.php')]['option'] ?? '') !== 'a_plus_arc_categories')
+	{ throw new RuntimeException('A customised diagnostic writer was delegated or affected an independent Arcade registration'); }
+}
+finally { file_put_contents($log_writer,$original); }
 $arcade = $directory . '/admin_arcade_scores.php';
 $original = file_get_contents($arcade);
 try

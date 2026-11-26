@@ -73,6 +73,7 @@ function plus_jr_registry()
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
 		'admin_arcade_cats.php' => '1f783390224f152c354e205f56ec52e4dc47d10e276c7595038498dc0bf03daf',
+		'admin_arcade_log.php' => '667e4ab70846777eaddfe4753e820b360b83ea2aa03373ee71106da357350848',
 		'admin_links.php' => '653aa54f528987a56e61e2320f4f15aba1562bbc98cc1e64b1c01346cab5bce9',
 		'admin_links_cat.php' => 'fc151f2c9eb7087eb75334e046dcaf4516975c159d4ba8d6fc019e79191fffae',
 		'admin_links_config.php' => '9d09344b11f3f4bc2f4610db7f9deb101cd1ee510b77bf5d5a39009e68940f66',
@@ -138,6 +139,23 @@ function plus_jr_registry()
 		'includes/functions_link_settings.php' => 'd29ceb470891dfc3285e6de7f741e301c6b9625b46da3c840494f2e6fff400b3',
 	);
 	$dependencies = array(
+		'admin_arcade_log.php' => array(
+			'pagestart.php'=>'472b9cf9f94bf3ac132a9a4fc101a861ddc74dd374620915840500aa3a18887d',
+			'includes/functions_jr_admin.php'=>'2b790b97d59b8fe505cbc34d0963a8acf7412a6db865158347c284a2b8bb369e',
+			'includes/functions_jr_admin_auth.php'=>'66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+			'includes/functions_arcade_log_storage.php'=>'979af8b0855dd200f4cfec58fdbb317d84670b5d89ab2977608e281107cdb744',
+			'includes/functions_arcade_import_storage.php'=>'eceb125848d15024831baf5614848aaabba50c985a8fbccc0f2ad1a78184bbca',
+			'includes/functions_arcade.php'=>'1a9112338a29f16c662151a46412c4faf745515b50e63231d4ab8cd39e6ffb6f',
+			'includes/classes_arcade.php'=>'aaeff39e5e537c0dd97cc90d96d437d27060c3636641085e8bb9404cc10a85df',
+			'includes/functions_acl_storage.php'=>'5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+			'includes/functions_owned_storage.php'=>'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
+			'includes/functions_moderator_identity.php'=>'2cd91513548a3754831dc59ee50be5ffccecfbfba2b4f0921e6850b8f89e9c67',
+			'attach_mod/includes/functions_quota_storage.php'=>'f477434f927a74278098e942bc3feb293f9829d1defc3c7fb527baf4a4382cab',
+			'attach_mod/includes/functions_settings_storage.php'=>'adc3317c1aff635f55386e36c391ca40c1b7882b377b4dd6e181e97d15b93144',
+			'includes/functions_board_config.php'=>'6f8bfd8b56abae2ac271ef236b1c916ca0fb96f68b74ca1a58680474a6a09568',
+			'includes/functions_connection_ownership.php'=>'1c8277a28b18946baaad0fca9f2f64959fe07d09ede4fd6ec2f37223b153576e',
+			'includes/php_compat.php'=>'efc40a50b10beed315b050826a3792a251d877199e818f816f23ecbc5e9517ee',
+		),
 		'admin_arcade_cats.php' => array(
 			'includes/functions_arcade_category_storage.php' => '8008d26e6da64b13ef773a0d1ac91a5dd31681654e075f83813b30a4eba8718e',
 			'includes/functions_arcade_last_play.php' => 'a75c6643f49d0c1da75cc3b9924044f4cfce5ce9e9ffc7912fe33e97780074ad',

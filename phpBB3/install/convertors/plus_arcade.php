@@ -136,6 +136,17 @@ function plus_arcade_copy_group($short, $column, $value)
 				$data[$dest] = $dest === 'score_units' ? \phpbb2plus\arcade\service\score::units($row[$field]) : $row[$field];
 			}
 			foreach ($owners as $field => $owner) { $data[$owner] = plus_arcade_owner($row[$field]); }
+			// The native database connection uses three-byte UTF-8. Keep literal
+			// entity text distinct from the NCRs needed for supplementary characters.
+			if ($short === 'log' && preg_match('/[\xf0-\xf4]/',(string) $data['name'] . (string) $data['log_value']))
+			{
+				$data['text_encoded'] = 1;
+				foreach (array('name','log_value') as $field)
+				{
+					if ($data[$field] !== null) { $data[$field] = utf8_encode_ucr(str_replace('&','&amp;',$data[$field])); }
+				}
+			}
+			elseif ($short === 'log') { $data['text_encoded'] = 0; }
 			if ($short === 'cat')
 			{
 				foreach (array('cat_name','cat_desc','cat_icon') as $field)

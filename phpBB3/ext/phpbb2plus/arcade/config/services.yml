@@ -1,7 +1,13 @@
 services:
+    phpbb2plus.arcade.admin_access:
+        class: phpbb2plus\arcade\service\admin_access
+        arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_jr_delegations']
+    phpbb2plus.arcade.diagnostics:
+        class: phpbb2plus\arcade\service\diagnostics
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.sessions', '@log', '@user', '%core.table_prefix%plus_arc_log']
     phpbb2plus.arcade.category_management:
         class: phpbb2plus\arcade\service\category_management
-        arguments: ['@dbal.conn', '@auth', '@user', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.artwork', '%core.table_prefix%']
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.artwork', '%core.table_prefix%']
     phpbb2plus.arcade.score_moderation:
         class: phpbb2plus\arcade\service\score_moderation
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.sessions', '@log']

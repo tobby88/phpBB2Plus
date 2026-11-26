@@ -1,0 +1,33 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_ARC_LOG}</h1>
+{% if ARC_LOG_ERROR %}<div class="errorbox"><p>{{ ARC_LOG_ERROR|e }}</p></div>{% endif %}
+{% if ARC_LOG_NOTICE %}<div class="successbox"><p>{{ ARC_LOG_NOTICE|e }}</p></div>{% endif %}
+{% if S_ARC_LOG_CONFIRM %}
+<form id="arc-log-confirm" method="post" action="{U_ARC_LOG}">
+	<fieldset><legend>{L_CONFIRM}</legend><p>{{ ARC_LOG_QUESTION|e }}</p><p>{L_PLUS_ARC_LOG_TYPE} &middot; {{ ARC_LOG_FILTER|e }}</p>
+	{% if ARC_LOG_IDS %}<p>{L_PLUS_ARC_LOG_IDS} &middot; {{ ARC_LOG_IDS|join(', ') }}</p>{% endif %}
+	{% for record in ARC_LOG_IDS %}<input type="hidden" name="records[]" value="{{ record }}">{% endfor %}
+	<input type="hidden" name="operation" value="{ARC_LOG_OP}"><input type="hidden" name="total" value="{ARC_LOG_COUNT}">
+	<input type="hidden" name="last" value="{ARC_LOG_LAST}">{S_FORM_TOKEN}
+	<p class="submit-buttons"><button type="submit" name="confirm" value="1" class="button1">{L_DELETE}</button> <a href="{U_ARC_LOG}">{L_CANCEL}</a></p></fieldset>
+</form>
+{% else %}
+<nav aria-label="{L_PLUS_ARC_LOG_TYPE}">{% for filter in loops.filters %}
+	<a href="{{ filter.URL }}"{% if filter.CURRENT %} aria-current="page"{% endif %}>{{ filter.NAME|e }}</a>{% if not loop.last %} &middot; {% endif %}
+{% endfor %}</nav>
+<p>{{ lang('PLUS_ARC_LOG_COUNT', ARC_LOG_TOTAL) }}</p>
+{% if loops.records %}
+<form id="arc-log-selected" method="post" action="{U_ARC_LOG}"><table class="table1 zebra-table">
+	<thead><tr><th>{L_MARK}</th><th>{L_PLUS_ARC_LOG_ID}</th><th>{L_TIME}</th><th>{L_PLUS_ARC_LOG_TYPE}</th><th>{L_USERNAME}</th><th>{L_PLUS_ARC_LOG_DETAILS}</th></tr></thead>
+	<tbody>{% for row in loops.records %}<tr data-arc-log="{{ row.ID }}">
+	<td><input type="checkbox" name="records[]" value="{{ row.ID }}" aria-label="{{ lang('PLUS_ARC_LOG_MARK', row.ID)|e('html_attr') }}"></td>
+	<td>{{ row.ID }}</td><td>{{ row.DATE }}</td><td>{{ row.TYPE|e }}</td><td>{{ row.AUTHOR|e }}</td>
+	<td style="white-space: pre-wrap; overflow-wrap: anywhere">{{ row.TEXT|e }}</td></tr>{% endfor %}</tbody>
+</table>{S_FORM_TOKEN}<button type="submit" class="button2" name="operation" value="selected">{L_DELETE_MARKED}</button></form>
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+<form id="arc-log-filtered" method="post" action="{U_ARC_LOG}">{S_FORM_TOKEN}
+	<button type="submit" class="button2" name="operation" value="filtered">{L_PLUS_ARC_LOG_CLEAR_FILTER}</button>
+</form>
+{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->
