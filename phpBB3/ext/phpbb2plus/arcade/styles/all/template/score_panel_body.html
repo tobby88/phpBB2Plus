@@ -3,8 +3,9 @@
 {% if ARC_GAME %} › <a href="{{ U_ARC_BOARD|e }}">{{ ARC_GAME|e }} · {{ ARC_BOARD_LABEL }}</a>{% endif %}</p>
 {% endif %}
 {% if ARC_ERROR %}<p class="error" role="alert">{{ ARC_ERROR }}</p>{% endif %}
-{% if loops.arc_cats %}
-<ul>{% for cat in loops.arc_cats %}<li><a href="{{ cat.URL|e }}">{{ cat.TITLE|e }}</a></li>{% endfor %}</ul>
+{% if S_ARC_CATEGORIES %}
+{% if loops.arc_cats %}<ul>{% for cat in loops.arc_cats %}<li><a href="{{ cat.URL|e }}">{{ cat.TITLE|e }}</a></li>{% endfor %}</ul>
+{% else %}<p>{{ lang('PLUS_ARC_MOD_EMPTY') }}</p>{% endif %}
 {% elseif S_ARC_GAMES %}
 <div class="arc-mod-scroll"><table class="table1">
 <thead><tr><th scope="col">{{ lang('PLUS_ARC_GAME_TITLE') }}</th><th scope="col">{{ lang('PLUS_ARC_MOD_FILES') }}</th><th scope="col">{{ lang('PLUS_ARC_BOARD') }}</th></tr></thead><tbody>
@@ -19,7 +20,7 @@
 <th scope="col">{{ lang('PLUS_ARC_PLACE') }}</th><th scope="col">{{ lang('USERNAME') }}</th><th scope="col">{{ lang('PLUS_ARC_POINTS') }}</th>
 <th scope="col">{{ lang('PLUS_ARC_MOD_DATE') }}</th><th scope="col">{{ lang('PLUS_ARC_MOD_DURATION') }}</th><th scope="col">{{ lang('IP') }}</th><th scope="col">{{ lang('OPTIONS') }}</th></tr></thead><tbody>
 {% for row in loops.arc_scores %}<tr class="{{ cycle(['bg1','bg2'], loop.index0) }}"><td>{{ row.RANK }}</td><td>{{ row.PLAYER }}</td><td>{{ row.SCORE|e }}</td><td>{{ row.DATE }}</td><td>{{ row.DURATION }}</td><td>{{ row.IP|e }}</td>
-<td>{% if row.U_EDIT %}<a href="{{ row.U_EDIT|e }}">{{ lang('EDIT') }}</a> · {% endif %}<a href="{{ row.U_DELETE|e }}">{{ lang('DELETE') }}</a></td></tr>
+<td>{% if row.U_EDIT %}<a href="{{ row.U_EDIT|e }}">{{ lang('PLUS_ARC_MOD_EDIT') }}</a> · {% endif %}<a href="{{ row.U_DELETE|e }}">{{ lang('DELETE') }}</a></td></tr>
 {% else %}<tr><td colspan="7">{{ lang('PLUS_ARC_NO_SCORES') }}</td></tr>{% endfor %}
 </tbody></table></div>
 {% elseif S_ARC_FORM %}

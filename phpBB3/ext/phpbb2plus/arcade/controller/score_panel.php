@@ -165,8 +165,8 @@ class score_panel
 		$this->template->assign_vars(array('U_ARC_CATEGORIES' => $base, 'S_ARC_PANEL' => $panel));
 		if ($cat === null)
 		{
-			$categories = $this->moderation->categories($panel);
-			if (!$categories) { throw new NotFoundHttpException(); }
+			$categories = $this->moderation->categories($panel, true);
+			$this->template->assign_var('S_ARC_CATEGORIES', true);
 			foreach ($categories as $key => $category)
 			{
 				$this->template->assign_block_vars('arc_cats', array('TITLE' => $this->category_name($category),

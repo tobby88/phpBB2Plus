@@ -3,6 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACL_A_PLUS_ARC_SCORES' => 'Kann Spielhallen-Ergebnisse korrigieren und entfernen',
 	'PLUS_ARC_MOD' => 'Bestenlisten moderieren',
+	'PLUS_ARC_MOD_EMPTY' => 'Es gibt noch keine Spielhallen-Kategorien zum Moderieren.',
 	'PLUS_ARC_MOD_UNASSIGNED' => 'Spiele ohne Kategorie (0)', 'PLUS_ARC_MOD_PENDING' => 'Spiele ohne Kategorie (−1)',
 	'PLUS_ARC_MOD_FILES' => 'Spieldateien und Fenstergröße', 'PLUS_ARC_MOD_AUTOSIZE' => 'Automatische Fenstergröße',
 	'PLUS_ARC_MOD_DATE' => 'Erzielt am', 'PLUS_ARC_MOD_DURATION' => 'Spielzeit',

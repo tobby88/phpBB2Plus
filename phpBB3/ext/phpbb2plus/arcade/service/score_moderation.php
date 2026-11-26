@@ -57,13 +57,18 @@ class score_moderation
 		return array('id' => (int) $data['user_id'], 'admin' => $admin, 'all_categories' => $admin || $auth->acl_get('m_plus_arcade'));
 	}
 
-	public function categories($panel = false)
+	public function categories($panel = false, $require_access = false)
 	{
 		$actor = $this->actor($panel);
-		if (!$actor) { return array(); }
+		if (!$actor)
+		{
+			if ($require_access) { throw new NotFoundHttpException(); }
+			return array();
+		}
 		$where = $actor['all_categories'] ? '' : ' AND moderator_id=' . $actor['id'];
 		$list = $this->rows('SELECT cat_id,cat_name FROM ' . $this->prefix . "categories WHERE cat_id>0 AND cat_type<>'l'$where ORDER BY cat_order,cat_name,cat_id");
 		$categories = array_column($list, null, 'cat_id');
+		if ($require_access && !$categories && !$actor['all_categories']) { throw new NotFoundHttpException(); }
 		if ($actor['admin'])
 		{
 			foreach ($this->rows('SELECT DISTINCT COALESCE(cat_id,0) AS cat_id FROM ' . $this->prefix . 'games WHERE cat_id IS NULL OR cat_id IN (0,-1) ORDER BY cat_id') as $row)

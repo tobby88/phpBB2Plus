@@ -3,6 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACL_A_PLUS_ARC_SCORES' => 'Can correct and remove arcade scores',
 	'PLUS_ARC_MOD' => 'Moderate leaderboards',
+	'PLUS_ARC_MOD_EMPTY' => 'There are no arcade categories to moderate yet.',
 	'PLUS_ARC_MOD_UNASSIGNED' => 'Uncategorised games (0)', 'PLUS_ARC_MOD_PENDING' => 'Uncategorised games (−1)',
 	'PLUS_ARC_MOD_FILES' => 'Game files and dimensions', 'PLUS_ARC_MOD_AUTOSIZE' => 'Automatic dimensions',
 	'PLUS_ARC_MOD_DATE' => 'Recorded', 'PLUS_ARC_MOD_DURATION' => 'Playing time',

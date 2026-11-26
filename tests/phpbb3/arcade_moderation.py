@@ -27,6 +27,16 @@ def exercise(base, founder, moderator, ordinary, db):
             raise RuntimeError("Arcade scope was inherited or applied to an external link")
         for other in ("10", "-1", "0", "901001", "901002"):
             moderator.fetch(route + "?category=" + other, expected_status=404)
+        db("grant-global")
+        try:
+            if "Child without assigned moderator" not in ordinary.fetch(route) or "192.0.2.45" not in ordinary.fetch(board):
+                raise RuntimeError("An explicitly assigned native Arcade moderator could not review the leaderboard")
+            ordinary.fetch(route + "?category=-1", expected_status=404)
+            ordinary.fetch(route + "?category=901002", expected_status=404)
+            ordinary.fetch(board + "&entry=901002&action=edit", expected_status=404)
+        finally:
+            db("revoke-global")
+        ordinary.fetch(board, expected_status=404)
         if "Orphaned game" not in founder.fetch(route + "?category=-1"):
             raise RuntimeError("An administrator cannot manage unassigned games")
         if "Review &amp; repair" not in moderator.fetch(category):
@@ -37,7 +47,7 @@ def exercise(base, founder, moderator, ordinary, db):
             raise RuntimeError("The moderator's private game thumbnail changed")
         ordinary.fetch(picture, expected_status=404)
         listing = moderator.fetch(board)
-        if ("192.0.2.45" not in listing or "0:01:15" not in listing or "Previous username" in listing
+        if ("192.0.2.45" not in listing or "2001:db8:abcd:1234::6" not in listing or "0:01:15" not in listing or "Previous username" in listing
                 or "HistoricMember" not in listing or "-0.125" not in listing or "action=edit" in listing):
             raise RuntimeError("The moderator leaderboard lost identity, duration, signed score, IP or action boundaries")
         moderator.fetch(board + "&entry=901002&action=edit", expected_status=404)
