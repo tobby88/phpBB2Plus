@@ -28,6 +28,21 @@ elseif ($phase === 'consumed')
 	if ((int) $member['user_passchg'] !== 0 || (int) $member['plus_pw_renewal_seen'] !== 1)
 	{ throw new RuntimeException('The first explicit renewal prompt did not survive the session'); }
 }
+elseif ($phase === 'rehash-marked')
+{
+	$old = \phpbb2plus\community\password\legacy::import(password_hash(addslashes(getenv('PLUS_TEST_MODERN_PASSWORD')), PASSWORD_BCRYPT));
+	$fields = array('user_password' => $old, 'plus_pw_weak_hash' => hash('sha256', $old), 'user_passchg' => time());
+	$db->sql_query('UPDATE ' . USERS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $fields) . ' WHERE ' . $where);
+}
+elseif ($phase === 'check-rehashed-marker')
+{
+	$result = $db->sql_query('SELECT user_password, plus_pw_weak_hash FROM ' . USERS_TABLE . ' WHERE ' . $where);
+	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$row || strpos($row['user_password'], \phpbb2plus\community\password\legacy::PREFIX) === 0 ||
+		!hash_equals(hash('sha256', $row['user_password']), $row['plus_pw_weak_hash']))
+	{ throw new RuntimeException('Native rehash lost the existing account renewal marker'); }
+}
 elseif ($phase === 'restricted' || $phase === 'released')
 {
 	$result = $db->sql_query("SELECT user_passchg, plus_pw_renewal_seen FROM " . USERS_TABLE . " WHERE user_id = 63 AND username = 'ImportedFounderFixture'");

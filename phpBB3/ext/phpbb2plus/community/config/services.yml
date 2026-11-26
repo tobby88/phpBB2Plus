@@ -260,6 +260,10 @@ services:
     phpbb2plus.community.password_policy:
         class: phpbb2plus\community\password\policy
         arguments: ['@config']
+    phpbb2plus.community.password_manager:
+        parent: passwords.manager
+        decorates: passwords.manager
+        class: phpbb2plus\community\password\manager
     phpbb2plus.community.user_add:
         parent: console.command.user.add
         decorates: console.command.user.add
@@ -271,7 +275,7 @@ services:
         decorates: auth.provider.db
         class: phpbb2plus\community\auth\password_login
         calls:
-            - [set_rules, ['@phpbb2plus.community.password_policy']]
+            - [set_policy, ['@phpbb2plus.community.password_policy', '@phpbb2plus.community.password_manager']]
     phpbb2plus.community.password_forms:
         class: phpbb2plus\community\event\password_forms
         arguments: ['@phpbb2plus.community.password_policy', '@config', '@user', '@auth', '@dbal.conn', '@request', '@template', '@language']

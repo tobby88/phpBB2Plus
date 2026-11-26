@@ -74,6 +74,9 @@ def check_board(base, owner, fixture, restrictions, sink):
             fixture("released")
         finally:
             restrictions("cards-unexempt")
+        fixture("rehash-marked")
+        refused(False)
+        fixture("check-rehashed-marker")
         fixture("expired")
         refused(False)
         fixture("mail-on:" + str(sink.server_address[1]))
