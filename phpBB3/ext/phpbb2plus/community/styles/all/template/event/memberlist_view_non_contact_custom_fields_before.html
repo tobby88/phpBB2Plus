@@ -1,0 +1,2 @@
+{% if PLUS_AWAY_LABEL %}<dt>{{ lang('PLUS_AWAY_STATUS') }}{{ lang('COLON') }}</dt><dd>{{ PLUS_AWAY_LABEL }}</dd>
+{% if PLUS_AWAY_NOTE is not same as('') %}<dt>{{ lang('PLUS_AWAY_NOTE') }}{{ lang('COLON') }}</dt><dd>{{ PLUS_AWAY_NOTE|e|nl2br }}</dd>{% endif %}{% endif %}

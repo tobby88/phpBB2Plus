@@ -70,6 +70,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_jr_finish();';
 	$convertor['execute_last'][] = 'plus_finish_action_log();';
 	$convertor['execute_last'][] = 'plus_login_settings();';
+	$convertor['execute_last'][] = 'plus_absence_settings();';
 	$convertor['execute_last'][] = 'plus_import_member_notice();';
 	$convertor['execute_last'][] = 'plus_card_finish();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
@@ -282,6 +283,12 @@ if (!$get_info)
 			$section[] = array('plus_colour_id','users.user_color_group','intval');
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
+			$away_tools=(new \phpbb\db\tools\factory())->get($src_db);
+			foreach (array('user_absence'=>'plus_away','user_absence_mode'=>'plus_away_mode') as $old=>$native)
+			{
+				if ($away_tools->sql_column_exists($convert->src_table_prefix . 'users',$old))
+				{ $section[]=array($native,'users.' . $old,$old==='user_absence' ? 'plus_tracker_flag' : 'intval'); }
+			}
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
@@ -479,6 +486,13 @@ if (!$get_info)
 	}
 	else { $convertor['execute_last'][] = '$config->set("plus_topic_readers", 0);'; }
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_account_logins');
+	$convertor['query_first'][] = array('target',$convert->truncate_statement . $table_prefix . 'plus_away_notes');
+	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_column_exists($convert->src_table_prefix . 'users','user_absence_text'))
+	{
+		$convertor['schema'][]=array('target'=>$table_prefix . 'plus_away_notes','primary'=>'users.user_id',
+			array('user_id','users.user_id','phpbb_user_id'),array('note_text','users.user_absence_text','plus_absence_text'),
+			'where'=>'users.user_id>0 AND OCTET_LENGTH(users.user_absence_text)>0');
+	}
 	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_table_exists($convert->src_table_prefix . 'ctracker_loginhistory'))
 	{
 		// Account ownership is established on the source before native ID remapping.

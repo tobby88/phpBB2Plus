@@ -368,3 +368,14 @@ services:
     phpbb2plus.community.board_mail:
         class: phpbb2plus\community\controller\recommend
         arguments: ['@message.form.topic', '@request', '@template', '@controller.helper', '@user', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.community.absence:
+        class: phpbb2plus\community\service\absence
+        arguments: ['@dbal.conn', '@config', '@auth', '@user', '%core.table_prefix%plus_away_notes']
+    phpbb2plus.community.absence_editor:
+        class: phpbb2plus\community\controller\absence
+        arguments: ['@phpbb2plus.community.absence', '@user', '@auth', '@request', '@template', '@language', '@controller.helper']
+    phpbb2plus.community.absence_display:
+        class: phpbb2plus\community\event\absence
+        arguments: ['@phpbb2plus.community.absence', '@config', '@user', '@auth', '@template', '@language', '@controller.helper', '%core.root_path%', '%core.php_ext%']
+        tags:
+            - { name: event.listener }

@@ -113,3 +113,7 @@ phpbb2plus_community_friend:
     path: /recommend
     defaults: { _controller: phpbb2plus.community.board_mail:board }
     methods: [GET, HEAD, POST]
+phpbb2plus_community_absence:
+    path: /absence
+    defaults: { _controller: phpbb2plus.community.absence_editor:own }
+    methods: [GET, HEAD, POST]

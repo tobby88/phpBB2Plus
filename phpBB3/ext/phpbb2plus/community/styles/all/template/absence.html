@@ -1,0 +1,25 @@
+{% include 'overall_header.html' %}
+<h2>{{ lang('PLUS_AWAY') }}</h2>
+<div class="panel"><div class="inner">
+<form id="plus-absence" method="post" action="{{ U_AWAY_ACTION }}">
+{% if AWAY_ERROR %}<p class="error">{{ AWAY_ERROR }}</p>{% endif %}
+{% if AWAY_SAVED %}<p role="status">{{ AWAY_SAVED }}</p>{% endif %}
+<fieldset class="fields2">
+{% if S_AWAY_EDIT %}
+<dl><dt><label for="away-active">{{ lang('PLUS_AWAY_STATUS') }}</label></dt><dd><select name="active" id="away-active">
+<option value="0"{% if not S_AWAY_ACTIVE %} selected{% endif %}>{{ lang('PLUS_AWAY_AVAILABLE') }}</option>
+<option value="1"{% if S_AWAY_ACTIVE %} selected{% endif %}>{{ lang('PLUS_AWAY') }}</option></select></dd></dl>
+<dl><dt><label for="away-kind">{{ lang('PLUS_AWAY_KIND') }}</label></dt><dd><select name="kind" id="away-kind">
+{% if AWAY_KIND not in [0,1,2,3] %}<option value="{{ AWAY_KIND }}" selected>{{ lang('PLUS_AWAY_UNSPECIFIED') }}</option>{% endif %}
+{% for value, key in ['PLUS_AWAY_UNSPECIFIED','PLUS_AWAY_HOLIDAY','PLUS_AWAY_ILL','PLUS_AWAY_LONG'] %}<option value="{{ value }}"{% if AWAY_KIND == value %} selected{% endif %}>{{ lang(key) }}</option>{% endfor %}
+</select></dd></dl>
+<dl><dt><label for="away-note">{{ lang('PLUS_AWAY_NOTE') }}</label><br><span>{{ lang('PLUS_AWAY_NOTE_EXPLAIN') }}</span></dt>
+<dd><textarea id="away-note" name="note" class="inputbox" cols="48" rows="4">{{ AWAY_NOTE|e }}</textarea></dd></dl>
+{% endif %}
+</fieldset>
+<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ AWAY_REVISION }}">
+{% if S_AWAY_EDIT %}<button class="button1" type="submit" name="action" value="save">{{ lang('SAVE') }}</button>{% endif %}
+{% if S_AWAY_ACTIVE %}<button class="button2" type="submit" name="action" value="return">{{ lang('PLUS_AWAY_RETURN') }}</button>{% endif %}
+{{ S_FORM_TOKEN }}</fieldset></form>
+</div></div>
+{% include 'overall_footer.html' %}

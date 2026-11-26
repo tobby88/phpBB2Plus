@@ -154,6 +154,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			header('Cache-Control: private, no-store');
 			$path = 'arcade/moderation';
 			break;
+		case 'absence_notify_popup':
+			$path = 'absence';
+			break;
 		case 'ct_login_history':
 			$base = './';
 			$path = 'ucp.php';
