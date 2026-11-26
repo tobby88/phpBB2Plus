@@ -33,6 +33,7 @@ class access
 	private $prefix;
 	private $settings;
 	private $categories;
+	private $directory;
 	private $grants;
 
 	public function __construct($db, $auth, $user, $prefix)
@@ -43,7 +44,7 @@ class access
 		$this->prefix = $prefix;
 	}
 
-	public function refresh() { $this->settings = $this->categories = $this->grants = null; }
+	public function refresh() { $this->settings = $this->categories = $this->directory = $this->grants = null; }
 
 	public function setting($key, $fallback)
 	{
@@ -201,15 +202,46 @@ class access
 		return $level === 3 && $mod;
 	}
 
+	private function can_read($id)
+	{
+		return $this->allows($id, 'view') && $this->allows($id, 'read');
+	}
+
+	/** Readable category IDs in display order, with their depth from the root. */
+	public function directory()
+	{
+		$this->open();
+		if ($this->directory !== null) { return $this->directory; }
+		$children = array();
+		foreach ($this->categories() as $id=>$row)
+		{
+			if ($id > 0) { $children[(int) $row['parent_id']][] = $id; }
+		}
+		$this->directory = array();
+		$pending = array(array(0,-1));
+		while ($pending)
+		{
+			list($id,$depth) = array_pop($pending);
+			if ($id)
+			{
+				if (!$this->can_read($id)) { continue; }
+				$this->directory[$id] = $depth;
+			}
+			foreach (array_reverse($children[$id] ?? array()) as $child) { $pending[] = array($child,$depth+1); }
+		}
+		return $this->directory;
+	}
+
 	public function visible($id, $files = false)
 	{
 		$this->open();
 		$cats = $this->categories();
 		if ($id < 1 || !isset($cats[$id]) || ($files && (!$cats[$id]['allow_files'] || !$this->allows($id, 'view_file')))) { return false; }
+		if ($this->directory !== null) { return isset($this->directory[$id]); }
 		$seen = array();
 		while ($id)
 		{
-			if (isset($seen[$id]) || !isset($cats[$id]) || !$this->allows($id, 'view') || !$this->allows($id, 'read')) { return false; }
+			if (isset($seen[$id]) || !isset($cats[$id]) || !$this->can_read($id)) { return false; }
 			$seen[$id] = true;
 			$id = (int) $cats[$id]['parent_id'];
 		}

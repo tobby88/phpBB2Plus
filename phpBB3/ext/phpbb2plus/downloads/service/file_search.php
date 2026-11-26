@@ -25,15 +25,14 @@ class file_search
 
 	public function categories($selected)
 	{
-		$menu = $files = $comments = array();
+		$menu = $files = $comments = $in_scope = array();
 		$cats = $this->access->categories();
-		foreach ($cats as $id=>$cat)
+		foreach ($this->access->directory() as $id=>$depth)
 		{
-			if (!$this->access->visible($id)) { continue; }
-			$path = array($id);
-			for ($parent=(int) $cat['parent_id']; $parent; $parent=(int) $cats[$parent]['parent_id']) { $path[]=$parent; }
-			$menu[$id] = str_repeat('— ',count($path)-1) . access::plain($cat['title']);
-			if (($selected && !in_array($selected,$path,true)) || !$cat['allow_files'] || !$this->access->allows($id,'view_file')) { continue; }
+			$cat = $cats[$id];
+			$menu[$id] = str_repeat('— ',$depth) . access::plain($cat['title']);
+			$in_scope[$id] = !$selected || $id === $selected || !empty($in_scope[(int) $cat['parent_id']]);
+			if (!$in_scope[$id] || !$cat['allow_files'] || !$this->access->allows($id,'view_file')) { continue; }
 			$files[] = $id;
 			if ($cat['allow_comments'] && $this->access->allows($id,'view_comment')) { $comments[] = $id; }
 		}

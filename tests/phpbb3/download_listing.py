@@ -37,6 +37,10 @@ def browse(base, member, ordinary, verify):
         expected = [10930, 10932, 10933, 10931] if child else [10930, 10931]
         if list(map(int, re.findall(r'/downloads/category/(1093\d)\b', menu))) != expected:
             raise RuntimeError("The category menu lost its hierarchy, order or inherited visibility")
+        search = actor.fetch(root + "/search")
+        picker = re.search(r'<select id="dl-cat".*?</select>', search, re.S)
+        if not picker or list(map(int, re.findall(r'<option value="(1093\d)"', picker[0]))) != expected:
+            raise RuntimeError("The advanced search placed a child before its parent or offered a private directory")
         if (f"<td>{count}</td>" not in row or f">{last}</a>" not in row or "Public listing shelf" not in row or
                 ("Shared listing shelf" in row) != child or "dl-sort-form" in home or "/downloads/all" not in home or
                 "Waiting listing file" in home or "Folder-only file" in home):

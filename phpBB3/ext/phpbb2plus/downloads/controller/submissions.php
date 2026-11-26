@@ -48,10 +48,11 @@ class submissions
 	{
 		$this->heading(0, 'submit');
 		$found = false;
-		foreach ($this->access->categories() as $id => $cat)
+		$cats = $this->access->categories();
+		foreach (array_keys($this->access->directory()) as $id)
 		{
 			if (!$this->access->can_submit($id)) { continue; }
-			$this->template->assign_block_vars('dl_destinations', array('TITLE'=>access::plain($cat['title']),
+			$this->template->assign_block_vars('dl_destinations', array('TITLE'=>access::plain($cats[$id]['title']),
 				'U_SUBMIT'=>$this->helper->route('phpbb2plus_downloads_submit',array('category'=>$id))));
 			$found = true;
 		}
@@ -91,10 +92,11 @@ class submissions
 		{
 			$raw = json_decode($item['source_json'], true) ?: array();
 			if (!$posted) { $fields = $existing; }
-			foreach ($this->access->categories() as $key => $cat)
+			$cats = $this->access->categories();
+			foreach (array_keys($this->access->directory()) as $key)
 			{
 				if ($key === $category || $this->access->can_submit($key))
-				{ $this->template->assign_block_vars('dl_destinations',array('ID'=>$key,'TITLE'=>access::plain($cat['title']),'SELECTED'=>$key === $destination)); }
+				{ $this->template->assign_block_vars('dl_destinations',array('ID'=>$key,'TITLE'=>access::plain($cats[$key]['title']),'SELECTED'=>$key === $destination)); }
 			}
 			$this->template->assign_vars(array('DL_EDITING'=>true,'DL_REVISION'=>$revision, 'DL_CURRENT_SOURCE'=>$item['asset_status'] === 'remote' ?
 				($raw['file_dlurl'] ?? '') : ($raw['real_name'] ?? ''), 'DL_HAS_PREVIEW'=>($item['preview_name'] || !empty($raw['file_ssurl'])),
