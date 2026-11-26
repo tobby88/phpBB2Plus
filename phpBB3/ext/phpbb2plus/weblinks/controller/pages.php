@@ -35,12 +35,6 @@ class pages
 		return $response;
 	}
 	private function home($params = array()) { return $this->helper->route('phpbb2plus_weblinks_home',$params); }
-	private function image($row)
-	{
-		if ($row['local_logo'] === 'unavailable') { return ''; }
-		if (!empty($row['local_logo'])) { return $this->helper->route('phpbb2plus_weblinks_logo',array('id'=>$row['link_id']),false); }
-		return directory::external(directory::plain($row['logo']));
-	}
 
 	public function index()
 	{
@@ -77,13 +71,14 @@ class pages
 				{ $author = get_username_string('full',(int) $row['user_id'],$row['username'],$row['user_colour']); }
 				$this->template->assign_block_vars('wl_links',array('ID'=>$id,'TITLE'=>directory::plain($row['title']),
 					'DESCRIPTION'=>directory::plain($row['description']),'CATEGORY'=>$categories[$row['cat_id']] ?? '',
-					'LOGO'=>$this->config['plus_wl_display_links_logo'] ? $this->image($row) : '', 'AUTHOR'=>$author,
+					'LOGO'=>$this->config['plus_wl_display_links_logo'] ? directory::image_url($row,$this->helper) : '', 'AUTHOR'=>$author,
 					'JOINED'=>$this->user->format_date((int) $row['joined']), 'HITS'=>$row['hits'],
 					'URL'=>$this->helper->route('phpbb2plus_weblinks_visit',array('id'=>$id))));
 			}
 		}
 		$site = directory::external(directory::plain($this->config['plus_wl_site_url']));
-		$site_logo = $this->image(array('link_id'=>0,'local_logo'=>$this->config['plus_wl_local_logo'],'logo'=>$this->config['plus_wl_site_logo']));
+		$site_logo = directory::image_url(array('link_id'=>0,'local_logo'=>$this->config['plus_wl_local_logo'],
+			'logo'=>$this->config['plus_wl_site_logo']),$this->helper);
 		if ($site_logo && $this->config['plus_wl_local_logo'])
 		{ $site_logo = $this->helper->route('phpbb2plus_weblinks_logo',array('id'=>0),false,'',\Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL); }
 		$width = (int) $this->config['plus_wl_width']; $height = (int) $this->config['plus_wl_height'];
@@ -155,7 +150,7 @@ class pages
 
 	public function logo($id)
 	{
-		$file = $this->directory->local_logo((int) $id);
+		$file = $this->directory->local_logo((int) $id,$this->request->variable('index',0) === 1);
 		if (!preg_match('/^weblink_[a-f0-9]{64}\.(gif|png|jpg|webp)$/D',$file,$m)) { throw new NotFoundHttpException(); }
 		$path = $this->root . trim($this->config['upload_path'],'/') . '/' . $file;
 		if (!is_file($path) || is_link($path)) { throw new NotFoundHttpException(); }

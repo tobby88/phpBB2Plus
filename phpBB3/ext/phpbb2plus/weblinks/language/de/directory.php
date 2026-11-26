@@ -2,6 +2,9 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
 	'WL_TITLE'=>'Linkverzeichnis',
+	'WL_INDEX_LOGOS'=>'Logozeile des Linkverzeichnisses auf der Forenübersicht anzeigen',
+	'WL_PAUSE'=>'Logowechsel pausieren',
+	'WL_RESUME'=>'Logowechsel fortsetzen',
 	'WL_INDEX'=>'Kategorien',
 	'WL_NEW'=>'Neu eingetragen',
 	'WL_POP'=>'Am häufigsten besucht',

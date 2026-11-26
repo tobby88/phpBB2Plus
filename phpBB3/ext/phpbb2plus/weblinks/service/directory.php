@@ -155,11 +155,38 @@ class directory
 		catch (\Throwable $e) { $this->db->sql_transaction('rollback'); throw $e; }
 	}
 
-	public function local_logo($id)
+	public static function image_url($row, $helper, $index = false)
 	{
-		if (!$this->config['plus_wl_display_links_logo'] && $id) { return ''; }
+		if ($row['local_logo'] === 'unavailable') { return ''; }
+		if ($row['local_logo'] !== '')
+		{
+			$params = array('id'=>(int) $row['link_id']);
+			if ($index && $params['id']) { $params['index'] = 1; }
+			return $helper->route('phpbb2plus_weblinks_logo',$params,false);
+		}
+		return self::external(self::plain($row['logo']));
+	}
+
+	public function rotation_entries()
+	{
+		$result = $this->db->sql_query('SELECT link_id,title,destination,logo,local_logo FROM ' . $this->prefix .
+			"entries WHERE status=1 AND destination<>'' AND (logo<>'' OR local_logo<>'') ORDER BY hits DESC,link_id DESC");
+		try
+		{
+			while ($row = $this->db->sql_fetchrow($result))
+			{
+				if (self::external(self::plain($row['destination'])) !== '') { yield $row; }
+			}
+		}
+		finally { $this->db->sql_freeresult($result); }
+	}
+
+	public function local_logo($id, $index = false)
+	{
 		if (!$id) { return (string) $this->config['plus_wl_local_logo']; }
-		$row = $this->one('SELECT local_logo FROM ' . $this->prefix . 'entries WHERE link_id=' . (int) $id . ' AND status=1');
+		if (!$this->config[$index ? 'plus_wl_index_logos' : 'plus_wl_display_links_logo']) { return ''; }
+		$row = $this->one('SELECT local_logo,destination FROM ' . $this->prefix . 'entries WHERE link_id=' . (int) $id . ' AND status=1');
+		if ($index && $row && self::external(self::plain($row['destination'])) === '') { return ''; }
 		return $row ? $row['local_logo'] : '';
 	}
 

@@ -1,0 +1,15 @@
+{% if S_WL_INDEX_LOGOS %}
+{% INCLUDECSS '@phpbb2plus_weblinks/logos.css' %}
+<section class="forabg wl-index" aria-labelledby="wl-heading">
+	<div class="wl-sites">
+		<h2 id="wl-heading"><a href="{U_WL}">{L_WL_TITLE}</a></h2>
+		{% INCLUDE '@phpbb2plus_weblinks/logo_strip.html' %}
+	</div>
+	{% if WL_BOARD_LOGO %}
+	<div class="wl-board">
+		<h2>{SITENAME}</h2>
+		<div class="bg1"><img src="{{ WL_BOARD_LOGO|e('html_attr') }}" width="{WL_WIDTH}" height="{WL_HEIGHT}" alt="{SITENAME}" loading="lazy" referrerpolicy="no-referrer"></div>
+	</div>
+	{% endif %}
+</section>
+{% endif %}

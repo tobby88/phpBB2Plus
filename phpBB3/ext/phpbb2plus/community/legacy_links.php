@@ -105,6 +105,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'link_register':
 			$path = 'links/submit';
 			break;
+		case 'link_logos':
+			$path = 'links/logos';
+			break;
 		case 'links':
 			$path = 'links';
 			if (($query['action'] ?? '') === 'go' && ($id = $positive('link_id'))) { $path .= '/visit/' . $id; break; }

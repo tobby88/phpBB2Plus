@@ -1,0 +1,16 @@
+.wl-index { display: flex; gap: 3px; }
+.wl-index h2 { margin: 0; padding: .25em .5em; border: 0; color: #fff; font-size: 1.15em; }
+.wl-index h2 a { color: inherit; }
+.wl-sites { min-width: 0; flex: 1; }
+.wl-board { min-width: 0; max-width: 35%; text-align: center; }
+.wl-rotation, .wl-board .bg1 { padding: 3px; }
+.wl-rotation { display: flex; align-items: center; gap: 3px; }
+.wl-items { display: flex; flex: 1; min-width: 0; flex-wrap: wrap; align-items: center; gap: 2px; }
+.wl-items a { display: inline-flex; max-width: 100%; }
+.wl-items img, .wl-board img { display: block; max-width: 100%; object-fit: contain; }
+.wl-index .wl-board img { margin: 0 auto; }
+.wl-pause { flex: none; padding: .2em .4em; cursor: pointer; }
+.wl-frame { margin: 0; font: .85rem sans-serif; }
+.wl-frame .wl-rotation { padding: 0; }
+.wl-frame .wl-items { flex-wrap: nowrap; overflow-x: auto; }
+.wl-frame .wl-items a { flex: none; }

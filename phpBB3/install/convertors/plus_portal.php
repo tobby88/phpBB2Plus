@@ -52,7 +52,8 @@ function plus_portal_settings()
 		}
 	}
 	$src_db->sql_freeresult($result);
-	$result = $src_db->sql_query("SELECT config_name,config_value FROM {$p}plus WHERE config_name IN ('show_shoutbox','show_boardstats','enable_banners')");
+	$index_logos = false;
+	$result = $src_db->sql_query("SELECT config_name,config_value FROM {$p}plus WHERE config_name IN ('show_shoutbox','show_boardstats','enable_banners','show_links')");
 	while ($r = $src_db->sql_fetchrow($result))
 	{
 		if ($r['config_name'] === 'show_shoutbox')
@@ -61,7 +62,9 @@ function plus_portal_settings()
 			$config->set('plus_portal_shouts',in_array($mode,array(1,3),true) ? 1 : (in_array($mode,array(2,4),true) ? 2 : 0));
 		}
 		elseif ($r['config_name'] === 'enable_banners') { $config->set('plus_banners_enabled',(int) (bool) $r['config_value']); }
+		elseif ($r['config_name'] === 'show_links') { $index_logos = !empty($r['config_value']); }
 		else { $config->set('plus_portal_stats',(int) (bool) $r['config_value']); }
 	}
 	$src_db->sql_freeresult($result);
+	$config->set('plus_wl_index_logos',(int) $index_logos);
 }

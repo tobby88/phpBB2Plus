@@ -2,6 +2,11 @@ services:
     phpbb2plus.weblinks.directory:
         class: phpbb2plus\weblinks\service\directory
         arguments: ['@dbal.conn', '@config', '@auth', '@user', '%core.table_prefix%plus_wl_']
+    phpbb2plus.weblinks.logos:
+        class: phpbb2plus\weblinks\event\logos
+        arguments: ['@phpbb2plus.weblinks.directory', '@config', '@controller.helper', '@template', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.weblinks.pages:
         class: phpbb2plus\weblinks\controller\pages
         arguments: ['@phpbb2plus.weblinks.directory', '@phpbb2plus.weblinks.notices', '@request', '@user', '@language', '@config', '@template', '@controller.helper', '@pagination', '%core.root_path%']

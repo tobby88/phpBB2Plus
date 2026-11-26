@@ -1,0 +1,14 @@
+<div class="wl-rotation bg1" data-wl-interval="{WL_INTERVAL}">
+	{% if WL_FIRST_LOGOS %}
+	<div class="wl-items">
+		{% for entry in WL_FIRST_LOGOS %}{% include '@phpbb2plus_weblinks/logo_item.html' %}{% endfor %}
+	</div>
+	{% if WL_MORE_LOGOS %}
+	<template>{% for entry in WL_MORE_LOGOS %}{% include '@phpbb2plus_weblinks/logo_item.html' %}{% endfor %}</template>
+	<button type="button" class="wl-pause" hidden data-run="{{ lang('WL_RESUME')|e('html_attr') }}" title="{L_WL_PAUSE}" aria-label="{L_WL_PAUSE}"><span aria-hidden="true">Ⅱ</span></button>
+	{% INCLUDEJS '@phpbb2plus_weblinks/logos.js' %}
+	{% endif %}
+	{% else %}
+	<a href="{U_WL}">{L_WL_EMPTY}</a>
+	{% endif %}
+</div>

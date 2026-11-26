@@ -2,6 +2,9 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(),array(
 	'WL_TITLE'=>'Website directory',
+	'WL_INDEX_LOGOS'=>'Show website directory logos on the board index',
+	'WL_PAUSE'=>'Pause logo rotation',
+	'WL_RESUME'=>'Resume logo rotation',
 	'WL_INDEX'=>'Categories',
 	'WL_NEW'=>'Recently added',
 	'WL_POP'=>'Most visited',
