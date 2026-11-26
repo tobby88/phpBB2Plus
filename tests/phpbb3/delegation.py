@@ -16,9 +16,12 @@ def source_modules(source, target):
     (target / helper).write_text((source / helper).read_text(encoding="utf-8").replace("'admin/'", "'staff/'", 1), encoding="utf-8")
     directory = target / "staff"
     directory.mkdir(exist_ok=True)
+    shutil.copyfile(source / "admin/pagestart.php", directory / "pagestart.php")
     for file in (source / "admin").glob("admin_*.php"):
         shutil.copyfile(file, directory / file.name)
     for path in ("includes/functions_jr_admin_auth.php", "includes/functions_stats.php", "includes/functions_module.php",
+                 "includes/functions_link_admin.php", "includes/functions_link_submission.php", "includes/functions_link_categories.php",
+                 "includes/functions_link_settings.php", "includes/php_compat.php", "includes/functions.php",
                  "includes/functions_flags_storage.php", "includes/functions_board_config.php", "includes/functions_connection_ownership.php",
                  "includes/functions_arcade_score_storage.php", "includes/functions_arcade_action_storage.php",
                  "includes/functions_arcade_category_storage.php", "includes/functions_arcade_last_play.php",

@@ -151,6 +151,14 @@ class pages
 	public function logo($id)
 	{
 		$file = $this->directory->local_logo((int) $id,$this->request->variable('index',0) === 1);
+		if (!(int) $id && ($file === 'board' || $file === 'default'))
+		{
+			$image = $file === 'default' ? array(__DIR__ . '/../styles/all/theme/images/web_logo88a.gif','image/gif') :
+				\phpbb2plus\weblinks\service\settings::board_logo($this->root,directory::plain($this->config['plus_wl_site_logo']));
+			if (!$image || !is_file($image[0])) { throw new NotFoundHttpException(); }
+			return new BinaryFileResponse($image[0],200,array('Content-Type'=>$image[1],'X-Content-Type-Options'=>'nosniff',
+				'Cache-Control'=>'private, no-store'),false);
+		}
 		if (!preg_match('/^weblink_[a-f0-9]{64}\.(gif|png|jpg|webp)$/D',$file,$m)) { throw new NotFoundHttpException(); }
 		$path = $this->root . trim($this->config['upload_path'],'/') . '/' . $file;
 		if (!is_file($path) || is_link($path)) { throw new NotFoundHttpException(); }

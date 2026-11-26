@@ -5,9 +5,20 @@ namespace phpbb2plus\community\auth;
 class junior_admin
 {
 	private const FILE_ACTIONS = array('phpbb2plus\downloads\acp\file_actions_module', 'manage');
+	// Both old menu registrations delegated the same admin_links.php file.
+	private const LINK_ENTRIES = array(
+		'a_plus_wl_create'=>array('phpbb2plus\weblinks\acp\management_module','create'),
+		'a_plus_wl_edit'=>array('phpbb2plus\weblinks\acp\management_module','entries'),
+		'a_plus_wl_delete'=>array('phpbb2plus\weblinks\acp\management_module','entries'),
+		'a_plus_wl_review'=>array('phpbb2plus\weblinks\acp\review_module','review'),
+	);
 
 	public const MODULES = array(
 		'admin_arcade_cats.php' => array('Arcade', 'Categories', array('a_plus_arc_categories' => array('phpbb2plus\arcade\acp\categories_module', 'manage'))),
+		'admin_links.php?mode=add' => array('Links','Add_new',self::LINK_ENTRIES),
+		'admin_links.php?mode=view' => array('Links','Manage',self::LINK_ENTRIES),
+		'admin_links_cat.php' => array('Links','Category',array('a_plus_wl_categories'=>array('phpbb2plus\weblinks\acp\management_module','categories'))),
+		'admin_links_config.php' => array('Links','Configuration',array('a_plus_wl_settings'=>array('phpbb2plus\weblinks\acp\management_module','settings'))),
 		'admin_words.php' => array('General', 'Word_Censor', array('a_words' => array('acp_words', 'words'))),
 		'admin_disallow.php' => array('Users', 'Disallow', array('a_names' => array('acp_disallow', 'usernames'))),
 		'admin_ranks.php' => array('Users', 'Ranks', array('a_ranks' => array('acp_ranks', 'ranks'))),

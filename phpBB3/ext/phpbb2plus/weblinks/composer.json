@@ -2,7 +2,7 @@
     "name": "phpbb2plus/weblinks",
     "type": "phpbb-extension",
     "description": "Categorised website directory and moderated member submissions for phpBB2 Plus.",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "GPL-2.0-only",
     "authors": [{"name": "phpBB2 Plus contributors"}],
     "require": {"php": ">=7.2", "phpbb/phpbb": ">=3.3.19 <4.0"},

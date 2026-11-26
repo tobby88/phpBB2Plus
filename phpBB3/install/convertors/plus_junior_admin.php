@@ -46,7 +46,14 @@ function plus_jr_reviewed_dependencies($root, $directory, array $dependencies)
 		$base = strpos($file, '/') === false ? $directory : $root;
 		try { $path = plus_media_path($base, $file); }
 		catch (\RuntimeException $e) { return false; }
-		if (!plus_jr_source_matches(@file_get_contents($path), $digest)) { return false; }
+		$contents = @file_get_contents($path);
+		if ($file === 'includes/functions_jr_admin.php' && is_string($contents))
+		{
+			// A renamed ACP directory changes this literal but leaves the actual file-level grant intact.
+			$contents = preg_replace("~^define\\('JR_ADMIN_DIR', '[A-Za-z0-9_/-]+'\\);(?=\\r?$)~m",
+				"define('JR_ADMIN_DIR', 'admin/');",str_replace(array("\r\n","\r"),"\n",$contents));
+		}
+		if (!plus_jr_source_matches($contents, $digest)) { return false; }
 	}
 	return true;
 }
@@ -66,6 +73,9 @@ function plus_jr_registry()
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
 		'admin_arcade_cats.php' => '1f783390224f152c354e205f56ec52e4dc47d10e276c7595038498dc0bf03daf',
+		'admin_links.php' => '653aa54f528987a56e61e2320f4f15aba1562bbc98cc1e64b1c01346cab5bce9',
+		'admin_links_cat.php' => 'fc151f2c9eb7087eb75334e046dcaf4516975c159d4ba8d6fc019e79191fffae',
+		'admin_links_config.php' => '9d09344b11f3f4bc2f4610db7f9deb101cd1ee510b77bf5d5a39009e68940f66',
 		'admin_flags.php' => '9476a8fb3a1bee3a8b856476f70b0957b765de637c889ef683d42052c9d62a41',
 		'admin_pa_file.php' => '4993fafef0f0f5702e1bb5f23163da0b5372838f9bb67d856dccce3e729e8adb',
 		'admin_pa_settings.php' => 'f8b7ebf1eefe344f2e22bd0eb31097755b4b7f66271ba6ff105bad7837eca6f3',
@@ -115,6 +125,18 @@ function plus_jr_registry()
 		'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
 		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 	);
+	$link_writes = array(
+		'pagestart.php' => '472b9cf9f94bf3ac132a9a4fc101a861ddc74dd374620915840500aa3a18887d',
+		'includes/functions_jr_admin.php' => '2b790b97d59b8fe505cbc34d0963a8acf7412a6db865158347c284a2b8bb369e',
+		'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+		'includes/functions_link_admin.php' => '71ad3e721e8c852db12dc981da16ac7fc9d7acd93c712ce1c959b7894d704b63',
+		'includes/functions_link_submission.php' => 'f7e7ec752fe5dd1b9c2035b9d77ce41a46e3163dbf09357751cd45ea5a5ab5c8',
+		'includes/php_compat.php' => 'efc40a50b10beed315b050826a3792a251d877199e818f816f23ecbc5e9517ee',
+	);
+	$link_settings = $link_writes + array(
+		'includes/functions.php' => '53228ac8b7b580c2a61efde2f82684a993e127bccfbcf08a2e17a2111e641091',
+		'includes/functions_link_settings.php' => 'd29ceb470891dfc3285e6de7f741e301c6b9625b46da3c840494f2e6fff400b3',
+	);
 	$dependencies = array(
 		'admin_arcade_cats.php' => array(
 			'includes/functions_arcade_category_storage.php' => '8008d26e6da64b13ef773a0d1ac91a5dd31681654e075f83813b30a4eba8718e',
@@ -130,6 +152,9 @@ function plus_jr_registry()
 			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
 			'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 		),
+		'admin_links.php' => $link_writes,
+		'admin_links_config.php' => $link_settings,
+		'admin_links_cat.php' => $link_settings + array('includes/functions_link_categories.php'=>'710e02aa8c62532d567d8fa8dae443daccde41c0ba518298b6223d95152b83d1'),
 		'admin_flags.php' => array(
 			'includes/functions_flags_storage.php' => '7a445923f0c0a98d4eb7c55ebfd103db3f5f7b1f267d63d7bacc865a029429e8',
 			'includes/functions_board_config.php' => '6f8bfd8b56abae2ac271ef236b1c916ca0fb96f68b74ca1a58680474a6a09568',

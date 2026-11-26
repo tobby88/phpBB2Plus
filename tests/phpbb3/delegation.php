@@ -10,6 +10,12 @@ function delegation_fixture_grants()
 function delegation_fixture_roles()
 {
 	return array(
+		35 => array('LinkAddJunior', 'LinksAdd_newadmin_links.php?mode=add',
+			array('a_plus_wl_create','a_plus_wl_edit','a_plus_wl_delete','a_plus_wl_review')),
+		36 => array('LinkManageJunior', 'LinksManageadmin_links.php?mode=view',
+			array('a_plus_wl_create','a_plus_wl_edit','a_plus_wl_delete','a_plus_wl_review')),
+		37 => array('LinkCategoryJunior', 'LinksCategoryadmin_links_cat.php', 'a_plus_wl_categories'),
+		38 => array('LinkSettingsJunior', 'LinksConfigurationadmin_links_config.php', 'a_plus_wl_settings'),
 		43 => array('DownloadCheckerJunior', 'DownloadFcheckeradmin_pa_fchecker.php', 'a_plus_dl_checker'),
 		44 => array('ArcadeCategoryJunior', 'ArcadeCategoriesadmin_arcade_cats.php', 'a_plus_arc_categories'),
 		45 => array('ArcadeScoresJunior', 'ArcadeEditadmin_arcade_games.php?mode=edit_games', 'a_plus_arc_scores'),

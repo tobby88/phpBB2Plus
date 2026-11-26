@@ -28,14 +28,14 @@ class listener implements EventSubscriberInterface
 		if ($ids)
 		{
 			$this->db->sql_query("UPDATE $this->table SET source_user=CASE WHEN source_user>0 THEN source_user ELSE user_id END,
-				user_id=" . ANONYMOUS . ' WHERE ' . $this->db->sql_in_set('user_id',$ids));
+				user_id=" . ANONYMOUS . ',revision=revision+1 WHERE ' . $this->db->sql_in_set('user_id',$ids));
 		}
 	}
 
 	public function permissions($event)
 	{
 		$map = $event['permissions'];
-		foreach (array('a_plus_wl_review','a_plus_wl_publish') as $right)
+		foreach (array_merge(array('a_plus_wl_review','a_plus_wl_publish'), \phpbb2plus\weblinks\service\management::RIGHTS) as $right)
 		{
 			$map[$right] = array('lang'=>'ACL_' . strtoupper($right),'cat'=>'misc');
 		}

@@ -1,0 +1,79 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{{ WL_HEADING }}</h1>
+
+{% if WL_EDITOR %}
+<form id="wl-entry" method="post" action="{U_WL_ACTION}">
+<fieldset><legend>{L_WL_TITLE}</legend>
+<dl><dt><label for="wl-title">{L_WL_NAME}</label></dt><dd><input id="wl-title" type="text" name="title" maxlength="100" value="{{ WL_RECORD.title|e }}" required></dd></dl>
+<dl><dt><label for="wl-desc">{L_WL_DESCRIPTION}</label></dt><dd><textarea id="wl-desc" name="description" maxlength="255" rows="3" cols="40" required>{{ WL_RECORD.description|e }}</textarea></dd></dl>
+<dl><dt><label for="wl-dest">{L_WL_URL}</label></dt><dd><input id="wl-dest" type="text" name="destination" size="55" maxlength="100" value="{{ WL_RECORD.destination|e }}" required></dd></dl>
+<dl><dt><label for="wl-logo">{L_WL_LOGO}</label></dt><dd><input id="wl-logo" type="text" name="logo" size="55" maxlength="120" value="{{ WL_RECORD.logo|e }}"></dd></dl>
+<dl><dt><label for="wl-cat">{L_WL_CATEGORY}</label></dt><dd><select id="wl-cat" name="cat_id" required>
+{% if WL_MISSING_CATEGORY %}<option value="" selected>{L_SELECT_OPTION}</option>{% endif %}
+{% for c in loops.categories %}<option value="{{ c.ID }}"{% if c.ID == WL_RECORD.cat_id %} selected{% endif %}>{{ c.TITLE|e }}</option>{% endfor %}
+</select></dd></dl>
+{% if WL_EDIT_STATUS %}<dl><dt><label for="wl-status">{L_STATUS}</label></dt><dd><select id="wl-status" name="status">
+<option value="1"{% if WL_RECORD.status == 1 %} selected{% endif %}>{L_WL_APPROVED}</option>
+<option value="0"{% if WL_RECORD.status == 0 %} selected{% endif %}>{L_WL_PENDING}</option>
+{% if WL_RECORD.link_id %}<option value="2"{% if WL_RECORD.status == 2 %} selected{% endif %}>{L_WL_DECLINED}</option>{% endif %}
+</select></dd></dl>{% endif %}
+</fieldset>
+<input type="hidden" name="entry" value="{{ WL_RECORD.link_id }}"><input type="hidden" name="revision" value="{{ WL_RECORD.revision }}">
+<input type="hidden" name="operation" value="{% if WL_RECORD.link_id %}edit{% else %}create{% endif %}">{S_FORM_TOKEN}
+<fieldset class="submit-buttons"><button class="button1" type="submit">{L_SUBMIT}</button></fieldset>
+</form>
+
+{% elseif WL_LIST %}
+<form id="wl-filter" method="get" action="{U_WL_ACTION}">{WL_LOCATION}
+<fieldset><label>{L_WL_TERMS} <input type="search" name="q" maxlength="100" value="{{ WL_QUERY|e }}"></label> <button class="button2">{L_SEARCH}</button></fieldset>
+</form>
+<table class="table1 zebra-table"><thead><tr><th>{L_WL_NAME}</th><th>{L_WL_CATEGORY}</th><th>{L_STATUS}</th><th>{L_WL_JOINED}</th><th>{L_WL_HITS}</th><th>{L_ACTION}</th></tr></thead>
+<tbody>{% for r in loops.entries %}<tr data-weblink="{{ r.ID }}"><td><strong>{{ r.TITLE|e }}</strong><br>{{ r.DESCRIPTION|e }}<br><code>{{ r.DEST|e }}</code></td>
+<td>{{ r.CATEGORY|e }}</td><td>{{ r.STATUS }}</td><td>{{ r.DATE }}{% if r.OWNER %}<br>{{ r.OWNER|e }}{% endif %}{% if r.IP %}<br>{{ r.IP|e }}{% endif %}</td><td>{{ r.HITS }}</td>
+<td>{% if r.EDIT %}<a href="{{ r.EDIT }}">{L_EDIT}</a>{% endif %} {% if r.REMOVE %}<a href="{{ r.REMOVE }}">{L_DELETE}</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6">{L_WL_EMPTY}</td></tr>{% endfor %}</tbody></table>
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+
+{% elseif WL_CATEGORIES %}
+{% for c in loops.categories %}<form id="wl-category-{{ c.ID }}" method="post" action="{U_WL_ACTION}">
+<fieldset><label>{L_WL_CATEGORY} <input type="text" name="name" value="{{ c.TITLE|e }}" maxlength="100" required></label>
+<input type="hidden" name="cat_id" value="{{ c.ID }}"><input type="hidden" name="version" value="{{ WL_VERSION }}">{S_FORM_TOKEN}
+<button name="operation" value="rename" class="button2">{L_WL_ADMIN_RENAME}</button>
+{% if not loop.first %}<button name="operation" value="up" class="button2">{L_MOVE_UP}</button>{% endif %}
+{% if not loop.last %}<button name="operation" value="down" class="button2">{L_MOVE_DOWN}</button>{% endif %}
+<a href="{{ c.REMOVE }}">{L_DELETE}</a></fieldset></form>{% endfor %}
+<form id="wl-category-new" method="post" action="{U_WL_ACTION}"><fieldset>
+<label>{L_WL_ADMIN_CREATE_CATEGORY} <input type="text" name="name" maxlength="100" required></label>
+<input type="hidden" name="version" value="{{ WL_VERSION }}"><input type="hidden" name="operation" value="create">{S_FORM_TOKEN}
+<button class="button1">{L_ADD}</button></fieldset></form>
+
+{% elseif WL_TARGET_FORM %}
+<form id="wl-category-target" method="get" action="{U_WL_ACTION}">{WL_LOCATION}
+<fieldset><legend>{{ WL_CAT_TITLE|e }}</legend><p>{L_WL_ADMIN_MEMBERS} {{ WL_COUNT }}</p>
+<input type="hidden" name="action" value="remove"><input type="hidden" name="cat_id" value="{{ WL_CAT }}">
+<label>{L_WL_ADMIN_TARGET} <select name="target" required><option value="">{L_SELECT_OPTION}</option>
+{% for c in loops.targets %}<option value="{{ c.ID }}">{{ c.TITLE|e }}</option>{% endfor %}
+<option value="0">{L_WL_ADMIN_DISCARD_ALL}</option></select></label>
+<button class="button2">{L_PREVIEW}</button> <a href="{U_WL_ACTION}">{L_CANCEL}</a></fieldset></form>
+
+{% elseif WL_REMOVE or WL_REMOVE_CAT %}
+<form id="wl-confirm" method="post" action="{U_WL_ACTION}"><fieldset><legend>{L_CONFIRM}</legend>
+<p>{{ WL_QUESTION|e }}</p><input type="hidden" name="operation" value="remove">
+{% if WL_REMOVE %}<input type="hidden" name="entry" value="{{ WL_ENTRY }}"><input type="hidden" name="revision" value="{{ WL_REVISION }}">
+{% else %}<input type="hidden" name="cat_id" value="{{ WL_CAT }}"><input type="hidden" name="target" value="{{ WL_TARGET }}">
+<input type="hidden" name="version" value="{{ WL_VERSION }}"><input type="hidden" name="members" value="{{ WL_MEMBERS }}">{% endif %}
+{S_FORM_TOKEN}<button name="confirmed" value="1" class="button1">{L_CONFIRM}</button> <a href="{U_WL_ACTION}">{L_CANCEL}</a></fieldset></form>
+
+{% elseif WL_SETTINGS %}
+{% if WL_REPAIR %}<p class="errorbox">{L_WL_ADMIN_REPAIR}</p>{% endif %}
+<form id="wl-settings" method="post" action="{U_WL_ACTION}"><fieldset><legend>{L_WL_TITLE}</legend>
+{% for o in loops.options %}<dl><dt><label for="wl-{{ o.KEY }}">{{ o.LABEL }}</label></dt><dd>
+{% if o.BOOLEAN %}<select id="wl-{{ o.KEY }}" name="{{ o.KEY }}"><option value="1"{% if o.VALUE == '1' %} selected{% endif %}>{L_YES}</option>
+<option value="0"{% if o.VALUE == '0' %} selected{% endif %}>{L_NO}</option></select>
+{% elseif o.NUMBER %}<input id="wl-{{ o.KEY }}" type="number" name="{{ o.KEY }}" value="{{ o.VALUE|e }}" min="{{ o.MIN }}" max="{{ o.MAX }}" required>
+{% else %}<input id="wl-{{ o.KEY }}" type="text" size="55" maxlength="255" name="{{ o.KEY }}" value="{{ o.VALUE|e }}">
+{% if o.KEY == 'site_logo' %}<br><small>{L_WL_ADMIN_IMAGE_HINT}</small>{% endif %}{% endif %}</dd></dl>{% endfor %}
+</fieldset><input type="hidden" name="operation" value="settings"><input type="hidden" name="version" value="{{ WL_VERSION }}">{S_FORM_TOKEN}
+<fieldset class="submit-buttons"><button class="button1">{L_SUBMIT}</button></fieldset></form>
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

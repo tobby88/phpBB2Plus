@@ -96,6 +96,33 @@ class directory
 		return $actor;
 	}
 
+	public function acp_actor($right)
+	{
+		$actor = $this->actor(true);
+		if (!$this->auth->acl_get($right)) { throw new \DomainException('NOT_AUTHORISED'); }
+		return $actor;
+	}
+
+	public static function entry_fields($data, $previous = array())
+	{
+		$fields = array();
+		foreach (array('title'=>100,'description'=>255,'destination'=>100,'logo'=>120) as $key=>$limit)
+		{
+			$value = trim($data[$key]);
+			// Imported local logos and longer historical labels survive unrelated edits.
+			if (isset($previous[$key]) && self::plain($previous[$key]) === $value)
+			{
+				$fields[$key] = $previous[$key];
+				continue;
+			}
+			if (($key !== 'logo' && $value === '') || utf8_strlen($value)>$limit || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$value) ||
+				(in_array($key,array('destination','logo'),true) && $value !== '' && (strlen($value)>$limit || self::external($value)==='')))
+			{ throw new \DomainException('WL_INVALID'); }
+			$fields[$key] = self::encode($value);
+		}
+		return $fields;
+	}
+
 	public function submit($data)
 	{
 		$this->db->sql_transaction('begin');
@@ -108,14 +135,7 @@ class directory
 				$this->db->sql_in_set('config_name',array_keys($options)) . ' LOCK IN SHARE MODE') as $r)
 			{ $options[$r['config_name']] = (int) $r['config_value']; }
 			if (!$options['plus_wl_inputs_valid'] || ($options['plus_wl_lock_submit_site'] && !$publish)) { throw new \DomainException('WL_LOCKED'); }
-			foreach (array('title'=>100,'description'=>255,'destination'=>100,'logo'=>120) as $key=>$limit)
-			{
-				$value = trim($data[$key]);
-				if (($key !== 'logo' && $value === '') || utf8_strlen($value)>$limit || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$value) ||
-					(in_array($key,array('destination','logo'),true) && ($value !== '' && (strlen($value)>$limit || self::external($value)===''))))
-				{ throw new \DomainException('WL_INVALID'); }
-				$data[$key] = self::encode($value);
-			}
+			$data = self::entry_fields($data) + array('cat_id'=>(int) $data['cat_id']);
 			if (!$options['plus_wl_allow_no_logo'] && $data['logo'] === '') { throw new \DomainException('WL_LOGO_REQUIRED'); }
 			$p = $this->prefix;
 			if (!$this->one("SELECT cat_id FROM {$p}categories WHERE cat_id=" . (int) $data['cat_id'] . ' LOCK IN SHARE MODE'))
@@ -206,8 +226,7 @@ class directory
 		$this->db->sql_transaction('begin');
 		try
 		{
-			$this->actor(true);
-			if (!$this->auth->acl_get('a_plus_wl_review')) { throw new \DomainException('NOT_AUTHORISED'); }
+			$this->acp_actor('a_plus_wl_review');
 			$p = $this->prefix;
 			$id = (int) $id;
 			$r = $this->one("SELECT l.revision,l.status,l.destination FROM {$p}entries l WHERE l.link_id=$id FOR UPDATE");
