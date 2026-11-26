@@ -1,4 +1,8 @@
-from http_board import Browser
+import re
+from html import unescape
+from urllib.parse import urljoin
+
+from http_board import Browser, admin_url
 
 
 def browse(base, owner):
@@ -20,3 +24,28 @@ def browse(base, owner):
     denied = guest.fetch("viewtopic.php?p=14720")
     if "Wiederfundprobe" in denied or "Grüße im Archiv" in denied:
         raise RuntimeError("The native post bookmark disclosed a recovered post to a guest")
+
+
+def administration(owner, damaged=True):
+    backup = admin_url(owner) + "&i=acp_database&mode=backup"
+    menu = owner.fetch(backup)
+    link = re.search(r'<a href="([^"]+)"[^>]*>\s*<span>Reparierte Forenstruktur</span>', menu)
+    if not link:
+        raise RuntimeError("Database maintenance does not offer the structure review")
+    panel = urljoin(backup, unescape(link.group(1)))
+    forums = owner.fetch(panel)
+    if 'id="plus-structure"' not in forums:
+        raise RuntimeError("The structure review did not open")
+    if not damaged:
+        if "Für diesen Bereich sind keine Reparaturen verzeichnet." not in forums:
+            raise RuntimeError("An intact conversion reported reassigned forums")
+        return
+    if "Kategorie 800" not in forums or "Kreis in der Forenstruktur" not in forums:
+        raise RuntimeError("The ACP does not show the missing category and the broken cycle")
+    topics = owner.fetch(panel + "&section=topics")
+    if "Forum 60002 (Globale Bekanntmachung)" not in topics or "Thema 14880" not in topics:
+        raise RuntimeError("A recovery lost its original announcement scope or topic number in the ACP")
+    posts = owner.fetch(panel + "&section=posts")
+    if ("Forum 14, Thema 14880" not in posts or "#p14720" not in posts or "#p14723" in posts or
+            "Beitrag 14723" not in posts or "Wiederfundprobe" in posts or "Erased recovery fixture" in posts):
+        raise RuntimeError("The ACP post review lost a mapping or displayed private or erased contents")

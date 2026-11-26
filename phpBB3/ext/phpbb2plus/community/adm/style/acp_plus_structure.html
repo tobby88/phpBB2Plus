@@ -1,0 +1,9 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_STRUCTURE}</h1>
+<p>{L_ACP_PLUS_STRUCTURE_HELP}</p>
+<p>{% for section in loops.sections %}{% if not loop.first %} · {% endif %}{% if section.CURRENT %}<strong>{{ section.LABEL|e }}</strong>{% else %}<a href="{{ section.URL }}">{{ section.LABEL|e }}</a>{% endif %}{% endfor %}</p>
+<table class="table1" id="plus-structure"><thead><tr><th>{L_ACP_PLUS_STRUCTURE_ITEM}</th><th>{L_ACP_PLUS_STRUCTURE_PREVIOUS}</th><th>{L_ACP_PLUS_STRUCTURE_CURRENT}</th><th>{L_ACP_PLUS_STRUCTURE_REASON}</th></tr></thead>
+<tbody>{% for row in loops.repairs %}<tr><td>{% if row.URL %}<a href="{{ row.URL }}">{{ row.ITEM|e }}</a>{% else %}{{ row.ITEM|e }}{% endif %}</td><td>{{ row.PREVIOUS|e }}</td><td>{{ row.CURRENT|e }}</td><td>{{ row.REASON|e }}</td></tr>
+{% else %}<tr><td colspan="4">{L_ACP_PLUS_STRUCTURE_EMPTY}</td></tr>{% endfor %}</tbody></table>
+<!-- IF .pagination --><div class="pagination"><!-- INCLUDE pagination.html --></div><!-- ENDIF -->
+<!-- INCLUDE overall_footer.html -->

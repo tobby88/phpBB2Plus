@@ -195,6 +195,9 @@ def browse(base):
     held = junior.fetch(entry + "&i=-phpbb2plus-community-acp-poll_recovery_module&mode=review", expected_status=503)
     if "Module not accessible" not in held or 'id="plus-held-polls"' in held:
         raise RuntimeError("Poll recovery did not follow the native backup permission")
+    repaired = junior.fetch(entry + "&i=-phpbb2plus-community-acp-structure_module&mode=review", expected_status=503)
+    if "Module not accessible" not in repaired or "Repaired forum structure" in home:
+        raise RuntimeError("A delegated ACP account received the structural recovery report without backup access")
     return junior, entry
 
 

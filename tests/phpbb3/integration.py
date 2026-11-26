@@ -438,9 +438,11 @@ def main():
                 with ThreadPoolExecutor(max_workers=2) as worker:
                     credit_run = worker.submit(credits.administration, member.separate_client())
                     poll_run = worker.submit(poll_administration.browse, member.separate_client())
+                    structure_run = worker.submit(forum_recovery.administration, member.separate_client())
                     news.administration(base, member)
                     credit_run.result()
                     poll_run.result()
+                    structure_run.result()
                     # This test counts the exact number of index page views.
                     # Finish the other ACP logins before and start new ones afterwards.
                     banners.administration(base, member, web)
