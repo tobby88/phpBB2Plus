@@ -1,6 +1,7 @@
 #kb-search fieldset { display: flex; align-items: center; flex-wrap: wrap; gap: .45em .65em; }
-#kb-search .inputbox.search { width: min(20em, 100%); }
-#kb-search select { max-width: 100%; }
+#kb-search label { display: inline-flex; align-items: center; gap: .45em; max-width: 100%; }
+#kb-search .inputbox.search { width: 20em; min-width: 0; }
+#kb-search select { min-width: 0; max-width: 100%; }
 .kb-table table.table1 thead th { text-align: center; padding: .55em; font-size: 1.05em; text-transform: none; }
 .kb-table table.table1 tbody td { color: #243a4d; padding: .65em; vertical-align: middle; overflow-wrap: anywhere; }
 .kb-table .bg1, .kb-rankings .topiclist.topics li.row { background-color: #eaedf4; }

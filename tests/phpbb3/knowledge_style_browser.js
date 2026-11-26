@@ -5,6 +5,13 @@ async function checkKnowledgeStyle(frame) {
         const row = title?.closest("tr");
         if (!row || row.cells.length !== 5) { throw Error("Missing Knowledge Base article columns"); }
         const win = doc.defaultView;
+        for (const select of doc.querySelectorAll("#kb-search select")) {
+            const label = select.labels[0].getBoundingClientRect();
+            const control = select.getBoundingClientRect();
+            if (!label.width || control.top < label.top - 1 || control.bottom > label.bottom + 1) {
+                throw Error("A Knowledge Base search label wrapped away from its control at " + width + "px");
+            }
+        }
         const titleWidth = row.cells[0].getBoundingClientRect().width;
         const ink = luminance(win.getComputedStyle(title).color);
         const fill = luminance(win.getComputedStyle(row).backgroundColor);
