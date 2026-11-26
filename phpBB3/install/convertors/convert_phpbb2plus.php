@@ -355,6 +355,9 @@ if (!$get_info)
 		}
 		if ($section['target'] === POSTS_TABLE)
 		{
+			// The source smilies and word replacements are now in place. A previously
+			// visited target may still have a parser compiled with the stock smilies.
+			$section['execute_first'] .= ' plus_reset_converted_formatter();';
 			$section['left_join'] = (array) $section['left_join'];
 			$section['left_join'][] = 'posts LEFT JOIN topics AS source_topic ON source_topic.topic_id=posts.topic_id';
 			$section[] = array('plus_recovery_topic', array('posts.topic_id', 'source_topic.topic_id AS known_topic',

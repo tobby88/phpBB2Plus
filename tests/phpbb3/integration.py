@@ -430,6 +430,7 @@ def main():
         with database() as target, database() as source:
             install(web, root, target)
             if forum_suite:
+                # This also exercises conversion after the stock formatter has been cached.
                 php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
             if account_suite:
                 php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)

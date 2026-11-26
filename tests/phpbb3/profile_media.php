@@ -36,5 +36,7 @@ function verify_profile_media($db, $member)
 		json_decode($issues[1]['reference_json'],true)['name'] === 'old.jpg', 'Unresolved profile media cannot be reconciled against the source');
 	$smiles = $db->query("SELECT smiley_url,smiley_width,smiley_height FROM p3_smilies WHERE smiley_id IN (83,84,85)")->fetch_all(MYSQLI_ASSOC);
 	check_fixture(count($smiles) === 2 && $smiles[0] === $smiles[1] && (int) $smiles[0]['smiley_width'] === 10 && (int) $smiles[0]['smiley_height'] === 8, 'Duplicate smiley codes or missing smiley file were not reconciled');
+	$post = $db->query('SELECT post_text FROM p3_posts WHERE post_id=1')->fetch_row();
+	check_fixture($post && strpos($post[0], '<E>:pf:</E>') !== false, 'The converter stored an imported smiley as plain text');
 	return array('member'=>$member,'uploaded'=>$users[$member]['user_avatar'],'gallery'=>$users[2]['user_avatar'],'smiley'=>$smiles[0]['smiley_url']);
 }

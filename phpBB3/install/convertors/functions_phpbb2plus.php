@@ -274,7 +274,7 @@ function plus_convert_optional_user($id)
 function plus_reset_converted_formatter()
 {
 	global $phpbb_container;
-	// Rebuild in the running board with all of its native extension listeners.
+	// Let phpBB rebuild both parts with the current database and registered listeners.
 	require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/smilie_sign.php';
 	\phpbb2plus\community\service\smilie_sign::reset_formatter($phpbb_container);
 }
