@@ -7,7 +7,7 @@ import tempfile
 import zlib
 
 from arcade import movie
-from delegation import authenticate
+from delegation import authenticate, authenticate_pair
 from http_board import FormFields, submit_form
 
 
@@ -25,8 +25,7 @@ def jpeg():
 def browse(base, board, target, php):
     fixture = Path(__file__).with_suffix(".php")
     board = Path(board)
-    actor, acp = authenticate(base, "ArcadeImportJunior")
-    add, add_acp = authenticate(base, "ArcadeAddJunior")
+    (actor, acp), (add, add_acp) = authenticate_pair(base, "ArcadeImportJunior", "ArcadeAddJunior")
     mode = "&i=-phpbb2plus-arcade-acp-import_game_module&mode=manage"
     panel = acp + mode
     form = "arc-batch-import"

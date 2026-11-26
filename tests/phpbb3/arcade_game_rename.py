@@ -6,14 +6,13 @@ import tempfile
 from urllib.parse import parse_qs, urljoin, urlsplit
 
 from arcade import movie, next_play
-from delegation import authenticate
+from delegation import authenticate, authenticate_pair
 from http_board import FormFields, submit_form
 
 
 def browse(base, board, target, php):
     fixture = Path(__file__).with_suffix(".php")
-    editor, acp = authenticate(base, "ArcadeScoresJunior")
-    add, add_acp = authenticate(base, "ArcadeAddJunior")
+    (editor, acp), (add, add_acp) = authenticate_pair(base, "ArcadeScoresJunior", "ArcadeAddJunior")
     mode = "&i=-phpbb2plus-arcade-acp-games_module&mode=manage"
     game = "&game=60"
     form = "arc-game-rename"

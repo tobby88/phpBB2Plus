@@ -56,16 +56,21 @@ class FormFields(HTMLParser):
     def __init__(self, html, form_id):
         super().__init__(convert_charrefs=True)
         self.form_id = form_id
+        self.action = None
         self.values = {}
         self.inside = False
         self.select = self.textarea = None
         self.feed(html)
 
     def handle_starttag(self, tag, pairs):
+        if not self.inside and tag != "form":
+            return
         attrs = dict(pairs)
         name = attrs.get("name")
         if tag == "form":
             self.inside = attrs.get("id") == self.form_id
+            if self.inside:
+                self.action = attrs.get("action") or ""
         if not self.inside:
             return
         if tag == "input" and name and "disabled" not in attrs and attrs.get("type") not in {"submit", "button", "reset", "file"}:
@@ -94,15 +99,17 @@ class FormFields(HTMLParser):
 
 def submit_form(actor, url, page, name, changes, status=200):
     """Submit an already displayed form, retaining its token and original revision."""
-    action, _ = Page(page).forms[name]
-    fields = FormFields(page, name).values
+    form = FormFields(page, name)
+    if form.action is None:
+        raise KeyError(name)
+    fields = form.values
     for key, value in changes.items():
         if value is None:
             fields.pop(key, None)
         else:
             fields[key] = value
     time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
-    return actor.fetch(urljoin(urljoin(actor.base, url), action), fields, expected_status=status)
+    return actor.fetch(urljoin(urljoin(actor.base, url), form.action), fields, expected_status=status)
 
 
 class LoopbackRedirect(HTTPRedirectHandler):

@@ -3,13 +3,12 @@ from html import unescape
 import os
 import re
 from urllib.parse import urljoin
-from delegation import authenticate
+from delegation import authenticate, authenticate_pair
 from http_board import Browser, FormFields, login, submit_form
 
 
 def browse(base, check, member=None, pending=None):
-    actor, acp = authenticate(base, "ArcadeScoresJunior")
-    categories, other = authenticate(base, "ArcadeCategoryJunior")
+    (actor, acp), (categories, other) = authenticate_pair(base, "ArcadeScoresJunior", "ArcadeCategoryJunior")
     suffix = "&i=-phpbb2plus-arcade-acp-games_module&mode=manage"
     panel = acp + suffix
     edit = panel + "&game=61"

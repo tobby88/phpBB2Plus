@@ -8,7 +8,7 @@ import tempfile
 from urllib.parse import urljoin
 
 from arcade import movie
-from delegation import authenticate
+from delegation import authenticate, authenticate_pair
 from gallery import png
 from http_board import Browser, FormFields, submit_form
 
@@ -16,8 +16,7 @@ from http_board import Browser, FormFields, submit_form
 def browse(base, board, target, php):
     board = Path(board)
     fixture = Path(__file__).with_suffix(".php")
-    add, add_acp = authenticate(base,"ArcadeAddJunior")
-    edit, edit_acp = authenticate(base,"ArcadeScoresJunior")
+    (add, add_acp), (edit, edit_acp) = authenticate_pair(base, "ArcadeAddJunior", "ArcadeScoresJunior")
     add_mode = "&i=-phpbb2plus-arcade-acp-add_game_module&mode=manage"
     edit_mode = "&i=-phpbb2plus-arcade-acp-games_module&mode=manage"
     panel = add_acp + add_mode

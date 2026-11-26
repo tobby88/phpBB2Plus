@@ -79,6 +79,12 @@ def authenticate(base, name):
     return junior, admin_url(junior)
 
 
+def authenticate_pair(base, first, second):
+    # Separate browsers and real login/ACP forms; both tokens can age at the same time.
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        return tuple(workers.map(lambda name: authenticate(base, name), (first, second)))
+
+
 def personal_album_rights(browser, url, page):
     form = "album-personal-grants"
     def counts(body):
