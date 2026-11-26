@@ -29,6 +29,11 @@ services:
         arguments: ['@dbal.conn', '%core.table_prefix%plus_jr_records']
         tags:
             - { name: console.command }
+    phpbb2plus.community.orphan_posts:
+        class: phpbb2plus\community\console\orphan_posts
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_orphan_posts']
+        tags:
+            - { name: console.command }
     phpbb2plus.community.post_delete_policy:
         class: phpbb2plus\community\event\post_delete_policy
         arguments: ['@config', '@auth', '@request', '@language', '@phpbb2plus.community.confirmed_deletions', '@phpbb2plus.community.erased_files']

@@ -330,6 +330,12 @@ def main():
                 convert(base, source)
                 (web / "install").rename(root / "finished-installer")
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)
+                if not media_only:
+                    recovery = ("bin/phpbbcli.php", "phpbb2plus:recovery:posts")
+                    ids = php(*recovery, cwd=web, capture=True).splitlines()
+                    record = json.loads(php(*recovery, "143001", cwd=web, capture=True))
+                    if ids != ["143001", "143002", "143003"] or record.get("post_subject") != "Unzugeordnet 📷":
+                        raise RuntimeError("The recovery command did not list and retrieve the imported post text")
                 php(ROOT / "tests/phpbb3/download_reports.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)

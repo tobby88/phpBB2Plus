@@ -347,6 +347,15 @@ if (!$get_info)
 		$convertor['schema'] = array_merge($convertor['schema'],plus_quota_schema($table_prefix,$convert->truncate_statement));
 	}
 	$shouts_table = $table_prefix . 'plus_shouts';
+	// Without a post header there is no trustworthy author, forum or visibility.
+	$convertor['schema'][] = array(
+		'target' => $table_prefix . 'plus_orphan_posts', 'primary' => 'posts_text.post_id',
+		'query_first' => array('target', $convert->truncate_statement . $table_prefix . 'plus_orphan_posts'),
+		array('source_id', 'posts_text.post_id', 'intval'),
+		array('source_json', array('posts_text.post_subject', 'posts_text.bbcode_uid', 'posts_text.post_text'), 'plus_orphan_post_data'),
+		'left_join' => 'posts_text LEFT JOIN posts ON posts.post_id = posts_text.post_id',
+		'where' => 'posts.post_id IS NULL',
+	);
 	$convertor['schema'][] = array(
 		'target' => $table_prefix . 'plus_former_names',
 		'order_by' => 'removed_author_names.author_user_id, removed_author_names.author_name_hash',

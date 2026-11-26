@@ -266,3 +266,11 @@ function plus_convert_message($message)
 	}
 	return phpbb_prepare_message((string) $message);
 }
+
+function plus_orphan_post_data($subject, $uid, $text)
+{
+	// JSON preserves NULL and original markup. ASCII escapes also carry four-byte
+	// characters through the native mysqli destination's three-byte connection.
+	return json_encode(array('post_subject' => $subject, 'bbcode_uid' => $uid, 'post_text' => $text),
+		JSON_THROW_ON_ERROR);
+}

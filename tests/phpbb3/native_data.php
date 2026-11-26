@@ -41,6 +41,10 @@ function seed_forum_access($db)
 
 function seed_native_content($db)
 {
+	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,bbcode_uid,post_text) VALUES
+		(143001,'Unzugeordnet 📷','orphanuid','Zeile eins\n[b:orphanuid]Größe[/b:orphanuid]'),
+		(143002,NULL,'',''),(143003,'0','',NULL)");
+	$db->query("INSERT INTO phpbb_privmsgs_text (privmsgs_text_id,privmsgs_text) VALUES (143001,'Private text without envelope')");
 	$db->query("UPDATE phpbb_config SET config_value='0' WHERE config_name='announcement_duration'");
 	$db->query("UPDATE phpbb_config SET config_value='1' WHERE config_name='announcement_prune_strategy'");
 	foreach (array(701=>array(2,3),702=>array(3,0),703=>array(2,-1),704=>array(2,80000),705=>array(2,1),706=>array(1,9)) as $id=>$schedule)
@@ -116,6 +120,18 @@ function seed_missing_post_authors($db)
 
 function verify_native_content($db, $recipient)
 {
+	$orphans = $db->query('SELECT source_id,source_json FROM p3_plus_orphan_posts ORDER BY source_id')->fetch_all(MYSQLI_ASSOC);
+	check_fixture(array_map('intval', array_column($orphans, 'source_id')) === array(143001, 143002, 143003),
+		'Only forum texts with no source header should be held for recovery');
+	$text = array_map(static function ($row) { return json_decode($row['source_json'], true, 512, JSON_THROW_ON_ERROR); }, $orphans);
+	check_fixture($text[0] === array('post_subject' => 'Unzugeordnet 📷', 'bbcode_uid' => 'orphanuid', 'post_text' => "Zeile eins\n[b:orphanuid]Größe[/b:orphanuid]") &&
+		$text[1]['post_subject'] === null && $text[1]['post_text'] === '' && $text[2]['post_subject'] === '0' && $text[2]['post_text'] === null,
+		'Orphaned post text, markup or nullable fields changed during import');
+	foreach (array('posts' => 'post_id', 'plus_bylines' => 'post_id', 'privmsgs' => 'msg_id', 'privmsgs_to' => 'msg_id') as $table => $key)
+	{
+		check_fixture(!$db->query("SELECT 1 FROM p3_$table WHERE $key BETWEEN 143001 AND 143003")->fetch_row(),
+			'Unassigned text acquired a native post, byline or mailbox');
+	}
 	$author = $db->query('SELECT p.poster_id,p.post_username,b.author_name,b.author_key FROM p3_posts p
 		JOIN p3_plus_bylines b ON b.post_id=p.post_id WHERE p.post_id=32')->fetch_assoc();
 	check_fixture($author && (int) $author['poster_id'] === 1 && in_array($author['post_username'], array('Ehemaliger Nutzer', 'Former member'), true)
