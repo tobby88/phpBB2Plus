@@ -145,6 +145,36 @@ class catalog
 		return $game;
 	}
 
+	public function directory_sorts($ratings)
+	{
+		$sorts = array('alphabetical' => "LOWER(COALESCE(NULLIF(g.game_desc,''),g.game_name))", 'date_added' => 'g.date_added',
+			'game_played' => 'g.played', 'default' => 'g.game_id', 'allow_guest' => 'g.allow_guest',
+			'game_instructions' => 'LOWER(g.instructions)', 'game_charge' => 'g.game_charge', 'game_bonus' => 'g.game_bonus');
+		if ($ratings) { $sorts['rating'] = '(SELECT AVG(v.rate_point) FROM ' . $this->prefix . 'ratings v WHERE v.target_game=g.game_id)'; }
+		if (!empty($this->user->data['is_registered']) && (int) $this->setting('games_comments', 0))
+		{
+			$sorts['comments'] = '(SELECT COUNT(*) FROM ' . $this->prefix . 'comments c WHERE c.target_game=g.game_id)';
+		}
+		return $sorts;
+	}
+
+	public function title_filter($term, $type)
+	{
+		$title = "COALESCE(NULLIF(g.game_desc,''),g.game_name)";
+		if ($type === 3) { return " AND SUBSTR($title,1,1) IN ('0','1','2','3','4','5','6','7','8','9')"; }
+		if ($term === '') { return ''; }
+		$any = $this->db->get_any_char();
+		$prefix = $type === 1 ? '' : $any;
+		$matches = array();
+		// Converted captions can contain literal text or the original HTML entities.
+		$terms = array_unique(array($term, utf8_htmlspecialchars($term), utf8_encode_ucr(utf8_htmlspecialchars($term))));
+		foreach ($terms as $text)
+		{
+			$matches[] = "LOWER($title) " . $this->db->sql_like_expression($prefix . utf8_strtolower($text) . $any);
+		}
+		return ' AND (' . implode(' OR ', $matches) . ')';
+	}
+
 	public function scores_available($game)
 	{
 		return $game['game_show_score'] && $this->unique_name($game);

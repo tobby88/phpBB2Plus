@@ -7,6 +7,14 @@
 {% if U_ARC_MONTHLY %}<a href="{{ U_ARC_MONTHLY }}">{L_PLUS_ARC_MONTH}</a>{% endif %}
 {% if U_ARC_POINTS %}<a href="{{ U_ARC_POINTS }}">{L_PLUS_ARC_POINT_STANDINGS}</a>{% endif %}
 {% if U_ARC_TOURNAMENTS %}<a href="{{ U_ARC_TOURNAMENTS }}">{L_PLUS_ARC_TOURS}</a>{% endif %}</nav>{% endif %}
+<form class="arc-directory-options" id="arc-directory-options" action="{U_ARC_FILTER}" method="get">
+	<label>{L_PLUS_ARC_GAME_TITLE} <input type="search" class="inputbox autowidth" name="search_word" maxlength="255" value="{{ ARC_SEARCH|e }}"></label>
+	<select name="search_type" aria-label="{L_PLUS_ARC_MATCH}"><option value="0">{L_PLUS_ARC_CONTAINS}</option><option value="1"{% if ARC_SEARCH_TYPE == 1 %} selected{% endif %}>{L_PLUS_ARC_STARTS}</option><option value="3"{% if ARC_SEARCH_TYPE == 3 %} selected{% endif %}>{L_PLUS_ARC_DIGITS}</option></select>
+	<label>{L_SORT_BY} <select name="sort_mode">{% for sort in loops.arc_sorts %}<option value="{{ sort.KEY }}"{% if sort.SELECTED %} selected{% endif %}>{{ sort.LABEL }}</option>{% endfor %}</select></label>
+	<select name="order" aria-label="{L_SORT_DIRECTION}"><option value="ASC"{% if ARC_ASC %} selected{% endif %}>{L_ASCENDING}</option><option value="DESC"{% if not ARC_ASC %} selected{% endif %}>{L_DESCENDING}</option></select>
+	<button type="submit" class="button2">{L_GO}</button>
+	{% if ARC_FILTERED %}<a href="{U_ARC_FILTER}">{L_RESET}</a>{% endif %}
+</form>
 {% if loops.arc_cats %}<div class="forabg arc-directory"><div class="inner">
 <ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_CATEGORIES}</dt><dd></dd></dl></li></ul>
 <ul class="topiclist forums">{% for cat in loops.arc_cats %}<li class="row"><dl><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.DETAIL %}<br>{{ cat.DETAIL|e }}{% endif %}</div></dt><dd></dd></dl></li>{% endfor %}</ul>

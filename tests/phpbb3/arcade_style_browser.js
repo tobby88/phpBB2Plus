@@ -1,6 +1,11 @@
 async function checkArcadeStyle(frame) {
     await checkStylePage(frame, "app.php/arcade", [1180, 390], (doc, width) => {
         const win = doc.defaultView;
+        const form = doc.getElementById("arc-directory-options");
+        if (!form?.elements.search_word?.labels?.length || !form.elements.sort_mode?.labels?.length ||
+                !form.elements.search_type?.getAttribute("aria-label") || !form.elements.order?.getAttribute("aria-label")) {
+            throw Error("The Arcade directory filters are missing accessible labels at " + width + "px");
+        }
         const links = doc.querySelectorAll(".arc-directory .row .topictitle, .arc-directory .row .forumtitle");
         if (![...links].some(link => link.href.includes("/arcade/game/60") && link.querySelector("img"))) {
             throw Error("Missing the game picture or title in the Arcade directory");

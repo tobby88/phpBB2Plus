@@ -10,6 +10,16 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	{
 		$query = array_intersect_key($_POST, array_flip(array('month', 'date'))) + $query;
 	}
+	if ($entry === 'activity' && $method === 'POST')
+	{
+		$mode = $_POST['mode'] ?? $query['mode'] ?? '';
+		$filters = array_intersect_key($_POST, array_flip(array('search_word', 'search_type', 'sort_mode', 'order')));
+		if ($filters && in_array($mode, array('', 'cat', 'search', 'fav'), true) && !isset($_POST['game']) && !isset($_POST['stats']))
+		{
+			$read_form = $sort_redirect = true;
+			$query = $filters + array_intersect_key($_POST, array_flip(array('cat_id', 'mode', 'start'))) + $query;
+		}
+	}
 	if ($entry === 'kb_search' && $method === 'POST')
 	{
 		$query = array_intersect_key($_POST, array_flip(array('search_keywords', 'search_terms'))) + $query;
@@ -79,8 +89,23 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		case 'activity':
 			$mode = $query['mode'] ?? '';
 			$id = $positive('id');
-			if ($mode === '') { $path = ($cat = $positive('cat_id')) ? 'arcade/category/' . $cat : 'arcade'; }
-			elseif ($mode === 'fav') { $path = 'arcade/favourites'; }
+			if (in_array($mode, array('', 'cat', 'fav', 'search'), true))
+			{
+				$cat = $positive('cat_id');
+				if (!$cat && isset($query['cat_id']) && $query['cat_id'] !== '0' && $query['cat_id'] !== '') { break; }
+				$path = $mode === 'fav' ? 'arcade/favourites' : ($cat ? 'arcade/category/' . $cat : 'arcade');
+				$word = $query['search_word'] ?? '';
+				if (is_string($word) && trim($word) !== '' && strlen($word) <= 1020)
+				{
+					$extra['search_word'] = trim($word);
+					header('Cache-Control: private, no-store');
+				}
+				if (in_array($query['search_type'] ?? '', array('1', '3'), true)) { $extra['search_type'] = $query['search_type']; }
+				if (in_array($query['sort_mode'] ?? '', array('alphabetical','date_added','game_played','default','allow_guest',
+					'game_instructions','game_charge','game_bonus','rating','comments'), true)) { $extra['sort_mode'] = $query['sort_mode']; }
+				$order = $query['order'] ?? '';
+				if (is_string($order) && in_array(strtoupper($order), array('ASC','DESC'), true)) { $extra['order'] = strtoupper($order); }
+			}
 			elseif ($id && in_array($mode,array('game','stats','highscore','at_highscore'),true))
 			{
 				$path = 'arcade/game/' . $id;

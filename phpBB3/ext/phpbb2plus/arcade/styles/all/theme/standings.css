@@ -1,4 +1,7 @@
 .arc-standings-nav { display: flex; align-items: center; flex-wrap: wrap; gap: .4em 1.1em; margin: .5em 0 1em; }
+.arc-directory-options { display: flex; align-items: center; flex-wrap: wrap; gap: .45em .7em; margin: .6em 0 1em; }
+.arc-directory-options label { display: inline-flex; flex-wrap: wrap; gap: .35em; align-items: center; max-width: 100%; }
+.arc-directory-options input[type=search] { width: 15em; max-width: 100%; }
 .arc-game-icon { max-width: 100%; object-fit: contain; vertical-align: middle; margin-inline-end: .6em; }
 .arc-directory .topiclist li.row { color: #243a4d; background: #eaedf4; }
 .arc-directory .topiclist li.row:nth-child(even) { background: #d9e2ec; }

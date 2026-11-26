@@ -63,14 +63,39 @@ class board
 		return $offset;
 	}
 
+	private function directory_filters($sorts, $favourites)
+	{
+		$term = utf8_substr(trim(catalog::plain($this->request->variable('search_word', '', true))), 0, 255);
+		$type = $this->request->variable('search_type', 0);
+		$type = in_array($type, array(1, 3), true) ? $type : 0;
+		if ($type === 3) { $term = '0-9'; }
+		$default_sort = $favourites ? 'alphabetical' : $this->catalog->setting('default_sort', 'date_added');
+		$default_order = $favourites ? 'ASC' : strtoupper($this->catalog->setting('default_sort_order', 'DESC'));
+		$order = strtoupper($this->request->variable('order', ''));
+		if (!in_array($order, array('ASC','DESC'), true)) { $order = $default_order === 'ASC' ? 'ASC' : 'DESC'; }
+		if (empty($this->user->data['is_registered']) && $order === 'DESC') { $default_sort = 'allow_guest'; }
+		$sort = $this->request->variable('sort_mode', '');
+		if (!isset($sorts[$sort])) { $sort = isset($sorts[$default_sort]) ? $default_sort : 'alphabetical'; }
+		$filters = array('sort_mode' => $sort, 'order' => $order);
+		if ($term !== '') { $filters['search_word'] = $term; }
+		if ($type) { $filters['search_type'] = $type; }
+		return $filters;
+	}
+
 	public function index($category = 0, $favourites = false)
 	{
 		$this->header();
+		$id = (int) $category;
+		$route = $favourites ? 'phpbb2plus_arcade_favourites' : ($id ? 'phpbb2plus_arcade_category' : 'phpbb2plus_arcade_index');
+		$params = $id ? array('category' => $id) : array();
+		$sorts = $this->catalog->directory_sorts($this->activity->rating_scale());
+		$filters = $this->directory_filters($sorts, $favourites);
+		$term = $filters['search_word'] ?? '';
+		$type = $filters['search_type'] ?? 0;
 		$reason = $this->catalog->board_access();
-		if ($reason === 'LOGIN') { login_box($this->helper->route('phpbb2plus_arcade_index', array(), false)); }
+		if ($reason === 'LOGIN') { login_box($this->helper->route($route, $params + $filters, false)); }
 		if ($reason !== '') { return $this->helper->message($reason, array(), 'INFORMATION', $reason === 'PLUS_ARC_CLOSED' ? 200 : 403); }
 		if ($favourites && !$this->activity->favourites_enabled()) { throw new NotFoundHttpException(); }
-		$id = (int) $category;
 		$cats = $this->catalog->categories();
 		if ($id && !isset($cats[$id])) { throw new NotFoundHttpException(); }
 		foreach ($cats as $key => $cat)
@@ -82,7 +107,7 @@ class board
 			$this->template->assign_block_vars('arc_cats', array('TITLE' => catalog::plain($cat['cat_name']), 'DETAIL' => $link ? '' : catalog::plain($cat['cat_desc']),
 				'URL' => $link ? utf8_htmlspecialchars($url) : $url));
 		}
-		$where = $this->catalog->game_filter($id);
+		$where = $this->catalog->game_filter($id) . $this->catalog->title_filter($term, $type);
 		$member = (int) $this->user->data['user_id'];
 		if ((int) $this->catalog->setting('games_show_mhm', 1))
 		{
@@ -101,26 +126,32 @@ class board
 			$this->template->assign_var('U_ARC_MY_AWARDS',$this->helper->route('phpbb2plus_arcade_awards',array('member'=>$member,'period'=>'current')));
 		}
 		$title = $id ? catalog::plain($cats[$id]['cat_name']) : $this->language->lang('PLUS_ARC');
-		$pagelink = $id ? $this->helper->route('phpbb2plus_arcade_category', array('category' => $id)) : $this->helper->route('phpbb2plus_arcade_index');
 		if ($favourites)
 		{
 			$where .= ' AND ' . $this->activity->favourites_filter();
 			$title = $this->language->lang('PLUS_ARC_FAVOURITES');
-			$pagelink = $this->helper->route('phpbb2plus_arcade_favourites');
 		}
 		elseif ($this->activity->favourites_enabled())
 		{
 			$this->template->assign_var('U_ARC_FAVOURITES',$this->helper->route('phpbb2plus_arcade_favourites'));
 		}
-		if ($favourites || $id || (int) $this->catalog->setting('games_show_all', 1))
+		foreach (array_keys($sorts) as $key)
+		{
+			$this->template->assign_block_vars('arc_sorts', array('KEY' => $key, 'SELECTED' => $key === $filters['sort_mode'],
+				'LABEL' => $this->language->lang('PLUS_ARC_SORT_' . strtoupper($key))));
+		}
+		$this->template->assign_vars(array('U_ARC_FILTER' => $this->helper->route($route, $params), 'ARC_SEARCH' => $term,
+			'ARC_SEARCH_TYPE' => $type, 'ARC_FILTERED' => $term !== '', 'ARC_ASC' => $filters['order'] === 'ASC'));
+		if ($term !== '' || $favourites || $id || (int) $this->catalog->setting('games_show_all', 1))
 		{
 			$limit = max(1, min(100, (int) $this->catalog->setting('games_per_page', 25) ?: 25));
 			$from = ' FROM ' . $this->prefix . 'games g WHERE ' . $where;
 			$result = $this->db->sql_query('SELECT COUNT(*) AS total' . $from);
 			$count = (int) $this->db->sql_fetchfield('total');
 			$this->db->sql_freeresult($result);
-			$start = $this->start($pagelink, $count, $limit);
-			$result = $this->db->sql_query_limit('SELECT g.game_id,g.game_name,g.game_desc,g.played,g.game_avail,g.icon_storage' . $from . ' ORDER BY g.game_desc,g.game_id', $limit, $start);
+			$start = $this->start($this->helper->route($route, $params + $filters), $count, $limit);
+			$result = $this->db->sql_query_limit('SELECT g.game_id,g.game_name,g.game_desc,g.played,g.game_avail,g.icon_storage' .
+				$from . ' ORDER BY ' . $sorts[$filters['sort_mode']] . ' ' . $filters['order'] . ',g.game_id', $limit, $start);
 			while ($game = $this->db->sql_fetchrow($result))
 			{
 				$this->template->assign_block_vars('arc_games', array('TITLE' => catalog::plain($game['game_desc'] ?: $game['game_name']),
