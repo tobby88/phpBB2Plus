@@ -287,6 +287,7 @@ def media_administration(base, member, ordinary, pending, target, web):
 def extension_upgrades(target, web, suite="all"):
     # The forum and media jobs each run on both PHP versions. Exercise each migration
     # with its own workflows' data, including all groups on a single-board full run.
+    started = monotonic()
     tests = ROOT / "tests/phpbb3"
     migrations, fixtures, preserved = [], [], []
     if suite in ("forum", "all"):
@@ -309,6 +310,7 @@ def extension_upgrades(target, web, suite="all"):
     for fixture, original in snapshots.items():
         if php(fixture, target, "upgraded", cwd=web, capture=True) != original:
             raise RuntimeError("The upgrade changed stored data checked by " + fixture.name)
+    print(f"Extension upgrades and data checks ({suite}): {monotonic()-started:.1f}s", flush=True)
 
 
 def module_administration(base, member, ordinary, pending, fixture, target, web, include_downloads):
