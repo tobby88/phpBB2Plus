@@ -490,7 +490,7 @@ def main():
                     ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
                 arcade_standings.artwork(base, ordinary, pending, lambda: php(
                     ROOT / "tests/phpbb3/arcade_standings.php", target, "recover-artwork", cwd=web),
-                    lambda: php(web / "bin/phpbbcli.php", "phpbb2plus:arcade:import-artwork", root / "legacy", cwd=web, capture=True))
+                    lambda source=root / "legacy": php(web / "bin/phpbbcli.php", "phpbb2plus:arcade:import-artwork", source, cwd=web, capture=True))
                 arcade.tournaments(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
                 game_source = arcade.browse(base, member, ordinary, pending)
                 php(fixture, "played", target)

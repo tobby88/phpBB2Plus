@@ -1,7 +1,9 @@
 """Read both cross-game rankings through their native and historical entry points."""
 import json
 import re
+import tempfile
 from html import unescape
+from pathlib import Path
 from urllib.parse import urljoin
 from gallery import png
 from http_board import Browser, Page
@@ -68,9 +70,10 @@ def artwork(base, member, pending, recover, reimport):
         if (response.headers.get_content_type() != "image/png" or "no-store" not in response.headers.get("Cache-Control", "")
                 or response.read() != puzzle):
             raise RuntimeError("An imported Arcade picture lost its bytes, content type or access-aware cache policy")
+    fallback = member.fetch(path + "64/icon", raw=True)
     if (guest.fetch(path + "61/icon", raw=True) != clock
             or member.fetch(path + "62/icon", raw=True) != png(8, 12, b"\x96\x34\x68")
-            or not member.fetch(path + "64/icon", raw=True).startswith(b"GIF8")):
+            or not fallback.startswith(b"GIF8")):
         raise RuntimeError("Shared, restricted or default game artwork did not follow the original paths")
     guest.fetch(path + "62/icon", expected_status=404)
     pending.fetch(path + "64/icon", expected_status=404)
@@ -84,3 +87,11 @@ def artwork(base, member, pending, recover, reimport):
     for _ in range(2):
         if "Verified artwork for 5 of 5 games" not in reimport() or guest.fetch(path + "61/icon", raw=True) != clock:
             raise RuntimeError("Restoring missing original artwork from the offline board was not repeatable")
+    with tempfile.TemporaryDirectory() as incomplete:
+        default = Path(incomplete) / "templates/fisubsilversh/images/games.gif"
+        default.parent.mkdir(parents=True)
+        default.write_bytes(fallback)
+        if ("Verified artwork for 2 of 5 games" not in reimport(incomplete)
+                or guest.fetch(path + "60/icon", raw=True) != puzzle or guest.fetch(path + "61/icon", raw=True) != clock
+                or member.fetch(path + "62/icon", raw=True) != png(8, 12, b"\x96\x34\x68")):
+            raise RuntimeError("An incomplete backup replaced individual game pictures with the shared default")

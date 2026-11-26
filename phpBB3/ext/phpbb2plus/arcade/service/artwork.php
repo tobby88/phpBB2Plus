@@ -132,6 +132,12 @@ class artwork
 				$this->copies[$file] = array($name, $info['mime'], filesize($target));
 			}
 			list($name, $mime, $bytes) = $this->copies[$file];
+			if ($relative === $this->settings()['games_default_img'] && !empty($game['icon_storage']) && $game['icon_storage'] !== $name)
+			{
+				// An incomplete offline board may contain only the shared default.
+				$current = $this->stored_file($game);
+				if ($current && hash_file('sha256', $current) !== substr($name, strlen('arcade_icon_'))) { return false; }
+			}
 			$this->assign($game['game_id'], $name, $mime, $bytes);
 			return true;
 		}
@@ -141,7 +147,7 @@ class artwork
 	public function batch($after, $source = null)
 	{
 		$where = 'game_id>' . (int) $after . ($source === null ? " AND icon_storage=''" : '');
-		$result = $this->db->sql_query_limit('SELECT game_id,game_name,game_path,image_path FROM ' . $this->prefix . "games WHERE $where ORDER BY game_id", 100);
+		$result = $this->db->sql_query_limit('SELECT game_id,game_name,game_path,image_path,icon_storage,icon_mime,icon_bytes FROM ' . $this->prefix . "games WHERE $where ORDER BY game_id", 100);
 		$games = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
 		$found = 0;
@@ -177,12 +183,18 @@ class artwork
 		return false;
 	}
 
-	public function file($game)
+	private function stored_file($game)
 	{
 		if (!preg_match('/^arcade_(?:icon_)?[a-f0-9]{64}$/D', $game['icon_storage'])
-			|| !in_array($game['icon_mime'], array('image/gif','image/jpeg','image/png','image/webp'), true)) { throw new NotFoundHttpException(); }
+			|| !in_array($game['icon_mime'], array('image/gif','image/jpeg','image/png','image/webp'), true)) { return false; }
 		$file = $this->upload($game['icon_storage']);
-		if (is_link($file) || !is_file($file) || (string) filesize($file) !== (string) $game['icon_bytes']) { throw new NotFoundHttpException(); }
+		return !is_link($file) && is_file($file) && (string) filesize($file) === (string) $game['icon_bytes'] ? $file : false;
+	}
+
+	public function file($game)
+	{
+		$file = $this->stored_file($game);
+		if (!$file) { throw new NotFoundHttpException(); }
 		return $file;
 	}
 }
