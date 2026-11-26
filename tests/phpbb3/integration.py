@@ -52,6 +52,7 @@ import poll_administration
 import legacy_links
 import legacy_login
 import acronym_dictionary
+import account_pruning
 import quick_reply
 import moderation_bookmarks
 import mail_links
@@ -333,6 +334,7 @@ def account_management(base, admin, moderator, member, target, web):
     absence_contact.browse(base, moderator, admin, fixture("absence_contact"))
     mailbox_counters.browse(base, admin, fixture("mailbox_counters"))
     absence_registration.browse(base, fixture("absence_registration"))
+    account_pruning.browse(base, web, target, php)
 
 
 def extension_upgrades(target, web, suite="all"):
