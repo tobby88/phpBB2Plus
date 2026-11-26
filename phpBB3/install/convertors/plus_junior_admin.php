@@ -183,6 +183,7 @@ function plus_jr_registry()
 		),
 		'admin_arcade_games.php?mode=edit_games' => array(
 			'admin_arcade_scores.php' => '8d3dbbd349ec9b53a551d191bccc10c1863129475ac40303098fb3234358e48d',
+			'attach_mod/includes/functions_quota_storage.php' => 'f477434f927a74278098e942bc3feb293f9829d1defc3c7fb527baf4a4382cab',
 			'includes/functions_arcade_score_storage.php' => 'be8661a1d1b4d7744cbb04b22cf796ca75951ccb2be604019acedf7b5bca54c1',
 			'includes/functions_arcade_action_storage.php' => 'ff91b3077134d0d04f2c22eaff85907852b985914d261ce749e62bf3009fd92d',
 			'includes/functions_arcade_game_storage.php' => 'ef6501856009da12b17583c9d159f8b1355756086376d0c65585254f67a4a25b',
@@ -250,6 +251,7 @@ function plus_jr_registry()
 	// is reachable from the original Edit entry only.
 	$dependencies['admin_arcade_games.php?mode=add_game'] = array_diff_key($dependencies['admin_arcade_games.php?mode=edit_games'],
 		array('admin_arcade_scores.php'=>true,'includes/functions_arcade_score_storage.php'=>true));
+	$dependencies['admin_arcade_games.php?mode=import_game'] = $dependencies['admin_arcade_games.php?mode=add_game'];
 	$registry = array();
 	foreach ($files as $file)
 	{

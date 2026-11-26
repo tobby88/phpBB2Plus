@@ -19,6 +19,14 @@ services:
         arguments: ['@phpbb2plus.arcade.staged_media']
         tags:
             - { name: console.command }
+    phpbb2plus.arcade.batch_import:
+        class: phpbb2plus\arcade\service\batch_import
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.game_editor', '@phpbb2plus.arcade.staged_media', '@log', '@user', '%core.table_prefix%plus_arc_imports']
+    phpbb2plus.arcade.stage_directory:
+        class: phpbb2plus\arcade\console\stage_directory
+        arguments: ['@phpbb2plus.arcade.batch_import']
+        tags:
+            - { name: console.command }
     phpbb2plus.arcade.score_moderation:
         class: phpbb2plus\arcade\service\score_moderation
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.sessions', '@log']

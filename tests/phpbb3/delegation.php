@@ -18,6 +18,7 @@ function delegation_fixture_roles()
 		38 => array('LinkSettingsJunior', 'LinksConfigurationadmin_links_config.php', 'a_plus_wl_settings'),
 		39 => array('ArcadeLogJunior', 'ArcadeError_Logadmin_arcade_log.php', 'a_plus_arc_log'),
 		40 => array('ArcadeAddJunior','ArcadeAddadmin_arcade_games.php?mode=add_game','a_plus_arc_add'),
+		41 => array('ArcadeImportJunior','ArcadeImportadmin_arcade_games.php?mode=import_game','a_plus_arc_import'),
 		43 => array('DownloadCheckerJunior', 'DownloadFcheckeradmin_pa_fchecker.php', 'a_plus_dl_checker'),
 		44 => array('ArcadeCategoryJunior', 'ArcadeCategoriesadmin_arcade_cats.php', 'a_plus_arc_categories'),
 		45 => array('ArcadeScoresJunior', 'ArcadeEditadmin_arcade_games.php?mode=edit_games', array('a_plus_arc_scores','a_plus_arc_games')),

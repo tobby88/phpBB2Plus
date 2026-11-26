@@ -25,8 +25,24 @@ $convert = (object) array('options' => array('forum_path' => $root));
 $source_catalog = plus_jr_registry();
 $add = $source_catalog[md5('ArcadeAddadmin_arcade_games.php?mode=add_game')] ?? array();
 $import = $source_catalog[md5('ArcadeImportadmin_arcade_games.php?mode=import_game')] ?? array();
-if (($add['option'] ?? '')!=='a_plus_arc_add' || isset($add['options']) || !$import || isset($import['option']) || isset($import['options']))
+if (($add['option'] ?? '')!=='a_plus_arc_add' || isset($add['options']) || ($import['option'] ?? '')!=='a_plus_arc_import' || isset($import['options']))
 { throw new RuntimeException('The distinct Arcade Add, Edit and Import registrations overlapped'); }
+$quota = $root . '/attach_mod/includes/functions_quota_storage.php';
+$original = file_get_contents($quota);
+try
+{
+	file_put_contents($quota,$original . "\n/* Custom local quota writer */\n");
+	$registry = plus_jr_registry();
+	// The shared game writer inherits the import writer, which loads this helper.
+	foreach (array('ArcadeImportadmin_arcade_games.php?mode=import_game','ArcadeAddadmin_arcade_games.php?mode=add_game',
+		'ArcadeEditadmin_arcade_games.php?mode=edit_games') as $key)
+	{
+		$entry = $registry[md5($key)] ?? array();
+		if (empty($entry['customised']) || isset($entry['option']) || isset($entry['options']))
+		{ throw new RuntimeException('A changed common import dependency retained a reviewed game registration'); }
+	}
+}
+finally { file_put_contents($quota,$original); }
 $file_grant = md5('DownloadFile_manage_titleadmin_pa_file.php');
 $helper = $root . '/pafiledb/includes/functions_mirror_storage.php';
 $original = file_get_contents($helper);

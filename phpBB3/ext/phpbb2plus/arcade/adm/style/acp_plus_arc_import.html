@@ -1,0 +1,31 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_ARC_IMPORT}</h1>
+{% if not S_BATCH %}
+	<p>{L_PLUS_ARC_IMPORT_PREPARE} <code>php bin/phpbbcli.php phpbb2plus:arcade:stage-directory --help</code></p>
+	{% if loops.batches %}
+	<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_ARC_IMPORT_BATCH}</th><th>{L_PLUS_ARC_IMPORT_TYPE}</th><th>{L_PLUS_ARC_IMPORT_PROCESSED}</th><th>{L_PLUS_ARC_IMPORT_ADDED}</th></tr></thead><tbody>
+	{% for b in loops.batches %}<tr><td><a href="{{ b.URL }}">{{ b.LABEL|e }}</a></td><td>{{ b.KIND|e }}</td><td>{{ b.POSITION }} / {{ b.COUNT }}</td><td>{{ b.ADDED }}</td></tr>{% endfor %}
+	</tbody></table>{% else %}<p>{L_NO_ENTRIES}</p>{% endif %}
+	{% if U_ARC_PREV %}<a href="{U_ARC_PREV}">{L_PREVIOUS}</a>{% endif %} {% if U_ARC_NEXT %}<a href="{U_ARC_NEXT}">{L_NEXT}</a>{% endif %}
+{% else %}
+	<p><a href="{U_ARC_IMPORT_LIST}">&laquo; {L_BACK}</a></p>
+	<h2>{{ ARC_LABEL|e }} ({{ ARC_KIND|e }})</h2><p id="arc-import-status">{{ ARC_STATUS|e }}</p>
+	{% if ARC_ERROR %}<div class="errorbox"><p>{{ ARC_ERROR|e }}</p></div>{% endif %}
+	{% if not S_COMPLETE %}
+	<form id="arc-batch-import" action="{U_ARC_IMPORT}" method="post">
+	<fieldset><legend>{L_PLUS_ARC_IMPORT_NEXT}</legend>
+	<ul>{% for f in loops.files %}<li>{{ f.NAME|e }}</li>{% endfor %}</ul>
+	{% if not S_STARTED or S_RESELECT %}<dl><dt><label for="category">{L_PLUS_ARC_EDIT_CAT_ID}</label>{% if S_RESELECT %}<br>{L_PLUS_ARC_IMPORT_RESELECT}{% endif %}</dt><dd>
+	<select id="category" name="category" required>{% if S_RESELECT %}<option value="" selected>{L_SELECT}</option>{% endif %}
+	{% for c in loops.cats %}<option value="{{ c.ID }}">{{ c.NAME|e }}</option>{% endfor %}</select></dd></dl>{% endif %}
+	{% if not S_STARTED %}
+	<dl><dt><label for="online">{L_PLUS_ARC_EDIT_GAME_AVAIL}</label></dt><dd><select id="online" name="online"><option value="0">{L_NO}</option><option value="1">{L_YES}</option></select></dd></dl>
+	<dl><dt><label for="sizing">{L_PLUS_ARC_IMPORT_SIZING}</label></dt><dd><select id="sizing" name="sizing"><option value="detect">{L_PLUS_ARC_IMPORT_DETECT}</option><option value="default">{L_PLUS_ARC_IMPORT_DEFAULT}</option></select></dd></dl>
+	{% endif %}
+	</fieldset><fieldset class="submit-buttons"><input type="hidden" name="position" value="{ARC_POSITION}">{S_FORM_TOKEN}
+	<button type="submit" class="button1">{L_PLUS_ARC_IMPORT_CONTINUE}</button></fieldset>
+	</form>
+	{% if S_CONTINUE %}<script>window.setTimeout(function () { document.getElementById('arc-batch-import').requestSubmit(); }, 2500);</script>{% endif %}
+	{% else %}<p>{L_PLUS_ARC_IMPORT_DONE}</p>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

@@ -107,9 +107,9 @@ class game_editor
 			$nodes[$parent]['cat_type'] === 'p' && (int) $nodes[$parent]['cat_parent'] === 0;
 	}
 
-	public function category_options($adding = false)
+	public function category_options($adding = false, $importing = false)
 	{
-		$this->access->authorize($adding ? 'add_game' : 'games');
+		$this->access->authorize($importing ? 'import_game' : ($adding ? 'add_game' : 'games'));
 		$nodes = $this->categories->records();
 		$categories = array();
 		foreach ($nodes as $id=>$row)
@@ -249,15 +249,17 @@ class game_editor
 	private function unused_identity($value, $tables)
 	{
 		$literal = is_int($value) ? (string) $value : "'" . $this->db->sql_escape($value) . "'";
+		$lookups = array();
 		foreach ($tables as $table=>$columns)
 		{
 			$conditions = array();
 			foreach ((array) $columns as $column) { $conditions[] = $column . '=' . $literal; }
-			$result = $this->db->sql_query_limit("SELECT 1 AS found FROM {$this->prefix}$table WHERE " . implode(' OR ',$conditions),1);
-			$used = (bool) $this->db->sql_fetchrow($result);
-			$this->db->sql_freeresult($result);
-			if ($used) { throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
+			$lookups[] = "EXISTS (SELECT 1 FROM {$this->prefix}$table WHERE " . implode(' OR ',$conditions) . ')';
 		}
+		$result = $this->db->sql_query('SELECT (' . implode(' OR ',$lookups) . ') AS found');
+		$used = (bool) $this->db->sql_fetchfield('found');
+		$this->db->sql_freeresult($result);
+		if ($used) { throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
 	}
 
 	public function create($key, $revision, $input)
@@ -270,34 +272,75 @@ class game_editor
 			$nodes = $this->categories->records(true);
 			$values = array_replace($old,$this->metadata($input,$old),$this->scoped_values($input,$nodes));
 			if (!$this->valid_category((int) $values['cat_id'],$nodes)) { throw new \DomainException('PLUS_ARC_EDIT_SCOPE_INVALID'); }
-			// A detached historical result still owns its protocol name even when
-			// the old catalogue row is gone. Creation must not adopt that history.
 			$name = $stage['game_name'];
-			$this->unused_identity($name,array('games'=>'game_name','scores'=>'game_name','all_scores'=>'game_name','monthly'=>'highscore_game',
-				'favorites'=>'fav_game_name','comments'=>array('game_name','comment_game_name'),'ratings'=>'rate_game_name','bans'=>'game',
-				'tour_games'=>'game_name','tour_plays'=>'last_played_game','players'=>'last_played','categories'=>'last_game'));
-			unset($values['game_id']);
-			$values['game_name'] = $name;
-			$values += array('game_path'=>'','image_path'=>'','main_asset'=>'','asset_status'=>'missing','game_use_gl'=>0,
-				'game_flash'=>strtolower(pathinfo($stage['main_file'],PATHINFO_EXTENSION))==='swf' ? 1 : 0,'date_added'=>time());
-			$this->db->sql_query("INSERT INTO {$this->prefix}games " . $this->db->sql_build_array('INSERT',$values));
-			$id = (int) $this->db->sql_nextid();
-			if ($id<=0 || $id>8388607 || $id===(int) $this->catalog->setting('games_default_id',0))
-			{ throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
-			$this->unused_identity($id,array('favorites'=>'fav_game_id','saves'=>'game_id','launches'=>'game_id','assets'=>'game_id','staged'=>'game_id'));
-			$this->media->bind($stage,$values+array('game_id'=>$id));
-			if ((int) $values['game_avail']===1)
-			{
-				$cat = (int) $values['cat_id'];
-				foreach (array_unique(array(-1,$cat)) as $target)
-				{
-					if (!isset($nodes[$target]) || (int) $nodes[$target]['total_games']>=4294967295) { throw new \DomainException('PLUS_ARC_EDIT_COUNT'); }
-					$this->db->sql_query("UPDATE {$this->prefix}categories SET total_games=total_games+1 WHERE cat_id=$target");
-				}
-			}
+			$values['game_flash'] = strtolower(pathinfo($stage['main_file'],PATHINFO_EXTENSION))==='swf' ? 1 : 0;
+			$id = $this->insert($stage,$name,$values,$nodes);
 			$this->log->add('admin',(int) $this->user->data['user_id'],$this->user->ip,'LOG_PLUS_ARC_ADD_GAME',false,array($id));
 			return $id;
 		});
+	}
+
+	private function insert($stage, $name, $values, $nodes)
+	{
+		// A detached historical result still owns its protocol name even when
+		// the old catalogue row is gone. Creation must not adopt that history.
+		$this->unused_identity($name,array('games'=>'game_name','scores'=>'game_name','all_scores'=>'game_name','monthly'=>'highscore_game',
+			'favorites'=>'fav_game_name','comments'=>array('game_name','comment_game_name'),'ratings'=>'rate_game_name','bans'=>'game',
+			'tour_games'=>'game_name','tour_plays'=>'last_played_game','players'=>'last_played','categories'=>'last_game'));
+		unset($values['game_id']);
+		$values['game_name'] = $name;
+		$values += array('game_path'=>'','image_path'=>'','main_asset'=>'','asset_status'=>'missing','game_use_gl'=>0,'date_added'=>time());
+		$this->db->sql_query("INSERT INTO {$this->prefix}games " . $this->db->sql_build_array('INSERT',$values));
+		$id = (int) $this->db->sql_nextid();
+		if ($id<=0 || $id>8388607 || $id===(int) $this->catalog->setting('games_default_id',0))
+		{ throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
+		$this->unused_identity($id,array('favorites'=>'fav_game_id','saves'=>'game_id','launches'=>'game_id','assets'=>'game_id','staged'=>'game_id'));
+		$this->media->bind($stage,$values+array('game_id'=>$id));
+		if ((int) $values['game_avail']===1)
+		{
+			foreach (array_unique(array(-1,(int) $values['cat_id'])) as $target)
+			{
+				if (!isset($nodes[$target]) || (int) $nodes[$target]['total_games']>=4294967295) { throw new \DomainException('PLUS_ARC_EDIT_COUNT'); }
+				$this->db->sql_query("UPDATE {$this->prefix}categories SET total_games=total_games+1 WHERE cat_id=$target");
+			}
+		}
+		return $id;
+	}
+
+	public function import_options($category, $online, $sizing)
+	{
+		$this->access->authorize('import_game');
+		if ((!preg_match('/^[1-9][0-9]{0,6}$/D',$category) && $category!=='-1') ||
+			!in_array($online,array('0','1'),true) || !in_array($sizing,array('detect','default'),true))
+		{ throw new \DomainException('FORM_INVALID'); }
+		if (!$this->valid_category((int) $category,$this->categories->records(true))) { throw new \DomainException('PLUS_ARC_EDIT_SCOPE_INVALID'); }
+		$default = (int) $this->catalog->setting('games_default_id',0);
+		$row = $this->rows("SELECT win_width,win_height FROM {$this->prefix}games WHERE game_id=$default LOCK IN SHARE MODE")[0] ?? array();
+		return array('category'=>(int) $category,'online'=>(int) $online,'sizing'=>$sizing,
+			'width'=>min(4096,max(1,(int) ($row['win_width'] ?? 0) ?: 550)),
+			'height'=>min(4096,max(1,(int) ($row['win_height'] ?? 0) ?: 450)));
+	}
+
+	/** batch_import has locked the batch and the Arcade coordinator. */
+	public function import_item($item, $kind, $options)
+	{
+		$this->access->authorize('import_game');
+		$stage = $this->media->locked($item['stage_key']);
+		$nodes = $this->categories->records(true);
+		if (!$this->valid_category($options['category'],$nodes)) { throw new \DomainException('PLUS_ARC_EDIT_SCOPE_INVALID'); }
+		$file = $stage['main_file'];
+		$package = $kind==='package';
+		$name = $package ? $stage['game_name'] : $file;
+		if (strlen($name)>50) { throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
+		foreach (array_unique(array($file,explode('.',$file,2)[0])) as $other)
+		{ if ($other!==$name) { $this->unused_identity($other,array('games'=>'game_name')); } }
+		$title = ucfirst(trim(str_replace('_',' ',$name)));
+		$detect = $options['sizing']==='detect';
+		$values = array('game_desc'=>utf8_encode_ucr(str_replace('&','&amp;',$title)),'game_avail'=>$options['online'],
+			'cat_id'=>$options['category'],'reverse_list'=>0,'game_flash'=>$package ? 1 : 0,
+			'win_width'=>$detect ? ((int) $item['width'] ?: 550) : $options['width'],
+			'win_height'=>$detect ? ((int) $item['height'] ?: 450) : $options['height']);
+		return $this->insert($stage,$name,$values,$nodes);
 	}
 
 	public function save($id, $revision, $input, $key = '')
