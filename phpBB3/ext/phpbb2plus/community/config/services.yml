@@ -374,6 +374,17 @@ services:
     phpbb2plus.community.absence_editor:
         class: phpbb2plus\community\controller\absence
         arguments: ['@phpbb2plus.community.absence', '@user', '@auth', '@request', '@template', '@language', '@controller.helper']
+    phpbb2plus.community.absence_pm:
+        class: phpbb2plus\community\event\absence_pm
+        arguments: ['@phpbb2plus.community.absence', '@dbal.conn', '@user', '@auth', '@language', '@template']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.absence_mail:
+        parent: message.form.user
+        decorates: message.form.user
+        class: phpbb2plus\community\mail\absent_user_form
+        calls:
+            - [set_absence, ['@phpbb2plus.community.absence']]
     phpbb2plus.community.absence_display:
         class: phpbb2plus\community\event\absence
         arguments: ['@phpbb2plus.community.absence', '@config', '@user', '@auth', '@template', '@language', '@controller.helper', '%core.root_path%', '%core.php_ext%']
