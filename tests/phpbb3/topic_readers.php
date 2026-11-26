@@ -39,7 +39,8 @@ if ($phase === 'converted')
 }
 elseif ($phase === 'visibility')
 {
-	$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_allow_viewonline=0 WHERE user_id=87');
+	readers_expect(readers_value('SELECT user_allow_viewonline FROM ' . USERS_TABLE . ' WHERE user_id=87') === 0,
+		'The converted hidden member should already have a private online status.');
 	$db->sql_query('UPDATE ' . SESSIONS_TABLE . " SET session_viewonline=0 WHERE session_user_id=$historic");
 }
 elseif ($phase === 'password')
@@ -67,7 +68,6 @@ elseif ($phase === 'upgraded')
 }
 elseif ($phase === 'cleanup')
 {
-	$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_allow_viewonline=1 WHERE user_id=87');
 	$db->sql_query('UPDATE ' . SESSIONS_TABLE . " SET session_viewonline=1 WHERE session_user_id=$historic");
 	$db->sql_query('UPDATE ' . FORUMS_TABLE . " SET forum_password='' WHERE forum_id IN (1,9)");
 	$db->sql_query('DELETE FROM ' . FORUMS_ACCESS_TABLE . ' WHERE forum_id IN (1,9)');
