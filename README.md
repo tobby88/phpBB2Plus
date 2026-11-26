@@ -42,8 +42,9 @@ with `PLUS_TEST_DATABASE=1` and the connection settings from the phpBB3 Plus
 workflow. The default runs all modules on the same board. GitHub runs the
 `--suite forum`, `--suite media` and `--suite management` groups on separate
 installations for PHP 7.4 and 8.5. The management group covers member accounts,
-attachment policies and Arcade administration. Each group reports the time
-spent on extension upgrades and their data checks.
+attachment policies, the inline editor, acronym management and Arcade administration.
+The PHP 8.5 forum and management jobs exercise the interactive controls in Chromium.
+Each group reports the time spent on extension upgrades and their data checks.
 
 This repository is a historical archive of **phpBB2 Plus 1.53a**, a pre-modded
 phpBB2 distribution that was originally based on phpBB 2.0.21. Its official
