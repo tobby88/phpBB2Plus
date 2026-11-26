@@ -170,6 +170,21 @@ if (!$get_info)
 			{
 				$field[2] = 'plus_pm_unread';
 			}
+			if (in_array($section['target'], array(PRIVMSGS_TABLE, PRIVMSGS_TO_TABLE), true) && $field[0] === 'author_id')
+			{
+				$field[2] = 'plus_existing_author';
+			}
+			if ($section['target'] === PRIVMSGS_TABLE && $field[0] === 'to_address')
+			{
+				$field[2] = 'plus_pm_recipient';
+			}
+			if ($section['target'] === PRIVMSGS_TO_TABLE && $field[0] === 'user_id')
+			{
+				// Each native folder mapping chooses its own source owner. A
+				// retired numeric ID can be reused by the converter for old ID 1.
+				$section['left_join'] = 'privmsgs LEFT JOIN users ON users.user_id = ' . $field[1];
+				$section['where'] .= ' AND users.user_id > 0';
+			}
 			if ($section['target'] === POLL_VOTES_TABLE && $field[0] === 'vote_user_ip')
 			{
 				$field[2] = 'plus_registration_ip';

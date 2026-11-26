@@ -2,6 +2,12 @@
 if (!defined('IN_PHPBB')) { exit; }
 
 /** Apply Plus semantics to the core PM and subscription tables. */
+function plus_pm_recipient($source_id)
+{
+	$id = plus_existing_author($source_id);
+	return $id === ANONYMOUS ? '' : 'u_' . $id;
+}
+
 function plus_pm_incoming_folder($type)
 {
 	return (int) $type === 1 ? PRIVMSGS_NO_BOX : PRIVMSGS_INBOX;

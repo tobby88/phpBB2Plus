@@ -91,6 +91,21 @@ function seed_native_content($db)
 	}
 }
 
+function seed_missing_pm_accounts($db)
+{
+	$missing = (int) $db->query('SELECT MAX(user_id)+1 FROM phpbb_users')->fetch_row()[0];
+	// These are source fixtures for distinct inbox, sent and saved copies.
+	$rows = array(116 => array(0, 2, $missing), 117 => array(3, $missing, 2), 118 => array(2, 2, $missing),
+		119 => array(4, $missing, 2), 120 => array(1, $missing, $missing), 121 => array(4, -1, 2), 122 => array(3, 2, -1));
+	foreach ($rows as $id => list($type, $sender, $recipient))
+	{
+		$db->query("INSERT INTO phpbb_privmsgs (privmsgs_id,privmsgs_type,privmsgs_subject,privmsgs_from_userid,
+			privmsgs_to_userid,privmsgs_date,privmsgs_ip) VALUES ($id,$type,'Mailbox fixture $id',$sender,$recipient,1000010000,'c0000205')");
+		$db->query("INSERT INTO phpbb_privmsgs_text (privmsgs_text_id,privmsgs_text,privmsgs_bbcode_uid)
+			VALUES ($id,'Fixture body $id','privtest')");
+	}
+}
+
 function verify_native_content($db, $recipient)
 {
 	$watches = $db->query("SELECT topic_id,notify_status FROM p3_topics_watch WHERE user_id=$recipient ORDER BY topic_id")->fetch_all();
@@ -109,10 +124,21 @@ function verify_native_content($db, $recipient)
 		&& (int) $voter['vote_user_id'] === $recipient && (int) $voter['poll_option_id'] === 127
 		&& $voter['vote_user_ip'] === '192.0.2.4', 'Poll totals, converted voter or IP did not survive');
 
-	$rows = $db->query('SELECT msg_id,user_id,folder_id,pm_new,pm_unread FROM p3_privmsgs_to ORDER BY msg_id,user_id');
+	$rows = $db->query('SELECT msg_id,user_id,folder_id,pm_new,pm_unread FROM p3_privmsgs_to WHERE msg_id BETWEEN 110 AND 115 ORDER BY msg_id,user_id');
 	$boxes = array();
 	while ($row = $rows->fetch_assoc()) { $boxes[(int) $row['user_id']][(int) $row['msg_id']] = array_map('intval', array_slice($row, 2)); }
 	check_fixture(count($boxes[$recipient]) === 4 && count($boxes[2]) === 4, 'Incorrect PM ownership');
+	$owners = $db->query('SELECT msg_id,user_id,author_id FROM p3_privmsgs_to WHERE msg_id BETWEEN 116 AND 122 ORDER BY msg_id,user_id')->fetch_all();
+	check_fixture(array_map(static function ($row) { return array_map('intval', $row); }, $owners)
+		=== array(array(117,2,1), array(118,2,2)), 'A missing source account acquired a destination mailbox or displaced its valid correspondent');
+	$addresses = $db->query('SELECT msg_id,author_id,to_address FROM p3_privmsgs WHERE msg_id BETWEEN 116 AND 122 ORDER BY msg_id')->fetch_all();
+	$expected_addresses = array(116 => array(2,''), 117 => array(1,'u_2'), 118 => array(2,''), 119 => array(1,'u_2'),
+		120 => array(1,''), 121 => array(1,'u_2'), 122 => array(2,''));
+	check_fixture(count($addresses) === count($expected_addresses), 'A message body was discarded with its missing mailbox');
+	foreach ($addresses as list($id, $author, $address))
+	{
+		check_fixture(array((int) $author, $address) === $expected_addresses[$id], 'An old private-message participant was attributed to another account');
+	}
 	$expected = array(110 => array(0,0,0), 111 => array(-3,1,1), 115 => array(0,0,1));
 	foreach ($expected as $id => $flags)
 	{
@@ -123,7 +149,8 @@ function verify_native_content($db, $recipient)
 	foreach (array($recipient => 113, 2 => 114) as $owner => $id)
 	{
 		$folder = $db->query("SELECT folder_id,pm_count,plus_legacy_savebox FROM p3_privmsgs_folder WHERE user_id=$owner")->fetch_assoc();
-		check_fixture((int) $folder['folder_id'] === $boxes[$owner][$id]['folder_id'] && (int) $folder['pm_count'] === 1 &&
+		$expected_count = $owner === 2 ? 2 : 1;
+		check_fixture((int) $folder['folder_id'] === $boxes[$owner][$id]['folder_id'] && (int) $folder['pm_count'] === $expected_count &&
 			(int) $folder['plus_legacy_savebox'] === 1, 'Saved folder ownership, converted identity or count');
 	}
 	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_privmsgs WHERE msg_id BETWEEN 110 AND 115 AND plus_legacy_pm=1')->fetch_row()[0] === 6,
