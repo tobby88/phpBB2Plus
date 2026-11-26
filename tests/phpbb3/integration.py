@@ -61,6 +61,7 @@ import attachment_rules
 import attachment_upload_types
 import member_attachments
 import birthday_greeting
+import absence
 import downloads
 import download_categories
 import download_checker
@@ -330,7 +331,8 @@ def extension_upgrades(target, web, suite="all"):
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
         preserved.append(tests / "gallery_rating_policy.php")
     if suite in ("arcade", "all"):
-        migrations.extend(("arcade/migrations/v113_category_administration", "arcade/migrations/v114_diagnostics"))
+        # The diagnostics and game migrations depend on v113 and roll back with it.
+        migrations.append("arcade/migrations/v113_category_administration")
         preserved.extend((tests / "arcade_category_administration.php", tests / "arcade_diagnostics.php"))
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
@@ -410,6 +412,7 @@ def main():
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
                 php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
+                php(ROOT / "tests/phpbb3/absence.php", source, "source")
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
@@ -429,6 +432,8 @@ def main():
                 if forum_suite:
                     php(fixture, "original-topology", source)
                 (web / "install").rename(root / "finished-installer")
+                if forum_suite:
+                    php(ROOT / "tests/phpbb3/absence.php", target, "converted", cwd=web)
                 if args.suite == "arcade":
                     php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
                     admin, _ = delegation.authenticate(base, "ModernMember")
@@ -588,6 +593,8 @@ def main():
                 recommend.browse(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/recommend.php", target, phase, cwd=web))
                 birthday_greeting.browse(base, ordinary, member, lambda phase: php(
                     ROOT / "tests/phpbb3/birthday_greeting.php", target, phase, cwd=web, capture=True))
+                absence.browse(base, ordinary, member, lambda phase: php(
+                    ROOT / "tests/phpbb3/absence.php", target, phase, cwd=web, capture=True))
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 weblinks.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
