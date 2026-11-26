@@ -23,12 +23,10 @@ if (!plus_jr_reviewed_dependencies($root, $directory, array($sibling => $digest)
 { throw new RuntimeException('Changed or missing dependency was accepted for automatic delegation'); }
 $convert = (object) array('options' => array('forum_path' => $root));
 $source_catalog = plus_jr_registry();
-foreach (array('Add'=>'add_game','Import'=>'import_game') as $label=>$mode)
-{
-	$entry = $source_catalog[md5('Arcade' . $label . 'admin_arcade_games.php?mode=' . $mode)] ?? null;
-	if (!$entry || isset($entry['option']) || isset($entry['options']))
-	{ throw new RuntimeException('A distinct Arcade source mode received the Edit grant'); }
-}
+$add = $source_catalog[md5('ArcadeAddadmin_arcade_games.php?mode=add_game')] ?? array();
+$import = $source_catalog[md5('ArcadeImportadmin_arcade_games.php?mode=import_game')] ?? array();
+if (($add['option'] ?? '')!=='a_plus_arc_add' || isset($add['options']) || !$import || isset($import['option']) || isset($import['options']))
+{ throw new RuntimeException('The distinct Arcade Add, Edit and Import registrations overlapped'); }
 $file_grant = md5('DownloadFile_manage_titleadmin_pa_file.php');
 $helper = $root . '/pafiledb/includes/functions_mirror_storage.php';
 $original = file_get_contents($helper);
@@ -75,6 +73,8 @@ try
 	$registry = plus_jr_registry();
 	$entry = $registry[md5('ArcadeCategoriesadmin_arcade_cats.php')] ?? array();
 	if (empty($entry['customised']) || isset($entry['option']) || isset($entry['options'])) { throw new RuntimeException('Unreviewed Arcade category scope was activated'); }
+	$create = $registry[md5('ArcadeAddadmin_arcade_games.php?mode=add_game')] ?? array();
+	if (empty($create['customised']) || isset($create['option']) || isset($create['options'])) { throw new RuntimeException('An unreviewed game creation dependency received the Add grant'); }
 }
 finally { file_put_contents($category_history, $original); }
 $original = file_get_contents($flag_writer);

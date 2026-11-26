@@ -10,7 +10,15 @@ services:
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.artwork', '%core.table_prefix%']
     phpbb2plus.arcade.game_editor:
         class: phpbb2plus\arcade\service\game_editor
-        arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.category_management', '@log', '@user', '%core.table_prefix%plus_arc_']
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.category_management', '@log', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.staged_media']
+    phpbb2plus.arcade.staged_media:
+        class: phpbb2plus\arcade\service\staged_media
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_arc_', '%core.root_path%']
+    phpbb2plus.arcade.stage_game:
+        class: phpbb2plus\arcade\console\stage_game
+        arguments: ['@phpbb2plus.arcade.staged_media']
+        tags:
+            - { name: console.command }
     phpbb2plus.arcade.score_moderation:
         class: phpbb2plus\arcade\service\score_moderation
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.sessions', '@log']

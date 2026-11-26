@@ -1,11 +1,18 @@
 <!-- INCLUDE overall_header.html -->
-<h1>{L_ACP_PLUS_ARC_GAMES}</h1>
+<h1>{% if S_ARC_ADD %}{L_ACP_PLUS_ARC_ADD}{% else %}{L_ACP_PLUS_ARC_GAMES}{% endif %}</h1>
 {% if S_ARC_GAME %}
-<p><a href="{U_ARC_GAME_LIST}">&laquo; {L_BACK}</a></p>
+{% if S_ARC_ADD %}<p>{L_PLUS_ARC_ADD_HELP} <code>php bin/phpbbcli.php phpbb2plus:arcade:stage-game --help</code></p>
+{% else %}<p><a href="{U_ARC_GAME_LIST}">&laquo; {L_BACK}</a></p>{% endif %}
 {% if ARC_GAME_ERROR %}<div class="errorbox"><p>{{ ARC_GAME_ERROR|e }} <a href="{U_ARC_GAME_RELOAD}">{L_PLUS_ARC_EDIT_RELOAD}</a></p></div>{% endif %}
 {% if ARC_GAME_SAVED %}<div class="successbox"><p>{L_PLUS_ARC_EDIT_SAVED}</p></div>{% endif %}
-<form id="arc-game-edit" action="{U_ARC_GAME_EDIT}" method="post">
-	<fieldset><legend>{{ ARC_GAME_KEY|e }} (#{{ ARC_GAME_ID }})</legend>
+{% if ARC_CREATED %}<div class="successbox"><p>{{ ARC_CREATED|e }}</p></div>{% endif %}
+{% if not S_ARC_ADD or loops.preparations %}
+<form id="{% if S_ARC_ADD %}arc-game-create{% else %}arc-game-edit{% endif %}" action="{U_ARC_GAME_EDIT}" method="post">
+	<fieldset><legend>{% if S_ARC_ADD %}{L_ACP_PLUS_ARC_ADD}{% else %}{{ ARC_GAME_KEY|e }} (#{{ ARC_GAME_ID }}){% endif %}</legend>
+	{% if loops.preparations %}<dl><dt><label for="preparation">{L_PLUS_ARC_ADD_PREPARED}</label></dt><dd>
+	<select id="preparation" name="preparation"{% if S_ARC_ADD %} required{% endif %}><option value="">{% if S_ARC_ADD %}{L_SELECT_OPTION}{% else %}{L_PLUS_ARC_ADD_KEEP_MEDIA}{% endif %}</option>
+	{% for stage in loops.preparations %}<option value="{{ stage.KEY }}"{% if stage.CURRENT %} selected{% endif %}>{{ stage.FILE|e }} ({{ stage.ID }})</option>{% endfor %}
+	</select></dd></dl>{% endif %}
 	<dl><dt><label for="game_desc">{L_PLUS_ARC_EDIT_TITLE}</label></dt><dd><input class="text medium" id="game_desc" name="game_desc" value="{{ ARC_GAME_TITLE|e('html_attr') }}"></dd></dl>
 	<dl><dt><label for="instructions">{L_PLUS_ARC_EDIT_INSTRUCTIONS}</label></dt><dd><textarea id="instructions" name="instructions" rows="5" cols="45">{{ ARC_GAME_TEXT|e }}</textarea></dd></dl>
 	{% for field in loops.choices %}<dl><dt><label for="{{ field.NAME }}">{{ field.LABEL|e }}</label></dt>
@@ -16,6 +23,7 @@
 	</fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{ARC_GAME_REVISION}">{S_FORM_TOKEN}
 	<button type="submit" class="button1">{L_SUBMIT}</button></fieldset>
 </form>
+{% else %}<p>{L_PLUS_ARC_ADD_EMPTY}</p>{% endif %}
 {% else %}
 <form id="arc-game-search" action="{U_ARC_GAME_SEARCH}" method="get"><fieldset class="quick">
 	{ARC_GAME_HIDDEN}<label for="game-search">{L_PLUS_ARC_EDIT_SEARCH}</label> <input id="game-search" type="search" name="search" value="{{ ARC_GAME_SEARCH|e('html_attr') }}">

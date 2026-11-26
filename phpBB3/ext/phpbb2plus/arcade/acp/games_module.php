@@ -12,10 +12,11 @@ class games_module
 	public $tpl_name = 'acp_plus_arc_game_editor';
 	public $page_title = 'ACP_PLUS_ARC_GAMES';
 
-	private function edit($service, $game_id, $lang, $request, $template, $base)
+	protected function edit($service, $game_id, $lang, $request, $template, $base, $adding = false)
 	{
-		$game = $service->find($game_id);
-		$form = 'plus_arc_edit_game_' . $game_id;
+		$game = $adding ? $service->defaults() : $service->find($game_id);
+		$form = $adding ? 'plus_arc_create_game' : 'plus_arc_edit_game_' . $game_id;
+		$selected = '';
 		$input = array();
 		foreach (game_editor::TEXT as $name) { $input[$name] = catalog::plain($game[$name]); }
 		foreach (game_editor::LIMITS + game_editor::CHOICES as $name=>$unused) { $input[$name] = game_editor::display_number($game[$name]); }
@@ -33,15 +34,27 @@ class games_module
 					$request->variable($key,'',false,request_interface::POST);
 			}
 			$revision = $request->variable('revision','',false,request_interface::POST);
+			$selected = $request->variable('preparation','',false,request_interface::POST);
 			try
 			{
-				$service->save($game_id,$revision,$input);
+				if ($adding)
+				{
+					$new_id = $service->create($selected,$revision,$input);
+					redirect($base . '&amp;created=' . $new_id);
+				}
+				$service->save($game_id,$revision,$input,$selected);
 				redirect($base . '&amp;game=' . $game_id . '&amp;saved=1');
 			}
 			catch (\DomainException $e) { $template->assign_var('ARC_GAME_ERROR',$lang->lang($e->getMessage())); }
 		}
 		elseif ($request->variable('saved',0,false,request_interface::GET)) { $template->assign_var('ARC_GAME_SAVED',true); }
-		list($scopes,$current) = $service->options($game);
+		$preparations = $service->preparations($adding ? null : $game);
+		foreach ($preparations as $stage)
+		{
+			$template->assign_block_vars('preparations',array('KEY'=>$stage['stage_key'],'FILE'=>$stage['main_file'],
+				'ID'=>substr($stage['stage_key'],0,12),'CURRENT'=>$stage['stage_key']===$selected));
+		}
+		list($scopes,$current) = $service->options($game,$adding);
 		$options = array();
 		foreach (game_editor::CHOICES as $key=>$last)
 		{
@@ -74,9 +87,9 @@ class games_module
 				'VALUE'=>$input[$field],'DIGITS'=>ctype_digit(game_editor::display_number($game[$field]))));
 		}
 		add_form_key($form);
-		$template->assign_vars(array('S_ARC_GAME'=>true,'ARC_GAME_ID'=>$game_id,'ARC_GAME_KEY'=>$game['game_name'],'ARC_GAME_TITLE'=>$input['game_desc'],
-			'ARC_GAME_TEXT'=>$input['instructions'],'ARC_GAME_REVISION'=>$revision,'U_ARC_GAME_EDIT'=>$base . '&amp;game=' . $game_id,
-			'U_ARC_GAME_RELOAD'=>$base . '&amp;game=' . $game_id));
+		$action = $adding ? $base : $base . '&amp;game=' . $game_id;
+		$template->assign_vars(array('S_ARC_GAME'=>true,'S_ARC_ADD'=>$adding,'ARC_GAME_ID'=>$game_id,'ARC_GAME_KEY'=>$game['game_name'],'ARC_GAME_TITLE'=>$input['game_desc'],
+			'ARC_GAME_TEXT'=>$input['instructions'],'ARC_GAME_REVISION'=>$revision,'U_ARC_GAME_EDIT'=>$action,'U_ARC_GAME_RELOAD'=>$action));
 	}
 
 	public function main($id, $mode)

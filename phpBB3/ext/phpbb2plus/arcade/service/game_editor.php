@@ -20,8 +20,9 @@ class game_editor
 	private $log;
 	private $user;
 	private $prefix;
+	private $media;
 
-	public function __construct($db, $access, $sessions, $catalog, $categories, $log, $user, $prefix)
+	public function __construct($db, $access, $sessions, $catalog, $categories, $log, $user, $prefix, $media)
 	{
 		$this->db = $db;
 		$this->access = $access;
@@ -31,6 +32,7 @@ class game_editor
 		$this->log = $log;
 		$this->user = $user;
 		$this->prefix = $prefix;
+		$this->media = $media;
 	}
 
 	private function rows($sql)
@@ -105,9 +107,9 @@ class game_editor
 			$nodes[$parent]['cat_type'] === 'p' && (int) $nodes[$parent]['cat_parent'] === 0;
 	}
 
-	public function category_options()
+	public function category_options($adding = false)
 	{
-		$this->access->authorize('games');
+		$this->access->authorize($adding ? 'add_game' : 'games');
 		$nodes = $this->categories->records();
 		$categories = array();
 		foreach ($nodes as $id=>$row)
@@ -121,9 +123,9 @@ class game_editor
 		return $categories;
 	}
 
-	public function options($game)
+	public function options($game, $adding = false)
 	{
-		$options = array('cat_id'=>$this->category_options(),'group_required'=>array(),'rank_required'=>array());
+		$options = array('cat_id'=>$this->category_options($adding),'group_required'=>array(),'rank_required'=>array());
 		foreach ($this->categories->groups() as $row) { $options['group_required'][$row['group_id']] = catalog::plain($row['group_name']); }
 		foreach ($this->rows('SELECT rank_id,rank_title FROM ' . RANKS_TABLE . ' WHERE rank_special=0 ORDER BY rank_min,rank_id') as $row)
 		{ $options['rank_required'][$row['rank_id']] = catalog::plain($row['rank_title']); }
@@ -224,12 +226,92 @@ class game_editor
 		return $counts;
 	}
 
-	public function save($id, $revision, $input)
+	public function preparations($game = null)
 	{
-		$this->sessions->locked(function () use ($id,$revision,$input) {
+		$this->access->authorize($game===null ? 'add_game' : 'games');
+		return $game!==null && ($game['asset_status']==='ready' || $game['main_asset']!=='') ? array() : $this->media->available($game);
+	}
+
+	public function defaults($lock = false)
+	{
+		$this->access->authorize('add_game');
+		$id = max(0,(int) $this->catalog->setting('games_default_id',0));
+		$row = $this->rows("SELECT * FROM {$this->prefix}games WHERE game_id=$id" . ($lock ? ' LOCK IN SHARE MODE' : ''))[0] ?? array();
+		$numbers = array_fill_keys(array_keys(self::LIMITS+self::CHOICES),0);
+		$numbers += array('cat_id'=>-1,'group_required'=>0,'native_group_id'=>0,'rank_required'=>0);
+		$defaults = array_intersect_key($row,$numbers) + $numbers;
+		if (!$id) { $defaults['game_show_score'] = 1; }
+		$defaults['score_type'] = 0;
+		if ((int) $defaults['cat_id']<=0) { $defaults['cat_id'] = -1; }
+		return $defaults + array('game_id'=>0,'game_name'=>'','game_desc'=>'','instructions'=>'');
+	}
+
+	private function unused_identity($value, $tables)
+	{
+		$literal = is_int($value) ? (string) $value : "'" . $this->db->sql_escape($value) . "'";
+		foreach ($tables as $table=>$columns)
+		{
+			$conditions = array();
+			foreach ((array) $columns as $column) { $conditions[] = $column . '=' . $literal; }
+			$result = $this->db->sql_query_limit("SELECT 1 AS found FROM {$this->prefix}$table WHERE " . implode(' OR ',$conditions),1);
+			$used = (bool) $this->db->sql_fetchrow($result);
+			$this->db->sql_freeresult($result);
+			if ($used) { throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
+		}
+	}
+
+	public function create($key, $revision, $input)
+	{
+		return $this->sessions->locked(function () use ($key,$revision,$input) {
+			$this->access->authorize('add_game',true);
+			$stage = $this->media->locked($key);
+			$old = $this->defaults(true);
+			if (!hash_equals(self::revision($old),$revision)) { throw new \DomainException('PLUS_ARC_EDIT_STALE'); }
+			$nodes = $this->categories->records(true);
+			$values = array_replace($old,$this->metadata($input,$old),$this->scoped_values($input,$nodes));
+			if (!$this->valid_category((int) $values['cat_id'],$nodes)) { throw new \DomainException('PLUS_ARC_EDIT_SCOPE_INVALID'); }
+			// A detached historical result still owns its protocol name even when
+			// the old catalogue row is gone. Creation must not adopt that history.
+			$name = $stage['game_name'];
+			$this->unused_identity($name,array('games'=>'game_name','scores'=>'game_name','all_scores'=>'game_name','monthly'=>'highscore_game',
+				'favorites'=>'fav_game_name','comments'=>array('game_name','comment_game_name'),'ratings'=>'rate_game_name','bans'=>'game',
+				'tour_games'=>'game_name','tour_plays'=>'last_played_game','players'=>'last_played','categories'=>'last_game'));
+			unset($values['game_id']);
+			$values['game_name'] = $name;
+			$values += array('game_path'=>'','image_path'=>'','main_asset'=>'','asset_status'=>'missing','game_use_gl'=>0,
+				'game_flash'=>strtolower(pathinfo($stage['main_file'],PATHINFO_EXTENSION))==='swf' ? 1 : 0,'date_added'=>time());
+			$this->db->sql_query("INSERT INTO {$this->prefix}games " . $this->db->sql_build_array('INSERT',$values));
+			$id = (int) $this->db->sql_nextid();
+			if ($id<=0 || $id>8388607 || $id===(int) $this->catalog->setting('games_default_id',0))
+			{ throw new \DomainException('PLUS_ARC_ADD_IDENTITY'); }
+			$this->unused_identity($id,array('favorites'=>'fav_game_id','saves'=>'game_id','launches'=>'game_id','assets'=>'game_id','staged'=>'game_id'));
+			$this->media->bind($stage,$values+array('game_id'=>$id));
+			if ((int) $values['game_avail']===1)
+			{
+				$cat = (int) $values['cat_id'];
+				foreach (array_unique(array(-1,$cat)) as $target)
+				{
+					if (!isset($nodes[$target]) || (int) $nodes[$target]['total_games']>=4294967295) { throw new \DomainException('PLUS_ARC_EDIT_COUNT'); }
+					$this->db->sql_query("UPDATE {$this->prefix}categories SET total_games=total_games+1 WHERE cat_id=$target");
+				}
+			}
+			$this->log->add('admin',(int) $this->user->data['user_id'],$this->user->ip,'LOG_PLUS_ARC_ADD_GAME',false,array($id));
+			return $id;
+		});
+	}
+
+	public function save($id, $revision, $input, $key = '')
+	{
+		$this->sessions->locked(function () use ($id,$revision,$input,$key) {
 			$this->access->authorize('games',true);
 			$row = $this->find($id,true);
 			if (!hash_equals(self::revision($row),$revision)) { throw new \DomainException('PLUS_ARC_EDIT_STALE'); }
+			if ($key!=='')
+			{
+				if (!$this->catalog->unique_name($row)) { throw new \DomainException('PLUS_ARC_ADD_CONFLICT'); }
+				$this->media->bind($this->media->locked($key),$row);
+				$this->log->add('admin',(int) $this->user->data['user_id'],$this->user->ip,'LOG_PLUS_ARC_ATTACH_GAME',false,array((int) $id));
+			}
 			$changes = $this->metadata($input,$row);
 			$nodes = $input['cat_id'] !== 'keep' || isset($changes['game_avail']) ? $this->categories->records(true) : array();
 			$changes += $this->scoped_values($input,$nodes);

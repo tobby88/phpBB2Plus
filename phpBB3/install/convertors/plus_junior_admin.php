@@ -246,6 +246,10 @@ function plus_jr_registry()
 			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
 		),
 	);
+	// Creating a game uses the common game writer. The separate score editor
+	// is reachable from the original Edit entry only.
+	$dependencies['admin_arcade_games.php?mode=add_game'] = array_diff_key($dependencies['admin_arcade_games.php?mode=edit_games'],
+		array('admin_arcade_scores.php'=>true,'includes/functions_arcade_score_storage.php'=>true));
 	$registry = array();
 	foreach ($files as $file)
 	{
