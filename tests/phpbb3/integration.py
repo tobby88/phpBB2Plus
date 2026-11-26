@@ -32,6 +32,7 @@ import forum_permissions
 import forum_recovery
 import news
 import portal
+import recent_topics
 import custom_profiles
 import colours
 import post_icons
@@ -452,6 +453,8 @@ def main():
                     raise RuntimeError("The index lost a custom colour, double-escaped its name or revealed a hidden legend entry")
                 php(ROOT / "tests/phpbb3/colour_membership.php", target, cwd=web)
                 portal.browse(base, member)
+                recent_topics.browse(base, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/recent_topics.php", target, phase, cwd=web))
                 portal.media(base, member, ordinary, pending)
                 banners.browse(base, member, ordinary)
                 php(fixture, "banner-clicks", target)
