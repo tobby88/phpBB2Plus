@@ -4,7 +4,7 @@ services:
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.sessions', '@log']
     phpbb2plus.arcade.score_panel:
         class: phpbb2plus\arcade\controller\score_panel
-        arguments: ['@phpbb2plus.arcade.score_moderation', '@user', '@language', '@template', '@request', '@controller.helper', '@?phpbb2plus.community.former_members']
+        arguments: ['@phpbb2plus.arcade.score_moderation', '@user', '@language', '@template', '@request', '@controller.helper', '@phpbb2plus.arcade.artwork', '@?phpbb2plus.community.former_members']
     phpbb2plus.arcade.tournament_management:
         class: phpbb2plus\arcade\service\tournament_management
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.tournaments', '%core.table_prefix%plus_arc_', '@log', '@user']

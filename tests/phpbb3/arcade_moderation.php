@@ -65,6 +65,11 @@ switch ($argv[2])
 			{ throw new RuntimeException('Missing or repeated native log event: ' . $event); }
 		}
 		break;
+	case 'suspend-delegate':
+	case 'resume-delegate':
+		$rights = $argv[2] === 'resume-delegate' ? '["a_plus_arc_scores"]' : '[]';
+		$db->sql_query("UPDATE {$table_prefix}plus_jr_delegations SET rights_json='$rights' WHERE user_id=45");
+		break;
 	case 'cleanup':
 		$db->sql_query("UPDATE {$p}categories SET moderator_id=$member WHERE cat_id=12");
 		$db->sql_query("DELETE FROM {$p}saves WHERE game_id=901000");

@@ -3,7 +3,6 @@ namespace phpbb2plus\arcade\controller;
 
 use phpbb2plus\arcade\service\catalog;
 use phpbb2plus\arcade\service\score;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -183,11 +182,7 @@ class board
 
 	public function icon($game)
 	{
-		$row = $this->catalog->game((int) $game);
-		$response = new BinaryFileResponse($this->artwork->file($row), 200, array('Content-Type' => $row['icon_mime'],
-			'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; sandbox"), false);
-		$response->headers->set('Cache-Control', 'private, no-store');
-		return $response;
+		return $this->artwork->response($this->catalog->game((int) $game));
 	}
 
 	public function legacy_rating($game)

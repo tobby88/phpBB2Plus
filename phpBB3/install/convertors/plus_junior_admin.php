@@ -83,6 +83,7 @@ function plus_jr_registry()
 		'admin_pa_license.php' => '32dc2e04ca66019c8b2e02cf77a14d2ad15256543844ab154bd915ead4fbb76c',
 		'admin_album_cat.php' => '621ff302762cb0bad95c8a0039445bbdc1b94b4d7ee3d01e7fe669b30447c406',
 		'admin_album_auth.php' => '6a79dbf47486d217b4660903ef30efa8b35a85c99daa72b04bd88766e2742767',
+		'admin_arcade_games.php' => 'b4318ce3863b0ea4d3681d53fd50ea15c1726b47e932368d87aaac12c0e6dd7c',
 		'admin_hacks_list.php' => '12e39f97b24f72134803b9d4e82dbf0453240bc5c18ddda038278d4a3d73e9f1',
 	);
 	// These controllers share or delegate their actual write authority. A customised
@@ -112,6 +113,17 @@ function plus_jr_registry()
 		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 	);
 	$dependencies = array(
+		'admin_arcade_games.php?mode=edit_games' => array(
+			'admin_arcade_scores.php' => '8d3dbbd349ec9b53a551d191bccc10c1863129475ac40303098fb3234358e48d',
+			'includes/functions_arcade_score_storage.php' => 'be8661a1d1b4d7744cbb04b22cf796ca75951ccb2be604019acedf7b5bca54c1',
+			'includes/functions_arcade_action_storage.php' => 'ff91b3077134d0d04f2c22eaff85907852b985914d261ce749e62bf3009fd92d',
+			'includes/functions_arcade_game_storage.php' => 'ef6501856009da12b17583c9d159f8b1355756086376d0c65585254f67a4a25b',
+			'includes/functions_arcade_import_storage.php' => 'eceb125848d15024831baf5614848aaabba50c985a8fbccc0f2ad1a78184bbca',
+			'includes/functions_moderator_identity.php' => '2cd91513548a3754831dc59ee50be5ffccecfbfba2b4f0921e6850b8f89e9c67',
+			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+			'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
+		),
 		'admin_cracker_tracker.php?modu=4' => $tracker + array(
 			'ctracker/admin/acp_module_globalmessage.php' => '57340603caf94dffa1143ef5dce694b4669a44cff9a416482c021d877198ca2f',
 			'ctracker/classes/class_admin_actions.php' => '388eeed5489880bcb464a13cc70dd887bb730773af346ec86bcf6670acba4654',

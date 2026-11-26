@@ -1,6 +1,7 @@
 <?php
 namespace phpbb2plus\arcade\service;
 
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class artwork
@@ -196,5 +197,14 @@ class artwork
 		$file = $this->stored_file($game);
 		if (!$file) { throw new NotFoundHttpException(); }
 		return $file;
+	}
+
+	// The caller has already checked the public game or its moderation category.
+	public function response($game)
+	{
+		$response = new BinaryFileResponse($this->file($game), 200, array('Content-Type' => $game['icon_mime'],
+			'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; sandbox"), false);
+		$response->headers->set('Cache-Control', 'private, no-store');
+		return $response;
 	}
 }

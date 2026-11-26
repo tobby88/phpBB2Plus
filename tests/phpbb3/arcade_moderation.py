@@ -3,6 +3,7 @@ from html import unescape
 import re
 
 from arcade_administration import panel_for
+from delegation import authenticate
 from http_board import Browser, FormFields, Page, submit_form
 
 
@@ -30,6 +31,11 @@ def exercise(base, founder, moderator, ordinary, db):
             raise RuntimeError("An administrator cannot manage unassigned games")
         if "Review &amp; repair" not in moderator.fetch(category):
             raise RuntimeError("A moderator cannot reach an assigned disabled game")
+        picture = category + "&game=62&picture=1"
+        expected_icon = moderator.fetch("app.php/arcade/game/62/icon", raw=True)
+        if moderator.fetch(picture, raw=True) != expected_icon:
+            raise RuntimeError("The moderator's private game thumbnail changed")
+        ordinary.fetch(picture, expected_status=404)
         listing = moderator.fetch(board)
         if ("192.0.2.45" not in listing or "0:01:15" not in listing or "Previous username" in listing
                 or "HistoricMember" not in listing or "-0.125" not in listing or "action=edit" in listing):
@@ -47,6 +53,8 @@ def exercise(base, founder, moderator, ordinary, db):
             submit_form(moderator, remove, first, form_id, {}, status)
             db(end)
         acp = panel_for(founder, "Spielhallen-Bestenlisten")
+        if founder.fetch(acp + "&category=12&game=62&picture=1", raw=True) != expected_icon:
+            raise RuntimeError("The ACP served a different game thumbnail")
         acp_board = acp + "&category=12&game=901000&board="
         edit = acp_board + "current&entry=901002&action=edit"
         if "action=edit" not in unescape(founder.fetch(acp_board + "current")):
@@ -60,8 +68,21 @@ def exercise(base, founder, moderator, ordinary, db):
         stale = submit_form(moderator, board, stale_remove, form_id, {}, 409)
         if "has changed" not in stale or form_id in Page(stale).forms:
             raise RuntimeError("A stale confirmation can still remove a changed score")
-        all_edit = acp_board + "all&entry=901002&action=edit"
-        submit_form(founder, all_edit, founder.fetch(all_edit), form_id, {"score": "-4.1234"})
+        junior, entrance = authenticate(base, "ArcadeScoresJunior")
+        junior.fetch(route, expected_status=404)
+        settings = entrance + "&i=-phpbb2plus-arcade-acp-settings_module&mode=settings"
+        if "Module not accessible" not in junior.fetch(settings, expected_status=503):
+            raise RuntimeError("The score operator gained general Arcade settings")
+        all_edit = entrance + "&i=-phpbb2plus-arcade-acp-scores_module&mode=manage&category=12&game=901000&board=all&entry=901002&action=edit"
+        correction = junior.fetch(all_edit)
+        db("suspend-delegate")
+        try:
+            denied = submit_form(junior, all_edit, correction, form_id, {}, 403)
+            if form_id in Page(denied).forms:
+                raise RuntimeError("A withdrawn delegate retained its score editor")
+        finally:
+            db("resume-delegate")
+        submit_form(junior, all_edit, junior.fetch(all_edit), form_id, {"score": "-4.1234"})
         result = submit_form(moderator, remove, first, form_id, {})
         if form_id in Page(result).forms or not re.search(r'>3\.2</td>', result):
             raise RuntimeError("Removing one result changed its sibling or failed to return to the board")

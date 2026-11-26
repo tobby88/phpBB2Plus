@@ -36,6 +36,17 @@ try
 	{ throw new RuntimeException('Changing a mirror handler also suspended the separate settings assignment'); }
 }
 finally { file_put_contents($helper, $original); }
+$arcade = $directory . '/admin_arcade_scores.php';
+$original = file_get_contents($arcade);
+try
+{
+	file_put_contents($arcade, $original . "\n/* Locally modified score handler */\n");
+	$registry = plus_jr_registry();
+	$entry = $registry[md5('ArcadeEditadmin_arcade_games.php?mode=edit_games')] ?? array();
+	if (empty($entry['customised']) || isset($entry['options']) || isset($entry['option']))
+	{ throw new RuntimeException('Customised Arcade score authority was not held for review'); }
+}
+finally { file_put_contents($arcade, $original); }
 $db->sql_transaction('begin');
 try
 {

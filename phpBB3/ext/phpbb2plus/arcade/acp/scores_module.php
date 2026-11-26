@@ -20,6 +20,12 @@ class scores_module
 		{
 			$response = $phpbb_container->get('phpbb2plus.arcade.score_panel')->display($this->u_action, true);
 			if ($response instanceof RedirectResponse) { redirect($response->getTargetUrl()); }
+			if ($response instanceof Response)
+			{
+				$response->prepare($phpbb_container->get('symfony_request'))->send();
+				garbage_collection();
+				exit_handler();
+			}
 			if ($response !== 200) { send_status_line($response, Response::$statusTexts[$response]); }
 		}
 		catch (NotFoundHttpException $e) { send_status_line(403, 'Forbidden'); trigger_error('NO_AUTH_OPERATION', E_USER_WARNING); }

@@ -8,7 +8,7 @@
 {% elseif S_ARC_GAMES %}
 <div class="arc-mod-scroll"><table class="table1">
 <thead><tr><th scope="col">{{ lang('PLUS_ARC_GAME_TITLE') }}</th><th scope="col">{{ lang('PLUS_ARC_MOD_FILES') }}</th><th scope="col">{{ lang('PLUS_ARC_BOARD') }}</th></tr></thead><tbody>
-{% for game in loops.arc_games %}<tr class="{{ cycle(['bg1','bg2'], loop.index0) }}"><td>{{ game.TITLE|e }}{% if game.DETAIL %}<br>{{ game.DETAIL|e|nl2br }}{% endif %}</td>
+{% for game in loops.arc_games %}<tr class="{{ cycle(['bg1','bg2'], loop.index0) }}"><td>{% if game.U_ICON %}<img src="{{ game.U_ICON|e }}" alt="" width="40" height="40" style="object-fit:contain" loading="lazy"> {% endif %}{{ game.TITLE|e }}{% if game.DETAIL %}<br>{{ game.DETAIL|e|nl2br }}{% endif %}</td>
 <td>{{ game.NAME|e }}{% if game.PATH %}<br>{{ game.PATH|e }}{% endif %}{% if game.IMAGE %}<br>{{ game.IMAGE|e }}{% endif %}
 {% if game.AUTO %}<br>{{ lang('PLUS_ARC_MOD_AUTOSIZE') }}{% elseif game.WIDTH and game.HEIGHT %}<br>{{ game.WIDTH }} × {{ game.HEIGHT }}{% endif %}</td>
 <td><a href="{{ game.U_CURRENT|e }}">{{ lang('PLUS_ARC_CURRENT') }}</a><br><a href="{{ game.U_ALL|e }}">{{ lang('PLUS_ARC_ALL') }}</a></td></tr>

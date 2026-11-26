@@ -6,6 +6,7 @@ use phpbb2plus\arcade\service\catalog;
 use phpbb2plus\arcade\service\score;
 use phpbb2plus\arcade\service\score_moderation;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class score_panel
@@ -16,9 +17,10 @@ class score_panel
 	private $template;
 	private $request;
 	private $helper;
+	private $artwork;
 	private $names;
 
-	public function __construct($moderation, $user, $language, $template, $request, $helper, $names = null)
+	public function __construct($moderation, $user, $language, $template, $request, $helper, $artwork, $names = null)
 	{
 		$this->moderation = $moderation;
 		$this->user = $user;
@@ -26,6 +28,7 @@ class score_panel
 		$this->template = $template;
 		$this->request = $request;
 		$this->helper = $helper;
+		$this->artwork = $artwork;
 		$this->names = $names;
 	}
 
@@ -33,7 +36,7 @@ class score_panel
 	{
 		$base = $this->helper->route('phpbb2plus_arcade_moderate', array(), false);
 		$result = $this->display($base, false);
-		if ($result instanceof RedirectResponse) { return $result; }
+		if ($result instanceof Response) { return $result; }
 		$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => $this->language->lang('PLUS_ARC'),
 			'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_arcade_index')));
 		$response = $this->helper->render('@phpbb2plus_arcade/score_moderation.html', $this->language->lang('PLUS_ARC_MOD'), $result);
@@ -86,6 +89,7 @@ class score_panel
 				'NAME' => catalog::plain($game['game_name']), 'PATH' => catalog::plain($game['game_path']),
 				'IMAGE' => catalog::plain($game['image_path']), 'DETAIL' => catalog::plain($game['instructions']),
 				'WIDTH' => (int) $game['win_width'], 'HEIGHT' => (int) $game['win_height'], 'AUTO' => (bool) $game['game_autosize'],
+				'U_ICON' => $game['icon_storage'] ? self::url($base, $target + array('picture' => 1)) : '',
 				'U_CURRENT' => self::url($base, $target + array('board' => 'current')), 'U_ALL' => self::url($base, $target + array('board' => 'all'))));
 		}
 		$this->page($base, $params, $start, 25, $total);
@@ -175,6 +179,7 @@ class score_panel
 		$this->template->assign_vars(array('ARC_CATEGORY' => $this->category_name($category), 'U_ARC_CAT' => self::url($base, $params)));
 		if (!$id) { $this->games($base, $params, $start); return 200; }
 		$game = $this->moderation->game($cat, $id);
+		if ($this->request->variable('picture', 0, false, request_interface::GET) === 1) { return $this->artwork->response($game); }
 		$params += array('game' => $id, 'board' => $board);
 		$this->template->assign_vars(array('ARC_GAME' => catalog::plain($game['game_desc'] ?: $game['game_name']),
 			'ARC_BOARD_LABEL' => $this->language->lang($board === 'all' ? 'PLUS_ARC_ALL' : 'PLUS_ARC_CURRENT'),

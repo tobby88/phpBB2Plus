@@ -10,6 +10,7 @@ function delegation_fixture_grants()
 function delegation_fixture_roles()
 {
 	return array(
+		45 => array('ArcadeScoresJunior', 'ArcadeEditadmin_arcade_games.php?mode=edit_games', 'a_plus_arc_scores'),
 		46 => array('DownloadCategoryJunior', 'DownloadCat_manage_titleadmin_pa_category.php', 'a_plus_dl_categories'),
 		47 => array('DownloadAccessJunior', 'DownloadPermissionsadmin_pa_catauth.php', 'a_plus_dl_perms'),
 		48 => array('AlbumCategoryJunior', 'Photo_AlbumCategoriesadmin_album_cat.php', 'a_plus_album_categories'),
