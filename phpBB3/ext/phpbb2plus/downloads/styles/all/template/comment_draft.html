@@ -1,0 +1,11 @@
+<!-- INCLUDE @phpbb2plus_downloads/header.html -->
+<h2><a href="{U_DL_FILE}">{{ DL_FILE_TITLE|e }}</a></h2>
+{% if not DL_COMMENT_ERROR %}
+	<section class="post bg1" id="dl-comment-preview" aria-labelledby="dl-preview-heading"><div class="inner">
+		<h3 id="dl-preview-heading">{L_PREVIEW}</h3>
+		{% if DL_SUBJECT %}<h4>{{ DL_SUBJECT|e }}</h4>{% endif %}
+		<div class="content">{{ DL_COMMENT_PREVIEW }}</div>
+	</div></section>
+{% endif %}
+<!-- INCLUDE @phpbb2plus_downloads/comment_form.html -->
+<!-- INCLUDE @phpbb2plus_downloads/footer.html -->

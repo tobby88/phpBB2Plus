@@ -33,8 +33,5 @@
 {% for c in loops.dl_comments %}<div id="comment-{{ c.ID }}" class="post bg{{ loop.index is odd ? '1' : '2' }}"><div class="inner"><h3>{{ c.TITLE|e }}</h3><p class="author">{{ c.AUTHOR }} · {{ c.DATE }}</p><div class="content">{{ c.BODY }}</div>
 {% if c.U_DELETE %}<p><a href="{{ c.U_DELETE }}">{L_PLUS_DL_DELETE_COMMENT}</a></p>{% endif %}</div></div>{% endfor %}
 {% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
-{% if U_DL_COMMENT %}<form id="dl-comment" method="post" action="{U_DL_COMMENT}" class="panel"><div class="inner"><h3>{L_PLUS_DL_COMMENT}</h3>
-<fieldset class="fields1"><dl><dt><label for="dl-subject">{L_SUBJECT}</label></dt><dd><input type="text" class="inputbox" id="dl-subject" name="subject"></dd></dl>
-<dl><dt><label for="dl-message">{L_MESSAGE}</label></dt><dd><textarea class="inputbox" id="dl-message" name="message" rows="5" required></textarea></dd></dl></fieldset>
-{S_FORM_TOKEN}<input type="hidden" name="nonce" value="{DL_NONCE}"><fieldset class="submit-buttons"><button class="button1" type="submit">{L_SUBMIT}</button></fieldset></div></form>{% endif %}
+{% if U_DL_COMMENT %}<!-- INCLUDE @phpbb2plus_downloads/comment_form.html -->{% endif %}
 <!-- INCLUDE @phpbb2plus_downloads/footer.html -->

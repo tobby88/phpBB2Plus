@@ -426,8 +426,19 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 				case 'category':
 					if ($cat = $positive('cat_id') ?: $nested) { $path = 'downloads/category/' . $cat; }
 					break;
-				case 'file': case 'rate': case 'post_comment':
+				case 'file':
 					if ($id) { $path = 'downloads/file/' . $id; }
+					break;
+				case 'rate':
+					if ($id) { $path = 'downloads/file/' . $id; $anchor = '#dl-rate'; }
+					break;
+				case 'post_comment':
+					if (!$id) { break; }
+					if (($query['delete'] ?? '') === 'do')
+					{
+						if ($comment = $positive('cid')) { $path = 'downloads/file/' . $id . '/comment/' . $comment . '/delete'; }
+					}
+					else { $path = 'downloads/file/' . $id; $anchor = '#dl-comment'; }
 					break;
 				case 'download': case 'license':
 					if (!$id) { break; }

@@ -1,6 +1,7 @@
 <?php
 namespace phpbb2plus\downloads\controller;
 
+use phpbb\request\request_interface;
 use phpbb2plus\downloads\service\access;
 use phpbb2plus\downloads\service\field_data;
 use phpbb2plus\downloads\service\file_display;
@@ -116,13 +117,31 @@ class library
 			}
 		}
 		if ($feedback) { add_form_key('plus_dl_feedback_' . $id); $this->template->assign_vars($feedback + array('DL_NONCE'=>bin2hex(random_bytes(16)))); }
+		if (isset($feedback['U_DL_COMMENT']))
+		{
+			$this->language->add_lang('posting');
+			$this->template->assign_var('DL_COMMENT_OPTIONS', $this->feedback->comment_options());
+		}
 		if ($cats[$cat]['allow_comments'] && $this->access->allows($cat,'view_comment'))
 		{
 			$table = $this->prefix . 'comments';
 			$result = $this->db->sql_query("SELECT COUNT(*) AS total FROM $table WHERE file_id=$id");
 			$count = (int) $this->db->sql_fetchfield('total');
 			$this->db->sql_freeresult($result);
-			$start = $this->pagination->validate_start(max(0,$this->request->variable('start',0)), 20, $count);
+			$start = max(0, $this->request->variable('start', 0));
+			$comment = $this->request->variable('comment', 0, false, request_interface::GET);
+			if ($comment > 0)
+			{
+				// A newly published or bookmarked comment can move to a different page as earlier comments are removed.
+				$result = $this->db->sql_query("SELECT COUNT(c.comment_id) AS preceding FROM $table target
+					LEFT JOIN $table c ON c.file_id=target.file_id AND (c.posted_at<target.posted_at OR
+						(c.posted_at=target.posted_at AND c.comment_id<target.comment_id))
+					WHERE target.file_id=$id AND target.comment_id=$comment GROUP BY target.comment_id");
+				$position = $this->db->sql_fetchrow($result);
+				$this->db->sql_freeresult($result);
+				if ($position) { $start = intdiv((int) $position['preceding'], 20) * 20; }
+			}
+			$start = $this->pagination->validate_start($start, 20, $count);
 			$this->pagination->generate_template_pagination($this->helper->route('phpbb2plus_downloads_file',array('file'=>$id)), 'pagination','start',$count,20,$start);
 			$result = $this->db->sql_query_limit("SELECT c.*,u.username,u.user_colour FROM $table c LEFT JOIN " . USERS_TABLE .
 				" u ON u.user_id=c.owner_id AND c.owner_id>0 WHERE c.file_id=$id ORDER BY c.posted_at,c.comment_id", 20, $start);

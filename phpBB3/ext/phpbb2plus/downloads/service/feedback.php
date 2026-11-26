@@ -76,6 +76,33 @@ class feedback
 		return $this->renderer->render($doc ? $doc->saveXML($doc->documentElement) : $xml);
 	}
 
+	public function comment_options()
+	{
+		return array(
+			'limit' => max(0, min(65535, (int) $this->access->setting('max_comment_chars', 5000))),
+			'bbcode' => (int) $this->access->setting('allow_bbcode', 1) && $this->config['allow_bbcode'] && $this->user->optionget('bbcode'),
+			'smilies' => (int) $this->access->setting('allow_smilies', 1) && $this->config['allow_smilies'] && $this->user->optionget('smilies'),
+			'links' => (bool) $this->access->setting('allow_comment_links', 1),
+			'images' => (bool) $this->access->setting('allow_comment_images', 1),
+			'font_size' => (int) $this->config['max_post_font_size'],
+		);
+	}
+
+	public function prepare_comment($title, $body)
+	{
+		$options = $this->comment_options();
+		if ($body === '' || utf8_strlen($body) > $options['limit'] || strlen($body) > 65535 || strlen($title) > 65535)
+		{
+			throw new \DomainException('PLUS_DL_BAD_COMMENT');
+		}
+		$uid = $bits = '';
+		$flags = 0;
+		$text = utf8_htmlspecialchars($body);
+		generate_text_for_storage($text, $uid, $bits, $flags, $options['bbcode'], $options['links'], $options['smilies'],
+			$options['images'], false, true, $options['links']);
+		return array('title' => utf8_encode_ucr(utf8_htmlspecialchars($title)), 'body' => $text);
+	}
+
 	private function vote($id, $owner, $points)
 	{
 		if ($points < 1 || $points > 10) { throw new \DomainException('PLUS_DL_BAD_VOTE'); }
@@ -114,15 +141,7 @@ class feedback
 			if ($operation === 'rate') { $this->vote($id,$owner,$points); }
 			else
 			{
-				$limit = max(0,min(65535,(int) $this->access->setting('max_comment_chars',5000)));
-				if ($body === '' || utf8_strlen($body) > $limit || strlen($body) > 65535 || strlen($title) > 65535) { throw new \DomainException('PLUS_DL_BAD_COMMENT'); }
-				$uid = $bits = ''; $flags = 0;
-				$text = utf8_htmlspecialchars($body);
-				$bbcode = (int) $this->access->setting('allow_bbcode', 1) && $this->config['allow_bbcode'] && $this->user->optionget('bbcode');
-				$links = (bool) $this->access->setting('allow_comment_links', 1);
-				$smilies = (int) $this->access->setting('allow_smilies', 1) && $this->config['allow_smilies'] && $this->user->optionget('smilies');
-				generate_text_for_storage($text,$uid,$bits,$flags,$bbcode,$links,$smilies,(bool) $this->access->setting('allow_comment_images',1),false,true,$links);
-				$row = array('file_id'=>$id,'owner_id'=>$owner,'posted_at'=>time(),'title'=>utf8_encode_ucr(utf8_htmlspecialchars($title)),'body'=>$text,'source_json'=>'{}');
+				$row = $this->prepare_comment($title, $body) + array('file_id'=>$id,'owner_id'=>$owner,'posted_at'=>time(),'source_json'=>'{}');
 				$row += search_text::comment($row);
 				$this->db->sql_query('INSERT INTO ' . $this->prefix . 'comments ' . $this->db->sql_build_array('INSERT',$row));
 				$item = (int) $this->db->sql_nextid();

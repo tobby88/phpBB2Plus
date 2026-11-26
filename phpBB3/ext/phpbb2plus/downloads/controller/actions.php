@@ -38,10 +38,56 @@ class actions
 		$title = htmlspecialchars_decode($this->request->variable('subject','',true,request_interface::POST),ENT_QUOTES);
 		$body = htmlspecialchars_decode($this->request->variable('message','',true,request_interface::POST),ENT_QUOTES);
 		$points = $this->request->variable('points',0,false,request_interface::POST);
+		if ($operation === 'comment' && $this->request->is_set('preview', request_interface::POST))
+		{
+			return $this->draft($id, $nonce, $title, $body);
+		}
 		try { $cid = $this->feedback->publish($id,$operation,$nonce,$title,$body,$points); }
-		catch (\DomainException $e) { return $this->helper->message($e->getMessage(),array(),'INFORMATION',422); }
-		$url = $this->helper->route('phpbb2plus_downloads_file', array('file'=>$id), false);
+		catch (\DomainException $e)
+		{
+			if ($operation === 'comment' && $e->getMessage() === 'PLUS_DL_BAD_COMMENT')
+			{
+				return $this->draft($id, $nonce, $title, $body, $e->getMessage());
+			}
+			return $this->helper->message($e->getMessage(),array(),'INFORMATION',422);
+		}
+		$params = array('file' => $id);
+		if ($cid) { $params['comment'] = $cid; }
+		$url = $this->helper->route('phpbb2plus_downloads_file', $params, false);
 		return new RedirectResponse($url . ($cid ? '#comment-' . $cid : '#rating'), 303);
+	}
+
+	private function draft($id, $nonce, $subject, $body, $error = '')
+	{
+		$file = $this->access->file($id);
+		if (!$this->feedback->can($file, 'comment')) { throw new NotFoundHttpException(); }
+		if (!preg_match('/^[a-f0-9]{32}$/D', $nonce)) { throw new AccessDeniedHttpException(); }
+		if ($error === '')
+		{
+			try
+			{
+				$prepared = $this->feedback->prepare_comment($subject, $body);
+				$this->template->assign_var('DL_COMMENT_PREVIEW', $this->feedback->render($prepared['body']));
+			}
+			catch (\DomainException $e) { $error = $e->getMessage(); }
+		}
+		$this->language->add_lang('posting');
+		$this->listing->navigation('', (int) $file['cat_id']);
+		add_form_key('plus_dl_feedback_' . $id);
+		$this->template->assign_vars(array(
+			'DL_FILE_TITLE' => access::plain($file['title']),
+			'U_DL_FILE' => $this->helper->route('phpbb2plus_downloads_file', array('file' => $id)),
+			'U_DL_COMMENT' => $this->helper->route('phpbb2plus_downloads_feedback', array('file' => $id, 'operation' => 'comment')),
+			'DL_COMMENT_OPTIONS' => $this->feedback->comment_options(),
+			'DL_COMMENT_ERROR' => $error === '' ? '' : $this->language->lang($error),
+			'DL_SUBJECT' => $subject,
+			'DL_MESSAGE' => $body,
+			'DL_NONCE' => $nonce,
+		));
+		$response = $this->helper->render('@phpbb2plus_downloads/comment_draft.html',
+			$this->language->lang('PLUS_DL_COMMENT'), $error === '' ? 200 : 422);
+		$response->headers->set('Cache-Control', 'private, no-store');
+		return $response;
 	}
 
 	public function remove($file, $comment)

@@ -34,6 +34,7 @@ $lang = array_merge($lang ?? array(), array(
     'PLUS_DL_RATING'=>'Rating', 'PLUS_DL_DOCS'=>'Documentation', 'PLUS_DL_GET'=>'Download file', 'PLUS_DL_MISSING'=>'The original file is unavailable.',
     'PLUS_DL_LICENSE'=>'Licence terms', 'PLUS_DL_ACCEPT'=>'Accept the terms and download', 'ACL_A_PLUS_DOWNLOADS'=>'Can administer the download library',
     'PLUS_DL_COMMENT'=>'Write a comment', 'PLUS_DL_DELETE_COMMENT'=>'Delete comment', 'PLUS_DL_VOTE'=>'Rate file',
+	'PLUS_DL_COMMENT_LIMIT'=>'Up to %d characters.',
     'PLUS_DL_CONFIRM_DELETE'=>'Delete this comment?', 'PLUS_DL_ALREADY_VOTED'=>'You have already rated this file.',
     'PLUS_DL_BAD_VOTE'=>'Choose a rating from 1 to 10.', 'PLUS_DL_BAD_COMMENT'=>'Enter a comment within the configured length limit.',
 	'PLUS_DL_SUBMIT'=>'Submit a download', 'PLUS_DL_CHOOSE_CATEGORY'=>'Choose the destination category', 'PLUS_DL_SUBMITTED'=>'Your download was submitted.',

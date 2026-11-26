@@ -1,0 +1,21 @@
+<form id="dl-comment" name="postform" method="post" action="{U_DL_COMMENT}" class="panel">
+	<div class="inner">
+		<h3>{L_PLUS_DL_COMMENT}</h3>
+		{% if DL_COMMENT_ERROR %}<p class="error" role="alert">{{ DL_COMMENT_ERROR|e }}</p>{% endif %}
+		<fieldset class="fields1">
+			<dl><dt><label for="dl-subject">{L_SUBJECT}</label></dt><dd><input class="inputbox" type="text" id="dl-subject" name="subject" value="{{ DL_SUBJECT|e }}"></dd></dl>
+			{% if DL_COMMENT_OPTIONS.bbcode %}
+				{% include 'posting_buttons.html' with {'S_BBCODE_ALLOWED': true, 'S_BBCODE_QUOTE': true, 'S_BBCODE_IMG': DL_COMMENT_OPTIONS.images, 'S_LINKS_ALLOWED': DL_COMMENT_OPTIONS.links, 'MAX_FONT_SIZE': DL_COMMENT_OPTIONS.font_size} %}
+			{% endif %}
+			<dl>
+				<dt><label for="dl-message">{L_MESSAGE}</label><br><span>{{ lang('PLUS_DL_COMMENT_LIMIT', DL_COMMENT_OPTIONS.limit)|e }}</span></dt>
+				<dd><textarea class="inputbox" id="dl-message" name="message" rows="5" required>{{ DL_MESSAGE|e }}</textarea></dd>
+			</dl>
+		</fieldset>
+		{S_FORM_TOKEN}<input type="hidden" name="nonce" value="{DL_NONCE}">
+		<fieldset class="submit-buttons">
+			<button class="button2" type="submit" name="preview" value="1">{L_PREVIEW}</button>
+			<button class="button1" type="submit">{L_SUBMIT}</button>
+		</fieldset>
+	</div>
+</form>
