@@ -43,6 +43,16 @@ if ($argv[2] === 'disable' || $argv[2] === 'enable')
 	return;
 }
 if ($argv[2] !== 'membership') { exit(2); }
+$r = $db->sql_query('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE forum_id=51');
+$reply_only = (bool) $db->sql_fetchrow($r);
+$db->sql_freeresult($r);
+if ($reply_only)
+{
+	$row = access_row(87);
+	$auth->acl($row);
+	if (!$auth->acl_get('f_reply',51) || $auth->acl_get('f_post',51) || !$auth->acl_get('f_postcount',51))
+	{ throw new RuntimeException('A reply-only member lost credit for replies in a counted forum'); }
+}
 $r = $db->sql_query('SELECT group_id,user_id,group_leader,user_pending FROM ' . USER_GROUP_TABLE . ' WHERE group_id BETWEEN 77 AND 80 ORDER BY group_id,user_id');
 $members = array();
 while ($member = $db->sql_fetchrow($r)) { $members[] = array_map('intval',array_values($member)); }
@@ -54,6 +64,7 @@ foreach (array($historic=>array(true,false,false),87=>array(true,false,false),89
 {
 	$row = access_row($id);
 	$auth->acl($row);
+	if ($auth->acl_get('f_postcount',15)) { throw new RuntimeException("The excluded forum would credit new posts by member $id"); }
 	foreach (array('f_edit','f_reply','m_edit') as $index=>$option)
 	{
 		if ((bool) $auth->acl_get($option,15) !== $rights[$index]) { throw new RuntimeException("Incorrect personal $option for converted membership $id"); }

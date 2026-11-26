@@ -6,22 +6,25 @@ function seed_forum_recovery($db)
 		(71,'Loop A',1,'c',72),(72,'Loop B',2,'c',71),(73,'Detached category',3,'f',60001)");
 	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,cat_id,main_type,auth_view,auth_read) VALUES
 		(51,'Recovered public room',800,'c',0,0),(52,'Private child fixture',51,'f',5,5),(53,'Private loop fixture',72,'c',5,5)");
+	$db->query('UPDATE phpbb_forums SET auth_post=5,auth_reply=1 WHERE forum_id=51');
 	// Forum 54 also happens to be the native converter's provisional category number.
 	$db->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_first_post_id,topic_last_post_id,topic_type,topic_status,topic_moved_id) VALUES
 		(14701,54,'Missing forum fixture',2,10001,14711,14711,0,0,0),
 		(14702,60002,'Former global fixture',2,10002,14712,14712,3,0,0),
 		(14703,7,'Existing private parent',2,10003,14713,14713,0,0,0),
 		(14704,14,'Moved fixture',2,10004,0,0,0,2,603),
-		(14705,14,'Held shadow fixture',2,10005,0,0,0,2,14702)");
+		(14705,14,'Held shadow fixture',2,10005,0,0,0,2,14702),
+		(14706,15,'Existing no-count parent',89,10009,14725,14725,0,0,0)");
 	$db->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,post_time,post_deleted) VALUES
-		(14711,14701,14,2,10001,0),(14712,14702,60002,2,10002,0),(14713,14703,14,2,10003,0),
-		(14720,14880,14,2,10004,0),(14721,14880,7,-1,10005,0),(14722,14704,14,2,10006,0),
-		(14723,14881,14,2,10007,1),(14724,0,14,2,10008,0)");
+		(14711,14701,14,89,10001,0),(14712,14702,60002,89,10002,0),(14713,14703,15,89,10003,0),
+		(14720,14880,14,89,10004,0),(14721,14880,7,-1,10005,0),(14722,14704,14,89,10006,0),
+		(14723,14881,14,89,10007,1),(14724,0,14,89,10008,0),(14725,14706,14,89,10009,0)");
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES
 		(14711,'Missing forum fixture','Separate destination'),(14712,'Former global fixture','Held global content'),
 		(14713,'Existing private parent','Misrouted private message body'),(14720,'Grüße im Archiv','Wiederfundprobe'),
 		(14721,'Second reply','Second recovered body'),(14722,'0','Original shadow post'),(14723,'Erased private title','Erased recovery fixture'),
-		(14724,'','No historical topic number')");
+		(14724,'','No historical topic number'),(14725,'No-count reply','Routed to a no-count forum')");
+	$db->query('UPDATE phpbb_users SET user_posts=777 WHERE user_id=89');
 	$db->query('INSERT INTO phpbb_attachments (attach_id,post_id,privmsgs_id,user_id_1,user_id_2) VALUES (50,14721,0,-1,0)');
 	$db->query('ALTER TABLE phpbb_topics AUTO_INCREMENT=806000');
 	$db->query('INSERT INTO phpbb_topics_watch (topic_id,user_id) VALUES (806000,2),(806002,2)');
@@ -29,6 +32,8 @@ function seed_forum_recovery($db)
 
 function verify_forum_recovery($db, $damaged)
 {
+	check_fixture(!(int) $db->query('SELECT post_postcount FROM p3_posts WHERE post_id=805200')->fetch_row()[0],
+		'A post in an excluded source forum still counts towards a native member total');
 	$rows = $db->query('SELECT * FROM p3_forums WHERE plus_recovery_role=1')->fetch_all(MYSQLI_ASSOC);
 	if (!$damaged)
 	{
@@ -90,14 +95,16 @@ function verify_recovered_topics($db, $root)
 	}
 	check_fixture(!$first, 'A lost topic was merged into another source topic');
 	$posts = $db->query('SELECT p.post_id,p.forum_id,p.plus_recovery_forum,p.plus_recovery_topic,p.post_postcount,t.plus_recovery_from
-		FROM p3_posts p JOIN p3_topics t ON t.topic_id=p.topic_id AND t.forum_id=p.forum_id WHERE p.post_id BETWEEN 14711 AND 14724 ORDER BY p.post_id')->fetch_all();
-	$expected = array(array(14711,$forum,14,-1,0,54),array(14712,$forum,60002,-1,0,60002),array(14713,7,14,-1,1,0),
+		FROM p3_posts p JOIN p3_topics t ON t.topic_id=p.topic_id AND t.forum_id=p.forum_id WHERE p.post_id BETWEEN 14711 AND 14725 ORDER BY p.post_id')->fetch_all();
+	$expected = array(array(14711,$forum,14,-1,0,54),array(14712,$forum,60002,-1,0,60002),array(14713,7,15,-1,1,0),
 		array(14720,$forum,14,14880,0,14880),array(14721,$forum,7,14880,0,14880),array(14722,$forum,14,14704,0,14704),
-		array(14723,$forum,14,14881,0,14881),array(14724,$forum,14,0,0,0));
+		array(14723,$forum,14,14881,0,14881),array(14724,$forum,14,0,0,0),array(14725,15,14,-1,0,0));
 	check_fixture(array_map(static function ($row) { return array_map('intval', $row); }, $posts) === $expected,
 		'Posts did not follow the canonical forum, lost topic or no-count policy');
 	check_fixture($db->query("SELECT 1 FROM p3_attachments a JOIN p3_posts p ON p.post_id=a.post_msg_id AND p.topic_id=a.topic_id
 		WHERE p.post_id=14721 AND p.forum_id=$forum AND a.in_message=0 AND a.is_orphan=0")->fetch_row(), 'A recovered attachment lost its actual topic');
 	check_fixture(!$db->query("SELECT 1 FROM p3_posts WHERE post_id=14723 AND (post_subject<>'' OR post_text LIKE '%Erased recovery fixture%')")->fetch_row(),
 		'An erased post regained source contents');
+	check_fixture($db->query('SELECT 1 FROM p3_users u WHERE user_id=89 AND user_posts=(SELECT COUNT(*) FROM p3_posts p
+		WHERE p.poster_id=u.user_id AND p.post_postcount=1 AND p.post_visibility=1)')->fetch_row(), 'Repaired posts left a stale member total');
 }

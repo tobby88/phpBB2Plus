@@ -11,6 +11,7 @@ function seed_forum_access($db)
 	$reuse = 1 + (int) $db->query('SELECT MAX(user_id) FROM phpbb_users')->fetch_row()[0];
 	$db->query("INSERT INTO phpbb_forums (forum_id,forum_name,forum_desc,cat_id,forum_order,auth_view,auth_read,auth_post,auth_reply,auth_edit,auth_delete)
 		VALUES (15,'Contributors','',1,35,0,0,2,2,2,2)");
+	$db->query("UPDATE phpbb_forums SET count_posts='0' WHERE forum_id=15");
 	$db->query("INSERT INTO phpbb_groups (group_id,group_type,group_name,group_description,group_single_user) VALUES
 		(81,1,'Personal moderation','',1),(82,1,'Personal editing','',1),(83,1,'Former assignment','',1)");
 	$db->query("INSERT INTO phpbb_user_group (group_id,user_id,user_pending) VALUES

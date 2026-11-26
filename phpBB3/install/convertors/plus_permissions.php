@@ -67,7 +67,7 @@ function plus_forum_permissions()
 		'f_announce'=>'auth_announce','f_announce_global'=>'auth_global_announce','f_poll'=>'auth_pollcreate','f_vote'=>'auth_vote',
 		'f_delete'=>'auth_delete','f_softdelete'=>'auth_delete');
 	if (defined('MOD_ATTACHMENT')) { $mapping += array('f_attach'=>'auth_attachments','f_download'=>'auth_download'); }
-	$names = array_merge(array_keys($mapping),array('f_list','f_read','f_list_topics','f_search','f_print','f_plus_read_if_listed'));
+	$names = array_merge(array_keys($mapping),array('f_list','f_read','f_list_topics','f_search','f_print','f_plus_read_if_listed','f_postcount'));
 	$r = $db->sql_query('SELECT auth_option,auth_option_id FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option',$names));
 	$options = array_column($db->sql_fetchrowset($r),'auth_option_id','auth_option');
 	$db->sql_freeresult($r);
@@ -82,7 +82,7 @@ function plus_forum_permissions()
 
 	$p = $convert->src_table_prefix;
 	$columns = array_unique(array_merge(array('auth_view','auth_read'),array_values($mapping),array_keys(plus_personal_post_options())));
-	$r = $src_db->sql_query('SELECT forum_id,' . implode(',',$columns) . " FROM {$p}forums ORDER BY forum_id");
+	$r = $src_db->sql_query('SELECT forum_id,count_posts,' . implode(',',$columns) . " FROM {$p}forums ORDER BY forum_id");
 	$forums = $src_db->sql_fetchrowset($r);
 	$src_db->sql_freeresult($r);
 	$db->sql_transaction('begin');
@@ -131,6 +131,13 @@ function plus_forum_permissions()
 				foreach ($mapping as $native=>$source)
 				{
 					$grants[$native] = plus_forum_grants($native,$source,$forum,$groups,$rows);
+				}
+				if (!empty($forum['count_posts']))
+				{
+					// Reply-only writers earned the same credit as members who could start a topic.
+					$post = plus_forum_grants('f_postcount','auth_post',$forum,$groups,$rows);
+					$reply = plus_forum_grants('f_postcount','auth_reply',$forum,$groups,$rows);
+					$grants['f_postcount'] = array('group_id'=>$post['group_id'] + $reply['group_id'], 'user_id'=>$post['user_id'] + $reply['user_id']);
 				}
 				foreach ($grants as $native=>$grant)
 				{

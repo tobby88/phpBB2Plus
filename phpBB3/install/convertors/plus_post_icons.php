@@ -86,7 +86,7 @@ function plus_enable_post_icons()
 	$groups = $db->sql_in_set('g.group_name',array('GUESTS','REGISTERED','REGISTERED_COPPA','ADMINISTRATORS','GLOBAL_MODERATORS'));
 	$db->sql_query('INSERT INTO ' . ACL_GROUPS_TABLE . ' (group_id,forum_id,auth_option_id,auth_role_id,auth_setting)
 		SELECT g.group_id,f.forum_id,' . $option . ',0,' . ACL_YES . ' FROM ' . GROUPS_TABLE . ' g CROSS JOIN ' . FORUMS_TABLE . ' f
-		WHERE g.group_type=' . GROUP_SPECIAL . ' AND ' . $groups . ' AND f.forum_type=' . FORUM_POST . '
+		WHERE g.group_type=' . GROUP_SPECIAL . ' AND ' . $groups . ' AND f.plus_recovery_role=0 AND f.forum_type=' . FORUM_POST . '
 		AND NOT EXISTS (SELECT 1 FROM ' . ACL_GROUPS_TABLE . ' a WHERE a.forum_id=f.forum_id AND a.group_id=g.group_id AND a.auth_option_id=' . $option . ')');
 	$phpbb_container->get('auth')->acl_clear_prefetch();
 }

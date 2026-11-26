@@ -128,6 +128,25 @@ function plus_lost_topic_batch($after)
 	return $groups;
 }
 
+/** Apply the source credit policy to the final forum of each imported post. */
+function plus_import_post_counts($repaired)
+{
+	global $src_db, $convert, $db;
+	$result = $src_db->sql_query('SELECT forum_id FROM ' . $convert->src_table_prefix . "forums WHERE count_posts IN ('','0')");
+	$forums = array_map('intval', array_column($src_db->sql_fetchrowset($result), 'forum_id'));
+	$src_db->sql_freeresult($result);
+	foreach (array_chunk($forums, 100) as $batch)
+	{
+		$db->sql_query('UPDATE ' . POSTS_TABLE . ' SET post_postcount=0 WHERE post_postcount=1 AND ' . $db->sql_in_set('forum_id', $batch));
+	}
+	if (!$repaired) { return; }
+	// Retain existing member totals except where a repaired post may have changed someone's credit.
+	$posts = POSTS_TABLE;
+	$db->sql_query('UPDATE ' . USERS_TABLE . " u JOIN (SELECT DISTINCT poster_id FROM $posts WHERE plus_recovery_forum>=0
+		AND poster_id<>" . ANONYMOUS . ") changed ON changed.poster_id=u.user_id SET u.user_posts=(SELECT COUNT(*)
+		FROM $posts p WHERE p.poster_id=u.user_id AND p.post_postcount=1 AND p.post_visibility=" . ITEM_APPROVED . ')');
+}
+
 /** Run after posts and attachments exist, before search and native synchronization. */
 function plus_recover_topic_routes()
 {
@@ -146,7 +165,7 @@ function plus_recover_topic_routes()
 		$result = $db->sql_query_limit("SELECT p.post_id FROM $posts p $route WHERE p.forum_id<>t.forum_id", 1);
 		$misfiled = (bool) $db->sql_fetchrow($result);
 		$db->sql_freeresult($result);
-		if (!$misfiled) { return; }
+		if (!$misfiled) { plus_import_post_counts(false); return; }
 	}
 	$db->sql_transaction('begin');
 	try
@@ -183,6 +202,7 @@ function plus_recover_topic_routes()
 		$db->sql_query("UPDATE $posts p $route SET p.plus_recovery_forum=p.forum_id WHERE p.forum_id<>t.forum_id AND p.plus_recovery_forum=-1");
 		$db->sql_query("UPDATE $posts p $route SET p.forum_id=t.forum_id,
 			p.post_postcount=IF(f.plus_recovery_role=2,0,p.post_postcount) WHERE p.forum_id<>t.forum_id");
+		plus_import_post_counts(true);
 		$db->sql_transaction('commit');
 	}
 	catch (\Throwable $error) { $db->sql_transaction('rollback'); throw $error; }
