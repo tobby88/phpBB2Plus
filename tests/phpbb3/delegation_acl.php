@@ -47,6 +47,17 @@ try
 	{ throw new RuntimeException('Customised Arcade score authority was not held for review'); }
 }
 finally { file_put_contents($arcade, $original); }
+$flag_writer = $root . '/includes/functions_flags_storage.php';
+$original = file_get_contents($flag_writer);
+try
+{
+	file_put_contents($flag_writer, $original . "\n/* Locally modified flag writer */\n");
+	$registry = plus_jr_registry();
+	$entry = $registry[md5('UsersFlagsadmin_flags.php')] ?? array();
+	if (empty($entry['customised']) || isset($entry['option']) || isset($entry['options']))
+	{ throw new RuntimeException('A customised country flag writer received an automatic administrative grant'); }
+}
+finally { file_put_contents($flag_writer, $original); }
 $db->sql_transaction('begin');
 try
 {

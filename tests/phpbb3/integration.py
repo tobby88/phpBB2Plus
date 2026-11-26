@@ -62,6 +62,7 @@ import download_licenses
 import download_mirrors
 import delegation
 import delegation_administration
+import country_flag_administration
 import historical_actions
 import credits
 import warning_cards
@@ -275,10 +276,15 @@ def extension_upgrades(target, web):
     # Start at the common parent of these dependent migrations and run the normal updater once.
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/downloads/migrations/v111_reports", "--no-interaction", cwd=web)
     php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v137_account_logins", "--no-interaction", cwd=web)
+    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/community/migrations/v150_country_flag_administration", "--no-interaction", cwd=web)
+    flags = ROOT / "tests/phpbb3/country_flag_administration.php"
+    catalogue = php(flags, target, "older", cwd=web, capture=True)
     php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "older", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "older", cwd=web)
     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
+    if php(flags, target, "upgraded", cwd=web, capture=True) != catalogue:
+        raise RuntimeError("The flag catalogue upgrade changed native options or member selections")
     php(ROOT / "tests/phpbb3/login_lifecycle.php", target, "upgraded", cwd=web)
     for fixture in fixtures:
         php(fixture, target, "upgraded", cwd=web)
@@ -461,12 +467,15 @@ def main():
                     banners.administration(base, member, web)
                     # The portal checks the five most recent sign-ins, including a hidden member.
                     portal.administration(base, member)
+                    flag_run = worker.submit(country_flag_administration.exercise, base, member.separate_client(), lambda phase: php(
+                        ROOT / "tests/phpbb3/country_flag_administration.php", target, phase, cwd=web, capture=True))
                     statistics_run = worker.submit(statistics_administration.exercise, base, lambda phase: php(
                         ROOT / "tests/phpbb3/statistics_administration.php", phase, target, cwd=web))
                     colours.administration(member, media["member"])
                     custom_profiles.administration(member)
                     statistics_run.result()
-                warning_cards.exercise(member, media["member"], os.environ["PLUS_TEST_MODERN_PASSWORD"], lambda step: php(fixture, step, target))
+                    warning_cards.exercise(member, media["member"], os.environ["PLUS_TEST_MODERN_PASSWORD"], lambda step: php(fixture, step, target))
+                    flag_run.result()
                 def delegation_fixture(operation):
                     php(ROOT / "tests/phpbb3/delegation_management.php", target, operation, cwd=web)
                 delegation_fixture("backfill")

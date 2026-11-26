@@ -10,6 +10,7 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_RANKS_ALL' => 'All members of this rank',
 	'PLUS_CREDITS' => 'Mods and credits',
 	'ACL_A_PLUS_CREDITS' => 'Can manage historical MOD credits',
+	'ACL_A_PLUS_FLAGS' => 'Can manage the country flag catalogue',
 	'ACL_A_PLUS_STATS_PRIVATE' => 'Can view statistics modules restricted to administrators',
 	'PLUS_CREDITS_INSTALLED' => 'Active Plus extensions',
 	'PLUS_CREDITS_ARCHIVE' => 'Credits from the original phpBB2 board',

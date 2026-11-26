@@ -82,14 +82,30 @@ class country_flags
 	{
 		if ($this->images === null)
 		{
-			$result = $this->db->sql_query('SELECT option_value,label,image FROM ' . $this->table);
+			$result = $this->db->sql_query('SELECT * FROM ' . $this->table);
 			$this->images = array();
-			while ($flag = $this->db->sql_fetchrow($result)) { $this->images[(int) $flag['option_value']] = $flag; }
+			while ($flag = $this->db->sql_fetchrow($result))
+			{
+				if ((int) ($flag['catalogue_state'] ?? 0) !== 2) { $this->images[(int) $flag['option_value']] = $flag; }
+			}
 			$this->db->sql_freeresult($result);
 		}
 		$flag = $this->images[(int) $value] ?? null;
 		// A native administrator can repurpose an option. A flag is only valid for
 		// its original label and generated image, otherwise display the native text.
-		return $flag && $flag['label'] === $native_label && preg_match('/^[a-f0-9]{64}\.(?:gif|png|jpe?g)$/D',$flag['image']) ? $flag['image'] : '';
+		if (!$flag || $flag['label'] !== $native_label) { return ''; }
+		return self::public_image($flag);
+	}
+
+	public static function public_image(array $flag)
+	{
+		$image = (string) $flag['image'];
+		if (preg_match('/^[a-f0-9]{64}\.(?:gif|png|jpe?g)$/D', $image)) { return $image; }
+		return $image === $flag['source_file'] && self::filename($image) ? $image : '';
+	}
+
+	public static function filename($name)
+	{
+		return strlen($name) <= 25 && preg_match('/^[a-z0-9._-]+\.(?:gif|png|jpe?g)$/iD', $name);
 	}
 }

@@ -1,0 +1,28 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_FLAGS}</h1>
+{% if S_FLAG_FORM %}
+<p><a href="{U_BACK}">{L_BACK}</a></p>
+<form id="plus-country-flag" method="post" action="{U_FLAG_SAVE}">
+	<fieldset><legend>{{ FLAG_HEADING|e }}</legend>
+	{% if FLAG_ERROR %}<div class="errorbox"><p>{{ FLAG_ERROR|e }}</p></div>{% endif %}
+	{% if S_FLAG_DELETE %}
+	<p>{{ lang('ACP_PLUS_FLAG_CONFIRM', FLAG_LABEL)|e }}</p>
+	{% else %}
+	<dl><dt><label for="flag-label">{L_ACP_PLUS_FLAG_LABEL}</label></dt><dd><input type="text" id="flag-label" name="label" maxlength="25" value="{{ FLAG_LABEL|e('html_attr') }}" required></dd></dl>
+	<dl><dt><label for="flag-filename">{L_FILENAME}</label><br><span>{L_ACP_PLUS_FLAG_IMAGE_HELP}</span></dt><dd><input type="text" id="flag-filename" name="filename" maxlength="25" value="{{ FLAG_FILENAME|e('html_attr') }}"></dd></dl>
+	{% endif %}
+	<input type="hidden" name="revision" value="{{ FLAG_REVISION }}">{S_FORM_TOKEN}
+	{% if S_FLAG_DELETE %}<button type="submit" class="button1" name="confirm" value="1">{L_DELETE}</button>{% else %}<input class="button1" type="submit" value="{L_SUBMIT}">{% endif %}
+	<a href="{U_BACK}">{L_CANCEL}</a></fieldset>
+</form>
+{% else %}
+<p>{L_ACP_PLUS_FLAGS_EXPLAIN}</p>
+<p><a class="button2" href="{U_FLAG_CREATE}">{L_ACP_PLUS_FLAG_CREATE}</a></p>
+<table class="table1"><thead><tr><th>{L_ACP_PLUS_FLAG_LABEL}</th><th>{L_FILENAME}</th><th>{L_OPTIONS}</th></tr></thead><tbody>
+{% for flag in loops.plus_flags %}
+<tr data-flag="{{ flag.ID }}"><td>{{ flag.NAME|e }}</td><td>{% if flag.IMAGE %}<img src="../images/plusflags/{{ flag.IMAGE|e('html_attr') }}" style="max-width: 48px; max-height: 28px" alt=""> {% endif %}{{ flag.FILENAME|e }}</td>
+<td><a href="{{ flag.EDIT }}">{L_EDIT}</a> &middot; <a href="{{ flag.DELETE }}">{L_DELETE}</a></td></tr>
+{% else %}<tr><td colspan="3">{L_NO_ENTRIES}</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

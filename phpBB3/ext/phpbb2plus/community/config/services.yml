@@ -195,6 +195,17 @@ services:
     phpbb2plus.community.country_flags:
         class: phpbb2plus\community\profile\country_flags
         arguments: ['@dbal.conn', '%core.table_prefix%']
+    phpbb2plus.community.country_dropdown:
+        parent: profilefields.type.dropdown
+        decorates: profilefields.type.dropdown
+        class: phpbb2plus\community\profile\country_dropdown
+        calls:
+            - [set_storage, ['@dbal.conn', '@config', '%core.table_prefix%', '@phpbb2plus.community.flag_catalogue']]
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.flag_catalogue:
+        class: phpbb2plus\community\profile\flag_catalogue
+        arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%', '%core.root_path%']
     phpbb2plus.community.former_members:
         class: phpbb2plus\community\service\former_members
         arguments: ['@dbal.conn', '@config', '@user', '@language', '%core.table_prefix%plus_former_names']

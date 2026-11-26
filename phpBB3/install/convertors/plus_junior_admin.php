@@ -65,6 +65,7 @@ function plus_jr_registry()
 	// A locally modified module can expose fewer actions under the same name. These
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
+		'admin_flags.php' => '9476a8fb3a1bee3a8b856476f70b0957b765de637c889ef683d42052c9d62a41',
 		'admin_pa_file.php' => '4993fafef0f0f5702e1bb5f23163da0b5372838f9bb67d856dccce3e729e8adb',
 		'admin_pa_settings.php' => 'f8b7ebf1eefe344f2e22bd0eb31097755b4b7f66271ba6ff105bad7837eca6f3',
 		'admin_pa_fchecker.php' => 'f1d2f21d23ec2b9d2b59858a0dace8074df9b974c0f38babd17150588112f45d',
@@ -114,6 +115,14 @@ function plus_jr_registry()
 		'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 	);
 	$dependencies = array(
+		'admin_flags.php' => array(
+			'includes/functions_flags_storage.php' => '7a445923f0c0a98d4eb7c55ebfd103db3f5f7b1f267d63d7bacc865a029429e8',
+			'includes/functions_board_config.php' => '6f8bfd8b56abae2ac271ef236b1c916ca0fb96f68b74ca1a58680474a6a09568',
+			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+			'includes/functions_jr_admin_auth.php' => '66560bc6fe4af98e0d6870c71b5b3682fb131ae6f13d2545aab481b0d5f2c735',
+			'includes/functions_moderator_identity.php' => '2cd91513548a3754831dc59ee50be5ffccecfbfba2b4f0921e6850b8f89e9c67',
+			'includes/functions_connection_ownership.php' => '1c8277a28b18946baaad0fca9f2f64959fe07d09ede4fd6ec2f37223b153576e',
+		),
 		'admin_arcade_games.php?mode=edit_games' => array(
 			'admin_arcade_scores.php' => '8d3dbbd349ec9b53a551d191bccc10c1863129475ac40303098fb3234358e48d',
 			'includes/functions_arcade_score_storage.php' => 'be8661a1d1b4d7744cbb04b22cf796ca75951ccb2be604019acedf7b5bca54c1',
