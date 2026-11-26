@@ -49,6 +49,7 @@ import mail_links
 import downloads
 import download_categories
 import download_checker
+import download_moderation
 import download_fields
 import download_file_actions
 import download_file_editor
@@ -233,6 +234,8 @@ def download_checks(base, admin, historical, applicant, fixture, target, web, ga
         permissions.result()
         download_checker.administration(admin, lambda phase: php(
             ROOT / "tests/phpbb3/download_checker.php", target, phase, cwd=web))
+        download_moderation.browse(base, admin, historical, applicant, lambda phase: php(
+            ROOT / "tests/phpbb3/download_moderation.php", target, phase, cwd=web))
         download_reports.browse(base, historical, applicant, lambda phase: php(
             ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
         download_search.browse(base, historical, applicant, lambda phase: php(
