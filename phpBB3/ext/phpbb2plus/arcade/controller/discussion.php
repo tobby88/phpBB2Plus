@@ -49,6 +49,36 @@ class discussion
 		return $game;
 	}
 
+	public function legacy()
+	{
+		$game = $this->request->variable('game', 0);
+		$comment = $this->request->variable('comment', 0);
+		$view = $this->request->variable('view', 'show');
+		$start = max(0, $this->request->variable('start', 0));
+		$order = $this->request->variable('order', '') === 'desc' ? 'desc' : '';
+		if ($game < 0 || $comment < 0 || (!$game && !$comment) || !in_array($view, array('show','add','edit','delete'), true)
+			|| (!$comment && in_array($view, array('edit','delete'), true))) { throw new NotFoundHttpException(); }
+		if (empty($this->user->data['is_registered']))
+		{
+			$return = array_filter(array('game' => $game, 'comment' => $comment, 'view' => $view, 'order' => $order, 'start' => $start));
+			login_box($this->helper->route('phpbb2plus_arcade_legacy_comments', $return, false));
+		}
+		list($target, $row) = $this->comments->legacy_target($game, $comment);
+		$params = array('game' => (int) $target['game_id']);
+		if ($view === 'edit' || $view === 'delete')
+		{
+			if (!$row || !$this->comments->manage($target, $row)) { throw new NotFoundHttpException(); }
+			$url = $this->helper->route('phpbb2plus_arcade_change_comment', $params + array('comment' => $comment, 'action' => $view), false);
+		}
+		else
+		{
+			$params += array_filter(array('focus' => $comment, 'order' => $order, 'start' => $start));
+			$anchor = $view === 'add' ? '#arcade-add-comment' : ($comment ? '#comment-' . $comment : '');
+			$url = $this->helper->route('phpbb2plus_arcade_comments', $params, false) . $anchor;
+		}
+		return new RedirectResponse($url, 302, array('Cache-Control' => 'private, no-store'));
+	}
+
 	public function listing($game)
 	{
 		$g = $this->header($game);

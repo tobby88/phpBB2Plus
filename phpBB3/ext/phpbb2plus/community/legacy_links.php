@@ -24,6 +24,12 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	{
 		$query = array_intersect_key($_POST, array_flip(array('search_keywords', 'search_terms'))) + $query;
 	}
+	if ($entry === 'arcade_comment' && $method === 'POST' && isset($_POST['sort_order']) &&
+		!array_diff_key($_POST, array_flip(array('sort_order', 'game_id', 'comment_id', 'start', 'submit'))) && empty($query['mode']))
+	{
+		$read_form = $sort_redirect = true;
+		$query += array_intersect_key($_POST, array_flip(array('sort_order', 'game_id', 'comment_id', 'start')));
+	}
 	if ($method === 'POST' && in_array($entry, array('album', 'album_cat'), true))
 	{
 		// The original gallery took the album identity from the form first and
@@ -80,6 +86,22 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 		case 'arcade_point_scores':
 			$path = 'arcade/points';
+			break;
+		case 'arcade_rate':
+			if ($id = $positive('game_id')) { $path = 'arcade/legacy/rating/' . $id; }
+			break;
+		case 'arcade_comment':
+			$mode = $query['mode'] ?? '';
+			if (!in_array($mode, array('', 'add_comment', 'edit', 'delete'), true)) { break; }
+			foreach (array('game_id' => 'game', 'comment_id' => 'comment') as $old => $key)
+			{
+				if ($number = $positive($old)) { $extra[$key] = $number; }
+				elseif (isset($query[$old]) && $query[$old] !== '0') { break 2; }
+			}
+			if (!$extra || (in_array($mode, array('edit','delete'), true) && empty($extra['comment']))) { break; }
+			$path = 'arcade/legacy/comments';
+			if ($mode !== '') { $extra['view'] = $mode === 'add_comment' ? 'add' : $mode; }
+			if (($query['sort_order'] ?? '') === 'DESC') { $extra['order'] = 'desc'; }
 			break;
 		case 'arcade_highscore':
 			$path = 'arcade/monthly';

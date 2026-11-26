@@ -11,7 +11,7 @@
 <button class="button2" type="submit">{% if ARC_FAVOURITE %}{L_PLUS_ARC_FAV_REMOVE}{% else %}{L_PLUS_ARC_FAV_ADD}{% endif %}</button>
 <a href="{{ U_ARC_FAVOURITES }}">{L_PLUS_ARC_FAVOURITES}</a>{{ ARC_ACTIVITY_TOKEN }}</form>
 {% endif %}
-{% if ARC_RATINGS %}<div class="panel"><div class="inner">
+{% if ARC_RATINGS %}<div class="panel" id="arcade-rating"><div class="inner">
 <h3>{L_PLUS_ARC_RATING}</h3>
 {% if ARC_VOTES %}<p>{{ lang('PLUS_ARC_RATING_RESULT', ARC_VOTES, ARC_MEAN, ARC_RATING_SCALE) }}</p>{% else %}<p>{L_PLUS_ARC_RATING_EMPTY}</p>{% endif %}
 {% if U_ARC_RATE %}<form id="arcade-rate" action="{{ U_ARC_RATE }}" method="post">

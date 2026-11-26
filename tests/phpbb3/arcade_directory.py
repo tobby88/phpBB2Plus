@@ -1,7 +1,7 @@
 """Exercise the actual Arcade search and sort forms on an isolated converted board."""
 import re
 from html import unescape
-from urllib.parse import parse_qs, urlencode, urlsplit
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 from http_board import Browser, Page
 from legacy_links import link
@@ -56,3 +56,33 @@ def browse(base, member, change):
             raise RuntimeError("An unreadable game discussion contributed to directory sorting")
     finally:
         change("cleanup")
+
+
+def social_bookmarks(base, member, pending):
+    guest = Browser(base)
+    comments = "arcade_comment.php"
+    rating = "arcade_rate.php?game_id=60"
+    for old in (rating, comments + "?comment_id=71"):
+        if "login" not in Page(guest.fetch(old)).forms:
+            raise RuntimeError("A guest's original member-only Arcade bookmark did not open the login")
+    for old, path, fragment, marker in (
+        (rating, "/arcade/game/60", "arcade-rating", 'id="arcade-rating"'),
+        (comments + "?comment_id=71&refresh=TRUE", "/arcade/game/60/comments", "comment-71", 'id="comment-71"'),
+        (comments + "?game_id=60&mode=add_comment", "/arcade/game/60/comments", "arcade-add-comment", 'id="comment-71"'),
+        (comments + "?comment_id=71&mode=edit", "/arcade/game/60/comments/71/edit", "", 'id="arcade-change-comment"'),
+        (comments + "?comment_id=71&mode=delete", "/arcade/game/60/comments/71/delete", "", 'id="arcade-change-comment"'),
+    ):
+        with member.opener.open(urljoin(base, old), timeout=20) as response:
+            url = urlsplit(response.geturl())
+            body = response.read().decode("utf-8")
+            if not url.path.endswith(path) or url.fragment != fragment or marker not in body:
+                raise RuntimeError(f"The old Arcade bookmark {old} did not reach its native view or form")
+            if fragment == "comment-71" and parse_qs(url.query).get("focus") != ["71"]:
+                raise RuntimeError("The comment bookmark lost its pagination focus")
+    link(base, comments + "?game_id=60", "app.php/arcade/legacy/comments", {"game": 60, "order": "desc"},
+         method="POST", form={"sort_order": "DESC", "submit": "Sort"}, status=303)
+    pending.fetch("arcade_rate.php?game_id=62", expected_status=404)
+    pending.fetch(comments + "?comment_id=71&mode=edit", expected_status=404)
+    member.fetch(comments + "?game_id=61&comment_id=71", expected_status=404)
+    member.fetch(comments + "?comment_id=71&mode=delete", {"confirm": "1"}, expected_status=405)
+    member.fetch(rating, {"rate": "5"}, expected_status=405)

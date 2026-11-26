@@ -183,6 +183,15 @@ class board
 		return $response;
 	}
 
+	public function legacy_rating($game)
+	{
+		$params = array('game' => (int) $game);
+		if (empty($this->user->data['is_registered'])) { login_box($this->helper->route('phpbb2plus_arcade_legacy_rating', $params, false)); }
+		if (!$this->activity->may_vote($this->catalog->game($game))) { throw new NotFoundHttpException(); }
+		return new RedirectResponse($this->helper->route('phpbb2plus_arcade_game', $params, false) . '#arcade-rating', 302,
+			array('Cache-Control' => 'private, no-store'));
+	}
+
 	private function month_label($month)
 	{
 		// Format in the middle of the board month so visitor time zones cannot change its label.

@@ -489,6 +489,7 @@ def main():
                 arcade.awards(member, ordinary, pending)
                 arcade_directory.browse(base, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_directory.php", target, phase, cwd=web, capture=True))
+                arcade_directory.social_bookmarks(base, ordinary, pending)
                 arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
                 arcade_standings.artwork(base, ordinary, pending, lambda: php(

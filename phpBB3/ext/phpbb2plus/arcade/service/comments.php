@@ -48,6 +48,18 @@ class comments
 		return $row;
 	}
 
+	public function legacy_target($game, $comment)
+	{
+		$row = null;
+		if ($comment)
+		{
+			$row = $this->one('SELECT target_game,owner_id FROM ' . $this->prefix . 'comments WHERE comment_id=' . (int) $comment);
+			if (!$row || !$row['target_game'] || ($game && $game !== (int) $row['target_game'])) { throw new NotFoundHttpException(); }
+			$game = (int) $row['target_game'];
+		}
+		return array($this->game($game), $row);
+	}
+
 	public function manage($game,$comment)
 	{
 		$id = (int) $this->user->data['user_id'];

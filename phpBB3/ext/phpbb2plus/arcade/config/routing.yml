@@ -6,6 +6,15 @@ phpbb2plus_arcade_points:
     path: /arcade/points
     defaults: { _controller: phpbb2plus.arcade.board:standings, monthly: false }
     methods: [GET, HEAD]
+phpbb2plus_arcade_legacy_rating:
+    path: /arcade/legacy/rating/{game}
+    defaults: { _controller: phpbb2plus.arcade.board:legacy_rating }
+    requirements: { game: '[1-9][0-9]*' }
+    methods: [GET, HEAD]
+phpbb2plus_arcade_legacy_comments:
+    path: /arcade/legacy/comments
+    defaults: { _controller: phpbb2plus.arcade.discussion:legacy }
+    methods: [GET, HEAD]
 phpbb2plus_arcade_icon:
     path: /arcade/game/{game}/icon
     defaults: { _controller: phpbb2plus.arcade.board:icon }
