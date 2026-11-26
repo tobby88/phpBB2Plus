@@ -1,0 +1,26 @@
+{% INCLUDECSS '@phpbb2plus_community/smilie_sign.css' %}
+{% INCLUDEJS '@phpbb2plus_community/smilie_creator.js' %}
+{% include 'simple_header.html' %}
+<h2>{{ lang('PLUS_SIGN_CREATOR') }}</h2>
+<form id="plus-sign-form" action="{{ U_PLUS_SIGN_FORM }}" method="post"><div class="panel"><div class="inner">
+{% if S_PLUS_SIGN_ERROR %}<p class="error" role="alert">{{ lang('PLUS_SIGN_ERROR') }}</p>{% endif %}
+<fieldset class="fields2">
+	<dl><dt><label for="sign-caption">{{ lang('PLUS_SIGN_TEXT') }}</label></dt><dd><input id="sign-caption" class="inputbox" name="caption" value="{{ PLUS_SIGN_TEXT|e('html_attr') }}" maxlength="396" required></dd></dl>
+	<dl><dt><label for="sign-colour">{{ lang('PLUS_SIGN_COLOUR') }}</label></dt><dd><input id="sign-colour" type="color" name="fontcolor" value="#{{ PLUS_SIGN_COLOR|e }}"></dd></dl>
+	<dl><dt>{{ lang('PLUS_SIGN_SHADOW') }}</dt><dd><label><input type="checkbox" name="textshadow" value="1"{% if PLUS_SIGN_SHADOW %} checked{% endif %}> {{ lang('PLUS_SIGN_SHADOW') }}</label>
+		<label>{{ lang('PLUS_SIGN_SHADOW_COLOUR') }} <input type="color" name="shadowcolor" value="#{{ PLUS_SIGN_SHADOW|default('c0c0c0', true)|e }}"></label></dd></dl>
+	<dl><dt><label for="sign-shade">{{ lang('PLUS_SIGN_SHADE') }}</label></dt><dd><select id="sign-shade" name="shieldshadow"><option value="1"{% if PLUS_SIGN_SHADE %} selected{% endif %}>{{ lang('YES') }}</option><option value="0"{% if not PLUS_SIGN_SHADE %} selected{% endif %}>{{ lang('NO') }}</option></select></dd></dl>
+</fieldset>
+<fieldset><legend>{{ lang('PLUS_SIGN_FACE') }}</legend>
+	<label><input type="radio" name="face" value="random"{% if PLUS_SIGN_FACE == 'random' %} checked{% endif %}> {{ lang('PLUS_SIGN_RANDOM') }}</label>
+	<label><input type="radio" name="face" value="standard"{% if PLUS_SIGN_FACE == 'standard' %} checked{% endif %}> {{ lang('PLUS_SIGN_STANDARD') }}</label>
+	<div class="plus-sign-faces">{% for face in PLUS_SIGN_FACES %}<label title="{{ lang('PLUS_SIGN_FACE_N', face) }}"><input type="radio" name="face" value="{{ face }}"{% if PLUS_SIGN_FACE == face %} checked{% endif %}>
+		<img src="{{ U_PLUS_SIGN_ASSETS }}smilie{{ face }}.png" width="23" height="23" alt="{{ lang('PLUS_SIGN_FACE_N', face) }}"></label>{% endfor %}</div>
+</fieldset></div></div>
+<fieldset class="submit-buttons"><button class="button1" name="make" value="1">{{ lang('PLUS_SIGN_MAKE') }}</button></fieldset></form>
+{% if PLUS_SIGN_MARKUP %}<div class="panel"><div class="inner"><h3>{{ lang('PREVIEW') }}</h3>
+	<p>{{ PLUS_SIGN_PREVIEW }}</p><label for="plus-sign-code">{{ lang('PLUS_SIGN_COPY') }}</label>
+	<textarea readonly id="plus-sign-code" class="inputbox" rows="3">{{ PLUS_SIGN_MARKUP|e }}</textarea>
+	<button class="button1" type="button" id="plus-sign-insert" hidden>{{ lang('PLUS_SIGN_INSERT') }}</button>
+</div></div>{% endif %}
+{% include 'simple_footer.html' %}

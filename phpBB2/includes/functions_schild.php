@@ -1,6 +1,5 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
-require_once dirname(__FILE__) . '/php_compat.php';
 
 function phpbb_schild_text($value)
 {

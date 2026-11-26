@@ -117,3 +117,7 @@ phpbb2plus_community_absence:
     path: /absence
     defaults: { _controller: phpbb2plus.community.absence_editor:own }
     methods: [GET, HEAD, POST]
+phpbb2plus_community_smilie_creator:
+    path: /smilie-creator
+    defaults: { _controller: phpbb2plus.community.smilie_creator:show }
+    methods: [GET, HEAD, POST]

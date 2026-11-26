@@ -1,0 +1,24 @@
+@font-face {
+	font-family: "Plus sign"; src: local("DejaVu Sans"), url("../../../../../../assets/fonts/DejaVuSans.ttf") format("truetype");
+	font-display: swap;
+}
+.plus-smilie-sign {
+	display: inline-block; position: relative; vertical-align: middle; box-sizing: border-box;
+	min-width: 60px; max-width: min(204px, 100%); padding: 4px 0 24px; text-align: center;
+	font: 11px/14px "Plus sign", Arial, sans-serif; color: #000;
+}
+.plus-smilie-sign::before, .plus-smilie-sign::after {
+	content: ""; position: absolute; left: calc(50% - 3px);
+	background: url("../../../../../../smilie_creator/images/smilies/schild/schild.png") no-repeat;
+}
+.plus-smilie-sign::before { top: 0; width: 6px; height: 4px; }
+.plus-smilie-sign::after { bottom: 7px; width: 9px; height: 17px; background-position: 0 -5px; }
+.plus-sign-board {
+	display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 12;
+	overflow: hidden; overflow-wrap: anywhere; padding: 0 2px; border: 1px solid #000; background: #fff;
+}
+.plus-sign-shaded { background: linear-gradient(120deg, #fff 0 47%, #ebebeb 47% 52%, #dbdbdb 52%); }
+.plus-smilie-sign .plus-sign-face { position: absolute; bottom: 1px; left: calc(50% + 6px); width: 23px; height: 23px; }
+.plus-smilie-sign .plus-sign-face, .plus-sign-faces img { object-fit: scale-down; object-position: top left; }
+.plus-sign-faces { display: grid; grid-template-columns: repeat(5, max-content); gap: .4em .6em; margin-top: .6em; }
+#plus-sign-insert[hidden] { display: none; }

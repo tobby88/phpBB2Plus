@@ -506,4 +506,5 @@ if (!$get_info)
 	{
 		$convertor['schema'][] = plus_credits_schema($table_prefix);
 	}
+	$convertor['execute_last'][] = 'plus_reset_converted_formatter();';
 }

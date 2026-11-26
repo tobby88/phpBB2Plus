@@ -160,6 +160,14 @@ def assemble(output, cache, offline=False):
                 raise ValueError(f"The Plus helper would replace an existing converter file: {name}")
             helper.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / "phpBB2/includes" / module, helper)
+        # Preserve the original local sign artwork, licensed font and standalone PNG bookmarks.
+        for name in ("text2schild.php", "includes/functions_schild.php", "assets/fonts/DejaVuSans.ttf", "assets/fonts/LICENSE-DejaVu.txt"):
+            target = web / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with target.open("xb") as out:
+                out.write((ROOT / "phpBB2" / name).read_bytes())
+        faces = Path("smilie_creator/images/smilies/schild")
+        shutil.copytree(ROOT / "phpBB2" / faces, web / faces)
         images = web / "styles" / "fisubsilversh" / "theme" / "images"
         bundle_flags(web)
         bundle_post_icons(web)

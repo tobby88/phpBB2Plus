@@ -1,12 +1,18 @@
 <?php
+// Image generator from the Smilie Creator Mod 1.0.3 by esperitox, 2003.
 
 define('IN_PHPBB', 'true');
 // This deliberately sessionless image endpoint validates and bounds every
 // input locally. The CI bootstrap audit requires this explicit exception.
 define('PHPBB_STANDALONE_VALIDATED', true);
-$phpbb_root_path = './';
-include_once($phpbb_root_path . 'includes/php_compat.php');
+$phpbb_root_path = __DIR__ . '/';
 require_once($phpbb_root_path . 'includes/functions_schild.php');
+
+$method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
+if (!in_array($method, array('GET', 'HEAD'), true))
+{
+	header('Allow: GET, HEAD'); http_response_code(405); exit;
+}
 
 $raute = '#';
 $fontcolor = isset($_GET['fontcolor']) && is_string($_GET['fontcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['fontcolor']) ? $_GET['fontcolor'] : '000000';
@@ -65,6 +71,10 @@ if (empty($smilie_ids) || !function_exists('gd_info') || !function_exists('image
 	exit;
 }
 
+if ($method === 'HEAD')
+{
+	header('Content-Type: image/png'); header('X-Content-Type-Options: nosniff'); header('Cache-Control: no-store, private'); exit;
+}
 $text = phpbb_schild_text(isset($_GET['text']) ? $_GET['text'] : '');
 // DejaVu Sans 2.37, distributed unmodified with assets/fonts/LICENSE-DejaVu.txt.
 $font = phpbb_schild_font(__DIR__ . '/assets/fonts/DejaVuSans.ttf');
@@ -92,9 +102,6 @@ $img = imagecreate($width,$height);
 
 if (!$smilie || !$schild || !$img || imagesx($smilie) < 6 || imagesy($smilie) < 15 || imagesx($schild) < 7 || imagesy($schild) < 17)
 {
-	if ($smilie) phpbb_gd_release($smilie);
-	if ($schild) phpbb_gd_release($schild);
-	if ($img) phpbb_gd_release($img);
 	header('Content-Type: text/plain; charset=UTF-8');
 	header('X-Content-Type-Options: nosniff');
 	header('Cache-Control: no-store, private');
@@ -151,7 +158,6 @@ if($schildschatten){
 
 if (!phpbb_schild_draw_text($img, $output, $font, $width, $txtcolor, $schattenfarbe !== '' ? $txt2color : null))
 {
-	phpbb_gd_release($img); phpbb_gd_release($schild); phpbb_gd_release($smilie);
 	header('Content-Type: text/plain; charset=UTF-8'); header('X-Content-Type-Options: nosniff'); header('Cache-Control: no-store, private');
 	http_response_code(500); echo 'Smilie text could not be rendered.'; exit;
 }
@@ -167,9 +173,6 @@ header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store, private');
 //imagepng($img,'',100);   // 100 = komprimierung
 imagepng($img); 
-phpbb_gd_release($img);
-phpbb_gd_release($schild);
-phpbb_gd_release($smilie);
 
 exit;
 ?>

@@ -267,6 +267,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			unset($query['start']);
 			header('Cache-Control: private, no-store');
 			break;
+		case 'smilie_creator':
+			$path = 'smilie-creator';
+			break;
 		case 'recent':
 			$path = 'topics/recent';
 			if (in_array($query['mode'] ?? '', array('today','yesterday','last24','lastweek','lastXdays'), true))

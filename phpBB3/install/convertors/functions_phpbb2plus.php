@@ -265,6 +265,14 @@ function plus_convert_optional_user($id)
 	return (int) $id > 0 ? phpbb_user_id($id) : 0;
 }
 
+function plus_reset_converted_formatter()
+{
+	global $phpbb_container;
+	// Rebuild in the running board with all of its native extension listeners.
+	require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/smilie_sign.php';
+	\phpbb2plus\community\service\smilie_sign::reset_formatter($phpbb_container);
+}
+
 function plus_convert_message($message)
 {
 	global $convert, $convert_row;
@@ -274,7 +282,16 @@ function plus_convert_message($message)
 		$convert->row['mp_bbcode_bitfield'] = $convert_row['mp_bbcode_bitfield'] = '';
 		return '<t>0</t>';
 	}
-	return phpbb_prepare_message((string) $message);
+	$xml = phpbb_prepare_message((string) $message);
+	// The standalone installer may build its formatter before extensions are loaded.
+	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) && stripos($xml, '[schild=') !== false &&
+		strpos($xml, '<PLUSSMILIESIGN ') === false && strpos($xml, '<SCHILD') === false)
+	{
+		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/smilie_sign.php';
+		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/legacy_smilie_signs.php';
+		$xml = \phpbb2plus\community\service\legacy_smilie_signs::upgrade($xml);
+	}
+	return $xml;
 }
 
 function plus_orphan_post_data($subject, $uid, $text)

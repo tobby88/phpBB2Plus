@@ -71,8 +71,12 @@ async function exercise() {
         }
         async function evaluate(expression) {
             const result = await command('Runtime.evaluate',{expression,returnByValue:true});
-            if (result.exceptionDetails) throw Error('Unable to observe the gallery upload DOM');
+            if (result.exceptionDetails) throw Error('Unable to inspect the local browser page');
             return result.result.value;
+        }
+        if (mode === 'smilie-creator') {
+            await require('./smilie_creator_browser.cjs')({command, find, evaluate, until, url});
+            return;
         }
         async function fileSubmit(file, doubleClick = false) {
             const tokenNode = await until(() => find('[name="creation_time"]'), 'the form token');
