@@ -17,7 +17,7 @@ if ($argv[2] === 'source')
 	foreach (array(array('phpbb_posts_text', 'post_text', 'post_id=1'),
 		array('phpbb_kb_articles', 'article_body', 'article_id=214')) as list($table, $field, $where))
 	{
-		$db->query("UPDATE $table SET $field=CONCAT('KöFo AG · KöFo · Lexikonprobe. ',$field) WHERE $where");
+		$db->query("UPDATE $table SET $field=CONCAT($field,' KöFo AG · KöFo · Lexikonprobe.') WHERE $where");
 		if ($db->affected_rows !== 1) { throw new RuntimeException('Missing acronym source fixture'); }
 	}
 	return;
