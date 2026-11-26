@@ -55,6 +55,7 @@ import admin_contact
 import topic_readers
 import arcade_diagnostics
 import arcade_game_editor
+import arcade_provisioning
 import recommend
 import attachment_rules
 import attachment_upload_types
@@ -284,8 +285,6 @@ def media_administration(base, member, ordinary, pending, target, web):
     member_attachments.browse(base, member, ordinary)
     attachment_rules.browse(member, ordinary, pending, guest, lambda phase: php(
         ROOT / "tests/phpbb3/attachment_rules.php", target, phase, cwd=web, capture=True))
-    arcade_diagnostics.browse(base, member, lambda phase: php(
-        ROOT / "tests/phpbb3/arcade_diagnostics.php", target, phase, cwd=web, capture=True))
     attachment_upload_types.browse(member, ordinary, pending, lambda phase: php(
         ROOT / "tests/phpbb3/attachment_upload_types.php", target, phase, cwd=web, capture=True))
     with ThreadPoolExecutor(max_workers=1) as worker:
@@ -304,24 +303,35 @@ def media_administration(base, member, ordinary, pending, target, web):
         categories.result()
 
 
+def arcade_management(base, admin, moderator, member, target, web):
+    tests = ROOT / "tests/phpbb3"
+    arcade_diagnostics.browse(base, admin, lambda phase: php(tests / "arcade_diagnostics.php", target, phase, cwd=web, capture=True))
+    arcade_moderation.exercise(base, admin, moderator, member, lambda phase: php(tests / "arcade_moderation.php", target, phase, cwd=web))
+    arcade_category_administration.exercise(base, admin, moderator, lambda phase: php(
+        tests / "arcade_category_administration.php", target, phase, cwd=web, capture=True))
+    arcade_game_editor.browse(base, lambda phase: php(tests / "arcade_game_editor.php", target, phase, cwd=web, capture=True), moderator, member)
+    arcade_provisioning.browse(base, web, target, php)
+
+
 def extension_upgrades(target, web, suite="all"):
-    # The forum and media jobs each run on both PHP versions. Exercise each migration
+    # The CI groups each run on both PHP versions. Exercise each migration
     # with its own workflows' data, including all groups on a single-board full run.
     started = monotonic()
     tests = ROOT / "tests/phpbb3"
     migrations, fixtures, preserved = [], [], []
     if suite in ("forum", "all"):
         migrations.extend(("community/migrations/v137_account_logins", "community/migrations/v150_country_flag_administration",
-                           "community/migrations/v151_topic_readers",
-                           "arcade/migrations/v113_category_administration"))
+                           "community/migrations/v151_topic_readers"))
         fixtures.append(tests / "login_lifecycle.php")
         fixtures.append(tests / "topic_readers.php")
-        preserved.extend((tests / "country_flag_administration.php", tests / "arcade_category_administration.php"))
+        preserved.append(tests / "country_flag_administration.php")
     if suite in ("media", "downloads", "all"):
-        migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings", "arcade/migrations/v114_diagnostics"))
+        migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
         preserved.append(tests / "gallery_rating_policy.php")
-        preserved.append(tests / "arcade_diagnostics.php")
+    if suite in ("arcade", "all"):
+        migrations.extend(("arcade/migrations/v113_category_administration", "arcade/migrations/v114_diagnostics"))
+        preserved.extend((tests / "arcade_category_administration.php", tests / "arcade_diagnostics.php"))
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
@@ -367,10 +377,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--offline", action="store_true")
-    parser.add_argument("--suite", choices=("all", "forum", "media", "downloads"), default="all",
+    parser.add_argument("--suite", choices=("all", "forum", "media", "downloads", "arcade"), default="all",
                         help="Run the full converted board or one of the independent CI suites")
     args = parser.parse_args()
     media_only = args.suite in ("media", "downloads")
+    forum_suite = args.suite in ("forum", "all")
     if os.environ.get("PLUS_TEST_DATABASE") != "1":
         parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
     start = monotonic()
@@ -395,7 +406,7 @@ def main():
             php(fixture, "seed-pruning-off" if media_only else "seed", source)
             statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
             php(statistics_fixture, "seed", source)
-            if not media_only:
+            if forum_suite:
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
                 php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
@@ -415,9 +426,18 @@ def main():
             print(f"Installation and source fixtures: {seeded-built:.1f}s", flush=True)
             with server(web, root) as base:
                 convert(base, source)
-                if not media_only:
+                if forum_suite:
                     php(fixture, "original-topology", source)
                 (web / "install").rename(root / "finished-installer")
+                if args.suite == "arcade":
+                    php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
+                    admin, _ = delegation.authenticate(base, "ModernMember")
+                    moderator = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
+                    player = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
+                    arcade_management(base, admin, moderator, player, target, web)
+                    extension_upgrades(target, web, "arcade")
+                    print(f"Verified {count} upstream files, converted Arcade management and local game creation in {monotonic()-start:.1f}s")
+                    return
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)
                 if not media_only:
                     recovery = ("bin/phpbbcli.php", "phpbb2plus:recovery:posts")
@@ -586,12 +606,8 @@ def main():
                 arcade_directory.social_bookmarks(base, ordinary, pending)
                 arcade_categories.browse(base, member, ordinary, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_categories.php", target, phase, cwd=web))
-                arcade_moderation.exercise(base, member, ordinary, pending, lambda phase: php(
-                    ROOT / "tests/phpbb3/arcade_moderation.php", target, phase, cwd=web))
-                arcade_category_administration.exercise(base, member, ordinary, lambda phase: php(
-                    ROOT / "tests/phpbb3/arcade_category_administration.php", target, phase, cwd=web, capture=True))
-                arcade_game_editor.browse(base, lambda phase: php(
-                    ROOT / "tests/phpbb3/arcade_game_editor.php", target, phase, cwd=web, capture=True), ordinary, pending)
+                if args.suite == "all":
+                    arcade_management(base, member, ordinary, pending, target, web)
                 arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
                 arcade_standings.artwork(base, ordinary, pending, lambda: php(
