@@ -7,11 +7,11 @@
 {% if U_ARC_MONTHLY %}<a href="{{ U_ARC_MONTHLY }}">{L_PLUS_ARC_MONTH}</a>{% endif %}
 {% if U_ARC_POINTS %}<a href="{{ U_ARC_POINTS }}">{L_PLUS_ARC_POINT_STANDINGS}</a>{% endif %}
 {% if U_ARC_TOURNAMENTS %}<a href="{{ U_ARC_TOURNAMENTS }}">{L_PLUS_ARC_TOURS}</a>{% endif %}</nav>{% endif %}
-{% if loops.arc_cats %}<div class="forabg"><div class="inner">
+{% if loops.arc_cats %}<div class="forabg arc-directory"><div class="inner">
 <ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_CATEGORIES}</dt><dd></dd></dl></li></ul>
 <ul class="topiclist forums">{% for cat in loops.arc_cats %}<li class="row"><dl><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.DETAIL %}<br>{{ cat.DETAIL|e }}{% endif %}</div></dt><dd></dd></dl></li>{% endfor %}</ul>
 </div></div>{% endif %}
-<div class="forabg"><div class="inner"><ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_GAMES}</dt><dd></dd></dl></li></ul>
+<div class="forabg arc-directory"><div class="inner"><ul class="topiclist"><li class="header"><dl><dt>{L_PLUS_ARC_GAMES}</dt><dd></dd></dl></li></ul>
 <ul class="topiclist topics">{% for game in loops.arc_games %}<li class="row"><dl><dt><div class="list-inner"><a class="topictitle" href="{{ game.URL }}">{% if game.ICON %}<img class="arc-game-icon" src="{{ game.ICON }}" alt="" loading="lazy" width="{ARC_ICON_WIDTH}" height="{ARC_ICON_HEIGHT}">{% endif %}{{ game.TITLE|e }}</a>
 {% if game.OFFLINE %}<span class="small">({L_PLUS_ARC_DISABLED})</span>{% endif %}</div></dt>{% if ARC_SHOW_PLAYS %}<dd class="lastpost"><span>{{ lang('PLUS_ARC_PLAYS', game.PLAYS) }}</span></dd>{% else %}<dd></dd>{% endif %}</dl></li>
 {% else %}<li class="row"><p class="responsive-center">{L_PLUS_ARC_EMPTY}</p></li>{% endfor %}</ul></div></div>

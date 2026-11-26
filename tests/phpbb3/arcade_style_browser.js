@@ -1,4 +1,16 @@
 async function checkArcadeStyle(frame) {
+    await checkStylePage(frame, "app.php/arcade", [1180, 390], (doc, width) => {
+        const win = doc.defaultView;
+        const links = doc.querySelectorAll(".arc-directory .row .topictitle, .arc-directory .row .forumtitle");
+        if (![...links].some(link => link.href.includes("/arcade/game/60") && link.querySelector("img"))) {
+            throw Error("Missing the game picture or title in the Arcade directory");
+        }
+        for (const link of links) {
+            const ink = luminance(win.getComputedStyle(link).color);
+            const paper = luminance(win.getComputedStyle(link.closest(".row")).backgroundColor);
+            if ((paper + .05) / (ink + .05) < 4.5) { throw Error("Unreadable Arcade directory link at " + width + "px"); }
+        }
+    });
     await checkStylePage(frame, "app.php/arcade/monthly?month=2008-05", [390, 1180], async (doc, width) => {
         const grid = doc.querySelector("#arc-champions");
         const link = grid?.querySelector("a[href*='/arcade/game/60']");
