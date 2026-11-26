@@ -87,6 +87,7 @@ import gallery_personal
 import gallery_cache
 import gallery_media_policy
 import gallery_rating_policy
+import gallery_progress
 import gallery_management_bookmarks
 import knowledgebase
 from ruffle_browser import playback
@@ -556,6 +557,8 @@ def main():
                 def gallery_views():
                     admin, reader, applicant = (actor.separate_client() for actor in (member, ordinary, pending))
                     guest = Browser(base)
+                    gallery_progress.browse(admin, guest, lambda phase: php(
+                        ROOT / "tests/phpbb3/gallery_progress.php", target, phase, cwd=web, capture=True))
                     gallery_navigation.browse(admin, reader, guest, lambda phase: php(
                         ROOT / "tests/phpbb3/gallery_navigation.php", target, phase, cwd=web, capture=True))
                     gallery_previews.browse(admin, reader, applicant, guest, lambda phase: php(
