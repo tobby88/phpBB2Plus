@@ -53,6 +53,8 @@ import legacy_links
 import mail_links
 import admin_contact
 import topic_readers
+import arcade_diagnostics
+import attachment_rules
 import downloads
 import download_categories
 import download_checker
@@ -274,6 +276,10 @@ def media_administration(base, member, ordinary, pending, target, web):
     # Private album admission changes membership. Run it after download
     # submissions and keep cache invalidation after all gallery writes.
     guest = Browser(base)
+    attachment_rules.browse(member, ordinary, pending, guest, lambda phase: php(
+        ROOT / "tests/phpbb3/attachment_rules.php", target, phase, cwd=web, capture=True))
+    arcade_diagnostics.browse(base, member, lambda phase: php(
+        ROOT / "tests/phpbb3/arcade_diagnostics.php", target, phase, cwd=web, capture=True))
     with ThreadPoolExecutor(max_workers=1) as worker:
         categories = worker.submit(download_category_checks, member.separate_client(), target, web)
         gallery_management_bookmarks.browse(member, ordinary, pending, guest, lambda phase: php(
@@ -304,9 +310,10 @@ def extension_upgrades(target, web, suite="all"):
         fixtures.append(tests / "topic_readers.php")
         preserved.extend((tests / "country_flag_administration.php", tests / "arcade_category_administration.php"))
     if suite in ("media", "downloads", "all"):
-        migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
+        migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings", "arcade/migrations/v114_diagnostics"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
         preserved.append(tests / "gallery_rating_policy.php")
+        preserved.append(tests / "arcade_diagnostics.php")
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:

@@ -18,7 +18,15 @@ $phase = $argv[2];
 $owner = (int) $one('SELECT user_id FROM ' . USERS_TABLE . " WHERE username_clean='historicmember'")['user_id'];
 $grant = (int) $one('SELECT user_id FROM ' . USERS_TABLE . " WHERE username_clean='arcadelogjunior'")['user_id'];
 if (!$grant || !$owner) { throw new RuntimeException('Missing synthetic diagnostic accounts'); }
-if ($phase === 'prepare')
+if ($phase === 'older' || $phase === 'upgraded')
+{
+	$row = $one("SELECT record_no,user_id,owner_id,name,log_value,recorded_at,text_encoded FROM $table WHERE record_no=91");
+	if (!$row || (int) $row['owner_id'] !== $owner || !$row['text_encoded'] ||
+		\phpbb2plus\arcade\service\catalog::plain($row['log_value']) !== 'Historisches Ereignis 🛰 &lt;Quelle&gt; <Café>')
+	{ throw new RuntimeException('Arcade diagnostics upgrade lost the owner or representation of the imported text'); }
+	echo hash('sha256', serialize($row)) . "\n";
+}
+elseif ($phase === 'prepare')
 {
 	$src = $one("SELECT * FROM $table WHERE record_no=91");
 	if (!$src || (int) $src['owner_id']!==$owner || !$src['text_encoded'] ||
