@@ -1,1 +1,4 @@
 {% if topicrow.S_PLUS_DESCRIPTION %}<span class="plus-topic-description">{{ topicrow.PLUS_DESCRIPTION }}</span><br>{% endif %}
+{% if topicrow.U_PLUS_EDIT_POST or searchresults.U_PLUS_EDIT_POST %}
+	{% include '@phpbb2plus_community/inline_edit_link.html' with {'entry': topicrow.U_PLUS_EDIT_POST ? topicrow : searchresults, 'title_only': true} %}
+{% endif %}

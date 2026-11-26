@@ -28,9 +28,14 @@ services:
         arguments: ['@path_helper', '@config', '@template', '@language', '@controller.helper']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.inline_edit_lists:
+        class: phpbb2plus\community\event\inline_edit_lists
+        arguments: ['@dbal.conn', '@auth', '@user', '@content.visibility', '@config', '@phpbb2plus.community.inline_editor', '%core.root_path%', '%core.php_ext%']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.inline_editor:
         class: phpbb2plus\community\event\inline_editor
-        arguments: ['@config', '@user', '@request', '@template', '@language']
+        arguments: ['@config', '@user', '@request', '@template', '@language', '@auth']
         tags:
             - { name: event.listener }
     phpbb2plus.community.card_bans:

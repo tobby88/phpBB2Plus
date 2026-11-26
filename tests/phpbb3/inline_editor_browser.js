@@ -16,6 +16,16 @@
         for (const image of copy.querySelectorAll('img[alt]')) { image.replaceWith(image.alt); }
         return copy.textContent;
     }
+    function attachedForm(slot, action) {
+        return new Promise(resolve => {
+            const observer = new MutationObserver(() => {
+                const form = slot.querySelector('form');
+                if (form) { observer.disconnect(); resolve(form); }
+            });
+            observer.observe(slot, {childList: true});
+            action();
+        });
+    }
     async function openEditor() {
         const doc = frame.contentDocument;
         const row = doc.getElementById('p' + post);
@@ -23,16 +33,22 @@
         expect(slot, 'Missing authorized inline target (' + doc.location.pathname + ', row ' + !!row + ', signed in ' + !!doc.querySelector('[href*="mode=logout"]') + ')');
         const link = [...row.querySelectorAll('.post-buttons a')].find(a => a.href === new URL(slot.dataset.editUrl, doc.baseURI).href);
         expect(link && new URL(link.href).searchParams.get('mode') === 'edit', 'Missing ordinary edit link');
-        const attached = new Promise(resolve => {
-            const observer = new MutationObserver(() => {
-                const form = slot.querySelector('form');
-                if (form) { observer.disconnect(); resolve(form); }
-            });
-            observer.observe(slot, {childList: true});
-        });
-        link.click();
-        const form = await attached;
+        const form = await attachedForm(slot, () => link.click());
         expect(!slot.hidden && new URL(doc.URL).pathname.endsWith('/viewtopic.php'), 'Editor left the topic');
+        return form;
+    }
+    async function listedEditor(path, gesture) {
+        const doc = await load(path);
+        const link = doc.querySelector('a.plus-list-edit-link[data-edit-post="' + post + '"]');
+        expect(link && link.tabIndex >= 0 && new URL(link.href).searchParams.get('p') === String(post), 'Missing keyboard-accessible listed edit link: ' + path);
+        link.focus();
+        expect(doc.activeElement === link, 'Listed link is not focusable');
+        const slot = link.parentElement.querySelector('.plus-inline-slot');
+        const titleOnly = slot.hasAttribute('data-title-only');
+        const titleCell = link.closest('.list-inner') || link.closest('.postbody').querySelector('h3');
+        const form = await attachedForm(slot, () => gesture ? titleCell.dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true})) : link.click());
+        expect(doc.activeElement === form.elements[gesture || titleOnly ? 'subject' : 'message'], 'Incorrect field focused from ' + path);
+        expect(!!form.elements.message.getClientRects().length !== titleOnly, 'Wrong editing controls for ' + path);
         return form;
     }
     const thread = 'viewtopic.php?t=' + topic;
@@ -59,7 +75,25 @@
         form.elements.message.value = 'Discarded local change';
         form.querySelector('[data-inline-cancel]').click();
         expect(!doc.querySelector('.plus-inline-form') && doc.querySelector('#p' + post + ' .content').textContent.includes('Original'), 'Cancel hid or changed the post');
+        await step('listed post');
+        form = await listedEditor('search.php?author=HistoricMember&sr=posts&ch=5', false);
+        expect(form.elements.message.value === 'Original [b]Ärger[/b] & Grüße.', 'The search excerpt replaced the full BBCode source');
+        form.elements.message.value = 'Entwurf aus der Suche [i]Ä & Ö[/i]';
+        doc = await next(() => form.querySelector('[name="plus_inline_expand"]').click());
+        expect(doc.querySelector('#postform [name="message"]').value === 'Entwurf aus der Suche [i]Ä & Ö[/i]' &&
+            doc.body.textContent.includes('inline-edit-fixture.gif'), 'Full editor lost the search draft or its attachment');
+        await step('listed topic');
+        form = await listedEditor('search.php?author=HistoricMember&sr=topics', true);
+        expect(form.elements.subject.value === 'Inline editor fixture' && form.elements.message.value.includes('[b]Ärger[/b]'), 'Topic results did not edit the first post');
+        form.elements.subject.value = 'Titelentwurf – Öl';
+        doc = await next(() => form.querySelector('[name="plus_inline_expand"]').click());
+        expect(doc.querySelector('#postform [name="subject"]').value === 'Titelentwurf – Öl' &&
+            doc.querySelector('#postform [name="message"]').value === 'Original [b]Ärger[/b] & Grüße.', 'A title handoff replaced the message');
         await step('expand');
+        doc = await load('viewforum.php?f=1');
+        const cell = doc.querySelector('a.plus-list-edit-link[data-edit-post="' + post + '"]').closest('.list-inner');
+        doc = await next(() => cell.querySelector('a.topictitle').click());
+        expect(doc.getElementById('p' + post), 'An ordinary click on a topic title stopped opening the topic');
         form = await openEditor();
         const handoff = 'Ungespeichert [i]Öl & Grüße[/i]\nZweite Zeile 📎 &amp; <3';
         form.elements.subject.value = 'Übergabe & Entwurf';
@@ -85,10 +119,18 @@
         await waitKey();
         doc = await next(() => form.querySelector('[name="post"]').click());
         expect(doc.querySelector('#postform .error') && doc.querySelector('#postform [name="message"]').value === '', 'Native validation lost the failing draft');
+        await step('listed forum');
+        form = await listedEditor('viewforum.php?f=1', true);
+        expect(form.elements.subject.value === 'Inline editor fixture', 'A prior preview or handoff saved a title');
+        form.elements.subject.value = 'Listentitel Ä🌱';
+        doc = await next(() => form.querySelector('[name="post"]').click());
+        expect(renderedText(doc.getElementById('p' + post)).includes('Listentitel Ä🌱') &&
+            doc.getElementById('p' + post).querySelector('.content').textContent.includes('Original Ärger & Grüße.'),
+            'Saving only the title changed the message or did not reach its native topic');
         await step('save');
         await load(thread);
         form = await openEditor();
-        expect(form.elements.message.value.includes('Original') && form.elements.subject.value === 'Inline editor fixture', 'An earlier handoff, preview or error modified the post');
+        expect(form.elements.message.value.includes('Original') && form.elements.subject.value === 'Listentitel Ä🌱', 'The list edit did not retain the complete post');
         form.elements.subject.value = 'Änderung – 📘';
         form.elements.message.value = '[b]Grüße[/b] & Ω\nZweite Zeile 🌱';
         await waitKey();

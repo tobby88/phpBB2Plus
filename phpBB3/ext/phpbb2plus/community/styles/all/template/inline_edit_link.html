@@ -1,0 +1,7 @@
+<div class="plus-list-edit">
+	<a class="plus-list-edit-link" href="{{ entry.U_PLUS_EDIT_POST }}" data-edit-post="{{ entry.PLUS_EDIT_POST_ID }}">
+		<i class="icon fa-pencil fa-fw" aria-hidden="true"></i>{{ title_only ? lang('PLUS_INLINE_TOPIC_TITLE') : lang('EDIT_POST') }}</a>
+	{% if entry.S_PLUS_INLINE_EDIT %}
+	<div class="plus-inline-slot" data-edit-url="{{ entry.U_PLUS_EDIT_POST }}" data-edit-post="{{ entry.PLUS_EDIT_POST_ID }}"{% if title_only %} data-title-only{% endif %} hidden></div>
+	{% endif %}
+</div>

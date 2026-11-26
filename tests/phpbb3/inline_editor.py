@@ -1,4 +1,5 @@
 """Verify converted editing preferences, native post handling and the actual Chromium UI."""
+import json
 import os
 from pathlib import Path
 import re
@@ -7,10 +8,30 @@ import shutil
 import subprocess
 import tempfile
 import time
-from urllib.parse import urljoin, urlsplit
+from contextlib import contextmanager
+from html import unescape
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 from attachments import GIF
 from http_board import Browser, FormFields, Page, admin_url, submit_form
+
+
+@contextmanager
+def chrome_profile():
+    profile = tempfile.mkdtemp(prefix="plus3-inline-browser-")
+    try:
+        yield profile
+    finally:
+        # On Windows a Chromium cache process can release its journal shortly after the browser exits.
+        deadline = time.monotonic() + 5
+        while True:
+            try:
+                shutil.rmtree(profile)
+                break
+            except PermissionError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(.15)
 
 
 def browser(base, web, topic, post):
@@ -36,7 +57,7 @@ if (isset($_POST['result'])) {
 const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TAG) ?>;
 """ + f"const topic={topic}, post={post};\n" + script + "</script>", encoding="utf-8")
     try:
-        with tempfile.TemporaryDirectory(prefix="plus3-inline-browser-") as profile:
+        with chrome_profile() as profile:
             cmd = [executable, "--headless", "--no-first-run", "--no-default-browser-check", "--disable-extensions",
                    "--disable-sync", "--disable-component-update", "--disable-background-networking",
                    "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost",
@@ -57,13 +78,84 @@ const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TA
                 if result != "OK":
                     raise RuntimeError("Chromium inline editing: " + (result or "No loopback result"))
             finally:
-                if run.poll() is None:
+                try:
+                    run.wait(timeout=.5)
+                except subprocess.TimeoutExpired:
                     run.terminate()
                     run.wait(timeout=10)
     finally:
         probe.unlink(missing_ok=True)
         status.unlink(missing_ok=True)
     return True
+
+
+def list_links(page):
+    links = {}
+    for href, post in re.findall(r'<a class="plus-list-edit-link" href="([^"]+)" data-edit-post="(\d+)"', page):
+        target = urlsplit(unescape(href))
+        query = parse_qs(target.query)
+        if not target.path.endswith("/posting.php") or query.get("mode") != ["edit"] or query.get("p") != [post]:
+            raise RuntimeError("A listing offered an incorrect native post editor")
+        links[int(post)] = href
+    return links
+
+
+def listings(base, owner, member, topic, post, check):
+    forum = "viewforum.php?f=1"
+    search = "search.php?author=HistoricMember&sr="
+    reply = f"posting.php?mode=reply&t={topic}"
+    submit_form(owner, reply, owner.fetch(reply), "postform",
+                {"post": "1", "subject": "Listed moderator reply", "message": "A second author's own reply."})
+    matrix = json.loads(check("listing"))
+    variants = {k: p for k, (_, p) in matrix["variants"].items()}
+    own = {post, variants["own"]}
+    ids = {post, *variants.values()}
+    reply = matrix["reply"]
+    for path in (forum, search + "topics", search + "posts"):
+        page = member.fetch(path)
+        offered = set(list_links(page)) & ids
+        if offered != own:
+            raise RuntimeError(f"Listed author actions in {path}: expected {sorted(own)}, received {sorted(offered)}")
+        if post in list_links(Browser(base).fetch(path)):
+            raise RuntimeError("Guests were offered a member's editor")
+    moderator_forum = list_links(owner.fetch(forum))
+    if variants["locked_post"] not in moderator_forum:
+        raise RuntimeError("The moderator fixture did not exercise native editing of a locked first post")
+    for label, item in {"current": post, **variants}.items():
+        edit = f"posting.php?mode=edit&p={item}"
+        native = "postform" in Page(owner.fetch(edit)).forms
+        if (item in moderator_forum) != (native and label != "erased"):
+            raise RuntimeError("Moderator's topic list disagreed with the native editor for " + label)
+    replies = "search.php?author=ModernMember&sr=posts"
+    moderator_posts = list_links(owner.fetch(replies))
+    if reply in list_links(member.fetch(replies)) or reply not in moderator_posts:
+        raise RuntimeError("Post results confused ownership of a reply with ownership of the topic")
+    if "postform" not in Page(owner.fetch(unescape(moderator_posts[reply]))).forms:
+        raise RuntimeError("The fallback edit link did not open the full editor")
+    native_edit = f"posting.php?mode=edit&p={post}"
+    check("deny-edit")
+    try:
+        if (post in list_links(member.fetch(forum)) or post in list_links(member.fetch(search + "posts")) or
+                "postform" in Page(member.fetch(native_edit)).forms):
+            raise RuntimeError("An individual Never did not withdraw the listed and native edit link together")
+    finally:
+        check("restore-edit")
+    check("forum-lock")
+    try:
+        row = member.fetch(f"viewtopic.php?t={topic}")
+        native_mod = "postform" in Page(owner.fetch(native_edit)).forms
+        if (re.search(r'href="[^"]*posting\.php\?mode=edit&amp;p=' + str(post) + r'(?=&|"|#)', row) or
+                post in list_links(member.fetch(forum)) or native_mod != (post in list_links(owner.fetch(forum)))):
+            raise RuntimeError("A forum lock was not respected in the list")
+        check("forum-password")
+        page = member.fetch(forum)
+        if "login_forum" not in Page(page).forms or post in list_links(member.fetch(search + "topics")):
+            raise RuntimeError("A password-protected forum was accessible before signing into it")
+        submit_form(member, forum, page, "login_forum", {"login": "1", "password": "synthetic-inline-forum"})
+        if post not in list_links(member.fetch(forum)) or post not in list_links(member.fetch(search + "posts")):
+            raise RuntimeError("A valid forum-password session did not regain its own editor")
+    finally:
+        check("forum-open")
 
 
 def browse(base, owner, member, check, web):
@@ -104,6 +196,7 @@ def browse(base, owner, member, check, web):
         if 'class="plus-inline-slot"' in member.fetch(thread):
             raise RuntimeError("The disabled preference still replaced the native post editor")
         submit_form(member, cp, member.fetch(cp), "ucp", {"plus_inline_edit": "1", "submit": "1"})
+        listings(base, owner, member, topic, post, check)
         earlier = member.fetch(edit)
         check("lock")
         if 'class="plus-inline-slot"' in member.fetch(thread) or "postform" in Page(submit_form(member, edit, earlier, "postform",

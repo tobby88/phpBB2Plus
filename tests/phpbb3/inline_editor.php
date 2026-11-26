@@ -18,6 +18,13 @@ function inline_rows($sql)
 	$r = $db->sql_query($sql); $rows = $db->sql_fetchrowset($r); $db->sql_freeresult($r); return $rows;
 }
 function inline_check($ok, $why) { if (!$ok) { throw new RuntimeException($why); } }
+function inline_personal_edit($member, $option, $rows)
+{
+	global $db, $auth;
+	$db->sql_query('DELETE FROM ' . ACL_USERS_TABLE . " WHERE forum_id=1 AND user_id=$member AND auth_role_id=0 AND auth_option_id=$option");
+	foreach ($rows as $row) { $db->sql_query('INSERT INTO ' . ACL_USERS_TABLE . ' ' . $db->sql_build_array('INSERT', $row)); }
+	$auth->acl_clear_prefetch($member);
+}
 $member = (int) inline_rows('SELECT user_id FROM ' . USERS_TABLE . " WHERE username='HistoricMember'")[0]['user_id'];
 $state = $phpbb_container->get('config_text');
 $key = 'plus_test_inline_editor';
@@ -32,8 +39,10 @@ if ($type === 'prepare')
 	$prefs = array_column(inline_rows('SELECT user_id,plus_inline_edit FROM ' . USERS_TABLE . " WHERE user_id IN (2,$member)"), 'plus_inline_edit', 'user_id');
 	inline_check((int) $prefs[$member] === 1 && (int) $prefs[2] === 0, 'Converted members lost distinct editing choices');
 	$state->set($key, json_encode(array('settings' => array_intersect_key(iterator_to_array($config),
-		array_flip(array('plus_inline_edit', 'plus_inline_edit_over', 'flood_interval'))), 'prefs' => $prefs, 'topic' => 0,
-		'forum_flags' => (int) inline_rows('SELECT forum_flags FROM ' . FORUMS_TABLE . ' WHERE forum_id=1')[0]['forum_flags'])));
+		array_flip(array('plus_inline_edit', 'plus_inline_edit_over', 'flood_interval', 'edit_time', 'search_interval', 'search_anonymous_interval', 'display_unapproved_posts'))),
+		'prefs' => $prefs, 'topic' => 0, 'listing' => array(),
+		'grants' => array_column(inline_rows('SELECT session_id FROM ' . FORUMS_ACCESS_TABLE . " WHERE forum_id=1 AND user_id=$member"), 'session_id'),
+		'forum' => inline_rows('SELECT forum_flags,forum_status,forum_password FROM ' . FORUMS_TABLE . ' WHERE forum_id=1')[0])));
 	$config->set('flood_interval', 0);
 	$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET forum_flags=forum_flags | ' . FORUM_FLAG_POST_REVIEW . ' WHERE forum_id=1');
 }
@@ -80,8 +89,69 @@ elseif ($type === 'lock' || $type === 'unlock')
 {
 	$db->sql_query('UPDATE ' . POSTS_TABLE . ' SET post_edit_locked=' . (int) ($type === 'lock') . ' WHERE post_id=' . (int) $saved['post']);
 }
+elseif ($type === 'listing')
+{
+	$topic = inline_rows('SELECT * FROM ' . TOPICS_TABLE . ' WHERE topic_id=' . (int) $saved['topic'])[0];
+	$post = inline_rows('SELECT * FROM ' . POSTS_TABLE . ' WHERE post_id=' . (int) $saved['post'])[0];
+	$reply = inline_rows('SELECT post_id FROM ' . POSTS_TABLE . ' WHERE topic_id=' . (int) $saved['topic'] . " AND poster_id=2 AND post_subject='Listed moderator reply'");
+	inline_check(count($reply) === 1, 'Missing separately authored reply');
+	$config->set('edit_time', 60); $config->set('display_unapproved_posts', 0);
+	$config->set('search_interval', 0); $config->set('search_anonymous_interval', 0);
+	unset($topic['topic_id'], $post['post_id']);
+	$topic['topic_posts_approved'] = 1; $topic['topic_attachment'] = $post['post_attachment'] = 0;
+	$items = array('own' => array(), 'locked_post' => array('post_edit_locked' => 1),
+		'old' => array('post_time' => time() - 7200), 'locked_topic' => array('topic_status' => ITEM_LOCKED),
+		'pending_first' => array('post_visibility' => ITEM_UNAPPROVED),
+		'erased' => array('post_visibility' => ITEM_DELETED, 'plus_legacy_erased' => 1, 'plus_public_post' => 1));
+	$db->sql_transaction('begin');
+	foreach ($items as $name => $overrides)
+	{
+		$title = 'Listed edit ' . $name;
+		$t = array_replace($topic, array_intersect_key($overrides, $topic), array('topic_title' => $title));
+		$db->sql_query('INSERT INTO ' . TOPICS_TABLE . ' ' . $db->sql_build_array('INSERT', $t));
+		$tid = (int) $db->sql_nextid();
+		$p = array_replace($post, array_intersect_key($overrides, $post), array('topic_id' => $tid, 'post_subject' => $title));
+		$db->sql_query('INSERT INTO ' . POSTS_TABLE . ' ' . $db->sql_build_array('INSERT', $p));
+		$pid = (int) $db->sql_nextid();
+		$db->sql_query('UPDATE ' . TOPICS_TABLE . " SET topic_first_post_id=$pid,topic_last_post_id=$pid WHERE topic_id=$tid");
+		$saved['listing'][$name] = array($tid, $pid);
+	}
+	$state->set($key, json_encode($saved));
+	$db->sql_transaction('commit');
+	echo json_encode(array('variants' => $saved['listing'], 'reply' => (int) $reply[0]['post_id']));
+}
+elseif ($type === 'forum-lock' || $type === 'forum-open' || $type === 'forum-password')
+{
+	$password = $type === 'forum-password' ? $phpbb_container->get('passwords.manager')->hash('synthetic-inline-forum') : $saved['forum']['forum_password'];
+	$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', array('forum_password' => $password,
+		'forum_status' => $type === 'forum-lock' ? ITEM_LOCKED : $saved['forum']['forum_status'])) . ' WHERE forum_id=1');
+}
+elseif ($type === 'deny-edit')
+{
+	$option = (int) inline_rows('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='f_edit'")[0]['auth_option_id'];
+	$saved['edit_option'] = $option;
+	$saved['original_grant'] = inline_rows('SELECT * FROM ' . ACL_USERS_TABLE . " WHERE forum_id=1 AND user_id=$member AND auth_role_id=0 AND auth_option_id=$option");
+	$state->set($key, json_encode($saved));
+	inline_personal_edit($member, $option, array(array('forum_id' => 1, 'user_id' => $member, 'auth_role_id' => 0, 'auth_option_id' => $option, 'auth_setting' => ACL_NEVER)));
+}
+elseif ($type === 'restore-edit')
+{
+	inline_personal_edit($member, $saved['edit_option'], $saved['original_grant']);
+	unset($saved['edit_option'], $saved['original_grant']);
+	$state->set($key, json_encode($saved));
+}
 elseif ($type === 'cleanup' && $saved)
 {
+	if (isset($saved['edit_option'])) { inline_personal_edit($member, $saved['edit_option'], $saved['original_grant']); }
+	if (!empty($saved['listing']))
+	{
+		// Only these lightweight, non-counting rows were inserted directly.
+		$ids = array_column($saved['listing'], 0);
+		foreach (array(TOPICS_TRACK_TABLE, TOPICS_POSTED_TABLE, POSTS_TABLE, TOPICS_TABLE) as $table)
+		{
+			$db->sql_query("DELETE FROM $table WHERE " . $db->sql_in_set('topic_id', $ids));
+		}
+	}
 	$topics = $saved['topic'] ? array((int) $saved['topic']) : array_column(inline_rows('SELECT topic_id FROM ' . TOPICS_TABLE .
 		" WHERE forum_id=1 AND topic_poster=$member AND topic_title='Inline editor fixture'"), 'topic_id');
 	if ($topics)
@@ -94,7 +164,9 @@ elseif ($type === 'cleanup' && $saved)
 		" WHERE is_orphan=1 AND poster_id=$member AND real_filename='inline-edit-fixture.gif'"), 'attach_id');
 	if ($orphans) { $phpbb_container->get('attachment.manager')->delete('attach', $orphans); }
 	foreach ($saved['settings'] as $k => $v) { $config->set($k, $v); }
-	if (isset($saved['forum_flags'])) { $db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET forum_flags=' . (int) $saved['forum_flags'] . ' WHERE forum_id=1'); }
+	$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $saved['forum']) . ' WHERE forum_id=1');
+	$db->sql_query('DELETE FROM ' . FORUMS_ACCESS_TABLE . " WHERE forum_id=1 AND user_id=$member" .
+		($saved['grants'] ? ' AND ' . $db->sql_in_set('session_id', $saved['grants'], true) : ''));
 	foreach ($saved['prefs'] as $id => $val) { $db->sql_query('UPDATE ' . USERS_TABLE . ' SET plus_inline_edit=' . (int) $val . ' WHERE user_id=' . (int) $id); }
 	$state->delete($key);
 }

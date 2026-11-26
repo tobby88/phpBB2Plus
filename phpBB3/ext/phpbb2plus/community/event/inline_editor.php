@@ -11,34 +11,51 @@ class inline_editor implements EventSubscriberInterface
 	private $request;
 	private $template;
 	private $language;
+	private $auth;
 
-	public function __construct($config, $user, $request, $template, $language)
+	public function __construct($config, $user, $request, $template, $language, $auth)
 	{
 		$this->config = $config;
 		$this->user = $user;
 		$this->request = $request;
 		$this->template = $template;
 		$this->language = $language;
+		$this->auth = $auth;
 	}
 
 	public static function getSubscribedEvents()
 	{
-		return array('core.viewtopic_modify_post_row' => array('offer', -100),
+		return array('core.viewtopic_modify_post_row' => array('offer', -200),
 			'core.modify_posting_parameters' => 'expand',
 			'core.ucp_prefs_view_data' => 'member_form', 'core.ucp_prefs_view_update_data' => 'member_save',
 			'core.acp_board_config_edit_add' => 'board_form');
 	}
 
+	public function prepare_controls()
+	{
+		$this->language->add_lang('inline_editor', 'phpbb2plus/community');
+		$value = (int) ($this->user->data['plus_inline_edit'] ?? -1);
+		$enabled = !$this->config['plus_inline_edit_over'] && $value >= 0 ? (bool) $value : (bool) $this->config['plus_inline_edit'];
+		if ($enabled) { $this->template->assign_var('S_PLUS_INLINE_EDIT', true); }
+		return $enabled;
+	}
+
 	public function offer($event)
 	{
 		$row = $event['post_row'];
-		$value = (int) ($this->user->data['plus_inline_edit'] ?? -1);
-		$enabled = !$this->config['plus_inline_edit_over'] && $value >= 0 ? $value : $this->config['plus_inline_edit'];
-		if (!$enabled || empty($row['U_EDIT'])) { return; }
-		$this->language->add_lang('inline_editor', 'phpbb2plus/community');
+		if (empty($row['U_EDIT'])) { return; }
+		$topic = $event['topic_data'];
+		// The native posting controller requires m_edit to edit in either kind of lock.
+		if (((int) $topic['forum_status'] === ITEM_LOCKED || (int) $topic['topic_status'] === ITEM_LOCKED) &&
+			!$this->auth->acl_get('m_edit', (int) $topic['forum_id']))
+		{
+			$row['U_EDIT'] = '';
+			$event['post_row'] = $row;
+			return;
+		}
+		if (!$this->prepare_controls()) { return; }
 		$row['S_PLUS_INLINE_EDIT'] = true;
 		$event['post_row'] = $row;
-		$this->template->assign_var('S_PLUS_INLINE_EDIT', true);
 	}
 
 	public function expand($event)
