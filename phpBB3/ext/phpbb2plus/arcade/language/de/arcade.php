@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ARC_CONTROL_1'=>'Steuerung mit der Maus','PLUS_ARC_CONTROL_2'=>'Steuerung mit der Tastatur','PLUS_ARC_CONTROL_3'=>'Steuerung mit Maus und Tastatur',
 	'ACL_A_PLUS_ARC_SCORES' => 'Kann Spielhallen-Ergebnisse korrigieren und entfernen',
 	'PLUS_ARC_MOD' => 'Bestenlisten moderieren',
 	'PLUS_ARC_MOD_EMPTY' => 'Es gibt noch keine Spielhallen-Kategorien zum Moderieren.',

@@ -22,6 +22,13 @@ if (!plus_jr_reviewed_dependencies($root, $directory, array($sibling => $digest)
 	|| plus_jr_reviewed_dependencies($root, $directory, array('missing_fixture_module.php' => $digest)))
 { throw new RuntimeException('Changed or missing dependency was accepted for automatic delegation'); }
 $convert = (object) array('options' => array('forum_path' => $root));
+$source_catalog = plus_jr_registry();
+foreach (array('Add'=>'add_game','Import'=>'import_game') as $label=>$mode)
+{
+	$entry = $source_catalog[md5('Arcade' . $label . 'admin_arcade_games.php?mode=' . $mode)] ?? null;
+	if (!$entry || isset($entry['option']) || isset($entry['options']))
+	{ throw new RuntimeException('A distinct Arcade source mode received the Edit grant'); }
+}
 $file_grant = md5('DownloadFile_manage_titleadmin_pa_file.php');
 $helper = $root . '/pafiledb/includes/functions_mirror_storage.php';
 $original = file_get_contents($helper);

@@ -8,6 +8,9 @@ services:
     phpbb2plus.arcade.category_management:
         class: phpbb2plus\arcade\service\category_management
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.artwork', '%core.table_prefix%']
+    phpbb2plus.arcade.game_editor:
+        class: phpbb2plus\arcade\service\game_editor
+        arguments: ['@dbal.conn', '@phpbb2plus.arcade.admin_access', '@phpbb2plus.arcade.sessions', '@phpbb2plus.arcade.catalog', '@phpbb2plus.arcade.category_management', '@log', '@user', '%core.table_prefix%plus_arc_']
     phpbb2plus.arcade.score_moderation:
         class: phpbb2plus\arcade\service\score_moderation
         arguments: ['@dbal.conn', '@auth', '@user', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.sessions', '@log']
@@ -86,7 +89,7 @@ services:
         arguments: ['@phpbb2plus.arcade.catalog', '@dbal.conn', '@user', '@config', '%core.table_prefix%plus_arc_', '%core.root_path%', '@phpbb2plus.arcade.wallet', '@phpbb2plus.arcade.tournaments']
     phpbb2plus.arcade.player:
         class: phpbb2plus\arcade\controller\player
-        arguments: ['@phpbb2plus.arcade.sessions', '@request', '@language', '@template', '@controller.helper', '@user', '@config']
+        arguments: ['@phpbb2plus.arcade.sessions', '@request', '@language', '@template', '@controller.helper', '@user', '@config', '@phpbb2plus.arcade.catalog']
     phpbb2plus.arcade.results:
         class: phpbb2plus\arcade\service\results
         arguments: ['@dbal.conn', '@phpbb2plus.arcade.catalog', '@user', '@config', '%core.table_prefix%plus_arc_', '@phpbb2plus.arcade.wallet', '@phpbb2plus.arcade.tournaments']

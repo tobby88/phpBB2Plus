@@ -5,7 +5,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class admin_access
 {
-	private const MODULES = array('categories'=>'a_plus_arc_categories','diagnostics'=>'a_plus_arc_log');
+	private const MODULES = array('categories'=>'a_plus_arc_categories','diagnostics'=>'a_plus_arc_log','games'=>'a_plus_arc_games');
 	private $db;
 	private $auth;
 	private $user;

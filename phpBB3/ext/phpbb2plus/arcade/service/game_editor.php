@@ -1,0 +1,269 @@
+<?php
+namespace phpbb2plus\arcade\service;
+
+/** Editable catalogue metadata. File storage, game identities and score records have separate owners. */
+class game_editor
+{
+	public const LIMITS = array('win_width'=>'4096','win_height'=>'4096','game_charge'=>'4294967295',
+		'game_reward'=>'4294967295','game_bonus'=>'65535','at_game_bonus'=>'32767',
+		'highscore_limit'=>'9223372036854775807','at_highscore_limit'=>'32767');
+	public const CHOICES = array('game_avail'=>1,'allow_guest'=>1,'game_show_score'=>1,'reverse_list'=>1,
+		'game_autosize'=>1,'game_control'=>3,'score_type'=>8,'level_required'=>2);
+	public const TEXT = array('game_desc','instructions');
+	public const SORT = array('game_id'=>'g.game_id','allow_guest'=>'g.allow_guest','date_added'=>'g.date_added',
+		'alphabetical'=>'g.game_desc','cat_id'=>'g.cat_id','offline'=>'g.game_avail','game_played'=>'g.played');
+	private $db;
+	private $access;
+	private $sessions;
+	private $catalog;
+	private $categories;
+	private $log;
+	private $user;
+	private $prefix;
+
+	public function __construct($db, $access, $sessions, $catalog, $categories, $log, $user, $prefix)
+	{
+		$this->db = $db;
+		$this->access = $access;
+		$this->sessions = $sessions;
+		$this->catalog = $catalog;
+		$this->categories = $categories;
+		$this->log = $log;
+		$this->user = $user;
+		$this->prefix = $prefix;
+	}
+
+	private function rows($sql)
+	{
+		$result = $this->db->sql_query($sql);
+		$rows = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+		return $rows;
+	}
+
+	public function listing($offset, $term, $category, $sort, $order)
+	{
+		$this->access->authorize('games');
+		$table = $this->prefix . 'games';
+		$where = 'g.game_id>0';
+		if ($category>0) { $where .= ' AND g.cat_id=' . (int) $category; }
+		elseif ($category===-1) { $where .= ' AND (g.cat_id IS NULL OR g.cat_id<=0)'; }
+		if ($term !== '')
+		{
+			$title = $this->catalog->title_filter($term,0);
+			$any = $this->db->get_any_char();
+			$name = $this->db->sql_like_expression($any . str_replace('\\','\\\\',utf8_strtolower($term)) . $any);
+			$where .= " AND (LOWER(g.game_name) $name OR (1=1$title))";
+		}
+		$total = (int) $this->rows("SELECT COUNT(*) AS total FROM $table g WHERE $where")[0]['total'];
+		$size = (int) $this->catalog->setting('games_per_admin_page',20);
+		$size = $size > 0 ? min(1000,$size) : max(1,$total);
+		$start = intdiv(min(max(0,$offset),max(0,$total-1)),$size)*$size;
+		$direction = $order==='ASC' ? 'ASC' : 'DESC';
+		$column = self::SORT[$sort] ?? self::SORT['game_id'];
+		$sorting = $sort==='offline' ? "g.game_avail,g.game_desc $direction" : "$column $direction";
+		$result = $this->db->sql_query_limit("SELECT g.game_id,g.game_name,g.game_desc,g.game_avail,c.cat_name
+			FROM $table g LEFT JOIN {$this->prefix}categories c ON c.cat_id=g.cat_id WHERE $where ORDER BY $sorting,g.game_id $direction",$size,$start);
+		$rows = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+		return array($rows,$total,$size,$start);
+	}
+
+	public function find($id, $lock = false)
+	{
+		$this->access->authorize('games');
+		$row = $id > 0 ? ($this->rows('SELECT * FROM ' . $this->prefix . 'games WHERE game_id=' . (int) $id . ($lock ? ' FOR UPDATE' : ''))[0] ?? null) : null;
+		if (!$row) { throw new \DomainException('PLUS_ARC_EDIT_MISSING'); }
+		return $row;
+	}
+
+	public static function revision($row)
+	{
+		// A new play or score while the form is open does not change its metadata.
+		$fields = array_merge(self::TEXT,array_keys(self::LIMITS),array_keys(self::CHOICES),
+			array('game_id','game_name','cat_id','group_required','native_group_id','rank_required'));
+		$values = array();
+		foreach ($fields as $key) { $values[$key] = $row[$key]; }
+		return hash('sha256',serialize($values));
+	}
+
+	private static function number($value, $max)
+	{
+		if (!is_string($value) || !preg_match('/^(0|[1-9][0-9]*)$/D',$value) || strlen($value)>strlen($max) ||
+			(strlen($value)===strlen($max) && strcmp($value,$max)>0)) { throw new \DomainException('PLUS_ARC_EDIT_INVALID'); }
+		return $value;
+	}
+
+	private function valid_category($id, $nodes)
+	{
+		if ($id === -1) { return true; }
+		if ($id < 1 || !isset($nodes[$id])) { return false; }
+		$row = $nodes[$id];
+		$parent = (int) $row['cat_parent'];
+		if ($row['cat_type'] === 'p') { return $parent === 0; }
+		return $row['cat_type'] === 's' && $parent>0 && isset($nodes[$parent]) &&
+			$nodes[$parent]['cat_type'] === 'p' && (int) $nodes[$parent]['cat_parent'] === 0;
+	}
+
+	public function category_options()
+	{
+		$this->access->authorize('games');
+		$nodes = $this->categories->records();
+		$categories = array();
+		foreach ($nodes as $id=>$row)
+		{
+			if ($id>0 && $this->valid_category($id,$nodes))
+			{
+				$parent = (int) $row['cat_parent'];
+				$categories[$id] = ($parent ? catalog::plain($nodes[$parent]['cat_name']) . ' / ' : '') . catalog::plain($row['cat_name']);
+			}
+		}
+		return $categories;
+	}
+
+	public function options($game)
+	{
+		$options = array('cat_id'=>$this->category_options(),'group_required'=>array(),'rank_required'=>array());
+		foreach ($this->categories->groups() as $row) { $options['group_required'][$row['group_id']] = catalog::plain($row['group_name']); }
+		foreach ($this->rows('SELECT rank_id,rank_title FROM ' . RANKS_TABLE . ' WHERE rank_special=0 ORDER BY rank_min,rank_id') as $row)
+		{ $options['rank_required'][$row['rank_id']] = catalog::plain($row['rank_title']); }
+		$group = (int) $game['native_group_id'];
+		$legacy = (int) $game['group_required'];
+		$current = array('cat_id'=>$options['cat_id'][$game['cat_id']] ?? '',
+			'group_required'=>$group ? ($options['group_required'][$group] ?? '') : ($legacy ? $this->categories->group_label($legacy) : ''),
+			'rank_required'=>$options['rank_required'][$game['rank_required']] ?? '');
+		return array($options,$current);
+	}
+
+	private function scoped_values($input, $nodes)
+	{
+		$values = array();
+		if ($input['cat_id'] !== 'keep')
+		{
+			$id = $input['cat_id'] === '-1' ? -1 : (int) self::number($input['cat_id'],'2147483647');
+			if (!$this->valid_category($id,$nodes)) { throw new \DomainException('PLUS_ARC_EDIT_SCOPE_INVALID'); }
+			$values['cat_id'] = $id;
+		}
+		if ($input['rank_required'] !== 'keep')
+		{
+			$id = (int) self::number($input['rank_required'],'16777215');
+			if ($id && !$this->rows('SELECT rank_id FROM ' . RANKS_TABLE . " WHERE rank_id=$id AND rank_special=0 LOCK IN SHARE MODE"))
+			{ throw new \DomainException('PLUS_ARC_EDIT_SCOPE_INVALID'); }
+			$values['rank_required'] = $id;
+		}
+		if ($input['group_required'] !== 'keep')
+		{
+			$id = (int) self::number($input['group_required'],'16777215');
+			if ($id && !$this->rows('SELECT group_id FROM ' . GROUPS_TABLE . " WHERE group_id=$id AND group_type<>" . GROUP_SPECIAL . ' LOCK IN SHARE MODE'))
+			{ throw new \DomainException('PLUS_ARC_EDIT_SCOPE_INVALID'); }
+			$values['native_group_id'] = $id;
+			$values['group_required'] = $id ? -1 : 0;
+		}
+		return $values;
+	}
+
+	private function metadata($input, $row)
+	{
+		$values = array();
+		foreach (self::TEXT as $field)
+		{
+			$text = $input[$field];
+			$original = str_replace(array("\r\n","\r"),"\n",catalog::plain($row[$field]));
+			$text = str_replace(array("\r\n","\r"),"\n",$text);
+			if ($text === $original) { continue; }
+			if (!preg_match('//u',$text) || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$text) ||
+				($field === 'game_desc' && (utf8_strlen($text)>255 || strpbrk($text,"\n\t")!==false)) ||
+				($field === 'instructions' && strlen($text)>65535)) { throw new \DomainException('PLUS_ARC_EDIT_INVALID'); }
+			$values[$field] = utf8_encode_ucr(str_replace('&','&amp;',$text));
+		}
+		foreach (self::LIMITS + self::CHOICES as $field=>$limit)
+		{
+			$value = $input[$field];
+			if ($value === self::display_number($row[$field])) { continue; } // Keep historical NULLs and out-of-range values verbatim.
+			$values[$field] = self::number($value,(string) $limit);
+		}
+		return $values;
+	}
+
+	public static function display_number($stored)
+	{
+		return $stored === null || $stored === '' ? '0' : (string) $stored;
+	}
+
+	private function category_changes($nodes, $before, $after)
+	{
+		// Imported lifetime totals can predate the remaining catalogue. Transfer
+		// only this game's contribution, as the source editor did.
+		$counts = array();
+		foreach (array($before,$after) as $index=>$game)
+		{
+			$cat = (int) $game['cat_id'];
+			$direct = $cat>0 && isset($nodes[$cat]) && $nodes[$cat]['cat_type']!=='l' ? $cat : 0;
+			$parent = $direct ? (int) $nodes[$direct]['cat_parent'] : 0;
+			$targets = array_unique(array_filter(array(-1,$direct,$parent)));
+			foreach ($targets as $target)
+			{
+				if (!isset($nodes[$target])) { continue; }
+				if (!isset($counts[$target])) { $counts[$target] = array('games'=>0,'plays'=>'0'); }
+				if (($target===-1 || $target===$direct) && (int) $game['game_avail']===1) { $counts[$target]['games'] += $index ? 1 : -1; }
+				$plays = (string) (int) $game['played'];
+				$counts[$target]['plays'] = currency::add($counts[$target]['plays'],($index ? '' : '-') . $plays);
+			}
+		}
+		foreach ($counts as $target=>$delta)
+		{
+			$total = max(0,(int) $nodes[$target]['total_games'] + $delta['games']);
+			$before_played = (string) $nodes[$target]['total_played'];
+			self::number($before_played,'18446744073709551615');
+			$plays = currency::add($before_played,$delta['plays']);
+			if ($plays[0]==='-') { $plays = '0'; }
+			self::number($plays,'18446744073709551615');
+			if ($total>4294967295) { throw new \DomainException('PLUS_ARC_EDIT_COUNT'); }
+			$counts[$target] = array('total_games'=>$total,'total_played'=>$plays);
+		}
+		return $counts;
+	}
+
+	public function save($id, $revision, $input)
+	{
+		$this->sessions->locked(function () use ($id,$revision,$input) {
+			$this->access->authorize('games',true);
+			$row = $this->find($id,true);
+			if (!hash_equals(self::revision($row),$revision)) { throw new \DomainException('PLUS_ARC_EDIT_STALE'); }
+			$changes = $this->metadata($input,$row);
+			$nodes = $input['cat_id'] !== 'keep' || isset($changes['game_avail']) ? $this->categories->records(true) : array();
+			$changes += $this->scoped_values($input,$nodes);
+			$changes = array_filter($changes,static function ($value,$key) use ($row) {
+				return $row[$key] === null || (string) $value !== (string) $row[$key];
+			},ARRAY_FILTER_USE_BOTH);
+			if (!$changes) { return; }
+			if (isset($changes['reverse_list']) && !$this->catalog->unique_name($row)) { throw new \DomainException('PLUS_ARC_EDIT_AMBIGUOUS'); }
+			$moved = isset($changes['cat_id']);
+			$game = array_merge($row,$changes);
+			$history = $moved ? new category_history($this->db,$this->prefix) : null;
+			$table = $this->prefix . 'games';
+			$this->db->sql_query("UPDATE $table SET " . $this->db->sql_build_array('UPDATE',$changes) . ' WHERE game_id=' . (int) $id);
+			if ($moved || isset($changes['game_avail']))
+			{
+				$counts = $this->category_changes($nodes,$row,$game);
+				if ($moved) { $history->recalculate($nodes,$nodes,$counts,(int) $id); }
+				else
+				{
+					foreach ($counts as $target=>$values)
+					{
+						if ((int) $nodes[$target]['total_games']!==$values['total_games'])
+						{
+							$this->db->sql_query("UPDATE {$this->prefix}categories SET total_games=" . $values['total_games'] . " WHERE cat_id=$target");
+						}
+					}
+				}
+			}
+			if (isset($changes['reverse_list']))
+			{
+				score::refresh_winner($this->db,$this->prefix,$game,false);
+				score::refresh_winner($this->db,$this->prefix,$game,true);
+			}
+			$this->log->add('admin',(int) $this->user->data['user_id'],$this->user->ip,'LOG_PLUS_ARC_EDIT_GAME',false,array((int) $id));
+		});
+	}
+}

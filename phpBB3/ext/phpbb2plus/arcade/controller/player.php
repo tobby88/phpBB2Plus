@@ -16,8 +16,9 @@ class player
 	private $helper;
 	private $user;
 	private $config;
+	private $catalog;
 
-	public function __construct($sessions, $request, $language, $template, $helper, $user, $config)
+	public function __construct($sessions, $request, $language, $template, $helper, $user, $config, $catalog)
 	{
 		$this->sessions = $sessions;
 		$this->request = $request;
@@ -26,6 +27,7 @@ class player
 		$this->helper = $helper;
 		$this->user = $user;
 		$this->config = $config;
+		$this->catalog = $catalog;
 	}
 
 	public function start($game, $tour = 0)
@@ -60,6 +62,8 @@ class player
 		}
 		$type = $asset['mime_type'] === 'application/x-shockwave-flash' ? 'swf' : explode('/', $asset['mime_type'])[0];
 		$this->template->assign_vars(array('ARC_TITLE'=>$title, 'ARC_TYPE'=>$type, 'ARC_SOURCE'=>$src,
+			'ARC_AUTO_SIZE'=>(int) $this->catalog->setting('games_auto_size',0) && !(int) $g['game_autosize'],
+			'ARC_IMAGE_SIZE'=>(int) $g['win_width']>0 && (int) $g['win_height']>0,
 			'ARC_WIDTH'=>max(1, min(4096, (int) $g['win_width'] ?: 550)), 'ARC_HEIGHT'=>max(1, min(4096, (int) $g['win_height'] ?: 450)),
 			'U_ARC_GAME'=>$this->helper->route('phpbb2plus_arcade_game', array('game'=>(int) $game))));
 		$response = $this->helper->render('@phpbb2plus_arcade/player.html', utf8_htmlspecialchars($title));

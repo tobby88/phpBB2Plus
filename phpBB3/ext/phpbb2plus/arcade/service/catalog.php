@@ -145,8 +145,14 @@ class catalog
 		if (!$category) { $cat_sql = "(g.cat_id IS NULL OR g.cat_id<=0 OR $cat_sql)"; }
 		if ($this->admin()) { return 'g.game_id>0 AND ' . $cat_sql; }
 		$levels = $this->staff() ? array(0, 2) : array(0);
+		$group = '(g.native_group_id=0 AND ' . $this->db->sql_in_set('g.group_required', $this->groups()) . ')';
+		if (!empty($this->user->data['is_registered']))
+		{
+			$group .= ' OR (g.native_group_id>0 AND EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ng JOIN ' . GROUPS_TABLE .
+				' gg ON gg.group_id=ng.group_id WHERE ng.group_id=g.native_group_id AND ng.user_pending=0 AND ng.user_id=' . (int) $this->user->data['user_id'] . '))';
+		}
 		return 'g.game_id>0 AND ' . ($include_offline ? '' : 'g.game_avail=1 AND ') . $cat_sql . ' AND ' . $this->db->sql_in_set('g.level_required', $levels) .
-			' AND g.rank_required<=' . (int) $this->user->data['user_rank'] . ' AND ' . $this->db->sql_in_set('g.group_required', $this->groups());
+			' AND g.rank_required<=' . (int) $this->user->data['user_rank'] . ' AND (' . $group . ')';
 	}
 
 	public function category_overview($parent)

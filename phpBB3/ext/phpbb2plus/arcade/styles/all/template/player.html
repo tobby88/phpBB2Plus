@@ -3,10 +3,10 @@
 {% if U_ARC_TOUR %}<p><a href="{{ U_ARC_TOUR }}">{{ lang('PLUS_ARC_TOUR_BACK') }}</a></p>{% endif %}
 <div class="panel"><div class="inner">
 {% if ARC_TYPE == 'swf' %}
-<div id="plus-arc-player" data-source="{{ ARC_SOURCE|e }}" data-title="{{ ARC_TITLE|e }}" data-width="{ARC_WIDTH}" data-height="{ARC_HEIGHT}" data-error="{L_PLUS_ARC_PLAYER_ERROR}"><p>{L_PLUS_ARC_LOADING}</p></div>
+<div id="plus-arc-player" data-source="{{ ARC_SOURCE|e }}" data-title="{{ ARC_TITLE|e }}" data-width="{ARC_WIDTH}" data-height="{ARC_HEIGHT}"{% if ARC_AUTO_SIZE %} data-auto-size="1"{% endif %} data-error="{L_PLUS_ARC_PLAYER_ERROR}"><p>{L_PLUS_ARC_LOADING}</p></div>
 <!-- INCLUDEJS {T_ASSETS_PATH}/ruffle/ruffle.js -->
 <!-- INCLUDEJS @phpbb2plus_arcade/player.js -->
-{% elseif ARC_TYPE == 'image' %}<img class="postimage" src="{{ ARC_SOURCE|e }}" alt="{{ ARC_TITLE|e }}">
+{% elseif ARC_TYPE == 'image' %}<img class="postimage" src="{{ ARC_SOURCE|e }}" alt="{{ ARC_TITLE|e }}"{% if not ARC_AUTO_SIZE and ARC_IMAGE_SIZE %} width="{ARC_WIDTH}" height="{ARC_HEIGHT}"{% endif %}>
 {% elseif ARC_TYPE == 'audio' %}<audio controls preload="metadata" src="{{ ARC_SOURCE|e }}"></audio>
 {% elseif ARC_TYPE == 'video' %}<video controls preload="metadata" width="{ARC_WIDTH}" height="{ARC_HEIGHT}" src="{{ ARC_SOURCE|e }}"></video>{% endif %}
 </div></div>

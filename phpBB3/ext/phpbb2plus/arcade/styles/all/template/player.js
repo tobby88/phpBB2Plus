@@ -11,6 +11,14 @@
     player.style.maxWidth = '100%';
     container.replaceChildren(player);
     const api = player.ruffle(1);
+    if (container.dataset.autoSize) {
+        player.addEventListener('loadedmetadata', () => {
+            const metadata = api.metadata;
+            if (!metadata || !(metadata.width > 0 && metadata.height > 0)) return;
+            player.style.width = Math.min(4096, metadata.width) + 'px';
+            player.style.height = Math.min(4096, metadata.height) + 'px';
+        }, { once: true });
+    }
     api.addFSCommandHandler((command, args) => {
         if (/^(quit|close)$/i.test(command) && window.opener) { window.close(); return; }
         window.dispatchEvent(new CustomEvent('phpbbArcadeFSCommand', {detail: {command, args, container}}));

@@ -17,7 +17,7 @@ function seed_arcade($db)
 		(60,'puzzle','games/puzzle/','Öffentliches Denkspiel',10,1,1,0,1,1,'10',10,1,2,'Steine &amp; Farben'),
 		(61,'timer','games/','Stoppuhr',10,1,1,1,1,1,'10',10,1,1,'Zeit messen'),
 		(62,'private','games/puzzle/club','Vertrauliche Spielprobe',12,0,1,0,1,1,'10',10,0,0,''),
-		(63,'closed','games/','Abgeschaltetes Spiel',10,0,0,0,1,1,'10',10,0,0,''),
+		(63,'closed','games/','Abgeschaltetes Spiel',10,0,0,0,1,1,'10',10,0,0,'Prüfung 🎮 &amp; Punkte'),
 		(64,'personal','games/','Persönliche Spielprobe',13,0,1,0,1,1,'10',10,0,0,'')");
 	$db->query("UPDATE phpbb_ina_games SET game_reward=4,game_bonus=2 WHERE game_id=60");
 	$db->query("UPDATE phpbb_ina_games SET image_path='.png' WHERE game_id IN (60,62)");

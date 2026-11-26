@@ -5,6 +5,7 @@
 {% if U_ARC_START %}<form id="arcade-play" method="post" action="{U_ARC_START}">{S_FORM_TOKEN}<input type="hidden" name="play_nonce" value="{ARC_NONCE}"><input class="button1" type="submit" value="{L_PLUS_ARC_PLAY}"></form>
 {% elseif ARC_NO_FILE %}<p>{L_PLUS_ARC_NO_FILE}</p>{% elseif ARC_TOUR_RESERVED %}<p>{L_PLUS_ARC_TOUR_RESERVED}</p>{% endif %}
 {% if ARC_INSTRUCTIONS %}<div class="panel"><div class="inner"><p>{{ ARC_INSTRUCTIONS|e|nl2br }}</p></div></div>{% endif %}
+{% if ARC_CONTROLS %}<p>{{ ARC_CONTROLS|e }}</p>{% endif %}
 {% if U_ARC_FAVOURITE %}
 <form id="arcade-favourite" action="{{ U_ARC_FAVOURITE }}" method="post" class="action-bar">
 <input type="hidden" name="value" value="{% if ARC_FAVOURITE %}0{% else %}1{% endif %}">

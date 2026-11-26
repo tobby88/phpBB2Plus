@@ -488,6 +488,7 @@ class board
 			$this->db->sql_freeresult($result);
 		}
 		$this->template->assign_vars(array('ARC_TITLE' => $title, 'ARC_INSTRUCTIONS' => catalog::plain($g['instructions']), 'U_ARC_ICON' => $this->icon_url($g),
+			'ARC_CONTROLS' => in_array((int) $g['game_control'],array(1,2,3),true) ? $this->language->lang('PLUS_ARC_CONTROL_' . (int) $g['game_control']) : '',
 			'ARC_BOARD' => $board !== '', 'ARC_MONTH' => $board === 'month', 'U_ARC_GAME' => $this->helper->route('phpbb2plus_arcade_game', $params)));
 		return $this->helper->render('@phpbb2plus_arcade/game.html', utf8_htmlspecialchars($title));
 	}

@@ -55,6 +55,8 @@ class listener implements EventSubscriberInterface
 		$perms['a_plus_arc_categories'] = array('lang' => 'ACL_A_PLUS_ARC_CATEGORIES', 'cat' => 'misc');
 		$this->language->add_lang('info_acp_arc_diagnostics','phpbb2plus/arcade');
 		$perms['a_plus_arc_log'] = array('lang'=>'ACL_A_PLUS_ARC_LOG','cat'=>'misc');
+		$this->language->add_lang('info_acp_arc_games','phpbb2plus/arcade');
+		$perms['a_plus_arc_games'] = array('lang'=>'ACL_A_PLUS_ARC_GAMES','cat'=>'misc');
 		$perms['m_plus_arcade'] = array('lang' => 'ACL_M_PLUS_ARCADE', 'cat' => 'misc');
 		$event['permissions'] = $perms;
 	}

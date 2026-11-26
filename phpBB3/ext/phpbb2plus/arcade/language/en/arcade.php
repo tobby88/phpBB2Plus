@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ARC_CONTROL_1'=>'Controls: mouse','PLUS_ARC_CONTROL_2'=>'Controls: keyboard','PLUS_ARC_CONTROL_3'=>'Controls: mouse and keyboard',
 	'ACL_A_PLUS_ARC_SCORES' => 'Can correct and remove arcade scores',
 	'PLUS_ARC_MOD' => 'Moderate leaderboards',
 	'PLUS_ARC_MOD_EMPTY' => 'There are no arcade categories to moderate yet.',

@@ -1,0 +1,31 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_ARC_GAMES}</h1>
+{% if S_ARC_GAME %}
+<p><a href="{U_ARC_GAME_LIST}">&laquo; {L_BACK}</a></p>
+{% if ARC_GAME_ERROR %}<div class="errorbox"><p>{{ ARC_GAME_ERROR|e }} <a href="{U_ARC_GAME_RELOAD}">{L_PLUS_ARC_EDIT_RELOAD}</a></p></div>{% endif %}
+{% if ARC_GAME_SAVED %}<div class="successbox"><p>{L_PLUS_ARC_EDIT_SAVED}</p></div>{% endif %}
+<form id="arc-game-edit" action="{U_ARC_GAME_EDIT}" method="post">
+	<fieldset><legend>{{ ARC_GAME_KEY|e }} (#{{ ARC_GAME_ID }})</legend>
+	<dl><dt><label for="game_desc">{L_PLUS_ARC_EDIT_TITLE}</label></dt><dd><input class="text medium" id="game_desc" name="game_desc" value="{{ ARC_GAME_TITLE|e('html_attr') }}"></dd></dl>
+	<dl><dt><label for="instructions">{L_PLUS_ARC_EDIT_INSTRUCTIONS}</label></dt><dd><textarea id="instructions" name="instructions" rows="5" cols="45">{{ ARC_GAME_TEXT|e }}</textarea></dd></dl>
+	{% for field in loops.choices %}<dl><dt><label for="{{ field.NAME }}">{{ field.LABEL|e }}</label></dt>
+	<dd><select name="{{ field.NAME }}" id="{{ field.NAME }}">{% for choice in field.option %}
+		<option value="{{ choice.VALUE|e('html_attr') }}"{% if choice.CURRENT %} selected{% endif %}>{{ choice.TEXT|e }}</option>
+	{% endfor %}</select></dd></dl>{% endfor %}
+	{% for field in loops.numbers %}<dl><dt><label for="{{ field.NAME }}">{{ field.LABEL|e }}</label></dt><dd><input class="text" id="{{ field.NAME }}" name="{{ field.NAME }}" inputmode="numeric"{% if field.DIGITS %} pattern="[0-9]+"{% endif %} required value="{{ field.VALUE|e('html_attr') }}"></dd></dl>{% endfor %}
+	</fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{ARC_GAME_REVISION}">{S_FORM_TOKEN}
+	<button type="submit" class="button1">{L_SUBMIT}</button></fieldset>
+</form>
+{% else %}
+<form id="arc-game-search" action="{U_ARC_GAME_SEARCH}" method="get"><fieldset class="quick">
+	{ARC_GAME_HIDDEN}<label for="game-search">{L_PLUS_ARC_EDIT_SEARCH}</label> <input id="game-search" type="search" name="search" value="{{ ARC_GAME_SEARCH|e('html_attr') }}">
+	<label for="arc-cat">{L_PLUS_ARC_EDIT_CAT_ID}</label> <select id="arc-cat" name="cat">{% for o in loops.categories %}<option value="{{ o.VALUE }}"{% if o.CURRENT %} selected{% endif %}>{{ o.TEXT|e }}</option>{% endfor %}</select>
+	<label for="arc-sort">{L_SORT_BY}</label> <select id="arc-sort" name="sort_mode">{% for o in loops.sorts %}<option value="{{ o.VALUE }}"{% if o.CURRENT %} selected{% endif %}>{{ o.TEXT|e }}</option>{% endfor %}</select>
+	<select name="order" aria-label="{L_SORT_DIRECTION}"><option value="DESC"{% if not ARC_GAME_ASC %} selected{% endif %}>{L_DESCENDING}</option><option value="ASC"{% if ARC_GAME_ASC %} selected{% endif %}>{L_ASCENDING}</option></select>
+	<button class="button2" type="submit">{L_SEARCH}</button></fieldset></form>
+{% if loops.games %}<table class="table1 zebra-table"><thead><tr><th>{L_PLUS_ARC_EDIT_TITLE}</th><th>{L_PLUS_ARC_EDIT_KEY}</th><th>{L_PLUS_ARC_EDIT_CAT_ID}</th><th>{L_PLUS_ARC_EDIT_GAME_AVAIL}</th></tr></thead>
+<tbody>{% for game in loops.games %}<tr data-arc-game="{{ game.ID }}"><td><a href="{{ game.URL }}">{{ (game.TITLE ?: game.KEY)|e }}</a></td><td>{{ game.KEY|e }}</td><td>{{ game.CATEGORY|e }}</td><td>{% if game.ACTIVE %}{L_YES}{% else %}{L_NO}{% endif %}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p>{L_NO_ENTRIES}</p>{% endif %}
+{% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
+<!-- INCLUDE overall_footer.html -->

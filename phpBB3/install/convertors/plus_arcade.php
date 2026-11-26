@@ -147,6 +147,11 @@ function plus_arcade_copy_group($short, $column, $value)
 				}
 			}
 			elseif ($short === 'log') { $data['text_encoded'] = 0; }
+			if ($short === 'games')
+			{
+				foreach (array('game_desc','instructions') as $field)
+				{ if ($data[$field] !== null) { $data[$field] = utf8_encode_ucr($data[$field]); } }
+			}
 			if ($short === 'cat')
 			{
 				foreach (array('cat_name','cat_desc','cat_icon') as $field)
