@@ -248,6 +248,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 			break;
 		case 'news_cats': $path = 'news/categories'; break;
 		case 'hacks_list': $path = 'credits'; break;
+		case 'kontakt': $base = './'; $path = 'memberlist.php'; $extra = array('mode' => 'contactadmin'); break;
 		case 'statistics': $path = 'statistics'; break;
 		case 'staff': $base = './'; $path = 'memberlist.php'; $extra = array('mode' => 'team'); break;
 		case 'profile_options': $base = './'; $path = 'ucp.php'; $extra = array('i' => 'ucp_prefs', 'mode' => 'personal'); break;

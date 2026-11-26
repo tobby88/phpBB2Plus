@@ -42,6 +42,8 @@ function seed_forum_access($db)
 
 function seed_native_content($db)
 {
+	$db->query("UPDATE phpbb_plus SET config_value='helpdesk@example.invalid' WHERE config_name='contact_email'");
+	$db->query("UPDATE phpbb_config SET config_value='old-board@example.invalid' WHERE config_name='board_email'");
 	$db->query("INSERT INTO phpbb_posts_text (post_id,post_subject,bbcode_uid,post_text) VALUES
 		(143001,'Unzugeordnet 📷','orphanuid','Zeile eins\n[b:orphanuid]Größe[/b:orphanuid]'),
 		(143002,NULL,'',''),(143003,'0','',NULL)");

@@ -1,6 +1,42 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
+function plus_contact_recipient($current, $sender, $founder, $plus_address, $board_address)
+{
+	$valid = static function ($address) {
+		// Some installer examples pass FILTER_VALIDATE_EMAIL despite naming no actual board mailbox.
+		$examples = array('youraddress@yourdomain.com', 'contact@yourdomain.tld', 'address@yourdomain.tld');
+		return filter_var($address, FILTER_VALIDATE_EMAIL) !== false && !in_array(strtolower($address), $examples, true);
+	};
+	$current = trim((string) $current);
+	$sender = trim((string) $sender);
+	// The installer puts the same mailbox in both settings and on its founder account.
+	if ($valid($current) && ($current !== $sender || $current !== trim((string) $founder))) { return $current; }
+	foreach (array($plus_address, $board_address, $sender) as $value)
+	{
+		$address = trim((string) $value);
+		if ($valid($address)) { return $address; }
+	}
+	return '';
+}
+
+function plus_import_admin_contact()
+{
+	global $db, $src_db, $convert, $config;
+	// Read the destination's original founder before the wizard replaces its user table.
+	$result = $db->sql_query('SELECT user_email FROM ' . USERS_TABLE . ' WHERE user_id=2 AND user_type=' . USER_FOUNDER);
+	$founder = $db->sql_fetchfield('user_email');
+	$db->sql_freeresult($result);
+	$result = $src_db->sql_query("SELECT config_value FROM {$convert->src_table_prefix}plus WHERE config_name='contact_email'");
+	$plus_address = $src_db->sql_fetchfield('config_value');
+	$src_db->sql_freeresult($result);
+	$current = $config['board_contact'];
+	$recipient = plus_contact_recipient($current, $config['board_email'], $founder, $plus_address, get_config_value('board_email'));
+	// Native forms use board_contact for the recipient; other mail also uses it as the default From/Reply-To.
+	// board_email independently controls the SMTP envelope and Return-Path.
+	if ($recipient !== '' && $recipient !== $current) { $config->set_atomic('board_contact', $current, $recipient); }
+}
+
 /** Apply Plus semantics to the core PM and subscription tables. */
 function plus_published_pm_condition($src_db, $prefix)
 {
