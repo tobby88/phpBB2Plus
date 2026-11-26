@@ -54,7 +54,10 @@ import mail_links
 import admin_contact
 import topic_readers
 import arcade_diagnostics
+import arcade_game_editor
+import recommend
 import attachment_rules
+import member_attachments
 import downloads
 import download_categories
 import download_checker
@@ -276,6 +279,7 @@ def media_administration(base, member, ordinary, pending, target, web):
     # Private album admission changes membership. Run it after download
     # submissions and keep cache invalidation after all gallery writes.
     guest = Browser(base)
+    member_attachments.browse(base, member, ordinary)
     attachment_rules.browse(member, ordinary, pending, guest, lambda phase: php(
         ROOT / "tests/phpbb3/attachment_rules.php", target, phase, cwd=web, capture=True))
     arcade_diagnostics.browse(base, member, lambda phase: php(
@@ -387,6 +391,7 @@ def main():
             php(statistics_fixture, "seed", source)
             if not media_only:
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
+                php(ROOT / "tests/phpbb3/recommend.php", source, "source")
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
@@ -424,6 +429,7 @@ def main():
                 php(statistics_fixture, "converted", target)
                 if not media_only:
                     php(ROOT / "tests/phpbb3/topic_readers.php", target, "converted", cwd=web)
+                    php(ROOT / "tests/phpbb3/recommend.php", target, "converted", cwd=web)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True), with_recovery=not media_only)
                 converted = monotonic()
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
@@ -551,6 +557,7 @@ def main():
                 native_content(base, member, ordinary)
                 admin_contact.browse(Browser(base), ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/admin_contact.php", target, phase, cwd=web, capture=True))
+                recommend.browse(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/recommend.php", target, phase, cwd=web))
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 weblinks.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
@@ -573,6 +580,8 @@ def main():
                     ROOT / "tests/phpbb3/arcade_moderation.php", target, phase, cwd=web))
                 arcade_category_administration.exercise(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_category_administration.php", target, phase, cwd=web, capture=True))
+                arcade_game_editor.browse(base, lambda phase: php(
+                    ROOT / "tests/phpbb3/arcade_game_editor.php", target, phase, cwd=web, capture=True), ordinary, pending)
                 arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
                 arcade_standings.artwork(base, ordinary, pending, lambda: php(
