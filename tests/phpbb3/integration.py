@@ -57,6 +57,7 @@ import admin_contact
 import topic_readers
 import arcade_diagnostics
 import arcade_game_editor
+import arcade_game_rename
 import arcade_provisioning
 import arcade_batch_import
 import recommend
@@ -313,6 +314,7 @@ def arcade_management(base, admin, moderator, member, target, web):
     arcade_category_administration.exercise(base, admin, moderator, lambda phase: php(
         tests / "arcade_category_administration.php", target, phase, cwd=web, capture=True))
     arcade_game_editor.browse(base, lambda phase: php(tests / "arcade_game_editor.php", target, phase, cwd=web, capture=True), moderator, member)
+    arcade_game_rename.browse(base, web, target, php)
     arcade_batch_import.browse(base, web, target, php)
     arcade_provisioning.browse(base, web, target, php)
 
