@@ -47,6 +47,26 @@ class editor
 		return $a;
 	}
 
+	public function editor_text($article)
+	{
+		$body = $article['editor_text'] ?? '';
+		if (stripos($body, '[acronym:') === false) { return $body; }
+		// Early previews retained the source UID in the editable article, but their
+		// native page XML had already removed it. Only offer a correction when both agree.
+		$pages = explode('[page]', $body);
+		$sql = 'SELECT page_number,content FROM ' . $this->prefix . 'pages WHERE article_id=' . (int) $article['article_id'];
+		$result = $this->db->sql_query($sql);
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$i = (int) $row['page_number'] - 1;
+			if (!isset($pages[$i]) || stripos($pages[$i], '[acronym:') === false) { continue; }
+			$clean = preg_replace('~\[code(?:[ =][^\]]*)?\].*?\[/code\](*SKIP)(*F)|(\[acronym):[a-z0-9]{1,10}(?==")~is', '$1', $pages[$i]);
+			if ($clean !== $pages[$i] && str_replace('[toc]', '', $clean) === \s9e\TextFormatter\Unparser::unparse($row['content'])) { $pages[$i] = $clean; }
+		}
+		$this->db->sql_freeresult($result);
+		return implode('[page]', $pages);
+	}
+
 	public static function form_revision($article)
 	{
 		// Moving an article between categories or types invalidates an open editor,

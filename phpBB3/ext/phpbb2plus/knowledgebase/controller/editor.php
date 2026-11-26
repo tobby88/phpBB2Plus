@@ -36,7 +36,7 @@ class editor
 		$params = $id ? array('article' => $id, 'mode' => $mode) : array();
 		$action = $this->helper->route($id ? 'phpbb2plus_kb_manage' : 'phpbb2plus_kb_submit', $params);
 		$editing = in_array($mode, array('new','edit'), true);
-		$form = array('title' => $a['title'] ?? '', 'description' => $a['description'] ?? '', 'body' => $a['editor_text'] ?? '',
+		$form = array('title' => $a['title'] ?? '', 'description' => $a['description'] ?? '', 'body' => $this->editor->editor_text($a),
 			'category' => $a ? (int) $a['cat_id'] : $this->request->variable('category', 0), 'type' => $a ? (int) $a['type_id'] : 0, 'guest' => '');
 		$revision = $this->editor->form_revision($a);
 		$error = '';

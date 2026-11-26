@@ -10,6 +10,11 @@ services:
         arguments: ['@phpbb2plus.community.acronym_dictionary', '@language']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.legacy_formatting:
+        class: phpbb2plus\community\event\legacy_formatting
+        arguments: ['@dbal.conn', '@service_container']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.quick_reply:
         class: phpbb2plus\community\event\quick_reply
         arguments: ['@config', '@auth', '@language', '%core.root_path%', '%core.php_ext%']

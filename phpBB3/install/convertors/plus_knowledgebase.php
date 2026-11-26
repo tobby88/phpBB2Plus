@@ -29,6 +29,7 @@ function plus_kb_editor($text, $uid)
 	if ((string) $uid !== '')
 	{
 		if (!preg_match('/^[a-zA-Z0-9]{1,10}$/D', $uid)) { throw new \RuntimeException('Invalid legacy Knowledge Base BBCode identifier.'); }
+		$text = preg_replace('/(\[acronym):' . preg_quote($uid, '/') . '(?==(?:"|&quot;))/i', '$1', $text);
 		$text = preg_replace('/(:[a-z0-9])?:' . preg_quote($uid, '/') . '(?=\])/i', '', $text);
 	}
 	return plus_kb_plain(str_replace('<br />', "\n", $text));
