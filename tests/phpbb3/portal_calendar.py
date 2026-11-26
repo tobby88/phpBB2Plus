@@ -53,6 +53,8 @@ def exercise(base, founder, member, fixture):
         has(ids(live) == [912001,912004,912005,912006,912007] and ids(march) == ids(live), "The five upcoming events depend on the browsed month or expose restricted events")
         has(ids(widget(founder))[:3] == [912001,912002,912003], "An authorized moderator cannot see its additional calendar topics")
         has("data-cal-birthday" not in live and "data-cal-birthday" in widget(member), "The portal ignored member-only birthday visibility")
+        fixture("hide-birthdays")
+        has("data-cal-birthday" not in widget(member), "The portal ignored the member's calendar preference")
         form = FormFields(widget(member), "plus-mini-new-event").values
         has(form.get("mode") == "post" and 'plus_cal_present' in member.fetch("posting.php?mode=post&f=" + form["f"]), "The calendar forum picker did not reach the native event editor")
         spring = day_link(march, date(2024, 3, 31))

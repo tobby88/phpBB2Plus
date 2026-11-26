@@ -36,6 +36,14 @@ async function checkPlusStyle(frame) {
             throw Error("The Plus header lost its linked logos at " + width + "px");
         }
         const recent = portal.querySelector(".plus-recent");
+        const calendar = portal.querySelector("#plus-mini-calendar");
+        const grid = calendar && calendar.querySelector("table");
+        const today = grid && grid.querySelector('[aria-current="date"]');
+        const days = grid ? Array.from(grid.querySelectorAll("thead th")) : [];
+        if (!today || !today.offsetWidth || days.length !== 7 || days.some(day => day.scrollWidth > day.clientWidth + 1) ||
+            grid.getBoundingClientRect().right > calendar.getBoundingClientRect().right + 1) {
+            throw Error("The portal calendar's seven weekday columns do not fit at " + width + "px");
+        }
         if (desktop) {
             const poll = portal.querySelector("#plus-portal-poll");
             const form = new Promise((resolve, reject) => {

@@ -16,7 +16,7 @@ switch ($argv[2])
 		if ((int) $config['plus_cal_birthday_days'] !== 9) { throw new RuntimeException('The converted portal lost its configured birthday window'); }
 		$topic=$rows('SELECT * FROM ' . TOPICS_TABLE . ' WHERE topic_id=1')[0];
 		$post=$rows('SELECT * FROM ' . POSTS_TABLE . ' WHERE post_id=32')[0];
-		$members=$rows('SELECT user_id,user_timezone,user_birthday FROM ' . USERS_TABLE . " WHERE user_id IN (1,2) OR username_clean='historicmember'");
+		$members=$rows('SELECT user_id,user_timezone,user_birthday,plus_cal_birthday FROM ' . USERS_TABLE . " WHERE user_id IN (1,2) OR username_clean='historicmember'");
 		$forum=$rows('SELECT forum_password FROM ' . FORUMS_TABLE . ' WHERE forum_id=1')[0];
 		$keys=array('board_timezone','posts_per_page','search_interval','search_anonymous_interval','plus_cal_birthday_days');
 		$original=array(); foreach ($keys as $k) { $original[$k]=$config[$k]; }
@@ -30,7 +30,7 @@ switch ($argv[2])
 		foreach (array('board_timezone'=>'Europe/Berlin','posts_per_page'=>2,'search_interval'=>0,'search_anonymous_interval'=>0,'plus_cal_birthday_days'=>7) as $k=>$v) { $config->set($k,$v); }
 		$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_timezone='Europe/Berlin' WHERE " . $db->sql_in_set('user_id',array_column($members,'user_id')));
 		$today=new DateTimeImmutable('today',new DateTimeZone('Europe/Berlin'));
-		$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_birthday='" . sprintf('%2d-%2d-1990',(int)$today->format('j'),(int)$today->format('n')) . "' WHERE username_clean='historicmember'");
+		$db->sql_query('UPDATE ' . USERS_TABLE . " SET plus_cal_birthday=1,user_birthday='" . sprintf('%2d-%2d-1990',(int)$today->format('j'),(int)$today->format('n')) . "' WHERE username_clean='historicmember'");
 		for ($i=1; $i<=10; $i++)
 		{
 			$start=$today->modify('+' . max(0,$i-2) . ' days');
@@ -56,6 +56,9 @@ switch ($argv[2])
 		$byline['post_id']=912013;
 		$db->sql_query("INSERT INTO $bylines " . $db->sql_build_array('INSERT',$byline));
 		echo $today->format('Y-m-d');
+		break;
+	case 'hide-birthdays':
+		$db->sql_query('UPDATE ' . USERS_TABLE . " SET plus_cal_birthday=0 WHERE username_clean='historicmember'");
 		break;
 	case 'password':
 		$hashed=$phpbb_container->get('passwords.manager')->hash('calendar-local-fixture');
