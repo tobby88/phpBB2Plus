@@ -2,6 +2,8 @@
 
 The source for this conversion is the current UTF-8 Plus distribution in `phpBB2/`. The installer in the assembled web root offers **phpBB2 Plus (UTF-8)** as a separate converter. Always use a new destination database and an offline copy of both the source database and its media. Keep that copy intact until counts, permissions, representative files and application behaviour have been checked.
 
+Some source features still require a phpBB3 implementation. The posting and Knowledge Base editors open the Smilie Creator, whose `[schild]` BBCode uses a generated sign image. Member profiles store an absence status, reason and message that can affect private-message delivery. The personal birthday greeting has a board switch and a per-member next-greeting year. Keep the source data for these features when evaluating a conversion.
+
 | Source behaviour and data | phpBB3 destination | Verification and remaining work |
 | --- | --- | --- |
 | Administrator contact | Native board contact form and contact email address | Both old contact URLs open the native form. The target’s email and contact-form settings control availability. If its contact, sender and founding account share one address, the converter treats it as the installer default. It uses the first valid address from the original contact form, original board email and target sender, excluding distribution placeholders. A distinct target contact takes precedence. The native contact address also supplies visible mail headers and the board’s email contact link. The target supplies its technical sender. |
