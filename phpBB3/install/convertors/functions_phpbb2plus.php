@@ -134,10 +134,34 @@ function plus_convert_locale($name)
 	return isset($locales[$name]) ? $locales[$name] : $config['default_lang'];
 }
 
-function plus_convert_author($name, $removed)
+function plus_post_owner($verified, $removed)
+{
+	return (int) $removed || (int) $verified <= 0 ? ANONYMOUS : phpbb_user_id($verified);
+}
+
+function plus_topic_owner($topic, $original, $verified)
+{
+	global $convert, $src_db;
+	if ((int) $verified > 0 || (int) $original === -1) { return plus_post_owner($verified, 0); }
+	// The Plus author repair used the first post only when the topic's own
+	// account no longer existed. The stored first-post pointer can also be stale.
+	$p = $convert->src_table_prefix;
+	$result = $src_db->sql_query_limit("SELECT u.user_id, p.post_author_removed FROM {$p}posts p
+		LEFT JOIN {$p}users u ON u.user_id=p.poster_id WHERE p.topic_id=" . (int) $topic . ' ORDER BY p.post_id', 1);
+	$row = $src_db->sql_fetchrow($result);
+	$src_db->sql_freeresult($result);
+	return $row ? plus_post_owner($row['user_id'], $row['post_author_removed']) : ANONYMOUS;
+}
+
+function plus_post_removed($removed, $original, $verified)
+{
+	return (int) $removed || ((int) $original > 0 && (int) $verified <= 0);
+}
+
+function plus_convert_author($name, $removed, $original, $verified)
 {
 	global $config;
-	if ((int) $removed)
+	if (plus_post_removed($removed, $original, $verified))
 	{
 		return $config['default_lang'] === 'de' ? 'Ehemaliger Nutzer' : 'Former member';
 	}
@@ -149,9 +173,9 @@ function plus_convert_byline($name)
 	return utf8_encode_ucr(utf8_htmlspecialchars(html_entity_decode((string) $name, ENT_QUOTES, 'UTF-8')));
 }
 
-function plus_retained_byline($name, $removed)
+function plus_retained_byline($name, $removed, $original, $verified)
 {
-	return (int) $removed ? plus_convert_byline($name) : '';
+	return plus_post_removed($removed, $original, $verified) ? plus_convert_byline($name) : '';
 }
 
 function plus_topic_description($source)

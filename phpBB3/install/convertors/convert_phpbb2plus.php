@@ -189,9 +189,21 @@ if (!$get_info)
 			{
 				$field[2] = 'plus_registration_ip';
 			}
+			if ($section['target'] === TOPICS_TABLE && $field[0] === 'topic_poster')
+			{
+				$joins = (array) $section['left_join'];
+				$joins[] = 'topics LEFT JOIN users ON users.user_id = topics.topic_poster';
+				$section['left_join'] = $joins;
+				$field = array('topic_poster', array('topics.topic_id', 'topics.topic_poster AS poster_id', 'users.user_id AS plus_topic_author'), 'plus_topic_owner');
+			}
+			if ($section['target'] === POSTS_TABLE && $field[0] === 'poster_id')
+			{
+				$section['left_join'] = 'posts LEFT JOIN users ON users.user_id = posts.poster_id';
+				$field = array('poster_id', array('users.user_id AS plus_post_author', 'posts.post_author_removed'), 'plus_post_owner');
+			}
 			if ($section['target'] === POSTS_TABLE && $field[0] === 'post_username')
 			{
-				$field = array('post_username', array('posts.post_username', 'posts.post_author_removed'), 'plus_convert_author');
+				$field = array('post_username', array('posts.post_username', 'posts.post_author_removed', 'posts.poster_id', 'users.user_id AS plus_post_author'), 'plus_convert_author');
 			}
 			if ($section['target'] === POSTS_TABLE && $field[0] === 'post_visibility')
 			{
@@ -366,11 +378,12 @@ if (!$get_info)
 		'primary' => 'posts.post_id',
 		'query_first' => array('target', $convert->truncate_statement . $table_prefix . 'plus_bylines'),
 		array('post_id', 'posts.post_id', 'intval'),
-		array('author_name', array('posts.post_username', 'posts.post_author_removed'), 'plus_retained_byline'),
-		array('author_clean', array('posts.post_username', 'posts.poster_id', 'posts.post_author_removed'), 'plus_search_author_clean'),
-		array('author_key', array('posts.post_username', 'posts.poster_id', 'posts.post_author_removed'), 'plus_search_author_key'),
+		array('author_name', array('posts.post_username', 'posts.post_author_removed', 'posts.poster_id', 'users.user_id AS plus_post_author'), 'plus_retained_byline'),
+		array('author_clean', array('posts.post_username', 'users.user_id AS plus_post_author', 'posts.post_author_removed'), 'plus_search_author_clean'),
+		array('author_key', array('posts.post_username', 'users.user_id AS plus_post_author', 'posts.post_author_removed'), 'plus_search_author_key'),
 		array('editor_name', 'posts.post_edit_username', 'plus_convert_byline'),
-		'where' => "posts.post_author_removed = 1 OR posts.post_edit_username <> '' OR (posts.poster_id <= 0 AND posts.post_username <> '')",
+		'left_join' => 'posts LEFT JOIN users ON users.user_id = posts.poster_id',
+		'where' => "posts.post_author_removed = 1 OR posts.post_edit_username <> '' OR ((posts.poster_id <= 0 OR users.user_id IS NULL) AND posts.post_username <> '')",
 	);
 	// Bylines are available and the search backend has not indexed these posts.
 	$convertor['schema'][] = array(

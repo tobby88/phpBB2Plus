@@ -106,8 +106,23 @@ function seed_missing_pm_accounts($db)
 	}
 }
 
+function seed_missing_post_authors($db)
+{
+	$missing = (int) $db->query('SELECT MAX(user_id)+1 FROM phpbb_users')->fetch_row()[0];
+	$db->query("UPDATE phpbb_posts SET poster_id=$missing,post_author_removed=0 WHERE post_id=32");
+	$db->query("UPDATE phpbb_topics SET topic_poster=$missing WHERE topic_id=1");
+}
+
 function verify_native_content($db, $recipient)
 {
+	$author = $db->query('SELECT p.poster_id,p.post_username,b.author_name,b.author_key FROM p3_posts p
+		JOIN p3_plus_bylines b ON b.post_id=p.post_id WHERE p.post_id=32')->fetch_assoc();
+	check_fixture($author && (int) $author['poster_id'] === 1 && in_array($author['post_username'], array('Ehemaliger Nutzer', 'Former member'), true)
+		&& $author['author_name'] === 'RetiredFixture' && strlen($author['author_key']) === 64,
+		'A post with a missing source author lost its retained name or became owned by a different account');
+	$topic = $db->query('SELECT t.topic_poster,p.poster_id FROM p3_topics t JOIN p3_posts p ON p.post_id=t.topic_first_post_id
+		WHERE t.topic_id=1')->fetch_row();
+	check_fixture($topic && (int) $topic[0] === 2 && (int) $topic[1] === 2, 'A stale topic creator did not resolve to the surviving first-post author');
 	$watches = $db->query("SELECT topic_id,notify_status FROM p3_topics_watch WHERE user_id=$recipient ORDER BY topic_id")->fetch_all();
 	check_fixture(count($watches) === 2 && (int) $watches[0][0] === 1 && (int) $watches[0][1] === 1
 		&& (int) $watches[1][0] === 2 && (int) $watches[1][1] === 0, 'Duplicate, orphan or incorrect topic subscription');

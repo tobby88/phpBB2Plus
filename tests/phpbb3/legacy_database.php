@@ -178,6 +178,7 @@ if (in_array($argv[1], array('seed', 'seed-pruning-off'), true))
 	seed_warning_cards($db);
 	seed_account_logins($db, $argv[1] === 'seed-pruning-off');
 	seed_missing_pm_accounts($db);
+	seed_missing_post_authors($db);
 	// The forum suite also covers a historical link entry that must fall back to plain text.
 	$notice = $argv[1] === 'seed-pruning-off' ? "Grüße &amp; Rückblick 📷\n&lt;Hinweis&gt; & Abschluss" : '0';
 	$statement = $db->prepare("UPDATE phpbb_ctracker_config SET ct_config_value=? WHERE ct_config_name='global_message'");
