@@ -1,0 +1,30 @@
+#kb-search fieldset { display: flex; align-items: center; flex-wrap: wrap; gap: .45em .65em; }
+#kb-search .inputbox.search { width: min(20em, 100%); }
+#kb-search select { max-width: 100%; }
+.kb-table table.table1 thead th { text-align: center; padding: .55em; font-size: 1.05em; text-transform: none; }
+.kb-table table.table1 tbody td { color: #243a4d; padding: .65em; vertical-align: middle; overflow-wrap: anywhere; }
+.kb-table .bg1, .kb-rankings .topiclist.topics li.row { background-color: #eaedf4; }
+.kb-table .bg2, .kb-rankings .topiclist.topics li.row:nth-child(even) { background-color: #d9e2ec; }
+.kb-table tbody a, .kb-rankings li.row a { color: #174467; }
+.kb-table tbody a:hover, .kb-rankings li.row a:hover { color: #12324b; text-decoration: underline; }
+.kb-table tbody a:focus-visible, .kb-rankings li.row a:focus-visible { outline: 2px solid #174467; }
+.kb-table .username-coloured, .kb-rankings .username-coloured { -webkit-text-fill-color: #174467; }
+.kb-table .username-coloured::before, .kb-rankings .username-coloured::before {
+	content: ""; display: inline-block; width: .5em; height: .5em; margin-inline-end: .3em;
+	background: currentColor; border: 1px solid #657381;
+}
+@media (forced-colors: active) {
+	.kb-table .username-coloured, .kb-rankings .username-coloured { -webkit-text-fill-color: currentColor; }
+}
+@media (min-width: 701px) {
+	.kb-table table { table-layout: fixed; }
+	#kb-categories th:last-child { width: 17%; }
+	#kb-articles th:first-child { width: 39%; }
+	#kb-articles th:last-child { width: 8%; }
+	.kb-table td:not(:first-child) { text-align: center; }
+}
+@media (max-width: 700px) {
+	#kb-articles.responsive tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	#kb-articles.responsive td:first-child { grid-column: 1 / -1; }
+	.kb-table .responsive td:first-child > dfn { display: none !important; }
+}

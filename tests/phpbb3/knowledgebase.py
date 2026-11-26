@@ -58,18 +58,46 @@ def reply_preferences(base, member, change):
         raise RuntimeError("Removing a personal ignore setting did not restore the visible reply")
 
 
+def listings(guest, editor, category, public, moderated):
+    def cells(page, path):
+        rows = re.findall(r"<tr\b[^>]*>(.*?)</tr>", page, re.S)
+        for row in rows:
+            if re.search(r'href="[^"]*/knowledge/' + path + r'(?:\?[^"]*)?"', row):
+                return re.findall(r"<td\b[^>]*>(.*?)</td>", row, re.S)
+        raise RuntimeError("Missing Knowledge Base listing row for " + path)
+
+    # Counts span nested folders. An editor can read the draft in folder 10 but it is unpublished.
+    for page in (category, editor.fetch("app.php/knowledge/category/1")):
+        for folder, count in ((8, "3"), (10, "3"), (12, "0")):
+            if cells(page, f"category/{folder}")[1:] != [count]:
+                raise RuntimeError(f"Incorrect published article count for folder {folder}")
+    title, kind, byline, posted, views = cells(public, "article/201")
+    if ("Beschreibung" not in title or kind != "Anleitung" or "HistoricMember" not in byline
+            or "1970" not in posted or int(views) < 17 or "memberlist.php" not in cells(moderated, "article/201")[2]):
+        raise RuntimeError("The migrated article lost its summary, type, author, date or view count")
+    if cells(public, "article/210")[-1] != "0":
+        raise RuntimeError("A published article with no views lost its count")
+    search = guest.fetch("app.php/knowledge?" + urlencode({"q": "Geschütztes Diskussionsthema"}))
+    if (cells(public, "article/204")[2] != "Ehemaliger Nutzer" or cells(search, "article/204")[2] != "Ehemaliger Nutzer"
+            or "EditorFixture" in public or "EditorFixture" not in cells(moderated, "article/204")[2]):
+        raise RuntimeError("The directory or search results exposed or incorrectly hid a former member's name")
+
+
 def browse(base, administrator, editor, reader):
     guest = Browser(base)
     index = "app.php/knowledge"
     article = index + "/article/"
-    if "Wissensdatenbank" not in guest.fetch("app.php/portal") or "Wissensarchiv" not in guest.fetch(index + "/category/1"):
+    category = guest.fetch(index + "/category/1")
+    if "Wissensdatenbank" not in guest.fetch("app.php/portal") or "Wissensarchiv" not in category:
         raise RuntimeError("Missing Knowledge Base navigation or nested category")
     public = guest.fetch(index + "/category/8")
     if "Öffentliche Anleitung" not in public or "Ungeprüfte Anleitung" in public or "Überarbeitete Anleitung" in public:
         raise RuntimeError("Public article list did not honour the approval states")
     # HistoricMember belongs to the converted moderator group. DepartingFixture is a pending member.
-    if "Ungeprüfte Anleitung" not in editor.fetch(index + "/category/8") or "Ungeprüfte Anleitung" in reader.fetch(index + "/category/8"):
+    moderated = editor.fetch(index + "/category/8")
+    if "Ungeprüfte Anleitung" not in moderated or "Ungeprüfte Anleitung" in reader.fetch(index + "/category/8"):
         raise RuntimeError("Approved and pending memberships have incorrect Knowledge Base permissions")
+    listings(guest, editor, category, public, moderated)
     if "Überarbeitete Anleitung" not in reader.fetch(article + "203"):
         raise RuntimeError("The author cannot read an edit in the moderation queue")
     guest.fetch(article + "202", expected_status=404)

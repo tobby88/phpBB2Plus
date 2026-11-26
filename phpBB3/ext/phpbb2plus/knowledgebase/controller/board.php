@@ -87,6 +87,16 @@ class board
 		return $this->language->lang('PLUS_KB_SCORE', number_format($average, 2, $this->language->lang('PLUS_KB_DECIMAL'), ''), $count);
 	}
 
+	private function article_row($article)
+	{
+		return array(
+			'TITLE' => $article['title'], 'SUMMARY' => $article['description'], 'AUTHOR' => $this->author($article),
+			'DATE' => $this->user->format_date($article['created_at']), 'VIEWS' => $article['views'],
+			'TYPE' => $this->articles->label($article['type_name'], $article['label_encoded']),
+			'URL' => $this->helper->route('phpbb2plus_kb_article', array('article' => $article['article_id'])),
+		);
+	}
+
 	public function rankings($list)
 	{
 		$ratings = (int) $this->articles->setting('allow_rating', 0);
@@ -115,11 +125,9 @@ class board
 		while ($a = $this->db->sql_fetchrow($result))
 		{
 			$cat = $categories[(int) $a['cat_id']] ?? null;
-			$this->template->assign_block_vars('kb_ranked', array('TITLE' => $a['title'], 'SUMMARY' => $a['description'],
-				'URL' => $this->helper->route('phpbb2plus_kb_article', array('article' => $a['article_id'])),
+			$this->template->assign_block_vars('kb_ranked', $this->article_row($a) + array(
 				'CATEGORY' => $cat ? $cat['title'] : '', 'U_CATEGORY' => $cat ? $this->helper->route('phpbb2plus_kb_category', array('category' => $a['cat_id'])) : '',
-				'TYPE' => $this->articles->label($a['type_name'], $a['label_encoded']), 'AUTHOR' => $this->author($a), 'DATE' => $this->user->format_date($a['created_at']),
-				'VIEWS' => $a['views'], 'SCORE' => $ratings && (string) $a['num_votes'] !== '0' ? $this->score_label((float) $a['num_points'] / (float) $a['num_votes'], $a['num_votes']) : ''));
+				'SCORE' => $ratings && (string) $a['num_votes'] !== '0' ? $this->score_label((float) $a['num_points'] / (float) $a['num_votes'], $a['num_votes']) : ''));
 		}
 		$this->db->sql_freeresult($result);
 		$title = $this->language->lang('PLUS_KB_LIST_' . strtoupper($list));
@@ -150,11 +158,11 @@ class board
 			$mode = $this->articles->setting('news_sort', 'Alphabetic');
 			$direction = strtoupper($this->articles->setting('news_sort_par', 'ASC')) === 'ASC' ? 'ASC' : 'DESC';
 		}
-		foreach ($cats as $cat)
+		$counts = $query === '' ? $this->articles->published_in_children($id) : array();
+		foreach ($counts as $child => $published)
 		{
-			if ((int) $cat['parent_id'] !== $id || $query !== '') { continue; }
-			$this->template->assign_block_vars('kb_cats', array('TITLE' => $cat['title'], 'DESCRIPTION' => $cat['description'],
-				'URL' => $this->helper->route('phpbb2plus_kb_category', array('category' => $cat['cat_id']))));
+			$this->template->assign_block_vars('kb_cats', array('TITLE' => $cats[$child]['title'], 'DESCRIPTION' => $cats[$child]['description'],
+				'COUNT' => $published, 'URL' => $this->helper->route('phpbb2plus_kb_category', array('category' => $child))));
 		}
 		$where = $this->articles->visible_sql();
 		if ($id) { $where .= ' AND a.cat_id=' . $id; }
@@ -169,19 +177,16 @@ class board
 		$this->db->sql_freeresult($result);
 		list($limit, $start) = $this->page_window($this->helper->route($route, $params), $count);
 		$fields = array('Id' => 'a.article_id', 'Creation' => 'a.created_at', 'Alphabetic' => 'a.title', 'Views' => 'a.views');
+		$from .= ' LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=a.author_id LEFT JOIN ' . $this->prefix . 'types t ON t.type_id=a.type_id';
 		if ($mode === 'Latest') { $field = $this->articles->discussion_sort_sql(); }
-		elseif ($mode === 'Userrank')
-		{
-			$from .= ' LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=a.author_id';
-			$field = 'COALESCE(u.user_rank,0)';
-		}
+		elseif ($mode === 'Userrank') { $field = 'COALESCE(u.user_rank,0)'; }
 		else { $field = $fields[$mode] ?? 'a.created_at'; }
 		$order = $field . ' ' . $direction . ($field === 'a.article_id' ? '' : ',a.article_id ' . $direction);
-		$result = $this->db->sql_query_limit("SELECT a.article_id,a.title,a.description,a.approval FROM $from WHERE $where ORDER BY $order", $limit, $start);
+		$result = $this->db->sql_query_limit("SELECT a.article_id,a.title,a.description,a.approval,a.created_at,a.views,a.author_id,a.author_name,a.author_removed,
+			u.username,u.user_colour,t.title AS type_name,t.label_encoded FROM $from WHERE $where ORDER BY $order", $limit, $start);
 		while ($article = $this->db->sql_fetchrow($result))
 		{
-			$this->template->assign_block_vars('kb_articles', array('TITLE' => $article['title'], 'SUMMARY' => $article['description'],
-				'PENDING' => (int) $article['approval'] !== 1, 'URL' => $this->helper->route('phpbb2plus_kb_article', array('article' => $article['article_id']))));
+			$this->template->assign_block_vars('kb_articles', $this->article_row($article) + array('PENDING' => (int) $article['approval'] !== 1));
 		}
 		$this->db->sql_freeresult($result);
 		$title = $id ? $cats[$id]['title'] : $this->language->lang('PLUS_KB');

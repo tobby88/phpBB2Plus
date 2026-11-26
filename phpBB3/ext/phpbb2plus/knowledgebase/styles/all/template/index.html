@@ -1,3 +1,4 @@
+<!-- INCLUDECSS @phpbb2plus_knowledgebase/knowledgebase.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ KB_TITLE|e }}</h2>
 {% include '@phpbb2plus_knowledgebase/navigation.html' %}
@@ -6,11 +7,19 @@
 <label for="kb-query">{L_SEARCH}</label> <input class="inputbox search" id="kb-query" name="q" maxlength="240" value="{{ KB_QUERY|e('html_attr') }}">
 <label for="kb-sort">{L_SORT_BY}</label> <select id="kb-sort" name="order">{% for key in ['default','alphabetical','newest','viewed'] %}<option value="{{ key }}"{% if KB_SORT == key %} selected{% endif %}>{{ lang('PLUS_KB_' ~ key|upper) }}</option>{% endfor %}</select>
 <input type="submit" class="button2" value="{L_GO}"></fieldset></form>
-{% if loops.kb_cats %}<div class="forabg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_KB_CATEGORIES}</div></dt></dl></li></ul><ul class="topiclist forums">
-{% for cat in loops.kb_cats %}<li class="row"><dl class="row-item forum_read"><dt><div class="list-inner"><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.DESCRIPTION %}<br>{{ cat.DESCRIPTION|e }}{% endif %}</div></dt></dl></li>{% endfor %}
-</ul></div></div>{% endif %}
-<div class="forumbg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_KB_ARTICLES}</div></dt></dl></li></ul><ul class="topiclist topics">
-{% for article in loops.kb_articles %}<li class="row"><dl class="row-item topic_read"><dt><div class="list-inner"><a class="topictitle" href="{{ article.URL }}">{{ article.TITLE|e }}</a>{% if article.PENDING %} &middot; {L_PLUS_KB_PENDING}{% endif %}{% if article.SUMMARY %}<br>{{ article.SUMMARY|e }}{% endif %}</div></dt></dl></li>
-{% else %}<li class="row"><p>{L_PLUS_KB_EMPTY}</p></li>{% endfor %}</ul></div></div>
+{% if loops.kb_cats %}
+<div class="forabg kb-table"><div class="inner"><table class="table1" id="kb-categories">
+<thead><tr><th scope="col">{L_PLUS_KB_CATEGORIES}</th><th scope="col">{L_PLUS_KB_PUBLISHED}</th></tr></thead>
+<tbody>{% for cat in loops.kb_cats %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}">
+<td><a class="forumtitle" href="{{ cat.URL }}">{{ cat.TITLE|e }}</a>{% if cat.DESCRIPTION %}<br>{{ cat.DESCRIPTION|e }}{% endif %}</td><td>{{ cat.COUNT }}</td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+<div class="forumbg kb-table"><div class="inner"><table class="table1" id="kb-articles">
+<thead><tr><th scope="col">{L_PLUS_KB_ARTICLES}</th><th scope="col">{L_PLUS_KB_TYPE}</th><th scope="col">{L_AUTHOR}</th><th scope="col">{L_POSTED}</th><th scope="col">{L_VIEWS}</th></tr></thead>
+<tbody>{% for article in loops.kb_articles %}<tr class="bg{{ loop.index is odd ? '1' : '2' }}">
+<td><a class="topictitle" href="{{ article.URL }}">{{ article.TITLE|e }}</a>{% if article.PENDING %} &middot; {L_PLUS_KB_PENDING}{% endif %}{% if article.SUMMARY %}<br>{{ article.SUMMARY|e }}{% endif %}</td>
+<td>{{ article.TYPE|e }}</td><td>{{ article.AUTHOR }}</td><td>{{ article.DATE|e }}</td><td>{{ article.VIEWS }}</td>
+</tr>{% else %}<tr class="bg1"><td colspan="5">{L_PLUS_KB_EMPTY}</td></tr>{% endfor %}</tbody>
+</table></div></div>
 {% if loops.pagination %}<div class="action-bar"><div class="pagination"><!-- INCLUDE pagination.html --></div></div>{% endif %}
 <!-- INCLUDE overall_footer.html -->

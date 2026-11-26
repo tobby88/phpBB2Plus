@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_KB_PUBLISHED' => 'Veröffentlichte Artikel',
 	'PLUS_KB_NO_TYPE' => 'Kein Artikeltyp',
 	'PLUS_KB_DEFAULT' => 'Vorgabe der Wissensdatenbank',
 	'PLUS_KB_IGNORED_REPLY' => 'Diese Antwort stammt von einem Mitglied auf deiner Ignorierliste.',

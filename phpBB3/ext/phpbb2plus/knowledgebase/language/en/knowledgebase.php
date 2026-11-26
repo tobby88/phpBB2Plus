@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_KB_PUBLISHED' => 'Published articles',
 	'PLUS_KB_NO_TYPE' => 'No article type',
 	'PLUS_KB_DEFAULT' => 'Knowledge Base default',
 	'PLUS_KB_IGNORED_REPLY' => 'A member on your ignore list wrote this reply.',

@@ -20,13 +20,6 @@ async function checkGalleryStyle(frame) {
         }
         return box;
     }
-    function luminance(rgb) {
-        const channels = rgb.match(/\d+(?:\.\d+)?/g).slice(0, 3).map(value => {
-            const s = Number(value) / 255;
-            return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4;
-        });
-        return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
-    }
     await checkStylePage(frame, "app.php/album", [1180, 390], (home, width) => {
         const directory = home.querySelector(".plus-album-categories");
         const previews = Array.from(home.querySelectorAll(".plus-album-grid"));

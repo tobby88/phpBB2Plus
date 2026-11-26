@@ -17,14 +17,15 @@ async function checkStylePage(frame, path, widths, inspect) {
     }
 }
 
+function luminance(rgb) {
+    const parts = rgb.match(/\d+(?:\.\d+)?/g).slice(0, 3).map(n => {
+        const v = Number(n) / 255;
+        return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
+    });
+    return parts[0] * .2126 + parts[1] * .7152 + parts[2] * .0722;
+}
+
 async function checkPlusStyle(frame) {
-    function luminance(rgb) {
-        const parts = rgb.match(/\d+(?:\.\d+)?/g).slice(0, 3).map(n => {
-            const v = Number(n) / 255;
-            return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
-        });
-        return parts[0] * .2126 + parts[1] * .7152 + parts[2] * .0722;
-    }
     await checkStylePage(frame, "app.php/portal", [1180, 390], async (portal, width) => {
         const desktop = width > 700;
         const win = portal.defaultView;

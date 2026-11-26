@@ -99,6 +99,34 @@ class articles
 		return $this->categories;
 	}
 
+	/** Published articles in each immediately visible folder, including its descendants. */
+	public function published_in_children($parent)
+	{
+		$children = array();
+		foreach ($this->category_list() as $id => $row)
+		{
+			if ($id > 0) { $children[(int) $row['parent_id']][] = $id; }
+		}
+		$counts = array_fill_keys($children[$parent] ?? array(), 0);
+		if (!$counts) { return $counts; }
+		$branches = array();
+		$pending = array();
+		foreach (array_keys($counts) as $child) { $pending[] = array($child, $child); }
+		while ($pending)
+		{
+			list($id, $branch) = array_pop($pending);
+			if ($id === $parent || isset($branches[$id])) { continue; }
+			$branches[$id] = $branch;
+			foreach ($children[$id] ?? array() as $child) { $pending[] = array($child, $branch); }
+		}
+		if (!$branches) { return $counts; }
+		$result = $this->db->sql_query('SELECT cat_id, COUNT(*) AS total FROM ' . $this->prefix . 'articles WHERE approval=1 AND ' .
+			$this->db->sql_in_set('cat_id', array_keys($branches)) . ' GROUP BY cat_id');
+		while ($row = $this->db->sql_fetchrow($result)) { $counts[$branches[(int) $row['cat_id']]] += (int) $row['total']; }
+		$this->db->sql_freeresult($result);
+		return $counts;
+	}
+
 	public function trail($id)
 	{
 		$categories = $this->category_list();

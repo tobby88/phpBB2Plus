@@ -1,7 +1,8 @@
+<!-- INCLUDECSS @phpbb2plus_knowledgebase/knowledgebase.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{{ KB_TITLE|e }}</h2>
 {% include '@phpbb2plus_knowledgebase/navigation.html' %}
-<div class="forumbg"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_KB_ARTICLES}</div></dt></dl></li></ul><ul class="topiclist topics">
+<div class="forumbg kb-rankings"><div class="inner"><ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">{L_PLUS_KB_ARTICLES}</div></dt></dl></li></ul><ul class="topiclist topics">
 {% for article in loops.kb_ranked %}
 <li class="row"><dl class="row-item topic_read"><dt><div class="list-inner">
 	<a class="topictitle" href="{{ article.URL }}">{{ article.TITLE|e }}</a>

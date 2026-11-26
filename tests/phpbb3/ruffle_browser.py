@@ -31,7 +31,7 @@ def playback(web, base, root):
                 self.send_error(400)
                 return
             message = self.rfile.read(size).decode("utf-8")
-            if message in {"movie decoded", "forum style checked", "gallery style checked"}:
+            if message in {"movie decoded", "forum style checked", "gallery style checked", "download style checked"}:
                 progress.append((time.monotonic(), message))
             else:
                 results.append(message)
@@ -46,7 +46,8 @@ def playback(web, base, root):
         probe = Path(web) / ("renderer-" + token + ".html")
         callback = f"http://127.0.0.1:{receiver.server_port}/{token}"
         style_checks = "\n".join(Path(__file__).with_name(name).read_text(encoding="utf-8")
-                                 for name in ("style_browser.js", "gallery_style_browser.js", "download_style_browser.js"))
+                                 for name in ("style_browser.js", "gallery_style_browser.js", "download_style_browser.js",
+                                              "knowledge_style_browser.js"))
         probe.write_text("""<!doctype html><html><body><iframe title="Arcade fixture"></iframe><script>
 STYLE_CHECKS
 const frame = document.querySelector("iframe");
@@ -80,6 +81,8 @@ setInterval(async () => {
                 await checkGalleryStyle(frame);
                 await fetch(CALLBACK, {mode:"no-cors", method:"POST", body:"gallery style checked"});
                 await checkDownloadStyle(frame);
+                await fetch(CALLBACK, {mode:"no-cors", method:"POST", body:"download style checked"});
+                await checkKnowledgeStyle(frame);
                 report(JSON.stringify(movie));
             }
             catch (error) { report(String(error).slice(0, 220)); }
