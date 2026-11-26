@@ -14,7 +14,7 @@
 <dt>{L_AUTHOR}</dt><dd>{ALBUM_AUTHOR}</dd>
 <dt>{L_PLUS_ALBUM_DATE}</dt><dd><time datetime="{ALBUM_DATETIME}">{ALBUM_DATE}</time></dd>
 <dt>{L_VIEWS}</dt><dd>{ALBUM_VIEWS}</dd>
-{% if S_ALBUM_RATE_DISPLAY %}<dt>{L_PLUS_ALBUM_PORTAL_RATING}</dt><dd>{{ ALBUM_RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</dd>{% endif %}
+{% if S_ALBUM_RATE_DISPLAY %}<dt>{L_PLUS_ALBUM_PORTAL_RATING}</dt><dd>{% include '@phpbb2plus_gallery/rating.html' with {score: ALBUM_RATING} only %}</dd>{% endif %}
 {% if ALBUM_DESCRIPTION %}<dt>{L_PLUS_ALBUM_DESCRIPTION}</dt><dd class="plus-album-copy">{{ ALBUM_DESCRIPTION|e }}</dd>{% endif %}
 </dl></section>
 {% if loops.album_actions %}<div class="action-bar">{% for action in loops.album_actions %}<a class="button2" href="{{ action.URL }}">{{ action.LABEL }}</a> {% endfor %}</div>{% endif %}

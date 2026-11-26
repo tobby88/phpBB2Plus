@@ -53,7 +53,7 @@
 {% if pic.U_CATEGORY %}<dt>{L_PLUS_ALBUM}</dt><dd><a href="{{ pic.U_CATEGORY }}">{{ pic.CATEGORY|e }}</a></dd>{% endif %}
 <dt>{L_PLUS_ALBUM_DATE}</dt><dd><time datetime="{{ pic.DATETIME }}">{{ pic.TIME }}</time></dd>
 <dt>{L_VIEWS}</dt><dd>{{ pic.VIEWS }}</dd>
-{% if pic.S_RATE %}<dt>{{ S_MEMBER_RATING ? lang('PLUS_ALBUM_MEMBER_SCORE') : lang('PLUS_ALBUM_PORTAL_RATING') }}</dt><dd>{{ pic.RATING ?: lang('PLUS_ALBUM_NOT_RATED') }}</dd>{% endif %}
+{% if pic.S_RATE %}<dt>{{ S_MEMBER_RATING ? lang('PLUS_ALBUM_MEMBER_SCORE') : lang('PLUS_ALBUM_PORTAL_RATING') }}</dt><dd>{% include '@phpbb2plus_gallery/rating.html' with {score: pic.RATING} only %}</dd>{% endif %}
 {% if pic.S_COMMENTS %}<dt>{{ S_MEMBER_COMMENTS ? lang('PLUS_ALBUM_MEMBER_COMMENTS') : lang('PLUS_ALBUM_COMMENTS') }}</dt><dd><a href="{{ pic.U_PICTURE }}#album-comments">{{ pic.COMMENTS }}</a></dd>{% endif %}
 {% if pic.IP %}<dt>{L_IP}</dt><dd>{{ pic.IP|e }}</dd>{% endif %}
 </dl>{% if pic.U_DELETE %}<p class="plus-album-grid-action"><a href="{{ pic.U_DELETE }}">{L_PLUS_ALBUM_ACTION_DELETE}</a></p>{% endif %}</li>

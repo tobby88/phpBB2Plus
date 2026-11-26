@@ -1,0 +1,6 @@
+{%- if not score -%}
+{{ lang('PLUS_ALBUM_NOT_RATED') }}
+{%- else -%}
+{% if score.NUMBER %}{{ score.LABEL|e }}{% else %}<span class="sr-only">{{ score.LABEL|e }}</span>{% endif -%}
+{% if score.CHUNKS %}<span class="plus-album-ranks" aria-hidden="true">{% for count in score.CHUNKS %}<i style="--album-ranks:{{ count }}"></i>{% endfor %}</span>{% endif -%}
+{% endif -%}

@@ -109,7 +109,7 @@ class board
 				'S_COMMENTS' => isset($pic['comments']), 'COMMENTS' => isset($pic['comments']) ? (int) $pic['comments'] : 0,
 				'TIME' => $this->user->format_date($pic['created_at']), 'DATETIME' => gmdate('c', $pic['created_at']),
 				'AUTHOR' => $this->byline->display($pic), 'VIEWS' => (int) $pic['views'], 'S_RATE' => $rate,
-				'RATING' => $rate && (float) $pic['rating'] > 0 ? number_format((float) $pic['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), '') : '',
+				'RATING' => $rate ? $this->score($pic['rating']) : array(),
 				'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', $params + $context),
 				'U_FULL' => $popup && $pic['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'full')) : '',
 				'U_THUMB' => $pic['storage_name'] !== '' ? $this->helper->route('phpbb2plus_gallery_media', $params + array('size' => 'small')) : ''));
@@ -355,12 +355,32 @@ class board
 		return $this->helper->render('@phpbb2plus_gallery/index.html', utf8_htmlspecialchars($title));
 	}
 
-	private function rating_text($picture, $honour)
+	private function score($value, $votes = null)
+	{
+		if ((float) $value <= 0) { return array(); }
+		$mode = (int) $this->access->setting('rate_type', 2, 'sp');
+		$average = round((float) $value, 2);
+		$label = number_format($average, $average == round($average, 1) ? 1 : 2, $this->language->lang('PLUS_ALBUM_DECIMAL'), '');
+		if ($votes !== null)
+		{
+			$scale = $this->discussion->scale();
+			$count = $this->language->lang('PLUS_ALBUM_VOTES', (int) $votes);
+			$label = (float) $value > $scale ? $this->language->lang('PLUS_ALBUM_RECORDED_RATING', $label, $count) :
+				$this->language->lang('PLUS_ALBUM_RATING', $label, $scale, $count);
+		}
+		// Each full point gets one historic rank image. Small groups wrap even at a high configured scale.
+		$chunks = array();
+		if ($mode !== 1)
+		{
+			for ($count = min(255, (int) floor((float) $value)); $count > 0; $count -= 8) { $chunks[] = min(8, $count); }
+		}
+		return array('LABEL' => $label, 'NUMBER' => $mode !== 0, 'CHUNKS' => $chunks);
+	}
+
+	private function picture_score($picture, $honour)
 	{
 		$rating = $this->discussion->rating($picture, $honour);
-		return $rating['votes'] ? $this->language->lang('PLUS_ALBUM_RATING',
-			number_format((float) $rating['rating'], 1, $this->language->lang('PLUS_ALBUM_DECIMAL'), ''), $this->discussion->scale(),
-			$this->language->lang('PLUS_ALBUM_VOTES', (int) $rating['votes'])) : '';
+		return $this->score($rating['rating'], $rating['votes']);
 	}
 
 	public function hot()
@@ -398,7 +418,7 @@ class board
 				'ALBUM_CATEGORY' => $cat['title'], 'U_CATEGORY' => $this->helper->route('phpbb2plus_gallery_category', array('category' => $cat['cat_id'])),
 				'ALBUM_AUTHOR' => $this->byline->display($pic), 'ALBUM_DATE' => $this->user->format_date($pic['created_at']),
 				'ALBUM_DATETIME' => gmdate('c', $pic['created_at']), 'ALBUM_VIEWS' => (int) $pic['views'], 'S_ALBUM_COMMENTS' => $comments,
-				'S_ALBUM_RATE_DISPLAY' => $rate, 'ALBUM_RATING' => $rate ? $this->rating_text($id, true) : '', 'ALBUM_SCALE' => $this->discussion->scale(),
+				'S_ALBUM_RATE_DISPLAY' => $rate, 'ALBUM_RATING' => $rate ? $this->picture_score($id, true) : array(), 'ALBUM_SCALE' => $this->discussion->scale(),
 				'ALBUM_VOTE_STATUS' => $status, 'U_PICTURE' => $this->helper->route('phpbb2plus_gallery_picture', array('picture' => $id)),
 				'U_FULL' => $this->helper->route('phpbb2plus_gallery_media', array('picture' => $id, 'size' => 'full'))));
 		}
@@ -440,7 +460,7 @@ class board
 		$link = $this->helper->route('phpbb2plus_gallery_picture', $params + $context);
 		$rate = (int) $this->access->setting('rate', 1) === 1;
 		$comments = (int) $this->access->setting('comment', 1) === 1;
-		if ($rate) { $this->template->assign_var('ALBUM_RATING', $this->rating_text($id, false)); }
+		if ($rate) { $this->template->assign_var('ALBUM_RATING', $this->picture_score($id, false)); }
 		if ($comments)
 		{
 			$result = $this->db->sql_query('SELECT COUNT(*) AS count FROM ' . $this->prefix . 'comments WHERE pic_id=' . $id);

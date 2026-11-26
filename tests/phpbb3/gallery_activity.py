@@ -58,7 +58,7 @@ def browse(administrator, member, applicant, guest, check, *, bookmarks=True):
                     (viewer is not applicant and ("/manage/delete" in total[17000]) != (viewer is administrator))):
                 raise RuntimeError("The gallery exposed an upload address or another user's moderation link")
             rated, page = read(viewer, activity + "rating")
-            if list(rated) != [17007,17009] + ([17012] if privileged else []) or not re.search(r">4[,.]0</dd>", rated[17007]):
+            if list(rated) != [17007,17009] + ([17012] if privileged else []) or not re.search(r'>4[,.]0(?:</dd>|<span class="plus-album-ranks")', rated[17007]):
                 raise RuntimeError("Member ratings included another member's ballot, separate Hot or Not score or an inaccessible album")
             if FormFields(page, "album-sort").values.get("sort_method") != "rating" or FormFields(page, "album-sort").values.get("sort_order") != "ASC":
                 raise RuntimeError("The member rating list lost its default order")

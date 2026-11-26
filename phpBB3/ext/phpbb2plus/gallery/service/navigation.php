@@ -34,8 +34,11 @@ class navigation
 	public function sort($category, $method, $direction)
 	{
 		$methods = $this->methods($category);
-		if (!isset($methods[$method])) { $method = $this->access->setting('sort_method', 'pic_time'); }
-		if (!isset($methods[$method])) { $method = 'pic_time'; }
+		foreach (array($method, $this->access->setting('sort_method', 'pic_time'), 'pic_time') as $candidate)
+		{
+			$method = settings::control_value('sort_method', $candidate);
+			if (isset($methods[$method])) { break; }
+		}
 		if (!in_array($direction, array('ASC', 'DESC'), true)) { $direction = $this->access->setting('sort_order', 'DESC'); }
 		return array($method, strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC');
 	}

@@ -22,6 +22,7 @@ class personal_module
 			'settings' => array('ACP_PLUS_PERSONAL_ALBUMS','plus_personal_albums','LOG_PLUS_PERSONAL_ALBUMS','PLUS_ALBUM_CFG_EXPLAIN','personal'),
 			'media' => array('ACP_PLUS_ALBUM_UPLOADS','plus_album_upload_policy','LOG_PLUS_ALBUM_UPLOADS','PLUS_ALBUM_CFG_MEDIA_EXPLAIN','media'),
 			'display' => array('ACP_PLUS_ALBUM_DISPLAY','plus_album_display','LOG_PLUS_ALBUM_DISPLAY','PLUS_ALBUM_CFG_DISPLAY_EXPLAIN','display'),
+			'ratings' => array('ACP_PLUS_ALBUM_RATINGS','plus_album_ratings','LOG_PLUS_ALBUM_RATINGS','PLUS_ALBUM_CFG_RATINGS_EXPLAIN','ratings'),
 		);
 		if (!isset($pages[$mode])) { trigger_error('NO_MODE', E_USER_WARNING); }
 		list($this->page_title, $form_key, $log, $explain, $section) = $pages[$mode];
@@ -31,7 +32,10 @@ class personal_module
 		{
 			if (!check_form_key($form_key)) { trigger_error('FORM_INVALID', E_USER_WARNING); }
 			$values = array();
-			foreach (settings::defaults($mode) as $name => $default) { $values[$name] = $request->variable($name, '', false, request_interface::POST); }
+			foreach (settings::defaults($mode) as $name => $default)
+			{
+				if ($request->is_set_post($name)) { $values[$name] = $request->variable($name, '', false, request_interface::POST); }
+			}
 			try
 			{
 				if ($settings->save($values, $request->variable('revision', '', false, request_interface::POST), $mode))
@@ -49,18 +53,19 @@ class personal_module
 			catch (\DomainException $e) { $template->assign_var('ALBUM_ERROR', $language->lang($e->getMessage())); }
 		}
 		$stored = $settings->snapshot($mode);
+		$groups = array('media' => settings::MEDIA_GROUPS, 'display' => settings::DISPLAY_GROUPS, 'ratings' => settings::RATING_GROUPS);
 		foreach (settings::defaults($mode) as $name => $default)
 		{
-			$current = (string) ($stored[$name] ?? $default);
+			$current = settings::control_value($name, (string) ($stored[$name] ?? $default));
 			$options = settings::options($name);
 			$bounds = settings::BOUNDS[$name] ?? array(-1,2147483647);
 			$value = $correction[$name] ?? $current;
 			if ($options && !array_key_exists($value, $options)) { $value = $current; }
-			$group = $mode === 'media' ? (settings::MEDIA_GROUPS[$name] ?? '') : '';
+			$group = $groups[$mode][$name] ?? '';
 			$template->assign_block_vars('controls', array('NAME' => $name, 'LABEL' => $language->lang('PLUS_ALBUM_CFG_' . strtoupper($name)),
 				'HEADING' => $group ? $language->lang('PLUS_ALBUM_CFG_' . $group) : '',
 				'VALUE' => $value, 'MIN' => min((float) $current, $bounds[0]), 'MAX' => max((float) $current, $bounds[1]),
-				'IS_SELECT' => !empty($options), 'IS_INTERVAL' => $name === 'new_pic_check_interval'));
+				'IS_SELECT' => !empty($options), 'IS_INTERVAL' => $name === 'new_pic_check_interval', 'IS_CATEGORIES' => $name === 'hon_rate_where'));
 			foreach ($options as $key => $label)
 			{
 				$template->assign_block_vars('controls.options', array('VALUE' => $key, 'LABEL' => $language->lang('PLUS_ALBUM_CFG_' . $label), 'SELECTED' => (string) $key === $value));

@@ -14,18 +14,26 @@ class settings
 	const SPECIAL_MEDIA = array('midthumb_use' => '1', 'midthumb_width' => '800', 'midthumb_height' => '600', 'midthumb_cache' => '1',
 		'use_watermark' => '0', 'wut_users' => '0', 'disp_watermark_at' => '3');
 	const MEDIA_GROUPS = array('max_pics' => 'UPLOAD_LIMITS', 'gd_version' => 'THUMBNAILS', 'midthumb_use' => 'MEDIUM', 'use_watermark' => 'WATERMARK');
-	const DISPLAY = array('show_recent_in_subcats' => '1', 'show_recent_instead_of_nopics' => '1',
+	const DISPLAY = array('rows_per_page' => '3', 'cols_per_page' => '4', 'sort_method' => 'pic_time', 'sort_order' => 'DESC',
+		'show_recent_in_subcats' => '1', 'show_recent_instead_of_nopics' => '1',
 		'personal_show_recent_in_subcats' => '1', 'personal_show_recent_instead_of_nopics' => '1',
 		'album_category_sorting' => 'cat_order', 'album_category_sorting_direction' => 'ASC',
 		'last_pic_title_length' => '25', 'new_pic_check_interval' => '1M');
+	const SPECIAL_DISPLAY = array('disp_late' => '1', 'disp_high' => '1', 'disp_rand' => '1', 'img_rows' => '2', 'img_cols' => '4');
+	const DISCUSSION = array('rate' => '1', 'rate_scale' => '10', 'comment' => '1');
+	const SPECIAL_RATINGS = array('rate_type' => '2', 'hon_rate_sep' => '1', 'hon_rate_times' => '1', 'hon_rate_users' => '1', 'hon_rate_where' => '');
+	const DISPLAY_GROUPS = array('rows_per_page' => 'CATEGORY_GRID', 'show_recent_in_subcats' => 'ALBUM_DIRECTORY', 'disp_late' => 'FEATURED');
+	const RATING_GROUPS = array('rate' => 'PHOTO_DISCUSSION', 'hon_rate_sep' => 'RANDOM_VOTING');
 	const DIRECTORY_SWITCHES = array('show_index_subcats' => '1', 'personal_show_subcats_in_index' => '1', 'line_break_subcats' => '0',
 		'show_index_pics' => '0', 'show_index_total_pics' => '0', 'show_index_comments' => '0', 'show_index_total_comments' => '0',
 		'show_index_last_pic' => '0', 'show_index_last_comment' => '0', 'show_index_thumb' => '0', 'fullpic_popup' => '0');
 	const BOUNDS = array('thumbnail_size' => array(1,10000), 'max_file_size' => array(1,67108864), 'max_width' => array(1,10000),
 		'max_height' => array(1,10000), 'resize_width' => array(1,10000), 'resize_height' => array(1,10000), 'resize_quality' => array(0,100),
 		'max_uploads' => array(1,100), 'last_pic_title_length' => array(1,200), 'desc_length' => array(0,65535), 'thumbnail_quality' => array(0,100),
-		'midthumb_width' => array(1,10000), 'midthumb_height' => array(1,10000));
+		'midthumb_width' => array(1,10000), 'midthumb_height' => array(1,10000), 'rows_per_page' => array(1,50), 'cols_per_page' => array(1,20),
+		'img_rows' => array(1,100), 'img_cols' => array(1,20), 'rate_scale' => array(1,255));
 	const MEDIA_SWITCHES = array('jpg_allowed','png_allowed','gif_allowed','thumbnail_cache','midthumb_use','midthumb_cache','use_watermark','wut_users');
+	const RATING_SWITCHES = array('rate','comment','hon_rate_sep','hon_rate_times','hon_rate_users','disp_late','disp_high','disp_rand');
 	const OPTIONS = array('personal_gallery' => array(0 => 'MEMBERS', 3 => 'SELECTED', 1 => 'ADMINS'),
 		'show_all_in_personal_gallery' => array(1 => 'YES', 0 => 'NO'),
 		'personal_gallery_view' => array(-1 => 'GUESTS', 0 => 'MEMBERS', 3 => 'PRIVATE', 2 => 'MODS', 1 => 'ADMINS'),
@@ -37,6 +45,9 @@ class settings
 		'personal_show_recent_instead_of_nopics' => array(1 => 'YES', 0 => 'NO'),
 		'album_category_sorting' => array('cat_order' => 'MANUAL_ORDER', 'cat_title' => 'ORDER_TITLE', 'cat_id' => 'ORDER_ID'),
 		'album_category_sorting_direction' => array('ASC' => 'ASCENDING', 'DESC' => 'DESCENDING'),
+		'sort_method' => array('pic_time' => 'PHOTO_DATE', 'pic_title' => 'ORDER_TITLE', 'username' => 'PHOTO_AUTHOR', 'pic_view_count' => 'PHOTO_VIEWS',
+			'rating' => 'PHOTO_RATING', 'comments' => 'PHOTO_COMMENTS', 'new_comment' => 'LAST_RESPONSE'),
+		'sort_order' => array('ASC' => 'ASCENDING', 'DESC' => 'DESCENDING'), 'rate_type' => array(0 => 'ICONS', 1 => 'NUMBERS', 2 => 'NUMBERS_ICONS'),
 		'disp_watermark_at' => array(1 => 'TOP_LEFT', 5 => 'TOP_CENTER', 2 => 'TOP_RIGHT', 8 => 'CENTER_LEFT', 0 => 'CENTER',
 			6 => 'CENTER_RIGHT', 4 => 'BOTTOM_LEFT', 7 => 'BOTTOM_CENTER', 3 => 'BOTTOM_RIGHT'));
 	private $db;
@@ -60,13 +71,21 @@ class settings
 
 	public static function defaults($mode)
 	{
-		if ($mode === 'display') { return self::DISPLAY + self::DIRECTORY_SWITCHES; }
+		if ($mode === 'display') { return self::DISPLAY + self::DIRECTORY_SWITCHES + self::SPECIAL_DISPLAY; }
+		if ($mode === 'ratings') { return self::DISCUSSION + self::SPECIAL_RATINGS; }
 		return $mode === 'media' ? self::MEDIA + self::SPECIAL_MEDIA : self::DEFAULTS;
 	}
 
 	public static function options($name)
 	{
-		return isset(self::DIRECTORY_SWITCHES[$name]) || in_array($name, self::MEDIA_SWITCHES, true) ? array(1 => 'YES', 0 => 'NO') : (self::OPTIONS[$name] ?? array());
+		return isset(self::DIRECTORY_SWITCHES[$name]) || in_array($name, self::MEDIA_SWITCHES, true) || in_array($name, self::RATING_SWITCHES, true) ?
+			array(1 => 'YES', 0 => 'NO') : (self::OPTIONS[$name] ?? array());
+	}
+
+	public static function control_value($name, $stored)
+	{
+		// The old controller checked pic_user_id while its fiSubSilver form actually submitted username.
+		return $name === 'sort_method' && $stored === 'pic_user_id' ? 'username' : $stored;
 	}
 
 	public function watermark_available($decode = false)
@@ -81,11 +100,21 @@ class settings
 			&& (bool) @imagecreatefrompng($file);
 	}
 
-	private static function scope($name) { return isset(self::SPECIAL_MEDIA[$name]) ? 'sp' : 'album'; }
+	private static function scope($name)
+	{
+		return isset(self::SPECIAL_MEDIA[$name]) || isset(self::SPECIAL_RATINGS[$name]) || isset(self::SPECIAL_DISPLAY[$name]) ? 'sp' : 'album';
+	}
 
 	private static function valid($name, $value)
 	{
 		if (!is_string($value)) { return false; }
+		if ($name === 'hon_rate_where')
+		{
+			if ($value === '' || $value === '0') { return true; }
+			if (strlen($value) > 4096 || !preg_match('/^[1-9][0-9]{0,9}(?:\s*,\s*[1-9][0-9]{0,9})*$/D', $value)) { return false; }
+			foreach (explode(',', $value) as $id) { if ((float) trim($id) > 2147483647) { return false; } }
+			return true;
+		}
 		$options = self::options($name);
 		if ($options) { return isset($options[$value]); }
 		if ($name === 'new_pic_check_interval') { return (bool) preg_match('/^(?:0|[1-9][0-9]{0,9}[HDWM]?)$/iD', $value); }
@@ -111,9 +140,10 @@ class settings
 			$changed = false;
 			foreach (self::defaults($mode) as $name => $default)
 			{
-				$value = $values[$name] ?? '';
+				if (!isset($values[$name])) { throw new \InvalidArgumentException($name); }
+				$value = $values[$name];
 				// An unchanged imported value is retained even if an old mod used a different scale.
-				if ($value === (string) ($old[$name] ?? $default)) { continue; }
+				if ($value === self::control_value($name, (string) ($old[$name] ?? $default))) { continue; }
 				if (!self::valid($name, $value)) { throw new \InvalidArgumentException($name); }
 				if ($name === 'use_watermark' && $value === '1' && !$this->watermark_available(true)) { throw new \DomainException('PLUS_ALBUM_CFG_MARK_MISSING'); }
 				$scope = self::scope($name);
