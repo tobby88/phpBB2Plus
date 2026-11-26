@@ -53,6 +53,7 @@ import legacy_links
 import legacy_login
 import acronym_dictionary
 import account_pruning
+import inline_editor
 import quick_reply
 import moderation_bookmarks
 import mail_links
@@ -334,6 +335,10 @@ def account_management(base, admin, moderator, member, target, web):
     absence_contact.browse(base, moderator, admin, fixture("absence_contact"))
     mailbox_counters.browse(base, admin, fixture("mailbox_counters"))
     absence_registration.browse(base, fixture("absence_registration"))
+    php(ROOT / "tests/phpbb3/acronym_dictionary.php", target, "converted", cwd=web)
+    acronym_dictionary.browse(base, admin, moderator)
+    inline_editor.browse(base, admin, moderator, lambda phase: php(
+        ROOT / "tests/phpbb3/inline_editor.php", target, phase, cwd=web, capture=True), web)
     account_pruning.browse(base, web, target, php)
 
 
@@ -440,9 +445,11 @@ def main():
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
                 php(ROOT / "tests/phpbb3/smilie_signs.php", source, "source")
+            if forum_suite or account_suite:
                 php(ROOT / "tests/phpbb3/acronym_dictionary.php", source, "source")
             if account_suite:
                 php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
+                php(ROOT / "tests/phpbb3/inline_editor.php", source, "source")
                 php(ROOT / "tests/phpbb3/absence.php", source, "source")
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
@@ -579,8 +586,6 @@ def main():
                 rank_overview.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/rank_overview.php", target, phase, cwd=web))
                 legacy_links.browse(base, member, media["member"])
-                php(ROOT / "tests/phpbb3/acronym_dictionary.php", target, "converted", cwd=web)
-                acronym_dictionary.browse(base, member, ordinary)
                 legacy_login.browse(web, base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], member)
                 moderation_bookmarks.browse(base, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/moderation_bookmarks.php", target, phase, cwd=web))
