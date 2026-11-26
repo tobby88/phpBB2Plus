@@ -22,7 +22,12 @@ $registered = (int) ($state['registered'] ?? (time() - 500 * $day));
 $group = (int) $rows("SELECT group_id FROM " . GROUPS_TABLE . " WHERE group_name='REGISTERED' AND group_type=" . GROUP_SPECIAL)[0]['group_id'];
 $create = static function ($key, $options = array()) use ($phpbb_container, $group, $registered) {
 	static $hash;
-	if (!$hash) { $hash = $phpbb_container->get('passwords.manager')->hash(getenv('PLUS_TEST_MODERN_PASSWORD')); }
+	if (!$hash)
+	{
+		$native = '';
+		(new \phpbb\request\type_cast_helper())->set_var($native, getenv('PLUS_TEST_MODERN_PASSWORD'), 'string', true, false);
+		$hash = $phpbb_container->get('passwords.manager')->hash($native);
+	}
 	$name = 'PruneFixture' . $key;
 	$uid = user_add($options + array('username' => $name, 'user_email' => strtolower($name) . '@example.invalid',
 		'group_id' => $group, 'user_password' => $hash, 'user_type' => USER_NORMAL, 'user_lang' => 'en', 'user_regdate' => $registered));
