@@ -99,6 +99,7 @@ if (!$get_info)
 	$config_schema['settings']['plus_card_threshold'] = 'plus_card_threshold(max_user_bancard)';
 	$config_schema['settings']['plus_announce_default'] = 'announcement_duration';
 	$config_schema['settings']['plus_announce_sticky'] = 'announcement_prune_strategy';
+	$config_schema['settings']['plus_birthday_greeting'] = 'birthday_greeting';
 	foreach (array('publish'=>'allow_news','page_size'=>'news_item_num','trim'=>'news_item_trim','title_trim'=>'news_title_trim',
 		'feed'=>'allow_rss','feed_limit'=>'news_rss_item_count','feed_abstract'=>'news_rss_show_abstract',
 		'feed_language'=>'news_rss_language','feed_ttl'=>'news_rss_ttl') as $new=>$old)
@@ -282,6 +283,7 @@ if (!$get_info)
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_registration_ip');
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
+			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
 			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_global_msg_read'))
 			{

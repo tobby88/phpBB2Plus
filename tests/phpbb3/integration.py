@@ -59,6 +59,7 @@ import recommend
 import attachment_rules
 import attachment_upload_types
 import member_attachments
+import birthday_greeting
 import downloads
 import download_categories
 import download_checker
@@ -397,6 +398,7 @@ def main():
             if not media_only:
                 php(ROOT / "tests/phpbb3/topic_readers.php", source, "source")
                 php(ROOT / "tests/phpbb3/recommend.php", source, "source")
+                php(ROOT / "tests/phpbb3/birthday_greeting.php", source, "source")
             php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             php(ROOT / "tests/phpbb3/weblink_logos.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
@@ -435,6 +437,7 @@ def main():
                 if not media_only:
                     php(ROOT / "tests/phpbb3/topic_readers.php", target, "converted", cwd=web)
                     php(ROOT / "tests/phpbb3/recommend.php", target, "converted", cwd=web)
+                    php(ROOT / "tests/phpbb3/birthday_greeting.php", target, "converted", cwd=web)
                 attachments.verify_storage(web, php(fixture, "attachments", target, capture=True), with_recovery=not media_only)
                 converted = monotonic()
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
@@ -563,6 +566,8 @@ def main():
                 admin_contact.browse(Browser(base), ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/admin_contact.php", target, phase, cwd=web, capture=True))
                 recommend.browse(base, ordinary, lambda phase: php(ROOT / "tests/phpbb3/recommend.php", target, phase, cwd=web))
+                birthday_greeting.browse(base, ordinary, member, lambda phase: php(
+                    ROOT / "tests/phpbb3/birthday_greeting.php", target, phase, cwd=web, capture=True))
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
                 weblinks.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))

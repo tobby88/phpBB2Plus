@@ -61,6 +61,11 @@ function plus_core_account_columns()
 		'user_use_ajax_preview user_use_ajax_edit games_block_pm arcade_banned');
 }
 
+function plus_birthday_year($year)
+{
+	return max(0, min(9999, (int) $year));
+}
+
 function plus_convert_birthday($days)
 {
 	if ($days === null || $days === '' || (int) $days === 999999) { return ' 0- 0-   0'; }

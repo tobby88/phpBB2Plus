@@ -1,3 +1,7 @@
+phpbb2plus_community_birthday:
+    path: /birthday
+    defaults: { _controller: phpbb2plus.community.birthday:view }
+    methods: [GET, HEAD]
 phpbb2plus_community_member_attachments:
     path: /legacy/member/{source}/attachments/{sort}/{direction}/{start}
     defaults: { _controller: phpbb2plus.community.member_attachments:bookmark }

@@ -28,6 +28,7 @@ class ext extends \phpbb\extension\base
 				WHERE plus_paused_type=1 AND field_type='profilefields.type.text'");
 			$db->sql_query('UPDATE ' . PROFILE_FIELDS_TABLE . ' SET field_no_view=0,plus_paused_view=0 WHERE plus_paused_view=1');
 			$this->container->get('profilefields.manager')->enable_profilefields('profilefields.type.plus_multi');
+			$this->container->get('notification_manager')->enable_notifications(notification\birthday::TYPE);
 			$db->sql_query('UPDATE ' . ICONS_TABLE . ' SET display_on_posting=1,plus_icon_paused=0 WHERE plus_icon_paused=1');
 			// Native account removal also works while Community is disabled.
 			$table = $this->container->getParameter('core.table_prefix') . 'plus_account_logins';
@@ -49,6 +50,7 @@ class ext extends \phpbb\extension\base
 		try
 		{
 			$this->container->get('profilefields.manager')->disable_profilefields('profilefields.type.plus_multi');
+			$this->container->get('notification_manager')->disable_notifications(notification\birthday::TYPE);
 			if ($this->container->get('dbal.tools')->sql_column_exists(ICONS_TABLE,'plus_icon_paused'))
 			{
 				$db->sql_query('UPDATE ' . ICONS_TABLE . ' SET display_on_posting=0,plus_icon_paused=1 WHERE plus_icon_level>0 AND display_on_posting=1');
@@ -64,6 +66,13 @@ class ext extends \phpbb\extension\base
 		}
 		catch (\Throwable $e) { $db->sql_transaction('rollback'); throw $e; }
 		$this->finish_cli_transition();
+		return false;
+	}
+
+	public function purge_step($old_state)
+	{
+		if (parent::purge_step($old_state)) { return true; }
+		$this->container->get('notification_manager')->purge_notifications(notification\birthday::TYPE);
 		return false;
 	}
 }

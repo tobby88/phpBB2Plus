@@ -102,6 +102,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'birthday_popup':
+			$path = 'birthday';
+			break;
 		case 'topic_view_users':
 			if (!($id = $positive('t'))) { break; }
 			$path = 'topic/' . $id . '/readers';

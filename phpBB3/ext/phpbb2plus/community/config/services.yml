@@ -236,6 +236,19 @@ services:
     phpbb2plus.community.attachment_quotas:
         class: phpbb2plus\community\attachment\quotas
         arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_attach_']
+    phpbb2plus.community.birthday:
+        class: phpbb2plus\community\event\birthday
+        arguments: ['@dbal.conn', '@config', '@user', '@language', '@request', '@notification_manager', '@controller.helper']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.notification.birthday:
+        class: phpbb2plus\community\notification\birthday
+        parent: notification.type.base
+        shared: false
+        calls:
+            - [set_config, ['@config']]
+        tags:
+            - { name: notification.type }
     phpbb2plus.community.member_attachments:
         class: phpbb2plus\community\attachment\member_panel
         arguments: ['@auth', '@user', '@language', '@config', '@template', '@phpbb2plus.community.attachment_quotas', '@phpbb2plus.community.legacy', '%core.root_path%ucp.%core.php_ext%', '%core.root_path%%core.adm_relative_path%index.%core.php_ext%']
