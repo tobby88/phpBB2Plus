@@ -87,6 +87,16 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'topic_watch':
+			// Old notification emails contain only the topic number. The native
+			// form identifies the current member when they confirm unsubscribing.
+			$topic = $query['t'] ?? '';
+			if (!is_string($topic) || !preg_match('/^0*([1-9][0-9]{0,7})$/D', $topic, $number) || (int) $number[1] > 16777215) { break; }
+			$base = './';
+			$path = 'viewtopic.php';
+			$extra = array('t' => (int) $number[1], 'unwatch' => 'topic');
+			header('Cache-Control: private, no-store');
+			break;
 		case 'arcade_modcp':
 			$category = $query['cat_id'] ?? '0';
 			$action = $query['action'] ?? '';
@@ -507,7 +517,7 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		}
 		if (in_array($query['sort_order'] ?? '', array('ASC','DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
 	}
-	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history','topic_watch'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	// The album and download search handlers accept the original POST bodies.
 	$status = $method === 'POST' ? ($sort_redirect || $entry === 'kb_search' ? 303 : 307) : 302;

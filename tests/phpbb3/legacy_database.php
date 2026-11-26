@@ -256,6 +256,13 @@ elseif ($argv[1] === 'group-bookmarks')
 		(int) $flags['REGISTERED'] === 0, 'Original and native-only group identities were mixed during conversion');
 	echo (int) $db->query("SELECT group_id FROM p3_groups WHERE group_name='REGISTERED'")->fetch_row()[0];
 }
+elseif ($argv[1] === 'watch-bookmark-restore')
+{
+	$owner = (int) $db->query("SELECT user_id FROM p3_users WHERE username='HistoricMember'")->fetch_row()[0];
+	$watches = $db->query("SELECT topic_id FROM p3_topics_watch WHERE user_id=$owner AND topic_id IN (1,2) ORDER BY topic_id")->fetch_all();
+	check_fixture(array_map('intval', array_column($watches, 0)) === array(2), 'Unsubscribing from one topic changed the wrong subscriptions');
+	$db->query("INSERT INTO p3_topics_watch (topic_id,user_id,notify_status) VALUES (1,$owner,1)");
+}
 elseif (in_array($argv[1], array('mail-bookmarks-off','mail-bookmarks-on'), true))
 {
 	$state = (int) ($argv[1] === 'mail-bookmarks-on');
