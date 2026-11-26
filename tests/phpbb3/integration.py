@@ -25,6 +25,7 @@ import arcade_category_administration
 import arcade_moderation
 import arcade_standings
 import banners
+import weblinks
 import board_statistics
 import statistics_administration
 import attachments
@@ -186,7 +187,7 @@ def install(web, settings_dir, name):
     report = php("install/phpbbcli.php", "install", config, "--no-interaction", cwd=web, capture=True)
     if "The installer has finished successfully" not in report or "PHPBB_INSTALLED" not in (web / "config.php").read_text(encoding="utf-8"):
         raise RuntimeError("phpBB installer did not finish: " + report[-4000:])
-    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads", "calendar", "news", "colours", "banners"):
+    for extension in ("community", "gallery", "knowledgebase", "arcade", "downloads", "calendar", "news", "colours", "banners", "weblinks"):
         if "Successfully enabled extension phpbb2plus/" + extension not in report:
             raise RuntimeError(f"The installer did not activate {extension}: " + report[-3500:])
     php("bin/phpbbcli.php", "extension:disable", "phpbb/viglink", "--no-interaction", cwd=web)
@@ -370,6 +371,7 @@ def main():
             php(fixture, "seed-pruning-off" if media_only else "seed", source)
             statistics_fixture = ROOT / "tests/phpbb3/board_statistics.php"
             php(statistics_fixture, "seed", source)
+            php(ROOT / "tests/phpbb3/weblinks.php", source, "source")
             source_files(ROOT / "phpBB2", root / "legacy")
             board_statistics.source_modules(ROOT / "phpBB2", root / "legacy")
             delegation.source_modules(ROOT / "phpBB2", root / "legacy")
@@ -379,6 +381,7 @@ def main():
             arcade.source_media(root / "legacy")
             downloads.source_media(root / "legacy")
             profile_media.source_media(root / "legacy")
+            weblinks.source_media(ROOT / "phpBB2", root / "legacy")
             seeded = monotonic()
             print(f"Installation and source fixtures: {seeded-built:.1f}s", flush=True)
             with server(web, root) as base:
@@ -524,6 +527,8 @@ def main():
                     custom_profiles.visibility_after_toggle(base, action == "enable")
                 native_content(base, member, ordinary)
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
+                weblinks.browse(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
                 attachment_quotas.messages(member, ordinary, media["member"])
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
                 attachment_quotas.administration(member, lambda phase: php(ROOT / "tests/phpbb3/attachment_quotas.php", target, phase, cwd=web))
