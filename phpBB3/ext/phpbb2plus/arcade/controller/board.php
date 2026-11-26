@@ -122,6 +122,40 @@ class board
 		return $this->artwork->response($cats[(int) $category]);
 	}
 
+	private function statistics($member)
+	{
+		$limit = max(1, min(100, (int) $this->catalog->setting('games_total_top', 10)));
+		$newest = (bool) $this->catalog->setting('games_new_games', 1);
+		foreach (array('popular', $newest ? 'recent' : 'least') as $chart)
+		{
+			$this->template->assign_block_vars('arc_charts', array('KEY' => $chart,
+				'TITLE' => $this->language->lang('PLUS_ARC_CHART_' . strtoupper($chart))));
+			foreach ($this->catalog->chart_games($chart, $limit) as $game)
+			{
+				$this->template->assign_block_vars('arc_charts.games', array('TITLE' => catalog::plain($game['game_desc'] ?: $game['game_name']),
+					'URL' => $game['allow_guest'] || !empty($this->user->data['is_registered'])
+						? $this->helper->route('phpbb2plus_arcade_game', array('game' => (int) $game['game_id'])) : ''));
+			}
+		}
+		$periods = $this->catalog->setting('games_at_highscore', 1) ? array('current','all') : array('current');
+		foreach ($periods as $period)
+		{
+			$all_time = $period === 'all';
+			$leader = $this->standings->leading_player($all_time);
+			$this->template->assign_block_vars('arc_records', array('KEY' => $period,
+				'TITLE' => $this->language->lang($all_time ? 'PLUS_ARC_ALL' : 'PLUS_ARC_CURRENT'),
+				'PLAYER' => $leader ? get_username_string('full', $leader['user_id'], $leader['username'], $leader['user_colour']) : '',
+				'WINS' => $leader ? (int) $leader['wins'] : 0));
+			if (empty($this->user->data['is_registered']) || !$this->catalog->can_view_awards($member)) { continue; }
+			$counts = $this->catalog->award_counts($this->catalog->award_query($member, $all_time));
+			for ($place = 1; $place <= 3; $place++)
+			{
+				$this->template->assign_block_vars('arc_records.places', array('PLACE' => $place, 'COUNT' => (int) ($counts[$place] ?? 0),
+					'URL' => $this->helper->route('phpbb2plus_arcade_awards', array('member' => $member, 'period' => $period, 'place' => $place))));
+			}
+		}
+	}
+
 	public function index($category = 0, $favourites = false)
 	{
 		$this->header();
@@ -146,6 +180,8 @@ class board
 		if (!$favourites) { $this->category_list($id); }
 		$where = $this->catalog->game_filter($id) . $this->catalog->title_filter($term, $type);
 		$member = (int) $this->user->data['user_id'];
+		if (!$id && !$favourites && $term === '' && !$this->request->variable('start', 0) && (int) $this->catalog->setting('games_show_stats', 1))
+		{ $this->statistics($member); }
 		$moderated = $this->moderation->categories();
 		if ($moderated && (!$id || isset($moderated[$id])))
 		{
@@ -319,9 +355,7 @@ class board
 		$name = $this->db->sql_fetchfield('username'); $this->db->sql_freeresult($r);
 		if ($name === false) { throw new NotFoundHttpException(); }
 		$source = $this->catalog->award_query($id,$period === 'all');
-		$r = $this->db->sql_query("SELECT place,COUNT(*) AS n FROM $source WHERE place>0 GROUP BY place");
-		$counts = array_column($this->db->sql_fetchrowset($r),'n','place');
-		$this->db->sql_freeresult($r);
+		$counts = $this->catalog->award_counts($source);
 		$total = $place ? (int) ($counts[$place] ?? 0) : array_sum($counts);
 		$url = $this->helper->route('phpbb2plus_arcade_awards',$params + ($place ? array('place'=>$place) : array()));
 		$start = $this->start($url,$total,25);

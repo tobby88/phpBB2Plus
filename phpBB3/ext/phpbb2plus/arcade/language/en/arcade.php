@@ -49,6 +49,8 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ARC_SELECT_MONTH' => 'Month', 'PLUS_ARC_PREV_MONTH' => 'Previous month', 'PLUS_ARC_NEXT_MONTH' => 'Next month',
 	'PLUS_ARC_PLACE' => 'Place',
 	'PLUS_ARC_MY_AWARDS' => 'My podium finishes',
+	'PLUS_ARC_CHART_POPULAR' => 'Most played games', 'PLUS_ARC_CHART_RECENT' => 'Newest games', 'PLUS_ARC_CHART_LEAST' => 'Least played games',
+	'PLUS_ARC_LEADER' => 'Most first places', 'PLUS_ARC_FIRSTS' => array(1 => '%d first place', 2 => '%d first places'),
 	'PLUS_ARC_TOURS' => 'Tournaments',
 	'PLUS_ARC_TOUR' => 'Tournament',
 	'PLUS_ARC_PROPOSE' => 'Propose a tournament',

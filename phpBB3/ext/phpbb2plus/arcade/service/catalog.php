@@ -221,6 +221,24 @@ class catalog
 		return $sorts;
 	}
 
+	public function chart_games($chart, $limit)
+	{
+		$order = array('popular' => 'g.played DESC', 'recent' => 'g.date_added DESC', 'least' => 'g.played ASC');
+		$result = $this->db->sql_query_limit('SELECT g.game_id,g.game_name,g.game_desc,g.allow_guest FROM ' . $this->prefix . 'games g
+			WHERE g.game_avail=1 AND ' . $this->game_filter() . ' ORDER BY ' . $order[$chart] . ',g.game_id', $limit);
+		$rows = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+		return $rows;
+	}
+
+	public function award_counts($source)
+	{
+		$result = $this->db->sql_query("SELECT place,COUNT(*) AS n FROM $source WHERE place>0 GROUP BY place");
+		$counts = array_column($this->db->sql_fetchrowset($result), 'n', 'place');
+		$this->db->sql_freeresult($result);
+		return $counts;
+	}
+
 	public function title_filter($term, $type)
 	{
 		$title = "COALESCE(NULLIF(g.game_desc,''),g.game_name)";

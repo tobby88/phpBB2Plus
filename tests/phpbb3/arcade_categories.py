@@ -30,6 +30,40 @@ def visit_link(base, method):
         connection.close()
 
 
+def charts(guest, member, directory, change):
+    def section(page, key):
+        match = re.search('<section[^>]*id="arc-' + key + r'"[^>]*>(.*?)</section>', page, re.S)
+        if not match:
+            raise RuntimeError("Missing Arcade statistics section " + key)
+        return match[1]
+
+    change("charts")
+    public = guest.fetch(directory)
+    club = member.fetch(directory)
+    popular = section(public, "chart-popular")
+    recent = section(public, "chart-recent")
+    if (popular.count("<li>") != 2 or popular.index("Open fixture game") > popular.index("Second public fixture")
+            or recent.index("Second public fixture") > recent.index("Open fixture game") or '/game/902010' in popular
+            or '/game/902014' not in popular or "Private fixture game" in popular or "Offline fixture game" in popular):
+        raise RuntimeError("Public game charts lost their configured limit, order or guest availability")
+    if "Private fixture game" not in section(club, "chart-popular"):
+        raise RuntimeError("The group member cannot see the popular game from the private child category")
+    for period in ("current", "all"):
+        member_records = section(club, "record-" + period)
+        public_records = section(public, "record-" + period)
+        if ("DepartingFixture" not in member_records or "4 first places" not in member_records or
+                len(re.findall(r'/awards/' + period + r'\?place=[123]', member_records)) != 3 or
+                "DepartingFixture" in public_records or '/awards/' in public_records):
+            raise RuntimeError("A player's podium totals include inaccessible games or omit the personal award links")
+    change("least")
+    least = guest.fetch(directory)
+    if "Open fixture game" in section(least, "chart-least") or "arc-chart-recent" in least or "arc-record-all" in least:
+        raise RuntimeError("The alternative least-played list or all-time switch was ignored")
+    change("stats-off")
+    if "arc-chart-popular" in member.fetch(directory):
+        raise RuntimeError("The Arcade statistics switch left its homepage panels enabled")
+
+
 def browse(base, founder, member, pending, change):
     guest = Browser(base)
     directory = "app.php/arcade"
@@ -79,6 +113,7 @@ def browse(base, founder, member, pending, change):
         if ("Offline fixture game" not in row or "Gast" not in row or "/arcade/game/902012" in row
                 or "/arcade/game/902012" not in location(founder)):
             raise RuntimeError("An offline game or guest play lost its original presentation")
+        charts(guest, member, directory, change)
         for phase, title in (("incomplete", "Offline fixture game"), ("moved", "Öffentliches Denkspiel"), ("duplicate", "Open fixture game")):
             change(phase)
             if title in location(guest) or title in location(founder):

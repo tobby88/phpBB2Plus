@@ -68,6 +68,21 @@ class standings
 				ORDER BY ' . $this->score_order() . ',r.highscore_date,r.highscore_user_id,r.highscore_id LIMIT 1)';
 	}
 
+	public function leading_player($all_time)
+	{
+		$table = $this->prefix . ($all_time ? 'all_scores' : 'scores');
+		// Cached per-player totals include private categories. Rank the visible scores, then resolve their current owners.
+		$result = $this->db->sql_query_limit('SELECT u.user_id,u.username,u.user_colour,COUNT(*) AS wins
+			FROM ' . $this->prefix . "games g JOIN $table s ON s.row_id=(SELECT r.row_id FROM $table r
+				WHERE r.game_name=g.game_name ORDER BY " . $this->score_order() . ',r.recorded_at,r.player_id,r.row_id LIMIT 1)
+			JOIN ' . USERS_TABLE . ' u ON u.user_id=s.owner_id WHERE u.user_id>' . ANONYMOUS . ' AND ' . $this->catalog->ranked_game_filter() .
+			($all_time ? ' AND g.at_highscore_limit>0' : '') . ' GROUP BY u.user_id,u.username,u.user_colour ORDER BY wins DESC,
+			(SELECT MIN(p.last_won_date) FROM ' . $this->prefix . 'players p WHERE p.owner_id=u.user_id),u.user_id', 1);
+		$row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		return $row;
+	}
+
 	private function with_users($query)
 	{
 		return "SELECT w.*,u.username,u.user_colour FROM ($query) w LEFT JOIN " . USERS_TABLE . ' u ON u.user_id=w.owner_id AND w.owner_id>0';
