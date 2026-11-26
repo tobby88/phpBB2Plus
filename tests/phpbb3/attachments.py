@@ -14,11 +14,13 @@ def source_media(legacy):
         (directory / name).write_bytes(data)
 
 
-def verify_storage(web, encoded):
+def verify_storage(web, encoded, with_recovery=False):
     rows = json.loads(encoded)
     uploaded = web / "files"
     expected = {(48, 0, 31), (48, 0, 805200), (48, 0, 805300), (50, 0, 32), (50, 0, 40),
                 (50, 0, 143001), (63, 1, 109), (63, 1, 111), (63, 1, 112), (80, 0, 0)}
+    if with_recovery:
+        expected.add((50, 0, 14721))
     associations = {(int(r["source_id"]), int(r["in_message"]), int(r["parent_id"])) for r in rows}
     if len(rows) != len(expected) or associations != expected:
         raise RuntimeError("Incorrect attachment ownership or shared association")

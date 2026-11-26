@@ -360,7 +360,7 @@ def main():
                 php(ROOT / "tests/phpbb3/download_search.php", target, "converted", cwd=web)
                 php(ROOT / "tests/phpbb3/download_mail.php", target, "converted", cwd=web)
                 php(statistics_fixture, "converted", target)
-                attachments.verify_storage(web, php(fixture, "attachments", target, capture=True))
+                attachments.verify_storage(web, php(fixture, "attachments", target, capture=True), with_recovery=not media_only)
                 converted = monotonic()
                 print(f"Conversion and database verification: {converted-seeded:.1f}s", flush=True)
                 login(base, "ModernMember", "incorrect", expect_success=False)

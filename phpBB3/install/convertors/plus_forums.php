@@ -87,19 +87,20 @@ function plus_detach_broken_branches(&$nodes)
 
 function plus_recovery_label($key)
 {
-	global $phpbb_container;
-	static $language = null;
-	if (!$language)
+	static $labels = null;
+	if ($labels === null)
 	{
-		$language = clone $phpbb_container->get('language');
-		$language->set_user_language(plus_convert_locale(get_config_value('default_lang')), true);
-		$language->add_lang('conversion', 'phpbb2plus/community');
+		// The installer's language loader does not discover normal board extensions.
+		$locale = plus_convert_locale(get_config_value('default_lang')) === 'de' ? 'de' : 'en';
+		$lang = array();
+		require __DIR__ . '/../../ext/phpbb2plus/community/language/' . $locale . '/conversion.php';
+		$labels = $lang;
 	}
-	return $language->lang($key);
+	return $labels[$key];
 }
 
 /** Allocate native category IDs and rebuild nested-set bounds from the source relationships. */
-function plus_forum_layout($categories, $forums)
+function plus_forum_layout($categories, $forums, $recovery_forum = 0)
 {
 	$nodes = $children = array();
 	$next_id = 0;
@@ -120,11 +121,15 @@ function plus_forum_layout($categories, $forums)
 			'parent' => $parent && ($type !== 'c' || $parent !== $id) ? $type . $parent : '',
 			'order' => (int) $category['cat_order'] + ($category['cat_main_type'] ? 0 : 9000000));
 	}
-	if (plus_detach_broken_branches($nodes))
+	if (plus_detach_broken_branches($nodes) || $recovery_forum)
 	{
 		// A generated recovery container must never take a possible phpBB2 forum number.
 		$nodes['recovery'] = array('id'=>max(65536, $next_id + 1), 'type'=>'c', 'parent'=>'', 'order'=>PHP_INT_MAX,
 			'row'=>array('cat_id'=>0, 'cat_title'=>plus_recovery_label('PLUS_RECOVERED_FORUMS'), 'cat_desc'=>''));
+	}
+	if ($recovery_forum)
+	{
+		$nodes['recovery_forum'] = array('id'=>$recovery_forum, 'type'=>'f', 'parent'=>'recovery', 'order'=>PHP_INT_MAX, 'row'=>array());
 	}
 	foreach ($nodes as $key => $node)
 	{
@@ -163,7 +168,10 @@ function plus_restore_forum_tree()
 		FROM ' . $convert->src_table_prefix . 'forums f ORDER BY f.forum_id');
 	$forums = $src_db->sql_fetchrowset($result);
 	$src_db->sql_freeresult($result);
-	$nodes = plus_forum_layout($categories, $forums);
+	$result = $db->sql_query('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE plus_recovery_role=2');
+	$recovery_forum = (int) $db->sql_fetchfield('forum_id');
+	$db->sql_freeresult($result);
+	$nodes = plus_forum_layout($categories, $forums, $recovery_forum);
 	$result = $src_db->sql_query('SELECT config_value FROM ' . $convert->src_table_prefix . "config WHERE config_name='prune_enable'");
 	$prune_enabled = (string) $src_db->sql_fetchfield('config_value') === '1';
 	$src_db->sql_freeresult($result);
@@ -191,6 +199,13 @@ function plus_restore_forum_tree()
 				'plus_recovery_role'=>(int) ($key === 'recovery'), 'plus_recovery_parent'=>utf8_encode_ucr($node['old_parent'] ?? ''),
 				'plus_recovery_reason'=>$node['reason'] ?? '');
 			$row = $node['row'];
+			if ($key === 'recovery_forum')
+			{
+				$fields['plus_recovery_role'] = 2;
+				$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . $db->sql_build_array('UPDATE', $fields) . ' WHERE forum_id=' . $node['id']);
+				plus_recovery_forum_permissions($node['id']);
+				continue;
+			}
 			if ($node['type'] === 'c')
 			{
 				$fields += array('forum_id' => $node['id'], 'forum_type' => FORUM_CAT, 'plus_cal_src_cat' => (int) $row['cat_id'], 'forum_rules' => '',

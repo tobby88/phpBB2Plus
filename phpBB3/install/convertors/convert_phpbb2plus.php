@@ -335,6 +335,10 @@ if (!$get_info)
 		}
 		if ($section['target'] === POSTS_TABLE)
 		{
+			$section['left_join'] = (array) $section['left_join'];
+			$section['left_join'][] = 'posts LEFT JOIN topics AS source_topic ON source_topic.topic_id=posts.topic_id';
+			$section[] = array('plus_recovery_topic', array('posts.topic_id', 'source_topic.topic_id AS known_topic',
+				'source_topic.topic_status AS old_status', 'source_topic.topic_moved_id AS old_move'), 'plus_recovery_post_topic');
 			$section[] = array('plus_public_post', 1, '');
 			$section[] = array('plus_legacy_erased', 'posts.post_deleted', 'plus_erased_post');
 			$section[] = array('post_delete_time', 'posts.post_deleted_time', 'intval');
@@ -426,7 +430,7 @@ if (!$get_info)
 	);
 	// Bylines are available and the search backend has not indexed these posts.
 	$convertor['schema'][] = array(
-		'target' => SEARCH_WORDMATCH_TABLE, 'primary' => 'posts.post_id', 'execute_first' => 'plus_removed_topics();',
+		'target' => SEARCH_WORDMATCH_TABLE, 'primary' => 'posts.post_id', 'execute_first' => 'plus_recover_topic_routes(); plus_removed_topics();',
 		array('', 'posts.post_id', 'plus_index_native_post'),
 	);
 	$convertor['schema'][] = array(
