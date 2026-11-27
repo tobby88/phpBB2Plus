@@ -53,6 +53,7 @@ import topic_avatar
 import topic_navigation
 import daily_visitors
 import registration_counts
+import registration_policy
 import registration_reputation
 import recent_topics
 import custom_profiles
@@ -926,6 +927,8 @@ def main():
                     # The portal checks the five most recent sign-ins, including a hidden member.
                     portal.administration(base, member)
                     cookie_notice.browse(member)
+                    registration_policy.browse(member, lambda phase: php(
+                        ROOT / "tests/phpbb3/registration_policy.php", target, phase, cwd=web))
                     forum_display.browse(base, web, target, php, member)
                     announcement_list.browse(base, member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/announcement_list.php", target, phase, cwd=web, capture=True))
