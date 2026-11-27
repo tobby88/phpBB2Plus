@@ -316,12 +316,14 @@ function plus_convert_message($message)
 	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) && stripos($xml, '[acronym=') !== false)
 	{
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/explicit_acronym.php';
+		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/literal_bbcode.php';
 		if (!$acronyms) { $acronyms = new \phpbb2plus\community\service\explicit_acronym($db, $phpbb_container); }
 		$xml = $acronyms->for_display($xml);
 	}
 	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) && stripos($xml, '[table=') !== false)
 	{
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/table_formatting.php';
+		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/literal_bbcode.php';
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/legacy_tables.php';
 		if (!$tables) { $tables = new \phpbb2plus\community\service\legacy_tables($db, $phpbb_container); }
 		$xml = $tables->for_display($xml);

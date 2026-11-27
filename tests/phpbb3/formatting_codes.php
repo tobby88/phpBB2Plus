@@ -24,8 +24,8 @@ if ($argv[2] === 'source')
 	return;
 }
 define('IN_PHPBB', true);
-// The clean-install check runs before the converter wizard is opened.
-if ($argv[2] === 'native' && is_dir('./install')) { define('IN_INSTALL', true); }
+// Set up the normal board session while its conversion wizard is still present.
+if ($argv[2] === 'native' && is_dir('./install')) { define('IN_LOGIN', true); }
 $phpbb_root_path = './'; $phpEx = 'php'; require './common.php';
 if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1]) { exit(2); }
 $user->session_begin(); $auth->acl($user->data); $user->setup();
@@ -72,6 +72,57 @@ elseif ($argv[2] === 'native')
 		{
 			formatting_require($xpath->query($query)->length === (int) $enabled, 'Unexpected native output for ' . $query . ' with BBCode ' . (int) $enabled);
 		}
+	}
+	// An old preview may have mixed the literal delimiters with other native tags.
+	$older = '<r><B><s>[b]</s>Vorher<e>[/b]</e></B> [align=right][s]Grün <I><s>[i]</s>Öl<e>[/i]</e></I> &#128512;[/s][/align] [hr] ' .
+		'<CODE><s>[code]</s>[s]Beispiel[/s]<e>[/code]</e></CODE> [align=falsch]Wort[/align] [s]offen</r>';
+	$service = $phpbb_container->get('phpbb2plus.community.legacy_formatting');
+	foreach (array(true, false) as $enabled)
+	{
+		$event = new \ArrayObject(array('rowset_data' => array('post_text' => $older, 'bbcode_bitfield' => 'QA=='), 'row' => array('enable_bbcode' => $enabled)));
+		$service->topic_post($event);
+		$row = $event['rowset_data'];
+		$xml = $row['post_text'];
+		formatting_require(\s9e\TextFormatter\Unparser::unparse($xml) === \s9e\TextFormatter\Unparser::unparse($older) &&
+			strpos($xml, '<B><s>[b]</s>Vorher<e>[/b]</e></B>') !== false && strpos($xml, '[s]Beispiel[/s]') !== false &&
+			strpos($xml, '[align=falsch]Wort[/align] [s]offen') !== false, 'Earlier markup or its editor source changed');
+		$xpath = formatting_xpath($renderer->render($xml));
+		formatting_require($xpath->query('//div[contains(@style,"text-align:right")]/s/*[text()="Öl"]')->length === (int) $enabled &&
+			$xpath->query('//hr')->length === (int) $enabled && strpos($xml, '<I><s>[i]</s>Öl<e>[/i]</e></I>') !== false,
+			'Earlier text styles ignored BBCode=' . (int) $enabled . ' or lost an italic child: ' . $xml);
+		formatting_require($enabled ? $row['bbcode_bitfield'] === 'QA==' : $row['bbcode_bitfield'] === '',
+			'An earlier bitfield overrode the stored BBCode preference');
+		$second = new \ArrayObject(array('text' => $xml, 'flags' => $enabled ? OPTION_FLAG_BBCODE : 0));
+		$service->older_content($second);
+		formatting_require($second['text'] === $xml, 'Viewing earlier formatting twice changed it again');
+	}
+	// Simulate an established board whose last native BBCode ID is already taken.
+	// A second application of the migration must keep that definition and its ID.
+	$overflow = $config['plus_formatting_overflow'];
+	$db->sql_transaction('begin');
+	try
+	{
+		$db->sql_query('DELETE FROM ' . BBCODES_TABLE . " WHERE bbcode_tag IN ('s','fade')");
+		$db->sql_query('UPDATE ' . BBCODES_TABLE . ' SET ' . $db->sql_build_array('UPDATE', array(
+			'bbcode_id' => BBCODE_LIMIT, 'bbcode_tpl' => '<aside class="board-center">{TEXT}</aside>')) . " WHERE bbcode_tag='center'");
+		$migration = new \phpbb2plus\community\migrations\v172_formatting_codes($config, $db,
+			$phpbb_container->get('dbal.tools'), $phpbb_root_path, $phpEx, $table_prefix);
+		$migration->install_codes();
+		$migration->install_codes();
+		formatting_require($config['plus_formatting_overflow'] === 's,fade', 'The migration reused an occupied native ID');
+		$objects = $phpbb_container->get('text_formatter.s9e.factory')->regenerate();
+		$xml = $objects['parser']->parse('[center]Board[/center] [s]Alt[/s] [fade]Ende[/fade]');
+		$xpath = formatting_xpath($objects['renderer']->render($xml));
+		formatting_require($xpath->query('//aside[@class="board-center" and text()="Board"]')->length === 1 &&
+			$xpath->query('//s[text()="Alt"]')->length === 1 && $xpath->query('//span[contains(@style,"linear-gradient")]')->length === 1,
+			'The native fallback or pre-existing board template was lost');
+	}
+	finally
+	{
+		$db->sql_transaction('rollback');
+		$config->set('plus_formatting_overflow', $overflow);
+		$cache->destroy('sql', BBCODES_TABLE);
+		\phpbb2plus\community\service\smilie_sign::reset_formatter($phpbb_container);
 	}
 }
 else { exit(2); }

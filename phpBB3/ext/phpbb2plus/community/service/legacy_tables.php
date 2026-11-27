@@ -27,11 +27,7 @@ class legacy_tables
 			$this->custom = (bool) $this->db->sql_fetchrow($result);
 			$this->db->sql_freeresult($result);
 		}
-		if ($this->custom && !$this->parser)
-		{
-			$this->parser = clone $this->container->get('text_formatter.parser')->get_parser();
-			$this->parser->enablePlugin('BBCodes');
-		}
+		if ($this->custom && !$this->parser) { $this->parser = literal_bbcode::parser($this->container); }
 		return self::upgrade($xml, $this->parser);
 	}
 
@@ -49,7 +45,7 @@ class legacy_tables
 			$wanted[$start] = $wanted[$table['end']] = true;
 			foreach ($table['cells'] as $open => $end) { $wanted[$open] = $wanted[$end] = true; }
 		}
-		$nodes = self::tokens($doc, $wanted);
+		$nodes = literal_bbcode::tokens($doc, $wanted, '~\[(?:(?:table|cell)=[^\[\]]*|/(?:table|cell))\]~i');
 		$changed = false;
 		$budget = 1048576;
 		// Inner tables are formed before their parents, without reparsing or flattening native child elements.
@@ -83,56 +79,12 @@ class legacy_tables
 					$tag = $doc->createElement('PLUS' . $name);
 					$tag->setAttribute('style', table_formatting::source_style($nodes[$open]->data));
 				}
-				self::wrap($tag, $nodes[$open], $nodes[$end]);
+				literal_bbcode::wrap($tag, $nodes[$open], $nodes[$end], $tag->nodeName === 'PLUSTABLE');
 				$changed = true;
 			}
 		}
 		if (!$changed) { return $xml; }
 		$out = \s9e\TextFormatter\Utils::encodeUnicodeSupplementaryCharacters($doc->saveXML($doc->documentElement));
 		return $doc->documentElement->nodeName === 't' ? '<r>' . substr($out, 3, -4) . '</r>' : $out;
-	}
-
-	private static function tokens($doc, $wanted)
-	{
-		$nodes = array();
-		$offset = 0;
-		$xpath = new \DOMXPath($doc);
-		foreach ($xpath->query('//text()') as $node)
-		{
-			$text = $node->data;
-			$base = $offset;
-			$offset += strlen($text);
-			if (strpos($text, '[') === false) { continue; }
-			// Stored syntax, code samples, generated media attributes and link labels keep their own semantics.
-			for ($ancestor = $node->parentNode; $ancestor instanceof \DOMElement; $ancestor = $ancestor->parentNode)
-			{
-				if (in_array($ancestor->nodeName, array('s','e','i','CODE','IMG','URL','EMAIL','FLASH'), true)) { continue 2; }
-			}
-			preg_match_all('~\[(?:(?:table|cell)=[^\[\]]*|/(?:table|cell))\]~i', $text, $matches, PREG_OFFSET_CAPTURE);
-			$cursor = 0;
-			foreach ($matches[0] as list($token, $pos))
-			{
-				if (!isset($wanted[$base + $pos])) { continue; }
-				if ($pos > $cursor) { $node->parentNode->insertBefore($doc->createTextNode(substr($text, $cursor, $pos - $cursor)), $node); }
-				$nodes[$base + $pos] = $node->parentNode->insertBefore($doc->createTextNode($token), $node);
-				$cursor = $pos + strlen($token);
-			}
-			if ($cursor) { $node->data = substr($text, $cursor); }
-		}
-		return $nodes;
-	}
-
-	private static function wrap($tag, $start, $end)
-	{
-		$doc = $start->ownerDocument;
-		$start->parentNode->insertBefore($tag, $start);
-		$tag->appendChild($doc->createElement('s'))->appendChild($start);
-		while (($child = $tag->nextSibling) && !$child->isSameNode($end))
-		{
-			// Earlier native BR nodes between the cells have no source characters.
-			if ($tag->nodeName === 'PLUSTABLE' && $child->nodeName === 'br') { $child->parentNode->removeChild($child); }
-			else { $tag->appendChild($child); }
-		}
-		$tag->appendChild($doc->createElement('e'))->appendChild($end);
 	}
 }

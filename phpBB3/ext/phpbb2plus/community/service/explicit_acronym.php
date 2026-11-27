@@ -15,12 +15,7 @@ class explicit_acronym
 	{
 		if (!self::candidate($xml)) { return $xml; }
 		if ($this->custom === null) { $this->custom = self::custom_definition($this->db); }
-		if ($this->custom && !$this->parser)
-		{
-			// Keep the posting options on the request's shared parser intact.
-			$this->parser = clone $this->container->get('text_formatter.parser')->get_parser();
-			$this->parser->enablePlugin('BBCodes');
-		}
+		if ($this->custom && !$this->parser) { $this->parser = literal_bbcode::parser($this->container); }
 		return self::upgrade($xml, $this->parser);
 	}
 
