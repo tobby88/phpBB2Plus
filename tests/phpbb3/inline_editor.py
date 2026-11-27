@@ -74,12 +74,16 @@ const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TA
                 start = last_progress = time.monotonic()
                 result = ""
                 while time.monotonic() < min(start + 180, last_progress + 60):
-                    if status.exists():
+                    try:
                         current = status.read_text(encoding="utf-8")
+                    except (FileNotFoundError, PermissionError):
+                        # At startup the file is absent. On Windows the probe
+                        # holds an exclusive lock briefly while publishing a stage.
+                        current = ""
+                    if current:
                         if current.startswith("stage ") and current != result:
                             last_progress = time.monotonic()
-                        if current:
-                            result = current
+                        result = current
                         if result == "OK" or result.startswith("FAIL "):
                             break
                     if run.poll() is not None:

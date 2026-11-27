@@ -43,6 +43,7 @@ import gender_profile
 import profile_visits
 import program_integrity
 import forum_display
+import style_templates
 import topic_avatar
 import topic_navigation
 import daily_visitors
@@ -367,6 +368,7 @@ def account_management(base, admin, moderator, member, target, web):
     request_blocks.browse(admin, member, fixture("request_blocks"))
     delegation.program_files(base)
     program_integrity.browse(admin, member, fixture("program_integrity"), web)
+    style_templates.browse(admin)
     member_attachments.browse(base, admin, moderator)
     attachment_rules.browse(admin, moderator, member, Browser(base), fixture("attachment_rules"))
     attachment_upload_types.browse(admin, moderator, member, fixture("attachment_upload_types"))
