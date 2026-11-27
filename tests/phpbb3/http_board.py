@@ -289,6 +289,14 @@ def public_pages(base, member):
             raise RuntimeError(f"Missing portal marker {marker!r} on the guest home page")
     if "Restricted topic fixture" in home or "Restricted topic fixture" not in member.fetch("app.php/portal"):
         raise RuntimeError("The portal must respect the migrated forum access of each viewer")
+    sid = next(cookie.value for cookie in member.cookies if cookie.name.endswith("_sid"))
+    session_home = member.fetch("?sid=" + sid)
+    if 'class="plus-portal"' not in session_home or "Restricted topic fixture" not in session_home:
+        raise RuntimeError("A board-directory bookmark with the current session must open the member's portal")
+    if "Restricted topic fixture" not in Browser(base).fetch("?sid=" + sid):
+        raise RuntimeError("Following the portal redirect lost a member's URL-based session")
+    if 'class="plus-portal"' in member.fetch("index.php?sid=" + sid):
+        raise RuntimeError("The explicit forum index with a session must keep its own page")
     for name in ("stylesheet.css", "de/stylesheet.css", "en/stylesheet.css", "plupload.css"):
         guest.fetch("styles/fisubsilversh/theme/" + name)
     guest_post = guest.fetch("viewtopic.php?t=1")

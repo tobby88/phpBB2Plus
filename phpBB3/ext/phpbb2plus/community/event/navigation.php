@@ -69,7 +69,9 @@ class navigation implements EventSubscriberInterface
 		{
 			redirect($this->helper->route('phpbb2plus_community_forum_link', array('alias'=>'forumc' . $category), false));
 		}
-		if ($uri !== '' && substr($uri, -1) === '/' && strpos($uri, '?') === false)
+		$path = explode('?', $uri, 2)[0];
+		$query_keys = $this->request->variable_names(\phpbb\request\request_interface::GET);
+		if (substr($path, -1) === '/' && !array_diff($query_keys, array('sid')))
 		{
 			redirect($this->helper->route('phpbb2plus_community_portal', array(), false));
 		}
