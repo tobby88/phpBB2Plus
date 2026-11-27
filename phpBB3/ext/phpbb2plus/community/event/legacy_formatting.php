@@ -3,6 +3,7 @@ namespace phpbb2plus\community\event;
 
 use phpbb2plus\community\service\explicit_acronym;
 use phpbb2plus\community\service\formatting_codes;
+use phpbb2plus\community\service\google_search;
 use phpbb2plus\community\service\legacy_smilie_signs;
 use phpbb2plus\community\service\legacy_tables;
 use phpbb2plus\community\service\legacy_text_styles;
@@ -52,6 +53,7 @@ class legacy_formatting implements EventSubscriberInterface
 		explicit_acronym::configure($event['configurator']);
 		table_formatting::configure($event['configurator']);
 		media_codes::configure($event['configurator']);
+		google_search::configure($event['configurator']);
 		formatting_codes::overflow($event['configurator'], (string) ($this->config['plus_formatting_overflow'] ?? ''));
 	}
 

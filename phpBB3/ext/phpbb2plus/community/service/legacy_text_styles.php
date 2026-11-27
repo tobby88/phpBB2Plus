@@ -26,7 +26,7 @@ class legacy_text_styles
 		static $names;
 		if (!isset($names[$original_source]))
 		{
-			$media = media_codes::TAGS + ($original_source ? media_codes::IMAGES : array());
+			$media = media_codes::TAGS + ($original_source ? media_codes::IMAGES + google_search::TAGS : array());
 			$names[$original_source] = implode('|', array_keys(formatting_codes::definitions() + $media));
 		}
 		return $names[$original_source];
@@ -43,9 +43,9 @@ class legacy_text_styles
 		$text = $doc->documentElement->textContent;
 		$parsed = new \DOMDocument();
 		if (!@$parsed->loadXML($this->parser->parse($text), LIBXML_NONET) || $parsed->documentElement->textContent !== $text) { return $xml; }
-		// A native post may contain literal image brackets because that forum
-		// disallowed images when it was written. A page view must keep that choice.
-		$media = media_codes::TAGS + ($this->original_source ? media_codes::IMAGES : array());
+		// A native post may contain literal image or link brackets because the
+		// posting form disallowed them. A page view must keep that choice.
+		$media = media_codes::TAGS + ($this->original_source ? media_codes::IMAGES + google_search::TAGS : array());
 		$names = formatting_codes::definitions() + $media + array_change_key_case(array_flip($media));
 		$xpath = new \DOMXPath($parsed);
 		$offset = 0;

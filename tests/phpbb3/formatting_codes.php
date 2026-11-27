@@ -21,12 +21,13 @@ if ($argv[2] === 'source')
 		$sample .= " [scrollup:$uid]Höher[/scrollup:$uid] [marq=right:$uid]Weiter[/marq:$uid]";
 		$sample .= " [right:$uid]https://archive.example.test/bild.jpg[/right:$uid]";
 		$sample .= " [RIGHT]https://archive.example.test/literal.png[/RIGHT]";
+		$sample .= " [google]Grün &amp; Kaffee+Tee?[/google]";
 		$q = $old->prepare("UPDATE $table SET $column=CONCAT($column,?) WHERE $where");
 		$q->bind_param('s', $sample);
 		$q->execute();
 		if ($q->affected_rows !== 1) { throw new RuntimeException('Missing source formatting fixture'); }
 	}
-	$disabled = ' [scrollup]Fest[/scrollup] [ram]https://archive.example.test/plain.ogg[/ram]';
+	$disabled = ' [scrollup]Fest[/scrollup] [ram]https://archive.example.test/plain.ogg[/ram] [google]Plain query[/google]';
 	foreach (array(array('phpbb_posts','enable_bbcode','post_id=40','phpbb_posts_text','post_text','post_id=40'),
 		array('phpbb_privmsgs','privmsgs_enable_bbcode','privmsgs_id=112','phpbb_privmsgs_text','privmsgs_text','privmsgs_text_id=112'))
 		as list($table,$flag,$where,$body_table,$field,$body_where))
@@ -66,6 +67,9 @@ if ($argv[2] === 'converted')
 		formatting_require(strpos(\s9e\TextFormatter\Unparser::unparse($xml), '[RIGHT]https://archive.example.test/literal.png[/RIGHT]') !== false &&
 			strpos($xml, 'src="https://archive.example.test/literal.png"') === false, 'An unmarked source image was promoted to a native IMG in ' . $column);
 		$xpath = formatting_xpath($renderer->render($xml));
+		$search = 'https://www.google.com/search?q=' . rawurlencode('Grün & Kaffee+Tee?');
+		formatting_require($xpath->query('//a[@href="' . $search . '" and text()="Grün & Kaffee+Tee?"]')->length === 1,
+			'The converted search link changed its Unicode label or query in ' . $column);
 		formatting_require($xpath->query('//audio[@controls and @src="https://archive.example.test/audio.ogg"]/a[@href="https://archive.example.test/audio.ogg"]')->length === 1 &&
 			$xpath->query('//video[@width="320" and @height="200" and @controls]/a[@href="https://archive.example.test/film.webm"]')->length === 1,
 			'Converted audio or video was missing from ' . $column);
@@ -92,7 +96,8 @@ if ($argv[2] === 'converted')
 		$row = $db->sql_fetchrow($r); $db->sql_freeresult($r);
 		$html = $renderer->render($row[$column]);
 		formatting_require(!$row['enable_bbcode'] && strpos($html,'[scrollup]Fest[/scrollup]') !== false &&
-			strpos($html,'class="plus-scroll') === false && strpos($html,'<audio') === false, 'Disabled source BBCode became active in ' . $column);
+			strpos($html,'class="plus-scroll') === false && strpos($html,'<audio') === false && strpos($html,'google.com/search') === false,
+			'Disabled source BBCode became active in ' . $column);
 	}
 }
 elseif ($argv[2] === 'native')
@@ -101,6 +106,17 @@ elseif ($argv[2] === 'native')
 	$image_code = '[LEFT]https://archive.example.test/links.png[/LEFT] [right]https://archive.example.test/rechts.jpeg[/right] ' .
 		'[img]https://archive.example.test/normal.jpg[/img] [right]https://archive.example.test/unmatched.txt[/right] [code][left]https://archive.example.test/beispiel.png[/left][/code]';
 	$parser->enable_bbcodes();
+	$parser->enable_bbcode('url');
+	$query = '[google]Öl & A+B? #1[/google] [url=https://archive.example.test/]Normal[/url] [code][google]Beispiel[/google][/code]';
+	$links = $parser->parse($query);
+	$view = formatting_xpath($renderer->render($links));
+	$destination = 'https://www.google.com/search?q=' . rawurlencode('Öl & A+B? #1');
+	formatting_require($view->query('//a[@href="' . $destination . '"]')->length === 1 && $view->query('//a')->length === 2 &&
+		\s9e\TextFormatter\Unparser::unparse($links) === $query, 'The search shortcut changed ordinary links, code or editable text');
+	$parser->disable_bbcode('url');
+	$no_links = $parser->parse($query);
+	$parser->enable_bbcode('url');
+	formatting_require(strpos($no_links, 'google.com/search') === false, 'A blocked native link was active through the search shortcut');
 	$parser->enable_bbcode('img');
 	$image_xml = $parser->parse($image_code);
 	$renderer->set_viewimg(true);
@@ -149,6 +165,9 @@ elseif ($argv[2] === 'native')
 	$stored = new \ArrayObject(array('text' => $no_images, 'flags' => OPTION_FLAG_BBCODE));
 	$service->older_content($stored);
 	formatting_require($stored['text'] === $no_images, 'Viewing a post re-enabled images disallowed by the posting form');
+	$stored = new \ArrayObject(array('text' => $no_links, 'flags' => OPTION_FLAG_BBCODE));
+	$service->older_content($stored);
+	formatting_require($stored['text'] === $no_links, 'Viewing a post turned an unlinked search term into a link');
 	$media_old = '<r><B><s>[b]</s>Ton<e>[/b]</e></B> [ram]<URL url="https://archive.example.test/a.ogg">https://archive.example.test/a.ogg</URL>[/ram] ' .
 		'[left]<URL url="https://archive.example.test/links.gif">https://archive.example.test/links.gif</URL>[/left] ' .
 		'[video width=699 height=499]https://archive.example.test/f.webm[/video] [video width=700 height=499]https://archive.example.test/v.webm[/video] ' .

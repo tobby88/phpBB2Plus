@@ -352,6 +352,7 @@ function plus_convert_message($message)
 	}
 	$services = dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/';
 	require_once $services . 'formatting_codes.php';
+	require_once $services . 'google_search.php';
 	require_once $services . 'media_codes.php';
 	require_once $services . 'legacy_text_styles.php';
 	if (\phpbb2plus\community\service\legacy_text_styles::candidate($xml, true))
@@ -367,6 +368,7 @@ function plus_convert_message($message)
 				unset($configurator->Censor, $configurator->tags['censor:tag']);
 			}
 			\phpbb2plus\community\service\media_codes::configure($configurator);
+			\phpbb2plus\community\service\google_search::configure($configurator);
 			$config = $phpbb_container->get('config');
 			\phpbb2plus\community\service\formatting_codes::overflow($configurator, (string) ($config['plus_formatting_overflow'] ?? ''));
 			$parser = $configurator->finalize()['parser'];
