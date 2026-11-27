@@ -614,7 +614,7 @@ def seed_source(source, legacy, suite):
         request_blocks.source_media(legacy)
 
 
-CI_PARTS = {"forum": ("board", "extensions"), "media": ("files", "access"), "management": ("accounts", "games")}
+CI_PARTS = {"forum": ("board", "extensions"), "media": ("files", "access")}
 
 
 def parallel_suite(args):
@@ -648,9 +648,9 @@ def main():
     parser.add_argument("--suite", choices=("all", "forum", "media", "downloads", "arcade", "management"), default="all",
                         help="Run the full converted board or one of the independent CI suites")
     selection = parser.add_mutually_exclusive_group()
-    selection.add_argument("--parallel", action="store_true", help="Run both sections of a CI suite on independent installations")
+    selection.add_argument("--parallel", action="store_true", help="Run the two forum or media sections on independent installations")
     selection.add_argument("--part", choices=sorted(part for parts in CI_PARTS.values() for part in parts),
-                           help="Use board or extensions with forum, files or access with media, and accounts or games with management")
+                           help="Use board or extensions with forum, and files or access with media")
     args = parser.parse_args()
     media_only = args.suite in ("media", "downloads")
     forum_suite = args.suite in ("forum", "all")
@@ -659,7 +659,7 @@ def main():
         parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
     if args.parallel:
         if args.suite not in CI_PARTS:
-            parser.error("--parallel requires --suite forum, media or management")
+            parser.error("--parallel requires --suite forum or media")
         parallel_suite(args)
         return
     if args.part and args.part not in CI_PARTS.get(args.suite, ()):
@@ -684,7 +684,7 @@ def main():
                 print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
                 # Exercise both earlier extension schemas on the same clean installation.
                 early = {"knowledgebase/migrations/v107_unicode_text": "kb_unicode",
-                         "arcade/migrations/v119_tournament_unicode": "arcade_tournament_unicode"} if args.suite == "management" and args.part != "games" else {}
+                         "arcade/migrations/v119_tournament_unicode": "arcade_tournament_unicode"} if args.suite == "management" else {}
                 migrations = [(web / "ext/phpbb2plus" / (name + ".php")) for name in early]
                 try:
                     for path in migrations:
@@ -715,7 +715,7 @@ def main():
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "native", cwd=web)
                     php(ROOT / "tests/phpbb3/table_formatting.php", target, "fresh", cwd=web)
-                if account_suite and args.part != "games":
+                if account_suite:
                     php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
                     php(ROOT / "tests/phpbb3/gallery_unicode.php", target, "upgrade", cwd=web)
                 php("bin/phpbbcli.php", "--version", cwd=web)
@@ -746,12 +746,10 @@ def main():
                         web_directory_checks(base, admin, moderator, target, web)
                         forum_extensions(base, admin, moderator, player, target, web)
                     else:
-                        if args.part != "accounts":
-                            arcade_management(base, admin, moderator, player, target, web)
-                        if account_suite and args.part != "games":
+                        arcade_management(base, admin, moderator, player, target, web)
+                        if account_suite:
                             account_management(base, admin, moderator, player, target, web)
-                        if args.part != "games":
-                            extension_upgrades(target, web, args.suite)
+                        extension_upgrades(target, web, args.suite)
                     print(f"Verified {count} upstream files and converted {args.part or args.suite} workflows in {monotonic()-start:.1f}s")
                     return
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)

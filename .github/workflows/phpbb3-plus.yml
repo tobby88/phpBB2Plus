@@ -123,4 +123,6 @@ jobs:
           PLUS_TEST_DB_PASSWORD: fixture-only
           PLUS_TEST_DB_PORT: ${{ job.services.db.ports[3306] }}
           PLUS_TEST_CHROME: ${{ matrix.php == '8.5' && matrix.suite != 'media' && 'google-chrome' || '' }}
-        run: python3 tests/phpbb3/integration.py --cache vendor/phpbb --offline --suite "${{ matrix.suite }}" --parallel
+        run: >-
+          python3 tests/phpbb3/integration.py --cache vendor/phpbb --offline
+          --suite "${{ matrix.suite }}" ${{ matrix.suite != 'management' && '--parallel' || '' }}
