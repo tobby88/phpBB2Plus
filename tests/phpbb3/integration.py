@@ -430,6 +430,8 @@ def extension_upgrades(target, web, suite="all"):
         migrations.append("community/migrations/v184_news_topics")
         fixtures.append(tests / "topic_groups.php")
         fixtures.append(tests / "announcement_list.php")
+        migrations.append("community/migrations/v198_forum_summaries")
+        fixtures.append(tests / "forum_summaries.php")
     if suite in ("media", "downloads"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
@@ -817,6 +819,8 @@ def main():
                     if "Duration fixture 701" not in ambiguous or "Doppelte Antwort" in ambiguous or 'class="topic_poll"' in ambiguous:
                         raise RuntimeError("A held ballot must leave its announcement readable without publishing the question")
                 ordinary = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], portal=True)
+                if forum_suite:
+                    news.converted_last_post(ordinary)
                 if not media_only:
                     forum_recovery.browse(base, member)
                     topic_readers.browse(base, member, ordinary, lambda phase: php(
