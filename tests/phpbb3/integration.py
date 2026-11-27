@@ -911,12 +911,13 @@ def main():
                 topic_calendar.browse(base, member, ordinary, pending)
                 portal_calendar.exercise(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/portal_calendar.php", target, phase, cwd=web, capture=True))
+                # The archive switches this founder to English, including all of their ACP sessions.
+                news.archive_dates(base, member, lambda phase: php(
+                    ROOT / "tests/phpbb3/news_archive_dates.php", target, phase, cwd=web))
                 with ThreadPoolExecutor(max_workers=2) as worker:
                     credit_run = worker.submit(credits.administration, member.separate_client())
                     poll_run = worker.submit(poll_administration.browse, member.separate_client())
                     structure_run = worker.submit(forum_recovery.administration, member.separate_client())
-                    news.archive_dates(base, member, lambda phase: php(
-                        ROOT / "tests/phpbb3/news_archive_dates.php", target, phase, cwd=web))
                     news.administration(base, member)
                     credit_run.result()
                     poll_run.result()
