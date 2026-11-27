@@ -19,6 +19,17 @@ def category_links(html):
     return {int(re.search(r'/category/(\d+)', url)[1]): (unescape(url), body) for url, body in links}
 
 
+def converted_last_post(reader):
+    rows = re.findall(r'<li class="row\b[^"]*"[^>]*>(.*?)</li>', reader.fetch("index.php"), re.S)
+    room = next((row for row in rows if re.search(r'<a href="[^"]*viewforum\.php\?f=1(?:&amp;[^"]*)?" class="forumtitle"', row)), "")
+    details = re.search(r'<dd class="lastpost"[^>]*>(.*?)</dd>', room, re.S)
+    link = re.search(r'href="([^"]*viewtopic\.php\?[^"]*#p(\d+))"', details[1] if details else "")
+    if not link or link[2] in ("695", "490") or f'id="p{link[2]}"' not in reader.fetch(unescape(link[1])):
+        raise RuntimeError("The index last-post link did not reach a readable, current post after conversion")
+    if link[2] != "72" and 'id="p72"' not in reader.fetch("viewtopic.php?p=72"):
+        raise RuntimeError("The last approved post stored for the forum could not be opened by an ordinary member")
+
+
 def browse(base, founder):
     guest = Browser(base)
     for actor, private in ((guest, False), (founder, True)):

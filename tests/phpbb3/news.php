@@ -24,4 +24,12 @@ function verify_news($db)
 	check_fixture(array_map('intval',array_column($topics,1)) === array(1,2,74,999),'Native topics lost their news classifications');
 	$unused = $db->query("SELECT asset FROM p3_plus_news_images WHERE label='Unused fixture.gif'")->fetch_row();
 	check_fixture($unused && preg_match('/^[0-9a-f]{64}\.gif$/D',$unused[0]),'An unassigned news image disappeared from the ACP');
+	$forum = $db->query('SELECT forum_last_post_id,forum_topics_approved,forum_topics_unapproved,forum_topics_softdeleted,
+		forum_posts_approved,forum_posts_unapproved,forum_posts_softdeleted FROM p3_forums WHERE forum_id=1')->fetch_row();
+	$topics = $db->query('SELECT SUM(topic_visibility=1), SUM(topic_visibility IN (0,3)), SUM(topic_visibility=2)
+		FROM p3_topics WHERE forum_id=1')->fetch_row();
+	$posts = $db->query('SELECT SUM(post_visibility=1), SUM(post_visibility IN (0,3)), SUM(post_visibility=2)
+		FROM p3_posts WHERE forum_id=1')->fetch_row();
+	check_fixture(array_map('intval', $forum) === array_map('intval', array_merge(array(72), $topics, $posts)),
+		'The converted forum kept stale counts, a withdrawn news post or the private destination of a move');
 }

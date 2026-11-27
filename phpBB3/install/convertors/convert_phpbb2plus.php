@@ -93,6 +93,23 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_portal_settings();';
 	$convertor['execute_last'][] = 'plus_statistics_settings();';
 	$convertor['execute_last'][] = 'plus_finish_colours();';
+	$convertor['execute_last'][] = '$config->set(\phpbb2plus\community\service\forum_summaries::CURSOR, 0, false);';
+	// Native jump=2 counts forums before the topic visibility batches. Keep the
+	// final wizard checkpoint open until every posting forum has its settled totals.
+	if ($request->variable('final_jump', 0) === 1 && isset($config[\phpbb2plus\community\service\forum_summaries::CURSOR]))
+	{
+		$through = \phpbb2plus\community\service\forum_summaries::advance($db, $config);
+		if ($through !== null)
+		{
+			$url = $this->save_convert_progress($converter, 'final_jump=1');
+			$this->template->assign_block_vars('checks', array('TITLE' => $user->lang['SYNC_FORUMS'] . ' (#' . $through . ')', 'RESULT' => $user->lang['DONE']));
+			$this->template->assign_vars(array('L_SUBMIT' => $user->lang['CONTINUE_CONVERT'], 'U_ACTION' => $url));
+			$this->meta_refresh($url);
+			// Only stage 1 performs native finalization. This page displays the
+			// continuation; its next request enters stage 1 with the saved cursor.
+			$request->overwrite('final_jump', 2);
+		}
+	}
 	// Native dynamic totals precede its per-topic resynchronization. Recount only
 	// after that pass has settled visibility and removed empty redirect records.
 	if (!empty($config['plus_removed_recount_due']) && $request->variable('final_jump', 0) === 1)
