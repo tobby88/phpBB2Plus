@@ -128,6 +128,8 @@ import gallery_progress
 import gallery_hotlink
 import gallery_management_bookmarks
 import knowledgebase
+import kb_unicode
+import gallery_unicode
 from ruffle_browser import playback
 from http_board import Browser, author_results, convert, former_names, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
@@ -336,6 +338,8 @@ def account_management(base, admin, moderator, member, target, web):
     def fixture(name):
         return lambda phase: php(ROOT / "tests/phpbb3" / (name + ".php"), target, phase, cwd=web, capture=True)
 
+    gallery_unicode.browse(admin, Browser(base), fixture("gallery_unicode"))
+    kb_unicode.browse(base, web, target, php)
     member_attachments.browse(base, admin, moderator)
     attachment_rules.browse(admin, moderator, member, Browser(base), fixture("attachment_rules"))
     attachment_upload_types.browse(admin, moderator, member, fixture("attachment_upload_types"))
@@ -447,6 +451,8 @@ def seed_source(source, legacy, suite):
         php(tests / "acronym_dictionary.php", source, "source")
     if account_suite:
         php(tests / "blue_reports.php", source, "source")
+        php(tests / "kb_unicode.php", source, "source")
+        php(tests / "gallery_unicode.php", source, "source")
         php(tests / "attachment_blocks.php", source, "source")
         php(tests / "birthday_greeting.php", source, "source")
         php(tests / "inline_editor.php", source, "source")
@@ -495,7 +501,25 @@ def main():
                 count = verify_upstream(web, args.cache.resolve())
                 built = monotonic()
                 print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
-                install(web, root, target)
+                # One installation starts on the actual earlier KB schema. Withholding
+                # this one extension migration leaves the verified upstream files intact.
+                kb_migration = web / "ext/phpbb2plus/knowledgebase/migrations/v107_unicode_text.php"
+                previous = root / kb_migration.name
+                if args.suite == "management":
+                    kb_migration.rename(previous)
+                try:
+                    install(web, root, target)
+                finally:
+                    if previous.exists():
+                        previous.rename(kb_migration)
+                if args.suite == "management":
+                    kb_test = ROOT / "tests/phpbb3/kb_unicode.php"
+                    php(kb_test, target, "older", cwd=web)
+                    php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
+                    php(kb_test, target, "upgraded", cwd=web)
+                    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/knowledgebase/migrations/v107_unicode_text", "--no-interaction", cwd=web)
+                    php(kb_test, target, "reverted", cwd=web)
+                    php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
                 if forum_suite:
                     # This also exercises conversion after the stock formatter has been cached.
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
@@ -503,6 +527,7 @@ def main():
                     php(ROOT / "tests/phpbb3/table_formatting.php", target, "fresh", cwd=web)
                 if account_suite:
                     php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
+                    php(ROOT / "tests/phpbb3/gallery_unicode.php", target, "upgrade", cwd=web)
                 php("bin/phpbbcli.php", "--version", cwd=web)
                 php(fixture, "installed-flags", target)
                 legacy.result()
