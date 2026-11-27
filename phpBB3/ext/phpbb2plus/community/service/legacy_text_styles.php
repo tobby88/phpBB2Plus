@@ -7,7 +7,11 @@ class legacy_text_styles
 	private $container;
 	private $parser;
 
-	public function __construct($container) { $this->container = $container; }
+	public function __construct($container, $parser = null)
+	{
+		$this->container = $container;
+		$this->parser = $parser;
+	}
 
 	public static function candidate($xml)
 	{

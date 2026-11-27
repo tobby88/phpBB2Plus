@@ -335,7 +335,20 @@ function plus_convert_message($message)
 	{
 		$services = dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/';
 		foreach (array('literal_bbcode', 'formatting_codes', 'media_codes', 'legacy_text_styles') as $name) { require_once $services . $name . '.php'; }
-		if (!$media) { $media = new \phpbb2plus\community\service\legacy_text_styles($phpbb_container); }
+		if (!$media)
+		{
+			// The standalone installer may have cached a parser before the Plus
+			// extension registered its tags. Keep the conversion parser private.
+			$configurator = $phpbb_container->get('text_formatter.s9e.factory')->get_configurator();
+			if (isset($configurator->Censor))
+			{
+				unset($configurator->Censor, $configurator->tags['censor:tag']);
+			}
+			\phpbb2plus\community\service\media_codes::configure($configurator);
+			$parser = $configurator->finalize()['parser'];
+			$parser->enablePlugin('BBCodes');
+			$media = new \phpbb2plus\community\service\legacy_text_styles($phpbb_container, $parser);
+		}
 		$xml = $media->for_display($xml);
 	}
 	return $xml;
