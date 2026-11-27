@@ -75,11 +75,14 @@ def browse(web, db, php, admin, member, acp):
         if json.loads(php(*command, "--apply", cwd=web, capture=True)) != dict(dry, eligible=0, already=0, skipped=4):
             raise RuntimeError("Recovery overrode a later moderator's real type change")
         edit = "posting.php?mode=edit&f=29852&p=985738"
-        for category, phase in (("2", "published"), ("0", "unpublished")):
+        for phase in ("published", "unpublished"):
             form = admin.fetch(edit)
             if "plus_news_category" not in FormFields(form, "postform").values:
                 raise RuntimeError("Authorized native news publisher missing from temporary forum")
-            result = submit_form(admin, edit, form, "postform", {"plus_news_category": category, "post": "1",
+            category = re.search(r'<option value="([1-9][0-9]*)"(?: selected)?>Topic group publication fixture</option>', form)
+            if not category:
+                raise RuntimeError("The native posting form did not offer the topic group's own active news category")
+            result = submit_form(admin, edit, form, "postform", {"plus_news_category": category[1] if phase == "published" else "0", "post": "1",
                                  "message": "Temporärer Testbeitrag zur normalen Veröffentlichung."})
             if 'id="postform"' in result:
                 messages = re.findall(r'<[^>]+class="[^"]*(?:error|rules)[^"]*"[^>]*>(.*?)</(?:div|p)>', result, re.S)
