@@ -41,6 +41,7 @@ import portal
 import portal_unicode
 import gender_profile
 import topic_avatar
+import topic_navigation
 import daily_visitors
 import recent_topics
 import custom_profiles
@@ -690,6 +691,8 @@ def main():
                 board_statistics.browse(base, member, ordinary, lambda phase: php(statistics_fixture, phase, target, cwd=web))
                 print_topics.browse(base, member, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/print_topics.php", phase, target, cwd=web))
+                topic_navigation.browse(Browser(base), lambda phase: php(
+                    ROOT / "tests/phpbb3/topic_navigation.php", target, phase, cwd=web))
                 forum_permissions.publishing(member, ordinary, pending)
                 forum_permissions.reporting(base, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
