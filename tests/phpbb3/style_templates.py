@@ -32,3 +32,6 @@ def browse(admin):
                 raise RuntimeError("The shared header did not follow the selected style: " + style)
         if 'class="topic-title"' not in topic or topic.count('class="plus-topic-neighbours"') != (2 if plus else 0):
             raise RuntimeError("The shared topic template lost or duplicated its style-specific navigation: " + style)
+        legend = 'class="plus-folder-legend"'
+        if home.count(legend) != (1 if plus else 0) or legend in topic:
+            raise RuntimeError("The shared footer displayed the wrong folder legend: " + style)
