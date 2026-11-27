@@ -76,6 +76,7 @@ import absence_registration
 import acp_registration
 import registration_network
 import member_directory
+import member_operations
 import mailbox_counters
 import smilie_signs
 import downloads
@@ -348,6 +349,7 @@ def account_management(base, admin, moderator, member, target, web):
     registration_network.browse(base, web, target, php)
     acp_registration.browse(admin, fixture("acp_registration"))
     member_directory.browse(base, web, target, php)
+    member_operations.browse(base, web, target, php)
 
 
 def extension_upgrades(target, web, suite="all"):
@@ -374,7 +376,7 @@ def extension_upgrades(target, web, suite="all"):
         preserved.extend((tests / "arcade_category_administration.php", tests / "arcade_diagnostics.php"))
     if suite in ("management", "all"):
         migrations.append("community/migrations/v166_member_directory")
-        fixtures.append(tests / "member_directory.php")
+        fixtures.extend((tests / "member_directory.php", tests / "member_operations.php"))
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
