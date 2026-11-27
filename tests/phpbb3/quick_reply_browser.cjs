@@ -23,12 +23,10 @@ module.exports = async function ({command, find, evaluate, until, url}) {
     await command('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-motion', value:'no-preference'}]});
     await until(() => evaluate(state + ' === "true" && ' + animation + ' === "plus-scroll-text"'), 'the original scroll direction and motion');
     await evaluate('document.querySelector(' + JSON.stringify(frame + ' .plus-scroll-toggle') + ').focus()');
-    for (const type of ['keyDown','keyUp']) {
-        await command('Input.dispatchKeyEvent', {type, key:'Enter', code:'Enter', windowsVirtualKeyCode:13});
-    }
-    if (await evaluate(state) !== 'false' || await evaluate(animation) !== 'none') {
-        throw Error('The keyboard switch did not leave the complete text still');
-    }
+    const enter = {key:'Enter', code:'Enter', windowsVirtualKeyCode:13};
+    await command('Input.dispatchKeyEvent', {...enter, type:'keyDown', text:'\r'});
+    await command('Input.dispatchKeyEvent', {...enter, type:'keyUp'});
+    await until(() => evaluate(state + ' === "false" && ' + animation + ' === "none"'), 'the keyboard switch to stop text motion');
     await evaluate('(' + function () {
         const form = document.getElementById('qr_postform');
         const edit = form.elements.message;
