@@ -36,6 +36,7 @@ require_once __DIR__ . '/plus_colours.php';
 require_once __DIR__ . '/plus_post_icons.php';
 require_once __DIR__ . '/plus_attachments.php';
 require_once __DIR__ . '/plus_attachment_quotas.php';
+require_once __DIR__ . '/plus_forbidden_extensions.php';
 require_once __DIR__ . '/plus_gallery.php';
 require_once __DIR__ . '/plus_knowledgebase.php';
 require_once __DIR__ . '/plus_arcade.php';

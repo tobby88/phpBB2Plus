@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ATTACH_BLOCK_PARTIAL'=>'Only the forbidden list was delegated. Native extension and group administration require a separate permission.',
 	'ACP_PLUS_JR_MANAGE' => 'Delegated ACP modules', 'PLUS_JR_LIST' => 'Account list', 'PLUS_JR_FIRST' => 'First assigned',
 	'PLUS_JR_UPDATED' => 'Last updated', 'PLUS_JR_MODULES' => 'Assigned modules', 'PLUS_JR_NOTE_LABEL' => 'Administrator’s note',
 	'PLUS_JR_VISIBLE' => 'Show this note on the member’s own delegated ACP overview',

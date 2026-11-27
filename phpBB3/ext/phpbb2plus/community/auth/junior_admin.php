@@ -5,6 +5,9 @@ namespace phpbb2plus\community\auth;
 class junior_admin
 {
 	private const FILE_ACTIONS = array('phpbb2plus\downloads\acp\file_actions_module', 'manage');
+	// The old gate authorized all modes of this file. Only its forbidden-list
+	// mode has a dedicated equivalent; a_attach would grant other ACP settings.
+	private const ATTACH_BLOCKS = array('a_plus_attach_block'=>array('phpbb2plus\community\acp\attachment_blocks_module', 'manage'));
 	// Both old menu registrations delegated the same admin_links.php file.
 	private const LINK_ENTRIES = array(
 		'a_plus_wl_create'=>array('phpbb2plus\weblinks\acp\management_module','create'),
@@ -14,6 +17,9 @@ class junior_admin
 	);
 
 	public const MODULES = array(
+		'admin_extensions.php?mode=extensions' => array('Extensions', 'Extension_control', self::ATTACH_BLOCKS),
+		'admin_extensions.php?mode=groups' => array('Extensions', 'Extension_group_manage', self::ATTACH_BLOCKS),
+		'admin_extensions.php?mode=forbidden' => array('Extensions', 'Forbidden_extensions', self::ATTACH_BLOCKS),
 		'admin_email_list.php' => array('Users', 'Email_List', array(
 			'a_plus_mail_list' => array('phpbb2plus\community\acp\member_directory_module', 'emails'))),
 		'admin_users_list.php' => array('Users', 'Users List', array(

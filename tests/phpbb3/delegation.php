@@ -10,6 +10,7 @@ function delegation_fixture_grants()
 function delegation_fixture_roles()
 {
 	return array(
+		279 => array('AttachmentBlockJunior', 'ExtensionsForbidden_extensionsadmin_extensions.php?mode=forbidden', 'a_plus_attach_block'),
 		275 => array('RegistrationNetworkJunior', 'UsersRegistration IPadmin_reg_ip.php', 'a_plus_reg_network'),
 		277 => array('EmailDirectoryJunior', 'UsersEmail_Listadmin_email_list.php', 'a_plus_mail_list'),
 		278 => array('MemberDirectoryJunior', 'UsersUsers Listadmin_users_list.php',

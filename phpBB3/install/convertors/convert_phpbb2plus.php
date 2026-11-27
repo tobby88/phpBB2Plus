@@ -79,6 +79,7 @@ if (!$get_info)
 	if (defined('MOD_ATTACHMENT'))
 	{
 		$convertor['execute_last'][] = 'plus_attachment_defaults();';
+		$convertor['execute_last'][] = 'plus_import_forbidden_extensions();';
 	}
 	$convertor['execute_last'][] = 'plus_finish_news();';
 	$convertor['execute_last'][] = 'plus_portal_settings();';

@@ -1,0 +1,18 @@
+{% include 'overall_header.html' %}
+<h1>{{ lang('ACP_PLUS_ATTACH_BLOCKS') }}</h1>
+<p>{{ lang('PLUS_ATTACH_BLOCK_EXPLAIN') }}</p>
+{% if BLOCK_ERROR %}<div class="errorbox"><p>{{ BLOCK_ERROR|e }}</p></div>{% endif %}
+<form id="plus-attachment-blocks" method="post" action="{{ U_BLOCKS }}">
+	<table class="table1"><thead><tr><th>{{ lang('EXTENSION') }}</th><th>{{ lang('PLUS_ATTACH_BLOCK_STATUS') }}</th><th>{{ lang('REMOVE') }}</th></tr></thead>
+	<tbody>{% for rule in loops.block_rule %}
+	<tr class="{{ loop.index is odd ? 'row1' : 'row2' }}"><td>{{ rule.NAME|e }}</td>
+	<td>{% if rule.FIXED %}{{ lang('PLUS_ATTACH_BLOCK_FIXED') }}{% elseif rule.HISTORICAL %}{{ lang('PLUS_ATTACH_BLOCK_HISTORICAL') }}{% else %}{{ lang('PLUS_ATTACH_BLOCK_CUSTOM') }}{% endif %}
+		{% if rule.CONFLICT %}{{ lang('PLUS_ATTACH_BLOCK_CONFLICT') }}{% endif %}</td>
+	<td>{% if not rule.FIXED %}<label><input type="checkbox" class="radio" name="remove[]" value="{{ rule.ID }}"> {{ lang('REMOVE') }}</label>{% endif %}</td></tr>
+	{% endfor %}</tbody></table>
+	<fieldset><dl><dt><label for="block-extension">{{ lang('PLUS_ATTACH_BLOCK_ADD') }}</label></dt>
+	<dd><input id="block-extension" type="text" name="extension" maxlength="16"></dd></dl></fieldset>
+	<p class="submit-buttons"><input type="hidden" name="revision" value="{{ BLOCK_REVISION }}">
+	<input class="button1" type="submit" name="save" value="{{ lang('SUBMIT') }}">{{ S_FORM_TOKEN }}</p>
+</form>
+{% include 'overall_footer.html' %}

@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_ATTACH_BLOCK_PARTIAL'=>'Zugewiesen wurde die Sperrliste. Die native Verwaltung der erlaubten Dateiendungen und Gruppen erfordert ein eigenes Recht.',
 	'ACP_PLUS_JR_MANAGE' => 'Delegierte ACP-Module', 'PLUS_JR_LIST' => 'Kontenübersicht', 'PLUS_JR_FIRST' => 'Erstmals zugewiesen',
 	'PLUS_JR_UPDATED' => 'Zuletzt geändert', 'PLUS_JR_MODULES' => 'Zugewiesene Module', 'PLUS_JR_NOTE_LABEL' => 'Vermerk der Administration',
 	'PLUS_JR_VISIBLE' => 'Diesem Mitglied den Vermerk in seiner eigenen ACP-Übersicht anzeigen',

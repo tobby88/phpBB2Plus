@@ -81,6 +81,10 @@ class delegations_module
 			$result = $report['result'] ?? '';
 			$key = 'PLUS_JR_DECISION_' . strtoupper(str_replace('-', '_', $result));
 			$label = $user->lang($key);
+			if ($result === 'delegated' && !empty($report['unmapped_attachment_modes']))
+			{
+				$label .= ' ' . $user->lang('PLUS_ATTACH_BLOCK_PARTIAL');
+			}
 			$template->assign_block_vars('jr_reports', array('ROUTE' => $report['route'] ?? '', 'HASH' => $report['hash'] ?? '',
 				'RESULT' => $label === $key ? $result : $label));
 		}

@@ -72,6 +72,7 @@ function plus_jr_registry()
 	// A locally modified module can expose fewer actions under the same name. These
 	// fingerprints identify the reviewed source controllers; line endings are immaterial.
 	$reviewed = array(
+		'admin_extensions.php' => '4ba2934eb4ccb826a970755c2e410b60e610829101819f8959eb2025ff997d41',
 		'admin_email_list.php' => '164c9a5edfb8c0a53cb35aa027623f3876a7d003f2d50066cee0cd47982ec178',
 		'admin_users_list.php' => '11e357d485426fa66235176050094915e76d47ca4a8ce13cec0bfc45a9feb287',
 		'admin_arcade_cats.php' => '1f783390224f152c354e205f56ec52e4dc47d10e276c7595038498dc0bf03daf',
@@ -286,6 +287,13 @@ function plus_jr_registry()
 	);
 	$dependencies['admin_email_list.php'] = $directory_gate + array(
 		'templates/fisubsilversh/admin/admin_users_email_list_body.tpl' => '31e04539c31896dbde5a825a9800dfd06408be012549839b22180dab3aeca9eb');
+	$dependencies['admin_extensions.php'] = $directory_gate + array(
+		'attach_mod/includes/constants.php'=>'d6e19522a23f604f32d6b70999f488cac13c755aa8036a981b2af633387caae6',
+		'attach_mod/includes/functions_selects.php'=>'6d5460e8dd7fbe8039dd236f45f442455b8379656f78a7d716e4c575c646c0a2',
+		'attach_mod/includes/functions_admin.php'=>'04b67cd7d054d9caf3c1c4036549f3eb0930ef1925fbcb029b8d8232610089fa',
+		'attach_mod/includes/functions_attach.php'=>'35f4d3d2d8f0fac364ebc58c7cb2dd49ed6b88975c46fa43b2671d99bf913de4',
+		'includes/php_compat.php'=>'efc40a50b10beed315b050826a3792a251d877199e818f816f23ecbc5e9517ee',
+		'templates/fisubsilversh/admin/attach_forbidden_extensions.tpl'=>'3fe2ca08e1ea8b99e208a6491093dc283213a2112e6cb794ac774efbf982c101');
 	$dependencies['admin_users_list.php'] = $directory_gate + array(
 		'templates/fisubsilversh/admin/admin_users_list_body.tpl' => '8d9532f1aac528e99d25f405ee06ab8ef353ea3d67033e515d2e0f7082ab834d',
 		'includes/functions_color_groups.php' => 'e6e3cb7405a00b2baa4a916e09bfeb6cc7d5ccd37fb2d32ae2db4dc533c8fe5a');
@@ -310,6 +318,10 @@ function plus_jr_registry()
 					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$route] ?? $dependencies[$file] ?? array()))
 				{
 					$options = array_keys($map[2]);
+					if ($file === 'admin_extensions.php')
+					{
+						$record['unmapped_attachment_modes'] = array('extensions', 'groups', 'groups:perm');
+					}
 					if ($route === 'admin_users_list.php' && !plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, array(
 						'includes/functions_userlist_storage.php' => 'b90c9e561122a3ff5a291d4dc3a828475f5e0d7ce22c40993036587f6b644e2b',
 						'includes/functions_login_storage.php' => '6981e433470c28b0b27354493216e5845cb8e179b70e4301ce523ac3c6782103',

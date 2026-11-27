@@ -344,7 +344,15 @@ services:
         class: phpbb2plus\community\attachment\upload
         decorates: attachment.upload
         shared: false
-        arguments: ['@phpbb2plus.community.attachment_upload.inner', '@phpbb2plus.community.attachment_quotas', '@attachment.delete', '@user', '@language']
+        arguments: ['@phpbb2plus.community.attachment_upload.inner', '@phpbb2plus.community.attachment_quotas', '@attachment.delete', '@user', '@language', '@phpbb2plus.community.attachment_blocks', '@request']
+    phpbb2plus.community.attachment_blocks:
+        class: phpbb2plus\community\attachment\forbidden_extensions
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%']
+    phpbb2plus.community.attachment_block_events:
+        class: phpbb2plus\community\event\attachment_blocks
+        arguments: ['@phpbb2plus.community.attachment_blocks', '@request', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.attachment_quota_events:
         class: phpbb2plus\community\event\attachment_quotas
         arguments: ['@phpbb2plus.community.attachment_quotas', '@user', '@attachment.delete']
