@@ -5,8 +5,7 @@ import os
 from pathlib import Path
 import secrets
 import shutil
-import subprocess
-from browser_process import stop_browser
+from browser_process import start_browser, stop_browser
 import time
 from urllib.parse import urlsplit
 
@@ -98,8 +97,7 @@ setInterval(async () => {
                 "--no-first-run", "--no-default-browser-check", "--autoplay-policy=no-user-gesture-required",
                 "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost",
                 "--user-data-dir=" + str(profile), base + probe.name]
-        process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        process = start_browser(args)
         try:
             start = time.monotonic()
             while not results and process.poll() is None:

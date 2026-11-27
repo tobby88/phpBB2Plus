@@ -1,11 +1,11 @@
 """Verify converted editing preferences, native post handling and the actual Chromium UI."""
+import errno
 import json
 import os
 from pathlib import Path
 import re
 import secrets
 import shutil
-import subprocess
 import tempfile
 import time
 from contextlib import contextmanager
@@ -13,7 +13,7 @@ from html import unescape
 from urllib.parse import parse_qs, urljoin, urlsplit
 
 from attachments import GIF
-from browser_process import stop_browser
+from browser_process import start_browser, stop_browser
 from http_board import Browser, FormFields, Page, admin_url, submit_form
 import full_preview
 
@@ -24,14 +24,18 @@ def chrome_profile():
     try:
         yield profile
     finally:
-        # On Windows a Chromium cache process can release its journal shortly after the browser exits.
+        # Windows may still hold a journal open. On Linux a cache worker can
+        # finish a write between removing a child and removing its directory.
         deadline = time.monotonic() + 5
         while True:
             try:
                 shutil.rmtree(profile)
                 break
-            except PermissionError:
-                if time.monotonic() >= deadline:
+            except OSError as error:
+                if error.errno == errno.ENOENT and not os.path.exists(profile):
+                    break
+                if (error.errno not in {errno.EACCES, errno.EBUSY, errno.EPERM, errno.ENOTEMPTY, errno.ENOENT}
+                        or time.monotonic() >= deadline):
                     raise
                 time.sleep(.15)
 
@@ -65,8 +69,7 @@ const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TA
                    "--disable-sync", "--disable-component-update", "--disable-background-networking",
                    "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost",
                    "--user-data-dir=" + profile, "--window-size=1280,840", urljoin(base, probe.name)]
-            run = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            run = start_browser(cmd)
             try:
                 start = last_progress = time.monotonic()
                 result = ""
