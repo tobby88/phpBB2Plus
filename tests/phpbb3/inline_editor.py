@@ -13,6 +13,7 @@ from html import unescape
 from urllib.parse import parse_qs, urljoin, urlsplit
 
 from attachments import GIF
+from browser_process import stop_browser
 from http_board import Browser, FormFields, Page, admin_url, submit_form
 import full_preview
 
@@ -67,11 +68,15 @@ const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TA
             run = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             try:
-                deadline = time.monotonic() + 60
+                start = last_progress = time.monotonic()
                 result = ""
-                while time.monotonic() < deadline:
+                while time.monotonic() < min(start + 180, last_progress + 60):
                     if status.exists():
-                        result = status.read_text(encoding="utf-8")
+                        current = status.read_text(encoding="utf-8")
+                        if current.startswith("stage ") and current != result:
+                            last_progress = time.monotonic()
+                        if current:
+                            result = current
                         if result == "OK" or result.startswith("FAIL "):
                             break
                     if run.poll() is not None:
@@ -80,11 +85,7 @@ const password=<?= json_encode(getenv('PLUS_TEST_HISTORIC_PASSWORD'),JSON_HEX_TA
                 if result != "OK":
                     raise RuntimeError("Chromium inline editing: " + (result or "No loopback result"))
             finally:
-                try:
-                    run.wait(timeout=.5)
-                except subprocess.TimeoutExpired:
-                    run.terminate()
-                    run.wait(timeout=10)
+                stop_browser(run)
     finally:
         probe.unlink(missing_ok=True)
         status.unlink(missing_ok=True)

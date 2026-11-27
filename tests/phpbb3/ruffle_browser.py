@@ -6,6 +6,7 @@ from pathlib import Path
 import secrets
 import shutil
 import subprocess
+from browser_process import stop_browser
 import time
 from urllib.parse import urlsplit
 
@@ -112,22 +113,6 @@ setInterval(async () => {
             print(f"Chromium played the Ruffle fixture and checked the desktop and mobile Plus style in {time.monotonic()-start:.1f}s")
         finally:
             try:
-                if process.poll() is None:
-                    if os.name == "nt":
-                        # Popen.terminate() only ends the root on Windows. The
-                        # renderers can still hold the disposable profile open.
-                        try:
-                            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                           creationflags=subprocess.CREATE_NO_WINDOW, timeout=12)
-                        except (OSError, subprocess.TimeoutExpired):
-                            process.terminate()
-                    else:
-                        process.terminate()
-                    try:
-                        process.wait(timeout=8)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait(timeout=5)
+                stop_browser(process)
             finally:
                 probe.unlink(missing_ok=True)
