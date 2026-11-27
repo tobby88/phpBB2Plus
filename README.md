@@ -25,7 +25,8 @@ build and integration tests work offline.
    for [upgrading the phpBB2 copy](#upgrading-an-existing-forum) and
    [converting it to UTF-8](#encoding-and-database-support).
 2. Install the assembled phpBB3 board in a separate directory with an empty
-   destination database. Enable the ten bundled Plus extensions on this
+   MySQL or MariaDB database. The conversion tests use MariaDB 10.11 and PHP’s
+   MySQLi driver. Enable the ten bundled Plus extensions on this
    destination. Their names begin with **phpBB2 Plus** and identify **Community**, **Photo Album**, **Knowledge Base**,
    **Arcade**, **Downloads**, **Topic Calendar**, **Forum News**, **Member Colours**,
    **Banners** and **Web Links**. Community selects FI Subsilver Shadow, a child
