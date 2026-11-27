@@ -9,3 +9,10 @@
 .plus-news-dates summary { cursor: pointer; font-weight: bold; }
 .plus-news-dates ul { margin: .4em 0 .4em 1.8em; }
 .plus-news-dates [aria-current] { font-weight: bold; }
+.plus-news-categories { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6em; list-style: none; }
+.plus-news-categories > li { display: flex; margin: 0; padding: 0; }
+.plus-news-category-link { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center;
+	gap: .4em; min-width: 0; padding: .75em; text-align: center; overflow-wrap: anywhere; }
+.plus-news-category-link img { max-width: min(100%, 80px); max-height: 80px; object-fit: contain; }
+@media (max-width: 850px) { .plus-news-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 500px) { .plus-news-categories { grid-template-columns: 1fr; } }

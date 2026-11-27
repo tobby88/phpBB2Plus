@@ -14,6 +14,11 @@ def source_media(board):
     (board / "templates/fisubsilversh/images/news/Unused fixture.gif").write_bytes(GIF)
 
 
+def category_links(html):
+    links = re.findall(r'<a class="plus-news-category-link" href="([^"]+)">(.*?)</a>', html, re.S)
+    return {int(re.search(r'/category/(\d+)', url)[1]): (unescape(url), body) for url, body in links}
+
+
 def browse(base, founder):
     guest = Browser(base)
     for actor, private in ((guest, False), (founder, True)):
@@ -24,9 +29,21 @@ def browse(base, founder):
                 raise RuntimeError("The news archive or portal classified the wrong topics: " + str(topics))
             if "Grüße" not in html or not re.search(r'<strong[^>]*>Forum</strong>', html):
                 raise RuntimeError("News lost native BBCode or Unicode in the first post")
-        cats = actor.fetch("news_cats.php")
-        if "Announcements" not in cats or ("Private desk" in cats) != private:
-            raise RuntimeError("News category counts ignored forum visibility")
+        for entry in ("news_cats.php", "portal.php?news=categories"):
+            cats = actor.fetch(entry)
+            destinations = category_links(cats)
+            if set(destinations) != ({1, 2, 74} if private else {1, 2}):
+                raise RuntimeError("News category picture links ignored forum visibility")
+            url, body = destinations[2]
+            picture = re.search(r'<img src="([^"]+)" alt=""', body)
+            if not picture or "Announcements (1)" not in body:
+                raise RuntimeError("The picture and accessible category name should form one link")
+            if not private and entry == "news_cats.php":
+                page_url = urljoin(base, "app.php/news/categories")
+                source = Path(__file__).resolve().parents[2] / "phpBB2/templates/fisubsilversh/images/news/announcements.gif"
+                if (guest.fetch(urljoin(page_url, unescape(picture[1])), raw=True) != source.read_bytes()
+                        or 'data-news-topic="2"' not in guest.fetch(urljoin(page_url, url))):
+                    raise RuntimeError("The original category picture did not lead to its readable articles")
         feed = ElementTree.fromstring(actor.fetch("news_rss.php")).find("channel")
         titles = [item.findtext("title") for item in feed.findall("item")]
         if (len(titles) != (3 if private else 2) or ("Restricted topic fixture" in titles) != private
@@ -108,9 +125,12 @@ def administration(base, owner):
     stale = submit(path, html, form, dict(values, active="1"))
     if "Nachrichtenkategorie wurde inzwischen geändert" not in stale:
         raise RuntimeError("A stale category form overwrote the current publication state")
-    submit(path, owner.fetch(path), form, dict(values, active="1"))
+    submit(path, owner.fetch(path), form, dict(values, active="1", category_image=""))
     if "Mitteilungen &amp; Grüße" not in guest.fetch("app.php/news/category/2"):
         raise RuntimeError("The updated category name was lost or double encoded")
+    category_link = category_links(guest.fetch("app.php/news/categories")).get(2)
+    if not category_link or "Mitteilungen &amp; Grüße" not in category_link[1] or "<img" in category_link[1]:
+        raise RuntimeError("A category without an image lost its named link")
     new = edit_url("Nachrichtenkategorie anlegen")
     page = owner.fetch(new)
     values = dict(save="1", category_name="Rundschreiben", category_image=art.group(1), active="1")

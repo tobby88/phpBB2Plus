@@ -1,8 +1,17 @@
 <!-- INCLUDE overall_header.html -->
+<!-- INCLUDECSS @phpbb2plus_news/news.css -->
 <h2>{L_PLUS_NEWS_CATEGORIES}</h2>
 <p><a href="{U_PLUS_NEWS}">{L_PLUS_NEWS_ARCHIVE}</a></p>
-<ul class="topiclist forums">
-<!-- BEGIN news_categories --><li class="row"><div class="list-inner"><a class="forumtitle" href="{news_categories.U_CATEGORY}">{news_categories.CATEGORY}</a> ({news_categories.COUNT})</div></li>
-<!-- BEGINELSE --><li class="row">{L_PLUS_NEWS_EMPTY}</li><!-- END news_categories -->
+{% if loops.news_categories %}
+<ul class="plus-news-categories">
+{% for category in loops.news_categories %}
+	<li class="panel"><a class="plus-news-category-link" href="{{ category.U_CATEGORY }}">
+		{% if category.IMAGE %}<img src="{{ category.IMAGE }}" alt="" loading="lazy">{% endif %}
+		<span class="forumtitle">{{ category.CATEGORY }} ({{ category.COUNT }})</span>
+	</a></li>
+{% endfor %}
 </ul>
+{% else %}
+<p class="panel">{{ lang('PLUS_NEWS_EMPTY') }}</p>
+{% endif %}
 <!-- INCLUDE overall_footer.html -->
