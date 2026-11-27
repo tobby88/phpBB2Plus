@@ -1,4 +1,11 @@
 services:
+    phpbb2plus.community.registration_reputation_http:
+        class: GuzzleHttp\Client
+    phpbb2plus.community.registration_reputation:
+        class: phpbb2plus\community\event\registration_reputation
+        arguments: ['@phpbb2plus.community.registration_reputation_http', '@config', '@language', '@request', '@template']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.topic_groups:
         class: phpbb2plus\community\event\topic_groups
         arguments: ['@phpbb2plus.community.forum_display', '@config', '@dbal.conn', '@language', '@template', '@content.visibility']

@@ -53,6 +53,7 @@ import topic_avatar
 import topic_navigation
 import daily_visitors
 import registration_counts
+import registration_reputation
 import recent_topics
 import custom_profiles
 import colours
@@ -392,6 +393,7 @@ def account_management(base, admin, moderator, member, target, web):
     mailbox_counters.browse(base, admin, fixture("mailbox_counters"))
     post_references.browse(base, admin, fixture("post_references"))
     absence_registration.browse(base, fixture("absence_registration"))
+    registration_reputation.browse(base, admin, web, target, php)
     php(ROOT / "tests/phpbb3/acronym_dictionary.php", target, "converted", cwd=web)
     acronym_dictionary.browse(base, admin, moderator)
     inline_editor.browse(base, admin, moderator, lambda phase: php(
@@ -602,6 +604,7 @@ def seed_source(source, legacy, suite):
         php(tests / "acronym_dictionary.php", source, "source")
     if account_suite:
         php(tests / "blue_reports.php", source, "source")
+        php(tests / "registration_reputation.php", source, "source")
         php(tests / "daily_visitors.php", source, "source")
         php(tests / "post_bookmarks.php", source, "source")
         php(tests / "kb_unicode.php", source, "source")
