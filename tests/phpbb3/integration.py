@@ -32,6 +32,7 @@ import board_statistics
 import statistics_administration
 import attachments
 import attachment_quotas
+import attachment_blocks
 import forum_permissions
 import blue_reports
 import forum_recovery
@@ -54,6 +55,7 @@ import legacy_links
 import legacy_login
 import acronym_dictionary
 import explicit_acronym
+import table_formatting
 import account_pruning
 import inline_editor
 import quick_reply
@@ -351,6 +353,7 @@ def account_management(base, admin, moderator, member, target, web):
     acp_registration.browse(admin, fixture("acp_registration"))
     member_directory.browse(base, web, target, php)
     member_operations.browse(base, web, target, php)
+    attachment_blocks.browse(base, web, target, php)
     blue_reports.browse(admin, moderator, lambda phase: php(
         ROOT / "tests/phpbb3/blue_reports.php", target, phase, cwd=web, capture=True))
 
@@ -380,6 +383,8 @@ def extension_upgrades(target, web, suite="all"):
     if suite in ("management", "all"):
         migrations.append("community/migrations/v166_member_directory")
         fixtures.extend((tests / "member_directory.php", tests / "member_operations.php"))
+        migrations.append("community/migrations/v170_attachment_blocks")
+        fixtures.append(tests / "attachment_blocks.php")
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
@@ -437,10 +442,12 @@ def seed_source(source, legacy, suite):
         php(tests / "smilie_signs.php", source, "source")
         php(tests / "explicit_acronym.php", source, "source")
         php(tests / "formatting_codes.php", source, "source")
+        php(tests / "table_formatting.php", source, "source")
     if forum_suite or account_suite:
         php(tests / "acronym_dictionary.php", source, "source")
     if account_suite:
         php(tests / "blue_reports.php", source, "source")
+        php(tests / "attachment_blocks.php", source, "source")
         php(tests / "birthday_greeting.php", source, "source")
         php(tests / "inline_editor.php", source, "source")
         php(tests / "absence.php", source, "source")
@@ -493,6 +500,7 @@ def main():
                     # This also exercises conversion after the stock formatter has been cached.
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "native", cwd=web)
+                    php(ROOT / "tests/phpbb3/table_formatting.php", target, "fresh", cwd=web)
                 if account_suite:
                     php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
                 php("bin/phpbbcli.php", "--version", cwd=web)
@@ -564,6 +572,8 @@ def main():
                     explicit_acronym.browse(member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/explicit_acronym.php", target, phase, cwd=web, capture=True))
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "converted", cwd=web)
+                    table_formatting.browse(member, ordinary, lambda phase: php(
+                        ROOT / "tests/phpbb3/table_formatting.php", target, phase, cwd=web, capture=True))
                     smilie_signs.browse(member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/smilie_signs.php", target, phase, cwd=web, capture=True))
                     quick_reply.browse(member, ordinary, Browser(base), lambda phase: php(

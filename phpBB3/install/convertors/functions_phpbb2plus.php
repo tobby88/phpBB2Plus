@@ -297,7 +297,7 @@ function plus_reset_converted_formatter()
 function plus_convert_message($message)
 {
 	global $convert, $convert_row, $db, $phpbb_container;
-	static $acronyms;
+	static $acronyms, $tables;
 	// The upstream converter treats the one-character post "0" as empty.
 	if ($message === '0')
 	{
@@ -318,6 +318,13 @@ function plus_convert_message($message)
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/explicit_acronym.php';
 		if (!$acronyms) { $acronyms = new \phpbb2plus\community\service\explicit_acronym($db, $phpbb_container); }
 		$xml = $acronyms->for_display($xml);
+	}
+	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) && stripos($xml, '[table=') !== false)
+	{
+		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/table_formatting.php';
+		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/legacy_tables.php';
+		if (!$tables) { $tables = new \phpbb2plus\community\service\legacy_tables($db, $phpbb_container); }
+		$xml = $tables->for_display($xml);
 	}
 	return $xml;
 }

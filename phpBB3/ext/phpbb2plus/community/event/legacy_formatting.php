@@ -4,14 +4,22 @@ namespace phpbb2plus\community\event;
 use phpbb2plus\community\service\explicit_acronym;
 use phpbb2plus\community\service\formatting_codes;
 use phpbb2plus\community\service\legacy_smilie_signs;
+use phpbb2plus\community\service\legacy_tables;
+use phpbb2plus\community\service\table_formatting;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class legacy_formatting implements EventSubscriberInterface
 {
 	private $acronyms;
 	private $config;
+	private $tables;
 
-	public function __construct($db, $container, $config) { $this->acronyms = new explicit_acronym($db, $container); $this->config = $config; }
+	public function __construct($db, $container, $config)
+	{
+		$this->acronyms = new explicit_acronym($db, $container);
+		$this->tables = new legacy_tables($db, $container);
+		$this->config = $config;
+	}
 
 	public static function getSubscribedEvents()
 	{
@@ -24,12 +32,14 @@ class legacy_formatting implements EventSubscriberInterface
 	public function configure($event)
 	{
 		explicit_acronym::configure($event['configurator']);
+		table_formatting::configure($event['configurator']);
 		formatting_codes::overflow($event['configurator'], (string) ($this->config['plus_formatting_overflow'] ?? ''));
 	}
 
 	private function upgrade($xml)
 	{
-		return $this->acronyms->for_display(legacy_smilie_signs::upgrade($xml));
+		$xml = $this->acronyms->for_display(legacy_smilie_signs::upgrade($xml));
+		return $this->tables->for_display($xml);
 	}
 
 	public function older_content($event)
@@ -43,7 +53,8 @@ class legacy_formatting implements EventSubscriberInterface
 	{
 		if (!isset($row[$field]) || $enabled === null) { return; }
 		if ($enabled) { $row[$field] = $this->upgrade($row[$field]); }
-		elseif (!empty($row['bbcode_bitfield']) && (explicit_acronym::candidate($row[$field]) || stripos($row[$field], '[schild=') !== false))
+		elseif (!empty($row['bbcode_bitfield']) && (explicit_acronym::candidate($row[$field]) ||
+			legacy_tables::candidate($row[$field]) || stripos($row[$field], '[schild=') !== false))
 		{
 			$row['bbcode_bitfield'] = '';
 		}
