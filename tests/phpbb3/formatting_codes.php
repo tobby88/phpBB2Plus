@@ -111,7 +111,9 @@ elseif ($argv[2] === 'native')
 	$links = $parser->parse($query);
 	$view = formatting_xpath($renderer->render($links));
 	$destination = 'https://www.google.com/search?q=' . rawurlencode('Öl & A+B? #1');
-	formatting_require($view->query('//a[@href="' . $destination . '"]')->length === 1 && $view->query('//a')->length === 2 &&
+	formatting_require($view->query('//a[@href="' . $destination . '"]')->length === 1 &&
+		$view->query('//a[@href="https://archive.example.test/" and text()="Normal"]')->length === 1 &&
+		$view->query('//code[contains(.,"[google]Beispiel[/google]")]')->length === 1 && $view->query('//code//a')->length === 0 &&
 		\s9e\TextFormatter\Unparser::unparse($links) === $query, 'The search shortcut changed ordinary links, code or editable text');
 	$parser->disable_bbcode('url');
 	$no_links = $parser->parse($query);
