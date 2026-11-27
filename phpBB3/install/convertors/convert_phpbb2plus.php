@@ -301,6 +301,10 @@ if (!$get_info)
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
+			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_setbm'))
+			{
+				$section[] = array('plus_post_bookmark', 'users.user_setbm', 'plus_tracker_flag');
+			}
 			foreach (array('user_use_ajax_edit' => 'plus_inline_edit', 'user_use_ajax_preview' => 'plus_full_preview') as $field => $option)
 			{
 				if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', $field))

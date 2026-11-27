@@ -1,0 +1,5 @@
+{% if S_PLUS_BOOKMARK_DEFAULT %}
+<dl><dt><label for="plus-bookmark-yes">{{ lang('PLUS_POST_BOOKMARK_DEFAULT') }}</label></dt>
+	<dd><label><input id="plus-bookmark-yes" type="radio" name="plus_bookmark_default" value="1"{% if PLUS_BOOKMARK_DEFAULT %} checked{% endif %}> {{ lang('YES') }}</label>
+	<label><input type="radio" name="plus_bookmark_default" value="0"{% if not PLUS_BOOKMARK_DEFAULT %} checked{% endif %}> {{ lang('NO') }}</label></dd></dl>
+{% endif %}

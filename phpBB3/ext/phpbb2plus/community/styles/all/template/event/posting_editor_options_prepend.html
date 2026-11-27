@@ -5,3 +5,6 @@
 	<dd>{{ PLUS_ANNOUNCE_HINT }}<input type="hidden" name="plus_announce_revision" value="{{ PLUS_ANNOUNCE_REVISION|e }}"></dd>
 </dl>
 {% endif %}
+{% if S_PLUS_POST_BOOKMARK %}
+<div><input type="hidden" name="plus_bookmark_choice" value="1"><label for="plus-post-bookmark"><input id="plus-post-bookmark" type="checkbox" name="setbm" value="1"{% if PLUS_POST_BOOKMARK %} checked{% endif %}> {{ lang('PLUS_POST_BOOKMARK') }}</label></div>
+{% endif %}

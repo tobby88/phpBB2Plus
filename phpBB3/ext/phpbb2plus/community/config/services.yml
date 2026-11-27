@@ -34,6 +34,11 @@ services:
         arguments: ['@path_helper', '@config', '@template', '@language', '@controller.helper']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.post_bookmarks:
+        class: phpbb2plus\community\event\post_bookmarks
+        arguments: ['@dbal.conn', '@config', '@auth', '@user', '@request', '@content.visibility', '@language', '@template']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.full_preview:
         class: phpbb2plus\community\event\full_preview
         arguments: ['@request', '@template', '@language', '@phpbb2plus.community.inline_editor']
