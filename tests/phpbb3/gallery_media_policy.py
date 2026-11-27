@@ -36,10 +36,15 @@ def browse(admin, moderator, member, guest, check):
                            files=[("photos[]", "frame.png", "image/png", ORIGINAL)], expected_status=status)
 
     class Picker(HTMLParser):
+        description = None
+        types = frozenset()
+
         def handle_starttag(self, tag, attrs):
             attrs = dict(attrs)
             if tag == "input" and attrs.get("id") == "album-files":
                 self.types = set(attrs["accept"].split(","))
+            if tag == "textarea" and attrs.get("id") == "album-description":
+                self.description = (attrs.get("data-limit"), attrs.get("maxlength"), attrs.get("rows"))
 
     def dimensions(raw):
         if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
@@ -79,14 +84,17 @@ def browse(admin, moderator, member, guest, check):
         picker = Picker()
         public_form = moderator.fetch(form)
         picker.feed(public_form)
-        if ({val for val in picker.types if val.startswith("image/")} != {"image/png"} or 'maxlength="2" rows="3"' not in public_form or
+        # The configured limit counts Unicode code points. HTML maxlength counts UTF-16 code units.
+        if picker.description != ("2", "4", "3"):
+            raise RuntimeError(f"Unexpected description limit, UTF-16 allowance and row count: {picker.description}")
+        if ({val for val in picker.types if val.startswith("image/")} != {"image/png"} or
                 'id="album-file-policy"' not in public_form or '800 × 600' not in public_form or '128000' not in public_form):
-            raise RuntimeError("The browser did not receive the allowed formats and description length")
+            raise RuntimeError("The browser did not receive the configured image format, dimensions and byte limit")
         upload(member, "Ordinary quota", "", 422)
-        upload(moderator, "Description over limit", "Ölü", 422)
-        upload(moderator, "Allowed PNG", "Öl", 200)
+        upload(moderator, "Description over limit", "Ö📷l", 422)
+        upload(moderator, "Allowed PNG", "Ö📷", 200)
         upload(admin, "Shared quota", "", 422)
-        if [(r["title"],r["description"]) for r in state()["pictures"]] != [("Allowed PNG","Öl")]:
+        if [(r["title"],r["description"]) for r in state()["pictures"]] != [("Allowed PNG","Ö📷")]:
             raise RuntimeError("A format, Unicode description or total, moderator or member quota was incorrectly enforced")
         before = state()["variants"]
         if (dimensions(admin.fetch(pic + "/small", raw=True)) != (7,4) or dimensions(guest.fetch(pic + "/medium", raw=True)) != (19,11) or
