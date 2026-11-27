@@ -745,8 +745,13 @@ def main():
                 legacy.result()
             seeded = monotonic()
             print(f"Installation and source fixtures ready after {seeded-start:.1f}s", flush=True)
+            registration_fixture = ROOT / "tests/phpbb3/registration_policy.php"
+            if args.part == "extensions":
+                php(registration_fixture, source, "source-closed")
             with server(web, root) as base:
                 convert(base, source)
+                if args.part == "extensions":
+                    php(registration_fixture, target, "converted-closed", cwd=web)
                 if forum_suite:
                     php(fixture, "original-topology", source)
                 (web / "install").rename(root / "finished-installer")
