@@ -21,6 +21,9 @@ if ($argv[2] === 'source')
 		$sample .= " [scrollup:$uid]Höher[/scrollup:$uid] [marq=right:$uid]Weiter[/marq:$uid]";
 		$sample .= " [right:$uid]https://archive.example.test/bild.jpg[/right:$uid]";
 		$sample .= " [RIGHT]https://archive.example.test/literal.png[/RIGHT]";
+		$sample .= " [flash width=320 height=200:$uid]https://archive.example.test/marked.swf[/flash:$uid]" .
+			" [flash width=320 height=200]https://archive.example.test/literal.swf[/flash]" .
+			" [flash=320,200]https://archive.example.test/native-only.swf[/flash]";
 		$sample .= " [google]Grün &amp; Kaffee+Tee?[/google]";
 		$q = $old->prepare("UPDATE $table SET $column=CONCAT($column,?) WHERE $where");
 		$q->bind_param('s', $sample);
@@ -66,6 +69,16 @@ if ($argv[2] === 'converted')
 		$xml = $db->sql_fetchfield($column); $db->sql_freeresult($r);
 		formatting_require(strpos(\s9e\TextFormatter\Unparser::unparse($xml), '[RIGHT]https://archive.example.test/literal.png[/RIGHT]') !== false &&
 			strpos($xml, 'src="https://archive.example.test/literal.png"') === false, 'An unmarked source image was promoted to a native IMG in ' . $column);
+		$document = new DOMDocument();
+		formatting_require($document->loadXML($xml, LIBXML_NONET), 'Invalid converted message XML in ' . $column);
+		$flash = (new DOMXPath($document))->query('//FLASH');
+		$draft = \s9e\TextFormatter\Unparser::unparse($xml);
+		$movie = $flash->item(0);
+		formatting_require($flash->length === 1 && $movie->getAttribute('url') === 'https://archive.example.test/marked.swf' &&
+			$movie->getAttribute('width') === '320' && $movie->getAttribute('height') === '200' &&
+			strpos($draft, '[flash width=320 height=200]https://archive.example.test/literal.swf[/flash]') !== false &&
+			strpos($draft, '[flash=320,200]https://archive.example.test/native-only.swf[/flash]') !== false,
+			'Converted Flash media changed an active movie or activated a literal example in ' . $column);
 		$xpath = formatting_xpath($renderer->render($xml));
 		$search = 'https://www.google.com/search?q=' . rawurlencode('Grün & Kaffee+Tee?');
 		formatting_require($xpath->query('//a[@href="' . $search . '" and text()="Grün & Kaffee+Tee?"]')->length === 1,
@@ -106,6 +119,14 @@ elseif ($argv[2] === 'native')
 	$image_code = '[LEFT]https://archive.example.test/links.png[/LEFT] [right]https://archive.example.test/rechts.jpeg[/right] ' .
 		'[img]https://archive.example.test/normal.jpg[/img] [right]https://archive.example.test/unmatched.txt[/right] [code][left]https://archive.example.test/beispiel.png[/left][/code]';
 	$parser->enable_bbcodes();
+	$movie = '[flash width=320 height=200]https://archive.example.test/film.swf[/flash]';
+	$parser->enable_bbcode('flash');
+	$movie_xml = $parser->parse($movie);
+	$renderer->set_viewflash(false);
+	formatting_require(formatting_xpath($renderer->render($movie_xml))->query('//object|//embed')->length === 0 &&
+		\s9e\TextFormatter\Unparser::unparse($movie_xml) === $movie, 'The native Flash display preference or editable source changed');
+	$parser->disable_bbcode('flash');
+	formatting_require(strpos($parser->parse($movie), '<FLASH') === false, 'A forum that disables Flash still parsed a named-dimension movie');
 	$parser->enable_bbcode('url');
 	$query = '[google]Öl & A+B? #1[/google] [url=https://archive.example.test/]Normal[/url] [code][google]Beispiel[/google][/code]';
 	$links = $parser->parse($query);

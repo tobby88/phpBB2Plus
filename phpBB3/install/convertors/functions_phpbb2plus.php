@@ -310,16 +310,19 @@ function plus_convert_message($message)
 	}
 	$message = (string) $message;
 	if (isset($convert->row['enable_bbcode']) && !$convert->row['enable_bbcode']) { return phpbb_prepare_message($message); }
-	// Plus stored a UID on both ends of an accepted aligned image. Keep any
-	// unmarked delimiters literal through phpBB's native parse and the installer fallback.
-	$literal = array();
-	if (preg_match('~\[/?(?:left|right)\]~i', $message))
+	// Plus marked accepted image and Flash brackets with the BBCode UID. Its
+	// unmarked examples must stay literal even when phpBB3 accepts their spelling.
+	$brackets = '~\[(?=/?(?:left|right)\])|\[(?=/?flash\b([^\[\]\r\n]*)\])~i';
+	$literal = null;
+	if (preg_match($brackets, $message))
 	{
-		$prefix = '[%' . bin2hex(random_bytes(16)) . ':';
-		$message = preg_replace_callback('~\[/?(?:left|right)\]~i', static function ($match) use ($prefix, &$literal) {
-			$key = $prefix . count($literal) . '%]';
-			$literal[$key] = $match[0];
-			return $key;
+		$uid = (string) ($convert->row['old_bbcode_uid'] ?? '');
+		$suffix = ':' . $uid;
+		$literal = '[%' . bin2hex(random_bytes(16)) . '%]';
+		$message = preg_replace_callback($brackets, static function ($match) use ($uid, $suffix, $literal) {
+			if ($uid !== '' && isset($match[1]) && substr($match[1], -strlen($suffix)) === $suffix) { return '['; }
+			// Mask only the opening bracket. The native parser still escapes every attribute and all user text.
+			return $literal;
 		}, $message);
 	}
 	$xml = phpbb_prepare_message($message);
@@ -377,7 +380,7 @@ function plus_convert_message($message)
 		}
 		$xml = $styles->for_display($xml);
 	}
-	return $literal ? strtr($xml, $literal) : $xml;
+	return $literal === null ? $xml : str_replace($literal, '[', $xml);
 }
 
 function plus_orphan_post_data($subject, $uid, $text)
