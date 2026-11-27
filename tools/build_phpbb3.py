@@ -186,6 +186,9 @@ def assemble(output, cache, offline=False):
         shutil.copyfile(old_images / "lang_english/kb.gif", web / "images/pluskb/header.gif")
         news_images = web / "images/plusnews"
         (web / "images/plusportal").mkdir(parents=True, exist_ok=True)
+        topic_avatars = web / "images/plusavatars"
+        topic_avatars.mkdir()
+        shutil.copyfile(ROOT / "phpBB2/images/default_avatar.gif", topic_avatars / "stock.gif")
         news_images.mkdir()
         for name in ("topicnews.gif", "announcements.gif"):
             shutil.copyfile(old_images / "news" / name, news_images / name)

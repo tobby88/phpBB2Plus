@@ -79,6 +79,20 @@ function plus_import_avatar_gallery()
 	}
 }
 
+function plus_import_topic_avatar()
+{
+	global $src_db, $convert, $config, $db, $table_prefix;
+	$result = $src_db->sql_query('SELECT config_value FROM ' . $convert->src_table_prefix . "plus WHERE config_name='default_avatar'");
+	$enabled = $src_db->sql_fetchfield('config_value');
+	$src_db->sql_freeresult($result);
+	$image = plus_profile_image('images','default_avatar.gif');
+	$name = $image ? plus_public_bitmap($image,'plusavatars') : '';
+	if ($image) { $db->sql_query('DELETE FROM ' . $table_prefix . "plus_media_issues WHERE asset_kind='topic-avatar' AND source_id=0"); }
+	else { plus_profile_media_issue('topic-avatar',0,'images/default_avatar.gif','unavailable'); }
+	$config->set('plus_topic_avatar_image',$name);
+	$config->set('plus_topic_default_avatar',(int) ((string) $enabled === '1'));
+}
+
 function plus_profile_avatar_field($id, $allowed, $type, $reference, $field)
 {
 	global $config, $phpbb_root_path;
@@ -137,6 +151,7 @@ function plus_profile_avatar_field($id, $allowed, $type, $reference, $field)
 					'user_avatar_width' => $width, 'user_avatar_height' => $height);
 			}
 		}
+		$avatar['plus_no_default_avatar'] = (int) ($avatar['user_avatar'] === '' && ($reference !== '' || ($type && $id > 0 && $allowed)));
 	}
 	return $avatar[$field];
 }

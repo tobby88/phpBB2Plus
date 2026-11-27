@@ -54,6 +54,11 @@ services:
         arguments: ['@config', '@user', '@request', '@template', '@language', '@auth']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.topic_avatar:
+        class: phpbb2plus\community\event\topic_avatar
+        arguments: ['@config', '@dbal.conn', '@user', '@language', '@path_helper', '%core.root_path%']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.registration_network:
         class: phpbb2plus\community\profile\registration_network
         arguments: ['@dbal.conn', '@auth', '@user']

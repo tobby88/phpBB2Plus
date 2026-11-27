@@ -62,6 +62,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
 	$convertor['execute_last'][] = 'plus_banner_next_id();';
 	$convertor['execute_last'][] = 'plus_enable_post_icons();';
+	$convertor['execute_last'][] = 'plus_import_topic_avatar();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$convertor['execute_last'][] = 'plus_publish_poll_receipts();';
@@ -286,6 +287,7 @@ if (!$get_info)
 		if ($section['target'] === USERS_TABLE)
 		{
 			$section[] = array('plus_colour_id','users.user_color_group','intval');
+			$section[] = array('plus_no_default_avatar',array('users.user_id','users.user_allowavatar','users.user_avatar_type','users.user_avatar','plus_no_default_avatar'),'plus_profile_avatar_field');
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_account_registration_ip');
 			if ((new \phpbb\db\tools\factory())->get($src_db)->sql_column_exists($convert->src_table_prefix . 'users', 'user_reg_host'))
 			{
