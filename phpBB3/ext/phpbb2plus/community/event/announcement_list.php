@@ -8,13 +8,14 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class announcement_list implements EventSubscriberInterface
 {
 	private $settings, $activity, $schedule, $db, $visibility, $config, $request, $user, $language, $template, $dispatcher, $root, $ext;
-	private $listed, $readable;
+	private $pagination, $attachments, $listed, $readable;
 
-	public function __construct($settings, $activity, $schedule, $db, $visibility, $config, $request, $user, $language, $template, $dispatcher, $root, $ext)
+	public function __construct($settings, $activity, $schedule, $db, $visibility, $config, $request, $user, $language, $template, $dispatcher, $pagination, $attachments, $root, $ext)
 	{
 		$this->settings=$settings; $this->activity=$activity; $this->schedule=$schedule; $this->db=$db; $this->visibility=$visibility;
 		$this->config=$config; $this->request=$request; $this->user=$user; $this->language=$language; $this->template=$template;
 		$this->dispatcher=$dispatcher; $this->root=$root; $this->ext=$ext;
+		$this->pagination=$pagination; $this->attachments=$attachments;
 	}
 
 	public static function getSubscribedEvents()
@@ -104,11 +105,14 @@ class announcement_list implements EventSubscriberInterface
 				$joins .= ' LEFT JOIN ' . TOPICS_POSTED_TABLE . " tp ON tp.topic_id=t.topic_id AND tp.user_id=$actor";
 			}
 		}
+		// Optional extensions select their own installed columns in the same visibility-scoped query.
+		$columns = $this->dispatcher->trigger_event('phpbb2plus.community.announcement_columns', array('columns'=>array()))['columns'];
+		$extra = $columns ? ',' . implode(',', $columns) : '';
 		$r = $this->db->sql_query_limit('SELECT t.topic_id,t.forum_id,t.topic_title,t.topic_type,t.topic_time,t.topic_status,t.poll_start,t.topic_time_limit,
-			t.topic_poster,t.topic_first_post_id,t.plus_description,
+			t.topic_poster,t.topic_first_post_id,t.plus_description,t.icon_id,t.topic_attachment,f.enable_icons,
 			t.plus_announce_days,t.topic_visibility,t.topic_posts_approved,t.topic_posts_unapproved,t.topic_posts_softdeleted,t.topic_views,
 			p.post_id,p.post_time,p.post_username,p.poster_id AS user_id,u.username,u.user_colour,
-			b.post_id AS first_id,b.poster_id AS first_user,b.post_username AS first_guest,bu.username AS first_name,bu.user_colour AS first_colour' . $tracking . '
+			b.post_id AS first_id,b.poster_id AS first_user,b.post_username AS first_guest,bu.username AS first_name,bu.user_colour AS first_colour' . $tracking . $extra . '
 			FROM ' . TOPICS_TABLE . ' t JOIN ' . FORUMS_TABLE . ' f ON f.forum_id=t.forum_id
 			JOIN ' . POSTS_TABLE . ' p ON p.post_id=t.topic_last_post_id AND p.topic_id=t.topic_id AND p.forum_id=t.forum_id
 			LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=p.poster_id
@@ -152,6 +156,7 @@ class announcement_list implements EventSubscriberInterface
 		$more = count($rows)>$size;
 		if ($more) { array_pop($rows); }
 		$paths = $this->paths($rows);
+		$attachments = $this->attachments->topic_markers($rows, $this->visibility);
 		$this->language->add_lang(array('forum_display','community'), 'phpbb2plus/community');
 		$this->language->add_lang('viewtopic');
 		include_once $this->root . 'includes/functions_display.' . $this->ext;
@@ -178,7 +183,7 @@ class announcement_list implements EventSubscriberInterface
 			$display = array('ID'=>$id,
 				'HEADING'=>$split && $group!==$previous ? $this->language->lang(forum_display::GROUP_LABELS[$group]) : '',
 				'TYPE'=>$split && $group===$type && !$r['poll_start'] ? '' : $native_type,
-				'TITLE'=>censor_text($r['topic_title']), 'DATES'=>$this->range($r),
+				'TITLE'=>censor_text($r['topic_title']), 'DATES'=>$this->range($r), 'HAS_ATTACHMENT'=>isset($attachments[$id]),
 				'ICON'=>$icon, 'ALT'=>$this->language->lang($alt), 'UNREAD'=>$unread ? $topic_url . '&amp;view=unread#unread' : '',
 				'PENDING'=>(int) $r['topic_visibility'] !== ITEM_APPROVED, 'FIRST_AUTHOR'=>$r['first_author'] ?? $this->language->lang('PLUS_REMOVED_POSTS', 1),
 				'LAST_AUTHOR'=>$r['last_author'], 'LAST_TIME'=>$this->user->format_date((int) $r['post_time']),
@@ -186,6 +191,8 @@ class announcement_list implements EventSubscriberInterface
 				'LAST_URL'=>append_sid($this->root . 'viewtopic.' . $this->ext, "p=$post") . '#p' . $post);
 			$display = $this->dispatcher->trigger_event('phpbb2plus.community.announcement_topic_row', array('row'=>$r, 'topic_row'=>$display))['topic_row'];
 			$this->template->assign_block_vars('plus_announcement', $display);
+			$this->pagination->generate_template_pagination($topic_url, 'plus_announcement.pagination', 'start',
+				$replies+1, max(1, (int) $this->config['posts_per_page']), 1, true, true);
 			$previous = $group;
 		}
 	}

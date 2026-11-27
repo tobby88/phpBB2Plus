@@ -43,10 +43,42 @@ class statistics_attachments
 		return implode(' OR ', $conditions);
 	}
 
+	private function downloadable_forums($forums)
+	{
+		if (!$forums || !$this->config['allow_attachments'] || !$this->auth->acl_get('u_download')) { return array(); }
+		return array_intersect(array_unique($forums), array_keys($this->auth->acl_getf('f_download', true)));
+	}
+
+	public function topic_markers(array $rows, $visibility)
+	{
+		$topics = array_column(array_filter($rows, static function ($topic) { return $topic['topic_attachment']; }), 'forum_id', 'topic_id');
+		$forums = $this->downloadable_forums($topics);
+		if (!$forums || ($extensions = $this->extension_filter($forums)) === '') { return array(); }
+		// A topic flag can refer to an orphan, an unapproved post or a file type no longer allowed here.
+		// Reduce duplicates on MariaDB/MySQL while preserving the exact spelling checked by the download handler.
+		$projection = $this->db->get_sql_layer() === 'mysqli' ? 'DISTINCT p.topic_id,p.forum_id,BINARY a.extension AS extension' :
+			'p.topic_id,p.forum_id,a.extension';
+		$result = $this->db->sql_query('SELECT ' . $projection . ' FROM ' . ATTACHMENTS_TABLE . ' a
+			JOIN ' . POSTS_TABLE . ' p ON p.post_id=a.post_msg_id AND p.topic_id=a.topic_id
+			WHERE a.in_message=0 AND a.is_orphan=0 AND p.plus_legacy_erased=0 AND p.post_visibility<>' . ITEM_DELETED .
+			' AND ' . $this->db->sql_in_set('a.topic_id', array_keys($topics)) . ' AND (' . $extensions . ')
+			AND (' . $visibility->get_forums_visibility_sql('post', $forums, 'p.') . ')');
+		$found = $native = array();
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$id = (int) $row['topic_id']; $forum = (int) $row['forum_id'];
+			if (isset($found[$id]) || (int) $topics[$id] !== $forum) { continue; }
+			if (!isset($native[$forum])) { $native[$forum] = $this->cache->obtain_attach_extensions($forum); }
+			if (extension_allowed($forum, $row['extension'], $native[$forum])) { $found[$id] = true; }
+		}
+		$this->db->sql_freeresult($result);
+		return $found;
+	}
+
 	public function ranking($forums, $scope, $limit)
 	{
-		$forums = array_intersect($forums, array_keys($this->auth->acl_getf('f_download', true)));
-		if (!$this->config['allow_attachments'] || !$this->auth->acl_get('u_download') || !$forums) { return array(); }
+		$forums = $this->downloadable_forums($forums);
+		if (!$forums) { return array(); }
 		$extensions = $this->extension_filter($forums);
 		if ($extensions === '') { return array(); }
 		$query = 'SELECT a.attach_id,a.extension,a.real_filename,a.attach_comment,a.filesize,a.filetime,a.download_count,p.post_id,p.forum_id,t.topic_title

@@ -1,7 +1,8 @@
 """Read the board and branch announcement lists with real viewer and board preference changes."""
 from html import unescape
+import json
 import re
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 from http_board import Browser, FormFields, admin_url, submit_form
 from inline_editor import list_links
@@ -18,6 +19,12 @@ def browse(base, admin, member, fixture):
     def cases(block):
         return {int(value) - 926000 for value in re.findall(r'data-announcement="(9261\d\d)"', block)}
 
+    def row(block, number):
+        return re.search(r'data-announcement="' + str(926000 + number) + r'">(.*?</dl>)\s*</li>', block, re.S)[1]
+
+    def pages(entry):
+        return {int(label): unescape(url) for url, label in re.findall(r'<a class="button" href="([^"]+)">(\d+)</a>', entry)}
+
     def require(condition, message):
         if not condition:
             raise AssertionError(message)
@@ -26,7 +33,8 @@ def browse(base, admin, member, fixture):
         url = "ucp.php?i=ucp_prefs&mode=view"
         submit_form(member, url, member.fetch(url), "ucp", dict(fields, submit="1"))
 
-    former = fixture("seed").strip()
+    source = json.loads(fixture("seed"))
+    former = source["former"]
     guest = Browser(base)
     parent = forum(39021)
     deep = forum(39022)
@@ -52,9 +60,42 @@ def browse(base, admin, member, fixture):
         personal = panel(member.fetch(parent))
         require(former in personal and "plus-announcement-path" not in personal and '<li class="row bg3">' not in personal
                 and "30 Mar 2024" in personal, "The personal path/group settings or forced date option were not applied")
-        global_row = re.search(r'data-announcement="926114".*?</li>', personal, re.S)[0]
+        global_row = row(personal, 114)
         require("global_unread" in global_row and "view=unread#unread" in global_row,
                 "The announcement ignored its native per-member read marker")
+        explicit = row(panel(page), 111)
+        for rendered, image, label in ((explicit, source["explicit"], None), (global_row, source["default"], None),
+                                       (row(personal, 111), source["explicit"], "Idea"), (row(moderating, 111), source["explicit"], "Idee")):
+            icon = re.search(r'<img class="plus-announcement-icon"[^>]+>', unescape(rendered))
+            require(icon and image in icon[0] and (label is None or f'alt="{label}"' in icon[0]),
+                    f"Expected the icon {image} ({label}), found {icon[0] if icon else 'none'}")
+        require('class="plus-announcement-icon"' not in row(first, 112), "A forum with disabled icons still displayed one")
+        for listing, day in ((panel(page), "2024-03-31"), (personal, "2024-03-30")):
+            match = re.search(r'class="plus-announcement-event">.*?<a href="([^"]+)"', row(listing, 111), re.S)
+            args = parse_qs(urlsplit(unescape(match[1])).query) if match else {}
+            require(args.get("view") == ["day"] and args.get("date") == [day] and args.get("forum") == ["39022"],
+                    f"The calendar link did not select {day} in forum 39022: {args}")
+        day_link = re.search(r'class="plus-announcement-event">.*?<a href="([^"]+)"', explicit, re.S)[1]
+        require("Notice fixture 111" in guest.fetch(unescape(day_link)), "The linked calendar day omitted the announcement")
+        allday = re.search(r'class="plus-announcement-event">(.*?)</div>', row(first, 113), re.S)[1]
+        require("00:00" not in allday and "23:59" not in allday and " – " not in allday,
+                "A single all-day event was expanded into a timed range")
+        public_pages = pages(row(panel(page), 122))
+        mod_pages = pages(row(moderating, 122))
+        require(set(public_pages) == {1, 2} and set(mod_pages) == {1, 2, 3},
+                f"Expected 2 public and 3 moderatable topic pages, found {sorted(public_pages)} and {sorted(mod_pages)}")
+        last_public = guest.fetch(public_pages[2])
+        require("Notice reply 2" in last_public and "Notice reply 4" not in last_public,
+                "The announcement page link did not open the last readable replies")
+        marker = 'class="plus-announcement-attachment"'
+        for entry, visible, case in ((global_row, True, "approved"), (row(moderating, 122), True, "moderated"),
+                                     (row(personal, 122), False, "pending"), (row(first, 110), False, "unavailable type"),
+                                     (row(first, 112), False, "orphan")):
+            require((marker in entry) == visible, f"Unexpected attachment marker for {case}")
+        fixture("deny-download")
+        restricted = row(panel(member.fetch(parent)), 114)
+        require("Notice fixture 114" in restricted and marker not in restricted,
+                "Revoking download in the original forum did not remove only the marker")
         for listing in (panel(page), personal, moderating, guest.fetch(deep)):
             require("Hinweis &amp; &lt;April&gt;" in listing, "An announcement lost its escaped topic description")
         edit = list_links(moderating).get(926111)

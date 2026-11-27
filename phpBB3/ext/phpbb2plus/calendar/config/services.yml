@@ -1,7 +1,7 @@
 services:
     phpbb2plus.calendar.portal:
         class: phpbb2plus\calendar\event\portal
-        arguments: ['@phpbb2plus.calendar.schedule', '@request', '@user', '@auth', '@config', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%']
+        arguments: ['@phpbb2plus.calendar.schedule', '@request', '@user', '@auth', '@config', '@language', '@controller.helper', '@template', '@ext.manager', '%core.root_path%', '%core.php_ext%']
         tags:
             - { name: event.listener }
     phpbb2plus.calendar.day_search:

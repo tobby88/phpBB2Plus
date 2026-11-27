@@ -14,19 +14,51 @@ class portal implements EventSubscriberInterface
 	private $language;
 	private $helper;
 	private $template;
+	private $extensions;
 	private $root;
 	private $ext;
 
-	public function __construct($schedule, $request, $user, $auth, $config, $language, $helper, $template, $root, $ext)
+	public function __construct($schedule, $request, $user, $auth, $config, $language, $helper, $template, $extensions, $root, $ext)
 	{
 		$this->schedule=$schedule; $this->request=$request; $this->user=$user; $this->auth=$auth; $this->config=$config;
-		$this->language=$language; $this->helper=$helper; $this->template=$template; $this->root=$root; $this->ext=$ext;
+		$this->language=$language; $this->helper=$helper; $this->template=$template; $this->extensions=$extensions; $this->root=$root; $this->ext=$ext;
 	}
 
 	public static function getSubscribedEvents()
 	{
 		return array('phpbb2plus.community.portal_content' => 'calendar', 'core.index_modify_birthdays_sql' => 'birthday_query',
-			'core.index_modify_page_title' => array('forum_birthdays', -10), 'core.viewforum_modify_page_title' => array('forum_birthdays', -10));
+			'core.index_modify_page_title' => array('forum_birthdays', -10), 'core.viewforum_modify_page_title' => array('forum_birthdays', -10),
+			'phpbb2plus.community.announcement_columns' => 'announcement_columns', 'phpbb2plus.community.announcement_topic_row' => 'announcement_date');
+	}
+
+	public function announcement_columns($event)
+	{
+		// A CLI transition can leave the previous web container loaded after the calendar was disabled or purged.
+		if (!$this->extensions->is_enabled('phpbb2plus/calendar') || !isset($this->config['plus_cal_nb_row'])) { return; }
+		$event['columns'] = array_merge($event['columns'], array('t.plus_cal_start','t.plus_cal_end'));
+	}
+
+	public function announcement_date($event)
+	{
+		$row = $event['row'];
+		if (empty($row['plus_cal_start'])) { return; }
+		$start = (int) $row['plus_cal_start'];
+		$end = max($start, (int) $row['plus_cal_end']);
+		$values = period::values($start, $end, $this->user->create_datetime()->getTimezone());
+		$format = $values['start_time'] === '' ? 'j M Y' : false;
+		$when = $this->user->format_date($start, $format, true);
+		if ($end > $start && ($values['start_time'] !== '' || $values['start_date'] !== $values['end_date']))
+		{ $when .= ' – ' . $this->user->format_date($end, $format, true); }
+		$this->language->add_lang('calendar', 'phpbb2plus/calendar');
+		$display = $event['topic_row'];
+		$display['CALENDAR_WHEN'] = $when;
+		$date = $values['start_date'];
+		if ($date >= '1971-01-01' && $date <= '2069-12-31')
+		{
+			$display['U_CALENDAR_DAY'] = $this->helper->route('phpbb2plus_calendar_home',
+				array('view'=>'day','date'=>$date,'forum'=>(int) $row['forum_id']));
+		}
+		$event['topic_row'] = $display;
 	}
 
 	public function birthday_query($event)

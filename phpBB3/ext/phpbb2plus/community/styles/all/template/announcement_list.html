@@ -11,14 +11,21 @@
 			<li class="row bg{{ loop.index is odd ? '1' : '2' }}" data-announcement="{{ row.ID }}">
 				<dl class="row-item {{ row.ICON }}"><dt title="{{ row.ALT|e('html_attr') }}"><div class="list-inner">
 					{% if row.TYPE %}<small>{{ row.TYPE }}</small><br>{% endif %}
+					{% if row.TOPIC_ICON_IMG %}<img class="plus-announcement-icon" src="{{ T_ICONS_PATH }}{{ row.TOPIC_ICON_IMG|e('html_attr') }}" width="{{ row.TOPIC_ICON_IMG_WIDTH }}" height="{{ row.TOPIC_ICON_IMG_HEIGHT }}" alt="{{ row.TOPIC_ICON_IMG_ALT|e('html_attr') }}">{% endif %}
 					{% if row.UNREAD %}<a href="{{ row.UNREAD }}" title="{{ lang('VIEW_UNREAD_POST') }}"><i class="icon fa-file fa-fw" aria-hidden="true"></i><span class="sr-only">{{ lang('VIEW_UNREAD_POST') }}</span></a>{% endif %}
 					<a href="{{ row.U_VIEW_TOPIC }}" class="topictitle">{{ row.TITLE }}</a>
+					{% if row.HAS_ATTACHMENT %}<span class="plus-announcement-attachment" title="{{ lang('ATTACHMENTS') }}"><i class="icon fa-paperclip fa-fw" aria-hidden="true"></i><span class="sr-only">{{ lang('ATTACHMENTS') }}</span></span>{% endif %}
 					{% if row.PENDING %}<span class="post-notice">{{ lang('TOPIC_UNAPPROVED') }}</span>{% endif %}
 					{% if row.S_PLUS_DESCRIPTION %}<div class="plus-topic-description">{{ row.PLUS_DESCRIPTION }}</div>{% endif %}
 					{% if row.U_PLUS_EDIT_POST %}{% include '@phpbb2plus_community/inline_edit_link.html' with {'entry': row, 'title_only': true} %}{% endif %}
 					{% if row.DATES %}<div class="plus-announcement-dates">{{ row.DATES }}</div>{% endif %}
+					{% if row.CALENDAR_WHEN %}<div class="plus-announcement-event">{{ lang('PLUS_CAL_EVENT') }} &middot; {% if row.U_CALENDAR_DAY %}<a href="{{ row.U_CALENDAR_DAY }}">{{ row.CALENDAR_WHEN }}</a>{% else %}{{ row.CALENDAR_WHEN }}{% endif %}</div>{% endif %}
 					{% if row.PATH %}<div class="plus-announcement-path">{% for forum in row.PATH %}{% if not loop.first %} &rsaquo; {% endif %}<a href="{{ forum.URL }}">{{ forum.NAME }}</a>{% endfor %}</div>{% endif %}
 					<div>{{ lang('POST_BY_AUTHOR') }} {{ row.FIRST_AUTHOR }}</div>
+					{% if row.pagination %}<div class="pagination"><ul>{% for page in row.pagination %}
+						{% if page.S_IS_ELLIPSIS %}<li class="ellipsis"><span>{{ lang('ELLIPSIS') }}</span></li>
+						{% elseif not page.S_IS_PREV and not page.S_IS_NEXT %}<li><a class="button" href="{{ page.PAGE_URL }}">{{ page.PAGE_NUMBER }}</a></li>{% endif %}
+					{% endfor %}</ul></div>{% endif %}
 					<div class="responsive-show" style="display: none">{{ lang('LAST_POST') }} {{ lang('POST_BY_AUTHOR') }} {{ row.LAST_AUTHOR }} &raquo; <a href="{{ row.LAST_URL }}">{{ row.LAST_TIME }}</a></div>
 				</div></dt><dd class="posts">{{ row.REPLIES }}</dd><dd class="views">{{ row.VIEWS }}</dd>
 				<dd class="lastpost">{{ row.LAST_AUTHOR }}<br><a href="{{ row.LAST_URL }}">{{ row.LAST_TIME }}</a></dd></dl>

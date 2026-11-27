@@ -32,7 +32,8 @@ class post_icons implements EventSubscriberInterface
 		return array('core.posting_modify_post_data'=>'remember','core.posting_modify_submission_errors'=>'submission',
 			'core.posting_modify_template_vars'=>'editor','core.ucp_pm_compose_template'=>'pm_editor',
 			'core.ucp_pm_compose_modify_parse_after'=>'pm_submission','core.submit_pm_before'=>'pm_write',
-			'core.viewtopic_modify_post_row'=>'post_row','core.viewforum_modify_topicrow'=>'topic_row');
+			'core.viewtopic_modify_post_row'=>'post_row','core.viewforum_modify_topicrow'=>'topic_row',
+			'phpbb2plus.community.announcement_topic_row'=>'topic_row');
 	}
 
 	private function icons()
@@ -137,17 +138,23 @@ class post_icons implements EventSubscriberInterface
 	{
 		$row = $event['row'];
 		$topic = $event['topic_row'];
-		if (!empty($topic['TOPIC_ICON_IMG'])) { return; }
-		$types = array(POST_NORMAL=>'normal',POST_STICKY=>'sticky',POST_ANNOUNCE=>'announce',POST_GLOBAL=>'global_announce');
-		$type = $types[(int) $row['topic_type']] ?? 'normal';
-		if ($type === 'normal' && !empty($row['plus_cal_start'])) { $type = 'calendar'; }
-		$id = (int) $this->config['plus_icon_' . $type];
-		if (!$id) { return; }
+		if (!empty($topic['TOPIC_ICON_IMG']) || (isset($row['enable_icons']) && !$row['enable_icons'])) { return; }
 		$icons = $this->cache->obtain_icons();
+		// Core already resolved its selected icon; the announcement list supplies the originating forum setting.
+		$id = isset($row['enable_icons']) ? (int) $row['icon_id'] : 0;
+		if (empty($icons[$id]['img']))
+		{
+			$types = array(POST_NORMAL=>'normal',POST_STICKY=>'sticky',POST_ANNOUNCE=>'announce',POST_GLOBAL=>'global_announce');
+			$type = $types[(int) $row['topic_type']] ?? 'normal';
+			if ($type === 'normal' && !empty($row['plus_cal_start'])) { $type = 'calendar'; }
+			$id = (int) $this->config['plus_icon_' . $type];
+		}
 		if (empty($icons[$id]['img'])) { return; }
 		$topic['TOPIC_ICON_IMG'] = $icons[$id]['img'];
 		$topic['TOPIC_ICON_IMG_WIDTH'] = $icons[$id]['width'];
 		$topic['TOPIC_ICON_IMG_HEIGHT'] = $icons[$id]['height'];
+		$plus = $this->icons()[$id] ?? null;
+		$topic['TOPIC_ICON_IMG_ALT'] = $plus ? catalogue::label($plus['plus_icon_label'],$icons[$id]['alt'],$this->user->data['user_lang']) : $icons[$id]['alt'];
 		$event['topic_row'] = $topic;
 	}
 }

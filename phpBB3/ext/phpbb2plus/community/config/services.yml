@@ -452,7 +452,8 @@ services:
     phpbb2plus.community.announcement_list:
         class: phpbb2plus\community\event\announcement_list
         arguments: ['@phpbb2plus.community.forum_display', '@phpbb2plus.community.topic_activity', '@phpbb2plus.community.announcements',
-                    '@dbal.conn', '@content.visibility', '@config', '@request', '@user', '@language', '@template', '@dispatcher', '%core.root_path%', '%core.php_ext%']
+                    '@dbal.conn', '@content.visibility', '@config', '@request', '@user', '@language', '@template', '@dispatcher',
+                    '@pagination', '@phpbb2plus.community.statistics_attachments', '%core.root_path%', '%core.php_ext%']
         tags:
             - { name: event.listener }
     phpbb2plus.community.announcement_events:
