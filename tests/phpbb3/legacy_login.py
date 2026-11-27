@@ -88,6 +88,10 @@ def session(base, name, password, full):
                  ("login.php?redirect=album_upload.php?cat_id=1", "album_upload.php?cat_id=1"),
                  ("login.php?redirect=posting.php&mode=newtopic&f=1", "posting.php?f=1&mode=post"),
                  ("login.php?redirect=profile.php&mode=signature", "profile.php?mode=signature"),
+                 ("login.php?redirect=topic_watch.php&t=0001", "topic_watch.php?t=1"),
+                 ("login.php?redirect=uacp.php&u=1&mode=download_count&order=DESC", "uacp.php?u=1&mode=download_count&order=DESC"),
+                 ("login.php?redirect=dload.php?action=search", "dload.php?action=search"),
+                 ("login.php?redirect=dload.php?action=email&file_id=50", "dload.php?file_id=50&action=email"),
                  ("login.php?redirect=search.php?search_id=bookmarks", "ucp.php?i=ucp_main&mode=bookmarks"),
                  ("login.php?redirect=ftopic1.html", "app.php/ftopic1.html"))
         for old, target in cases:
@@ -121,6 +125,16 @@ def session(base, name, password, full):
     album = actor.fetch("login.php?redirect=album_cat.php&cat_id=8")
     if "Clubfotografie" not in album or "mode=logout" not in album:
         raise RuntimeError("The original bookmark did not reach the signed-in member's group gallery")
+    if full:
+        for old, form in (("topic_watch.php&t=1", "confirm"), ("uacp.php&u=1", "ucp"),
+                          ("dload.php?action=license&file_id=50", "dl-license")):
+            if form not in Page(actor.fetch("login.php?redirect=" + old)).forms:
+                raise RuntimeError("The original login return did not open the requested form: " + form)
+        for mode, anchor in (("rate", "dl-rate"), ("post_comment", "dl-comment")):
+            trail.steps.clear()
+            actor.fetch("login.php?redirect=dload.php?action=" + mode + "&file_id=50")
+            if not any(urlsplit(dest).fragment == anchor for _, dest in trail.steps):
+                raise RuntimeError("The download login return lost the requested action: " + mode)
     logout = "login.php?" + urlencode({"logout": "true", "sid": obsolete, "redirect": "viewforum.php?f=1"})
     page = actor.fetch(logout)
     action, fields = Page(page).forms["plus-legacy-logout"]

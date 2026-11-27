@@ -6,7 +6,7 @@ class legacy_login
 {
 	private const PAGES = array(
 		'portal' => '', 'index' => '', 'memberlist' => '', 'statistics' => '', 'staff' => '', 'ranks' => '', 'hacks_list' => '',
-		'viewforum' => 'f start', 'viewtopic' => 'f t p start', 'posting' => 'f t p', 'printview' => 't p', 'topic_view_users' => 't start',
+		'viewforum' => 'f start', 'viewtopic' => 'f t p start', 'posting' => 'f t p', 'printview' => 't p', 'topic_view_users' => 't start', 'topic_watch' => 't',
 		'search' => 'start', 'privmsg' => 'u p start', 'profile' => 'u', 'profile_options' => '', 'groupcp' => 'g start',
 		'album' => 'cat_id user_id', 'album_cat' => 'cat_id user_id start', 'album_showpage' => 'pic_id', 'album_edit' => 'pic_id',
 		'album_upload' => 'cat_id', 'album_personal' => 'user_id start', 'album_personal_cat_admin' => 'cat_id user_id',
@@ -14,7 +14,7 @@ class legacy_login
 		'album_hotornot' => '', 'album_personal_index' => 'start', 'arcade' => '', 'arcade_tournament' => 'id game_id',
 		'arcade_comment' => 'game_id start', 'arcade_rate' => 'game_id', 'arcade_point_scores' => '', 'activity' => 'id cat_id',
 		'dload' => 'file_id cat_id start', 'kb' => 'k cat page_num start', 'calendar' => '', 'shoutbox' => '',
-		'smilie_creator' => '', 'ct_login_history' => '', 'uacp' => '', 'links' => 'cat start',
+		'smilie_creator' => '', 'ct_login_history' => '', 'uacp' => 'u start', 'links' => 'cat start',
 	);
 
 	private const CHOICES = array(
@@ -25,7 +25,8 @@ class legacy_login
 		'profile' => array('mode' => array('viewprofile','editprofile','signature','email')),
 		'arcade_tournament' => array('mode' => array('tour','game','champions')),
 		'activity' => array('mode' => array('cat','game','fav','stats','highscore','at_highscore')),
-		'dload' => array('action' => array('main','viewall','category','file','user_upload','mcp','toplist','stats')),
+		'dload' => array('action' => array('main','viewall','category','file','search','email','post_comment','rate','download','license','user_upload','mcp','toplist','stats')),
+		'uacp' => array('mode' => array('real_filename','filename','a.real_filename','comment','extension','filesize','downloads','download_count','post_time','filetime'), 'order' => array('ASC','DESC')),
 		'kb' => array('mode' => array('cat','article','add','edit','stats')),
 	);
 
@@ -64,7 +65,6 @@ class legacy_login
 			return 'ucp.php?i=ucp_main&mode=bookmarks';
 		}
 		if ($page === 'album_delete') { $page = 'album_showpage'; }
-		if ($page === 'topic_watch') { $page = 'viewtopic'; }
 		if (!isset(self::PAGES[$page])) { return 'portal.php'; }
 		if ($page === 'posting')
 		{
@@ -72,7 +72,6 @@ class legacy_login
 			$params['mode'] = array('newtopic' => 'post', 'editpost' => 'edit', 'topicreview' => 'reply')[$mode] ?? $mode;
 			if (!in_array($params['mode'], self::CHOICES['posting']['mode'], true)) { $page = 'viewtopic'; }
 		}
-		if ($page === 'dload' && in_array($params['action'] ?? '', array('download','license','rate'), true)) { $params['action'] = 'file'; }
 		$query = array();
 		foreach (explode(' ', self::PAGES[$page]) as $key)
 		{
@@ -83,6 +82,8 @@ class legacy_login
 			if (isset($params[$key]) && in_array($params[$key], $choices, true)) { $query[$key] = $params[$key]; }
 		}
 		if (($page === 'viewforum' && empty($query['f'])) || ($page === 'viewtopic' && empty($query['p']) && empty($query['t']))) { return 'portal.php'; }
+		if (($page === 'topic_watch' && (empty($query['t']) || (int) $query['t'] > 16777215)) ||
+			($page === 'uacp' && (empty($query['u']) || (int) $query['u'] > 8388607))) { return 'portal.php'; }
 		$anchor = '';
 		if ($page === 'viewtopic')
 		{

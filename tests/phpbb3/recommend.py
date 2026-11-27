@@ -90,7 +90,7 @@ def browse(base, member, verify):
                 raise RuntimeError("The separate topic form ignored the successful board recommendation cooldown")
             download = "app.php/downloads/file/50/recommend"
             values = {"femail": "reader@example.invalid", "fname": "Leserin", "subject": "Download", "message": "Eine Datei."}
-            file_page = member.fetch(download)
+            file_page = member.fetch("login.php?redirect=dload.php?action=email&file_id=50")
             wait = submit_form(member,download,file_page,"dl-recommend",values)
             if "Please wait" not in wait or len(sink.mail) != 1:
                 raise RuntimeError("The file recommendation ignored the member's successful forum recommendation")
