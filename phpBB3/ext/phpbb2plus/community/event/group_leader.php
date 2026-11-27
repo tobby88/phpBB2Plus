@@ -28,7 +28,8 @@ class group_leader implements EventSubscriberInterface
 		// The other link in a native group-request notification opens the public roster.
 		if (($this->user->page['page_name'] ?? '') !== 'memberlist.' . $this->ext || $this->request->variable('mode', '') !== 'group' ||
 			!in_array($this->request->server('REQUEST_METHOD'), array('GET','HEAD'), true) ||
-			!$this->auth->acl_gets('u_viewprofile', 'a_user', 'a_useradd', 'a_userdel')) { return; }
+			!$this->auth->acl_gets('u_viewprofile', 'a_user', 'a_useradd', 'a_userdel') ||
+			$this->auth->acl_gets('a_group', 'a_groupadd', 'a_groupdel')) { return; }
 		$group = $this->request->variable('g', 0);
 		$managed = $group ? $this->groups->managed_group($group) : false;
 		if ($managed && (int) $managed['group_type'] === GROUP_HIDDEN)
