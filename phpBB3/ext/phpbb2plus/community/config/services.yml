@@ -366,6 +366,11 @@ services:
         arguments: ['@dbal.conn', '@config', '@user', '@language', '@request', '@notification_manager', '@controller.helper']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.birthday_profile:
+        class: phpbb2plus\community\event\birthday_profile
+        arguments: ['@config', '@user', '@language', '@template']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.notification.birthday:
         class: phpbb2plus\community\notification\birthday
         parent: notification.type.base

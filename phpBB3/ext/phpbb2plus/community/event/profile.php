@@ -31,8 +31,7 @@ class profile implements EventSubscriberInterface
 			'core.generate_profile_fields_template_data' => 'contact_links',
 			'core.memberlist_modify_view_profile_template_vars' => 'profile_page',
 			'core.memberlist_view_profile' => 'custom_profile_visibility',
-			'core.user_setup_after' => 'birthday_list', 'core.memberlist_prepare_profile_data' => 'profile_age',
-			'core.viewtopic_post_rowset_data' => 'poster_birthday',
+			'core.user_setup_after' => 'birthday_list',
 			'core.get_user_rank_after' => 'user_rank', 'core.get_group_rank_after' => 'group_rank');
 	}
 
@@ -41,22 +40,6 @@ class profile implements EventSubscriberInterface
 		// This assignment affects only the current request. The board's birthday
 		// preference and the native registration/profile editors stay available.
 		if (empty($this->user->data['is_registered'])) { $this->config['load_birthdays'] = 0; }
-	}
-
-	public function profile_age($event)
-	{
-		if (!empty($this->user->data['is_registered'])) { return; }
-		$vars = $event['template_data'];
-		$vars['AGE'] = '';
-		$event['template_data'] = $vars;
-	}
-
-	public function poster_birthday($event)
-	{
-		if (!empty($this->user->data['is_registered'])) { return; }
-		$row = $event['row'];
-		$row['user_birthday'] = '';
-		$event['row'] = $row;
 	}
 
 	public function user_rank($event) { $event['user_rank_data'] = $this->localized_rank($event['user_rank_data']); }

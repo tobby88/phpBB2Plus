@@ -241,7 +241,9 @@ def assemble(output, cache, offline=False):
         news_images.mkdir()
         for name in ("topicnews.gif", "announcements.gif"):
             shutil.copyfile(old_images / "news" / name, news_images / name)
-        style_images = [old_images / name for name in STYLE_IMAGES] + sorted(old_images.glob("folder*.gif"))
+        style_images = [old_images / name for name in STYLE_IMAGES]
+        for pattern in ("folder*.gif", "icon_zodiac_*.gif", "icon_chinese_*.gif"):
+            style_images.extend(sorted(old_images.glob(pattern)))
         for source in style_images:
             with (images / source.name).open("xb") as out:
                 out.write(source.read_bytes())

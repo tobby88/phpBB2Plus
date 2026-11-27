@@ -1,0 +1,7 @@
+{% if PLUS_PROFILE_BIRTHDATE %}
+<dt>{{ lang('BIRTHDAY') }}{{ lang('COLON') }}</dt> <dd>{{ PLUS_PROFILE_BIRTHDATE }}</dd>
+{% if PLUS_PROFILE_SIGNS.west %}<dt>{{ lang('PLUS_BIRTHDAY_WESTERN') }}{{ lang('COLON') }}</dt>
+<dd>{{ PLUS_PROFILE_SIGNS.west.name }} {% include '@phpbb2plus_community/birthday_sign.html' with {sign: PLUS_PROFILE_SIGNS.west, labelled: true} %}</dd>{% endif %}
+{% if PLUS_PROFILE_SIGNS.east %}<dt>{{ lang('PLUS_BIRTHDAY_CHINESE') }}{{ lang('COLON') }}</dt>
+<dd>{{ PLUS_PROFILE_SIGNS.east.name }} {% include '@phpbb2plus_community/birthday_sign.html' with {sign: PLUS_PROFILE_SIGNS.east, labelled: true} %}</dd>{% endif %}
+{% endif %}

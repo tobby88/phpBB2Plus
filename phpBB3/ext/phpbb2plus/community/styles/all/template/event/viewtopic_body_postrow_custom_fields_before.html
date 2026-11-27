@@ -1,3 +1,7 @@
-{% if postrow.PLUS_GENDER_ICON %}
-<dd class="profile-plus-gender"><img src="{{ ROOT_PATH }}styles/fisubsilversh/theme/images/icon_minigender_{{ postrow.PLUS_GENDER_ICON }}.gif" alt="{{ postrow.PLUS_GENDER_LABEL|e('html_attr') }}" title="{{ postrow.PLUS_GENDER_LABEL|e('html_attr') }}"></dd>
+{% if postrow.PLUS_BIRTHDAY_SIGNS or postrow.PLUS_GENDER_ICON %}
+<dd class="profile-plus-symbols">
+{% if postrow.PLUS_BIRTHDAY_SIGNS.west %}{% include '@phpbb2plus_community/birthday_sign.html' with {sign: postrow.PLUS_BIRTHDAY_SIGNS.west, labelled: false} %}{% endif %}
+{% if postrow.PLUS_GENDER_ICON %}<img src="{{ ROOT_PATH }}styles/fisubsilversh/theme/images/icon_minigender_{{ postrow.PLUS_GENDER_ICON }}.gif" width="19" height="18" alt="{{ postrow.PLUS_GENDER_LABEL|e('html_attr') }}" title="{{ postrow.PLUS_GENDER_LABEL|e('html_attr') }}">{% endif %}
+{% if postrow.PLUS_BIRTHDAY_SIGNS.east %}{% include '@phpbb2plus_community/birthday_sign.html' with {sign: postrow.PLUS_BIRTHDAY_SIGNS.east, labelled: false} %}{% endif %}
+</dd>
 {% endif %}

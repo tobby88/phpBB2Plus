@@ -2,6 +2,7 @@
 namespace phpbb2plus\community\event;
 
 use phpbb2plus\community\notification\birthday as greeting;
+use phpbb2plus\community\profile\birthdate;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -39,11 +40,9 @@ class birthday implements EventSubscriberInterface
 
 	public static function anniversary($birthday, \DateTimeImmutable $today)
 	{
-		if (!preg_match('/^\s*([0-9]{1,2})-\s*([0-9]{1,2})-\s*([0-9]{1,4})$/D', $birthday, $parts)) { return null; }
-		$day = (int) $parts[1];
-		$month = (int) $parts[2];
-		$born = (int) $parts[3];
-		if (!checkdate($month, $day, $born ?: 2000) || ($born && $today->setDate($born, $month, $day) > $today)) { return null; }
+		$parts = birthdate::parts($birthday, $today);
+		if (!$parts) { return null; }
+		list($day, $month, $born) = $parts;
 		$year = (int) $today->format('Y');
 		// In a non-leap year DateTime normalises 29 February to 1 March, as Plus did.
 		$date = $today->setDate($year, $month, $day);
