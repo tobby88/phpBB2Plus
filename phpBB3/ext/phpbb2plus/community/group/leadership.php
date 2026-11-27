@@ -21,16 +21,22 @@ class leadership
 
 	public function managed_group($id, $lock = false)
 	{
-		if (empty($this->user->data['is_registered']) || !empty($this->user->data['user_perm_from'])) { return false; }
+		$row = $this->membership($id, $lock);
+		return $row && $row['group_leader'] && $row['user_pending'] && (!$row['group_founder_manage'] || (int) $row['user_type'] === USER_FOUNDER) ? $row : false;
+	}
+
+	/** The caller's own relation to a converted named group, including separately appointed leaders. */
+	public function membership($id, $lock = false)
+	{
+		if ($id < 1 || empty($this->user->data['is_registered']) || !empty($this->user->data['user_perm_from'])) { return false; }
 		$id = (int) $id;
 		$viewer = (int) $this->user->data['user_id'];
-		$sql = 'SELECT g.group_id, g.group_name, g.group_type FROM ' . GROUPS_TABLE . ' g
+		$sql = 'SELECT g.group_id, g.group_name, g.group_type, g.group_founder_manage, ug.group_leader, ug.user_pending,
+			u.user_type, u.group_id AS default_group FROM ' . GROUPS_TABLE . ' g
 			JOIN ' . USER_GROUP_TABLE . ' ug ON ug.group_id=g.group_id
 			JOIN ' . USERS_TABLE . " u ON u.user_id=ug.user_id AND u.user_id=$viewer
 			WHERE g.group_id=$id AND g.plus_legacy_group=1 AND g.group_type<>" . GROUP_SPECIAL . '
-			AND ug.group_leader=1 AND ug.user_pending=1
-			AND ' . $this->db->sql_in_set('u.user_type', array(USER_NORMAL, USER_FOUNDER)) . '
-			AND (g.group_founder_manage=0 OR u.user_type=' . USER_FOUNDER . ')';
+			AND ' . $this->db->sql_in_set('u.user_type', array(USER_NORMAL, USER_FOUNDER));
 		$result = $this->db->sql_query($sql . ($lock ? ' FOR UPDATE' : ''));
 		$group = $this->db->sql_fetchrow($result);
 		$this->db->sql_freeresult($result);

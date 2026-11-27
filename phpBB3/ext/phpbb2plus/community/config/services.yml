@@ -206,6 +206,11 @@ services:
         arguments: ['@dbal.conn', '@user', '%core.table_prefix%', '@auth', '@request']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.group_withdrawal:
+        class: phpbb2plus\community\group\withdrawal
+        arguments: ['@dbal.conn', '@user', '@request', '@language', '@template', '@controller.helper', '@log', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.group_leadership']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.group_leadership:
         class: phpbb2plus\community\group\leadership
         arguments: ['@dbal.conn', '@user', '@cache.driver', '@log', '%core.root_path%', '%core.php_ext%']

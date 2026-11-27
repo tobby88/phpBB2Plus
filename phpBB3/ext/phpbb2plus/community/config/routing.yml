@@ -32,6 +32,11 @@ phpbb2plus_community_group_lead:
     defaults: { _controller: 'phpbb2plus.community.group_lead:show' }
     requirements: { group: '[1-9][0-9]{0,9}' }
     methods: [GET, HEAD, POST]
+phpbb2plus_community_group_withdraw:
+    path: /groups/{group}/leave
+    defaults: { _controller: 'phpbb2plus.community.group_withdrawal:show' }
+    requirements: { group: '[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD, POST]
 phpbb2plus_community_portal:
     path: /portal
     defaults: { _controller: phpbb2plus.community.portal:handle }
