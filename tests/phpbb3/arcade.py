@@ -89,7 +89,7 @@ def tournament_play(base, founder, member, pending, verify):
     last = Page(initial).forms["arcade-turn-60"]
     other_tab = Page(member.fetch(detail)).forms["arcade-turn-60"]
     source = play(member, last)
-    if play(member, last) != source or member.fetch(source, raw=True) != movie():
+    if play(member, last) != source or member.fetch(source, raw=True) != movie(extra_frames=10):
         raise RuntimeError("Retrying the last tournament turn consumed another turn")
     time.sleep(max(0, int(other_tab[1]["creation_time"]) + 1.05 - time.time()))
     member.fetch(other_tab[0], other_tab[1], expected_status=422)
@@ -240,20 +240,23 @@ def comments(base, founder, member, pending):
     receive(True)
 
 
-def movie():
+def movie(extra_frames=0):
     # A single Flash frame with a coloured background. No ActionScript or third-party content.
     rect = "01100" + "".join(f"{coordinate:012b}" for coordinate in (0, 1600, 0, 900))
     rect += "0" * (-len(rect) % 8)
     body = int(rect, 2).to_bytes(len(rect) // 8, "big") + struct.pack("<HH", 24 << 8, 1)
     body += struct.pack("<H", 9 << 6 | 3) + b"\x22\x77\xaa" + struct.pack("<HH", 1 << 6, 0)
-    return b"FWS\x09" + struct.pack("<I", len(body) + 8) + body
+    trailer = struct.pack("<H", 1 << 6) * extra_frames + b"\0\0" if extra_frames else b""
+    return b"FWS\x09" + struct.pack("<I", len(body) + 8) + body + trailer
 
 
 def source_media(legacy):
     folder = legacy / "games/puzzle"
     (folder / "levels").mkdir(parents=True, exist_ok=True)
     (folder / "club").mkdir(exist_ok=True)
-    (folder / "puzzle.swf").write_bytes(movie())
+    (folder / "puzzle.swf").write_bytes(movie(extra_frames=10))
+    (folder / "unfinished.swf").write_bytes(movie()[:-2])
+    (folder / "unrecognised-trailer.swf").write_bytes(movie() + b"\x01\x00\x00\x00")
     (folder.parent / "timer.swf").write_bytes(movie())
     (folder / "levels/two.txt").write_text("Spielstufe zwei", encoding="utf-8")
     (folder / "club/private.swf").write_bytes(movie())
@@ -315,12 +318,14 @@ def player(base, guest, member, root):
         if not obj or "ruffle/ruffle.js" not in html:
             raise RuntimeError("The game did not load the self-hosted player")
         sources.append(unescape(obj.group(1)))
-    if sources[0] != sources[1] or member.fetch(sources[0], raw=True) != movie():
+    if sources[0] != sources[1] or member.fetch(sources[0], raw=True) != movie(extra_frames=10):
         raise RuntimeError("A repeated launch created a new game session or returned different media")
     asset = urljoin(base, sources[0])
     if member.fetch(urljoin(asset, "levels/two.txt")) != "Spielstufe zwei":
         raise RuntimeError("Relative game assets are unavailable")
     member.fetch(urljoin(asset, "club/private.swf"), expected_status=404)
+    member.fetch(urljoin(asset, "unfinished.swf"), expected_status=404)
+    member.fetch(urljoin(asset, "unrecognised-trailer.swf"), expected_status=404)
     guest.fetch(asset, expected_status=404)
     missing = member.fetch(root + "/game/64")
     if "arcade-play" in Page(missing).forms or "/game/64/scores/current" not in missing:

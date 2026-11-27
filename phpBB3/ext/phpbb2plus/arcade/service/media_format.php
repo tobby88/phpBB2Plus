@@ -26,8 +26,60 @@ class media_format
 			$header = file_get_contents($path,false,null,0,8);
 			if ($header===false || strlen($header)!==8 || !in_array(substr($header,0,3),array('FWS','CWS','ZWS'),true)) { return ''; }
 			$size = unpack('Vsize',substr($header,4))['size'];
-			if ($size<8 || (substr($header,0,3)==='FWS' && $size!==filesize($path))) { return ''; }
+			if ($size<8) { return ''; }
+			if (substr($header,0,3)==='FWS' && $size!==filesize($path) && !self::has_trailing_empty_frames($path,$size)) { return ''; }
 		}
 		return $type;
+	}
+
+	/** Some archived games repeat empty ShowFrame tags and End after a complete uncompressed movie. */
+	private static function has_trailing_empty_frames($path,$declared)
+	{
+		$extra = filesize($path) - $declared;
+		if ($extra < 4 || $extra % 2 !== 0) { return false; }
+		$file = fopen($path, 'rb');
+		if (!$file) { return false; }
+		try
+		{
+			// Skip the SWF RECT, frame rate and frame count to reach the first top-level tag.
+			if (fseek($file, 8) !== 0) { return false; }
+			$rect = fread($file, 1);
+			if ($rect === false || $rect === '') { return false; }
+			$offset = 12 + intdiv(5 + 4 * (ord($rect) >> 3) + 7, 8);
+			while ($offset + 2 <= $declared)
+			{
+				if (fseek($file, $offset) !== 0) { return false; }
+				$header = fread($file, 2);
+				if (strlen($header) !== 2) { return false; }
+				$tag = unpack('vvalue', $header)['value'];
+				$offset += 2;
+				if (($tag >> 6) === 0)
+				{
+					if ($tag !== 0 || $offset !== $declared) { return false; }
+					// Keep the original bytes. Only repeated ShowFrame records and one End may follow.
+					$left = $extra - 2;
+					while ($left > 0)
+					{
+						$chunk = min(8192, $left);
+						if (fread($file, $chunk) !== str_repeat("\x40\0", intdiv($chunk, 2))) { return false; }
+						$left -= $chunk;
+					}
+					return fread($file, 2) === "\0\0";
+				}
+				$length = $tag & 63;
+				if ($length === 63)
+				{
+					if ($offset + 4 > $declared) { return false; }
+					$header = fread($file, 4);
+					if (strlen($header) !== 4) { return false; }
+					$length = unpack('Vvalue', $header)['value'];
+					$offset += 4;
+				}
+				if ($length > $declared - $offset) { return false; }
+				$offset += $length;
+			}
+			return false;
+		}
+		finally { fclose($file); }
 	}
 }
