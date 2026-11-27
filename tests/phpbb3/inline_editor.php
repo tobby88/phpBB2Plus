@@ -44,11 +44,14 @@ if ($type === 'prepare')
 	inline_check((int) $config['plus_full_preview'] === 1 && !(int) $config['plus_full_preview_over'] && !(int) $previews[$member] && (int) $previews[2] === 1,
 		'Full editor preview source choices did not convert independently');
 	$state->set($key, json_encode(array('settings' => array_intersect_key(iterator_to_array($config),
-		array_flip(array('plus_inline_edit', 'plus_inline_edit_over', 'plus_full_preview', 'plus_full_preview_over', 'flood_interval', 'edit_time', 'search_interval', 'search_anonymous_interval', 'display_unapproved_posts'))),
+		array_flip(array('plus_inline_edit', 'plus_inline_edit_over', 'plus_full_preview', 'plus_full_preview_over', 'plus_attach_quotas', 'flood_interval', 'edit_time', 'search_interval', 'search_anonymous_interval', 'display_unapproved_posts'))),
 		'prefs' => $prefs, 'previews' => $previews, 'topic' => 0, 'listing' => array(),
 		'grants' => array_column(inline_rows('SELECT session_id FROM ' . FORUMS_ACCESS_TABLE . " WHERE forum_id=1 AND user_id=$member"), 'session_id'),
 		'forum' => inline_rows('SELECT forum_flags,forum_status,forum_password FROM ' . FORUMS_TABLE . ' WHERE forum_id=1')[0])));
 	$config->set('flood_interval', 0);
+	// The combined suite can already have filled this member's tiny test quota.
+	// Restore it with the rest of the settings when the editor attachment is removed.
+	$config->set('plus_attach_quotas', 0);
 	$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET forum_flags=forum_flags | ' . FORUM_FLAG_POST_REVIEW . ' WHERE forum_id=1');
 }
 elseif ($type === 'upgrade' || $type === 'preview-upgrade')
