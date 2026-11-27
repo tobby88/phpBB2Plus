@@ -278,7 +278,12 @@ services:
             - { name: cron.task }
     phpbb2plus.community.portal_sessions:
         class: phpbb2plus\community\event\portal_sessions
-        arguments: ['@dbal.conn']
+        arguments: ['@dbal.conn', '@config']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.profile_visits:
+        class: phpbb2plus\community\event\profile_visits
+        arguments: ['@dbal.conn', '@config', '@user', '@auth', '@template', '@language']
         tags:
             - { name: event.listener }
     phpbb2plus.community.navigation:

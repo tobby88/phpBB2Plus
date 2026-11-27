@@ -3,26 +3,39 @@ if (!defined('IN_PHPBB')) { exit; }
 
 function plus_absence_settings()
 {
-	global $config,$src_db,$db,$convert,$auth;
+	global $config;
 	$source=get_config();
 	foreach (array('users_allow_absence'=>array('plus_away_members',0),'mod_able_sent_absent'=>array('plus_away_mod_contact',0),
 		'absent_button'=>array('plus_away_by_name',1)) as $old=>$setting)
 	{
 		$config->set($setting[0],isset($source[$old]) ? (int)((string)$source[$old]==='1') : $setting[1]);
 	}
-	$r=$db->sql_query('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='u_plus_away_mod'");
-	$option=(int)$db->sql_fetchfield('auth_option_id'); $db->sql_freeresult($r);
-	if (!$option) { throw new \RuntimeException('Missing native absence permission'); }
-	// The stock converter rebuilds group rights. Add only this option and keep all existing role assignments and explicit denials.
-	$db->sql_query('INSERT INTO ' . ACL_GROUPS_TABLE . ' (group_id,forum_id,auth_option_id,auth_role_id,auth_setting)
-		SELECT g.group_id,0,' . $option . ',0,' . ACL_YES . ' FROM ' . GROUPS_TABLE . ' g WHERE g.group_type=' . GROUP_SPECIAL .
-		" AND g.group_name='GLOBAL_MODERATORS' AND NOT EXISTS (SELECT 1 FROM " . ACL_GROUPS_TABLE .
-		" a WHERE a.group_id=g.group_id AND a.forum_id=0 AND a.auth_option_id=$option)");
-	$add=static function($ids) use ($db,$option)
+}
+
+/** Both original checks used the account's moderator level, independently of individual forum and Junior Admin grants. */
+function plus_moderator_profile_permissions()
+{
+	global $src_db,$db,$convert,$auth;
+	$r = $db->sql_query('SELECT auth_option,auth_option_id FROM ' . ACL_OPTIONS_TABLE .
+		" WHERE auth_option IN ('u_plus_away_mod','u_plus_profile_visits')");
+	$options = array_column($db->sql_fetchrowset($r), 'auth_option_id', 'auth_option');
+	$db->sql_freeresult($r);
+	if (count($options) !== 2) { throw new \RuntimeException('Missing Plus moderator profile permissions'); }
+	// The stock converter rebuilds group rights. Restore each group default without replacing native assignments or denials.
+	foreach ($options as $name => $option)
+	{
+		$groups = $name === 'u_plus_away_mod' ? array('GLOBAL_MODERATORS') : array('GLOBAL_MODERATORS','ADMINISTRATORS');
+		$db->sql_query('INSERT INTO ' . ACL_GROUPS_TABLE . ' (group_id,forum_id,auth_option_id,auth_role_id,auth_setting)
+			SELECT g.group_id,0,' . (int) $option . ',0,' . ACL_YES . ' FROM ' . GROUPS_TABLE . ' g WHERE g.group_type=' . GROUP_SPECIAL .
+			' AND ' . $db->sql_in_set('g.group_name',$groups) . ' AND NOT EXISTS (SELECT 1 FROM ' . ACL_GROUPS_TABLE .
+			' a WHERE a.group_id=g.group_id AND a.forum_id=0 AND a.auth_option_id=' . (int) $option . ')');
+	}
+	$add=static function($ids) use ($db,$options)
 	{
 		$db->sql_query('INSERT INTO ' . ACL_USERS_TABLE . ' (user_id,forum_id,auth_option_id,auth_role_id,auth_setting)
-			SELECT u.user_id,0,' . $option . ',0,' . ACL_YES . ' FROM ' . USERS_TABLE . ' u WHERE ' . $db->sql_in_set('u.user_id',$ids) .
-			' AND NOT EXISTS (SELECT 1 FROM ' . ACL_USERS_TABLE . " a WHERE a.user_id=u.user_id AND a.forum_id=0 AND a.auth_option_id=$option)");
+			SELECT u.user_id,0,o.auth_option_id,0,' . ACL_YES . ' FROM ' . USERS_TABLE . ' u CROSS JOIN ' . ACL_OPTIONS_TABLE . ' o
+			WHERE ' . $db->sql_in_set('u.user_id',$ids) . ' AND ' . $db->sql_in_set('o.auth_option_id',array_map('intval',array_values($options))) .
+			' AND NOT EXISTS (SELECT 1 FROM ' . ACL_USERS_TABLE . ' a WHERE a.user_id=u.user_id AND a.forum_id=0 AND a.auth_option_id=o.auth_option_id)');
 	};
 	$ids=array();
 	$r=$src_db->sql_query('SELECT user_id FROM ' . $convert->src_table_prefix . 'users WHERE user_level=2 AND user_id>0');

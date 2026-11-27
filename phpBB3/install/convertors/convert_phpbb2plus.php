@@ -74,6 +74,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_import_guest_confirmation();';
 	$convertor['execute_last'][] = 'plus_import_request_blocks();';
 	$convertor['execute_last'][] = 'plus_absence_settings();';
+	$convertor['execute_last'][] = 'plus_moderator_profile_permissions();';
 	$convertor['execute_last'][] = 'plus_inline_edit_settings();';
 	$convertor['execute_last'][] = 'plus_import_member_notice();';
 	$convertor['execute_last'][] = 'plus_card_finish();';
@@ -305,7 +306,7 @@ if (!$get_info)
 				if ($away_tools->sql_column_exists($convert->src_table_prefix . 'users',$old))
 				{ $section[]=array($native,'users.' . $old,$old==='user_absence' ? 'plus_tracker_flag' : 'intval'); }
 			}
-			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
+			foreach (plus_profile_visit_fields($away_tools, $convert->src_table_prefix . 'users') as $visit_field) { $section[] = $visit_field; }
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
 			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_display_viewonline'))
