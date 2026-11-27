@@ -38,6 +38,7 @@ import blue_reports
 import forum_recovery
 import news
 import portal
+import portal_unicode
 import recent_topics
 import custom_profiles
 import colours
@@ -463,6 +464,7 @@ def seed_source(source, legacy, suite):
     php(tests / "board_statistics.php", "seed", source)
     if forum_suite:
         php(tests / "topic_readers.php", source, "source")
+        php(tests / "portal_unicode.php", source, "source")
         php(tests / "guest_post_confirm.php", source, "source")
         php(tests / "recommend.php", source, "source")
         php(tests / "smilie_signs.php", source, "source")
@@ -716,6 +718,7 @@ def main():
                     banners.administration(base, member, web)
                     # The portal checks the five most recent sign-ins, including a hidden member.
                     portal.administration(base, member)
+                    portal_unicode.browse(base, web, target, php, member)
                     flag_run = worker.submit(country_flag_administration.exercise, base, member.separate_client(), lambda phase: php(
                         ROOT / "tests/phpbb3/country_flag_administration.php", target, phase, cwd=web, capture=True))
                     statistics_run = worker.submit(statistics_administration.exercise, base, lambda phase: php(
