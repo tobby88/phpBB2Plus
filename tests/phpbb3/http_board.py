@@ -183,6 +183,9 @@ def server(web, root):
     options = ["-d", "opcache.enable=1", "-d", "opcache.enable_cli=1", "-d", "opcache.blacklist_filename=" + str(excludes),
                "-d", "opcache.validate_timestamps=1", "-d", "opcache.revalidate_freq=0"]
     if os.name == "nt":
+        # On Windows the PHP limit includes time spent waiting on disk and
+        # MariaDB while multiple isolated boards are being converted locally.
+        options.extend(["-d", "max_execution_time=75"])
         dll = Path(shutil.which(binary) or binary).parent / "ext/php_opcache.dll"
         if dll.is_file() and subprocess.check_output([binary, "-r", "echo (int) extension_loaded('Zend OPcache');"]).strip() == b"0":
             options.extend(["-d", "zend_extension=" + str(dll)])
