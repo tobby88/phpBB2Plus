@@ -14,14 +14,15 @@ if ($argv[1] === 'markers-upgrade')
 	$db->sql_query('INSERT INTO ' . SEARCH_WORDMATCH_TABLE . " (word_id,post_id,title_match) VALUES ($word_id,32,0),($word_id,805200,0)");
 	// Native never-published and formerly published recoverable deletions both
 	// retain their current private moderation workflow even under the same title.
-	foreach (array(805102 => 0, 805103 => 1, 805105 => 1) as $id => $was_public)
+	$native_bodies = array(805103 => '<t>Native recoverable marker fixture</t>', 805000 => '<T/>');
+	foreach (array(805102 => 0, 805103 => 1, 805105 => 1, 805000 => 1) as $id => $was_public)
 	{
 		$id_post = $id + 160;
 		$t = array_replace($marker, array('topic_id' => $id, 'topic_first_post_id' => $id_post, 'topic_last_post_id' => $id_post,
 			'topic_posts_approved' => 0, 'topic_posts_softdeleted' => 1, 'plus_legacy_removed' => 0));
 		$db->sql_query('INSERT INTO ' . TOPICS_TABLE . ' ' . $db->sql_build_array('INSERT', $t));
 		$p = array_replace($first, array('topic_id' => $id, 'post_id' => $id_post, 'plus_public_post' => $was_public,
-			'post_text' => $id === 805103 ? '<t>Native recoverable marker fixture</t>' : ''));
+			'post_text' => $native_bodies[$id] ?? ''));
 		$db->sql_query('INSERT INTO ' . POSTS_TABLE . ' ' . $db->sql_build_array('INSERT', $p));
 	}
 	$db->sql_query('INSERT INTO ' . POLL_OPTIONS_TABLE . " (topic_id,poll_option_id,poll_option_text,poll_option_total)
@@ -58,6 +59,10 @@ foreach (array(31,805200,805300) as $parent)
 }
 if ($argv[1] === 'markers-import')
 {
+	// The native cron may reparse an empty post between conversion and this check.
+	$reparser = $phpbb_container->get('text_reparser.post_text');
+	$reparser->reparse_range(31, 31);
+	$reparser->reparse_range(805201, 805201);
 	foreach (array(805100,805104) as $id)
 	{
 		$poll = print_fixture_row('SELECT t.poll_title,t.poll_start,(SELECT COUNT(*) FROM ' . POLL_OPTIONS_TABLE . ' o WHERE o.topic_id=t.topic_id) AS options,
@@ -68,7 +73,7 @@ if ($argv[1] === 'markers-import')
 	$single = print_fixture_row('SELECT plus_legacy_erased,post_text,post_subject,post_edit_user,post_username,post_delete_user,
 		(SELECT COUNT(*) FROM ' . $table_prefix . 'plus_bylines WHERE post_id=31) AS bylines,
 		(SELECT COUNT(*) FROM ' . SEARCH_WORDMATCH_TABLE . ' WHERE post_id=31) AS words FROM ' . POSTS_TABLE . ' WHERE post_id=31');
-	if ((int) $single['plus_legacy_erased'] !== 1 || $single['post_text'] !== '' || $single['post_subject'] !== '' ||
+	if ((int) $single['plus_legacy_erased'] !== 1 || !in_array($single['post_text'], array('', '<t></t>', '<t/>'), true) || $single['post_subject'] !== '' ||
 		$single['post_username'] !== '' || (int) $single['post_edit_user'] || (int) $single['post_delete_user'] !== 2 ||
 		(int) $single['bylines'] || (int) $single['words']) { throw new RuntimeException('A single erased source post retained historical content or lost its deletion record'); }
 	foreach (array('num_posts' => array(POSTS_TABLE, 'post_visibility'), 'num_topics' => array(TOPICS_TABLE, 'topic_visibility')) as $key => $fields)
@@ -81,7 +86,7 @@ foreach (array(805100 => 42, 805101 => 1) as $id => $count)
 {
 	$t = print_fixture_row('SELECT * FROM ' . TOPICS_TABLE . ' WHERE topic_id=' . $id);
 	$state = print_fixture_row('SELECT COUNT(*) AS posts,SUM(plus_public_post) AS already_public,
-		SUM(post_visibility=' . ITEM_DELETED . ") AS removed,SUM(post_text<>'' OR post_subject<>'' OR post_username<>'' OR poster_id<>" . ANONYMOUS .
+		SUM(post_visibility=' . ITEM_DELETED . ") AS removed,SUM(BINARY post_text NOT IN ('','<t></t>','<t/>') OR post_subject<>'' OR post_username<>'' OR poster_id<>" . ANONYMOUS .
 		') AS remaining FROM ' . POSTS_TABLE . ' WHERE topic_id=' . $id);
 	$index = print_fixture_row('SELECT COUNT(*) AS words FROM ' . SEARCH_WORDMATCH_TABLE . ' w JOIN ' .
 		POSTS_TABLE . ' p ON p.post_id=w.post_id WHERE p.topic_id=' . $id);
@@ -96,7 +101,7 @@ foreach (array(805100 => 42, 805101 => 1) as $id => $count)
 }
 if ($argv[1] === 'markers-upgrade')
 {
-	foreach (array(805102,805103,805105) as $id)
+	foreach (array(805102,805103,805105,805000) as $id)
 	{
 		$row = print_fixture_row('SELECT plus_legacy_removed FROM ' . TOPICS_TABLE . ' WHERE topic_id=' . $id);
 		if ($row['plus_legacy_removed']) { throw new RuntimeException('A native recoverable deletion was classified as a historical marker'); }

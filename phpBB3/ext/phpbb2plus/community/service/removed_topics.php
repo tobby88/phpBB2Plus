@@ -29,7 +29,7 @@ class removed_topics
 		if (!$verified_source)
 		{
 			$bad .= ' OR p.poster_id<>' . ANONYMOUS . " OR p.post_username<>'' OR p.post_subject<>''
-				OR p.post_text NOT IN ('', '<t></t>', '<t/>') OR p.post_delete_reason<>''";
+				OR BINARY p.post_text NOT IN ('', '<t></t>', '<t/>') OR p.post_delete_reason<>''";
 			$where .= ' AND t.plus_legacy_removed=0 AND t.topic_visibility=' . ITEM_DELETED . " AND t.plus_description='' AND t.poll_title='' AND t.poll_start=0
 				AND NOT EXISTS (SELECT 1 FROM " . POLL_OPTIONS_TABLE . " o WHERE o.topic_id=t.topic_id)
 				AND NOT EXISTS (SELECT 1 FROM " . POLL_VOTES_TABLE . " v WHERE v.topic_id=t.topic_id)
