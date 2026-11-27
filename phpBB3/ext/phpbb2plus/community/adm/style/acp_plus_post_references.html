@@ -1,0 +1,20 @@
+<!-- INCLUDE overall_header.html -->
+<h1>{L_ACP_PLUS_POST_REFERENCES}</h1>
+<p>{L_PLUS_REFS_HELP}</p>
+<p>
+	{% if PLUS_SECTION == 'topics' %}<strong>{L_TOPICS}</strong>{% else %}<a href="{{ U_PLUS_TOPICS }}">{L_TOPICS}</a>{% endif %} &middot;
+	{% if PLUS_SECTION == 'posts' %}<strong>{L_POSTS}</strong>{% else %}<a href="{{ U_PLUS_POSTS }}">{L_POSTS}</a>{% endif %}
+</p>
+<p id="plus-reference-summary" data-checked="{{ PLUS_CHECKED }}" data-affected="{{ PLUS_AFFECTED }}">{{ PLUS_SUMMARY|e }} {{ PLUS_RANGE|e }}</p>
+{% if loops.findings %}
+<table class="table1"><thead><tr><th>{% if PLUS_SECTION == 'topics' %}{L_TOPIC}{% else %}{L_POST}{% endif %}</th><th>{L_PLUS_REFS_PROBLEM}</th></tr></thead>
+<tbody>{% for item in loops.findings %}<tr data-reference-id="{{ item.ID }}"><td>#{{ item.ID }}</td>
+	<td>{% for reason in item.reasons %}<div data-reason="{{ reason.KEY }}">{{ reason.TEXT|e }}</div>{% endfor %}</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+<p>{% if U_PLUS_NEXT %}
+	<a id="plus-reference-next" href="{{ U_PLUS_NEXT }}">{L_PLUS_REFS_NEXT}</a> &middot;
+	{% if U_PLUS_STOP %}<a id="plus-reference-stop" href="{{ U_PLUS_STOP }}">{L_PLUS_REFS_STOP}</a>
+	{% else %}<a id="plus-reference-auto" href="{{ U_PLUS_AUTO }}">{L_PLUS_REFS_AUTO}</a>{% endif %}
+{% else %}{L_PLUS_REFS_DONE}{% endif %}
+{% if U_PLUS_RESTART %} &middot; <a href="{{ U_PLUS_RESTART }}">{L_PLUS_REFS_RESTART}</a>{% endif %}</p>
+<!-- INCLUDE overall_footer.html -->
