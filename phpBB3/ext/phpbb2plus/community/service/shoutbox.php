@@ -3,6 +3,10 @@ namespace phpbb2plus\community\service;
 
 class shoutbox
 {
+	private const PORTAL_PUBLIC = 1, PORTAL_MEMBERS = 2;
+	private const BOTH_PUBLIC = 3, BOTH_MEMBERS = 4;
+	private const INDEX_PUBLIC = 5, INDEX_MEMBERS = 6;
+
 	private $db;
 	private $config;
 	private $user;
@@ -23,6 +27,23 @@ class shoutbox
 	public function may_post()
 	{
 		return !empty($this->user->data['is_registered']) && $this->auth->acl_get('u_plus_shout');
+	}
+
+	/** Keep the portal-only choices used by earlier phpBB3 installations at 1 and 2. */
+	public static function converted_placement($legacy)
+	{
+		$placements = array(1 => self::BOTH_PUBLIC, 2 => self::BOTH_MEMBERS, 3 => self::PORTAL_PUBLIC,
+			4 => self::PORTAL_MEMBERS, 5 => self::INDEX_PUBLIC, 6 => self::INDEX_MEMBERS);
+		return $placements[trim((string) $legacy)] ?? 0;
+	}
+
+	public function panel_visible($on_index)
+	{
+		$mode = (int) $this->config['plus_portal_shouts'];
+		$public = $on_index ? self::INDEX_PUBLIC : self::PORTAL_PUBLIC;
+		$members = $on_index ? self::INDEX_MEMBERS : self::PORTAL_MEMBERS;
+		return $mode === self::BOTH_PUBLIC || $mode === $public
+			|| (($mode === self::BOTH_MEMBERS || $mode === $members) && $this->user->data['is_registered']);
 	}
 
 	public function may_moderate()

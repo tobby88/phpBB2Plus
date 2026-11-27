@@ -28,6 +28,9 @@ def browse(base, owner):
     if ('class="plus-shout"' in public or 'class="plus-shout"' not in private
             or 'id="plus-portal-login"' not in public or 'id="plus-portal-login"' in private):
         raise RuntimeError("The sidebar ignored the visitor or the original members-only Shoutbox setting")
+    if ('id="plus-shout-panel"' in owner.fetch("index.php") or 'id="plus-shout-quick"' not in private
+            or "/shout_panel.css" not in private):
+        raise RuntimeError("The converted portal-only placement or member's quick shout form is missing")
     for html, visible in ((public, False), (private, True)):
         block = re.search(r'<section class="panel plus-seen">(.+?)</section>', html, re.S)
         if not block:
@@ -93,10 +96,27 @@ def administration(base, owner):
     public = guest.fetch("app.php/portal")
     if "Grüße aus dem Archiv" not in public or "FormerShouter" in public or "Masked shout fixture" in public:
         raise RuntimeError("A public portal preview lost visible shouts or disclosed a private byline or message")
+    if 'id="plus-shout-quick"' in public or 'id="plus-shout-panel"' in guest.fetch("index.php"):
+        raise RuntimeError("A portal-only public panel exposed a write form or appeared on the index")
     restricted = owner.fetch("app.php/portal")
     if ('class="panel plus-portal-album"' in public or not re.search(r'/album/picture/101/small', restricted)
             or re.search(r'/album/picture/(?:100|104|105)/small', restricted)):
         raise RuntimeError("Random portal pictures escaped the chosen category or its visibility")
+    save(owner.fetch(path), dict(fields, shouts="6"))
+    if 'id="plus-shout-panel"' in guest.fetch("index.php") or 'id="plus-shout-panel"' in owner.fetch("app.php/portal"):
+        raise RuntimeError("The members-only forum index placement was visible elsewhere")
+    index = owner.fetch("index.php")
+    action, quick = Page(index).forms["plus-shout-quick"]
+    quick["message"] = "Gruß von der Forenübersicht"
+    time.sleep(max(0, int(quick["creation_time"]) + 1.05 - time.time()))
+    posted = owner.fetch(urljoin(base, unescape(action)), quick)
+    if 'id="plus-shout-panel"' not in posted or 'class="plus-portal"' in posted or quick["message"] not in posted:
+        raise RuntimeError("A quick index shout did not return to the forum panel with the saved message")
+    save(owner.fetch(path), dict(fields, shouts="3"))
+    for route in ("index.php", "app.php/portal"):
+        visible = guest.fetch(route)
+        if quick["message"] not in visible or "FormerShouter" in visible or "Masked shout fixture" in visible:
+            raise RuntimeError("Public shout panels must share the saved message and protect hidden names and texts")
     save(owner.fetch(path), dict(fields, welcome=welcome, recent="2", last_seen="5", top_posters="5", stats="1", shouts="2",
                                  downloads="3", pictures="6", picture_personal="1", picture_size="137",
                                  **{"poll_forums[]": [1, 7], "exclude[]": [14]}))

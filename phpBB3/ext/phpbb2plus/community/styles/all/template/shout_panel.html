@@ -1,0 +1,17 @@
+<!-- IF U_PLUS_SHOUTBOX -->
+<!-- INCLUDECSS @phpbb2plus_community/shout_panel.css -->
+<section class="panel" id="plus-shout-panel"><div class="inner">
+	<h3><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></h3>
+	<!-- BEGIN plus_shouts --><div class="plus-shout"><strong>{plus_shouts.AUTHOR}</strong> &middot; {plus_shouts.TIME}
+		<div class="content">{plus_shouts.MESSAGE}</div></div>
+	<!-- BEGINELSE --><p>{L_PLUS_SHOUT_EMPTY}</p><!-- END plus_shouts -->
+	<!-- IF U_PLUS_SHOUT_QUICK -->
+	<form method="post" action="{U_PLUS_SHOUT_QUICK}" id="plus-shout-quick">
+		<label for="plus-quick-message">{L_MESSAGE}</label>
+		<textarea id="plus-quick-message" class="inputbox" name="message" rows="2" maxlength="16000" required></textarea>
+		<input type="hidden" name="action" value="post"><input type="hidden" name="place" value="{PLUS_SHOUT_PLACE}">
+		<button type="submit" class="button2">{L_SUBMIT}</button>{S_FORM_TOKEN_PLUS_SHOUT}
+	</form>
+	<!-- ENDIF -->
+</div></section>
+<!-- ENDIF -->

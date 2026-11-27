@@ -9,7 +9,7 @@ class portal_module
 	public $u_action;
 	public $tpl_name;
 	public $page_title;
-	private const LIMITS = array('recent'=>100,'last_seen'=>100,'top_posters'=>100,'shouts'=>2,'stats'=>1,'downloads'=>100,
+	private const LIMITS = array('recent'=>100,'last_seen'=>100,'top_posters'=>100,'shouts'=>6,'stats'=>1,'downloads'=>100,
 		'pictures'=>100,'picture_size'=>1024,'picture_personal'=>1,'picture_random'=>1);
 
 	private function snapshot($db, $text, $lock)

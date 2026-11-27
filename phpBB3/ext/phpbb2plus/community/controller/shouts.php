@@ -12,8 +12,9 @@ class shouts
 	private $language;
 	private $request;
 	private $pagination;
+	private $extension;
 
-	public function __construct($shouts, $helper, $template, $language, $request, $pagination)
+	public function __construct($shouts, $helper, $template, $language, $request, $pagination, $extension)
 	{
 		$this->shouts = $shouts;
 		$this->helper = $helper;
@@ -21,6 +22,7 @@ class shouts
 		$this->language = $language;
 		$this->request = $request;
 		$this->pagination = $pagination;
+		$this->extension = $extension;
 	}
 
 	public function show()
@@ -84,6 +86,15 @@ class shouts
 				if ($error) { trigger_error($error); }
 			}
 			else if (!$this->shouts->moderate($id, $action)) { throw new AccessDeniedHttpException(); }
+		}
+		$place = $this->request->variable('place', '', false, \phpbb\request\request_interface::POST);
+		if ($action === 'post' && $place === 'index')
+		{
+			return new RedirectResponse(append_sid(generate_board_url() . '/index.' . $this->extension, false, false) . '#plus-shout-panel', 303);
+		}
+		if ($action === 'post' && $place === 'portal')
+		{
+			return new RedirectResponse($this->helper->route('phpbb2plus_community_portal', array(), false) . '#plus-shout-panel', 303);
 		}
 		return new RedirectResponse($this->helper->route('phpbb2plus_community_shouts', array(), false), 303);
 	}

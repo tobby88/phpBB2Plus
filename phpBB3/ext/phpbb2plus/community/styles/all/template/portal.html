@@ -45,11 +45,7 @@
 <!-- ELSEIF S_USER_LOGGED_IN --><section class="panel"><h3><a href="{U_PROFILE}">{S_USERNAME}</a></h3>
 <p>{LAST_VISIT_DATE}</p><!-- IF S_DISPLAY_SEARCH --><p><a href="{U_SEARCH_SELF}">{L_SEARCH_SELF}</a></p><!-- ENDIF -->
 </section><!-- ENDIF -->
-<!-- IF U_PLUS_SHOUTBOX --><section class="panel"><div class="inner"><h3><a href="{U_PLUS_SHOUTBOX}">{L_PLUS_SHOUTBOX}</a></h3>
-	<!-- BEGIN plus_shouts --><div class="plus-shout"><strong>{plus_shouts.AUTHOR}</strong> &middot; {plus_shouts.TIME}
-		<div class="content">{plus_shouts.MESSAGE}</div></div>
-	<!-- BEGINELSE --><p>{L_PLUS_SHOUT_EMPTY}</p><!-- END plus_shouts -->
-</div></section><!-- ENDIF -->
+<!-- INCLUDE @phpbb2plus_community/shout_panel.html -->
 <!-- IF U_PLUS_POLL --><section class="panel"><h3>{L_PLUS_PORTAL_POLL}</h3>
 <details id="plus-portal-poll"><summary>{PLUS_POLL_TOPIC}</summary><div class="plus-poll-content"><a href="{U_PLUS_POLL}">{L_PLUS_OPEN_POLL}</a></div></details>
 <!-- INCLUDEJS @phpbb2plus_community/portal_poll.js --></section><!-- ENDIF -->

@@ -43,6 +43,7 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_TOPIC_EXPORT_TOO_LARGE' => 'This topic exceeds the 64 MiB text export limit.',
 	'PLUS_TOPIC_EXPORT_UNAVAILABLE' => 'The topic export could not be created. Please try again.',
 	'PLUS_SHOUTBOX' => 'Shoutbox',
+	'PLUS_SHOUT_BOTH' => 'Portal and board index',
 	'PLUS_SHOUT_HIDDEN' => 'This message was hidden by a moderator.',
 	'PLUS_SHOUT_HIDE' => 'Hide',
 	'PLUS_SHOUT_RESTORE' => 'Show again',

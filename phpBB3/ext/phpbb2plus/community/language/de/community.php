@@ -43,6 +43,7 @@ $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_TOPIC_EXPORT_TOO_LARGE' => 'Dieses Thema überschreitet die Größenbegrenzung für einen Textexport (64 MiB).',
 	'PLUS_TOPIC_EXPORT_UNAVAILABLE' => 'Der Themenexport konnte nicht erstellt werden. Bitte versuche es erneut.',
 	'PLUS_SHOUTBOX' => 'Shoutbox',
+	'PLUS_SHOUT_BOTH' => 'Portal und Foren-Übersicht',
 	'PLUS_SHOUT_HIDDEN' => 'Diese Nachricht wurde ausgeblendet.',
 	'PLUS_SHOUT_HIDE' => 'Ausblenden',
 	'PLUS_SHOUT_RESTORE' => 'Wieder einblenden',

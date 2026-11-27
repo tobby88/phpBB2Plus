@@ -17,8 +17,13 @@
 <!-- BEGIN options --><option value="{lists.options.ID}"<!-- IF lists.options.SELECTED --> selected<!-- ENDIF -->>{lists.options.TITLE}</option><!-- END options -->
 </select></dd></dl><!-- END lists -->
 <dl><dt><label for="plus-shouts">{L_PLUS_SHOUTBOX}</label></dt><dd><select id="plus-shouts" name="shouts">
-<option value="0"<!-- IF SHOUTS == 0 --> selected<!-- ENDIF -->>{L_DISABLED}</option><option value="1"<!-- IF SHOUTS == 1 --> selected<!-- ENDIF -->>{L_PLUS_PORTAL_EVERYONE}</option>
-<option value="2"<!-- IF SHOUTS == 2 --> selected<!-- ENDIF -->>{L_PLUS_PORTAL_MEMBERS}</option></select></dd></dl>
+<option value="0"<!-- IF SHOUTS == 0 --> selected<!-- ENDIF -->>{L_DISABLED}</option>
+<option value="1"<!-- IF SHOUTS == 1 --> selected<!-- ENDIF -->>{L_PLUS_PORTAL} · {L_PLUS_PORTAL_EVERYONE}</option>
+<option value="2"<!-- IF SHOUTS == 2 --> selected<!-- ENDIF -->>{L_PLUS_PORTAL} · {L_PLUS_PORTAL_MEMBERS}</option>
+<option value="3"<!-- IF SHOUTS == 3 --> selected<!-- ENDIF -->>{L_PLUS_SHOUT_BOTH} · {L_PLUS_PORTAL_EVERYONE}</option>
+<option value="4"<!-- IF SHOUTS == 4 --> selected<!-- ENDIF -->>{L_PLUS_SHOUT_BOTH} · {L_PLUS_PORTAL_MEMBERS}</option>
+<option value="5"<!-- IF SHOUTS == 5 --> selected<!-- ENDIF -->>{L_INDEX} · {L_PLUS_PORTAL_EVERYONE}</option>
+<option value="6"<!-- IF SHOUTS == 6 --> selected<!-- ENDIF -->>{L_INDEX} · {L_PLUS_PORTAL_MEMBERS}</option></select></dd></dl>
 <dl><dt><label for="plus-stats">{L_STATISTICS}</label></dt><dd><select id="plus-stats" name="stats">
 <option value="1"<!-- IF STATS --> selected<!-- ENDIF -->>{L_ENABLED}</option><option value="0"<!-- IF not STATS --> selected<!-- ENDIF -->>{L_DISABLED}</option></select></dd></dl>
 </fieldset><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{REVISION}">

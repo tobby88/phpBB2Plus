@@ -66,8 +66,7 @@ function plus_portal_settings()
 	{
 		if ($r['config_name'] === 'show_shoutbox')
 		{
-			$mode = (int) $r['config_value'];
-			$config->set('plus_portal_shouts',in_array($mode,array(1,3),true) ? 1 : (in_array($mode,array(2,4),true) ? 2 : 0));
+			$config->set('plus_portal_shouts', \phpbb2plus\community\service\shoutbox::converted_placement($r['config_value']));
 		}
 		elseif ($r['config_name'] === 'show_last_visit') { $config->set('plus_daily_mode', in_array($r['config_value'], array('1', '2'), true) ? (int) $r['config_value'] : 0); }
 		elseif ($r['config_name'] === 'enable_banners') { $config->set('plus_banners_enabled',(int) (bool) $r['config_value']); }

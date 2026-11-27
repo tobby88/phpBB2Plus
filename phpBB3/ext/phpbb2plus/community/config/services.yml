@@ -299,7 +299,7 @@ services:
             - { name: passwords.driver }
     phpbb2plus.community.portal:
         class: phpbb2plus\community\controller\portal
-        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.shoutbox', '@dispatcher', '@config', '@config_text', '@path_helper', '@phpbb2plus.community.topic_activity']
+        arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@language', '@controller.helper', '@template', '%core.root_path%', '%core.php_ext%', '@dispatcher', '@config', '@config_text', '@path_helper', '@phpbb2plus.community.topic_activity']
     phpbb2plus.community.topic_activity:
         class: phpbb2plus\community\service\topic_activity
         arguments: ['@dbal.conn', '@auth', '@content.visibility', '@user', '@dispatcher', '@config']
@@ -346,7 +346,12 @@ services:
         arguments: ['@dbal.conn', '@config', '@user', '@auth', '@language', '%core.table_prefix%plus_shouts']
     phpbb2plus.community.shouts:
         class: phpbb2plus\community\controller\shouts
-        arguments: ['@phpbb2plus.community.shoutbox', '@controller.helper', '@template', '@language', '@request', '@pagination']
+        arguments: ['@phpbb2plus.community.shoutbox', '@controller.helper', '@template', '@language', '@request', '@pagination', '%core.php_ext%']
+    phpbb2plus.community.shout_panel:
+        class: phpbb2plus\community\event\shout_panel
+        arguments: ['@phpbb2plus.community.shoutbox', '@controller.helper', '@template', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.profile:
         class: phpbb2plus\community\event\profile
         arguments: ['@user', '@config', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.country_flags', '@path_helper']

@@ -358,6 +358,19 @@ elseif (in_array($argv[1], array('converted', 'converted-pruning-off', 'hashes-u
 	check_fixture(html_entity_decode($description, ENT_QUOTES, 'UTF-8') === 'Übersicht & Rückblick 📷', 'Conversion lost the UTF-8 forum description');
 	check_fixture((int) $db->query('SELECT COUNT(*) FROM p3_forums WHERE forum_type=0 AND plus_legacy_category=0 AND plus_recovery_role=0')->fetch_row()[0] === 0,
 		'Conversion retained a provisional category');
+	require_once dirname(__DIR__, 2) . '/phpBB3/ext/phpbb2plus/community/service/shoutbox.php';
+	$viewer = new stdClass();
+	foreach (array(0, 1, 2, 3, 4, 5, 6) as $original) {
+		$settings = array('plus_portal_shouts' => \phpbb2plus\community\service\shoutbox::converted_placement($original));
+		$panel = new \phpbb2plus\community\service\shoutbox(null, $settings, $viewer, null, null, '');
+		foreach (array(false, true) as $member) {
+			$viewer->data = array('is_registered' => $member);
+			$portal = in_array($original, array(1, 3), true) || ($member && in_array($original, array(2, 4), true));
+			$index = in_array($original, array(1, 5), true) || ($member && in_array($original, array(2, 6), true));
+			check_fixture($panel->panel_visible(false) === $portal && $panel->panel_visible(true) === $index,
+				'Converted shoutbox audience or placement differs from the original');
+		}
+	}
 	$shout = $db->query('SELECT author_id,hidden_by FROM p3_plus_shouts WHERE shout_id=7')->fetch_assoc();
 	check_fixture($shout && (int) $shout['author_id'] === (int) $users[0]['user_id']
 		&& (int) $shout['hidden_by'] === 2, 'Shout author or moderation state was not converted');

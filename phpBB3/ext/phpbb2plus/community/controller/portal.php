@@ -14,14 +14,13 @@ class portal
 	private $template;
 	private $root;
 	private $extension;
-	private $shouts;
 	private $dispatcher;
 	private $config;
 	private $text;
 	private $paths;
 	private $activity;
 
-	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension, $shouts, $dispatcher, $config, $text, $paths, $activity)
+	public function __construct($db, $auth, $visibility, $user, $language, $helper, $template, $root, $extension, $dispatcher, $config, $text, $paths, $activity)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -32,7 +31,6 @@ class portal
 		$this->template = $template;
 		$this->root = $root;
 		$this->extension = $extension;
-		$this->shouts = $shouts;
 		$this->dispatcher = $dispatcher;
 		$this->config = $config;
 		$this->text = $text;
@@ -100,14 +98,7 @@ class portal
 		$this->poll(array_intersect($forums,explode(',',(string) $prefs['plus_portal_poll_forums'])));
 		$this->members(true,(int) $this->config['plus_portal_last_seen']);
 		$this->members(false,(int) $this->config['plus_portal_top_posters']);
-		$mode = (int) $this->config['plus_portal_shouts'];
-		$show_shouts = $mode === 1 || ($mode === 2 && $this->user->data['is_registered']);
-		if ($show_shouts)
-		{
-			foreach ($this->shouts->listing(5) as $shout) { $this->template->assign_block_vars('plus_shouts',$shout); }
-		}
-		$this->template->assign_vars(array('U_PLUS_SHOUTBOX'=>$show_shouts ? $this->helper->route('phpbb2plus_community_shouts') : '',
-			'U_PLUS_RANKS'=>$this->user->data['is_registered'] && $this->auth->acl_gets('u_viewprofile', 'a_user', 'a_useradd', 'a_userdel')
+		$this->template->assign_vars(array('U_PLUS_RANKS'=>$this->user->data['is_registered'] && $this->auth->acl_gets('u_viewprofile', 'a_user', 'a_useradd', 'a_userdel')
 				? $this->helper->route('phpbb2plus_community_ranks') : '',
 			'PLUS_WELCOME'=>welcome::render($prefs['plus_portal_welcome'],$this->paths->get_web_root_path()),'S_PLUS_RECENT'=>$recent>0,
 			'S_PLUS_STATS'=>(bool) $this->config['plus_portal_stats'],'PLUS_POSTS'=>$this->language->lang('TOTAL_POSTS_COUNT',(int) $this->config['num_posts']),

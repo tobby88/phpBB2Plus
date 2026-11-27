@@ -51,3 +51,6 @@ def exercise(base, moderator, member):
     submit(member, confirmation, "confirm", {"confirm": "Yes"})
     if "Überarbeitete Nachricht" in guest.fetch(path):
         raise RuntimeError("The confirmed deletion left a message behind")
+    home = submit(moderator, moderator.fetch("app.php/portal"), "plus-shout-quick", {"message": "Gruß direkt aus dem Portal"})
+    if 'class="plus-portal"' not in home or "Gruß direkt aus dem Portal" not in home:
+        raise RuntimeError("A quick portal shout did not return to the portal with the saved message")
