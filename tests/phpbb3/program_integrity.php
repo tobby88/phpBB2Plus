@@ -77,8 +77,10 @@ elseif (in_array($phase, array('reviewer', 'revoke', 'remove-reviewer'), true))
 	{
 		expect_programs(!$id, 'The synthetic program reviewer already exists');
 		$group = program_row('SELECT group_id FROM ' . GROUPS_TABLE . " WHERE group_name='REGISTERED' AND group_type=" . GROUP_SPECIAL);
+		$native_password = '';
+		(new \phpbb\request\type_cast_helper())->set_var($native_password, getenv('PLUS_TEST_MODERN_PASSWORD'), 'string', true, false);
 		$id = user_add(array('username' => 'ProgramFileReviewer', 'group_id' => (int) $group['group_id'], 'user_type' => USER_NORMAL, 'user_lang' => 'en',
-			'user_email' => 'program-reviewer@example.invalid', 'user_password' => $phpbb_container->get('passwords.manager')->hash(getenv('PLUS_TEST_MODERN_PASSWORD'))));
+			'user_email' => 'program-reviewer@example.invalid', 'user_password' => $phpbb_container->get('passwords.manager')->hash($native_password)));
 	}
 	expect_programs((bool) $id, 'Missing synthetic ACP reviewer');
 	(new auth_admin())->acl_set('user', 0, $id, array('a_' => ACL_YES, 'a_viewlogs' => ACL_YES, 'a_plus_ct_files' => $phase === 'reviewer' ? ACL_YES : ACL_NEVER));
