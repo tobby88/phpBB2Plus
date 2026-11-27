@@ -3,8 +3,8 @@ if (PHP_SAPI !== 'cli' || getenv('PLUS_TEST_DATABASE') !== '1' || $argc !== 3 ||
 $phase = $argv[2];
 if ($phase === 'source')
 {
-	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-	$source = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER'), getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) getenv('PLUS_TEST_DB_PORT'));
+	require_once __DIR__ . '/fixture_database.php';
+	$source = plus_fixture_database($argv[1]);
 	$source->query("UPDATE phpbb_users SET user_last_topic_title=0,user_sub_level_links=1,user_split_sticky=0 WHERE username='HistoricMember'");
 	$source->query("UPDATE phpbb_config SET config_value='13' WHERE config_name='last_topic_title_length'");
 	$source->query("UPDATE phpbb_config SET config_value='1' WHERE config_name='split_sticky_over'");

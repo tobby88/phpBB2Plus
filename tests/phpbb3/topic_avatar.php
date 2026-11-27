@@ -3,8 +3,8 @@ if (PHP_SAPI !== 'cli' || getenv('PLUS_TEST_DATABASE') !== '1' || $argc !== 3 ||
 $phase=$argv[2];
 if ($phase === 'source')
 {
-	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-	$db=new mysqli('127.0.0.1',getenv('PLUS_TEST_DB_USER') ?: 'root',getenv('PLUS_TEST_DB_PASSWORD'),$argv[1],(int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
+	require_once __DIR__ . '/fixture_database.php';
+	$db = plus_fixture_database($argv[1]);
 	$db->query("UPDATE phpbb_plus SET config_value='0' WHERE config_name='default_avatar'");
 	return;
 }
