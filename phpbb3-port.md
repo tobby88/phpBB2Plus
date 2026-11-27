@@ -4,6 +4,8 @@ The source for this conversion is the current UTF-8 Plus distribution in `phpBB2
 
 | Source behaviour and data | phpBB3 destination | Verification and remaining work |
 | --- | --- | --- |
+| Staff-only profile visit statistics | Native sessions, member profiles and a separate viewing permission | Conversion retains the recorded time online, number of visits, page views and available times for the last visit. Earlier previews start with empty totals when the original data is unavailable. Reauthentication in the ACP and overlapping visits keep their original counting semantics. |
+| Neighbouring topics | Native previous and next topic links in fiSubSilver | The links appear above and below the posts. They skip topics awaiting approval for ordinary visitors. |
 | Daily visitors | Board index, category views and portal totals | The converter retains the audience, board-day boundary and member preferences. Hidden members remain hidden from ordinary viewers. Guest counting uses short-lived board-day identifiers when enabled. |
 | Default avatar in topics | Native Avatar settings and the topic author card | Conversion preserves the switch and local artwork. Members can hide avatars in their viewing preferences. The original local-gallery setting also applies to the default image. |
 | Voluntary gender in the profile | Native optional profile dropdown | Only recorded choices are imported. The original post icons follow the native field's visibility and choice labels. Registrations and unknown historical values start with an unspecified answer. |

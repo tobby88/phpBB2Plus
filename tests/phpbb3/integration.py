@@ -40,6 +40,7 @@ import news
 import portal
 import portal_unicode
 import gender_profile
+import profile_visits
 import topic_avatar
 import topic_navigation
 import daily_visitors
@@ -473,12 +474,14 @@ def seed_source(source, legacy, suite):
         php(tests / "quick_reply.php", source, "source-off")
         php(tests / "post_bookmarks.php", source, "source-missing")
         php(tests / "gender_profile.php", source, "source-off")
+        php(tests / "profile_visits.php", source, "source-aggregates-absent")
         php(tests / "daily_visitors.php", source, "source-absent")
     php(tests / "board_statistics.php", "seed", source)
     if forum_suite:
         php(tests / "topic_readers.php", source, "source")
         php(tests / "portal_unicode.php", source, "source")
         php(tests / "gender_profile.php", source, "source")
+        php(tests / "profile_visits.php", source, "source")
         php(tests / "topic_avatar.php", source, "source")
         php(tests / "guest_post_confirm.php", source, "source")
         php(tests / "recommend.php", source, "source")
@@ -575,6 +578,7 @@ def main():
                 if forum_suite:
                     # This also exercises conversion after the stock formatter has been cached.
                     php(ROOT / "tests/phpbb3/gender_profile.php", target, "fresh", cwd=web)
+                    php(ROOT / "tests/phpbb3/profile_visits.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/topic_avatar.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "native", cwd=web)
@@ -592,6 +596,9 @@ def main():
                 if forum_suite:
                     php(fixture, "original-topology", source)
                 (web / "install").rename(root / "finished-installer")
+                if forum_suite or media_only:
+                    phase = "converted" if forum_suite else "missing"
+                    php(ROOT / "tests/phpbb3/profile_visits.php", target, phase, cwd=web)
                 if account_suite or media_only:
                     phase = "converted" if account_suite else "converted-absent"
                     php(ROOT / "tests/phpbb3/daily_visitors.php", target, phase, cwd=web)
@@ -744,6 +751,8 @@ def main():
                     banners.administration(base, member, web)
                     # The portal checks the five most recent sign-ins, including a hidden member.
                     portal.administration(base, member)
+                    profile_visits.browse(base, member, ordinary, lambda phase: php(
+                        ROOT / "tests/phpbb3/profile_visits.php", target, phase, cwd=web, capture=True))
                     portal_unicode.browse(base, web, target, php, member)
                     topic_avatar.browse(base, web, target, php, member)
                     gender_profile.browse(member, ordinary, Browser(base), lambda phase: php(
