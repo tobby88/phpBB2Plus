@@ -4,6 +4,8 @@ The source for this conversion is the current UTF-8 Plus distribution in `phpBB2
 
 | Source behaviour and data | phpBB3 destination | Verification and remaining work |
 | --- | --- | --- |
+| Daily visitors | Board index, category views and portal totals | The converter retains the audience, board-day boundary and member preferences. Hidden members remain hidden from ordinary viewers. Guest counting uses short-lived board-day identifiers when enabled. |
+| Default avatar in topics | Native Avatar settings and the topic author card | Conversion preserves the switch and local artwork. Members can hide avatars in their viewing preferences. The original local-gallery setting also applies to the default image. |
 | Voluntary gender in the profile | Native optional profile dropdown | Only recorded choices are imported. The original post icons follow the native field's visibility and choice labels. Registrations and unknown historical values start with an unspecified answer. |
 | Audio and video in posts | Plus tags in the native phpBB text formatter | The original ram, stream and video brackets open an HTML player with controls and a direct file link. The player loads media on request. Quoted code samples retain their brackets. |
 | Portal welcome message | Editable HTML in the Portal ACP | Conversion keeps literal characters, written character references and formatting when relocating local images. Older previews can still read the message and their later edits take precedence. |

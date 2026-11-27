@@ -1,15 +1,15 @@
 <?php
 if (PHP_SAPI !== 'cli' || getenv('PLUS_TEST_DATABASE') !== '1' || $argc !== 3 || !preg_match('/^plus3_test_[a-f0-9]{24}$/D', $argv[1])) { exit(2); }
 $phase = $argv[2];
-if ($phase === 'source' || $phase === 'source-missing')
+if (in_array($phase, array('source', 'source-missing', 'source-absent'), true))
 {
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 	$old = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
-	if ($phase === 'source-missing')
+	if ($phase !== 'source')
 	{
 		$old->query("DELETE FROM phpbb_plus WHERE config_name='show_last_visit'");
 		$old->query('ALTER TABLE phpbb_users DROP COLUMN user_display_viewonline');
-		$old->query("UPDATE phpbb_config SET config_value='5.5' WHERE config_name='board_timezone'");
+		if ($phase === 'source-missing') { $old->query("UPDATE phpbb_config SET config_value='5.5' WHERE config_name='board_timezone'"); }
 	}
 	else
 	{
@@ -45,6 +45,16 @@ if ($phase === 'older' || $phase === 'upgraded')
 	}
 	return;
 }
+if ($phase === 'converted' || $phase === 'converted-absent')
+{
+	$enabled = $phase === 'converted';
+	$member = daily_rows("SELECT plus_daily_scope FROM $users WHERE username='HistoricMember'")[0];
+	$dates = array_column(daily_rows("SELECT username,user_last_active FROM $users WHERE username IN ('DepartingFixture','ModerationFixture')"), 'user_last_active', 'username');
+	daily_expect((int) $config['plus_daily_mode'] === ($enabled ? 2 : 0) && (int) $member['plus_daily_scope'] === ($enabled ? 1 : -1) &&
+		(int) $config['plus_daily_scope'] === 1 && (int) $dates['DepartingFixture'] === 987640 && (int) $dates['ModerationFixture'] === 960000,
+		'The native activity dates or initial visitor settings do not match the source');
+	return;
+}
 if ($phase === 'setup' || $phase === 'setup-missing')
 {
 	$settings = array('board_timezone' => 'Europe/Berlin', 'plus_daily_mode' => 2, 'plus_daily_scope' => 2,
@@ -56,10 +66,8 @@ if ($phase === 'setup' || $phase === 'setup-missing')
 		daily_expect($visitors->midnight(strtotime('2024-03-21 01:00 UTC')) === strtotime('2024-03-20 18:30 UTC'), 'The display ignored the converted source board time zone');
 	}
 	$member = daily_rows("SELECT user_id,plus_daily_scope,plus_login_hidden,plus_last_login FROM $users WHERE username='HistoricMember'")[0];
-	$converted = daily_rows("SELECT user_last_active FROM $users WHERE username='DepartingFixture'")[0];
 	daily_expect((int) $saved['plus_daily_mode'] === ($phase === 'setup' ? 2 : 0) && (int) $member['plus_daily_scope'] === ($phase === 'setup' ? 1 : -1)
-		&& (int) $saved['plus_daily_scope'] === 1 && (int) $converted['user_last_active'] === 987640 &&
-		(int) daily_rows("SELECT user_last_active FROM $users WHERE username='ModerationFixture'")[0]['user_last_active'] === 960000, 'The converted activity date or settings do not match the source');
+		&& (int) $saved['plus_daily_scope'] === 1, 'The converted visitor settings changed before the browser check');
 	$people = daily_rows("SELECT user_id,username,user_allow_viewonline,user_last_active,plus_login_hidden FROM $users WHERE user_type=" . USER_NORMAL .
 		" AND user_id<>" . ANONYMOUS . " AND username NOT IN ('HistoricMember','ModernMember') ORDER BY user_id LIMIT 3");
 	daily_expect(count($people) === 3, 'Missing synthetic accounts');

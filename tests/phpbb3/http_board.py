@@ -218,6 +218,7 @@ def source_files(source, target):
     for directory in ("images/smiles", "images/ranks", "images/avatars/gallery", "images/flags", "images/icon", "images/banner"):
         if (source / directory).is_dir():
             shutil.copytree(source / directory, target / directory)
+    shutil.copyfile(source / "images/default_avatar.gif", target / "images/default_avatar.gif")
     news = Path("templates/fisubsilversh/images/news")
     (target / news).mkdir(parents=True, exist_ok=True)
     for name in ("topicnews.gif", "announcements.gif"):
