@@ -6,6 +6,7 @@ use phpbb2plus\community\service\formatting_codes;
 use phpbb2plus\community\service\legacy_smilie_signs;
 use phpbb2plus\community\service\legacy_tables;
 use phpbb2plus\community\service\legacy_text_styles;
+use phpbb2plus\community\service\media_codes;
 use phpbb2plus\community\service\table_formatting;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -36,6 +37,7 @@ class legacy_formatting implements EventSubscriberInterface
 	{
 		explicit_acronym::configure($event['configurator']);
 		table_formatting::configure($event['configurator']);
+		media_codes::configure($event['configurator']);
 		formatting_codes::overflow($event['configurator'], (string) ($this->config['plus_formatting_overflow'] ?? ''));
 	}
 

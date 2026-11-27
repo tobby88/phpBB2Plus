@@ -16,6 +16,8 @@ if ($argv[2] === 'source')
 	{
 		$uid = $old->query("SELECT $id_column FROM $table WHERE $where")->fetch_row()[0];
 		$sample = " [align=right:$uid][s:$uid]Überholt[/s:$uid] [highlight=#ffcc00:$uid]Grün &amp; Gelb[/highlight:$uid][/align:$uid]";
+		$sample .= " [stream:$uid]https://archive.example.test/audio.ogg[/stream:$uid] " .
+			"[video width=320 height=200:$uid]https://archive.example.test/film.webm[/video:$uid]";
 		$q = $old->prepare("UPDATE $table SET $column=CONCAT($column,?) WHERE $where");
 		$q->bind_param('s', $sample);
 		$q->execute();
@@ -48,6 +50,9 @@ if ($argv[2] === 'converted')
 		$r = $db->sql_query("SELECT $column FROM $table WHERE $where");
 		$xml = $db->sql_fetchfield($column); $db->sql_freeresult($r);
 		$xpath = formatting_xpath($renderer->render($xml));
+		formatting_require($xpath->query('//audio[@controls and @src="https://archive.example.test/audio.ogg"]/a[@href="https://archive.example.test/audio.ogg"]')->length === 1 &&
+			$xpath->query('//video[@width="320" and @height="200" and @controls]/a[@href="https://archive.example.test/film.webm"]')->length === 1,
+			'Converted audio or video was missing from ' . $column);
 		formatting_require($xpath->query('//div[contains(@style,"text-align:right")]/s[text()="Überholt"]')->length === 1 &&
 			$xpath->query('//span[contains(@style,"background-color:#ffcc00") and text()="Grün & Gelb"]')->length === 1,
 			'Native formatted content missing from ' . $column);
@@ -77,6 +82,20 @@ elseif ($argv[2] === 'native')
 	$older = '<r><B><s>[b]</s>Vorher<e>[/b]</e></B> [align=right][s]Grün <I><s>[i]</s>Öl<e>[/i]</e></I> &#128512;[/s][/align] [hr] ' .
 		'<CODE><s>[code]</s>[s]Beispiel[/s]<e>[/code]</e></CODE> [align=falsch]Wort[/align] [s]offen</r>';
 	$service = $phpbb_container->get('phpbb2plus.community.legacy_formatting');
+	$media_old = '<r><B><s>[b]</s>Ton<e>[/b]</e></B> [ram]<URL url="https://archive.example.test/a.ogg">https://archive.example.test/a.ogg</URL>[/ram] ' .
+		'[video width=699 height=499]https://archive.example.test/f.webm[/video] [video width=700 height=499]https://archive.example.test/v.webm[/video] ' .
+		'<CODE><s>[code]</s>[ram]https://archive.example.test/example[/ram]<e>[/code]</e></CODE></r>';
+	foreach (array(true, false) as $enabled)
+	{
+		$event = new \ArrayObject(array('text'=>$media_old, 'flags'=>$enabled ? OPTION_FLAG_BBCODE : 0));
+		$service->older_content($event);
+		$media_xml = $event['text'];
+		$xpath = formatting_xpath($renderer->render($media_xml));
+		formatting_require($xpath->query('//audio[@preload="none"]')->length === (int) $enabled &&
+			$xpath->query('//video')->length === (int) $enabled &&
+			\s9e\TextFormatter\Unparser::unparse($media_xml) === \s9e\TextFormatter\Unparser::unparse($media_old),
+			'Historical players changed dimensions, code samples or the editable source');
+	}
 	foreach (array(true, false) as $enabled)
 	{
 		$event = new \ArrayObject(array('rowset_data' => array('post_text' => $older, 'bbcode_bitfield' => 'QA=='), 'row' => array('enable_bbcode' => $enabled)));

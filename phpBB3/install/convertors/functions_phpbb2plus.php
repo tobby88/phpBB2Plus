@@ -298,7 +298,7 @@ function plus_reset_converted_formatter()
 function plus_convert_message($message)
 {
 	global $convert, $convert_row, $db, $phpbb_container;
-	static $acronyms, $tables;
+	static $acronyms, $tables, $media;
 	// The upstream converter treats the one-character post "0" as empty.
 	if ($message === '0')
 	{
@@ -328,6 +328,14 @@ function plus_convert_message($message)
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/legacy_tables.php';
 		if (!$tables) { $tables = new \phpbb2plus\community\service\legacy_tables($db, $phpbb_container); }
 		$xml = $tables->for_display($xml);
+	}
+	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) &&
+		preg_match('~(?<!<s>)\[(?:stream\]|ram\]|video width=)~i', $xml))
+	{
+		$services = dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/';
+		foreach (array('literal_bbcode', 'formatting_codes', 'media_codes', 'legacy_text_styles') as $name) { require_once $services . $name . '.php'; }
+		if (!$media) { $media = new \phpbb2plus\community\service\legacy_text_styles($phpbb_container); }
+		$xml = $media->for_display($xml);
 	}
 	return $xml;
 }

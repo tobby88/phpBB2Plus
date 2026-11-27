@@ -12,13 +12,13 @@ class legacy_text_styles
 	public static function candidate($xml)
 	{
 		return strpos($xml, '[') !== false && preg_match('~^<[rt][ >]~D', $xml) &&
-			preg_match('~(?<!<s>)(?<!<HR>)\[(?:' . self::names() . ')(?=[=\]])~i', $xml);
+			preg_match('~(?<!<s>)(?<!<HR>)\[(?:' . self::names() . ')(?=[=\] ])~i', $xml);
 	}
 
 	private static function names()
 	{
 		static $names;
-		if ($names === null) { $names = implode('|', array_keys(formatting_codes::definitions())); }
+		if ($names === null) { $names = implode('|', array_keys(formatting_codes::definitions() + media_codes::TAGS)); }
 		return $names;
 	}
 
@@ -33,7 +33,7 @@ class legacy_text_styles
 		$text = $doc->documentElement->textContent;
 		$parsed = new \DOMDocument();
 		if (!@$parsed->loadXML($this->parser->parse($text), LIBXML_NONET) || $parsed->documentElement->textContent !== $text) { return $xml; }
-		$names = formatting_codes::definitions();
+		$names = formatting_codes::definitions() + media_codes::TAGS + array_change_key_case(array_flip(media_codes::TAGS));
 		$xpath = new \DOMXPath($parsed);
 		$offset = 0;
 		$open = $wanted = $spans = array();
@@ -61,7 +61,7 @@ class legacy_text_styles
 			}
 		}
 		if (!$spans) { return $xml; }
-		$nodes = literal_bbcode::tokens($doc, $wanted, '~\[/?(?:' . self::names() . ')(?:=[^\[\]\r\n]*)?\]~i');
+		$nodes = literal_bbcode::tokens($doc, $wanted, '~\[/?(?:' . self::names() . ')(?:[= ][^\[\]\r\n]*)?\]~i');
 		$changed = false;
 		foreach ($spans as list($tag, $start, $end))
 		{

@@ -4,6 +4,7 @@ The source for this conversion is the current UTF-8 Plus distribution in `phpBB2
 
 | Source behaviour and data | phpBB3 destination | Verification and remaining work |
 | --- | --- | --- |
+| Audio and video in posts | Plus tags in the native phpBB text formatter | The original ram, stream and video brackets open an HTML player with controls and a direct file link. The player loads media on request. Quoted code samples retain their brackets. |
 | Portal welcome message | Editable HTML in the Portal ACP | Conversion keeps literal characters, written character references and formatting when relocating local images. Older previews can still read the message and their later edits take precedence. |
 | Bookmark while posting | Native topic bookmarks and the posting preferences in the UCP and ACP | New topics, replies and quotes can set a bookmark when the post is saved. The converter retains each account's preference. Leaving the option unchecked keeps an existing bookmark. |
 | Guest posting confirmation | Native **Post settings** guest challenge | Conversion combines the CrackerTracker setting and the original Plus fallback. The board’s selected phpBB captcha handles guest topics, replies and quotes. A resumed conversion preserves subsequent ACP changes. |
