@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_USER_REGISTER' => 'Create member account',
+	'PLUS_REGISTRATION_NOTICE' => 'Reason for closing registration',
+	'PLUS_REGISTRATION_NOTICE_EXPLAIN' => 'Visitors see this text when account registration is disabled. Leave it empty to show the standard message.',
 	'ACL_A_PLUS_USER_REGISTER' => 'Can create regular member accounts',
 	'ACP_PLUS_REGISTER_EXPLAIN' => 'The new member can sign in immediately. Registration profile fields and new-member group settings apply. No email is sent.',
 	'ACP_PLUS_REGISTER_DATE_FORMAT' => 'Date format',

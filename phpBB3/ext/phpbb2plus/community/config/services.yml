@@ -40,6 +40,11 @@ services:
         arguments: ['@phpbb2plus.community.acronym_dictionary', '@language']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.registration_notice:
+        class: phpbb2plus\community\event\registration_notice
+        arguments: ['@config', '@config_text', '@language', '@template']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.account_registration:
         class: phpbb2plus\community\event\account_registration
         arguments: ['@dbal.conn', '@language', '@auth', '@user', '%core.table_prefix%']

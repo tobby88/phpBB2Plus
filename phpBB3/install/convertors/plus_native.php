@@ -19,6 +19,19 @@ function plus_registration_activation($mode)
 	return get_config_value('require_activation') === false ? '' : USER_ACTIVATION_NONE;
 }
 
+function plus_import_registration_notice()
+{
+	global $phpbb_container, $src_db, $convert;
+	$store = $phpbb_container->get('config_text');
+	$key = \phpbb2plus\community\event\registration_notice::KEY;
+	if ($store->get($key) !== '') { return; }
+	// Preserve source UTF-8 through a native connection which may use MySQL's three-byte utf8.
+	$result = $src_db->sql_query("SELECT HEX(config_value) AS notice FROM {$convert->src_table_prefix}config WHERE config_name='registration_closed'");
+	$hex = $src_db->sql_fetchfield('notice');
+	$src_db->sql_freeresult($result);
+	if ($hex !== false) { $store->set($key, json_encode(hex2bin($hex), JSON_THROW_ON_ERROR)); }
+}
+
 /** Effective Plus setting for the native guest posting challenge. */
 function plus_guest_post_confirmation($tracker_installed, $tracker_setting, $plus_setting)
 {

@@ -67,6 +67,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_enable_post_icons();';
 	$convertor['execute_last'][] = 'plus_import_topic_avatar();';
 	$convertor['execute_last'][] = 'plus_configure_native_contacts();';
+	$convertor['execute_last'][] = 'plus_import_registration_notice();';
 	$convertor['execute_last'][] = 'plus_sync_new_pms();';
 	$convertor['execute_last'][] = 'plus_publish_poll_receipts();';
 	$convertor['execute_last'][] = 'plus_kb_moderators();';

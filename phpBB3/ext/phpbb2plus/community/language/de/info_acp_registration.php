@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_USER_REGISTER' => 'Benutzerkonto anlegen',
+	'PLUS_REGISTRATION_NOTICE' => 'Grund für die geschlossene Registrierung',
+	'PLUS_REGISTRATION_NOTICE_EXPLAIN' => 'Dieser Text erscheint für Besucher, wenn die Registrierung deaktiviert ist. Ein leeres Feld zeigt die Standardmeldung.',
 	'ACL_A_PLUS_USER_REGISTER' => 'Kann neue reguläre Benutzerkonten anlegen',
 	'ACP_PLUS_REGISTER_EXPLAIN' => 'Das neue Mitglied kann sich sofort anmelden. Es gelten die Registrierungsfelder und die Gruppenregeln für neue Mitglieder. Es wird keine E-Mail verschickt.',
 	'ACP_PLUS_REGISTER_DATE_FORMAT' => 'Datumsformat',
