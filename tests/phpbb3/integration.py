@@ -52,6 +52,7 @@ import style_templates
 import topic_avatar
 import topic_navigation
 import daily_visitors
+import registration_counts
 import recent_topics
 import custom_profiles
 import colours
@@ -375,6 +376,7 @@ def account_management(base, admin, moderator, member, target, web):
     arcade_tournament_unicode.browse(base, web, target, php)
     post_bookmarks.browse(admin, moderator, fixture("post_bookmarks"))
     daily_visitors.browse(admin, moderator, fixture("daily_visitors"))
+    registration_counts.browse(admin, moderator, fixture("registration_counts"))
     delegation.request_block_rules(base)
     request_blocks.browse(admin, member, fixture("request_blocks"))
     delegation.program_files(base)
@@ -572,6 +574,7 @@ def seed_source(source, legacy, suite):
     php(tests / "legacy_database.php", "seed-pruning-off" if media_only else "seed", source)
     if media_only:
         php(tests / "quick_reply.php", source, "source-off")
+        php(tests / "registration_counts.php", source, "source-classic")
         php(tests / "post_bookmarks.php", source, "source-missing")
         php(tests / "gender_profile.php", source, "source-off")
         php(tests / "profile_visits.php", source, "source-aggregates-absent")
@@ -728,6 +731,7 @@ def main():
                     php(ROOT / "tests/phpbb3/table_formatting.php", target, "fresh", cwd=web)
                 if account_suite:
                     php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
+                    php(ROOT / "tests/phpbb3/registration_counts.php", target, "older", cwd=web)
                     php(ROOT / "tests/phpbb3/gallery_unicode.php", target, "upgrade", cwd=web)
                 php("bin/phpbbcli.php", "--version", cwd=web)
                 php(fixture, "installed-flags", target)
@@ -745,6 +749,8 @@ def main():
                 if account_suite or media_only:
                     phase = "converted" if account_suite else "converted-absent"
                     php(ROOT / "tests/phpbb3/daily_visitors.php", target, phase, cwd=web)
+                if media_only:
+                    php(ROOT / "tests/phpbb3/registration_counts.php", target, "older", cwd=web)
                 if account_suite:
                     php(ROOT / "tests/phpbb3/absence.php", target, "converted", cwd=web)
                     php(ROOT / "tests/phpbb3/birthday_greeting.php", target, "converted", cwd=web)
