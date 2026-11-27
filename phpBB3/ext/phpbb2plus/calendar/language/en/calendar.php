@@ -2,7 +2,9 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
 	'PLUS_CALENDAR' => 'Calendar',
-	'PLUS_CAL_BIRTHDAY_DAYS' => 'Days ahead for birthdays on the portal (0 hides them)',
+	'PLUS_CAL_BIRTHDAY_DAYS' => 'Birthdays on the portal and forum index (0 hides them, 1 shows today, 2 or more sets the number of days ahead)',
+	'PLUS_CAL_UPCOMING_BIRTHDAYS' => 'Upcoming birthdays',
+	'PLUS_CAL_NO_UPCOMING_BIRTHDAYS' => 'There are no birthdays in the next %d days.',
 	'PLUS_MINI_EVENTS' => 'Upcoming events', 'PLUS_MINI_NO_EVENTS' => 'No upcoming events.',
 	'PLUS_MINI_ADD_EVENT' => 'Add an event', 'PLUS_MINI_POSTS_DAY' => 'Posts for %s',
 	'PLUS_MINI_UNKNOWN_DAY' => 'There is no post search for this date.',

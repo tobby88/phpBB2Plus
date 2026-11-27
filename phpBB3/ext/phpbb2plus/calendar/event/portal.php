@@ -23,7 +23,42 @@ class portal implements EventSubscriberInterface
 		$this->language=$language; $this->helper=$helper; $this->template=$template; $this->root=$root; $this->ext=$ext;
 	}
 
-	public static function getSubscribedEvents() { return array('phpbb2plus.community.portal_content' => 'calendar'); }
+	public static function getSubscribedEvents()
+	{
+		return array('phpbb2plus.community.portal_content' => 'calendar', 'core.index_modify_birthdays_sql' => 'birthday_query',
+			'core.index_modify_page_title' => array('forum_birthdays', -10), 'core.viewforum_modify_page_title' => array('forum_birthdays', -10));
+	}
+
+	public function birthday_query($event)
+	{
+		// The Plus index reads today and the configured upcoming days together, including leap-day birthdays.
+		if (!$this->template->retrieve_var('S_PLUS_BOARD_ACTIVITY') || !isset($this->config['plus_cal_birthday_days'])) { return; }
+		$sql = $event['sql_ary']; $sql['WHERE'] = '1=0'; $event['sql_ary'] = $sql;
+	}
+
+	public function forum_birthdays()
+	{
+		if (!$this->template->retrieve_var('S_PLUS_BOARD_ACTIVITY') || !isset($this->config['plus_cal_birthday_days'])) { return; }
+		$days = max(0, min(366, (int) $this->config['plus_cal_birthday_days']));
+		$show = $days && $this->config['load_birthdays'] && $this->config['allow_birthdays'] && !empty($this->user->data['is_registered']) &&
+			$this->auth->acl_gets('u_viewprofile', 'a_user', 'a_useradd', 'a_userdel');
+		$this->template->assign_var('S_DISPLAY_BIRTHDAY_LIST', $show);
+		if (!$show) { return; }
+		$this->language->add_lang('calendar', 'phpbb2plus/calendar');
+		$this->template->assign_var('PLUS_BOARD_BIRTHDAY_DAYS', $days);
+		$today = new \DateTimeImmutable('today', $this->user->create_datetime()->getTimezone());
+		$until = $today->modify('+' . ($days === 1 ? 1 : $days + 1) . ' days');
+		$seen = array();
+		foreach ($this->schedule->birthdays($today, $until, true) as $birthday)
+		{
+			$id = $birthday['USER_ID'];
+			if (isset($seen[$id])) { continue; }
+			$seen[$id] = true;
+			$this->template->assign_block_vars($birthday['FROM'] === $today->getTimestamp() ? 'birthdays' : 'plus_upcoming_birthdays', array(
+				'USERNAME' => get_username_string('full', $id, $birthday['TITLE'], $birthday['COLOUR']), 'AGE' => $birthday['AGE'] ?? '',
+				'DATE' => $this->user->format_date($birthday['FROM'], 'j M', true)));
+		}
+	}
 
 	private function portal_month($month)
 	{

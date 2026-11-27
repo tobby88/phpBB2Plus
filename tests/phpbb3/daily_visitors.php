@@ -57,8 +57,13 @@ if ($phase === 'converted' || $phase === 'converted-absent')
 }
 if ($phase === 'setup' || $phase === 'setup-missing')
 {
+	// Without the community listener, configured calendar settings must leave phpBB's birthday query intact.
+	$query = new \phpbb\event\data(array('sql_ary' => array('WHERE' => 'native_birthday_condition')));
+	$phpbb_container->get('phpbb2plus.calendar.portal')->birthday_query($query);
+	daily_expect($query['sql_ary']['WHERE'] === 'native_birthday_condition', 'The calendar replaced the native index query without an active Plus overview');
 	$settings = array('board_timezone' => 'Europe/Berlin', 'plus_daily_mode' => 2, 'plus_daily_scope' => 2,
-		'plus_daily_force' => 0, 'load_online' => 1, 'load_online_time' => 5, 'load_online_guests' => 1);
+		'plus_daily_force' => 0, 'load_online' => 1, 'load_online_time' => 5, 'load_online_guests' => 1,
+		'load_birthdays' => 1, 'allow_birthdays' => 1, 'plus_cal_birthday_days' => 2);
 	$saved = array();
 	foreach (array_merge(array_keys($settings), array('plus_daily_gc')) as $name) { $saved[$name] = $config[$name]; }
 	if ($phase === 'setup-missing')
@@ -68,8 +73,9 @@ if ($phase === 'setup' || $phase === 'setup-missing')
 	$member = daily_rows("SELECT user_id,plus_daily_scope,plus_login_hidden,plus_last_login FROM $users WHERE username='HistoricMember'")[0];
 	daily_expect((int) $saved['plus_daily_mode'] === ($phase === 'setup' ? 2 : 0) && (int) $member['plus_daily_scope'] === ($phase === 'setup' ? 1 : -1)
 		&& (int) $saved['plus_daily_scope'] === 1, 'The converted visitor settings changed before the browser check');
-	$people = daily_rows("SELECT user_id,username,user_allow_viewonline,user_last_active,plus_login_hidden FROM $users WHERE user_type=" . USER_NORMAL .
-		" AND user_id<>" . ANONYMOUS . " AND username NOT IN ('HistoricMember','ModernMember') ORDER BY user_id LIMIT 3");
+	$people = daily_rows("SELECT user_id,username,user_allow_viewonline,user_last_active,plus_login_hidden,user_birthday FROM $users u WHERE user_type=" . USER_NORMAL .
+		" AND user_id<>" . ANONYMOUS . " AND username NOT IN ('HistoricMember','ModernMember')
+		AND NOT EXISTS (SELECT 1 FROM " . BANLIST_TABLE . " b WHERE b.ban_userid=u.user_id AND b.ban_exclude=0) ORDER BY user_id LIMIT 3");
 	daily_expect(count($people) === 3, 'Missing synthetic accounts');
 	$storage->set($key, json_encode(array($saved, $member, $people, daily_rows("SELECT * FROM $table"))));
 	foreach ($settings as $name => $value) { $config->set($name, $value); }
@@ -101,10 +107,14 @@ if ($phase === 'setup' || $phase === 'setup-missing')
 	daily_expect($cron->should_run(), 'Scheduled retention did not become due'); $cron->run();
 	daily_expect(!$cron->should_run() && !daily_rows("SELECT visitor FROM $table"), 'Expired history survived without a page view');
 	$now = time();
+	$zone = daily_rows("SELECT user_timezone FROM $users WHERE user_id=" . (int) $member['user_id'])[0]['user_timezone'];
+	$today = new DateTimeImmutable('today', new DateTimeZone($zone ?: $config['board_timezone']));
 	foreach ($people as $i => $row)
 	{
 		$stamp = $i === 2 ? $visitors->midnight($now)-1 : $now;
-		$db->sql_query("UPDATE $users SET user_last_active=$stamp WHERE user_id=" . (int) $row['user_id']);
+		$date = $today->modify('+' . array(0, 2, 3)[$i] . ' days');
+		$birthday = sprintf('%2d-%2d-%4d', $date->format('j'), $date->format('n'), 2000);
+		$db->sql_query("UPDATE $users SET user_last_active=$stamp, user_birthday='" . $db->sql_escape($birthday) . "' WHERE user_id=" . (int) $row['user_id']);
 	}
 	$visitors->remember((int) $people[1]['user_id'], true, '', $now);
 	$cat = daily_rows('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE forum_type=' . FORUM_CAT . ' AND plus_legacy_category>0 ORDER BY left_id LIMIT 1');

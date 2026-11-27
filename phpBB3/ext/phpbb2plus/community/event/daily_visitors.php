@@ -13,6 +13,8 @@ class daily_visitors implements EventSubscriberInterface
 	private $request;
 	private $template;
 	private $language;
+	private $board_activity = null;
+	private $category_activity = false;
 
 	public function __construct($visitors, $config, $user, $auth, $request, $template, $language)
 	{
@@ -23,6 +25,8 @@ class daily_visitors implements EventSubscriberInterface
 	{
 		return array('core.session_create_after' => 'created', 'core.update_session_after' => 'updated',
 			'core.garbage_collection' => 'cleanup', 'core.index_modify_page_title' => 'index', 'core.viewforum_modify_page_title' => 'category',
+			'core.page_header' => 'online_scope', 'core.page_header_after' => 'category_online',
+			'core.index_modify_birthdays_sql' => array('index_birthday_scope', 10),
 			'phpbb2plus.community.portal_content' => 'portal', 'core.acp_board_config_edit_add' => 'settings',
 			'core.ucp_prefs_view_data' => 'member_form', 'core.ucp_prefs_view_update_data' => 'member_save');
 	}
@@ -50,10 +54,49 @@ class daily_visitors implements EventSubscriberInterface
 		$scope = empty($this->config['plus_daily_force']) && $member >= 0 ? $member : (int) ($this->config['plus_daily_scope'] ?? 0);
 		return in_array($scope, array(1, 2), true) ? $scope : 0;
 	}
-	public function index() { $this->display(false); }
+	public function index_birthday_scope($event)
+	{
+		if (!isset($this->config['plus_daily_scope'])) { return; }
+		$visible = $this->scope() > 0;
+		$this->template->assign_var('S_PLUS_BOARD_ACTIVITY', $visible);
+		if (!$visible) { $sql = $event['sql_ary']; $sql['WHERE'] = '1=0'; $event['sql_ary'] = $sql; }
+	}
+	public function index()
+	{
+		if (!isset($this->config['plus_daily_scope'])) { return; }
+		$this->board_activity = $this->scope() > 0;
+		$this->template->assign_var('S_PLUS_BOARD_ACTIVITY', $this->board_activity);
+		if (!$this->board_activity)
+		{
+			$this->template->assign_vars(array('NEWEST_USER' => '', 'S_DISPLAY_BIRTHDAY_LIST' => false));
+			return;
+		}
+		$this->display(false);
+	}
 	public function category($event)
 	{
-		if ((int) $event['forum_data']['forum_type'] === FORUM_CAT && $this->scope() === 2) { $this->display(false); }
+		if (!isset($this->config['plus_daily_scope']) || (int) $event['forum_data']['forum_type'] !== FORUM_CAT) { return; }
+		$this->board_activity = $this->scope() === 2;
+		if (!$this->board_activity) { return; }
+		$this->category_activity = true;
+		$this->template->assign_vars(array('S_PLUS_BOARD_ACTIVITY' => true, 'S_PLUS_CATEGORY_STATS' => true,
+			'PLUS_BOARD_POSTS' => $this->language->lang('TOTAL_POSTS_COUNT', (int) $this->config['num_posts']),
+			'PLUS_BOARD_TOPICS' => $this->language->lang('TOTAL_TOPICS', (int) $this->config['num_topics']),
+			'PLUS_BOARD_MEMBERS' => $this->language->lang('TOTAL_USERS', (int) $this->config['num_users']),
+			'PLUS_BOARD_NEWEST' => $this->language->lang('NEWEST_USER', get_username_string('full', $this->config['newest_user_id'],
+				$this->config['newest_username'], $this->config['newest_user_colour']))));
+		$this->display(false);
+	}
+	public function online_scope($event)
+	{
+		if ($this->board_activity === false) { $event['display_online_list'] = false; }
+		elseif ($this->category_activity) { $event['item_id'] = 0; } // A Plus category shows the whole board.
+	}
+	public function category_online()
+	{
+		if (!$this->category_activity) { return; }
+		$this->template->assign_vars(array('S_PLUS_CATEGORY_ONLINE' => (bool) $this->template->retrieve_var('S_DISPLAY_ONLINE_LIST'),
+			'S_DISPLAY_ONLINE_LIST' => false));
 	}
 	public function portal() { $this->display(true); }
 	private function display($portal)
@@ -98,14 +141,14 @@ class daily_visitors implements EventSubscriberInterface
 	}
 	public function member_form($event)
 	{
-		if (!$this->visitors->mode() || !empty($this->config['plus_daily_force'])) { return; }
+		if (!isset($this->user->data['plus_daily_scope']) || !empty($this->config['plus_daily_force'])) { return; }
 		$this->language->add_lang('daily_visitors', 'phpbb2plus/community');
 		$choice = $event['submit'] ? $this->member_choice() : (int) $this->user->data['plus_daily_scope'];
 		$this->template->assign_vars(array('S_PLUS_DAILY_PREF' => true, 'PLUS_DAILY_PREF' => $choice));
 	}
 	public function member_save($event)
 	{
-		if (!$this->visitors->mode() || !empty($this->config['plus_daily_force']) || !$this->request->is_set_post('plus_daily_scope')) { return; }
+		if (!isset($this->user->data['plus_daily_scope']) || !empty($this->config['plus_daily_force']) || !$this->request->is_set_post('plus_daily_scope')) { return; }
 		$fields = $event['sql_ary']; $fields['plus_daily_scope'] = $this->member_choice(); $event['sql_ary'] = $fields;
 	}
 }

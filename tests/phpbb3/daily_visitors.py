@@ -15,14 +15,23 @@ def browse(admin, member, check, source_enabled=True):
         section = re.search(r'<section class="stat-block plus-daily-visitors">(.*?)</section>', page, re.S)
         return section.group(1) if section else ""
 
+    def stat(page, name):
+        section = re.search(r'<div class="stat-block ' + name + r'">(.*?)</div>', page, re.S)
+        return section.group(1) if section else ""
+
+    def words(html):
+        return " ".join(unescape(re.sub("<[^>]+>", "", html)).split())
+
     try:
         fixture = json.loads(check("setup" if source_enabled else "setup-missing"))
         visible, hidden, old = fixture["names"]
         category = "viewforum.php?f=" + str(fixture["category"])
         visitor = Browser(admin.base)
-        index = block(member.fetch("index.php"))
+        member_index = member.fetch("index.php")
+        index = block(member_index)
         owner = block(admin.fetch("index.php"))
-        public = block(visitor.fetch("index.php"))
+        guest_index = visitor.fetch("index.php")
+        public = block(guest_index)
         portal = block(member.fetch("app.php/portal"))
         if not public or not owner or visible not in index or hidden in index or old in index or hidden in public:
             raise RuntimeError("The index lost its public totals, exposed a hidden visit, or crossed midnight")
@@ -42,14 +51,27 @@ def browse(admin, member, check, source_enabled=True):
         check("hidden-login")
         if "HistoricMember" in block(member.fetch("index.php")):
             raise RuntimeError("A concurrent visible session bypassed the hidden member's daily privacy")
-        if block(member.fetch(category)):
-            raise RuntimeError("A member with index-only display saw the block inside a forum")
+        index_only = member.fetch(category)
+        if (block(index_only) or stat(index_only, "online-list") or stat(index_only, "statistics") or stat(index_only, "birthday-list")
+                or not stat(member_index, "online-list") or not stat(member_index, "statistics")):
+            raise RuntimeError("A member's index-only choice did not limit online users and statistics to the index")
+        birthdays = stat(member_index, "birthday-list")
+        if (visible not in birthdays or hidden not in birthdays or old in birthdays or "Upcoming birthdays" not in birthdays
+                or stat(guest_index, "birthday-list") or stat(visitor.fetch(category), "birthday-list")):
+            raise RuntimeError("Birthdays lost the configured look-ahead or appeared to guests")
         page = member.fetch(prefs)
         if FormFields(page, "ucp").values.get("plus_daily_scope") != "1":
             raise RuntimeError("The personal display selection did not survive conversion")
         submit_form(member, prefs, page, "ucp", {"plus_daily_scope": "2", "submit": "1"})
-        if not block(member.fetch(category)) or block(member.fetch("viewforum.php?f=1")):
-            raise RuntimeError("The category setting failed or included ordinary forums")
+        admin.fetch("index.php")
+        overview = member.fetch(category)
+        counts = stat(overview, "statistics")
+        online = stat(overview, "online-list")
+        if (not block(overview) or not counts or words(counts) != words(stat(member.fetch("index.php"), "statistics"))
+                or "ModernMember" not in online or 'Redaktion &amp; Gäste' not in online or 'Hidden palette' in online
+                or visible not in stat(overview, "birthday-list")
+                or hidden not in stat(overview, "birthday-list") or block(member.fetch("viewforum.php?f=1"))):
+            raise RuntimeError("The category lost board-wide totals, online users from other pages or upcoming birthdays")
         settings = admin.fetch(board)
         if FormFields(settings, "acp_board").values.get("config[plus_daily_mode]") != "2":
             raise RuntimeError("The native ACP did not display the active counting mode")
@@ -60,8 +82,29 @@ def browse(admin, member, check, source_enabled=True):
         check("native-guests-off")
         if re.search(r'Gäste:|Guests:', block(visitor.fetch("index.php"))):
             raise RuntimeError("The board's native guest display setting was ignored")
+        submit_form(admin, board, admin.fetch(board), "acp_board", {"config[plus_daily_mode]": "0", "submit": "1"})
+        no_history = member.fetch(category)
+        options = member.fetch(prefs)
+        if (block(no_history) or not stat(no_history, "online-list") or not stat(no_history, "statistics")
+                or FormFields(options, "ucp").values.get("plus_daily_scope") != "2"):
+            raise RuntimeError("Disabling daily history removed independently enabled online, statistics or UCP controls")
+        submit_form(member, prefs, options, "ucp", {"plus_daily_scope": "0", "submit": "1"})
+        for url in ("index.php", category):
+            off = member.fetch(url)
+            if any(stat(off, kind) for kind in ("online-list", "statistics", "birthday-list")):
+                raise RuntimeError("The member's opt-out with daily counting off left data on " + url)
+        if not stat(member.fetch("viewforum.php?f=1"), "online-list") or not stat(visitor.fetch(category), "statistics"):
+            raise RuntimeError("A personal opt-out changed normal forum browsing or another visitor's selection")
+        submit_form(member, prefs, member.fetch(prefs), "ucp", {"plus_daily_scope": "2", "submit": "1"})
+        submit_form(admin, board, admin.fetch(board), "acp_board",
+                    {"config[load_online]": "0", "config[load_birthdays]": "0", "submit": "1"})
+        without_online = visitor.fetch(category)
+        if stat(without_online, "online-list") or not stat(without_online, "statistics") or stat(member.fetch(category), "birthday-list"):
+            raise RuntimeError("The native online and birthday switches did not remain independent of general board statistics")
         check("force")
-        if block(member.fetch("index.php")) or 'id="plus_daily_scope"' in member.fetch(prefs):
-            raise RuntimeError("An enforced board-wide opt-out left the block or its personal override visible")
+        enforced = member.fetch("index.php")
+        if (block(enforced) or stat(enforced, "statistics") or stat(member.fetch(category), "statistics")
+                or 'id="plus_daily_scope"' in member.fetch(prefs)):
+            raise RuntimeError("An enforced board-wide opt-out left the index, category statistics or the personal override visible")
     finally:
         check("restore")

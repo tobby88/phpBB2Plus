@@ -18,12 +18,17 @@ class listener implements EventSubscriberInterface
 	{
 		return array('core.group_add_user_after'=>'membership', 'core.group_delete_user_after'=>'membership',
 			'core.user_set_default_group'=>'membership', 'core.user_set_group_attributes'=>'approval',
-			'core.user_add_after'=>'new_account', 'core.index_modify_page_title'=>'legend');
+			'core.user_add_after'=>'new_account', 'core.index_modify_page_title'=>'legend',
+			'core.viewforum_modify_page_title'=>array('category_legend', -10));
 	}
 
 	public function membership($event) { $this->palette->refresh((array) $event['user_id_ary']); }
 	public function new_account($event) { $this->palette->refresh(array($event['user_id'])); }
 	public function approval($event) { if ($event['action'] === 'approve') { $this->membership($event); } }
+	public function category_legend()
+	{
+		if ($this->template->retrieve_var('S_PLUS_CATEGORY_STATS')) { $this->legend(); }
+	}
 
 	public function legend()
 	{

@@ -94,19 +94,37 @@ class schedule
 		return $choices;
 	}
 
-	public function birthdays($first, $until)
+	public function birthdays($first, $until, $board = false)
 	{
-		if (!$this->settings->get('birthday') || !$this->config['allow_birthdays'] || empty($this->user->data['is_registered']) || !$this->auth->acl_get('u_viewprofile')) { return; }
+		if (!$this->config['allow_birthdays'] || empty($this->user->data['is_registered'])) { return; }
+		if ($board && !$this->auth->acl_gets('u_viewprofile', 'a_user', 'a_useradd', 'a_userdel')) { return; }
+		if (!$board && (!$this->settings->get('birthday') || !$this->auth->acl_get('u_viewprofile'))) { return; }
 		$last = $until->modify('-1 second');
-		$months = array();
-		for ($m = $first->modify('first day of this month'); $m->format('Y-m') <= $last->format('Y-m'); $m = $m->modify('first day of next month'))
+		$dates = array();
+		if ($board)
 		{
-			$n = (int) $m->format('n');
-			$months[sprintf('%2d',$n)] = true;
-			if ($n === 3) { $months[' 2'] = true; } // Historical February 29 birthdays fall on March 1 in ordinary years.
+			for ($day = $first; $day < $until; $day = $day->modify('+1 day'))
+			{
+				$dates[sprintf('%2d-%2d', $day->format('j'), $day->format('n'))] = true;
+				if ($day->format('m-d-L') === '03-01-0') { $dates['29- 2'] = true; }
+			}
+			$in_range = $this->db->sql_in_set('SUBSTRING(u.user_birthday,1,5)', array_keys($dates));
 		}
-		$sql = 'SELECT user_id,username,user_birthday FROM ' . USERS_TABLE . ' WHERE ' . $this->db->sql_in_set('user_type',array(USER_NORMAL,USER_FOUNDER)) .
-			' AND ' . $this->db->sql_in_set('SUBSTRING(user_birthday,4,2)',array_map('strval',array_keys($months))) . ' ORDER BY username_clean,user_id';
+		else
+		{
+			for ($m = $first->modify('first day of this month'); $m->format('Y-m') <= $last->format('Y-m'); $m = $m->modify('first day of next month'))
+			{
+				$n = (int) $m->format('n');
+				$dates[sprintf('%2d',$n)] = true;
+				if ($n === 3) { $dates[' 2'] = true; } // Historical February 29 birthdays fall on March 1 in ordinary years.
+			}
+			$in_range = $this->db->sql_in_set('SUBSTRING(u.user_birthday,4,2)', array_map('strval',array_keys($dates)));
+		}
+		$sql = 'SELECT u.user_id,u.username,u.user_colour,u.user_birthday FROM ' . USERS_TABLE . ' u' .
+			($board ? ' LEFT JOIN ' . BANLIST_TABLE . ' b ON b.ban_userid=u.user_id' : '') .
+			' WHERE ' . $this->db->sql_in_set('u.user_type',array(USER_NORMAL,USER_FOUNDER)) . ' AND ' . $in_range .
+			($board ? ' AND (b.ban_id IS NULL OR b.ban_exclude=1)' : '') .
+			' ORDER BY u.username_clean,u.user_id';
 		$result = $this->db->sql_query($sql);
 		try
 		{
@@ -119,7 +137,7 @@ class schedule
 					$date = $first->setDate($year,$parts[1],$parts[0])->setTime(0,0);
 					$end = $date->modify('+1 day');
 					if ($date >= $until || $end <= $first) { continue; }
-					yield array('TITLE'=>$r['username'], 'AGE'=>$parts[2] ? $year - $parts[2] : null,
+					yield array('USER_ID'=>(int) $r['user_id'], 'TITLE'=>$r['username'], 'COLOUR'=>$r['user_colour'], 'AGE'=>$parts[2] ? $year - $parts[2] : null,
 						'BIRTHDAY'=>true,'FROM'=>$date->getTimestamp(),'UNTIL'=>$end->getTimestamp()-1, 'FORUM'=>'',
 						'URL'=>append_sid($this->root . 'memberlist.' . $this->ext, 'mode=viewprofile&amp;u=' . (int) $r['user_id']));
 				}

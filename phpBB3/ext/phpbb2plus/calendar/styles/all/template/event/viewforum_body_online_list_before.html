@@ -1,0 +1,9 @@
+{% if S_PLUS_CATEGORY_STATS and S_DISPLAY_BIRTHDAY_LIST %}
+<div class="stat-block birthday-list">
+	<h3>{{ lang('BIRTHDAYS') }}</h3>
+	<p>{% if loops.birthdays %}{{ lang('CONGRATULATIONS') ~ lang('COLON') }}
+	<strong>{% for member in loops.birthdays %}{{ member.USERNAME }}{% if member.AGE is not same as('') %} ({{ member.AGE }}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</strong>
+	{% else %}{{ lang('NO_BIRTHDAYS') }}{% endif %}
+	{% include '@phpbb2plus_calendar/forum_upcoming_birthdays.html' %}</p>
+</div>
+{% endif %}

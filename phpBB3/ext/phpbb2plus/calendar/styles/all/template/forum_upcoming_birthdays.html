@@ -1,0 +1,4 @@
+{% if loops.plus_upcoming_birthdays %}<br>{{ lang('PLUS_CAL_UPCOMING_BIRTHDAYS') ~ lang('COLON') }}
+{% for member in loops.plus_upcoming_birthdays %}{{ member.USERNAME }} ({{ member.DATE }}{% if member.AGE is not same as('') %}, {{ member.AGE }}{% endif %}){% if not loop.last %}, {% endif %}{% endfor %}
+{% elseif PLUS_BOARD_BIRTHDAY_DAYS > 1 %}<br>{{ lang('PLUS_CAL_NO_UPCOMING_BIRTHDAYS', PLUS_BOARD_BIRTHDAY_DAYS) }}
+{% endif %}
