@@ -34,6 +34,7 @@ import attachments
 import attachment_quotas
 import attachment_blocks
 import forum_permissions
+import group_leaders
 import blue_reports
 import forum_recovery
 import news
@@ -43,6 +44,7 @@ import gender_profile
 import profile_visits
 import program_integrity
 import forum_display
+import help_readers
 import style_templates
 import topic_avatar
 import topic_navigation
@@ -713,7 +715,9 @@ def main():
                     ROOT / "tests/phpbb3/print_topics.php", phase, target, cwd=web))
                 topic_navigation.browse(Browser(base), lambda phase: php(
                     ROOT / "tests/phpbb3/topic_navigation.php", target, phase, cwd=web))
-                forum_permissions.publishing(member, ordinary, pending)
+                designated = forum_permissions.publishing(member, ordinary, pending)
+                group_leaders.browse(base, member, designated, pending, lambda phase: php(
+                    ROOT / "tests/phpbb3/group_leaders.php", target, phase, cwd=web))
                 forum_permissions.reporting(base, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)
@@ -748,6 +752,8 @@ def main():
                 legacy_login.browse(web, base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"], member)
                 moderation_bookmarks.browse(base, ordinary, lambda phase: php(
                     ROOT / "tests/phpbb3/moderation_bookmarks.php", target, phase, cwd=web))
+                help_readers.browse(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/help_readers.php", target, phase, cwd=web))
                 legacy_links.groups(base, member, ordinary, pending, int(php(fixture, "group-bookmarks", target, capture=True)))
                 credits.browse(base, ordinary)
                 topic_calendar.browse(base, member, ordinary, pending)
