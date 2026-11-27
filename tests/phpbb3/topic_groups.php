@@ -5,11 +5,21 @@ define('IN_PHPBB',true); $phpbb_root_path='./'; $phpEx='php'; require './common.
 if ($dbhost !== '127.0.0.1' || $dbname !== $argv[1]) { exit(2); }
 $phase=$argv[2];
 $one=static function ($sql) use ($db) { $result=$db->sql_query_limit($sql,1); $row=$db->sql_fetchrow($result); $db->sql_freeresult($result); return $row; };
-if ($phase==='upgraded')
+if ($phase==='older' || $phase==='upgraded')
 {
-	$row=$one('SELECT topic_type,plus_list_news FROM '.TOPICS_TABLE.' WHERE topic_id=1');
-	if ((int) $row['plus_list_news'] !== -1 || (int) $row['topic_type'] !== POST_NORMAL)
+	$state=$phpbb_container->get('config_text');
+	$key='plus_test_upgraded_topic_group';
+	if ($phase==='older')
+	{
+		$row=$one('SELECT topic_id FROM '.TOPICS_TABLE.' WHERE topic_type='.POST_NORMAL.' AND topic_visibility='.ITEM_APPROVED.' AND topic_status<>'.ITEM_MOVED.' ORDER BY topic_id');
+		if (!$row) { throw new RuntimeException('Missing native topic before upgrading news roles'); }
+		$state->set($key, (string) $row['topic_id']);
+		return;
+	}
+	$row=$one('SELECT topic_type,plus_list_news FROM '.TOPICS_TABLE.' WHERE topic_id='.(int) $state->get($key));
+	if (!$row || (int) $row['plus_list_news'] !== -1 || (int) $row['topic_type'] !== POST_NORMAL)
 	{ throw new RuntimeException('Upgrading guessed that an earlier native topic had or lacked a historical news role'); }
+	$state->delete($key);
 	return;
 }
 $db->sql_transaction('begin');

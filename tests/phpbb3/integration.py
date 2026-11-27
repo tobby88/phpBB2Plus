@@ -82,6 +82,7 @@ import attachment_rules
 import attachment_upload_types
 import member_attachments
 import birthday_greeting
+import birthday_symbols
 import absence
 import absence_contact
 import absence_registration
@@ -409,6 +410,8 @@ def extension_upgrades(target, web, suite="all"):
         preserved.append(tests / "country_flag_administration.php")
         migrations.append("community/migrations/v161_acronym_dictionary")
         preserved.append(tests / "acronym_dictionary.php")
+        migrations.append("community/migrations/v184_news_topics")
+        fixtures.append(tests / "topic_groups.php")
     if suite in ("media", "downloads"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
@@ -586,6 +589,7 @@ def main():
                     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
                 if forum_suite:
                     # This also exercises conversion after the stock formatter has been cached.
+                    php(ROOT / "tests/phpbb3/birthday_symbols.php", "calendar")
                     php(ROOT / "tests/phpbb3/gender_profile.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/profile_visits.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/topic_avatar.php", target, "fresh", cwd=web)
@@ -731,6 +735,8 @@ def main():
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "after", cwd=web)
                 exercise_shoutbox(base, member, ordinary)
                 php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
+                birthday_symbols.browse(base, member, ordinary, lambda phase: php(
+                    ROOT / "tests/phpbb3/birthday_symbols.php", target, phase, cwd=web))
                 profiles(base, ordinary, member)
                 news.browse(base, member)
                 custom_profiles.exercise(base, pending)
