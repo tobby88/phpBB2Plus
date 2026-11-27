@@ -2,6 +2,7 @@
 namespace phpbb2plus\community\acp;
 
 use phpbb\request\request_interface;
+use phpbb2plus\community\service\welcome;
 
 class portal_module
 {
@@ -19,7 +20,7 @@ class portal_module
 		$values = array();
 		while ($r = $db->sql_fetchrow($result)) { $values[$r['config_name']] = (int) $r['config_value']; }
 		$db->sql_freeresult($result);
-		$values += $text->get_array(array('plus_portal_welcome','plus_portal_exclude','plus_portal_poll_forums','plus_portal_picture_categories'));
+		$values += welcome::editor_settings($text,array('plus_portal_exclude','plus_portal_poll_forums','plus_portal_picture_categories'));
 		ksort($values);
 		return $values;
 	}
@@ -51,7 +52,7 @@ class portal_module
 				if (!ctype_digit($raw) || (int) $raw > $max || ($name === 'picture_size' && (int) $raw < 1)) { trigger_error('PLUS_PORTAL_LIMIT',E_USER_WARNING); }
 				$values['plus_portal_' . $name] = (int) $raw;
 			}
-			$long = array('plus_portal_welcome'=>$welcome);
+			$long = welcome::storage($welcome);
 			$categories = trim($request->variable('picture_categories','',false,request_interface::POST));
 			if ($categories !== '' && (strlen($categories)>8192 || !preg_match('/^[1-9][0-9]{0,8}(?:\s*,\s*[1-9][0-9]{0,8})*$/D',$categories)))
 			{ trigger_error('PLUS_PORTAL_CATEGORY_IDS',E_USER_WARNING); }

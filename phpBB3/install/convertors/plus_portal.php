@@ -33,7 +33,10 @@ function plus_portal_settings()
 		$value = $row['portal_value'];
 		switch ($row['portal_name'])
 		{
-			case 'welcome_text': $text->set('plus_portal_welcome',\phpbb2plus\community\service\welcome::migrate_images($value,'plus_portal_image')); break;
+			case 'welcome_text':
+				$welcome = \phpbb2plus\community\service\welcome::migrate_images($value,'plus_portal_image');
+				$text->set_array(\phpbb2plus\community\service\welcome::storage($welcome));
+				break;
 			case 'exceptional_forums':
 			case 'poll_forum':
 			case 'cat_id':

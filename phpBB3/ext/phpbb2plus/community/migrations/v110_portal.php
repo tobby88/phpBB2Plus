@@ -22,7 +22,8 @@ class v110_portal extends \phpbb\db\migration\migration
 		{
 			$data[] = array('config.add',array('plus_portal_' . $name,$value));
 		}
-		foreach (array('welcome','exclude','poll_forums') as $name) { $data[] = array('config_text.add',array('plus_portal_' . $name,'')); }
+		// The editor creates the optional spelling on its first save on previously installed boards.
+		foreach (array('welcome','welcome_source','exclude','poll_forums') as $name) { $data[] = array('config_text.add',array('plus_portal_' . $name,'')); }
 		$data[] = array('module.add',array('acp','ACP_BOARD_CONFIGURATION',array('module_basename'=>'\phpbb2plus\community\acp\portal_module','modes'=>array('settings'))));
 		return $data;
 	}
