@@ -1,12 +1,11 @@
 <?php
 namespace phpbb2plus\community\event;
 
+use phpbb2plus\community\service\forum_display;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class topic_groups implements EventSubscriberInterface
 {
-	private const LABELS = array('global'=>'PLUS_TOPIC_GROUP_GLOBAL', 'announce'=>'PLUS_TOPIC_GROUP_ANNOUNCE',
-		'news'=>'PLUS_TOPIC_GROUP_NEWS', 'sticky'=>'PLUS_TOPIC_GROUP_STICKY', 'normal'=>'TOPICS');
 	private $settings, $config, $db, $language, $template, $visibility;
 	private $posting_forum = false, $box = false, $show_headings = false;
 	private $groups = array(), $previous;
@@ -59,18 +58,13 @@ class topic_groups implements EventSubscriberInterface
 		if (!$this->posting_forum) { return; }
 		$this->language->add_lang('forum_display','phpbb2plus/community');
 		$this->groups=array(); $this->previous=null;
-		$bucket='normal'; $type_names=array();
-		foreach (array('sticky'=>'split_sticky','news'=>'split_news','announce'=>'split_announce','global'=>'split_global_announce') as $group=>$setting)
-		{
-			if ($this->settings->get($setting)) { $bucket=$group; }
-			$type_names[$group]=$bucket;
-		}
-		$this->show_headings=$bucket !== 'normal';
+		$type_names=$this->settings->topic_groups();
+		$this->show_headings=$type_names['global'] !== 'normal';
 		$this->box=$this->show_headings && $this->settings->get('split_topic_split');
 		$this->template->assign_var('S_PLUS_TOPIC_GROUPS', $this->show_headings);
 		$this->template->assign_var('S_PLUS_TOPIC_GROUP_BOX', $this->box);
 		if (!$this->show_headings) { return; }
-		$buckets=array_fill_keys(array_keys(self::LABELS),array());
+		$buckets=array_fill_keys(array_keys(forum_display::GROUP_LABELS),array());
 		$native_types=array(POST_GLOBAL=>'global', POST_ANNOUNCE=>'announce', POST_STICKY=>'sticky');
 		$rows=$event['rowset'];
 		foreach ($event['topic_list'] as $id)
@@ -94,7 +88,7 @@ class topic_groups implements EventSubscriberInterface
 		$this->previous=$group;
 		$row['S_TOPIC_TYPE_SWITCH']=($first || ($this->box && $changed)) ? 0 : -1;
 		if ($changed && $this->show_headings)
-		{ $row['PLUS_GROUP_LABEL']=$this->language->lang(self::LABELS[$group]); }
+		{ $row['PLUS_GROUP_LABEL']=$this->language->lang(forum_display::GROUP_LABELS[$group]); }
 		$event['topic_row']=$row;
 	}
 	public function posted($event)

@@ -20,10 +20,14 @@ class topic_activity
 		$this->config = $config;
 	}
 
-	public function forums()
+	public function listed_forums()
 	{
-		return array_diff(array_intersect(array_keys($this->auth->acl_getf('f_list', true)),
-			array_keys($this->auth->acl_getf('f_read', true))), $this->user->get_passworded_forums());
+		return array_diff(array_keys($this->auth->acl_getf('f_list', true)), $this->user->get_passworded_forums());
+	}
+
+	public function forums($listed = null)
+	{
+		return array_intersect($listed ?? $this->listed_forums(), array_keys($this->auth->acl_getf('f_read', true)));
 	}
 
 	public static function period($mode, $days, $now, \DateTimeZone $zone)
@@ -80,6 +84,14 @@ class topic_activity
 		$result = $this->db->sql_query_limit('SELECT ' . $columns . $from . $joins . $where . ' ORDER BY ' . $order, $limit, $page['start']);
 		$rows = $this->db->sql_fetchrowset($result);
 		$this->db->sql_freeresult($result);
+		$page['rows'] = $this->with_authors($rows);
+		return $page;
+	}
+
+	// Resolve both bylines in one pass, including the visitor's former-user visibility.
+	public function with_authors(array $rows)
+	{
+		if (!$rows) { return array(); }
 		$posts = array_column($rows, null, 'post_id');
 		foreach ($rows as $r)
 		{
@@ -91,13 +103,32 @@ class topic_activity
 		}
 		$authors = $this->dispatcher->trigger_event('phpbb2plus.community.preview_bylines',
 			array('rowset'=>$posts, 'post_list'=>array_keys($posts)))['rowset'];
-		foreach ($rows as $r)
+		foreach ($rows as $index => $r)
 		{
-			$r['last_author'] = $this->author($authors[$r['post_id']]);
-			if (!empty($r['first_id'])) { $r['first_author'] = $this->author($authors[$r['first_id']]); }
-			$page['rows'][] = $r;
+			$rows[$index]['last_author'] = $this->author($authors[$r['post_id']]);
+			if (!empty($r['first_id'])) { $rows[$index]['first_author'] = $this->author($authors[$r['first_id']]); }
 		}
-		return $page;
+		return $rows;
+	}
+
+	public function tracking(array $rows, $include_guests = false)
+	{
+		$member = !empty($this->user->data['is_registered']);
+		if (!$member && (!$include_guests || !$this->config['load_anon_lastread'])) { return array(); }
+		$by_forum = array();
+		foreach ($rows as $r) { $by_forum[$r['forum_id']][$r['topic_id']] = $r; }
+		$tracked = array();
+		foreach ($by_forum as $forum=>$topics)
+		{
+			$ids = array_keys($topics);
+			if ($member && $this->config['load_db_lastread'])
+			{
+				$first = reset($topics);
+				$tracked += get_topic_tracking((int) $forum, $ids, $topics, array($forum=>$first['forum_mark_time']));
+			}
+			else { $tracked += get_complete_topic_tracking((int) $forum, $ids); }
+		}
+		return $tracked;
 	}
 
 	private function author($post)

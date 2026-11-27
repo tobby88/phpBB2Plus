@@ -313,9 +313,10 @@ if (!$get_info)
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			foreach (\phpbb2plus\community\service\forum_display::DEFAULTS as $name => $unused)
 			{
-				if (isset($source_user_columns['user_' . $name]))
+				$source = 'user_' . (\phpbb2plus\community\service\forum_display::ANNOUNCEMENTS[$name] ?? $name);
+				if (isset($source_user_columns[$source]))
 				{
-					$section[] = array('plus_' . $name, array('users.user_' . $name, $name), 'plus_forum_display_choice');
+					$section[] = array('plus_' . $name, array('users.' . $source, $name), 'plus_forum_display_choice');
 				}
 			}
 			if (isset($source_user_columns['user_display_viewonline']))

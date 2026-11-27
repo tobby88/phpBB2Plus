@@ -2,6 +2,13 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang, array(
 	'PLUS_DISPLAY_PREFERENCES'=>'Forum list preferences',
+	'PLUS_DISPLAY_ANNOUNCE_INDEX'=>'Show the announcement overview on the board index and in categories',
+	'PLUS_DISPLAY_ANNOUNCE_FORUM'=>'Show announcements from other forums on forum pages',
+	'PLUS_DISPLAY_ANNOUNCE_DATES'=>'Show the date range of time-limited announcements',
+	'PLUS_DISPLAY_ANNOUNCE_GROUPS'=>'Group announcements by topic type in the overview',
+	'PLUS_DISPLAY_ANNOUNCE_PATH'=>'Show the forum path beneath announcements',
+	'PLUS_BOARD_ANNOUNCEMENTS'=>'Board announcements', 'PLUS_ANNOUNCE_FROM_TO'=>'From %1$s to %2$s',
+	'PLUS_ANNOUNCE_DATE_FORMAT'=>'d M Y',
 	'PLUS_DISPLAY_SUB_FORUM'=>'Forum index layout', 'PLUS_DISPLAY_EXPANDED'=>'Expand all forum levels',
 	'PLUS_DISPLAY_MEDIUM'=>'Display categories and their forums', 'PLUS_DISPLAY_COMPACT'=>'Compact category list',
 	'PLUS_DISPLAY_SPLIT_CAT'=>'Display each top-level category in a separate section',

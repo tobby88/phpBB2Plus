@@ -52,22 +52,7 @@ class recent
 		{
 			$this->template->assign_block_vars('periods', array('VALUE'=>$key, 'LABEL'=>$this->language->lang($label), 'SELECTED'=>$mode === $key));
 		}
-		$tracked = array();
-		if ($this->user->data['is_registered'])
-		{
-			$by_forum = array();
-			foreach ($page['rows'] as $r) { $by_forum[$r['forum_id']][$r['topic_id']] = $r; }
-			foreach ($by_forum as $forum=>$topics)
-			{
-				$ids = array_keys($topics);
-				if ($this->config['load_db_lastread'])
-				{
-					$last = reset($topics);
-					$tracked += get_topic_tracking((int) $forum, $ids, $topics, array($forum=>$last['forum_mark_time']));
-				}
-				else { $tracked += get_complete_topic_tracking((int) $forum, $ids); }
-			}
-		}
+		$tracked = $this->activity->tracking($page['rows']);
 		include_once $this->root . 'includes/functions_display.' . $this->ext;
 		foreach ($page['rows'] as $r)
 		{

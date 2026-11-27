@@ -10,7 +10,11 @@ class forum_display implements EventSubscriberInterface
 	// These are the controls that affect the forum lists rendered by this extension.
 	private const INDEX = array('sub_forum', 'split_cat', 'last_topic_title', 'sub_level_links');
 	private const TOPICS = array('split_global_announce', 'split_announce', 'split_news', 'split_sticky', 'split_topic_split');
-	private function controls() { return empty($this->config['plus_topic_groups_ready']) ? self::INDEX : array_merge(self::INDEX, self::TOPICS); }
+	private function controls()
+	{
+		$controls = empty($this->config['plus_topic_groups_ready']) ? self::INDEX : array_merge(self::INDEX, self::TOPICS);
+		return isset($this->config['plus_announce_index']) ? array_merge($controls, array_keys(settings::ANNOUNCEMENTS)) : $controls;
+	}
 	private $settings, $config, $request, $language, $template, $db, $auth;
 	private $titles = array();
 

@@ -2,6 +2,13 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang, array(
 	'PLUS_DISPLAY_PREFERENCES'=>'Darstellung der Forenlisten',
+	'PLUS_DISPLAY_ANNOUNCE_INDEX'=>'Ankündigungsübersicht im Forenindex und in Kategorien zeigen',
+	'PLUS_DISPLAY_ANNOUNCE_FORUM'=>'Ankündigungen aus anderen Foren auf den Forenseiten zeigen',
+	'PLUS_DISPLAY_ANNOUNCE_DATES'=>'Gültigkeitszeitraum befristeter Ankündigungen zeigen',
+	'PLUS_DISPLAY_ANNOUNCE_GROUPS'=>'Ankündigungen in der Übersicht nach Thementyp gruppieren',
+	'PLUS_DISPLAY_ANNOUNCE_PATH'=>'Forenpfad unter den Ankündigungen zeigen',
+	'PLUS_BOARD_ANNOUNCEMENTS'=>'Board-Ankündigungen', 'PLUS_ANNOUNCE_FROM_TO'=>'Vom %1$s bis %2$s',
+	'PLUS_ANNOUNCE_DATE_FORMAT'=>'d.m.Y',
 	'PLUS_DISPLAY_SUB_FORUM'=>'Gliederung der Forenübersicht', 'PLUS_DISPLAY_EXPANDED'=>'Alle Forenebenen ausklappen',
 	'PLUS_DISPLAY_MEDIUM'=>'Kategorien und ihre Foren anzeigen', 'PLUS_DISPLAY_COMPACT'=>'Kompakte Kategorienliste',
 	'PLUS_DISPLAY_SPLIT_CAT'=>'Jede Hauptkategorie in einem eigenen Abschnitt anzeigen',

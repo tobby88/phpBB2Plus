@@ -432,6 +432,12 @@ services:
     phpbb2plus.community.announcements:
         class: phpbb2plus\community\service\announcements
         arguments: ['@dbal.conn', '@config']
+    phpbb2plus.community.announcement_list:
+        class: phpbb2plus\community\event\announcement_list
+        arguments: ['@phpbb2plus.community.forum_display', '@phpbb2plus.community.topic_activity', '@phpbb2plus.community.announcements',
+                    '@dbal.conn', '@content.visibility', '@config', '@request', '@user', '@language', '@template', '%core.root_path%', '%core.php_ext%']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.announcement_events:
         class: phpbb2plus\community\event\announcements
         arguments: ['@phpbb2plus.community.announcements', '@config', '@auth', '@request', '@language']
