@@ -1,0 +1,6 @@
+{% for pref in loops.plus_display_pref %}
+<dl><dt><label for="{{ pref.FIELD }}">{{ pref.LABEL }}</label></dt>
+<dd><select name="{{ pref.FIELD }}" id="{{ pref.FIELD }}">
+{% for choice in pref.option %}<option value="{{ choice.VALUE }}"{% if choice.SELECTED %} selected{% endif %}>{{ choice.LABEL }}</option>{% endfor %}
+</select></dd></dl>
+{% endfor %}

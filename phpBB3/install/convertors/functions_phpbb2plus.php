@@ -32,6 +32,7 @@ require_once __DIR__ . '/plus_blue_reports.php';
 require_once __DIR__ . '/plus_memberships.php';
 require_once __DIR__ . '/plus_news.php';
 require_once __DIR__ . '/plus_portal.php';
+require_once __DIR__ . '/plus_forum_display.php';
 require_once __DIR__ . '/plus_statistics.php';
 require_once __DIR__ . '/plus_banners.php';
 require_once __DIR__ . '/plus_weblinks.php';

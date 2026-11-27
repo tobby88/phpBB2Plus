@@ -60,6 +60,7 @@ if (!$get_info)
 	// Category listing grants depend on the final visibility of their descendant forums.
 	$convertor['execute_last'][] = 'plus_forum_permissions();';
 	$convertor['execute_last'][] = 'plus_restore_forum_tree();';
+	$convertor['execute_last'][] = 'plus_import_forum_display();';
 	$convertor['execute_last'][] = 'plus_banner_next_id();';
 	$convertor['execute_last'][] = 'plus_enable_post_icons();';
 	$convertor['execute_last'][] = 'plus_import_topic_avatar();';
@@ -308,39 +309,46 @@ if (!$get_info)
 			}
 			foreach (plus_profile_visit_fields($away_tools, $convert->src_table_prefix . 'users') as $visit_field) { $section[] = $visit_field; }
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
-			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
-			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_display_viewonline'))
+			$source_columns = (new \phpbb\db\tools\factory())->get($src_db)->sql_list_columns($convert->src_table_prefix . 'users');
+			foreach (\phpbb2plus\community\service\forum_display::DEFAULTS as $name => $unused)
+			{
+				if (isset($source_columns['user_' . $name]))
+				{
+					$section[] = array('plus_' . $name, array('users.user_' . $name, $name), 'plus_forum_display_choice');
+				}
+			}
+			if (isset($source_columns['user_display_viewonline']))
 			{
 				$section[] = array('plus_daily_scope', 'users.user_display_viewonline', 'intval');
 			}
-			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_setbm'))
+			if (isset($source_columns['user_setbm']))
 			{
 				$section[] = array('plus_post_bookmark', 'users.user_setbm', 'plus_tracker_flag');
 			}
 			foreach (array('user_use_ajax_edit' => 'plus_inline_edit', 'user_use_ajax_preview' => 'plus_full_preview') as $field => $option)
 			{
-				if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', $field))
+				if (isset($source_columns[$field]))
 				{
 					$section[] = array($option, 'users.' . $field, 'intval');
 				}
 			}
-			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_global_msg_read'))
+			if (isset($source_columns['ct_global_msg_read']))
 			{
 				$section[] = array('plus_notice_pending', 'users.ct_global_msg_read', 'plus_tracker_flag');
 			}
-			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_passwd_change'))
+			if (isset($source_columns['user_passwd_change']))
 			{
 				$section[] = array('user_passchg', 'users.user_passwd_change', 'plus_password_change_time');
 				$section[] = array('plus_pw_native_origin', 'users.user_passwd_change', 'plus_password_change_time');
 				$section[] = array('plus_pw_renewal_seen', 'users.user_passwd_change', 'plus_password_renewal_seen');
 			}
-			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'ct_last_pw_change'))
+			if (isset($source_columns['ct_last_pw_change']))
 			{
 				$section[] = array('plus_pw_notice_change', 'users.ct_last_pw_change', 'plus_password_change_time');
 			}
 			foreach (array('ct_enable_ip_warn' => 'plus_login_warn', 'ct_last_ip' => 'plus_login_previous', 'ct_last_used_ip' => 'plus_login_current') as $old => $new)
 			{
-				if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', $old))
+				if (isset($source_columns[$old]))
 				{
 					$section[] = array($new, 'users.' . $old, $old === 'ct_enable_ip_warn' ? 'plus_tracker_flag' : 'plus_login_address');
 				}
