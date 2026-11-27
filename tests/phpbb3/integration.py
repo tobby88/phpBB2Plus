@@ -476,6 +476,83 @@ def module_administration(base, member, ordinary, pending, fixture, target, web,
     print(f"Module administration and gallery workflows: {monotonic()-started:.1f}s", flush=True)
 
 
+def web_directory_checks(base, member, ordinary, target, web):
+    weblinks.browse(base, member, ordinary, lambda phase: php(
+        ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
+    weblink_logos.browse(base, member, ordinary, lambda phase: php(
+        ROOT / "tests/phpbb3/weblink_logos.php", target, phase, cwd=web, capture=True), web)
+    weblinks_admin.administration(base, lambda phase: php(
+        ROOT / "tests/phpbb3/weblinks_admin.php", target, phase, cwd=web))
+
+
+def forum_extensions(base, member, ordinary, pending, target, web, include_other_suites=False):
+    fixture = ROOT / "tests/phpbb3/legacy_database.php"
+    arcade.awards(member, ordinary, pending)
+    arcade_directory.browse(base, ordinary, lambda phase: php(
+        ROOT / "tests/phpbb3/arcade_directory.php", target, phase, cwd=web, capture=True))
+    arcade_directory.social_bookmarks(base, ordinary, pending)
+    arcade_categories.browse(base, member, ordinary, pending, lambda phase: php(
+        ROOT / "tests/phpbb3/arcade_categories.php", target, phase, cwd=web))
+    if include_other_suites:
+        arcade_management(base, member, ordinary, pending, target, web)
+    arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(
+        ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
+    arcade_standings.artwork(base, ordinary, pending, lambda: php(
+        ROOT / "tests/phpbb3/arcade_standings.php", target, "recover-artwork", cwd=web),
+        lambda source=web.parent / "legacy": php(web / "bin/phpbbcli.php", "phpbb2plus:arcade:import-artwork", source, cwd=web, capture=True))
+    arcade.tournaments(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
+    game_source = arcade.browse(base, member, ordinary, pending)
+    php(fixture, "played", target)
+    arcade.protocols(base, ordinary, game_source)
+    arcade.wallets(base, ordinary, member)
+    php(fixture, "scored", target)
+    arcade.community(base, member, ordinary, pending)
+    arcade.comments(base, member, ordinary, pending)
+    arcade.tournament_play(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
+    arcade_administration.exercise(member, ordinary, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "proposal", cwd=web))
+    creation = arcade_administration.control(member, ordinary, pending, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "control", cwd=web))
+    arcade_administration.closure(member, ordinary, pending, creation, lambda step: php(ROOT / "tests/phpbb3/tournament_closure.php", target, step, cwd=web))
+    playback(web, base, web.parent)
+    php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
+    php(ROOT / "tests/phpbb3/historical_actions_finish.php", target, cwd=web)
+    historical_actions.browse(member)
+    php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
+    delegation.verify_report(php, web)
+    # The gallery checks briefly change its display options. Keep them
+    # away from other gallery requests, including the Chromium check.
+    def gallery_views():
+        admin, reader, applicant = (actor.separate_client() for actor in (member, ordinary, pending))
+        guest = Browser(base)
+        gallery_progress.browse(admin, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_progress.php", target, phase, cwd=web, capture=True))
+        gallery_hotlink.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_hotlink.php", target, phase, cwd=web, capture=True))
+        gallery_navigation.browse(admin, reader, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_navigation.php", target, phase, cwd=web, capture=True))
+        gallery_previews.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_previews.php", target, phase, cwd=web, capture=True))
+        gallery_search.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_search.php", target, phase, cwd=web, capture=True))
+        gallery_hot.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_hot.php", target, phase, cwd=web, capture=True))
+        gallery_directory.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_directory.php", target, phase, cwd=web, capture=True))
+        gallery_category_index.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_category_index.php", target, phase, cwd=web, capture=True))
+        gallery_activity.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_activity.php", target, phase, cwd=web, capture=True))
+        gallery_moderation.browse(admin, reader, applicant, guest, lambda phase: php(
+            ROOT / "tests/phpbb3/gallery_moderation.php", target, phase, cwd=web, capture=True))
+
+    with ThreadPoolExecutor(max_workers=1) as worker:
+        navigation = worker.submit(gallery_views)
+        knowledgebase.browse(base, member, ordinary, pending)
+        knowledgebase.reply_preferences(base, member, lambda phase: php(fixture, phase, target))
+        php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
+        navigation.result()
+    module_administration(base, member, ordinary, pending, fixture, target, web, include_other_suites)
+
+
 def seed_source(source, legacy, suite):
     tests = ROOT / "tests/phpbb3"
     forum_suite = suite in ("all", "forum")
@@ -535,18 +612,56 @@ def seed_source(source, legacy, suite):
         request_blocks.source_media(legacy)
 
 
+CI_PARTS = {"forum": ("board", "extensions"), "media": ("files", "access"), "management": ("accounts", "games")}
+
+
+def parallel_suite(args):
+    # Each process creates its own two schemas, web root, upload directory, sessions and loopback server.
+    # This lets real form tokens age concurrently without sharing mutable board state.
+    started = monotonic()
+    command = [sys.executable, "-u", str(Path(__file__).resolve()), "--cache", str(args.cache.resolve()), "--suite", args.suite]
+    if args.offline:
+        command.append("--offline")
+
+    def run_part(part):
+        with subprocess.Popen([*command, "--part", part], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              text=True, encoding="utf-8", errors="replace",
+                              env={**os.environ, "PYTHONIOENCODING": "utf-8"}) as child:
+            for line in child.stdout:
+                print(f"[{args.suite}/{part}] {line}", end="", flush=True)
+            return child.wait()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        jobs = {part: pool.submit(run_part, part) for part in CI_PARTS[args.suite]}
+        failed = [part for part, job in jobs.items() if job.result()]
+    if failed:
+        raise SystemExit("Failed " + args.suite + " checks: " + ", ".join(failed))
+    print(f"Verified both {args.suite} installations in {monotonic()-started:.1f}s", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--suite", choices=("all", "forum", "media", "downloads", "arcade", "management"), default="all",
                         help="Run the full converted board or one of the independent CI suites")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--parallel", action="store_true", help="Run both sections of a CI suite on independent installations")
+    selection.add_argument("--part", choices=sorted(part for parts in CI_PARTS.values() for part in parts),
+                           help="Use board or extensions with forum, files or access with media, and accounts or games with management")
     args = parser.parse_args()
     media_only = args.suite in ("media", "downloads")
     forum_suite = args.suite in ("forum", "all")
     account_suite = args.suite in ("management", "all")
     if os.environ.get("PLUS_TEST_DATABASE") != "1":
         parser.error("Set PLUS_TEST_DATABASE=1 to create a disposable loopback schema")
+    if args.parallel:
+        if args.suite not in CI_PARTS:
+            parser.error("--parallel requires --suite forum, media or management")
+        parallel_suite(args)
+        return
+    if args.part and args.part not in CI_PARTS.get(args.suite, ()):
+        parser.error("--part must belong to the selected CI suite")
     start = monotonic()
     php(ROOT / "tests/phpbb3/calendar_periods.php")
     with tempfile.TemporaryDirectory(prefix="plus3-integration-") as directory:
@@ -567,7 +682,7 @@ def main():
                 print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
                 # Exercise both earlier extension schemas on the same clean installation.
                 early = {"knowledgebase/migrations/v107_unicode_text": "kb_unicode",
-                         "arcade/migrations/v119_tournament_unicode": "arcade_tournament_unicode"} if args.suite == "management" else {}
+                         "arcade/migrations/v119_tournament_unicode": "arcade_tournament_unicode"} if args.suite == "management" and args.part != "games" else {}
                 migrations = [(web / "ext/phpbb2plus" / (name + ".php")) for name in early]
                 try:
                     for path in migrations:
@@ -589,7 +704,7 @@ def main():
                     for check in fixtures:
                         php(check, target, "reverted", cwd=web)
                     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
-                if forum_suite:
+                if forum_suite and args.part != "extensions":
                     # This also exercises conversion after the stock formatter has been cached.
                     php(ROOT / "tests/phpbb3/birthday_symbols.php", "calendar")
                     php(ROOT / "tests/phpbb3/gender_profile.php", target, "fresh", cwd=web)
@@ -598,7 +713,7 @@ def main():
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "native", cwd=web)
                     php(ROOT / "tests/phpbb3/table_formatting.php", target, "fresh", cwd=web)
-                if account_suite:
+                if account_suite and args.part != "games":
                     php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
                     php(ROOT / "tests/phpbb3/gallery_unicode.php", target, "upgrade", cwd=web)
                 php("bin/phpbbcli.php", "--version", cwd=web)
@@ -620,16 +735,22 @@ def main():
                 if account_suite:
                     php(ROOT / "tests/phpbb3/absence.php", target, "converted", cwd=web)
                     php(ROOT / "tests/phpbb3/birthday_greeting.php", target, "converted", cwd=web)
-                if args.suite in ("arcade", "management"):
+                if args.suite in ("arcade", "management") or args.part == "extensions":
                     php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
                     admin, _ = delegation.authenticate(base, "ModernMember")
                     moderator = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
                     player = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
-                    arcade_management(base, admin, moderator, player, target, web)
-                    if account_suite:
-                        account_management(base, admin, moderator, player, target, web)
-                    extension_upgrades(target, web, args.suite)
-                    print(f"Verified {count} upstream files and converted {args.suite} workflows in {monotonic()-start:.1f}s")
+                    if args.part == "extensions":
+                        web_directory_checks(base, admin, moderator, target, web)
+                        forum_extensions(base, admin, moderator, player, target, web)
+                    else:
+                        if args.part != "accounts":
+                            arcade_management(base, admin, moderator, player, target, web)
+                        if account_suite and args.part != "games":
+                            account_management(base, admin, moderator, player, target, web)
+                        if args.part != "games":
+                            extension_upgrades(target, web, args.suite)
+                    print(f"Verified {count} upstream files and converted {args.part or args.suite} workflows in {monotonic()-start:.1f}s")
                     return
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)
                 if media_only:
@@ -692,21 +813,25 @@ def main():
                 def file_roles(phase):
                     php(ROOT / "tests/phpbb3/delegation_files.php", target, phase, cwd=web)
                 if media_only:
-                    account_logins.browse(base, ordinary, member, login_fixture)
-                    member_notice.manage(base, ordinary, member, lambda phase: php(
-                        ROOT / "tests/phpbb3/member_notice_member.php", target, phase, cwd=web))
-                    password_renewal.exercise(base, member, lambda phase: php(
-                        ROOT / "tests/phpbb3/password_renewal.php", target, phase, cwd=web), lambda phase: php(fixture, phase, target))
-                    delegation.module_roles(base, file_roles)
-                    download_checks(base, member, ordinary, pending, fixture, target, web)
-                    php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
-                    media_administration(base, member, ordinary, pending, target, web)
-                    php(fixture, "download-voter", target)
-                    php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
-                    php(fixture, "download-departed", target)
-                    gallery.departed(base, ordinary)
-                    extension_upgrades(target, web, args.suite)
-                    print(f"Verified {count} upstream files, conversion, downloads and album management in {monotonic()-start:.1f}s")
+                    if args.part != "files":
+                        account_logins.browse(base, ordinary, member, login_fixture)
+                        member_notice.manage(base, ordinary, member, lambda phase: php(
+                            ROOT / "tests/phpbb3/member_notice_member.php", target, phase, cwd=web))
+                    if args.part != "access":
+                        password_renewal.exercise(base, member, lambda phase: php(
+                            ROOT / "tests/phpbb3/password_renewal.php", target, phase, cwd=web), lambda phase: php(fixture, phase, target))
+                        delegation.module_roles(base, file_roles)
+                        download_checks(base, member, ordinary, pending, fixture, target, web)
+                    if args.part != "files":
+                        php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
+                        media_administration(base, member, ordinary, pending, target, web)
+                    if args.part != "access":
+                        php(fixture, "download-voter", target)
+                        php(ROOT / "tests/phpbb3/retain_user.php", target, cwd=web)
+                        php(fixture, "download-departed", target)
+                        gallery.departed(base, ordinary)
+                        extension_upgrades(target, web, args.suite)
+                    print(f"Verified {count} upstream files and converted {args.part or args.suite} workflows in {monotonic()-start:.1f}s")
                     return
                 account_logins.disabled(base, ordinary)
                 login_fixture("disabled")
@@ -816,81 +941,15 @@ def main():
                 if account_suite:
                     account_management(base, member, ordinary, pending, target, web)
                 mail_links.browse(base, member, ordinary, media["member"], lambda phase: php(fixture, phase, target))
-                weblinks.browse(base, member, ordinary, lambda phase: php(
-                    ROOT / "tests/phpbb3/weblinks.php", target, phase, cwd=web))
-                weblink_logos.browse(base, member, ordinary, lambda phase: php(
-                    ROOT / "tests/phpbb3/weblink_logos.php", target, phase, cwd=web, capture=True), web)
-                weblinks_admin.administration(base, lambda phase: php(
-                    ROOT / "tests/phpbb3/weblinks_admin.php", target, phase, cwd=web))
+                if args.part != "board":
+                    web_directory_checks(base, member, ordinary, target, web)
                 attachment_quotas.messages(member, ordinary, media["member"])
                 php(ROOT / "tests/phpbb3/attachment_quotas.php", target, "messages", cwd=web)
                 attachment_quotas.administration(member, lambda phase: php(ROOT / "tests/phpbb3/attachment_quotas.php", target, phase, cwd=web))
                 attachments.downloads(ordinary)
                 attachments.bookmarks(base, member, ordinary, pending, lambda phase: php(fixture, phase, target))
-                arcade.awards(member, ordinary, pending)
-                arcade_directory.browse(base, ordinary, lambda phase: php(
-                    ROOT / "tests/phpbb3/arcade_directory.php", target, phase, cwd=web, capture=True))
-                arcade_directory.social_bookmarks(base, ordinary, pending)
-                arcade_categories.browse(base, member, ordinary, pending, lambda phase: php(
-                    ROOT / "tests/phpbb3/arcade_categories.php", target, phase, cwd=web))
-                if args.suite == "all":
-                    arcade_management(base, member, ordinary, pending, target, web)
-                arcade_standings.browse(base, member, ordinary, pending, lambda phase: php(
-                    ROOT / "tests/phpbb3/arcade_standings.php", target, phase, cwd=web, capture=True))
-                arcade_standings.artwork(base, ordinary, pending, lambda: php(
-                    ROOT / "tests/phpbb3/arcade_standings.php", target, "recover-artwork", cwd=web),
-                    lambda source=root / "legacy": php(web / "bin/phpbbcli.php", "phpbb2plus:arcade:import-artwork", source, cwd=web, capture=True))
-                arcade.tournaments(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
-                game_source = arcade.browse(base, member, ordinary, pending)
-                php(fixture, "played", target)
-                arcade.protocols(base, ordinary, game_source)
-                arcade.wallets(base, ordinary, member)
-                php(fixture, "scored", target)
-                arcade.community(base, member, ordinary, pending)
-                arcade.comments(base, member, ordinary, pending)
-                arcade.tournament_play(base, member, ordinary, pending, lambda step: php(ROOT / "tests/phpbb3/tournaments.php", target, step, cwd=web))
-                arcade_administration.exercise(member, ordinary, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "proposal", cwd=web))
-                creation = arcade_administration.control(member, ordinary, pending, lambda: php(ROOT / "tests/phpbb3/tournaments.php", target, "control", cwd=web))
-                arcade_administration.closure(member, ordinary, pending, creation, lambda step: php(ROOT / "tests/phpbb3/tournament_closure.php", target, step, cwd=web))
-                playback(web, base, root)
-                php(ROOT / "tests/phpbb3/module_roles.php", target, cwd=web)
-                php(ROOT / "tests/phpbb3/historical_actions_finish.php", target, cwd=web)
-                historical_actions.browse(member)
-                php(ROOT / "tests/phpbb3/delegation_acl.php", target, cwd=web)
-                delegation.verify_report(php, web)
-                # The gallery checks briefly change its display options. Keep them
-                # away from other gallery requests, including the Chromium check.
-                def gallery_views():
-                    admin, reader, applicant = (actor.separate_client() for actor in (member, ordinary, pending))
-                    guest = Browser(base)
-                    gallery_progress.browse(admin, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_progress.php", target, phase, cwd=web, capture=True))
-                    gallery_hotlink.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_hotlink.php", target, phase, cwd=web, capture=True))
-                    gallery_navigation.browse(admin, reader, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_navigation.php", target, phase, cwd=web, capture=True))
-                    gallery_previews.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_previews.php", target, phase, cwd=web, capture=True))
-                    gallery_search.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_search.php", target, phase, cwd=web, capture=True))
-                    gallery_hot.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_hot.php", target, phase, cwd=web, capture=True))
-                    gallery_directory.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_directory.php", target, phase, cwd=web, capture=True))
-                    gallery_category_index.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_category_index.php", target, phase, cwd=web, capture=True))
-                    gallery_activity.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_activity.php", target, phase, cwd=web, capture=True))
-                    gallery_moderation.browse(admin, reader, applicant, guest, lambda phase: php(
-                        ROOT / "tests/phpbb3/gallery_moderation.php", target, phase, cwd=web, capture=True))
-
-                with ThreadPoolExecutor(max_workers=1) as worker:
-                    navigation = worker.submit(gallery_views)
-                    knowledgebase.browse(base, member, ordinary, pending)
-                    knowledgebase.reply_preferences(base, member, lambda phase: php(fixture, phase, target))
-                    php(ROOT / "tests/phpbb3/knowledgebase_mail.php", target, cwd=web)
-                    navigation.result()
-                module_administration(base, member, ordinary, pending, fixture, target, web, args.suite == "all")
+                if args.part != "board":
+                    forum_extensions(base, member, ordinary, pending, target, web, args.suite == "all")
                 former_names(base, ordinary)
                 removed_posts.converted(base, ordinary, member)
                 if args.suite == "all":

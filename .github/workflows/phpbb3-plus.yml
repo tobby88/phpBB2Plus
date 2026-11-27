@@ -105,7 +105,7 @@ jobs:
           MARIADB_ROOT_PASSWORD: fixture-only
         ports:
           - 3306/tcp
-        # The job's two disposable schemas keep normal MariaDB/InnoDB commit settings.
+        # Each installation has its own source and target schemas with normal InnoDB commit settings.
         options: >-
           --mount type=tmpfs,destination=/var/lib/mysql,tmpfs-size=1073741824
           --health-cmd="healthcheck.sh --connect --innodb_initialized"
@@ -117,10 +117,10 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mysqli, mbstring, intl, gd, zip, xml, opcache
           coverage: none
-      - name: Test a clean phpBB3 installation
+      - name: Test isolated phpBB3 installations
         env:
           PLUS_TEST_DATABASE: '1'
           PLUS_TEST_DB_PASSWORD: fixture-only
           PLUS_TEST_DB_PORT: ${{ job.services.db.ports[3306] }}
           PLUS_TEST_CHROME: ${{ matrix.php == '8.5' && matrix.suite != 'media' && 'google-chrome' || '' }}
-        run: python3 tests/phpbb3/integration.py --cache vendor/phpbb --offline --suite "${{ matrix.suite }}"
+        run: python3 tests/phpbb3/integration.py --cache vendor/phpbb --offline --suite "${{ matrix.suite }}" --parallel
