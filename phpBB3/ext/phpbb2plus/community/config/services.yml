@@ -206,6 +206,17 @@ services:
         arguments: ['@dbal.conn', '@user', '%core.table_prefix%', '@auth', '@request']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.group_leadership:
+        class: phpbb2plus\community\group\leadership
+        arguments: ['@dbal.conn', '@user', '@cache.driver', '@log', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.community.group_lead:
+        class: phpbb2plus\community\group\controller
+        arguments: ['@phpbb2plus.community.group_leadership', '@request', '@controller.helper', '@template', '@language', '@pagination', '@config', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.community.group_lead_entry:
+        class: phpbb2plus\community\event\group_leader
+        arguments: ['@phpbb2plus.community.group_leadership', '@request', '@controller.helper', '@user', '@auth', '%core.php_ext%']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.legacy:
         class: phpbb2plus\community\controller\legacy
         arguments: ['@dbal.conn', '@auth', '@user', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.topic_reader']

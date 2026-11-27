@@ -27,6 +27,11 @@ phpbb2plus_community_group_link:
     defaults: { _controller: phpbb2plus.community.legacy:group_link }
     requirements: { source: '[1-9][0-9]{0,9}', view: 'members|requests', start: '[0-9]{1,10}' }
     methods: [GET, HEAD]
+phpbb2plus_community_group_lead:
+    path: /groups/{group}/lead
+    defaults: { _controller: 'phpbb2plus.community.group_lead:show' }
+    requirements: { group: '[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD, POST]
 phpbb2plus_community_portal:
     path: /portal
     defaults: { _controller: phpbb2plus.community.portal:handle }

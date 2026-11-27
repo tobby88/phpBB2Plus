@@ -67,6 +67,7 @@ def publishing(owner, member, pending):
     page = pending.fetch(urljoin(pending.base, unescape(action)), fields)
     if not re.search(r'<input\b(?=[^>]*\bname="topic_type")(?=[^>]*\bvalue="3")(?=[^>]*\bchecked)[^>]*>', page):
         raise RuntimeError("The eligible group could not preview its native global announcement")
+    return moderator
 
 
 def guest_challenge(base, member, enabled):

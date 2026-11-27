@@ -1,0 +1,36 @@
+{% include 'overall_header.html' %}
+<h2>{{ GROUP_NAME|e }}</h2>
+<p><a href="{{ U_GROUP_LIST }}">{{ lang('UCP_USERGROUPS_MANAGE') }}</a></p>
+<p>{{ lang('PLUS_LEADER_EXPLAIN') }}</p>
+{% if GROUP_ERROR %}<p class="error" role="alert">{{ GROUP_ERROR|e }}</p>{% endif %}
+<form id="plus-group-roster" method="post" action="{{ U_GROUP_CHANGE|e('html_attr') }}">
+<div class="panel"><div class="inner">
+	<h3>{{ lang('PLUS_LEADER_MEMBERS') }}</h3>
+	{% for member in loops.members %}
+		<p><label><input type="checkbox" name="members[]" value="{{ member.ID }}"> {{ member.NAME|e }}
+		({{ lang(member.PENDING ? 'PLUS_LEADER_PENDING' : 'PLUS_LEADER_APPROVED') }})</label></p>
+	{% else %}<p>{{ lang('PLUS_LEADER_EMPTY') }}</p>{% endfor %}
+	{% if loops.members %}<fieldset class="submit-buttons">
+		<button class="button2" type="submit" name="action" value="approve">{{ lang('PLUS_LEADER_ACCEPT') }}</button>
+		<button class="button2" type="submit" name="action" value="deny">{{ lang('PLUS_LEADER_DENY') }}</button>
+		<button class="button2" type="submit" name="action" value="remove">{{ lang('PLUS_LEADER_REMOVE') }}</button>
+	</fieldset>{% endif %}
+	{{ S_FORM_TOKEN }}
+</div></div></form>
+{% if loops.pagination %}<div class="pagination">{% include 'pagination.html' %}</div>{% endif %}
+<form id="plus-group-add" method="post" action="{{ U_GROUP_CHANGE|e('html_attr') }}"><div class="panel"><div class="inner">
+	<label for="group-add-username">{{ lang('USERNAME') }}</label>
+	<input class="inputbox autowidth" id="group-add-username" name="username" maxlength="255" required>
+	<button class="button1" type="submit" name="action" value="add">{{ lang('ADD') }}</button>{{ S_FORM_TOKEN }}
+</div></div></form>
+<form id="group-settings" method="post" action="{{ U_GROUP_CHANGE|e('html_attr') }}"><div class="panel"><div class="inner">
+	<label for="group-type">{{ lang('GROUP_TYPE') }}</label>
+	<select id="group-type" name="type">
+		{% if GROUP_TYPE == 4 %}<option value="4" selected>{{ lang('GROUP_OPEN') }}</option>{% endif %}
+		{% for value, label in ['GROUP_REQUEST','GROUP_CLOSED','GROUP_HIDDEN'] %}
+			<option value="{{ value }}"{% if value == GROUP_TYPE %} selected{% endif %}>{{ lang(label) }}</option>
+		{% endfor %}
+	</select>
+	<button class="button1" type="submit" name="action" value="type">{{ lang('SUBMIT') }}</button>{{ S_FORM_TOKEN }}
+</div></div></form>
+{% include 'overall_footer.html' %}
