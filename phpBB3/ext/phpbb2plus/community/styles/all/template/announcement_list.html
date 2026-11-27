@@ -12,8 +12,10 @@
 				<dl class="row-item {{ row.ICON }}"><dt title="{{ row.ALT|e('html_attr') }}"><div class="list-inner">
 					{% if row.TYPE %}<small>{{ row.TYPE }}</small><br>{% endif %}
 					{% if row.UNREAD %}<a href="{{ row.UNREAD }}" title="{{ lang('VIEW_UNREAD_POST') }}"><i class="icon fa-file fa-fw" aria-hidden="true"></i><span class="sr-only">{{ lang('VIEW_UNREAD_POST') }}</span></a>{% endif %}
-					<a href="{{ row.URL }}" class="topictitle">{{ row.TITLE }}</a>
+					<a href="{{ row.U_VIEW_TOPIC }}" class="topictitle">{{ row.TITLE }}</a>
 					{% if row.PENDING %}<span class="post-notice">{{ lang('TOPIC_UNAPPROVED') }}</span>{% endif %}
+					{% if row.S_PLUS_DESCRIPTION %}<div class="plus-topic-description">{{ row.PLUS_DESCRIPTION }}</div>{% endif %}
+					{% if row.U_PLUS_EDIT_POST %}{% include '@phpbb2plus_community/inline_edit_link.html' with {'entry': row, 'title_only': true} %}{% endif %}
 					{% if row.DATES %}<div class="plus-announcement-dates">{{ row.DATES }}</div>{% endif %}
 					{% if row.PATH %}<div class="plus-announcement-path">{% for forum in row.PATH %}{% if not loop.first %} &rsaquo; {% endif %}<a href="{{ forum.URL }}">{{ forum.NAME }}</a>{% endfor %}</div>{% endif %}
 					<div>{{ lang('POST_BY_AUTHOR') }} {{ row.FIRST_AUTHOR }}</div>

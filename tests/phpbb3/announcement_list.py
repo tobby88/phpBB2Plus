@@ -4,6 +4,7 @@ import re
 from urllib.parse import urljoin
 
 from http_board import Browser, FormFields, admin_url, submit_form
+from inline_editor import list_links
 
 
 def browse(base, admin, member, fixture):
@@ -45,7 +46,8 @@ def browse(base, admin, member, fixture):
         require(cases(panel(page)) == {111,114,122} and page.count('class="topictitle">Notice fixture 114</a>') == 1,
                 "The forum did not separate its own announcements from descendants and board-wide announcements")
         require(cases(panel(guest.fetch(deep))) == {110,114}, "A subforum lost its parent's announcements")
-        require(117 in cases(panel(admin.fetch(parent))) and 118 not in cases(panel(admin.fetch(parent))),
+        moderating = panel(admin.fetch(parent))
+        require(117 in cases(moderating) and 118 not in cases(moderating),
                 "The local approving moderator lost pending announcements or received a withdrawn topic")
         personal = panel(member.fetch(parent))
         require(former in personal and "plus-announcement-path" not in personal and '<li class="row bg3">' not in personal
@@ -53,6 +55,20 @@ def browse(base, admin, member, fixture):
         global_row = re.search(r'data-announcement="926114".*?</li>', personal, re.S)[0]
         require("global_unread" in global_row and "view=unread#unread" in global_row,
                 "The announcement ignored its native per-member read marker")
+        for listing in (panel(page), personal, moderating, guest.fetch(deep)):
+            require("Hinweis &amp; &lt;April&gt;" in listing, "An announcement lost its escaped topic description")
+        edit = list_links(moderating).get(926111)
+        require(edit and 'data-edit-post="926111" data-title-only' in moderating and 926111 not in list_links(panel(page) + personal),
+                "The title editor did not use the first post's actual moderator or owner permissions")
+        edit = unescape(edit)
+        form = admin.fetch(edit)
+        saved = submit_form(admin, edit, form, "postform", {"subject":"Notice fixture 111 – geändert","post":"1"})
+        if 'id="postform"' in saved:
+            errors = re.findall(r'<[^>]+class="[^"]*(?:error|rules)[^"]*"[^>]*>(.*?)</(?:div|p)>', saved, re.S)
+            raise AssertionError("The native title form stayed open: " + " ".join(unescape(re.sub(r"<[^>]+>", " ", e)).strip() for e in errors)[:300])
+        fixture("edited")
+        require("Notice fixture 111 – geändert" in panel(guest.fetch(parent)),
+                "A native edit initiated in the overview was not reflected there")
 
         gate = forum(39024)
         submit_form(guest, gate, guest.fetch(gate), "login_forum", {"password":"notice-fixture-local","login":"1"})
@@ -62,7 +78,10 @@ def browse(base, admin, member, fixture):
         ucp = "ucp.php?i=ucp_prefs&mode=view"
         require("plus_announce_dates" not in FormFields(member.fetch(ucp), "ucp").values, "A member could edit a forced date policy")
         preferences({"plus_announce_index":"1", "plus_announce_path":"1", "plus_announce_groups":"1"})
-        require("plus-announcement-path" in panel(member.fetch("index.php")), "The native UCP did not apply newly selected paths")
+        chosen_index = panel(member.fetch("index.php"))
+        require("plus-announcement-path" in chosen_index, "The native UCP did not apply newly selected paths")
+        require('data-edit-post="926112"' in chosen_index and 'data-edit-post="926111"' not in chosen_index,
+                "The owner could not edit their own announcement independently of moderation rights")
         preferences({"plus_split_global_announce":"0", "plus_split_announce":"1"})
         merged = panel(member.fetch(parent))
         require("<strong>Forum announcements</strong>" in merged and "<strong>Global announcements</strong>" not in merged,

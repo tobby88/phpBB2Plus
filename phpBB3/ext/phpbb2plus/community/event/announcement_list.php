@@ -7,14 +7,14 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class announcement_list implements EventSubscriberInterface
 {
-	private $settings, $activity, $schedule, $db, $visibility, $config, $request, $user, $language, $template, $root, $ext;
+	private $settings, $activity, $schedule, $db, $visibility, $config, $request, $user, $language, $template, $dispatcher, $root, $ext;
 	private $listed, $readable;
 
-	public function __construct($settings, $activity, $schedule, $db, $visibility, $config, $request, $user, $language, $template, $root, $ext)
+	public function __construct($settings, $activity, $schedule, $db, $visibility, $config, $request, $user, $language, $template, $dispatcher, $root, $ext)
 	{
 		$this->settings=$settings; $this->activity=$activity; $this->schedule=$schedule; $this->db=$db; $this->visibility=$visibility;
 		$this->config=$config; $this->request=$request; $this->user=$user; $this->language=$language; $this->template=$template;
-		$this->root=$root; $this->ext=$ext;
+		$this->dispatcher=$dispatcher; $this->root=$root; $this->ext=$ext;
 	}
 
 	public static function getSubscribedEvents()
@@ -105,6 +105,7 @@ class announcement_list implements EventSubscriberInterface
 			}
 		}
 		$r = $this->db->sql_query_limit('SELECT t.topic_id,t.forum_id,t.topic_title,t.topic_type,t.topic_time,t.topic_status,t.poll_start,t.topic_time_limit,
+			t.topic_poster,t.topic_first_post_id,t.plus_description,
 			t.plus_announce_days,t.topic_visibility,t.topic_posts_approved,t.topic_posts_unapproved,t.topic_posts_softdeleted,t.topic_views,
 			p.post_id,p.post_time,p.post_username,p.poster_id AS user_id,u.username,u.user_colour,
 			b.post_id AS first_id,b.poster_id AS first_user,b.post_username AS first_guest,bu.username AS first_name,bu.user_colour AS first_colour' . $tracking . '
@@ -163,6 +164,8 @@ class announcement_list implements EventSubscriberInterface
 		$groups = $this->settings->topic_groups();
 		$split = $this->settings->get('announce_groups') && $groups['global'] !== 'normal';
 		$previous = null;
+		// The same list editor resolves all eligible first posts together, using their own forum.
+		$rows = $this->dispatcher->trigger_event('phpbb2plus.community.announcement_rows', array('rowset'=>$rows))['rowset'];
 		foreach ($this->activity->with_authors($rows) as $r)
 		{
 			$id = (int) $r['topic_id']; $fid = (int) $r['forum_id']; $post = (int) $r['post_id'];
@@ -172,15 +175,17 @@ class announcement_list implements EventSubscriberInterface
 			$unread = isset($tracked[$id]) && (int) $r['post_time'] > $tracked[$id];
 			topic_status($r, $replies, $unread, $icon, $alt, $native_type);
 			$topic_url = append_sid($this->root . 'viewtopic.' . $this->ext, "f=$fid&amp;t=$id");
-			$this->template->assign_block_vars('plus_announcement', array('ID'=>$id,
+			$display = array('ID'=>$id,
 				'HEADING'=>$split && $group!==$previous ? $this->language->lang(forum_display::GROUP_LABELS[$group]) : '',
 				'TYPE'=>$split && $group===$type && !$r['poll_start'] ? '' : $native_type,
 				'TITLE'=>censor_text($r['topic_title']), 'DATES'=>$this->range($r),
 				'ICON'=>$icon, 'ALT'=>$this->language->lang($alt), 'UNREAD'=>$unread ? $topic_url . '&amp;view=unread#unread' : '',
 				'PENDING'=>(int) $r['topic_visibility'] !== ITEM_APPROVED, 'FIRST_AUTHOR'=>$r['first_author'] ?? $this->language->lang('PLUS_REMOVED_POSTS', 1),
 				'LAST_AUTHOR'=>$r['last_author'], 'LAST_TIME'=>$this->user->format_date((int) $r['post_time']),
-				'REPLIES'=>$replies, 'VIEWS'=>(int) $r['topic_views'], 'PATH'=>$paths[$fid] ?? array(), 'URL'=>$topic_url,
-				'LAST_URL'=>append_sid($this->root . 'viewtopic.' . $this->ext, "p=$post") . '#p' . $post));
+				'REPLIES'=>$replies, 'VIEWS'=>(int) $r['topic_views'], 'PATH'=>$paths[$fid] ?? array(), 'U_VIEW_TOPIC'=>$topic_url,
+				'LAST_URL'=>append_sid($this->root . 'viewtopic.' . $this->ext, "p=$post") . '#p' . $post);
+			$display = $this->dispatcher->trigger_event('phpbb2plus.community.announcement_topic_row', array('row'=>$r, 'topic_row'=>$display))['topic_row'];
+			$this->template->assign_block_vars('plus_announcement', $display);
 			$previous = $group;
 		}
 	}

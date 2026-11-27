@@ -27,7 +27,8 @@ class topic_descriptions implements EventSubscriberInterface
 	{
 		return array('core.posting_modify_template_vars'=>'editor','core.posting_modify_submission_errors'=>'validate',
 			'core.submit_post_modify_sql_data'=>'store','core.viewforum_modify_topicrow'=>'listing',
-			'core.mcp_main_modify_fork_sql'=>'forked','core.mcp_main_modify_shadow_sql'=>'shadow');
+			'core.mcp_main_modify_fork_sql'=>'forked','core.mcp_main_modify_shadow_sql'=>'shadow',
+			'phpbb2plus.community.announcement_topic_row'=>'listing');
 	}
 
 	private function first_post($event)

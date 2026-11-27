@@ -36,7 +36,7 @@ if ($phase==='seed')
 		$rows('SELECT topic_id FROM '.TOPICS_TABLE.' WHERE topic_id BETWEEN 926110 AND 926122') ||
 		$rows('SELECT post_id FROM '.POSTS_TABLE.' WHERE post_id BETWEEN 926110 AND 926122'))
 	{ throw new RuntimeException('Announcement fixture identities are already occupied'); }
-	$settings=array('board_timezone','topics_per_page','plus_announce_default','plus_announce_sweep');
+	$settings=array('board_timezone','topics_per_page','plus_announce_default','plus_announce_sweep','edit_time','plus_inline_edit','plus_inline_edit_over');
 	$columns=array(); foreach ($names as $n) { $columns[]=$settings[]='plus_'.$n; $settings[]='plus_'.$n.'_over'; }
 	$previous=array(); foreach ($settings as $n) { $previous[$n]=$config[$n]; }
 	$personal=$rows('SELECT '.implode(',',$columns).' FROM '.USERS_TABLE." WHERE $member")[0];
@@ -44,7 +44,8 @@ if ($phase==='seed')
 	{ throw new RuntimeException('Converted announcement settings or their personal override were lost'); }
 	$group_choices=$rows('SELECT plus_split_global_announce,plus_split_announce FROM '.USERS_TABLE." WHERE $member")[0];
 	$store->set($key,json_encode(array($previous,$personal+$group_choices)));
-	$config->set('board_timezone','Europe/Berlin'); $config->set('topics_per_page',50); $config->set('plus_announce_default',0);
+	$config->set('board_timezone','Europe/Berlin'); $config->set('topics_per_page',50); $config->set('plus_announce_default',0); $config->set('edit_time',0);
+	$config->set('plus_inline_edit',1); $config->set('plus_inline_edit_over',1);
 	$base=$rows('SELECT * FROM '.FORUMS_TABLE.' WHERE forum_id=1')[0];
 	$right=(int) $rows('SELECT MAX(right_id) AS r FROM '.FORUMS_TABLE)[0]['r'];
 	$rooms=array(39020=>array(0,1,12,'Notice category'),39021=>array(39020,2,5,'Notice parent'),
@@ -61,10 +62,11 @@ if ($phase==='seed')
 		$db->sql_query('INSERT INTO '.FORUMS_TABLE.' '.$db->sql_build_array('INSERT',$f));
 	}
 	copy_forum_permissions(1,array(39020,39021,39022,39023,39024,39026),true,false);
-	(new auth_admin())->acl_set('user',39022,2,array('m_'=>ACL_YES,'m_approve'=>ACL_YES));
+	(new auth_admin())->acl_set('user',39022,2,array('m_'=>ACL_YES,'m_approve'=>ACL_YES,'m_edit'=>ACL_YES));
 	$auth->acl_clear_prefetch();
 	$t0=$rows('SELECT * FROM '.TOPICS_TABLE.' WHERE topic_id=1')[0];
 	$p0=$rows('SELECT * FROM '.POSTS_TABLE.' WHERE post_id=32')[0];
+	$actor=(int) $rows('SELECT user_id FROM '.USERS_TABLE." WHERE $member")[0]['user_id'];
 	$time=strtotime('2024-03-30T22:30:00Z');
 	$types=array(110=>array(39021,POST_ANNOUNCE),111=>array(39022,POST_ANNOUNCE),112=>array(39023,POST_ANNOUNCE),
 		113=>array(39026,POST_ANNOUNCE),114=>array(39026,POST_GLOBAL),115=>array(39024,POST_GLOBAL),116=>array(39025,POST_GLOBAL),
@@ -76,22 +78,31 @@ if ($phase==='seed')
 		$t=array_replace($t0,array('topic_id'=>$id,'forum_id'=>$type[0],'topic_type'=>$type[1],'topic_visibility'=>$status,
 			'topic_title'=>$title,'topic_first_post_id'=>$id,'topic_last_post_id'=>$id,'topic_time'=>$time,'topic_last_post_time'=>$time,
 			'topic_time_limit'=>in_array($n,array(111,122),true) ? 86400 : 0,'plus_announce_days'=>0,'plus_list_news'=>0,
-			'plus_legacy_removed'=>0,'topic_status'=>ITEM_UNLOCKED,'topic_moved_id'=>0,'topic_poster'=>ANONYMOUS,'poll_start'=>0,
+			'plus_legacy_removed'=>0,'topic_status'=>ITEM_UNLOCKED,'topic_moved_id'=>0,'topic_poster'=>$n===112 ? $actor : ANONYMOUS,'poll_start'=>0,
+			'plus_description'=>$n===111 ? 'Hinweis & <April>' : '',
 			'topic_posts_approved'=>(int) ($status===ITEM_APPROVED),'topic_posts_unapproved'=>(int) ($status===ITEM_UNAPPROVED),
 			'topic_posts_softdeleted'=>(int) ($status===ITEM_DELETED),'topic_views'=>17));
-		$p=array_replace($p0,array('post_id'=>$id,'forum_id'=>$type[0],'topic_id'=>$id,'post_visibility'=>$status,'poster_id'=>ANONYMOUS,
-			'post_username'=>'Notice guest','post_subject'=>$title,'post_time'=>$time,'post_text'=>'<t>Notice fixture</t>','plus_legacy_erased'=>0));
+		$p=array_replace($p0,array('post_id'=>$id,'forum_id'=>$type[0],'topic_id'=>$id,'post_visibility'=>$status,'poster_id'=>$t['topic_poster'],
+			'post_username'=>$n===112 ? '' : 'Notice guest','post_subject'=>$title,'post_time'=>$time,'post_edit_locked'=>0,
+			'post_text'=>'<t>Notice fixture</t>','plus_legacy_erased'=>0));
 		$db->sql_query('INSERT INTO '.TOPICS_TABLE.' '.$db->sql_build_array('INSERT',$t));
 		$db->sql_query('INSERT INTO '.POSTS_TABLE.' '.$db->sql_build_array('INSERT',$p));
 	}
 	$former=$rows("SELECT * FROM $bylines WHERE post_id=32")[0]; $former['post_id']=926111;
 	$db->sql_query("INSERT INTO $bylines ".$db->sql_build_array('INSERT',$former));
-	$actor=(int) $rows('SELECT user_id FROM '.USERS_TABLE." WHERE $member")[0]['user_id'];
 	$db->sql_query('INSERT INTO '.TOPICS_TRACK_TABLE." (user_id,topic_id,forum_id,mark_time) VALUES ($actor,926114,39026,".($time-60).')');
 	sync('forum','forum_id',array_keys($rooms),false,true);
 	echo $former['author_name'];
 }
 elseif ($phase==='short') { $config->set('topics_per_page',1); }
+elseif ($phase==='edited')
+{
+	$topic=$rows('SELECT topic_title,topic_type,plus_description FROM '.TOPICS_TABLE.' WHERE topic_id=926111')[0];
+	$post=$rows('SELECT post_text FROM '.POSTS_TABLE.' WHERE post_id=926111')[0];
+	if ($topic['topic_title']!=='Notice fixture 111 – geändert' || (int)$topic['topic_type']!==POST_ANNOUNCE ||
+		$topic['plus_description']!=='Hinweis & <April>' || html_entity_decode(strip_tags($post['post_text']), ENT_QUOTES, 'UTF-8')!=='Notice fixture')
+	{ throw new RuntimeException('The authorized announcement title edit changed the message, description or topic type'); }
+}
 elseif ($phase==='expire')
 {
 	$config->set('topics_per_page',50);
@@ -105,11 +116,19 @@ elseif ($phase==='clean')
 	foreach ($settings as $k=>$v) { $config->set($k,$v); }
 	$db->sql_query('UPDATE '.USERS_TABLE.' SET '.$db->sql_build_array('UPDATE',$personal)." WHERE $member");
 	$db->sql_query("DELETE FROM $bylines WHERE post_id=926111");
+	if ($rows('SELECT post_id FROM '.SEARCH_WORDMATCH_TABLE.' WHERE post_id=926111 LIMIT 1'))
+	{
+		$error=false;
+		$index=new \phpbb\search\fulltext_native($error,$phpbb_root_path,$phpEx,$auth,$config,$db,$user,$phpbb_dispatcher);
+		$index->index_remove(array(926111),array(ANONYMOUS),array(39022));
+	}
+	$db->sql_query('DELETE FROM '.LOG_TABLE.' WHERE forum_id=39022 AND topic_id=926111');
 	$db->sql_query('DELETE FROM '.POSTS_TABLE.' WHERE topic_id BETWEEN 926110 AND 926122 AND post_id=topic_id');
 	$db->sql_query('DELETE FROM '.TOPICS_TABLE." WHERE topic_id BETWEEN 926110 AND 926122 AND topic_title LIKE 'Notice fixture %'");
 	foreach (array(ACL_USERS_TABLE,ACL_GROUPS_TABLE,FORUMS_TRACK_TABLE,FORUMS_ACCESS_TABLE,FORUMS_TABLE) as $table)
 	{ $db->sql_query('DELETE FROM '.$table.' WHERE forum_id BETWEEN 39020 AND 39026'); }
-	$db->sql_query('DELETE FROM '.TOPICS_TRACK_TABLE.' WHERE topic_id BETWEEN 926110 AND 926122');
+	foreach (array(TOPICS_TRACK_TABLE,TOPICS_POSTED_TABLE,TOPICS_WATCH_TABLE) as $table)
+	{ $db->sql_query('DELETE FROM '.$table.' WHERE topic_id BETWEEN 926110 AND 926122'); }
 	$auth->acl_clear_prefetch(); $store->delete($key);
 }
 else { throw new RuntimeException('Unexpected announcement fixture action'); }

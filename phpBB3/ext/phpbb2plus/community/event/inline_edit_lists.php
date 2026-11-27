@@ -30,7 +30,8 @@ class inline_edit_lists implements EventSubscriberInterface
 	public static function getSubscribedEvents()
 	{
 		return array('core.search_modify_rowset' => 'prepare', 'core.viewforum_modify_topics_data' => 'prepare',
-			'core.search_modify_tpl_ary' => 'search', 'core.viewforum_modify_topicrow' => 'forum');
+			'core.search_modify_tpl_ary' => 'search', 'core.viewforum_modify_topicrow' => 'forum',
+			'phpbb2plus.community.announcement_rows' => 'prepare', 'phpbb2plus.community.announcement_topic_row' => 'forum');
 	}
 
 	public function prepare($event)
