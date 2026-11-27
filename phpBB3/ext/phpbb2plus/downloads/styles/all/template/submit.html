@@ -38,6 +38,6 @@
 {% if DL_HAS_PREVIEW %}<dl><dt><label for="dl-remove-preview">{L_PLUS_DL_REMOVE_PREVIEW}</label></dt><dd><input type="checkbox" id="dl-remove-preview" name="remove_preview" value="1"{% if DL_REMOVE_PREVIEW %} checked{% endif %}></dd></dl>{% endif %}
 </fieldset></div></div>
 <fieldset class="submit-buttons"><input type="hidden" name="fields_revision" value="{DL_FIELDS_REVISION}">{% if DL_EDITING %}<input type="hidden" name="revision" value="{DL_REVISION}">{% else %}<input type="hidden" name="nonce" value="{DL_NONCE}">{% endif %}{S_FORM_TOKEN}
-{% if not DL_STALE %}<button class="button1" type="submit">{% if DL_EDITING %}{L_PLUS_DL_SAVE_FILE}{% else %}{L_PLUS_DL_SUBMIT}{% endif %}</button>{% endif %}</fieldset>
+{% if not DL_STALE %}<input class="button1" type="submit" value="{% if DL_EDITING %}{L_PLUS_DL_SAVE_FILE}{% else %}{L_PLUS_DL_SUBMIT}{% endif %}">{% endif %}</fieldset>
 </form>{% endif %}
 <!-- INCLUDE @phpbb2plus_downloads/footer.html -->

@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_KB_DESCRIPTION' => 'Description',
 	'PLUS_KB_PUBLISHED' => 'Published articles',
 	'PLUS_KB_SEARCH_ARTICLES' => 'Search articles',
 	'PLUS_KB_MATCH' => 'Search terms', 'PLUS_KB_MATCH_ANY' => 'Any term', 'PLUS_KB_MATCH_ALL' => 'All terms',

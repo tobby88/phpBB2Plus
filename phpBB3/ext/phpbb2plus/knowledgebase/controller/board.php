@@ -48,11 +48,13 @@ class board
 		$this->language->add_lang('knowledgebase', 'phpbb2plus/knowledgebase');
 		$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => $this->language->lang('PLUS_KB'),
 			'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_kb_index')));
-		foreach ($this->articles->trail((int) $id) as $cat)
+		$trail = $this->articles->trail((int) $id);
+		foreach ($trail as $cat)
 		{
 			$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => utf8_htmlspecialchars($cat['title']),
 				'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_kb_category', array('category' => $cat['cat_id']))));
 		}
+		return $trail ? end($trail) : null;
 	}
 
 	private function navigation($active = '')
@@ -234,7 +236,7 @@ class board
 	{
 		$id = (int) $article;
 		$a = $this->articles->find($id);
-		$this->breadcrumbs($a['cat_id']);
+		$category = $this->breadcrumbs($a['cat_id']);
 		$params = array('article' => $id);
 		$print = $this->request->variable('print', 0) === 1;
 		if (!$print) { $this->navigation(); }
@@ -277,6 +279,8 @@ class board
 		}
 		$start = $topic ? $this->discussion_replies($topic, $params, $page, $print) : 0;
 		$this->template->assign_vars(array('KB_TITLE' => $a['title'], 'KB_SUMMARY' => $a['description'], 'KB_TYPE' => $a['type_name'],
+			'KB_ARTICLE_CATEGORY' => $category ? $category['title'] : '', 'U_KB_ARTICLE_CATEGORY' => $category
+				? $this->helper->route('phpbb2plus_kb_category', array('category' => $category['cat_id'])) : '',
 			'KB_PENDING' => (int) $a['approval'] !== 1, 'KB_AUTHOR' => $this->author($a), 'KB_DATE' => $this->user->format_date($a['created_at']),
 			'KB_VIEWS' => $a['views'], 'KB_PRINT' => $print, 'KB_BODY' => $this->article_body($part),
 			'U_KB_PRINT' => $this->helper->route('phpbb2plus_kb_article', $params + array('page' => $page, 'print' => 1) + ($start ? array('start' => $start) : array()))));

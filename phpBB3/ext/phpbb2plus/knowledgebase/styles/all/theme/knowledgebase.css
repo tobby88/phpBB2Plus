@@ -2,6 +2,20 @@
 #kb-search label { display: inline-flex; align-items: center; gap: .45em; max-width: 100%; }
 #kb-search .inputbox.search { width: 20em; min-width: 0; }
 #kb-search select { min-width: 0; max-width: 100%; }
+#kb-article .kb-article-details {
+	display: grid; grid-template-columns: fit-content(36%) minmax(0, 1fr); gap: .2em .8em;
+	margin: .35em 0 1em; padding-block-end: .7em; border-block-end: 1px solid #a8b5c2;
+	font-size: 1.2em; line-height: 1.45; overflow-wrap: anywhere;
+}
+.kb-article-details dt { font-weight: bold; }
+.kb-article-details dd { margin: 0; }
+#kb-article nav ol { padding-inline-start: 2.5em; margin: .4em 0 .8em; }
+.kb-page-links, #kb-editor .submit-buttons { display: flex; flex-wrap: wrap; align-items: center; }
+#kb-editor .submit-buttons { justify-content: center; gap: .6em; }
+#kb-editor .submit-buttons .button { color: #174467; text-shadow: none; }
+#kb-editor .submit-buttons .button:is(:hover, :focus-visible) { color: #092d49; border-color: #174467; }
+.kb-page-links { gap: .15em .4em; margin-top: 1em; font-size: 1.2em; }
+.kb-page-links a, .kb-page-links strong { min-width: 1.5em; padding: .25em; text-align: center; }
 .kb-table table.table1 thead th { text-align: center; padding: .55em; font-size: 1.05em; text-transform: none; }
 .kb-table table.table1 tbody td { color: #243a4d; padding: .65em; vertical-align: middle; overflow-wrap: anywhere; }
 .kb-table .bg1, .kb-rankings .topiclist.topics li.row { background-color: #eaedf4; }
@@ -25,6 +39,8 @@
 	.kb-table td:not(:first-child) { text-align: center; }
 }
 @media (max-width: 700px) {
+	#kb-editor .fields2 :is(input.inputbox, textarea.inputbox) { width: 100%; max-width: 100%; box-sizing: border-box; }
+	#kb-editor select { max-width: 100%; }
 	#kb-articles.responsive tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	#kb-articles.responsive td:first-child { grid-column: 1 / -1; }
 	.kb-table .responsive td:first-child > dfn { display: none !important; }

@@ -80,6 +80,8 @@
 .plus-album-empty { margin: 1px 0 0; padding: 1em; background: #eaedf4; text-align: center; }
 .plus-album-copy { white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 700px) {
+	:is(#album-upload, #album-manage) .fields2 :is(input.inputbox, textarea.inputbox) { width: 100%; max-width: 100%; box-sizing: border-box; }
+	:is(#album-upload, #album-manage) :is(select, input[type=file]) { max-width: 100%; }
 	.plus-album-search { justify-content: flex-start; }
 	.plus-album-results :is(th, td) { padding: .35em .3em; }
 	.plus-album-grid { grid-template-columns: repeat(var(--album-mobile-columns), minmax(0, 1fr)); }

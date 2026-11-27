@@ -26,8 +26,9 @@ class board
 	private $member_pictures;
 	private $category_index;
 	private $group_helper;
+	private $breadcrumbs;
 
-	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config, $member_pictures, $category_index, $group_helper)
+	public function __construct($access, $db, $user, $language, $template, $helper, $request, $pagination, $prefix, $discussion, $pictures, $byline, $personal, $navigation, $config, $member_pictures, $category_index, $group_helper, $breadcrumbs)
 	{
 		$this->access = $access;
 		$this->db = $db;
@@ -47,26 +48,7 @@ class board
 		$this->member_pictures = $member_pictures;
 		$this->category_index = $category_index;
 		$this->group_helper = $group_helper;
-	}
-
-	private function breadcrumbs($cat = null, $listing = array())
-	{
-		$this->language->add_lang('gallery', 'phpbb2plus/gallery');
-		$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => $this->language->lang('PLUS_ALBUM'),
-			'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_gallery_index')));
-		$current = $cat ? (int) $cat['cat_id'] : 0;
-		$parents = array();
-		while ($cat)
-		{
-			$parents[] = $cat;
-			$cat = $cat['parent_id'] ? $this->access->category($cat['parent_id']) : null;
-		}
-		foreach (array_reverse($parents) as $category)
-		{
-			$params = array('category' => $category['cat_id']) + ((int) $category['cat_id'] === $current ? $listing : array());
-			$this->template->assign_block_vars('navlinks', array('FORUM_NAME' => utf8_htmlspecialchars($category['title']),
-				'U_VIEW_FORUM' => $this->helper->route('phpbb2plus_gallery_category', $params)));
-		}
+		$this->breadcrumbs = $breadcrumbs;
 	}
 
 	private function page($url, $total, $limit)
@@ -208,7 +190,7 @@ class board
 	{
 		$id = (int) $category;
 		$cat = $id ? $this->access->category($id) : null;
-		$this->breadcrumbs($cat);
+		$this->breadcrumbs->assign($cat);
 		$has_children = $this->category_directory($cat);
 		if ($id)
 		{
@@ -287,7 +269,7 @@ class board
 
 	public function members()
 	{
-		$this->breadcrumbs();
+		$this->breadcrumbs->assign();
 		$sort = array();
 		foreach (array('mode' => 'joindate', 'order' => 'ASC') as $name => $default)
 		{
@@ -315,7 +297,7 @@ class board
 
 	public function collection($owner, $type)
 	{
-		$this->breadcrumbs();
+		$this->breadcrumbs->assign();
 		$owner = (int) $owner;
 		$page = $this->member_pictures->page($owner, $type, $this->request->variable('sort_method', ''), $this->request->variable('sort_order', ''),
 			$this->request->variable('start', 0));
@@ -385,7 +367,7 @@ class board
 
 	public function hot()
 	{
-		$this->breadcrumbs();
+		$this->breadcrumbs->assign();
 		$title = $this->language->lang('PLUS_ALBUM_HOT');
 		if ($this->request->server('REQUEST_METHOD') === 'POST')
 		{
@@ -441,7 +423,7 @@ class board
 			$sort = $this->navigation->sort($cat, $method, $order);
 			$context = array('picture_sort' => $sort[0], 'picture_order' => $sort[1]);
 		}
-		$this->breadcrumbs($cat, $context ? array('sort_method' => $sort[0], 'sort_order' => $sort[1]) : array());
+		$this->breadcrumbs->assign($cat, $context ? array('sort_method' => $sort[0], 'sort_order' => $sort[1]) : array());
 		if ($this->request->variable('full', 0)) { $context['full'] = 1; }
 		$comment_order = $this->comment_order();
 		if ($comment_order === 'DESC') { $context['sort_order'] = $comment_order; }

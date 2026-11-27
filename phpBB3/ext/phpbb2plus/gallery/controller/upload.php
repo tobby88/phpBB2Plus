@@ -13,8 +13,9 @@ class upload
 	private $helper;
 	private $language;
 	private $user;
+	private $breadcrumbs;
 
-	public function __construct($uploads, $request, $template, $helper, $language, $user)
+	public function __construct($uploads, $request, $template, $helper, $language, $user, $breadcrumbs)
 	{
 		$this->uploads = $uploads;
 		$this->request = $request;
@@ -22,6 +23,7 @@ class upload
 		$this->helper = $helper;
 		$this->language = $language;
 		$this->user = $user;
+		$this->breadcrumbs = $breadcrumbs;
 	}
 
 	public function form($category)
@@ -29,6 +31,7 @@ class upload
 		$cat = $this->uploads->destination($category);
 		$this->language->add_lang('gallery', 'phpbb2plus/gallery');
 		if ($this->uploads->limit() < 1) { return $this->helper->message('PLUS_ALBUM_NO_FILE_SLOTS', array(), 'INFORMATION', 503); }
+		if (!$this->request->is_ajax()) { $this->breadcrumbs->assign($cat); }
 		$types = $this->uploads->allowed_types();
 		if (!$types)
 		{

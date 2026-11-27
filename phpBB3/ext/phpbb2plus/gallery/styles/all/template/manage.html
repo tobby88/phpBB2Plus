@@ -1,11 +1,11 @@
+<!-- INCLUDECSS @phpbb2plus_gallery/gallery.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{ALBUM_ACTION_TITLE}</h2>
 <form id="album-manage" action="{U_ACTION}" method="post"><div class="panel"><div class="inner">
 {% if ALBUM_ERROR %}<p class="error">{{ ALBUM_ERROR|e }}</p>{% endif %}
-{% if ALBUM_MODE == 'edit' %}<fieldset class="fields2"><dl><dt><label for="album-subject">{L_SUBJECT}</label></dt><dd><input class="inputbox" id="album-subject" name="title" value="{{ ALBUM_TITLE|e('html_attr') }}" maxlength="255" required></dd></dl>
-<dl><dt><label for="album-description">{L_PLUS_ALBUM_DESCRIPTION}</label></dt><dd><textarea id="album-description" name="description" class="inputbox" rows="4" maxlength="{ALBUM_LIMIT}">{{ ALBUM_DESCRIPTION|e }}</textarea></dd></dl></fieldset>
+{% if ALBUM_MODE == 'edit' %}<fieldset class="fields2">{% include '@phpbb2plus_gallery/picture_fields.html' with {title_id:'album-subject', editing:true, limit:ALBUM_LIMIT} %}</fieldset>
 {% elseif ALBUM_MODE == 'move' %}<label for="album-destination">{L_PLUS_ALBUM_DESTINATION}</label> <select id="album-destination" name="destination" required>{% for cat in loops.album_destinations %}<option value="{{ cat.ID }}">{{ cat.TITLE|e }}</option>{% endfor %}</select>
 {% elseif ALBUM_MODE == 'delete' %}<p>{{ lang('PLUS_ALBUM_CONFIRM_DELETE', ALBUM_TITLE|e) }}</p>
 {% else %}<p>{{ ALBUM_TITLE|e }}</p>{% endif %}
-</div></div><fieldset class="submit-buttons">{S_FORM_TOKEN}<input type="submit" class="button1" value="{ALBUM_ACTION_TITLE}"> <a class="button2" href="{U_PICTURE}">{L_CANCEL}</a></fieldset></form>
+</div></div><fieldset class="submit-buttons">{S_FORM_TOKEN}<input type="submit" class="button1" value="{ALBUM_ACTION_TITLE}"> {% if ALBUM_MODE == 'edit' %}<input class="button2" type="reset" value="{L_RESET}"> {% endif %}<a class="button2" href="{U_PICTURE}">{L_CANCEL}</a></fieldset></form>
 <!-- INCLUDE overall_footer.html -->

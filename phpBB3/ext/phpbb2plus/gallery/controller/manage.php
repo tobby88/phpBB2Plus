@@ -13,8 +13,9 @@ class manage
 	private $template;
 	private $language;
 	private $uploads;
+	private $breadcrumbs;
 
-	public function __construct($pictures, $helper, $request, $template, $language, $uploads)
+	public function __construct($pictures, $helper, $request, $template, $language, $uploads, $breadcrumbs)
 	{
 		$this->pictures = $pictures;
 		$this->helper = $helper;
@@ -22,6 +23,7 @@ class manage
 		$this->template = $template;
 		$this->language = $language;
 		$this->uploads = $uploads;
+		$this->breadcrumbs = $breadcrumbs;
 	}
 
 	public function picture($picture, $mode)
@@ -54,6 +56,7 @@ class manage
 				$this->template->assign_block_vars('album_destinations', array('ID' => $to['cat_id'], 'TITLE' => $to['title']));
 			}
 		}
+		$this->breadcrumbs->assign($cat);
 		add_form_key($key);
 		$this->template->assign_vars(array('ALBUM_ACTION_TITLE' => $title, 'ALBUM_TITLE' => $pic['title'], 'ALBUM_DESCRIPTION' => $pic['description'],
 			'ALBUM_LIMIT' => $this->uploads->text_limit(), 'ALBUM_ERROR' => $problem, 'ALBUM_MODE' => $mode,

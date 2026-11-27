@@ -16,12 +16,11 @@
 {% if S_MANUAL_PREVIEWS %}<dl><dt><label for="album-previews">{L_PLUS_ALBUM_PREVIEWS}</label><br><span>{{ lang('PLUS_ALBUM_PREVIEW_FILES', PREVIEW_BOUND) }}</span></dt>
 <dd><input type="file" id="album-previews" name="previews[]" accept="{{ ALBUM_ACCEPT }}{% if S_ZIP %},.zip,application/zip{% endif %}" required{% if ALBUM_COUNT > 1 %} multiple{% endif %}></dd></dl>
 {% if S_ZIP %}<p>{L_PLUS_ALBUM_ZIP_PREVIEWS}</p>{% endif %}{% endif %}
-<dl><dt><label for="album-title">{L_SUBJECT}</label><br><span>{L_PLUS_ALBUM_FILENAME_TITLE}</span></dt><dd><input class="inputbox" id="album-title" name="title" maxlength="255" value="{{ ALBUM_TITLE|e('html_attr') }}"></dd></dl>
-<dl><dt><label for="album-description">{L_PLUS_ALBUM_DESCRIPTION}</label></dt><dd><textarea class="inputbox" id="album-description" name="description" maxlength="{{ ALBUM_DESC_LIMIT }}" rows="3">{{ ALBUM_DESCRIPTION|e }}</textarea></dd></dl>
+{% include '@phpbb2plus_gallery/picture_fields.html' with {title_id:'album-title', editing:false, limit:ALBUM_DESC_LIMIT} %}
 {% if S_ALBUM_GUEST %}<dl><dt><label for="album-guest">{L_USERNAME}</label></dt><dd><input class="inputbox" id="album-guest" name="guest_name" maxlength="32" value="{{ ALBUM_GUEST|e('html_attr') }}"></dd></dl>{% endif %}
 </fieldset></div></div>
 <fieldset class="submit-buttons"><input type="hidden" name="batch" value="{ALBUM_BATCH}">{S_FORM_TOKEN}
-<input type="submit" class="button1" value="{L_PLUS_ALBUM_UPLOAD}"></fieldset>
+<input type="submit" class="button1" value="{L_PLUS_ALBUM_UPLOAD}"> <input type="reset" class="button2" value="{L_RESET}"></fieldset>
 </form>
 {% if S_ALBUM_PROGRESS %}
 <section class="{{ S_SIMPLE_PROGRESS ? 'plus-album-progress-simple' : 'panel' }}" id="album-upload-status" aria-labelledby="album-transfer-title" hidden

@@ -1,0 +1,7 @@
+{% INCLUDEJS '@phpbb2plus_gallery/picture_fields.js' %}
+<dl><dt><label for="{{ title_id }}">{L_SUBJECT}</label>{% if not editing %}<br><span>{L_PLUS_ALBUM_FILENAME_TITLE}</span>{% endif %}</dt>
+<dd><input class="inputbox" id="{{ title_id }}" name="title" value="{{ ALBUM_TITLE|e('html_attr') }}" maxlength="510" pattern="[\s\S]{0,255}"{% if editing %} required{% endif %}></dd></dl>
+<dl><dt><label for="album-description">{L_PLUS_ALBUM_DESCRIPTION}</label><br>
+<span id="album-description-limit">{{ lang('PLUS_ALBUM_DESCRIPTION_LIMIT', limit) }}</span></dt>
+<dd><textarea class="inputbox" id="album-description" name="description" rows="{{ editing ? 4 : 3 }}" maxlength="{{ limit * 2 }}"
+ aria-describedby="album-description-limit" data-limit="{{ limit }}" data-error="{{ lang('PLUS_ALBUM_BAD_TEXT')|e('html_attr') }}">{{ ALBUM_DESCRIPTION|e }}</textarea></dd></dl>

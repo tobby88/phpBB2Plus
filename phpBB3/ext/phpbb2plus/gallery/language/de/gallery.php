@@ -47,6 +47,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_ALBUM_PICTURES' => 'Bilder', 'PLUS_ALBUM_RECENT' => 'Neueste Bilder', 'PLUS_ALBUM_HIGHEST' => 'Am besten bewertete Bilder',
 	'PLUS_ALBUM_RANDOM' => 'Zufällige Bilder', 'PLUS_ALBUM_MISSING_IMAGE' => 'Bilddatei nicht verfügbar',
 	'PLUS_ALBUM_DATE' => 'Datum', 'PLUS_ALBUM_DESCRIPTION' => 'Beschreibung',
+	'PLUS_ALBUM_DESCRIPTION_LIMIT' => 'Nur Text, bis zu %d Zeichen.',
 	'PLUS_ALBUM_SEARCH' => 'Fotoalbum durchsuchen', 'PLUS_ALBUM_SEARCH_IN' => 'Suchen in', 'PLUS_ALBUM_SEARCH_TEXT' => 'Suchbegriff',
 	'PLUS_ALBUM_SEARCH_INVALID' => 'Wähle Autor, Bildtitel oder Beschreibung und gib einen Suchbegriff mit höchstens 100 Bytes ein.',
 	'PLUS_ALBUM_SEARCH_FOUND' => array(0 => 'Keine Bilder gefunden', 1 => 'Ein Bild gefunden', 2 => '%d Bilder gefunden'),

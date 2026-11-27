@@ -54,9 +54,12 @@ services:
     phpbb2plus.gallery.search:
         class: phpbb2plus\gallery\controller\search
         arguments: ['@dbal.conn', '@phpbb2plus.gallery.access', '@phpbb2plus.gallery.byline', '@request', '@controller.helper', '@template', '@language', '@user', '@pagination', '@config', '%core.table_prefix%plus_album_pics']
+    phpbb2plus.gallery.breadcrumbs:
+        class: phpbb2plus\gallery\service\breadcrumbs
+        arguments: ['@phpbb2plus.gallery.access', '@template', '@controller.helper', '@language']
     phpbb2plus.gallery.board:
         class: phpbb2plus\gallery\controller\board
-        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@phpbb2plus.gallery.pictures', '@phpbb2plus.gallery.byline', '@phpbb2plus.gallery.personal', '@phpbb2plus.gallery.picture_navigation', '@config', '@phpbb2plus.gallery.member_pictures', '@phpbb2plus.gallery.category_index', '@group_helper']
+        arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@language', '@template', '@controller.helper', '@request', '@pagination', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.discussion', '@phpbb2plus.gallery.pictures', '@phpbb2plus.gallery.byline', '@phpbb2plus.gallery.personal', '@phpbb2plus.gallery.picture_navigation', '@config', '@phpbb2plus.gallery.member_pictures', '@phpbb2plus.gallery.category_index', '@group_helper', '@phpbb2plus.gallery.breadcrumbs']
     phpbb2plus.gallery.media:
         class: phpbb2plus\gallery\controller\media
         arguments: ['@phpbb2plus.gallery.access', '@config', '%core.root_path%', '@php_ini', '@symfony_request', '@language']
@@ -70,7 +73,7 @@ services:
         arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '@config', '@php_ini', '%core.root_path%', '%core.table_prefix%plus_album_']
     phpbb2plus.gallery.upload:
         class: phpbb2plus\gallery\controller\upload
-        arguments: ['@phpbb2plus.gallery.uploads', '@request', '@template', '@controller.helper', '@language', '@user']
+        arguments: ['@phpbb2plus.gallery.uploads', '@request', '@template', '@controller.helper', '@language', '@user', '@phpbb2plus.gallery.breadcrumbs']
     phpbb2plus.gallery.discussion:
         class: phpbb2plus\gallery\service\discussion
         arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '@user', '%core.table_prefix%plus_album_', '%core.root_path%', '@config']
@@ -82,7 +85,7 @@ services:
         arguments: ['@phpbb2plus.gallery.access', '@dbal.conn', '%core.table_prefix%plus_album_']
     phpbb2plus.gallery.manage:
         class: phpbb2plus\gallery\controller\manage
-        arguments: ['@phpbb2plus.gallery.pictures', '@controller.helper', '@request', '@template', '@language', '@phpbb2plus.gallery.uploads']
+        arguments: ['@phpbb2plus.gallery.pictures', '@controller.helper', '@request', '@template', '@language', '@phpbb2plus.gallery.uploads', '@phpbb2plus.gallery.breadcrumbs']
     phpbb2plus.gallery.accounts:
         class: phpbb2plus\gallery\event\accounts
         arguments: ['@dbal.conn', '%core.table_prefix%plus_album_', '@phpbb2plus.gallery.access']

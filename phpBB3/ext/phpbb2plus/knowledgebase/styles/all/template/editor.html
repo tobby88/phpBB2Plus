@@ -1,3 +1,4 @@
+<!-- INCLUDECSS @phpbb2plus_knowledgebase/knowledgebase.css -->
 <!-- INCLUDE overall_header.html -->
 <h2>{KB_ACTION}</h2>
 {% if KB_PRETEXT %}<div class="panel"><h3>{{ KB_PRETEXT_TITLE|e }}</h3><p>{{ KB_PRETEXT|e }}</p></div>{% endif %}
@@ -6,7 +7,7 @@
 {% if KB_ERROR %}<p class="error">{{ KB_ERROR|e }}</p>{% endif %}
 {% if KB_EDITING %}<fieldset class="fields2">
 <dl><dt><label for="kb-title">{L_SUBJECT}</label></dt><dd><input class="inputbox" id="kb-title" name="title" value="{{ KB_TITLE|e('html_attr') }}" required maxlength="510" pattern="[\s\S]{1,255}"></dd></dl>
-<dl><dt><label for="kb-description">{L_DESCRIPTION}</label></dt><dd><input class="inputbox" id="kb-description" name="description" value="{{ KB_DESCRIPTION|e('html_attr') }}" maxlength="510" pattern="[\s\S]{0,255}"></dd></dl>
+<dl><dt><label for="kb-description">{L_PLUS_KB_DESCRIPTION}</label></dt><dd><input class="inputbox" id="kb-description" name="description" value="{{ KB_DESCRIPTION|e('html_attr') }}" maxlength="510" pattern="[\s\S]{0,255}"></dd></dl>
 <dl><dt><label for="kb-category">{L_PLUS_KB_CATEGORY}</label></dt><dd><select id="kb-category" name="category" required>{% for cat in loops.kb_cats %}<option value="{{ cat.ID }}"{% if cat.CURRENT %} selected{% endif %}>{{ cat.NAME|e }}</option>{% endfor %}</select></dd></dl>
 <dl><dt><label for="kb-type">{L_PLUS_KB_TYPE}</label></dt><dd><select id="kb-type" name="type" required>{% for t in loops.kb_types %}<option value="{{ t.ID }}"{% if t.CURRENT %} selected{% endif %}>{{ t.NAME|e }}</option>{% endfor %}</select></dd></dl>
 {% if KB_GUEST %}<dl><dt><label for="kb-guest">{L_USERNAME}</label></dt><dd><input class="inputbox" id="kb-guest" name="guest" maxlength="32" value="{{ KB_GUEST_NAME|e('html_attr') }}"></dd></dl>{% endif %}
@@ -15,6 +16,6 @@
 <textarea class="inputbox" id="kb-body" name="body" rows="14" maxlength="131070" required>{{ KB_BODY|e }}</textarea></dd></dl>
 </fieldset>{% elseif KB_DELETE %}<p>{{ lang('PLUS_KB_CONFIRM_DELETE', KB_TITLE|e) }}</p>{% else %}<p>{{ KB_TITLE|e }}</p>{% endif %}
 </div></div><fieldset class="submit-buttons"><input type="hidden" name="revision" value="{KB_REVISION}"><input type="hidden" name="submission" value="{KB_NONCE}">{S_FORM_TOKEN}
-{% if KB_EDITING %}<button class="button2" name="preview" value="1">{L_PREVIEW}</button>{% endif %}
-<button class="button1" name="save" value="1">{KB_ACTION}</button> <a class="button2" href="{U_CANCEL}">{L_CANCEL}</a></fieldset></form>
+{% if KB_EDITING %}<button class="button button-secondary" name="preview" value="1">{L_PREVIEW}</button>{% endif %}
+<button class="button" name="save" value="1">{KB_ACTION}</button> <a class="button button-secondary" href="{U_CANCEL}">{L_CANCEL}</a></fieldset></form>
 <!-- INCLUDE overall_footer.html -->
