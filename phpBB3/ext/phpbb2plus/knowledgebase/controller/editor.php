@@ -36,6 +36,7 @@ class editor
 		$params = $id ? array('article' => $id, 'mode' => $mode) : array();
 		$action = $this->helper->route($id ? 'phpbb2plus_kb_manage' : 'phpbb2plus_kb_submit', $params);
 		$editing = in_array($mode, array('new','edit'), true);
+		if ($editing) { $this->language->add_lang('posting'); }
 		$form = array('title' => $a['title'] ?? '', 'description' => $a['description'] ?? '', 'body' => $this->editor->editor_text($a),
 			'category' => $a ? (int) $a['cat_id'] : $this->request->variable('category', 0), 'type' => $a ? (int) $a['type_id'] : 0, 'guest' => '');
 		$revision = $this->editor->form_revision($a);
@@ -97,6 +98,7 @@ class editor
 		$this->template->assign_vars(array('KB_ACTION' => $title, 'KB_TITLE' => $form['title'], 'KB_DESCRIPTION' => $form['description'],
 			'KB_BODY' => $form['body'], 'KB_GUEST_NAME' => $form['guest'], 'KB_GUEST' => empty($this->user->data['is_registered']) && !$id,
 			'KB_REVISION' => $revision, 'KB_NONCE' => $nonce, 'KB_ERROR' => $error, 'KB_EDITING' => $editing, 'KB_DELETE' => $mode === 'delete',
+			'KB_BBCODE' => $this->editor->bbcode_enabled(),
 			'KB_PRETEXT' => $mode === 'new' && (int) $this->articles->setting('show_pretext', 0) ? $this->articles->setting('pt_body', '') : '',
 			'KB_PRETEXT_TITLE' => $this->articles->setting('pt_header', ''), 'U_ACTION' => $action,
 			'U_CANCEL' => $id ? $this->helper->route('phpbb2plus_kb_article', array('article' => $id)) : $this->helper->route('phpbb2plus_kb_index')));

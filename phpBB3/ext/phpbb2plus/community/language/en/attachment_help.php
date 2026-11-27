@@ -1,6 +1,12 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_HELP_FILE_MISSING'=>'Why is an attachment missing from a post?',
+	'PLUS_HELP_FILE_MISSING_ANSWER'=>'Look for the list of attachments below the post. Attachments can appear there even when there is no preview in the text. You need permission to download attachments in this forum. A file may also have been removed when the post was edited. If you expected a file, send the post link to a moderator.',
+	'PLUS_HELP_FILE_REMOVE'=>'Why can’t I remove an attachment?',
+	'PLUS_HELP_FILE_REMOVE_ANSWER'=>'Open the post in the full editor and use Delete file on the Attachments tab. If you can no longer edit the post, for example because the editing time has passed or the topic is locked, contact a moderator and include the post link.',
+	'PLUS_HELP_FILE_LIMITS'=>'Why is my file rejected when I have permission to attach files?',
+	'PLUS_HELP_FILE_LIMITS_ANSWER'=>'In the Attachments tab, open “Allowed file types and sizes” for this forum. Check the extension, size and error message. Limits on the number of attachments or the available storage can also prevent an upload.',
 	'PLUS_ATTACH_RULES_LINK' => 'Allowed file types and sizes',
 	'PLUS_ATTACH_UPLOAD_POLICY' => 'File extensions for new attachments',
 	'PLUS_ATTACH_UPLOAD_POLICY_EXPLAIN' => 'New post and private message attachments use the native extension groups and all imported or manually added blocks. Additional Plus protection allows extensions of up to 16 letters or digits and blocks predefined script types. Existing attachments use the board’s download permissions.',

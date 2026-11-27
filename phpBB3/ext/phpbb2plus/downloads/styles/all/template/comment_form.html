@@ -8,7 +8,9 @@
 				{% include 'posting_buttons.html' with {'S_BBCODE_ALLOWED': true, 'S_BBCODE_QUOTE': true, 'S_BBCODE_IMG': DL_COMMENT_OPTIONS.images, 'S_LINKS_ALLOWED': DL_COMMENT_OPTIONS.links, 'MAX_FONT_SIZE': DL_COMMENT_OPTIONS.font_size} %}
 			{% endif %}
 			<dl>
-				<dt><label for="dl-message">{L_MESSAGE}</label><br><span>{{ lang('PLUS_DL_COMMENT_LIMIT', DL_COMMENT_OPTIONS.limit)|e }}</span></dt>
+				<dt><label for="dl-message">{L_MESSAGE}</label><br>
+				<span>{{ lang(DL_COMMENT_OPTIONS.bbcode ? 'BBCODE_IS_ON' : 'BBCODE_IS_OFF', '<a href="' ~ path('phpbb_help_bbcode_controller') ~ '" target="_blank" rel="noopener">', '</a>') }}</span><br>
+				<span>{{ lang('PLUS_DL_COMMENT_LIMIT', DL_COMMENT_OPTIONS.limit)|e }}</span></dt>
 				<dd><textarea class="inputbox" id="dl-message" name="message" rows="5" required>{{ DL_MESSAGE|e }}</textarea></dd>
 			</dl>
 		</fieldset>

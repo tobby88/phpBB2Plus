@@ -31,7 +31,10 @@ class attachment_help implements EventSubscriberInterface
 		{
 			$questions['PLUS_HELP_FILE_EDIT'] = 'PLUS_HELP_FILE_EDIT_ANSWER';
 			$questions['PLUS_HELP_FILE_INLINE'] = 'PLUS_HELP_FILE_INLINE_ANSWER';
+			$questions['PLUS_HELP_FILE_MISSING'] = 'PLUS_HELP_FILE_MISSING_ANSWER';
+			$questions['PLUS_HELP_FILE_REMOVE'] = 'PLUS_HELP_FILE_REMOVE_ANSWER';
 			$questions['PLUS_HELP_FILE_ACCESS'] = 'PLUS_HELP_FILE_ACCESS_ANSWER';
+			$questions['PLUS_HELP_FILE_LIMITS'] = 'PLUS_HELP_FILE_LIMITS_ANSWER';
 		}
 		if ($messages) { $questions['PLUS_HELP_FILE_PM'] = 'PLUS_HELP_FILE_PM_ANSWER'; }
 		if (!empty($this->config['plus_attach_quotas'])) { $questions['PLUS_HELP_FILE_QUOTA'] = 'PLUS_HELP_FILE_QUOTA_ANSWER'; }

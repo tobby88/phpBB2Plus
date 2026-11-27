@@ -1,6 +1,12 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'PLUS_HELP_FILE_MISSING'=>'Warum fehlt ein Dateianhang in einem Beitrag?',
+	'PLUS_HELP_FILE_MISSING_ANSWER'=>'Sieh in der Liste der Dateianhänge unter dem Beitrag nach. Dort kann die Datei auch ohne Vorschau im Text stehen. Zum Herunterladen brauchst du die Berechtigung für dieses Forum. Die Datei kann auch beim Bearbeiten des Beitrags entfernt worden sein. Wenn du sie vermisst, schicke den Beitragslink an einen Moderator.',
+	'PLUS_HELP_FILE_REMOVE'=>'Warum kann ich einen Dateianhang nicht entfernen?',
+	'PLUS_HELP_FILE_REMOVE_ANSWER'=>'Öffne den Beitrag im vollständigen Editor und wähle im Reiter „Dateianhänge“ die Aktion „Datei löschen“. Wenn du den Beitrag nicht mehr bearbeiten kannst, etwa weil die Bearbeitungszeit abgelaufen oder das Thema gesperrt ist, wende dich mit dem Beitragslink an einen Moderator.',
+	'PLUS_HELP_FILE_LIMITS'=>'Warum wird meine Datei trotz der Berechtigung für Dateianhänge abgelehnt?',
+	'PLUS_HELP_FILE_LIMITS_ANSWER'=>'Im Reiter „Dateianhänge“ zeigt „Erlaubte Dateitypen und Größen“ die Regeln für dieses Forum. Prüfe die Dateiendung, die Größe und die Fehlermeldung. Auch die zulässige Anzahl an Anhängen oder der verfügbare Speicher können den Upload begrenzen.',
 	'PLUS_ATTACH_RULES_LINK' => 'Erlaubte Dateitypen und Größen',
 	'PLUS_ATTACH_UPLOAD_POLICY' => 'Dateiendungen für neue Anhänge',
 	'PLUS_ATTACH_UPLOAD_POLICY_EXPLAIN' => 'Für neue Anhänge in Beiträgen und privaten Nachrichten gelten die nativen Dateigruppen und alle importierten oder hier eingetragenen Sperren. Der zusätzliche Plus-Schutz erlaubt Endungen mit bis zu 16 Buchstaben oder Ziffern und sperrt feste Skripttypen. Für vorhandene Anhänge gelten die Downloadberechtigungen des Forums.',

@@ -5,6 +5,7 @@
 <div class="panel"><div class="inner">
 	<label for="plus-shout-message"><strong><!-- IF PLUS_EDIT_ID -->{L_EDIT_POST}<!-- ELSE -->{L_MESSAGE}<!-- ENDIF --></strong></label>
 	<textarea id="plus-shout-message" class="inputbox" name="message" rows="3" maxlength="16000" required>{PLUS_SHOUT_TEXT}</textarea>
+	<p>{{ lang(PLUS_SHOUT_BBCODE ? 'BBCODE_IS_ON' : 'BBCODE_IS_OFF', '<a href="' ~ path('phpbb_help_bbcode_controller') ~ '" target="_blank" rel="noopener">', '</a>') }}</p>
 	<input type="hidden" name="id" value="{PLUS_EDIT_ID}">
 	<input type="hidden" name="action" value="<!-- IF PLUS_EDIT_ID -->edit<!-- ELSE -->post<!-- ENDIF -->">
 	{S_FORM_TOKEN}<input class="button1" type="submit" value="{L_SUBMIT}">

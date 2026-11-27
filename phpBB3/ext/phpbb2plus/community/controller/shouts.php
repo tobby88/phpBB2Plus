@@ -45,7 +45,9 @@ class shouts
 			$text = htmlspecialchars(htmlspecialchars_decode($data['text'], ENT_COMPAT), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 		}
 		add_form_key('phpbb2plus/shout');
-		$this->template->assign_vars(array('S_PLUS_SHOUT_POST' => $id || $this->shouts->may_post(),
+		$show_editor = $id || $this->shouts->may_post();
+		if ($show_editor) { $this->language->add_lang('posting'); }
+		$this->template->assign_vars(array('S_PLUS_SHOUT_POST' => $show_editor, 'PLUS_SHOUT_BBCODE' => $this->shouts->bbcode_enabled(),
 			'S_PLUS_SHOUT_MOD' => $this->shouts->may_moderate(), 'PLUS_EDIT_ID' => $id, 'PLUS_SHOUT_TEXT' => $text,
 			'U_PLUS_SHOUT_WRITE' => $this->helper->route('phpbb2plus_community_shout_write')));
 		return $this->helper->render('@phpbb2plus_community/shoutbox.html', $this->language->lang('PLUS_SHOUTBOX'));

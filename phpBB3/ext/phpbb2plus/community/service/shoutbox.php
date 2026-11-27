@@ -93,13 +93,18 @@ class shoutbox
 		return $where;
 	}
 
+	public function bbcode_enabled()
+	{
+		return (bool) $this->config['allow_bbcode'];
+	}
+
 	public function store($text, $id = 0)
 	{
 		if ($id ? !$this->may_change($this->find($id)) : !$this->may_post()) { return 'NOT_AUTHORISED'; }
 		if ($text === '' || strlen($text) > 16000) { return 'PLUS_SHOUT_LENGTH'; }
 		$uid = $bitfield = '';
 		$flags = 0;
-		generate_text_for_storage($text, $uid, $bitfield, $flags, (bool) $this->config['allow_bbcode'],
+		generate_text_for_storage($text, $uid, $bitfield, $flags, $this->bbcode_enabled(),
 			(bool) $this->config['allow_post_links'], (bool) $this->config['allow_smilies'], false, false);
 		$changes = array('message' => $text, 'bbcode_uid' => $uid, 'bbcode_bitfield' => $bitfield, 'bbcode_options' => $flags);
 		if ($id)

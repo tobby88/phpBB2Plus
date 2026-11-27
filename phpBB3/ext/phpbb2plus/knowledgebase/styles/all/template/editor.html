@@ -11,7 +11,9 @@
 <dl><dt><label for="kb-category">{L_PLUS_KB_CATEGORY}</label></dt><dd><select id="kb-category" name="category" required>{% for cat in loops.kb_cats %}<option value="{{ cat.ID }}"{% if cat.CURRENT %} selected{% endif %}>{{ cat.NAME|e }}</option>{% endfor %}</select></dd></dl>
 <dl><dt><label for="kb-type">{L_PLUS_KB_TYPE}</label></dt><dd><select id="kb-type" name="type" required>{% for t in loops.kb_types %}<option value="{{ t.ID }}"{% if t.CURRENT %} selected{% endif %}>{{ t.NAME|e }}</option>{% endfor %}</select></dd></dl>
 {% if KB_GUEST %}<dl><dt><label for="kb-guest">{L_USERNAME}</label></dt><dd><input class="inputbox" id="kb-guest" name="guest" maxlength="32" value="{{ KB_GUEST_NAME|e('html_attr') }}"></dd></dl>{% endif %}
-<dl><dt><label for="kb-body">{L_MESSAGE}</label><br><span>{L_PLUS_KB_MARKUP}</span></dt><dd>
+<dl><dt><label for="kb-body">{L_MESSAGE}</label><br>
+<span>{{ lang(KB_BBCODE ? 'BBCODE_IS_ON' : 'BBCODE_IS_OFF', '<a href="' ~ path('phpbb_help_bbcode_controller') ~ '" target="_blank" rel="noopener">', '</a>') }}</span><br>
+<span>{L_PLUS_KB_MARKUP}</span></dt><dd>
 {% if U_PLUS_SMILIE_CREATOR %}{% INCLUDEJS '@phpbb2plus_community/smilie_creator.js' %}<a class="button" href="{{ U_PLUS_SMILIE_CREATOR }}" target="_blank" rel="noopener" data-sign-target="kb-body">{{ lang('PLUS_SIGN_CREATOR') }}</a>{% endif %}
 <textarea class="inputbox" id="kb-body" name="body" rows="14" maxlength="131070" required>{{ KB_BODY|e }}</textarea></dd></dl>
 </fieldset>{% elseif KB_DELETE %}<p>{{ lang('PLUS_KB_CONFIRM_DELETE', KB_TITLE|e) }}</p>{% else %}<p>{{ KB_TITLE|e }}</p>{% endif %}

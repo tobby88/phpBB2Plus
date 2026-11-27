@@ -1,0 +1,2 @@
+/* phpBB2 bookmarks point to a question. Keep its heading in view above the native answer. */
+.faq .plus-help-bookmark { display: inline-block; scroll-margin-block-start: 4em; }

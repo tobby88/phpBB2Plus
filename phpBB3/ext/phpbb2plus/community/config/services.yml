@@ -440,6 +440,11 @@ services:
         arguments: ['@config', '@language']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.help_bookmarks:
+        class: phpbb2plus\community\event\help_bookmarks
+        arguments: ['@config', '@template', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.attachment_rules:
         class: phpbb2plus\community\controller\attachment_rules
         arguments: ['@dbal.conn', '@phpbb2plus.community.attachment_types', '@config', '@auth', '@user', '@language', '@controller.helper', '@template']

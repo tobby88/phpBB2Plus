@@ -74,6 +74,11 @@ class editor
 		return $article ? (int) $article['revision'] . ':' . (int) $article['cat_id'] . ':' . (int) $article['type_id'] : '';
 	}
 
+	public function bbcode_enabled()
+	{
+		return (bool) $this->config['allow_bbcode'];
+	}
+
 	public function prepare($form)
 	{
 		if ($form['title'] === '' || utf8_strlen($form['title']) > 255 || utf8_strlen($form['description']) > 255 ||
@@ -85,7 +90,7 @@ class editor
 			$heading = count($pieces) === 2 ? trim(preg_replace('/\[\/?[a-z][a-z0-9]*(?:[=:\s][^\]\r\n]*)?\]/i', '', $pieces[0])) : '';
 			$text = utf8_htmlspecialchars(str_replace('[toc]', '', $part));
 			$uid = $bits = ''; $flags = 0;
-			generate_text_for_storage($text, $uid, $bits, $flags, (bool) $this->config['allow_bbcode'], (bool) $this->config['allow_post_links'], (bool) $this->config['allow_smilies']);
+			generate_text_for_storage($text, $uid, $bits, $flags, $this->bbcode_enabled(), (bool) $this->config['allow_post_links'], (bool) $this->config['allow_smilies']);
 			$pages[] = array('heading' => utf8_substr($heading, 0, 255), 'content' => $text, 'bbcode_uid' => $uid, 'bbcode_bitfield' => $bits, 'bbcode_options' => $flags);
 		}
 		return $pages;

@@ -22,7 +22,7 @@ $lang = array_merge($lang ?? array(), array(
 	'PLUS_KB_INVALID_TEXT' => 'Please check the title, description and article text.', 'PLUS_KB_INVALID_CATEGORY' => 'Choose an existing category and article type.',
 	'PLUS_KB_CONFLICT' => 'The article has changed since you opened it. Open the current version before applying your changes.',
 	'PLUS_KB_BAD_NAME' => 'Choose an available guest name.', 'PLUS_KB_SUBMITTED' => 'Your article has been submitted for approval.',
-	'PLUS_KB_MARKUP' => 'You can use BBCode. [page] starts a new page. Add [toc] after a heading to include it in the contents.',
+	'PLUS_KB_MARKUP' => '[page] starts a new page. Add [toc] after a heading to include it in the contents.',
 	'PLUS_KB_CONFIRM_DELETE' => 'Permanently delete “%s” and its ratings?',
 	'PLUS_KB_REVIEW_PM' => 'A Knowledge Base article is awaiting review', 'PLUS_KB_DISCUSSION_POST' => 'Discuss this Knowledge Base article here.',
 	'PLUS_KB_UPDATED_POST' => 'An updated version of the article is available.',
