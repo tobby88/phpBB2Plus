@@ -4,6 +4,7 @@ import json
 import re
 from urllib.parse import parse_qs, urlencode, urlsplit
 
+from gallery_member_links import member_links
 from http_board import FormFields, Page
 
 
@@ -74,5 +75,6 @@ def browse(administrator, member, applicant, guest, check, *, bookmarks=True):
                 raise RuntimeError("The former directory URL lost the selected sort")
             if listing(guest.fetch("album_personal_index.php?mode=username&order=ASC", post)) != first:
                 raise RuntimeError("The former directory's read-only sort form did not reach the correct owner order")
+        member_links(administrator, member, applicant, guest, check, count)
     finally:
         check("cleanup")

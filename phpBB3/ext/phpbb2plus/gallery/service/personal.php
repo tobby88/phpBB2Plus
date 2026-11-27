@@ -92,11 +92,31 @@ class personal
 
 	public function available($owner)
 	{
-		if ($owner <= ANONYMOUS || !$this->owner($owner, false)) { return false; }
-		$roots = $this->roots($owner);
-		if (!$roots) { return $this->access->may_create_personal($owner); }
-		foreach ($roots as $cat) { if ($this->access->visible($cat)) { return true; } }
-		return false;
+		return isset($this->available_members(array($owner))[(int) $owner]);
+	}
+
+	/** Resolve all owners on one native member-list page using the same rules as their album routes. */
+	public function available_members(array $owners)
+	{
+		if (!$owners) { return array(); }
+		$result = $this->db->sql_query('SELECT u.user_id,c.cat_id,c.parent_id,c.owner_id,c.view_level,c.upload_level FROM ' . USERS_TABLE . ' u
+			LEFT JOIN ' . $this->prefix . 'cats c ON c.owner_id=u.user_id AND c.parent_id=0
+			WHERE u.user_id>' . ANONYMOUS . ' AND ' . $this->db->sql_in_set('u.user_id', array_map('intval', $owners)) .
+			' AND ' . $this->db->sql_in_set('u.user_type', array(USER_NORMAL, USER_FOUNDER)));
+		$rows = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+
+		$available = array();
+		foreach ($rows as $row)
+		{
+			$id = (int) $row['user_id'];
+			// An empty album is reachable by its eligible creator. An existing hidden root stays hidden.
+			if ($row['cat_id'] === null ? $this->access->may_create_personal($id) : $this->access->visible($row))
+			{
+				$available[$id] = true;
+			}
+		}
+		return $available;
 	}
 
 	public function historical_guest_root()

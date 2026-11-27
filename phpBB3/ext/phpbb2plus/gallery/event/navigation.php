@@ -11,6 +11,7 @@ class navigation implements EventSubscriberInterface
 	private $personal;
 	private $access;
 	private $user;
+	private $member_albums = array();
 
 	public function __construct($helper, $template, $language, $personal, $access, $user)
 	{
@@ -24,7 +25,29 @@ class navigation implements EventSubscriberInterface
 
 	static public function getSubscribedEvents()
 	{
-		return array('core.page_header' => 'header', 'core.permissions' => 'permissions', 'core.memberlist_view_profile' => 'profile');
+		return array('core.page_header' => 'header', 'core.permissions' => 'permissions', 'core.memberlist_view_profile' => 'profile',
+			'core.memberlist_memberrow_before' => 'member_list', 'core.memberlist_modify_memberrow' => 'member_row');
+	}
+
+	public function member_list($event)
+	{
+		$this->member_albums = array();
+		if (!empty($this->user->data['is_registered']) && empty($this->user->data['is_bot']) && (int) $this->access->setting('show_personal_gallery_link', 1))
+		{
+			$this->member_albums = $this->personal->available_members($event['user_list']);
+			if ($this->member_albums) { $this->language->add_lang('gallery', 'phpbb2plus/gallery'); }
+		}
+		$this->template->assign_var('S_PLUS_MEMBER_ALBUMS', (bool) $this->member_albums);
+	}
+
+	public function member_row($event)
+	{
+		$id = (int) $event['user_id'];
+		if (!isset($this->member_albums[$id])) { return; }
+		$row = $event['memberrow'];
+		$row['U_PLUS_PERSONAL_ALBUM'] = $this->helper->route('phpbb2plus_gallery_personal', array('owner' => $id));
+		$row['PLUS_PERSONAL_ALBUM_LABEL'] = $this->language->lang('PLUS_ALBUM_OWNER_TITLE', html_entity_decode($event['row']['username'], ENT_QUOTES, 'UTF-8'));
+		$event['memberrow'] = $row;
 	}
 
 	public function profile($event)

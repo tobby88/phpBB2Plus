@@ -1,0 +1,3 @@
+{% if S_PLUS_MEMBER_ALBUMS and not S_IN_SEARCH_POPUP %}
+<td class="plus-member-album">{% if memberrow.U_PLUS_PERSONAL_ALBUM %}<a href="{memberrow.U_PLUS_PERSONAL_ALBUM}" aria-label="{{ memberrow.PLUS_PERSONAL_ALBUM_LABEL|e('html_attr') }}">{L_PLUS_ALBUM_PERSONAL}</a>{% endif %}</td>
+{% endif %}

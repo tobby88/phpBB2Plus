@@ -19,5 +19,20 @@ module.exports = async function ({command, evaluate, until, url}) {
         } + ')()');
         if (!fits) throw Error('The profile signature no longer fills its panel at ' + width + 'px');
     }
+    const listing = new URL('memberlist.php?first_char=m', url);
+    await command('Page.navigate', {url: listing.href});
+    await until(() => evaluate('location.search.includes("first_char=m") && document.readyState === "complete"'), 'the member list');
+    for (const width of [390, 1180]) {
+        await command('Emulation.setDeviceMetricsOverride', {width, height: 760, deviceScaleFactor: 1, mobile: false});
+        await until(() => evaluate('window.innerWidth === ' + width), 'the member list viewport');
+        const visible = await evaluate('(' + function () {
+            const link = Array.from(document.querySelectorAll('td.plus-member-album a')).find(
+                a => new URL(a.href).pathname.endsWith('/album/member/2'));
+            if (!link || !link.getAttribute('aria-label').includes('ModernMember')) return false;
+            const box = link.getBoundingClientRect();
+            return box.width > 0 && box.height > 0 && box.left >= 0 && box.right <= window.innerWidth;
+        } + ')()');
+        if (!visible) throw Error('The personal album link is unavailable at ' + width + 'px');
+    }
     await command('Emulation.clearDeviceMetricsOverride');
 };

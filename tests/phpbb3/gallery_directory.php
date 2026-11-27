@@ -22,7 +22,8 @@ if ($argv[2] === 'seed')
 {
 	if (directory_fixture('SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id BETWEEN 41000 AND 41119') ||
 		directory_fixture("SELECT cat_id FROM {$g}cats WHERE cat_id BETWEEN 42000 AND 42119") ||
-		directory_fixture("SELECT pic_id FROM {$g}pics WHERE pic_id BETWEEN 43000 AND 43119"))
+		directory_fixture("SELECT pic_id FROM {$g}pics WHERE pic_id BETWEEN 43000 AND 43119") ||
+		directory_fixture("SELECT setting_name FROM {$g}settings WHERE scope='memlinks' AND setting_name='show_personal_gallery_link'"))
 	{ throw new RuntimeException('Gallery directory fixture identifiers are already in use'); }
 	$account = directory_fixture('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=87');
 	$base = directory_fixture("SELECT * FROM {$g}cats WHERE cat_id=1");
@@ -33,6 +34,7 @@ if ($argv[2] === 'seed')
 	{
 		$id = 41000 + $index;
 		$name = 'ArchiveAlbum' . str_pad($owners + 3 - $index, 3, '0', STR_PAD_LEFT);
+		if ($index === 0) { $name .= ' &amp; Grüße'; } // As stored by phpBB.
 		$user = array_merge($account, array('user_id' => $id, 'username' => $name, 'username_clean' => utf8_clean_string($name),
 			'user_regdate' => 800000000 + (intdiv($index, 2) % 3) * 86400, 'user_permissions' => '', 'user_password' => '',
 			'user_email' => '', 'user_type' => $index === $owners + 2 ? USER_INACTIVE : USER_NORMAL));
@@ -60,10 +62,31 @@ if ($argv[2] === 'seed')
 	}
 	// Give a previously earlier owner the newest upload, opposite to the numeric order of picture IDs.
 	$db->sql_query("UPDATE {$g}pics SET created_at=990000000 WHERE pic_id=43001");
+	// phpBB renders separate member-list tables for the leader and the rest of a group.
+	foreach (array(0, $owners, $owners + 1, $owners + 2) as $index)
+	{
+		$db->sql_query('INSERT INTO ' . USER_GROUP_TABLE . ' ' . $db->sql_build_array('INSERT', array(
+			'group_id' => 71, 'user_id' => 41000 + $index, 'group_leader' => (int) ($index === 0), 'user_pending' => 0)));
+	}
 	echo json_encode(array('size' => $size, 'owners' => $owners));
+}
+elseif ($argv[2] === 'hide-member-links')
+{
+	$db->sql_query("INSERT INTO {$g}settings (scope,setting_name,setting_value)
+		SELECT 'memlinks',setting_name,setting_value FROM {$g}settings WHERE scope='album' AND setting_name='show_personal_gallery_link'");
+	$db->sql_query("UPDATE {$g}settings SET setting_value='0' WHERE scope='album' AND setting_name='show_personal_gallery_link'");
+	if ($phpbb_container->get('phpbb2plus.gallery.access')->setting('show_personal_gallery_link', '1') !== '0')
+	{ throw new RuntimeException('The synthetic gallery did not switch off its personal album links'); }
 }
 elseif ($argv[2] === 'cleanup')
 {
+	$saved = directory_fixture("SELECT setting_value FROM {$g}settings WHERE scope='memlinks' AND setting_name='show_personal_gallery_link'");
+	if ($saved)
+	{
+		$db->sql_query("UPDATE {$g}settings SET " . $db->sql_build_array('UPDATE', $saved) . " WHERE scope='album' AND setting_name='show_personal_gallery_link'");
+		$db->sql_query("DELETE FROM {$g}settings WHERE scope='memlinks' AND setting_name='show_personal_gallery_link'");
+	}
+	$db->sql_query('DELETE FROM ' . USER_GROUP_TABLE . ' WHERE group_id=71 AND user_id BETWEEN 41000 AND 41119');
 	$db->sql_query("DELETE FROM {$g}grants WHERE cat_id=42111 AND subject_type='g' AND subject_id=71 AND capability='view'");
 	$db->sql_query("DELETE FROM {$g}pics WHERE pic_id BETWEEN 43000 AND 43119");
 	$db->sql_query("DELETE FROM {$g}cats WHERE cat_id BETWEEN 42000 AND 42119");
