@@ -19,7 +19,9 @@ class request_blocks implements EventSubscriberInterface
 	public function permission($event)
 	{
 		$this->language->add_lang('info_acp_request_blocks', 'phpbb2plus/community');
+		$this->language->add_lang('info_acp_program_files', 'phpbb2plus/community');
 		$permissions = $event['permissions'];
+		$permissions['a_plus_ct_files'] = array('lang' => 'ACL_A_PLUS_CT_FILES', 'cat' => 'settings');
 		$permissions['a_plus_ct_blocks'] = array('lang' => 'ACL_A_PLUS_CT_BLOCKS', 'cat' => 'settings');
 		$event['permissions'] = $permissions;
 	}

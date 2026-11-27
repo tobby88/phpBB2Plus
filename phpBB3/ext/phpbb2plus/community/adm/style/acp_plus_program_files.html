@@ -1,0 +1,44 @@
+{% include 'overall_header.html' %}
+<h1>{{ lang('ACP_PLUS_CT_FILES') }}</h1>
+{% if CONFIRM %}
+<form id="plus-ct-files-adopt" action="{{ U_ACTION }}" method="post">
+	<p>{{ lang('PLUS_CT_FILES_CONFIRM') }}</p>
+	<fieldset class="submit-buttons">
+		<input type="hidden" name="action" value="adopt"><input type="hidden" name="revision" value="{{ REVISION }}">
+		<button class="button1" type="submit">{{ lang('PLUS_CT_FILES_ADOPT') }}</button>
+		<a class="button2" href="{{ U_ACTION }}">{{ lang('CANCEL') }}</a>{{ S_FORM_TOKEN }}
+	</fieldset>
+</form>
+{% else %}
+<p>{{ lang('PLUS_CT_FILES_EXPLAIN') }}</p>
+{% if ADOPTED %}<div class="successbox" role="status"><p>{{ lang('PLUS_CT_FILES_ADOPTED') }}</p></div>{% endif %}
+<p>{{ lang('PLUS_CT_FILES_REFERENCE') }} {{ REFERENCE ?: lang('PLUS_CT_FILES_NO_REFERENCE') }}</p>
+{% if SCAN_STALE %}<p>{{ lang('PLUS_CT_FILES_CATALOG_CHANGED') }}</p>{% endif %}
+<form id="plus-ct-files-start" action="{{ U_ACTION }}" method="post">
+	<input type="hidden" name="action" value="start"><input type="hidden" name="revision" value="{{ REVISION }}">
+	<button class="button2" type="submit">{{ PENDING ? lang('PLUS_CT_FILES_RESTART') : lang('PLUS_CT_FILES_START') }}</button>{{ S_FORM_TOKEN }}
+</form>
+{% if PENDING %}
+<form id="plus-ct-files-advance" action="{{ U_ACTION }}" method="post">
+	<p role="status">{{ lang('PLUS_CT_FILES_PROGRESS', CURSOR, TOTAL) }}</p>
+	<input type="hidden" name="action" value="advance"><input type="hidden" name="revision" value="{{ REVISION }}">
+	<button class="button1" type="submit">{{ lang('PLUS_CT_FILES_CONTINUE') }}</button>{{ S_FORM_TOKEN }}
+</form>
+{% INCLUDEJS '@phpbb2plus_community/program_files.js' %}
+{% endif %}
+{% if REPORT %}
+<h2>{{ lang('PLUS_CT_FILES_RESULT') }}</h2>
+<p>{{ SCAN_TIME }}</p><ul>{% for item in loops.counts %}<li>{{ item.LABEL }} ({{ item.COUNT }})</li>{% endfor %}</ul>
+{% if CAN_ADOPT %}<form id="plus-ct-files-confirm" action="{{ U_ACTION }}" method="post">
+	<input type="hidden" name="action" value="confirm"><input type="hidden" name="revision" value="{{ REVISION }}">
+	<button class="button2" type="submit">{{ lang('PLUS_CT_FILES_ADOPT') }}</button>{{ S_FORM_TOKEN }}
+</form>{% endif %}
+<p><a href="{{ U_FILTER }}">{{ ALL ? lang('PLUS_CT_FILES_DIFFERENCES') : lang('PLUS_CT_FILES_ALL') }}</a></p>
+{% if loops.entries %}
+<table class="table1"><thead><tr><th>{{ lang('FILENAME') }}</th><th>{{ lang('PLUS_CT_FILES_STATUS') }}</th></tr></thead>
+<tbody>{% for item in loops.entries %}<tr class="{{ loop.index is even ? 'row2' : 'row1' }}"><td>{{ item.NAME }}</td><td>{{ item.STATUS }}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p>{{ lang('PLUS_CT_FILES_NO_ENTRIES') }}</p>{% endif %}
+{% if U_PREV %}<a href="{{ U_PREV }}">{{ lang('PREVIOUS') }}</a>{% endif %}
+{% if U_NEXT %}<a href="{{ U_NEXT }}">{{ lang('NEXT') }}</a>{% endif %}
+{% endif %}{% endif %}
+{% include 'overall_footer.html' %}

@@ -80,6 +80,12 @@ services:
         arguments: ['@dbal.conn', '@user', '@config']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.program_files:
+        class: phpbb2plus\community\service\program_files
+        arguments: ['%core.root_path%']
+    phpbb2plus.community.program_integrity:
+        class: phpbb2plus\community\service\program_integrity
+        arguments: ['@dbal.conn', '%core.table_prefix%plus_ct_programs', '@phpbb2plus.community.program_files']
     phpbb2plus.community.request_blocks:
         class: phpbb2plus\community\service\request_blocks
         arguments: ['@dbal.conn', '%core.table_prefix%']
