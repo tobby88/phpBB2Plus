@@ -1,9 +1,8 @@
 """Use configured Plus profile fields through native phpBB3 forms and displays."""
 from html import unescape
 import re
-import time
 from urllib.parse import urljoin
-from http_board import Browser, Page, admin_url
+from http_board import Browser, admin_url, submit_form
 
 
 def exercise(base, actor):
@@ -20,13 +19,11 @@ def exercise(base, actor):
             not re.search(r'name="pf_plus_f54\[\]" value="3" checked', edit)):
         raise RuntimeError("Custom profile controls did not preserve editability and selected options")
     def save(values):
-        action, fields = Page(edit).forms["ucp"]
-        fields.update(pf_plus_f51="Verändert & ganz", pf_plus_f52="Zwei\nZeilen", pf_plus_f53="3",
-                      pf_plus_f54_present="1", pf_plus_f56="Nur im Thema 42",
-                      bday_day="0", bday_month="0", bday_year="0", submit="1")
+        fields = {"pf_plus_f54[]": None, "pf_plus_f54_present": "1", "pf_plus_f51": "Verändert & ganz",
+                  "pf_plus_f52": "Zwei\nZeilen", "pf_plus_f53": "3", "pf_plus_f56": "Nur im Thema 42",
+                  "bday_day": "0", "bday_month": "0", "bday_year": "0", "submit": "1"}
         fields.update(values)
-        time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
-        return actor.fetch(urljoin(urljoin(base,path),unescape(action)), fields)
+        return submit_form(actor, path, edit, "ucp", fields)
     save({})
     if "Groß &amp; Klein" not in guest.fetch(profile):
         raise RuntimeError("Submitting a required field without any choice changed other fields")

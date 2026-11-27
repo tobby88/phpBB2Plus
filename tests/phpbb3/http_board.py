@@ -329,13 +329,12 @@ def profiles(base, member, owner):
     option = re.search(r'<option value="([0-9]+)"[^>]*>\s*Abendrot\s*</option>', flags.group(1)) if flags else None
     if not option or "Nordlicht" not in private or "images/plusflags/" not in private or "Nordlicht" in public or "images/plusflags/" in public:
         raise RuntimeError("Imported native flag options or guest visibility differ from the source")
-    action, fields = Page(form, checked=True).forms["ucp"]
-    fields["pf_plus_country"] = option.group(1)
-    fields.update(submit="1", pf_phpbb_location="Fixture Town", pf_phpbb_facebook="https://www.facebook.com/example.fixture",
-                  pf_phpbb_twitter="examplefixture", pf_plus_telegram="updatedfixture", pf_plus_signal="Example.42",
-                  pf_plus_threema="ABCD0123", bday_year="1970", bday_month="1", bday_day="1")
-    time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
-    response = owner.fetch(urljoin(urljoin(base, edit), action), fields)
+    response = submit_form(owner, edit, form, "ucp", {
+        "submit": "1", "pf_plus_country": option.group(1), "pf_phpbb_location": "Fixture Town",
+        "pf_phpbb_facebook": "https://www.facebook.com/example.fixture", "pf_phpbb_twitter": "examplefixture",
+        "pf_plus_telegram": "updatedfixture", "pf_plus_signal": "Example.42", "pf_plus_threema": "ABCD0123",
+        "bday_year": "1970", "bday_month": "1", "bday_day": "1",
+    })
     updated = member.fetch(path)
     if "Abendrot" not in updated or "images/plusflags/" not in updated or "Abendrot" in Browser(base).fetch(path):
         raise RuntimeError("The native UCP did not retain the selected flag and its visibility")
