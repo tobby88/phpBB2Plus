@@ -2,6 +2,9 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang, array(
 	'PLUS_DISPLAY_PREFERENCES'=>'Darstellung der Forenlisten',
+	'PLUS_DISPLAY_SUB_FORUM'=>'Gliederung der Forenübersicht', 'PLUS_DISPLAY_EXPANDED'=>'Alle Forenebenen ausklappen',
+	'PLUS_DISPLAY_MEDIUM'=>'Kategorien und ihre Foren anzeigen', 'PLUS_DISPLAY_COMPACT'=>'Kompakte Kategorienliste',
+	'PLUS_DISPLAY_SPLIT_CAT'=>'Jede Hauptkategorie in einem eigenen Abschnitt anzeigen',
 	'PLUS_DISPLAY_LAST_TOPIC_TITLE'=>'Titel des letzten Themas in der Forenübersicht anzeigen',
 	'PLUS_DISPLAY_SUB_LEVEL_LINKS'=>'Unterforum-Links unter der Forenbeschreibung',
 	'PLUS_DISPLAY_LINKS_TEXT'=>'Nur Links', 'PLUS_DISPLAY_LINKS_ICONS'=>'Links mit Statussymbolen',

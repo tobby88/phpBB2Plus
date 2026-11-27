@@ -10,6 +10,11 @@ services:
     phpbb2plus.community.acronym_dictionary:
         class: phpbb2plus\community\service\acronym_dictionary
         arguments: ['@dbal.conn', '%core.table_prefix%plus_acronyms']
+    phpbb2plus.community.forum_hierarchy:
+        class: phpbb2plus\community\event\forum_hierarchy
+        arguments: ['@phpbb2plus.community.forum_display', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.acronym_entries:
         class: phpbb2plus\community\service\acronym_entries
         arguments: ['@dbal.conn', '%core.table_prefix%plus_acronyms', '@auth', '@user', '@cache.driver']

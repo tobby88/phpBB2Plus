@@ -8,7 +8,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class forum_display implements EventSubscriberInterface
 {
 	// These are the controls that affect the forum lists rendered by this extension.
-	private const CONTROLS = array('last_topic_title', 'sub_level_links');
+	private const CONTROLS = array('sub_forum', 'split_cat', 'last_topic_title', 'sub_level_links');
 	private $settings, $config, $request, $language, $template, $db, $auth;
 	private $titles = array();
 
@@ -82,6 +82,7 @@ class forum_display implements EventSubscriberInterface
 		$this->titles = array();
 		if (!$this->settings->enabled()) { return; }
 		$this->template->assign_var('S_PLUS_SUBFORUM_TEXT', $this->settings->get('sub_level_links') === 1);
+		$this->template->assign_var('S_PLUS_FORUM_HIERARCHY', $this->settings->get('sub_forum') === 0 || !$this->settings->get('split_cat'));
 		if (!$this->settings->get('last_topic_title') || empty($this->config['display_last_subject'])) { return; }
 		$posts = array();
 		foreach ($event['forum_rows'] as $row)

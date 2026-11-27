@@ -18,7 +18,6 @@ def browse(base, web, target, php, owner=None):
         guest = Browser(base)
         ucp = "ucp.php?i=ucp_prefs&mode=view"
         acp = entry + "&i=acp_board&mode=features"
-        title = "Käse & Grüße im Forum"
 
         def settings(values):
             submit_form(admin, acp, admin.fetch(acp), "acp_board", dict(values, submit="1"))
@@ -59,5 +58,29 @@ def browse(base, web, target, php, owner=None):
         check("unlocked")
         if not title_link(actor):
             raise RuntimeError("An inherited, accessible topic title was not restored")
+        def forum_rows(page):
+            return set(re.findall(r'class="forumtitle">([^<]+)</a>', page))
+
+        choose({"plus_sub_forum": "0", "plus_sub_level_links": "2", "plus_split_cat": "1"})
+        expanded = actor.fetch("index.php")
+        if (not {"Layout room", "Layout subforum", "Layout third level"} <= forum_rows(expanded)
+                or "plus-forum-indent" not in expanded or "Layout empty category" in expanded
+                or "Layout private leaf" in expanded or expanded.count('<div class="forabg">') <= 1):
+            raise RuntimeError("The expanded index omitted an accessible level, exposed an empty branch or joined distinct categories")
+        choose({"plus_split_cat": "0"})
+        joined = actor.fetch("index.php")
+        if joined.count('<div class="forabg">') != 1 or 'plus-category-heading' not in joined or "Layout index" not in forum_rows(joined):
+            raise RuntimeError("Joining visible categories did not retain their navigable headings in one forum list")
+        choose({"plus_sub_forum": "2"})
+        compact = actor.fetch("index.php")
+        if ("Layout index" not in forum_rows(compact) or "Layout room" in forum_rows(compact) or "Layout room" not in compact
+                or "Layout empty category" in compact or "Layout private leaf" in compact or not title_link(actor)):
+            raise RuntimeError("The compact category lost a permitted child or its inherited last topic")
+        opened = actor.fetch("viewforum.php?f=29850")
+        if "Layout room" not in forum_rows(opened) or "Layout third level" in forum_rows(opened):
+            raise RuntimeError("Opening a compact category did not expand its next level")
+        default = guest.fetch("index.php")
+        if "Layout room" not in forum_rows(default) or "Layout subforum" in forum_rows(default):
+            raise RuntimeError("The expanded/compact member controls changed the guest's medium layout")
     finally:
         check("clean")

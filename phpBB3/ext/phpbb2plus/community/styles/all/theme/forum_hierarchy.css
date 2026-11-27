@@ -1,0 +1,5 @@
+.plus-forum-indent { display: inline-block; }
+.topiclist .plus-category-heading { background-color: #e4eaf2; min-height: 0; }
+.topiclist .plus-category-heading dt { width: auto; padding: .4em .75em; }
+.topiclist .plus-category-heading dt > .list-inner { padding-inline-start: 0; }
+.topiclist .plus-category-heading dd { display: none; }

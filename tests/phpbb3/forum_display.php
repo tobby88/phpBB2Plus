@@ -44,8 +44,9 @@ if ($phase === 'setup')
 	$forum = $one('SELECT * FROM ' . FORUMS_TABLE . ' WHERE forum_id=1');
 	$right = (int) $one('SELECT MAX(right_id) AS r FROM ' . FORUMS_TABLE)['r'];
 	// Isolated permissions and nested sets; no existing category is renumbered.
-	foreach (array(29850=>array(0,1,8,FORUM_CAT,'Layout index'),29851=>array(29850,2,7,FORUM_POST,'Layout room'),
-		29852=>array(29851,3,6,FORUM_POST,'Layout subforum'),29853=>array(29852,4,5,FORUM_POST,'Layout third level')) as $id=>$details)
+	foreach (array(29850=>array(0,1,12,FORUM_CAT,'Layout index'),29851=>array(29850,2,7,FORUM_POST,'Layout room'),
+		29852=>array(29851,3,6,FORUM_POST,'Layout subforum'),29853=>array(29852,4,5,FORUM_POST,'Layout third level'),
+		29854=>array(29850,8,11,FORUM_CAT,'Layout empty category'),29855=>array(29854,9,10,FORUM_POST,'Layout private leaf')) as $id=>$details)
 	{
 		list($parent,$left,$end,$type,$name) = $details;
 		$data=array_replace($forum,array('forum_id'=>$id,'parent_id'=>$parent,'left_id'=>$right+$left,'right_id'=>$right+$end,
@@ -54,7 +55,7 @@ if ($phase === 'setup')
 			'forum_posts_approved'=>0,'forum_topics_approved'=>0,'forum_last_post_subject'=>''));
 		$db->sql_query('INSERT INTO '.FORUMS_TABLE.' '.$db->sql_build_array('INSERT',$data));
 	}
-	copy_forum_permissions(1,array(29850,29851,29852,29853),true,false);
+	copy_forum_permissions(1,array(29850,29851,29852,29853,29854),true,false);
 	$topic=$one('SELECT * FROM '.TOPICS_TABLE.' WHERE topic_id=1');
 	$post=$one('SELECT * FROM '.POSTS_TABLE.' WHERE post_id='.$topic['topic_first_post_id']);
 	$time=1667770000;
@@ -79,8 +80,8 @@ elseif ($phase === 'clean')
 	$db->sql_query('DELETE FROM '.POSTS_TABLE.' WHERE forum_id=29852 AND post_id=985720');
 	$db->sql_query('DELETE FROM '.TOPICS_TABLE.' WHERE forum_id=29852 AND topic_id=985720');
 	foreach (array(ACL_USERS_TABLE,ACL_GROUPS_TABLE,FORUMS_TABLE,FORUMS_TRACK_TABLE) as $table)
-	{ $db->sql_query('DELETE FROM '.$table.' WHERE forum_id BETWEEN 29850 AND 29853'); }
-	$db->sql_query('UPDATE '.USERS_TABLE." SET plus_last_topic_title=0,plus_sub_level_links=1 WHERE username='HistoricMember'");
+	{ $db->sql_query('DELETE FROM '.$table.' WHERE forum_id BETWEEN 29850 AND 29855'); }
+	$db->sql_query('UPDATE '.USERS_TABLE." SET plus_last_topic_title=0,plus_sub_level_links=1,plus_sub_forum=1,plus_split_cat=1 WHERE username='HistoricMember'");
 	$config->set('plus_last_topic_title',1); $config->set('plus_last_topic_title_over',0);
 	$config->set('plus_sub_level_links',2); $config->set('plus_sub_level_links_over',0);
 	$auth->acl_clear_prefetch();
