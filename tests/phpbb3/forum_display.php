@@ -60,6 +60,8 @@ if ($phase === 'setup')
 		$db->sql_query('INSERT INTO '.FORUMS_TABLE.' '.$db->sql_build_array('INSERT',$data));
 	}
 	copy_forum_permissions(1,array(29850,29851,29852,29853,29854),true,false);
+	// The native forum ACP invalidates existing members' and guests' precomputed ACLs after copying.
+	$auth->acl_clear_prefetch();
 	$topic=$one('SELECT * FROM '.TOPICS_TABLE.' WHERE topic_id=1');
 	$post=$one('SELECT * FROM '.POSTS_TABLE.' WHERE post_id='.$topic['topic_first_post_id']);
 	$time=1667770000;

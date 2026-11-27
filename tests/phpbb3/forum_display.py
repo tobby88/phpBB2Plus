@@ -11,11 +11,12 @@ from http_board import Browser, FormFields, admin_url, login, submit_form
 def browse(base, web, target, php, owner=None):
     fixture = Path(__file__).with_suffix(".php")
     check = lambda phase: php(fixture, target, phase, cwd=web)
+    admin, entry = authenticate(base, "ModernMember") if owner is None else (owner, admin_url(owner))
+    guest = Browser(base)
+    guest.fetch("index.php")
+    actor = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
     check("setup")
     try:
-        admin, entry = authenticate(base, "ModernMember") if owner is None else (owner, admin_url(owner))
-        actor = login(base, "HistoricMember", os.environ["PLUS_TEST_HISTORIC_PASSWORD"])
-        guest = Browser(base)
         ucp = "ucp.php?i=ucp_prefs&mode=view"
         acp = entry + "&i=acp_board&mode=features"
 
@@ -26,15 +27,22 @@ def browse(base, web, target, php, owner=None):
             submit_form(actor, ucp, actor.fetch(ucp), "ucp", dict(values, submit="1"))
 
         def title_link(client):
-            return re.search(r'title="Käse &amp; Grüße im Forum" class="lastsubject">([^<]*)</a>', client.fetch("index.php"))
+            link = re.search(r'<a href="[^"]*#p985720" title="([^"]*)" class="lastsubject">([^<]*)</a>', client.fetch("index.php"))
+            return (unescape(link[1]), unescape(link[2])) if link else None
 
         page = actor.fetch(ucp)
         values = FormFields(page, "ucp").values
         if values.get("plus_last_topic_title") != "0" or values.get("plus_sub_level_links") != "1":
             raise RuntimeError("The ordinary member's selected source values are missing from the UCP")
         public = title_link(guest)
-        if not public or title_link(actor) or len(unescape(public[1])) > 13 or not unescape(public[1]).startswith("Käse &"):
-            raise RuntimeError("The index mixed up the subject of a reply, the topic title, Unicode width or the viewer preference")
+        if public is None:
+            raise RuntimeError("The guest index is missing the newly permitted subforum's last topic link")
+        if public[0] != "Käse & Grüße im Forum":
+            raise RuntimeError(f"The index linked the correct post but showed its reply subject or encoded title: {public[0]!r}")
+        if len(public[1]) > 13 or not public[1].startswith("Käse &"):
+            raise RuntimeError(f"The displayed index title did not honour the 13-character limit: {public[1]!r}")
+        if title_link(actor):
+            raise RuntimeError("The member who disabled last topic titles still saw the link")
         if "subforum_text.css" not in actor.fetch("index.php") or "subforum_text.css" in guest.fetch("index.php"):
             raise RuntimeError("The forum index did not distinguish text-only links from links with status icons")
         choose({"plus_last_topic_title": "1", "plus_sub_level_links": "0"})
