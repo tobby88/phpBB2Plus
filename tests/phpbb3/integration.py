@@ -130,6 +130,7 @@ import gallery_management_bookmarks
 import knowledgebase
 import kb_unicode
 import gallery_unicode
+import request_blocks
 from ruffle_browser import playback
 from http_board import Browser, author_results, convert, former_names, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
@@ -340,6 +341,8 @@ def account_management(base, admin, moderator, member, target, web):
 
     gallery_unicode.browse(admin, Browser(base), fixture("gallery_unicode"))
     kb_unicode.browse(base, web, target, php)
+    delegation.request_block_rules(base)
+    request_blocks.browse(admin, member, fixture("request_blocks"))
     member_attachments.browse(base, admin, moderator)
     attachment_rules.browse(admin, moderator, member, Browser(base), fixture("attachment_rules"))
     attachment_upload_types.browse(admin, moderator, member, fixture("attachment_upload_types"))
@@ -389,6 +392,8 @@ def extension_upgrades(target, web, suite="all"):
         fixtures.extend((tests / "member_directory.php", tests / "member_operations.php"))
         migrations.append("community/migrations/v170_attachment_blocks")
         fixtures.append(tests / "attachment_blocks.php")
+        migrations.append("community/migrations/v171_request_blocks")
+        fixtures.append(tests / "request_blocks.php")
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
@@ -453,6 +458,7 @@ def seed_source(source, legacy, suite):
         php(tests / "blue_reports.php", source, "source")
         php(tests / "kb_unicode.php", source, "source")
         php(tests / "gallery_unicode.php", source, "source")
+        php(tests / "request_blocks.php", source, "source")
         php(tests / "attachment_blocks.php", source, "source")
         php(tests / "birthday_greeting.php", source, "source")
         php(tests / "inline_editor.php", source, "source")
@@ -469,6 +475,8 @@ def seed_source(source, legacy, suite):
     downloads.source_media(legacy)
     profile_media.source_media(legacy)
     weblinks.source_media(ROOT / "phpBB2", legacy)
+    if account_suite:
+        request_blocks.source_media(legacy)
 
 
 def main():
