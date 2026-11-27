@@ -2,14 +2,16 @@
 namespace phpbb2plus\community\event;
 
 use phpbb2plus\community\service\explicit_acronym;
+use phpbb2plus\community\service\formatting_codes;
 use phpbb2plus\community\service\legacy_smilie_signs;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class legacy_formatting implements EventSubscriberInterface
 {
 	private $acronyms;
+	private $config;
 
-	public function __construct($db, $container) { $this->acronyms = new explicit_acronym($db, $container); }
+	public function __construct($db, $container, $config) { $this->acronyms = new explicit_acronym($db, $container); $this->config = $config; }
 
 	public static function getSubscribedEvents()
 	{
@@ -19,7 +21,11 @@ class legacy_formatting implements EventSubscriberInterface
 			'core.topic_review_modify_post_list' => 'review');
 	}
 
-	public function configure($event) { explicit_acronym::configure($event['configurator']); }
+	public function configure($event)
+	{
+		explicit_acronym::configure($event['configurator']);
+		formatting_codes::overflow($event['configurator'], (string) ($this->config['plus_formatting_overflow'] ?? ''));
+	}
 
 	private function upgrade($xml)
 	{

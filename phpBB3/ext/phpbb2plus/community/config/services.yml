@@ -18,7 +18,7 @@ services:
 
     phpbb2plus.community.legacy_formatting:
         class: phpbb2plus\community\event\legacy_formatting
-        arguments: ['@dbal.conn', '@service_container']
+        arguments: ['@dbal.conn', '@service_container', '@config']
         tags:
             - { name: event.listener }
     phpbb2plus.community.quick_reply:

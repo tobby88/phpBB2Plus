@@ -436,6 +436,7 @@ def seed_source(source, legacy, suite):
         php(tests / "recommend.php", source, "source")
         php(tests / "smilie_signs.php", source, "source")
         php(tests / "explicit_acronym.php", source, "source")
+        php(tests / "formatting_codes.php", source, "source")
     if forum_suite or account_suite:
         php(tests / "acronym_dictionary.php", source, "source")
     if account_suite:
@@ -491,6 +492,7 @@ def main():
                 if forum_suite:
                     # This also exercises conversion after the stock formatter has been cached.
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
+                    php(ROOT / "tests/phpbb3/formatting_codes.php", target, "native", cwd=web)
                 if account_suite:
                     php(ROOT / "tests/phpbb3/attachment_upload_types.php", target, "native", cwd=web, capture=True)
                 php("bin/phpbbcli.php", "--version", cwd=web)
@@ -561,6 +563,7 @@ def main():
                 if forum_suite:
                     explicit_acronym.browse(member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/explicit_acronym.php", target, phase, cwd=web, capture=True))
+                    php(ROOT / "tests/phpbb3/formatting_codes.php", target, "converted", cwd=web)
                     smilie_signs.browse(member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/smilie_signs.php", target, phase, cwd=web, capture=True))
                     quick_reply.browse(member, ordinary, Browser(base), lambda phase: php(
