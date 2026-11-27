@@ -62,6 +62,11 @@ services:
         arguments: ['@dbal.conn', '@user', '@config']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.blue_reports:
+        class: phpbb2plus\community\event\blue_reports
+        arguments: ['@dbal.conn', '@template', '@language']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.warning_cards:
         class: phpbb2plus\community\event\warning_cards
         arguments: ['@dbal.conn', '@config', '@auth', '@user', '@language', '@template', '@request', '@log']

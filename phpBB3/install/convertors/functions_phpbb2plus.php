@@ -25,6 +25,7 @@ function plus_acronym_text($value)
 	return \phpbb2plus\community\service\acronym_dictionary::encode($value);
 }
 require_once __DIR__ . '/plus_cards.php';
+require_once __DIR__ . '/plus_blue_reports.php';
 require_once __DIR__ . '/plus_memberships.php';
 require_once __DIR__ . '/plus_news.php';
 require_once __DIR__ . '/plus_portal.php';

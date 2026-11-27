@@ -74,6 +74,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_inline_edit_settings();';
 	$convertor['execute_last'][] = 'plus_import_member_notice();';
 	$convertor['execute_last'][] = 'plus_card_finish();';
+	$convertor['execute_last'][] = 'plus_import_blue_reports();';
 	$convertor['execute_last'][] = 'plus_arcade_grants();';
 	if (defined('MOD_ATTACHMENT'))
 	{
