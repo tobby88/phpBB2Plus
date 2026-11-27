@@ -1,14 +1,13 @@
 <!-- INCLUDE overall_header.html -->
-<h1>{L_ACP_PLUS_POST_REFERENCES}</h1>
-<p>{L_PLUS_REFS_HELP}</p>
+<h1>{{ PLUS_REPORT_TITLE|e }}</h1>
+<p>{{ PLUS_REPORT_HELP|e }}</p>
 <p>
-	{% if PLUS_SECTION == 'topics' %}<strong>{L_TOPICS}</strong>{% else %}<a href="{{ U_PLUS_TOPICS }}">{L_TOPICS}</a>{% endif %} &middot;
-	{% if PLUS_SECTION == 'posts' %}<strong>{L_POSTS}</strong>{% else %}<a href="{{ U_PLUS_POSTS }}">{L_POSTS}</a>{% endif %}
+	{% for section in loops.sections %}{% if not loop.first %} &middot; {% endif %}{% if section.CURRENT %}<strong>{{ section.LABEL|e }}</strong>{% else %}<a href="{{ section.URL }}">{{ section.LABEL|e }}</a>{% endif %}{% endfor %}
 </p>
 <p id="plus-reference-summary" data-checked="{{ PLUS_CHECKED }}" data-affected="{{ PLUS_AFFECTED }}">{{ PLUS_SUMMARY|e }} {{ PLUS_RANGE|e }}</p>
 {% if loops.findings %}
-<table class="table1"><thead><tr><th>{% if PLUS_SECTION == 'topics' %}{L_TOPIC}{% else %}{L_POST}{% endif %}</th><th>{L_PLUS_REFS_PROBLEM}</th></tr></thead>
-<tbody>{% for item in loops.findings %}<tr data-reference-id="{{ item.ID }}"><td>#{{ item.ID }}</td>
+<table class="table1"><thead><tr><th>{{ PLUS_RECORD_LABEL|e }}</th><th>{L_PLUS_REFS_PROBLEM}</th></tr></thead>
+<tbody>{% for item in loops.findings %}<tr data-reference-id="{{ item.ID }}"><td>{{ item.LABEL|e }}</td>
 	<td>{% for reason in item.reasons %}<div data-reason="{{ reason.KEY }}">{{ reason.TEXT|e }}</div>{% endfor %}</td></tr>{% endfor %}</tbody></table>
 {% endif %}
 <p>{% if U_PLUS_NEXT %}

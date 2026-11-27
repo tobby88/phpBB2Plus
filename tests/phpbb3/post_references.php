@@ -7,10 +7,11 @@ $rows = static function ($sql, $limit = 0) use ($db) {
 	$r = $limit ? $db->sql_query_limit($sql, $limit) : $db->sql_query($sql);
 	$rows = $db->sql_fetchrowset($r); $db->sql_freeresult($r); return $rows;
 };
+$state = $phpbb_container->get('config_text');
+if (strpos($argv[2], 'account-') === 0) { require __DIR__ . '/account_references.php'; return; }
 $n = 630000; $missing = 639999; $end = $n + 214;
 $records = array(TOPICS_TABLE=>'topic_id', POSTS_TABLE=>'post_id');
 $key = 'test_plus_post_references';
-$state = $phpbb_container->get('config_text');
 $actor = $rows('SELECT user_id,user_lang,user_type FROM ' . USERS_TABLE . " WHERE username_clean='arcadecategoryjunior'")[0];
 $backup = (int) $rows('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='a_backup'")[0]['auth_option_id'];
 $assignment = 'user_id=' . (int) $actor['user_id'] . ' AND forum_id=0 AND auth_role_id=0 AND auth_option_id=' . $backup;
@@ -74,7 +75,19 @@ switch ($argv[2])
 	case 'verify':
 		if ($fingerprint() !== $previous[1]) { throw new RuntimeException('The reference report changed native topic or post data'); }
 		break;
+	case 'publish':
+		if ($state->get($key . '_published') !== null) { throw new RuntimeException('Unexpected concurrent post fixture'); }
+		$db->sql_transaction('begin');
+		$post = $rows('SELECT * FROM ' . POSTS_TABLE . ' WHERE post_id=' . ($n + 202))[0];
+		unset($post['post_id']);
+		$post['post_subject'] = 'New reference test post';
+		$db->sql_query('INSERT INTO ' . POSTS_TABLE . ' ' . $db->sql_build_array('INSERT', $post));
+		$state->set($key . '_published', (string) $db->sql_nextid());
+		$db->sql_transaction('commit');
+		break;
 	case 'restore':
+		$new = (int) $state->get($key . '_published');
+		if ($new) { $db->sql_query('DELETE FROM ' . POSTS_TABLE . " WHERE post_id=$new AND post_subject='New reference test post'"); $state->delete($key . '_published'); }
 		$db->sql_query('DELETE FROM ' . ACL_USERS_TABLE . ' WHERE ' . $assignment);
 		$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_lang='" . $db->sql_escape($previous[0]) . "' WHERE user_id=" . (int) $actor['user_id']);
 		$auth->acl_clear_prefetch((int) $actor['user_id']);

@@ -1,6 +1,21 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_ACCOUNT_REFERENCES'=>'Postfach- und Gruppenverweise prüfen',
+	'PLUS_ACCOUNT_REFS_HELP'=>'Prüfe die Verknüpfungen von Nachrichten, Postfächern, Konten und Gruppen. Jede Seite liest bis zu 200 unterschiedliche Verweise. Bei einem späteren Aufruf kannst du an derselben Stelle weiterlesen oder eine neue Prüfung beginnen.',
+	'PLUS_REFS_MAILBOXES'=>'Postfacheinträge', 'PLUS_REFS_MESSAGES'=>'Nachrichten', 'PLUS_REFS_FOLDERS'=>'Eigene PN-Ordner',
+	'PLUS_REFS_MEMBERSHIPS'=>'Gruppenmitgliedschaften', 'PLUS_REFS_DEFAULTS'=>'Standardgruppen', 'PLUS_REFS_RECORD'=>'Verweis',
+	'PLUS_REFS_ID_MAILBOXES'=>'PN %1$d / Konto %2$d / Ordner %3$d / Absender %4$d', 'PLUS_REFS_ID_MESSAGES'=>'PN %d',
+	'PLUS_REFS_ID_FOLDERS'=>'Ordner %d', 'PLUS_REFS_ID_MEMBERSHIPS'=>'Konto %1$d / Gruppe %2$d', 'PLUS_REFS_ID_DEFAULTS'=>'Konto %d',
+	'PLUS_REFS_PM_SENDER'=>'Zur Absender-ID %d gibt es kein Konto.',
+	'PLUS_REFS_MAIL_OWNER'=>'Die ID %d bezeichnet kein Konto mit eigenem Postfach.',
+	'PLUS_REFS_MAIL_MESSAGE'=>'Zur Nachrichten-ID %d gibt es keine Nachricht.',
+	'PLUS_REFS_MAIL_SENDER'=>'Der Postfacheintrag nennt Absender %1$d, die Nachricht Absender %2$d.',
+	'PLUS_REFS_MAIL_FOLDER'=>'Unter der Ordner-ID %d gibt es keinen Nachrichtenordner.',
+	'PLUS_REFS_FOREIGN_FOLDER'=>'Der eigene Ordner %d gehört zu einem anderen Postfach.',
+	'PLUS_REFS_MEMBER_GROUP'=>'Zur Gruppen-ID %d gibt es keine Gruppe.',
+	'PLUS_REFS_MEMBER_USER'=>'Zur Mitglieds-ID %d gibt es kein Konto.',
+	'PLUS_REFS_DEFAULT_MEMBER'=>'Das Konto hat keine bestätigte Mitgliedschaft in seiner Standardgruppe %d.',
 	'ACP_PLUS_POST_REFERENCES'=>'Beitrags- und Themenverweise prüfen',
 	'PLUS_REFS_HELP'=>'Prüfe in der aktuellen Datenbank die Zuordnung von Beiträgen, Themen und Verfassern sowie die Verweise auf verschobene Themen. Der Bericht liest die Datensätze und zeigt pro Seite bis zu 200 geprüfte IDs. Die automatische Prüfung hält auf der nächsten Seite mit Auffälligkeiten.',
 	'PLUS_REFS_SUMMARY'=>array(1=>'%1$d Datensatz auf dieser Seite geprüft, davon %2$d mit Auffälligkeiten.', 2=>'%1$d Datensätze auf dieser Seite geprüft, davon %2$d mit Auffälligkeiten.'),

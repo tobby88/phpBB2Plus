@@ -1,6 +1,21 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
+	'ACP_PLUS_ACCOUNT_REFERENCES'=>'Check mailbox and group references',
+	'PLUS_ACCOUNT_REFS_HELP'=>'Check how messages, mailboxes, accounts and groups are linked. Each page reads up to 200 distinct references. You can return to the same position later or start a fresh check.',
+	'PLUS_REFS_MAILBOXES'=>'Mailbox entries', 'PLUS_REFS_MESSAGES'=>'Messages', 'PLUS_REFS_FOLDERS'=>'Personal message folders',
+	'PLUS_REFS_MEMBERSHIPS'=>'Group memberships', 'PLUS_REFS_DEFAULTS'=>'Default groups', 'PLUS_REFS_RECORD'=>'Reference',
+	'PLUS_REFS_ID_MAILBOXES'=>'PM %1$d / account %2$d / folder %3$d / sender %4$d', 'PLUS_REFS_ID_MESSAGES'=>'PM %d',
+	'PLUS_REFS_ID_FOLDERS'=>'Folder %d', 'PLUS_REFS_ID_MEMBERSHIPS'=>'Account %1$d / group %2$d', 'PLUS_REFS_ID_DEFAULTS'=>'Account %d',
+	'PLUS_REFS_PM_SENDER'=>'Sender ID %d has no matching account.',
+	'PLUS_REFS_MAIL_OWNER'=>'ID %d does not identify an account with a personal mailbox.',
+	'PLUS_REFS_MAIL_MESSAGE'=>'Message ID %d has no matching message.',
+	'PLUS_REFS_MAIL_SENDER'=>'The mailbox entry identifies sender %1$d and the message identifies sender %2$d.',
+	'PLUS_REFS_MAIL_FOLDER'=>'Folder ID %d does not identify a message folder.',
+	'PLUS_REFS_FOREIGN_FOLDER'=>'Personal folder %d belongs to a different mailbox.',
+	'PLUS_REFS_MEMBER_GROUP'=>'Group ID %d has no matching group.',
+	'PLUS_REFS_MEMBER_USER'=>'Member ID %d has no matching account.',
+	'PLUS_REFS_DEFAULT_MEMBER'=>'The account has no approved membership in its default group %d.',
 	'ACP_PLUS_POST_REFERENCES'=>'Check post and topic references',
 	'PLUS_REFS_HELP'=>'Check the current forum, topic, author and move links in the database. This report only reads records. Each page checks up to 200 IDs. Automatic checking pauses at the next page with findings.',
 	'PLUS_REFS_SUMMARY'=>array(1=>'%1$d record checked on this page, %2$d with findings.', 2=>'%1$d records checked on this page, %2$d with findings.'),
