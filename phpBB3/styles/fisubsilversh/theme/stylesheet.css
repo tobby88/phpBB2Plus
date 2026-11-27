@@ -107,4 +107,20 @@ a:hover, a.topictitle:hover, a.forumtitle:hover { color: #a54900; }
 	.headerbar .plus-brand-portal { width: calc(var(--plus-header-height) * 1.2727); height: var(--plus-header-height); }
 	.navbar { margin-inline: 0; background-color: #e5ebf3; }
 	.headerbar + .navbar { margin-top: 0; }
+	/* Keep the native last-post links reachable below the forum description. */
+	ul.topiclist.forums li.row dl.row-item { background-position: 10px 5px; }
+	.rtl ul.topiclist.forums li.row dl.row-item { background-position: right 10px top 5px; }
+	ul.topiclist.forums li.row dt { float: none; margin-inline: 0; }
+	ul.topiclist.forums li.row dt .list-inner { margin-inline: 0; }
+	ul.topiclist.forums li.row dd.lastpost {
+		display: block; float: none; box-sizing: border-box; width: auto; min-height: 0;
+		margin: 0; border: 0; padding: 0 5px .4em; padding-inline-start: 52px; overflow-wrap: anywhere;
+	}
+	ul.topiclist.forums li.row dd.lastpost > span { padding: 0; }
+	ul.topiclist.forums li.row dd.lastpost dfn {
+		position: static; display: inline; width: auto; height: auto; margin: 0; margin-inline-end: .25em;
+		clip: auto; overflow: visible; font-style: normal; font-weight: bold;
+	}
+	ul.topiclist.forums li.row dd.lastpost br { display: none; }
+	ul.topiclist.forums li.row dd.lastpost a .fa-external-link-square { padding: .2em .35em; }
 }

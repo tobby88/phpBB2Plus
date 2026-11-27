@@ -26,6 +26,49 @@ function luminance(rgb) {
 }
 
 async function checkPlusStyle(frame) {
+    const forumIcons = ["folder_new", "folder", "folder_lock"];
+    const topicIcons = ["folder_new", "folder", "folder_announce", "folder_new_hot", "folder_hot",
+                        "folder_sticky", "folder_lock_new", "folder_lock", "folder_moved"];
+    const loaded = new Set();
+    async function checkLegend(doc, width, names) {
+        const legend = doc.querySelector(".plus-folder-legend");
+        const items = Array.from(legend?.children || []);
+        if (!legend?.getAttribute("aria-label") || items.length !== names.length) {
+            throw Error("The folder key is missing from " + doc.location.pathname);
+        }
+        await Promise.all(items.map(async (item, i) => {
+            const icon = item.querySelector('[aria-hidden="true"]');
+            const label = item.textContent.trim();
+            const box = icon.getBoundingClientRect(), row = item.getBoundingClientRect();
+            const image = doc.defaultView.getComputedStyle(icon).backgroundImage.slice(5, -2);
+            if (!label || label.includes("_") || !image.endsWith("/" + names[i] + ".gif") ||
+                box.width !== 25 || box.height !== 25 || row.right > width || item.scrollWidth > item.clientWidth + 1) {
+                throw Error("Folder symbol or caption unavailable at " + width + "px: " + names[i]);
+            }
+            if (!loaded.has(image)) {
+                loaded.add(image);
+                const graphic = new Image(); graphic.src = image; await graphic.decode();
+                if (graphic.naturalWidth !== 25 || graphic.naturalHeight !== 25) throw Error("Unexpected folder artwork");
+            }
+        }));
+    }
+    function latestPost(doc, width) {
+        let publicPost;
+        for (const time of doc.querySelectorAll(".forums li.row dd.lastpost time")) {
+            const details = time.closest("dd"), row = details.closest("dl");
+            const title = row.querySelector(".forumtitle"), link = details.querySelector('a[href*="viewtopic.php"]');
+            const linkBox = link?.getBoundingClientRect(), titleBox = title.getBoundingClientRect();
+            const rowBox = row.closest("li.row").getBoundingClientRect(), timeBox = time.getBoundingClientRect();
+            if (!linkBox?.width || !timeBox.width || linkBox.right > width ||
+                (width < 701 && (linkBox.top < titleBox.bottom || titleBox.top < rowBox.top || timeBox.bottom > rowBox.bottom + 1))) {
+                throw Error("The latest-post link or time disappeared from the forum row at " + width + "px");
+            }
+            // The ballot forum has a visible last post for both guests and signed-in readers.
+            if (new URL(title.href).searchParams.get("f") === "14") publicPost = link.href;
+        }
+        if (!publicPost) throw Error("The public ballot forum is missing from the fixture");
+        return publicPost;
+    }
     await checkStylePage(frame, "app.php/portal", [1180, 390], async (portal, width) => {
         const desktop = width > 700;
         const win = portal.defaultView;
@@ -77,15 +120,37 @@ async function checkPlusStyle(frame) {
             throw Error("The author column overlaps the post at " + width + "px");
         }
     });
-    await checkStylePage(frame, "index.php", [1180], async forums => {
-        const folder = forums.querySelector(".forum_read_subforum, .forum_read");
+    await checkStylePage(frame, "index.php", [1180, 390], async (forums, width) => {
+        const folder = forums.querySelector(".forums dl:is(.forum_read_subforum, .forum_read, .forum_unread, .forum_unread_subforum)");
         const background = folder && forums.defaultView.getComputedStyle(folder).backgroundImage;
-        if (!background || !background.includes("/fisubsilversh/theme/images/folder.gif")) {
-            throw Error("The forum read state lost its FI Subsilver folder image");
+        const file = folder?.matches(".forum_unread, .forum_unread_subforum") ? "folder_new.gif" : "folder.gif";
+        if (!background || !background.includes("/fisubsilversh/theme/images/" + file) ||
+            forums.defaultView.getComputedStyle(folder).backgroundSize.split(" ")[0] !== "25px") {
+            throw Error("Unexpected FI Subsilver forum row at " + width + "px: " + (folder?.className || "missing folder") +
+                ", " + (folder ? forums.defaultView.getComputedStyle(folder).backgroundSize : "no size") + ", expected " + file +
+                ", found " + (background || "").split("/").pop());
         }
-        const graphic = new Image();
-        graphic.src = background.slice(5, -2);
-        await graphic.decode();
-        if (graphic.naturalWidth !== 25) throw Error("The original folder image could not be decoded");
+        latestPost(forums, width);
+        await checkLegend(forums, width, forumIcons);
+    });
+    let category;
+    await checkStylePage(frame, "viewforum.php?f=1", [390, 1180], async (forum, width) => {
+        await checkLegend(forum, width, topicIcons);
+        const parents = Array.from(forum.querySelectorAll(".breadcrumbs .crumb a")).map(a => new URL(a.href));
+        category = parents.find(u => u.pathname.endsWith("/viewforum.php") && u.searchParams.get("f") !== "1");
+        if (!category || !forum.querySelector(".topics .topictitle")) throw Error("The topic list lost its category or title");
+    });
+    let last;
+    await checkStylePage(frame, category.href, [1180, 390], async (forums, width) => {
+        if (!forums.querySelector(".forums .forumtitle")) throw Error("The category has no link to its forum");
+        last = latestPost(forums, width);
+        await checkLegend(forums, width, forumIcons);
+    });
+    await checkStylePage(frame, last, [390], post => {
+        const anchor = new URL(last).hash;
+        if (!anchor || !post.getElementById(anchor.slice(1))) {
+            const posts = Array.from(post.querySelectorAll(".post[id]")).map(p => p.id).slice(0, 6);
+            throw Error("Mobile last-post link " + anchor + " opened " + post.location.pathname + " with post IDs " + posts.join(", "));
+        }
     });
 }

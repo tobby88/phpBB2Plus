@@ -1,0 +1,16 @@
+{% if ((S_INDEX or SCRIPT_NAME == 'viewforum') and loops.forumrow) or (S_VIEWFORUM and S_IS_POSTABLE) %}
+	{% if S_VIEWFORUM and S_IS_POSTABLE %}
+		{% set folders = {
+			'topic_unread': 'UNREAD_POSTS', 'topic_read': 'NO_UNREAD_POSTS', 'announce_read': 'ICON_ANNOUNCEMENT',
+			'topic_unread_hot': 'UNREAD_POSTS_HOT', 'topic_read_hot': 'NO_UNREAD_POSTS_HOT', 'sticky_read': 'ICON_STICKY',
+			'topic_unread_locked': 'UNREAD_POSTS_LOCKED', 'topic_read_locked': 'NO_UNREAD_POSTS_LOCKED', 'topic_moved': 'TOPIC_MOVED'
+		} %}
+	{% else %}
+		{% set folders = {'forum_unread': 'UNREAD_POSTS', 'forum_read': 'NO_UNREAD_POSTS', 'forum_read_locked': 'FORUM_LOCKED'} %}
+	{% endif %}
+	<ul class="plus-folder-legend" role="list" aria-label="{{ lang('LEGEND') }}">
+		{% for icon, label in folders %}
+			<li><span class="{{ icon }}" aria-hidden="true"></span>{{ lang(label) }}</li>
+		{% endfor %}
+	</ul>
+{% endif %}
