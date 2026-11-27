@@ -48,8 +48,10 @@ in the assembled board so its compiled templates use the current extension list.
 If the web PHP process caches generated PHP indefinitely, exclude the assembled
 board's cache directory from OPcache or reload the web PHP process after an
 extension change.
-The [conversion coverage](phpbb3-port.md) lists verified
-behaviour and the modules still being ported. Use the branch with test data.
+The [conversion coverage](phpbb3-port.md) lists how individual Plus features
+map to phpBB3, which workflows have been tested, and when recovering data
+from an earlier conversion requires the original files or database.
+Use a separate installation to evaluate this branch.
 
 The integration tests in `tests/phpbb3/` assemble the distribution, create
 disposable MariaDB schemas on localhost, convert a fixture board and exercise
