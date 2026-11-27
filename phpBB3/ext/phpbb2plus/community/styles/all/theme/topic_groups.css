@@ -1,0 +1,5 @@
+.plus-topic-group-heading { background: #e4eaf2; padding: .35em .8em; }
+.topiclist .plus-topic-group-heading h3 { margin: 0; border: 0; color: #294b76; font-size: 1.1em; }
+.forumbg:has(> .inner > .topics > .plus-topic-box-heading) > .inner > .topiclist:not(.topics) { display: none; }
+.forumbg .topics > .plus-topic-box-heading { background-color: #47688c; }
+.forumbg .topics > .plus-topic-box-heading dl { min-height: 0; }

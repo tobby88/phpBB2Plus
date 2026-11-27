@@ -1,6 +1,8 @@
 <?php
 use phpbb2plus\community\service\forum_display;
 
+function plus_source_news_type($type) { return (int) ((int) $type === 4); }
+
 function plus_forum_display_choice($value, $name)
 {
 	return forum_display::valid($name, $value) ? (int) $value : -1;

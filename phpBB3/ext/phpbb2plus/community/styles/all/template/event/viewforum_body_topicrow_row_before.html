@@ -1,0 +1,10 @@
+{% if topicrow.PLUS_GROUP_LABEL %}
+	{% if S_PLUS_TOPIC_GROUP_BOX %}
+	<li class="header plus-topic-box-heading"><dl class="row-item">
+		<dt><div class="list-inner"><span role="heading" aria-level="3">{{ topicrow.PLUS_GROUP_LABEL }}</span></div></dt>
+		<dd class="posts">{{ lang('REPLIES') }}</dd><dd class="views">{{ lang('VIEWS') }}</dd><dd class="lastpost"><span>{{ lang('LAST_POST') }}</span></dd>
+	</dl></li>
+	{% else %}
+	<li class="plus-topic-group-heading"><h3>{{ topicrow.PLUS_GROUP_LABEL }}</h3></li>
+	{% endif %}
+{% endif %}

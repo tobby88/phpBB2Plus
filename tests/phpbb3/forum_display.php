@@ -8,6 +8,7 @@ if ($phase === 'source')
 	$source->query("UPDATE phpbb_users SET user_last_topic_title=0,user_sub_level_links=1,user_split_sticky=0 WHERE username='HistoricMember'");
 	$source->query("UPDATE phpbb_config SET config_value='13' WHERE config_name='last_topic_title_length'");
 	$source->query("UPDATE phpbb_config SET config_value='1' WHERE config_name='split_sticky_over'");
+	$source->query('UPDATE phpbb_topics SET topic_type=4 WHERE topic_id=7');
 	return;
 }
 define('IN_PHPBB', true);
@@ -40,6 +41,9 @@ if ($phase === 'setup')
 	if ((int) $config['plus_last_topic_title_length'] !== 13 || (int) $config['plus_split_sticky_over'] !== 1 ||
 		(int) $member['plus_split_sticky'] !== 0 || (int) $member['plus_sub_level_links'] !== 1 || (int) $member['plus_last_topic_title'] !== 0)
 	{ throw new RuntimeException('Source presentation choices or board overrides were not converted'); }
+	$converted_news = $one('SELECT plus_list_news,topic_type FROM '.TOPICS_TABLE.' WHERE topic_id=7');
+	if ((int) $converted_news['plus_list_news'] !== 1 || (int) $converted_news['topic_type'] !== POST_NORMAL)
+	{ throw new RuntimeException('A genuine converted type-4 topic lost its visibility or became a native announcement'); }
 	require_once './includes/functions_admin.php';
 	$forum = $one('SELECT * FROM ' . FORUMS_TABLE . ' WHERE forum_id=1');
 	$right = (int) $one('SELECT MAX(right_id) AS r FROM ' . FORUMS_TABLE)['r'];

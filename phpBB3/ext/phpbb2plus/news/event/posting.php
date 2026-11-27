@@ -142,6 +142,11 @@ class posting implements EventSubscriberInterface
 		}
 		$sql = $event['sql_data'];
 		$sql[TOPICS_TABLE]['sql']['plus_news_cat'] = $new;
+		if (!empty($this->config['plus_topic_groups_ready']))
+		{
+			// Write the listing choice in the same update that publishes or withdraws the category.
+			$sql[TOPICS_TABLE]['sql']['plus_list_news'] = (int) ($new > 0 && (int) $event['topic_type'] === POST_NORMAL);
+		}
 		$event['sql_data'] = $sql;
 	}
 }

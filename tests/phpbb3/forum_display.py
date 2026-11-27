@@ -82,5 +82,7 @@ def browse(base, web, target, php, owner=None):
         default = guest.fetch("index.php")
         if "Layout room" not in forum_rows(default) or "Layout subforum" in forum_rows(default):
             raise RuntimeError("The expanded/compact member controls changed the guest's medium layout")
+        from topic_groups import browse as topic_groups
+        topic_groups(web, target, php, admin, actor, acp)
     finally:
         check("clean")

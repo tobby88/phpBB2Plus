@@ -1,4 +1,14 @@
 services:
+    phpbb2plus.community.topic_groups:
+        class: phpbb2plus\community\event\topic_groups
+        arguments: ['@phpbb2plus.community.forum_display', '@config', '@dbal.conn', '@language', '@template', '@content.visibility']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.recover_news:
+        class: phpbb2plus\community\console\recover_news
+        arguments: ['@dbal.conn', '@config']
+        tags:
+            - { name: console.command }
     phpbb2plus.community.forum_display:
         class: phpbb2plus\community\service\forum_display
         arguments: ['@config', '@user']

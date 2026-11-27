@@ -8,7 +8,9 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class forum_display implements EventSubscriberInterface
 {
 	// These are the controls that affect the forum lists rendered by this extension.
-	private const CONTROLS = array('sub_forum', 'split_cat', 'last_topic_title', 'sub_level_links');
+	private const INDEX = array('sub_forum', 'split_cat', 'last_topic_title', 'sub_level_links');
+	private const TOPICS = array('split_global_announce', 'split_announce', 'split_news', 'split_sticky', 'split_topic_split');
+	private function controls() { return empty($this->config['plus_topic_groups_ready']) ? self::INDEX : array_merge(self::INDEX, self::TOPICS); }
 	private $settings, $config, $request, $language, $template, $db, $auth;
 	private $titles = array();
 
@@ -30,7 +32,7 @@ class forum_display implements EventSubscriberInterface
 		if ($event['mode'] !== 'features' || !$this->settings->enabled()) { return; }
 		$this->language->add_lang('forum_display', 'phpbb2plus/community');
 		$fields = array('legend_plus_forum_display' => 'PLUS_DISPLAY_PREFERENCES');
-		foreach (self::CONTROLS as $name)
+		foreach ($this->controls() as $name)
 		{
 			$key = 'plus_' . $name;
 			$choices = settings::choices($name);
@@ -53,7 +55,7 @@ class forum_display implements EventSubscriberInterface
 	public function member($event)
 	{
 		$this->language->add_lang('forum_display', 'phpbb2plus/community');
-		foreach (self::CONTROLS as $name)
+		foreach ($this->controls() as $name)
 		{
 			if (!$this->settings->personal($name)) { continue; }
 			$value = $event['submit'] ? $this->picked($name) : $this->settings->selected($name);
@@ -70,7 +72,7 @@ class forum_display implements EventSubscriberInterface
 	public function save($event)
 	{
 		$data = $event['sql_ary'];
-		foreach (self::CONTROLS as $name)
+		foreach ($this->controls() as $name)
 		{
 			if ($this->settings->personal($name) && $this->request->is_set_post('plus_' . $name)) { $data['plus_' . $name] = $this->picked($name); }
 		}

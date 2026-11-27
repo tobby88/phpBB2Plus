@@ -371,6 +371,7 @@ if (!$get_info)
 			$section[] = array('plus_announce_days',array('topics.topic_type','topics.topic_announce_duration','days'),'plus_announcement_limit');
 			$section[] = array('plus_description','topics.topic_desc','plus_topic_description');
 			$section[] = array('plus_news_cat','topics.news_id','intval');
+			$section[] = array('plus_list_news','topics.topic_type','plus_source_news_type');
 			$section[] = array('plus_cal_start','topics.topic_calendar_time','intval');
 			$section[] = array('plus_cal_end',array('topics.topic_calendar_time','topics.topic_calendar_duration'),'plus_calendar_end');
 		}
