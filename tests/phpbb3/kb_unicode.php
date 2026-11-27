@@ -54,8 +54,11 @@ if ($phase === 'prepare')
 		'Converted article source, searchable text, byline, title or contents headings lost Unicode');
 	$expect(!$state_store->get($state_key), 'An earlier Unicode fixture is still active');
 	$state_store->set($state_key, json_encode(array('article'=>$a, 'pages'=>$rows("SELECT * FROM {$p}pages WHERE article_id=26001"),
-		'keep'=>$rows("SELECT setting_name,setting_value FROM {$p}settings WHERE setting_name IN ('comments','forum_id')"))));
-	$db->sql_query("UPDATE {$p}settings SET setting_value='1' WHERE setting_name IN ('comments','forum_id')");
+		'keep'=>$rows("SELECT * FROM {$p}settings WHERE setting_name IN ('comments','forum_id','allow_new','allow_anon')"))));
+	foreach (array('comments','forum_id','allow_new','allow_anon') as $key)
+	{
+		$db->sql_query("INSERT INTO {$p}settings (setting_name,setting_value) VALUES ('$key','1') ON DUPLICATE KEY UPDATE setting_value='1'");
+	}
 	// Make the synthetic draft visible for this browser case without adding it to shared public fixture counts.
 	$db->sql_query("UPDATE {$p}articles SET approval=1 WHERE article_id=26001");
 }
@@ -83,11 +86,8 @@ elseif ($phase === 'clean')
 	$db->sql_query("DELETE FROM {$p}pages WHERE article_id=26001");
 	$db->sql_multi_insert($p . 'pages', $state['pages']);
 	$db->sql_query("DELETE FROM {$p}submissions WHERE article_id=26001");
-	foreach ($state['keep'] as $setting)
-	{
-		$db->sql_query("UPDATE {$p}settings SET " . $db->sql_build_array('UPDATE', array('setting_value'=>$setting['setting_value'])) .
-			" WHERE setting_name='" . $db->sql_escape($setting['setting_name']) . "'");
-	}
+	$db->sql_query("DELETE FROM {$p}settings WHERE setting_name IN ('comments','forum_id','allow_new','allow_anon')");
+	if ($state['keep']) { $db->sql_multi_insert($p . 'settings', $state['keep']); }
 	$state_store->delete($state_key);
 }
 else { throw new RuntimeException('Unknown KB Unicode fixture phase'); }
