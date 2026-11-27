@@ -261,6 +261,21 @@ services:
     phpbb2plus.community.recent:
         class: phpbb2plus\community\controller\recent
         arguments: ['@phpbb2plus.community.topic_activity', '@request', '@config', '@user', '@language', '@template', '@controller.helper', '@pagination', '%core.root_path%', '%core.php_ext%']
+    phpbb2plus.community.daily_visitors:
+        class: phpbb2plus\community\service\daily_visitors
+        arguments: ['@dbal.conn', '@config', '%core.table_prefix%plus_day_visits']
+    phpbb2plus.community.daily_visitor_events:
+        class: phpbb2plus\community\event\daily_visitors
+        arguments: ['@phpbb2plus.community.daily_visitors', '@config', '@user', '@auth', '@request', '@template', '@language']
+        tags:
+            - { name: event.listener }
+    phpbb2plus.community.daily_visitor_cleanup:
+        class: phpbb2plus\community\cron\daily_visitors
+        arguments: ['@phpbb2plus.community.daily_visitors']
+        calls:
+            - [set_name, ['phpbb2plus.community.daily_visitor_cleanup']]
+        tags:
+            - { name: cron.task }
     phpbb2plus.community.portal_sessions:
         class: phpbb2plus\community\event\portal_sessions
         arguments: ['@dbal.conn']

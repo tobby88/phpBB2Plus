@@ -1,0 +1,9 @@
+{% if S_PLUS_DAILY_PREF %}
+<dl><dt><label for="plus_daily_scope">{{ lang('PLUS_DAILY_SCOPE') }}</label></dt>
+<dd><select name="plus_daily_scope" id="plus_daily_scope">
+	<option value="-1"{% if PLUS_DAILY_PREF == -1 %} selected{% endif %}>{{ lang('PLUS_DAILY_INHERIT') }}</option>
+	<option value="0"{% if PLUS_DAILY_PREF == 0 %} selected{% endif %}>{{ lang('DISABLED') }}</option>
+	<option value="1"{% if PLUS_DAILY_PREF == 1 %} selected{% endif %}>{{ lang('PLUS_DAILY_INDEX') }}</option>
+	<option value="2"{% if PLUS_DAILY_PREF == 2 %} selected{% endif %}>{{ lang('PLUS_DAILY_CATEGORIES') }}</option>
+</select></dd></dl>
+{% endif %}

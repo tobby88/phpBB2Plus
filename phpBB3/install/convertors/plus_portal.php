@@ -1,6 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
+function plus_daily_last_active($session_time, $last_visit)
+{
+	return (int) $session_time > 0 ? (int) $session_time : max(0, (int) $last_visit);
+}
+
 function plus_portal_image($url, $index)
 {
 	$parts = parse_url($url);
@@ -56,7 +61,7 @@ function plus_portal_settings()
 	}
 	$src_db->sql_freeresult($result);
 	$index_logos = false;
-	$result = $src_db->sql_query("SELECT config_name,config_value FROM {$p}plus WHERE config_name IN ('show_shoutbox','show_boardstats','enable_banners','show_links')");
+	$result = $src_db->sql_query("SELECT config_name,config_value FROM {$p}plus WHERE config_name IN ('show_shoutbox','show_boardstats','enable_banners','show_links','show_last_visit')");
 	while ($r = $src_db->sql_fetchrow($result))
 	{
 		if ($r['config_name'] === 'show_shoutbox')
@@ -64,10 +69,18 @@ function plus_portal_settings()
 			$mode = (int) $r['config_value'];
 			$config->set('plus_portal_shouts',in_array($mode,array(1,3),true) ? 1 : (in_array($mode,array(2,4),true) ? 2 : 0));
 		}
+		elseif ($r['config_name'] === 'show_last_visit') { $config->set('plus_daily_mode', in_array($r['config_value'], array('1', '2'), true) ? (int) $r['config_value'] : 0); }
 		elseif ($r['config_name'] === 'enable_banners') { $config->set('plus_banners_enabled',(int) (bool) $r['config_value']); }
 		elseif ($r['config_name'] === 'show_links') { $index_logos = !empty($r['config_value']); }
 		else { $config->set('plus_portal_stats',(int) (bool) $r['config_value']); }
 	}
 	$src_db->sql_freeresult($result);
 	$config->set('plus_wl_index_logos',(int) $index_logos);
+	$result = $src_db->sql_query("SELECT config_name,config_value FROM {$p}config WHERE config_name IN ('display_viewonline','display_viewonline_over')");
+	while ($r = $src_db->sql_fetchrow($result))
+	{
+		if ($r['config_name'] === 'display_viewonline_over') { $config->set('plus_daily_force', (int) (bool) $r['config_value']); }
+		else { $config->set('plus_daily_scope', in_array($r['config_value'], array('1', '2'), true) ? (int) $r['config_value'] : 0); }
+	}
+	$src_db->sql_freeresult($result);
 }

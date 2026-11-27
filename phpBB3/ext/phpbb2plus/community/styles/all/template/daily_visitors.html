@@ -1,0 +1,7 @@
+{% if S_PLUS_DAILY %}
+<section class="stat-block plus-daily-visitors">
+	<h3>{{ lang('PLUS_DAILY_HEADING') }}</h3>
+	<p>{{ PLUS_DAILY_TOTAL }}{% if S_PLUS_DAILY_DETAIL %}<br>{{ PLUS_DAILY_BREAKDOWN }}<br>{{ PLUS_DAILY_RECENT }}{% endif %}</p>
+	{% if loops.plus_day_members %}<p class="plus-daily-names">{% for member in loops.plus_day_members %}{% if not loop.first %}, {% endif %}{% if member.HIDDEN %}<em>{{ member.NAME }}</em>{% else %}{{ member.NAME }}{% endif %}{% endfor %}</p>{% endif %}
+</section>
+{% endif %}

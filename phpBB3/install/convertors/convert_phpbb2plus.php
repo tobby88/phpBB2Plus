@@ -199,6 +199,11 @@ if (!$get_info)
 			{
 				$field = array('rank_image', array('ranks.rank_id','ranks.rank_image'), 'plus_profile_rank');
 			}
+			if ($section['target'] === USERS_TABLE && $field[0] === 'user_last_active' &&
+				(new \phpbb\db\tools\factory())->get($src_db)->sql_column_exists($convert->src_table_prefix . 'users', 'user_session_time'))
+			{
+				$field = array('user_last_active', array('users.user_session_time', 'users.user_lastvisit'), 'plus_daily_last_active');
+			}
 			if ($section['target'] === USERS_TABLE && $field[0] === 'user_lang')
 			{
 				$field = array('user_lang', 'users.user_lang', 'plus_convert_locale');
@@ -303,6 +308,10 @@ if (!$get_info)
 			$section[] = array('plus_last_login', 'users.user_lastlogon', 'intval');
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
 			$source_tools = (new \phpbb\db\tools\factory())->get($src_db);
+			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_display_viewonline'))
+			{
+				$section[] = array('plus_daily_scope', 'users.user_display_viewonline', 'intval');
+			}
 			if ($source_tools->sql_column_exists($convert->src_table_prefix . 'users', 'user_setbm'))
 			{
 				$section[] = array('plus_post_bookmark', 'users.user_setbm', 'plus_tracker_flag');
