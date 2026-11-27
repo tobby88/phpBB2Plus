@@ -35,6 +35,8 @@ def source_modules(source, target):
                  "includes/functions_arcade_game_storage.php", "includes/functions_arcade_import_storage.php",
                  "includes/functions_moderator_identity.php", "includes/functions_color_groups.php",
                  "templates/fisubsilversh/admin/admin_users_email_list_body.tpl", "templates/fisubsilversh/admin/admin_users_list_body.tpl",
+                 "includes/functions_userlist_storage.php", "includes/functions_login_storage.php",
+                 "attach_mod/includes/functions_mutation.php", "attach_mod/includes/functions_pm_staging.php",
                  "ctracker/admin/acp_module_settings.php", "ctracker/classes/class_ct_adminfunctions.php",
                  "ctracker/admin/acp_module_globalmessage.php", "ctracker/classes/class_admin_actions.php",
                  "ctracker/classes/class_ct_database.php", "ctracker/classes/class_settings_storage.php",

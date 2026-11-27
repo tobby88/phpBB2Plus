@@ -17,7 +17,10 @@ class junior_admin
 		'admin_email_list.php' => array('Users', 'Email_List', array(
 			'a_plus_mail_list' => array('phpbb2plus\community\acp\member_directory_module', 'emails'))),
 		'admin_users_list.php' => array('Users', 'Users List', array(
-			'a_plus_user_list' => array('phpbb2plus\community\acp\member_directory_module', 'members'))),
+			'a_plus_user_list' => array('phpbb2plus\community\acp\member_directory_module', 'members'),
+			'a_plus_list_status' => array('phpbb2plus\community\acp\member_directory_module', 'batch'),
+			'a_plus_list_bans' => array('phpbb2plus\community\acp\member_directory_module', 'batch'),
+			'a_plus_list_groups' => array('phpbb2plus\community\acp\member_directory_module', 'batch'))),
 		'admin_reg_ip.php' => array('Users', 'Registration IP', array(
 			'a_plus_reg_network' => array('phpbb2plus\community\acp\registration_network_module', 'view'))),
 		'admin_arcade_cats.php' => array('Arcade', 'Categories', array('a_plus_arc_categories' => array('phpbb2plus\arcade\acp\categories_module', 'manage'))),

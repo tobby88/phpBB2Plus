@@ -16,7 +16,7 @@ if ($phase === 'older' || $phase === 'upgraded')
 {
 	$rights = array_column($rows('SELECT auth_option FROM ' . ACL_OPTIONS_TABLE . ' WHERE ' . $db->sql_in_set('auth_option', $scopes) . ' ORDER BY auth_option'), 'auth_option');
 	$modes = array_column($rows('SELECT module_mode FROM ' . MODULES_TABLE . " WHERE module_basename='" .
-		$db->sql_escape('\phpbb2plus\community\acp\member_directory_module') . "' ORDER BY module_mode"), 'module_mode');
+		$db->sql_escape('\phpbb2plus\community\acp\member_directory_module') . "' AND module_mode IN ('emails','members') ORDER BY module_mode"), 'module_mode');
 	$installed = $phase === 'upgraded';
 	if ($rights !== ($installed ? $scopes : array()) || $modes !== ($installed ? array('emails','members') : array()))
 	{ throw new RuntimeException('Both directory modes and permissions must follow their own upgrade'); }
@@ -31,10 +31,9 @@ elseif ($phase === 'prepare')
 			$table_prefix . 'plus_jr_records r ON r.user_id=u.user_id WHERE r.source_user=' . $source);
 		$record = $records[0] ?? array();
 		$report = json_decode($record['report_json'] ?? '[]', true);
-		$expected = $source === 277 ? 'a_plus_mail_list' : 'a_plus_user_list';
-		if (($record['username'] ?? '') !== $name || json_decode($record['rights_json'], true) !== array($expected) ||
-			($report[0]['result'] ?? '') !== 'delegated' ||
-			($source === 278 && ($report[0]['unmapped_bulk_actions'] ?? null) !== array('activate','deactivate','ban','unban','group')))
+		$expected = $source === 277 ? array('a_plus_mail_list') : array('a_plus_user_list','a_plus_list_status','a_plus_list_bans','a_plus_list_groups');
+		if (($record['username'] ?? '') !== $name || json_decode($record['rights_json'], true) !== $expected ||
+			($report[0]['result'] ?? '') !== 'delegated' || isset($report[0]['unmapped_bulk_actions']))
 		{ throw new RuntimeException("Unexpected converted directory scope for $name"); }
 		$state['actors'][$name] = (int) $record['user_id'];
 	}

@@ -36,6 +36,10 @@ class navigation implements EventSubscriberInterface
 		$permissions['a_plus_flags'] = array('lang' => 'ACL_A_PLUS_FLAGS', 'cat' => 'user_group');
 		$permissions['a_plus_mail_list'] = array('lang' => 'ACL_A_PLUS_MAIL_LIST', 'cat' => 'user_group');
 		$permissions['a_plus_user_list'] = array('lang' => 'ACL_A_PLUS_USER_LIST', 'cat' => 'user_group');
+		foreach (array('a_plus_list_status','a_plus_list_bans','a_plus_list_groups') as $right)
+		{
+			$permissions[$right] = array('lang' => 'ACL_' . strtoupper($right), 'cat' => 'user_group');
+		}
 		$permissions['a_plus_ct_settings'] = array('lang' => 'ACL_A_PLUS_CT_SETTINGS', 'cat' => 'misc');
 		$permissions['a_plus_ct_notice'] = array('lang' => 'ACL_A_PLUS_CT_NOTICE', 'cat' => 'misc');
 		$permissions['a_plus_stats_private'] = array('lang' => 'ACL_A_PLUS_STATS_PRIVATE', 'cat' => 'misc');

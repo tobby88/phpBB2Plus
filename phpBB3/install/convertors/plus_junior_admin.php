@@ -310,9 +310,18 @@ function plus_jr_registry()
 					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$route] ?? $dependencies[$file] ?? array()))
 				{
 					$options = array_keys($map[2]);
-					if ($route === 'admin_users_list.php')
+					if ($route === 'admin_users_list.php' && !plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, array(
+						'includes/functions_userlist_storage.php' => 'b90c9e561122a3ff5a291d4dc3a828475f5e0d7ce22c40993036587f6b644e2b',
+						'includes/functions_login_storage.php' => '6981e433470c28b0b27354493216e5845cb8e179b70e4301ce523ac3c6782103',
+						'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
+						'includes/functions_moderator_identity.php' => '2cd91513548a3754831dc59ee50be5ffccecfbfba2b4f0921e6850b8f89e9c67',
+						'attach_mod/includes/functions_mutation.php' => 'e0f82d5f1c7d8460c30515b244d6085fc8c9188c55f19442b6484d963f28e128',
+						'attach_mod/includes/functions_pm_staging.php' => '261b66709267f580b62a2065e45ad61f2481614d5eb0bfb13a53e97c660122bd',
+						'includes/functions_connection_ownership.php' => '1c8277a28b18946baaad0fca9f2f64959fe07d09ede4fd6ec2f37223b153576e',
+					)))
 					{
-						// Preserve the outstanding source actions without granting native user, ban or group administration.
+						// A locally changed write path cannot establish the original five actions.
+						$options = array('a_plus_user_list');
 						$record['unmapped_bulk_actions'] = array('activate', 'deactivate', 'ban', 'unban', 'group');
 					}
 					if (count($options) === 1) { $record['option'] = $options[0]; }

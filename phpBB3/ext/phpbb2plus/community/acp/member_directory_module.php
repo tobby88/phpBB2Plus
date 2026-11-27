@@ -3,6 +3,8 @@ namespace phpbb2plus\community\acp;
 
 use phpbb\request\request_interface;
 use phpbb2plus\community\profile\member_directory;
+use phpbb2plus\community\service\member_operations;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class member_directory_module
 {
@@ -13,16 +15,67 @@ class member_directory_module
 
 	public function main($module_id, $mode)
 	{
-		global $auth, $config, $db, $module, $phpbb_container, $phpEx, $request, $template, $user;
-		if (!isset(self::RIGHTS[$mode]) || !defined('IN_ADMIN') || !IN_ADMIN || empty($user->data['session_admin']) ||
-			empty($user->data['is_registered']) || !empty($user->data['user_perm_from']) || !$auth->acl_get(self::RIGHTS[$mode]))
+		global $auth, $config, $db, $module, $phpbb_container, $phpEx, $request, $table_prefix, $template, $user;
+		$batch = $mode === 'batch';
+		$right = $batch ? 'a_plus_user_list' : (self::RIGHTS[$mode] ?? '');
+		if (!$right || !defined('IN_ADMIN') || !IN_ADMIN || empty($user->data['session_admin']) ||
+			empty($user->data['is_registered']) || !empty($user->data['user_perm_from']) || !$auth->acl_get($right))
 		{
 			send_status_line(403, 'Forbidden'); trigger_error('NO_AUTH_OPERATION', E_USER_WARNING);
 		}
 		$language = $phpbb_container->get('language');
 		$language->add_lang('info_acp_member_directory', 'phpbb2plus/community');
 		$this->page_title = 'ACP_PLUS_DIRECTORY_' . strtoupper($mode);
-		$members = $mode === 'members';
+		$members = $mode !== 'emails';
+		if ($batch)
+		{
+			$operations = new member_operations($db, $auth, $user, $config, $table_prefix);
+			try
+			{
+				$actions = $operations->actions();
+				if (!$actions) { throw new AccessDeniedHttpException(); }
+				$template->assign_vars(array('S_DIRECTORY_BATCH' => true, 'U_DIRECTORY_BATCH' => $this->u_action,
+					'DIRECTORY_TITLE' => $language->lang($this->page_title)));
+				if ($request->server('REQUEST_METHOD') === 'POST')
+				{
+					if (!check_form_key('plus_directory_batch')) { throw new \DomainException('FORM_INVALID'); }
+					$step = $request->variable('step', '', false, request_interface::POST);
+					if ($step === 'review')
+					{
+						$action = $request->variable('bulk_action', '', false, request_interface::POST);
+						list($selected, $group, $ticket, $skipped) = $operations->review($action,
+							$request->variable('group', 0, false, request_interface::POST), $request->variable('accounts', array(0), false, request_interface::POST));
+						foreach ($selected as $id => $row) { $template->assign_block_vars('selected_member', array('ID'=>$id, 'NAME'=>htmlspecialchars_decode($row['name'], ENT_QUOTES))); }
+						$template->assign_vars(array('S_DIRECTORY_REVIEW'=>true, 'DIRECTORY_SKIPPED'=>$skipped, 'DIRECTORY_TICKET'=>$ticket,
+							'DIRECTORY_ACTION'=>$language->lang('PLUS_LIST_' . strtoupper($action)), 'DIRECTORY_GROUP'=>htmlspecialchars_decode($group, ENT_QUOTES)));
+					}
+					elseif ($step === 'apply' && ($request->variable('confirm', 0, false, request_interface::POST) === 1 ||
+						$request->variable('cancel', 0, false, request_interface::POST) === 1))
+					{
+						$cancel = $request->variable('cancel', 0, false, request_interface::POST) === 1;
+						list($changed, $skipped) = $operations->apply($request->variable('ticket', '', false, request_interface::POST), $cancel);
+						$template->assign_vars(array('S_DIRECTORY_RESULT'=>true, 'S_DIRECTORY_CANCELLED'=>$cancel,
+							'DIRECTORY_CHANGED'=>$changed, 'DIRECTORY_SKIPPED'=>$skipped));
+					}
+					else { throw new \DomainException('FORM_INVALID'); }
+					add_form_key('plus_directory_batch'); return;
+				}
+				$groups = isset($actions['group']) ? $operations->groups($actions['group']) : array();
+				if (!$groups) { unset($actions['group']); }
+				if (!$actions) { throw new \DomainException('PLUS_LIST_GROUP_CHANGED'); }
+				foreach ($actions as $action => $scope)
+				{ $template->assign_block_vars('directory_operation', array('VALUE'=>$action, 'LABEL'=>$language->lang('PLUS_LIST_' . strtoupper($action)))); }
+				foreach ($groups as $id => $group)
+				{ $template->assign_block_vars('directory_group', array('ID'=>$id, 'NAME'=>htmlspecialchars_decode($group['group_name'], ENT_QUOTES))); }
+				add_form_key('plus_directory_batch');
+			}
+			catch (AccessDeniedHttpException $e) { send_status_line(403, 'Forbidden'); trigger_error('NO_AUTH_OPERATION', E_USER_WARNING); }
+			catch (\DomainException $e) { $template->assign_var('DIRECTORY_ERROR', $language->lang($e->getMessage())); return; }
+		}
+		elseif ($members && $module->is_active('\phpbb2plus\community\acp\member_directory_module', 'batch'))
+		{
+			$template->assign_var('U_DIRECTORY_BATCH_OPEN', append_sid("index.$phpEx", 'i=-phpbb2plus-community-acp-member_directory_module&amp;mode=batch'));
+		}
 		$sorts = member_directory::COMMON_SORTS + ($members ? member_directory::MEMBER_SORTS : array());
 		$default = $members ? 'user_regdate' : 'username';
 		$sort = $request->variable('sort', $default, false, request_interface::GET);

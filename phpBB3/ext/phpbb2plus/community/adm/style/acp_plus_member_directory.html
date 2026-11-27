@@ -1,5 +1,18 @@
 <!-- INCLUDE overall_header.html -->
 <h1>{{ DIRECTORY_TITLE }}</h1>
+{% if DIRECTORY_ERROR %}<div class="errorbox"><p>{{ DIRECTORY_ERROR }}</p></div><p><a href="{U_DIRECTORY_BATCH}">{L_BACK}</a></p>
+{% elseif S_DIRECTORY_REVIEW %}
+<h2>{{ DIRECTORY_ACTION }}{% if DIRECTORY_GROUP %} — {{ DIRECTORY_GROUP|e }}{% endif %}</h2>
+<p>{L_PLUS_LIST_SKIPPED} {{ DIRECTORY_SKIPPED }}</p>
+{% if loops.selected_member %}<ul>{% for member in loops.selected_member %}<li data-selected-member="{{ member.ID }}">{{ member.NAME|e }}</li>{% endfor %}</ul>
+<form id="plus-directory-confirm" method="post" action="{U_DIRECTORY_BATCH}"><fieldset class="submit-buttons">
+	<input type="hidden" name="step" value="apply" /><input type="hidden" name="ticket" value="{{ DIRECTORY_TICKET }}" />{S_FORM_TOKEN}
+	<button class="button1" type="submit" name="confirm" value="1">{L_CONFIRM}</button> <button class="button2" type="submit" name="cancel" value="1">{L_CANCEL}</button>
+</fieldset></form>{% else %}<p>{L_PLUS_LIST_NO_CHANGE} <a href="{U_DIRECTORY_BATCH}">{L_BACK}</a></p>{% endif %}
+{% elseif S_DIRECTORY_RESULT %}<p>{% if S_DIRECTORY_CANCELLED %}{L_PLUS_LIST_CANCELLED}{% else %}{L_PLUS_LIST_CHANGED} {{ DIRECTORY_CHANGED }}. {L_PLUS_LIST_SKIPPED} {{ DIRECTORY_SKIPPED }}.{% endif %}</p>
+<p><a href="{U_DIRECTORY_BATCH}">{L_BACK}</a></p>
+{% else %}
+{% if U_DIRECTORY_BATCH_OPEN %}<p><a href="{U_DIRECTORY_BATCH_OPEN}">{L_ACP_PLUS_DIRECTORY_BATCH}</a></p>{% endif %}
 <form id="plus-member-directory" action="{U_DIRECTORY_FORM}" method="get">
 	<fieldset><legend>{L_SEARCH}</legend>
 		<dl><dt><label for="directory-query">{L_PLUS_DIRECTORY_QUERY}</label></dt>
@@ -18,12 +31,15 @@
 </form>
 <p>{{ DIRECTORY_TOTAL }}</p>
 {% if loops.directory_row %}
+{% if S_DIRECTORY_BATCH %}<form id="plus-directory-selection" method="post" action="{U_DIRECTORY_BATCH}">{% endif %}
 <table class="table1" id="plus-directory-results"><thead><tr>
+	{% if S_DIRECTORY_BATCH %}<th>{L_SELECT}</th>{% endif %}
 	{% if S_MEMBER_DIRECTORY %}<th>{L_PLUS_DIRECTORY_ID}</th>{% endif %}<th>{L_USERNAME}</th><th>{L_EMAIL_ADDRESS}</th>
 	{% if S_MEMBER_DIRECTORY %}<th>{L_POSTS}</th><th>{L_JOINED}</th><th>{L_LAST_VISIT}</th><th>{L_PLUS_DIRECTORY_ACTIVE}</th>{% endif %}
 	{% if S_DIRECTORY_ACTIONS %}<th>{L_ACTION}</th>{% endif %}
 </tr></thead><tbody>
 {% for member in loops.directory_row %}<tr class="{{ cycle(['row1', 'row2'], loop.index0) }}">
+	{% if S_DIRECTORY_BATCH %}<td><input type="checkbox" name="accounts[]" value="{{ member.ID }}" aria-label="{{ member.NAME|e('html_attr') }}" /></td>{% endif %}
 	{% if S_MEMBER_DIRECTORY %}<td class="directory-id">{{ member.ID }}</td>{% endif %}
 	<td class="directory-name">{% if not S_MEMBER_DIRECTORY and member.U_EDIT %}<a href="{{ member.U_EDIT }}">{{ member.NAME|e }}</a>{% else %}
 		<span{% if member.COLOUR %} style="color:#{{ member.COLOUR }}"{% endif %}>{{ member.NAME|e }}</span>{% endif %}
@@ -38,6 +54,12 @@
 		{% if member.U_LOCAL %}<a href="{{ member.U_LOCAL }}">{L_ACP_USERS_FORUM_PERMISSIONS}</a>{% endif %}</td>{% endif %}
 </tr>{% endfor %}
 </tbody></table>
+{% if S_DIRECTORY_BATCH %}<fieldset><legend>{L_ACTION}</legend>
+	<label>{L_ACTION} <select name="bulk_action" required><option value="">—</option>{% for op in loops.directory_operation %}<option value="{{ op.VALUE }}">{{ op.LABEL }}</option>{% endfor %}</select></label>
+	{% if loops.directory_group %}<label>{L_GROUP} <select name="group"><option value="0">—</option>{% for g in loops.directory_group %}<option value="{{ g.ID }}">{{ g.NAME|e }}</option>{% endfor %}</select></label>{% endif %}
+	<input type="hidden" name="step" value="review" />{S_FORM_TOKEN}<button class="button2" type="submit">{L_PLUS_LIST_REVIEW}</button>
+</fieldset></form>{% endif %}
 {% endif %}
 {% if loops.pagination %}<div class="pagination"><!-- INCLUDE pagination.html --></div>{% endif %}
+{% endif %}
 <!-- INCLUDE overall_footer.html -->
