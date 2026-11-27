@@ -35,6 +35,7 @@ import attachment_quotas
 import attachment_blocks
 import forum_permissions
 import group_leaders
+import group_departures
 import blue_reports
 import forum_recovery
 import news
@@ -568,6 +569,7 @@ def seed_source(source, legacy, suite):
         php(tests / "daily_visitors.php", source, "source-absent")
     php(tests / "board_statistics.php", "seed", source)
     if forum_suite:
+        php(tests / "group_departures.php", source, "source")
         php(tests / "topic_readers.php", source, "source")
         php(tests / "portal_unicode.php", source, "source")
         php(tests / "gender_profile.php", source, "source")
@@ -843,6 +845,8 @@ def main():
                 designated = forum_permissions.publishing(member, ordinary, pending)
                 group_leaders.browse(base, member, designated, pending, lambda phase: php(
                     ROOT / "tests/phpbb3/group_leaders.php", target, phase, cwd=web))
+                group_departures.browse(base, ordinary, pending, designated, lambda phase: php(
+                    ROOT / "tests/phpbb3/group_departures.php", target, phase, cwd=web))
                 forum_permissions.reporting(base, ordinary, pending)
                 php(ROOT / "tests/phpbb3/forum_access.php", target, "membership", cwd=web)
                 forum_permissions.reading(base, ordinary, pending)
