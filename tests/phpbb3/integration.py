@@ -43,6 +43,8 @@ import portal
 import portal_unicode
 import gender_profile
 import profile_visits
+import last_login_display
+import cookie_notice
 import program_integrity
 import forum_display
 import help_readers
@@ -94,6 +96,7 @@ import registration_network
 import member_directory
 import member_operations
 import mailbox_counters
+import post_references
 import smilie_signs
 import downloads
 import download_categories
@@ -384,6 +387,7 @@ def account_management(base, admin, moderator, member, target, web):
     absence.browse(base, moderator, admin, fixture("absence"))
     absence_contact.browse(base, moderator, admin, fixture("absence_contact"))
     mailbox_counters.browse(base, admin, fixture("mailbox_counters"))
+    post_references.browse(base, admin, fixture("post_references"))
     absence_registration.browse(base, fixture("absence_registration"))
     php(ROOT / "tests/phpbb3/acronym_dictionary.php", target, "converted", cwd=web)
     acronym_dictionary.browse(base, admin, moderator)
@@ -579,6 +583,7 @@ def seed_source(source, legacy, suite):
         php(tests / "portal_unicode.php", source, "source")
         php(tests / "gender_profile.php", source, "source")
         php(tests / "profile_visits.php", source, "source")
+        php(tests / "last_login_display.php", source, "source")
         php(tests / "forum_display.php", source, "source")
         php(tests / "topic_avatar.php", source, "source")
         php(tests / "guest_post_confirm.php", source, "source")
@@ -716,6 +721,7 @@ def main():
                     php(ROOT / "tests/phpbb3/birthday_symbols.php", "calendar")
                     php(ROOT / "tests/phpbb3/gender_profile.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/profile_visits.php", target, "fresh", cwd=web)
+                    php(ROOT / "tests/phpbb3/last_login_display.php", target, "unconverted", cwd=web)
                     php(ROOT / "tests/phpbb3/topic_avatar.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "native", cwd=web)
@@ -905,9 +911,12 @@ def main():
                     banners.administration(base, member, web)
                     # The portal checks the five most recent sign-ins, including a hidden member.
                     portal.administration(base, member)
+                    cookie_notice.browse(member)
                     forum_display.browse(base, web, target, php, member)
                     profile_visits.browse(base, member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/profile_visits.php", target, phase, cwd=web, capture=True))
+                    last_login_display.browse(member, ordinary, lambda phase: php(
+                        ROOT / "tests/phpbb3/last_login_display.php", target, phase, cwd=web, capture=True))
                     portal_unicode.browse(base, web, target, php, member)
                     topic_avatar.browse(base, web, target, php, member)
                     gender_profile.browse(member, ordinary, Browser(base), lambda phase: php(
