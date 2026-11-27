@@ -4,6 +4,8 @@ The source for this conversion is the current UTF-8 Plus distribution in `phpBB2
 
 | Source behaviour and data | phpBB3 destination | Verification and remaining work |
 | --- | --- | --- |
+| CrackerTracker changed program files | ACP file comparison with its own permission | The operator can compare the installed PHP programs with a confirmed reference and resume a partial comparison. A fresh conversion maps the original file-check module delegation. The operator confirms the initial reference against the phpBB3 package. |
+| Personal forum display preferences | Display options in the native UCP and ACP | The converter retains the member options, board defaults and overrides. The index can show the latest topic title and nested forum links with or without status icons. An enforced board setting preserves the underlying member preference. |
 | Staff-only profile visit statistics | Native sessions, member profiles and a separate viewing permission | Conversion retains the recorded time online, number of visits, page views and available times for the last visit. Earlier previews start with empty totals when the original data is unavailable. Reauthentication in the ACP and overlapping visits keep their original counting semantics. |
 | Neighbouring topics | Native previous and next topic links in fiSubSilver | The links appear above and below the posts. They skip topics awaiting approval for ordinary visitors. |
 | Daily visitors | Board index, category views and portal totals | The converter retains the audience, board-day boundary and member preferences. Hidden members remain hidden from ordinary viewers. Guest counting uses short-lived board-day identifiers when enabled. |

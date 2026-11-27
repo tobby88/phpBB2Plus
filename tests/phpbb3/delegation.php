@@ -44,6 +44,7 @@ function delegation_fixture_roles()
 		59 => array('TrackerSettingsJunior', 'ctracker_module_categoryctracker_module_9admin_cracker_tracker.php?modu=9', 'a_plus_ct_settings'),
 		60 => array('MemberNoticeJunior', 'ctracker_module_categoryctracker_module_4admin_cracker_tracker.php?modu=4', 'a_plus_ct_notice'),
 		280 => array('RequestBlockJunior', 'ctracker_module_categoryctracker_module_5admin_cracker_tracker.php?modu=5', 'a_plus_ct_blocks'),
+		281 => array('ProgramFilesJunior', 'ctracker_module_categoryctracker_module_1admin_cracker_tracker.php?modu=1', 'a_plus_ct_files'),
 		61 => array('CountryFlagJunior', 'UsersFlagsadmin_flags.php', 'a_plus_flags'),
 		62 => array('AcronymJunior', 'GeneralAcronymsadmin_acronyms.php', 'a_plus_acronyms'),
 		276 => array('RegistrationJunior', 'UsersAdd_newadmin_user_register.php', 'a_plus_user_register'),

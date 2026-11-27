@@ -40,6 +40,7 @@ def source_modules(source, target):
                  "includes/functions_userlist_storage.php", "includes/functions_login_storage.php",
                  "attach_mod/includes/functions_mutation.php", "attach_mod/includes/functions_pm_staging.php",
                  "ctracker/admin/acp_module_settings.php", "ctracker/classes/class_ct_adminfunctions.php",
+                 "ctracker/admin/acp_module_changedfiles.php",
                  "ctracker/admin/acp_module_ipblocker.php", "ctracker/engines/ct_ipblocker.php",
                  "ctracker/admin/acp_module_globalmessage.php", "ctracker/classes/class_admin_actions.php",
                  "ctracker/classes/class_ct_database.php", "ctracker/classes/class_settings_storage.php",
@@ -88,6 +89,13 @@ def authenticate_pair(base, first, second):
     # Separate browsers and real login/ACP forms; both tokens can age at the same time.
     with ThreadPoolExecutor(max_workers=2) as workers:
         return tuple(workers.map(lambda name: authenticate(base, name), (first, second)))
+
+
+def program_files(base):
+    reviewer, home = authenticate(base, "ProgramFilesJunior")
+    page = reviewer.fetch(home + "&i=-phpbb2plus-community-acp-file_integrity_module&mode=main")
+    if "plus-ct-files-start" not in Page(page).forms or "request_blocks_module" in page:
+        raise RuntimeError("The converted file reviewer did not receive the original module in isolation")
 
 
 def request_block_rules(base):

@@ -231,6 +231,9 @@ function plus_jr_registry()
 			'includes/functions_acl_storage.php' => '5b1cde62b86f837f345299e15b216ba916c9a1cbc64ef2c0a43bc98b9fd76354',
 			'includes/functions_owned_storage.php' => 'e9dfcfda0c3c40bd785d60ff897721fdde0cc45ba400af15110c27e1026a6838',
 		),
+		'admin_cracker_tracker.php?modu=1' => $tracker + array(
+			'ctracker/admin/acp_module_changedfiles.php' => '0cd21cb24620e55873e2730d9201b92ebd5ce5592e47a70949d695149513cfd6',
+		),
 		'admin_cracker_tracker.php?modu=4' => $tracker + array(
 			'ctracker/admin/acp_module_globalmessage.php' => '57340603caf94dffa1143ef5dce694b4669a44cff9a416482c021d877198ca2f',
 			'ctracker/classes/class_admin_actions.php' => '388eeed5489880bcb464a13cc70dd887bb730773af346ec86bcf6670acba4654',

@@ -41,6 +41,8 @@ import portal
 import portal_unicode
 import gender_profile
 import profile_visits
+import program_integrity
+import forum_display
 import topic_avatar
 import topic_navigation
 import daily_visitors
@@ -363,6 +365,8 @@ def account_management(base, admin, moderator, member, target, web):
     daily_visitors.browse(admin, moderator, fixture("daily_visitors"))
     delegation.request_block_rules(base)
     request_blocks.browse(admin, member, fixture("request_blocks"))
+    delegation.program_files(base)
+    program_integrity.browse(admin, member, fixture("program_integrity"), web)
     member_attachments.browse(base, admin, moderator)
     attachment_rules.browse(admin, moderator, member, Browser(base), fixture("attachment_rules"))
     attachment_upload_types.browse(admin, moderator, member, fixture("attachment_upload_types"))
@@ -422,6 +426,8 @@ def extension_upgrades(target, web, suite="all"):
         fixtures.append(tests / "post_bookmarks.php")
         migrations.append("community/migrations/v178_daily_visitors")
         fixtures.append(tests / "daily_visitors.php")
+        migrations.append("community/migrations/v182_program_files")
+        fixtures.append(tests / "program_integrity.php")
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
@@ -482,6 +488,7 @@ def seed_source(source, legacy, suite):
         php(tests / "portal_unicode.php", source, "source")
         php(tests / "gender_profile.php", source, "source")
         php(tests / "profile_visits.php", source, "source")
+        php(tests / "forum_display.php", source, "source")
         php(tests / "topic_avatar.php", source, "source")
         php(tests / "guest_post_confirm.php", source, "source")
         php(tests / "recommend.php", source, "source")
@@ -751,6 +758,7 @@ def main():
                     banners.administration(base, member, web)
                     # The portal checks the five most recent sign-ins, including a hidden member.
                     portal.administration(base, member)
+                    forum_display.browse(base, web, target, php, member)
                     profile_visits.browse(base, member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/profile_visits.php", target, phase, cwd=web, capture=True))
                     portal_unicode.browse(base, web, target, php, member)
