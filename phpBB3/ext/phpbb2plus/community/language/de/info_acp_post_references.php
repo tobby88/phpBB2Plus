@@ -1,10 +1,19 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
-	'ACP_PLUS_ACCOUNT_REFERENCES'=>'Postfach- und Gruppenverweise prüfen',
+	'ACP_PLUS_ACCOUNT_REFERENCES'=>'Konten, Gruppen und Postfächer prüfen',
 	'PLUS_ACCOUNT_REFS_HELP'=>'Prüfe die Verknüpfungen von Nachrichten, Postfächern, Konten und Gruppen. Jede Seite liest bis zu 200 unterschiedliche Verweise. Bei einem späteren Aufruf kannst du an derselben Stelle weiterlesen oder eine neue Prüfung beginnen.',
 	'PLUS_REFS_MAILBOXES'=>'Postfacheinträge', 'PLUS_REFS_MESSAGES'=>'Nachrichten', 'PLUS_REFS_FOLDERS'=>'Eigene PN-Ordner',
 	'PLUS_REFS_MEMBERSHIPS'=>'Gruppenmitgliedschaften', 'PLUS_REFS_DEFAULTS'=>'Standardgruppen', 'PLUS_REFS_RECORD'=>'Verweis',
+	'PLUS_REFS_PROFILES'=>'Rang, Sprache und Style', 'PLUS_REFS_ID_PROFILES'=>'Konto %d',
+	'PLUS_PROFILE_REFS_HELP'=>'Jede Seite prüft die gespeicherten Einstellungen von bis zu 200 Konten. Ohne zugewiesenen Sonderrang kann das Konto einen Rang nach Beitragszahl erhalten. Bei leerer Sprach- oder Style-Auswahl verwendet phpBB den jeweiligen Board-Standard. Auch bei erzwungenem Board-Style wird die gespeicherte Auswahl geprüft.',
+	'PLUS_REFS_RANK_MISSING'=>'Zur gespeicherten Rang-ID %d gibt es keinen Rang.',
+	'PLUS_REFS_RANK_AUTOMATIC'=>'Rang %d wird nach Beitragszahl vergeben. Als persönlich zugewiesenen Rang zeigt phpBB nur einen Sonderrang an.',
+	'PLUS_REFS_STYLE_MISSING'=>'Zur gespeicherten Style-ID %d gibt es keinen installierten Style.',
+	'PLUS_REFS_STYLE_INACTIVE'=>'Style %d ist installiert, wurde aber für die Auswahl im Profil deaktiviert.',
+	'PLUS_REFS_LANGUAGE_MISSING'=>'Für die gespeicherte Sprache gibt es weder einen Eintrag in der Sprachverwaltung noch die benötigte Datei common.php.',
+	'PLUS_REFS_LANGUAGE_FILES'=>'Die gespeicherte Sprache ist registriert. Im Sprachverzeichnis fehlt common.php.',
+	'PLUS_REFS_LANGUAGE_UNREGISTERED'=>'Die gespeicherte Sprache hat eine Datei common.php. Der Eintrag für die Sprachauswahl im Profil fehlt.',
 	'PLUS_REFS_ID_MAILBOXES'=>'PN %1$d / Konto %2$d / Ordner %3$d / Absender %4$d', 'PLUS_REFS_ID_MESSAGES'=>'PN %d',
 	'PLUS_REFS_ID_FOLDERS'=>'Ordner %d', 'PLUS_REFS_ID_MEMBERSHIPS'=>'Konto %1$d / Gruppe %2$d', 'PLUS_REFS_ID_DEFAULTS'=>'Konto %d',
 	'PLUS_REFS_PM_SENDER'=>'Zur Absender-ID %d gibt es kein Konto.',

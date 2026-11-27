@@ -1,4 +1,4 @@
-"""Check the native mailbox and membership relations, including large, partially delivered messages."""
+"""Check mailbox, membership and profile references on the existing maintenance fixture."""
 from urllib.parse import parse_qs, urljoin, urlsplit
 
 
@@ -8,7 +8,8 @@ def browse(admin, reviewer, panel, limited, fixture, report_type):
 
     def report(actor, path):
         body = actor.fetch(path)
-        if any(marker in body for marker in ("HiddenRefOwner", "Private mailbox subject", "Private mailbox text", "Private mailbox folder", "bcc_address")):
+        if any(marker in body for marker in ("HiddenRefOwner", "Private mailbox subject", "Private mailbox text", "Private mailbox folder",
+                                             "Private fixture rank", "Private fixture style", "bcc_address")):
             raise AssertionError("The account reference report exposed private message or account details")
         return report_type(body)
 
@@ -29,8 +30,15 @@ def browse(admin, reviewer, panel, limited, fixture, report_type):
 
     fixture("account-seed")
     try:
-        if "Postfach- und Gruppenverweise prüfen" not in admin.fetch(panel) or "Check mailbox and group references" not in reviewer.fetch(limited):
+        if "Konten, Gruppen und Postfächer prüfen" not in admin.fetch(panel) or "Check accounts, groups and mailboxes" not in reviewer.fetch(limited):
             raise AssertionError("A translated account reference panel is missing from native database maintenance")
+        preferences = {n+1: {"style_inactive"}, n+2: {"rank_automatic"}, n+3: {"rank_missing", "style_missing", "language_missing"},
+                       n+4: {"language_files"}, n+5: {"language_unregistered"}, n+8: {"language_missing"}, n+204: {"style_missing"}}
+        if scan("profiles", n-1, n+204) != (205, preferences) or scan("profiles", 0, 1) != (1, {}):
+            raise AssertionError("Account preferences, board defaults, installed packs or the anonymous account were misclassified")
+        german = admin.fetch(panel + f"&section=profiles&after={n}&through={n+5}")
+        if "Rang, Sprache und Style" not in german or "wurde aber für die Auswahl im Profil deaktiviert" not in german or "Im Sprachverzeichnis fehlt common.php." not in german:
+            raise AssertionError("Profile findings were not explained in German on the ACP page")
         if scan("messages", n-1, n+5) != (6, {n+2: {"pm_sender"}}):
             raise AssertionError("The report treated an intentionally unassigned or anonymous message as damaged")
         if scan("folders", n-1, n+3) != (4, {n+2: {"mail_owner"}, n+3: {"mail_owner"}}):
@@ -65,6 +73,9 @@ def browse(admin, reviewer, panel, limited, fixture, report_type):
             raise AssertionError("A mailbox bookmark did not preserve the last recipient and upper bound")
         # Earlier deliveries may disappear or new ones arrive between two visits to the ACP.
         fixture("account-deliver")
+        # Forcing a single board style changes what is displayed, not what remains stored on each account.
+        if scan("profiles", n-1, n+8) != (9, {record: issues for record, issues in preferences.items() if record <= n+8}):
+            raise AssertionError("A board style override masked unresolved stored profile preferences")
         if report(admin, next_link).counts != (3, 0) or scan("mailboxes", high, f"{n}.{n+204}.0.2") != (1, {}):
             raise AssertionError("Returning to the old bookmark unexpectedly repeated or skipped a recipient")
         fixture("account-verify")

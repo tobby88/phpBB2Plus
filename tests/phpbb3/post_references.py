@@ -114,5 +114,5 @@ def browse(base, admin, fixture):
         fixture("restore")
     if Report(reviewer.fetch(limited, expected_status=503)).counts is not None:
         raise AssertionError("A revoked backup permission still opened the report")
-    if Report(reviewer.fetch(limited_accounts, expected_status=503)).counts is not None:
-        raise AssertionError("A revoked backup permission still opened mailbox and group references")
+    if Report(reviewer.fetch(limited_accounts + "&section=profiles", expected_status=503)).counts is not None:
+        raise AssertionError("A revoked backup permission still exposed profile preferences")

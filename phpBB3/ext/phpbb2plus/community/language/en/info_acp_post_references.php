@@ -1,10 +1,19 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
-	'ACP_PLUS_ACCOUNT_REFERENCES'=>'Check mailbox and group references',
+	'ACP_PLUS_ACCOUNT_REFERENCES'=>'Check accounts, groups and mailboxes',
 	'PLUS_ACCOUNT_REFS_HELP'=>'Check how messages, mailboxes, accounts and groups are linked. Each page reads up to 200 distinct references. You can return to the same position later or start a fresh check.',
 	'PLUS_REFS_MAILBOXES'=>'Mailbox entries', 'PLUS_REFS_MESSAGES'=>'Messages', 'PLUS_REFS_FOLDERS'=>'Personal message folders',
 	'PLUS_REFS_MEMBERSHIPS'=>'Group memberships', 'PLUS_REFS_DEFAULTS'=>'Default groups', 'PLUS_REFS_RECORD'=>'Reference',
+	'PLUS_REFS_PROFILES'=>'Rank, language and style', 'PLUS_REFS_ID_PROFILES'=>'Account %d',
+	'PLUS_PROFILE_REFS_HELP'=>'Each page checks the stored preferences of up to 200 accounts. An account without an assigned rank can receive a rank by post count. An unset language or style falls back to the board default. The stored choice is checked even when the board overrides user styles.',
+	'PLUS_REFS_RANK_MISSING'=>'The assigned rank ID %d has no matching rank.',
+	'PLUS_REFS_RANK_AUTOMATIC'=>'Rank %d is awarded by post count. phpBB can only display a special rank as an individual assignment.',
+	'PLUS_REFS_STYLE_MISSING'=>'There is no installed style for the stored style ID %d.',
+	'PLUS_REFS_STYLE_INACTIVE'=>'Style %d is installed but has been deactivated for selection in profiles.',
+	'PLUS_REFS_LANGUAGE_MISSING'=>'The stored language has neither a registered pack nor the required common.php file.',
+	'PLUS_REFS_LANGUAGE_FILES'=>'The stored language is registered. Its language directory is missing common.php.',
+	'PLUS_REFS_LANGUAGE_UNREGISTERED'=>'The stored language has a common.php file. Its pack is missing from the profile language selector.',
 	'PLUS_REFS_ID_MAILBOXES'=>'PM %1$d / account %2$d / folder %3$d / sender %4$d', 'PLUS_REFS_ID_MESSAGES'=>'PM %d',
 	'PLUS_REFS_ID_FOLDERS'=>'Folder %d', 'PLUS_REFS_ID_MEMBERSHIPS'=>'Account %1$d / group %2$d', 'PLUS_REFS_ID_DEFAULTS'=>'Account %d',
 	'PLUS_REFS_PM_SENDER'=>'Sender ID %d has no matching account.',
