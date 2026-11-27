@@ -120,6 +120,11 @@ phpbb2plus_community_shouts:
     path: /shoutbox
     defaults: { _controller: phpbb2plus.community.shouts:show }
     methods: [GET, HEAD]
+phpbb2plus_community_shout_recent:
+    path: /shoutbox/recent/{place}
+    defaults: { _controller: phpbb2plus.community.shouts:recent }
+    requirements: { place: 'portal|index' }
+    methods: [GET, HEAD]
 phpbb2plus_community_shout_write:
     path: /shoutbox
     defaults: { _controller: phpbb2plus.community.shouts:write }

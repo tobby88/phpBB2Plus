@@ -24,9 +24,20 @@ def exercise(base, moderator, member):
         raise RuntimeError("The retained shoutbox byline should be visible to members")
     public_home = guest.fetch("")
     member_home = member.fetch("")
-    if ("Grüße aus dem Archiv" in public_home or "Grüße aus dem Archiv" not in member_home or
+    if ("Grüße aus dem Archiv" in public_home or "Grüße aus dem Archiv" not in member_home or "/shout_panel.js" not in member_home or
             "Masked shout fixture" in member_home):
         raise RuntimeError("The members-only portal preview ignored the audience or disclosed a hidden shout")
+    recent = path + "/recent/portal"
+    with member.opener.open(urljoin(base, recent), timeout=10) as response:
+        fragment = response.read().decode("utf-8")
+        if not {"no-store", "private"} <= {word.strip() for word in response.headers["Cache-Control"].split(",")}:
+            raise RuntimeError("The viewer-specific shoutbox fragment can be cached")
+    if ('id="plus-shout-messages"' not in fragment or 'id="plus-shout-quick"' in fragment or
+            "FormerShouter" not in fragment or "Masked shout fixture" in fragment):
+        raise RuntimeError("The refreshed messages differ from the member's panel")
+    for actor, place in ((guest, "portal"), (guest, "index"), (member, "index")):
+        if "FormerShouter" in actor.fetch(path + "/recent/" + place, expected_status=403):
+            raise RuntimeError("Refreshing a disabled panel disclosed a byline")
     page = member.fetch(path)
     posted = submit(member, page, "plus-shout-compose", {"message": "[b]Neue Nachricht[/b] ä 😀"})
     matches = re.findall(r'id="shout-(\d+)"', posted)
@@ -54,3 +65,5 @@ def exercise(base, moderator, member):
     home = submit(moderator, moderator.fetch("app.php/portal"), "plus-shout-quick", {"message": "Gruß direkt aus dem Portal"})
     if 'class="plus-portal"' not in home or "Gruß direkt aus dem Portal" not in home:
         raise RuntimeError("A quick portal shout did not return to the portal with the saved message")
+    if "Gruß direkt aus dem Portal" not in member.fetch(recent):
+        raise RuntimeError("Another member's refresh missed a newly posted message")

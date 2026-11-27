@@ -117,6 +117,10 @@ def administration(base, owner):
         visible = guest.fetch(route)
         if quick["message"] not in visible or "FormerShouter" in visible or "Masked shout fixture" in visible:
             raise RuntimeError("Public shout panels must share the saved message and protect hidden names and texts")
+        place = "index" if route == "index.php" else "portal"
+        fragment = guest.fetch("app.php/shoutbox/recent/" + place)
+        if quick["message"] not in fragment or "FormerShouter" in fragment or "Masked shout fixture" in fragment:
+            raise RuntimeError("The public refresh changed the audience or hid a visible message")
     save(owner.fetch(path), dict(fields, welcome=welcome, recent="2", last_seen="5", top_posters="5", stats="1", shouts="2",
                                  downloads="3", pictures="6", picture_personal="1", picture_size="137",
                                  **{"poll_forums[]": [1, 7], "exclude[]": [14]}))

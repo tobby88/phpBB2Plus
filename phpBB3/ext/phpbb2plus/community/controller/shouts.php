@@ -2,6 +2,7 @@
 namespace phpbb2plus\community\controller;
 
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class shouts
@@ -53,6 +54,16 @@ class shouts
 			'S_PLUS_SHOUT_MOD' => $this->shouts->may_moderate(), 'PLUS_EDIT_ID' => $id, 'PLUS_SHOUT_TEXT' => $text,
 			'U_PLUS_SHOUT_WRITE' => $this->helper->route('phpbb2plus_community_shout_write')));
 		return $this->helper->render('@phpbb2plus_community/shoutbox.html', $this->language->lang('PLUS_SHOUTBOX'));
+	}
+
+	public function recent($place)
+	{
+		$headers = array('Content-Type' => 'text/html; charset=UTF-8', 'Cache-Control' => 'private, no-store', 'Vary' => 'Cookie');
+		if (!$this->shouts->panel_visible($place === 'index')) { return new Response('', 403, $headers); }
+		$this->language->add_lang('community', 'phpbb2plus/community');
+		foreach ($this->shouts->listing(5) as $entry) { $this->template->assign_block_vars('plus_shouts', $entry); }
+		$this->template->set_filenames(array('shout_messages' => '@phpbb2plus_community/shout_messages.html'));
+		return new Response($this->template->assign_display('shout_messages'), 200, $headers);
 	}
 
 	public function write()

@@ -38,12 +38,14 @@ class shout_panel implements EventSubscriberInterface
 		if (!$this->shouts->panel_visible($on_index)) { return; }
 		$this->language->add_lang('community', 'phpbb2plus/community');
 		foreach ($this->shouts->listing(5) as $entry) { $this->template->assign_block_vars('plus_shouts', $entry); }
-		$this->template->assign_var('U_PLUS_SHOUTBOX', $this->helper->route('phpbb2plus_community_shouts'));
+		$place = $on_index ? 'index' : 'portal';
+		$this->template->assign_vars(array('PLUS_SHOUT_PLACE' => $place,
+			'U_PLUS_SHOUTBOX' => $this->helper->route('phpbb2plus_community_shouts'),
+			'U_PLUS_SHOUT_RECENT' => $this->helper->route('phpbb2plus_community_shout_recent', array('place' => $place))));
 		if ($this->shouts->may_post())
 		{
 			add_form_key('phpbb2plus/shout', '_PLUS_SHOUT');
-			$this->template->assign_vars(array('U_PLUS_SHOUT_QUICK' => $this->helper->route('phpbb2plus_community_shout_write'),
-				'PLUS_SHOUT_PLACE' => $on_index ? 'index' : 'portal'));
+			$this->template->assign_var('U_PLUS_SHOUT_QUICK', $this->helper->route('phpbb2plus_community_shout_write'));
 		}
 	}
 }

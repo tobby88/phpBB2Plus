@@ -1,3 +1,5 @@
 #plus-shout-panel .plus-shout { padding: .5em 0; border-bottom: 1px solid #bcc9d5; overflow-wrap: anywhere; }
+#plus-shout-panel h3 { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: .35em; }
+#plus-shout-panel .plus-shout-refresh { font-size: .85em; font-weight: normal; }
 #plus-shout-quick { margin: .75em .5em .4em; }
 #plus-shout-quick .inputbox { display: block; width: 100%; box-sizing: border-box; margin: .3em 0; }
