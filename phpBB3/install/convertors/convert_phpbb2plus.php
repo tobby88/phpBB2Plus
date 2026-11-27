@@ -106,6 +106,7 @@ if (!$get_info)
 		plus_apply_converted_colours();
 	}
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
+	$config_schema['settings']['cookie_notice'] = 'cookie_consent_enable';
 	$config_schema['settings']['plus_hide_former_names'] = 'hide_removed_author_names';
 	$config_schema['settings']['plus_card_threshold'] = 'plus_card_threshold(max_user_bancard)';
 	$config_schema['settings']['plus_announce_default'] = 'announcement_duration';

@@ -20,7 +20,17 @@ class navigation implements EventSubscriberInterface
 
 	static public function getSubscribedEvents()
 	{
-		return array('core.page_header' => 'header', 'core.index_modify_page_title' => 'home', 'core.permissions' => 'permissions');
+		return array('core.page_header' => 'header', 'core.page_header_after' => 'cookie_notice',
+			'core.index_modify_page_title' => 'home', 'core.permissions' => 'permissions');
+	}
+
+	public function cookie_notice()
+	{
+		// Honour the acknowledgement until the original first-party cookie expires.
+		if ($this->request->variable('cookie_consent', '', false, \phpbb\request\request_interface::COOKIE) === '1')
+		{
+			$this->template->assign_var('S_COOKIE_NOTICE', false);
+		}
 	}
 
 	public function permissions($event)
