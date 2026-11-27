@@ -77,6 +77,21 @@ class publication
 		return $single ? $topic : false;
 	}
 
+	// Native post subjects and guest names use phpBB's character references on
+	// MySQL. Preserve complete references when the encoded value reaches the limit.
+	private function native_label($text, $limit)
+	{
+		$result = ''; $stored = 0;
+		foreach (utf8_str_split(utf8_substr($text, 0, $limit)) as $character)
+		{
+			$encoded = utf8_encode_ucr(utf8_htmlspecialchars($character));
+			$stored += utf8_strlen($encoded);
+			if ($stored > 255) { break; }
+			$result .= $encoded;
+		}
+		return $result;
+	}
+
 	private function post($a, $topic, $hash)
 	{
 		$forum = $topic ? (int) $topic['forum_id'] : (int) $this->articles->setting('forum_id', 0);
@@ -87,7 +102,7 @@ class publication
 			!$this->auth->acl_get('f_list', $forum) || !$this->auth->acl_get('f_read', $forum) || !$this->auth->acl_get($topic ? 'f_reply' : 'f_post', $forum) ||
 			!$this->articles->forum_open($forum, $f['forum_password']) || ($topic && (int) $topic['topic_status'] === ITEM_LOCKED)) { return false; }
 		include_once $this->root . 'includes/functions_posting.' . $this->php_ext;
-		$subject = utf8_htmlspecialchars('[KB] ' . $a['title']);
+		$subject = $this->native_label('[KB] ' . $a['title'], 120);
 		$text = utf8_htmlspecialchars($this->language->lang($topic ? 'PLUS_KB_UPDATED_POST' : 'PLUS_KB_DISCUSSION_POST') . "\n\n" . $this->article_url($a['article_id']));
 		$uid = $bits = ''; $flags = 0;
 		generate_text_for_storage($text, $uid, $bits, $flags, false, true, false);
@@ -102,7 +117,7 @@ class publication
 			'post_edit_locked' => 0, 'post_edit_reason' => '', 'post_edit_user' => 0, 'notify' => false, 'notify_set' => false, 'post_checksum' => '',
 			'bbcode_uid' => $uid, 'bbcode_bitfield' => $bits, 'message' => $text, 'attachment_data' => array(), 'filename_data' => array());
 		// New native posts follow the forum's own approval rules and posting identity.
-		submit_post($topic ? 'reply' : 'post', $subject, empty($this->user->data['is_registered']) ? utf8_htmlspecialchars($a['author_name']) : '', POST_NORMAL, $poll, $data);
+		submit_post($topic ? 'reply' : 'post', $subject, empty($this->user->data['is_registered']) ? $this->native_label($a['author_name'], 32) : '', POST_NORMAL, $poll, $data);
 		if (empty($data['topic_id']) || empty($data['post_id'])) { throw new \RuntimeException('phpBB failed to create the article discussion.'); }
 		return $data;
 	}
