@@ -82,6 +82,7 @@ async function exercise() {
             await command('Network.setCookie', {name:'cookie_consent', value:'1', url});
             await require('./member_profile_browser.cjs')({command, evaluate, until, url});
             await require('./module_editors_browser.cjs')({command, evaluate, until, url});
+            await require('./help_bookmarks_browser.cjs')({command, evaluate, until, url});
             await require('./smilie_creator_browser.cjs')({command, find, evaluate, until, url});
             return;
         }
