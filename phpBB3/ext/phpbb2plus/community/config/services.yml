@@ -234,9 +234,14 @@ services:
         arguments: ['@phpbb2plus.community.group_leadership', '@request', '@controller.helper', '@user', '@auth', '%core.php_ext%']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.member_reviews:
+        class: phpbb2plus\community\event\member_reviews
+        arguments: ['@dbal.conn', '@auth', '@user', '@language', '%core.root_path%%core.adm_relative_path%index.%core.php_ext%']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.legacy:
         class: phpbb2plus\community\controller\legacy
-        arguments: ['@dbal.conn', '@auth', '@user', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.topic_reader']
+        arguments: ['@dbal.conn', '@auth', '@user', '%core.root_path%', '%core.php_ext%', '@phpbb2plus.community.topic_reader', '@phpbb2plus.community.member_reviews']
     phpbb2plus.community.legacy_attachment:
         class: phpbb2plus\community\controller\legacy_attachment
         arguments: ['@dbal.conn', '@auth', '@content.visibility', '@config', '@user', '%core.table_prefix%plus_attach_refs', '%core.root_path%', '%core.php_ext%']

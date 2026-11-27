@@ -1,8 +1,11 @@
 """Follow the forum's historical public link formats against the converted fixture."""
+from html import unescape
 from http.client import HTTPConnection
+import os
+import re
 from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
-from http_board import Browser, Page
+from http_board import Browser, FormFields, Page, admin_url, login, submit_form
 
 
 def link(base, path, expected_path, query, fragment="", method="GET", form=None, status=302):
@@ -26,7 +29,56 @@ def link(base, path, expected_path, query, fragment="", method="GET", form=None,
         conn.close()
 
 
+def account_review(base, initial_owner, historic_id=None):
+    bookmark = "delete_users.php?mode=user_id&del_user=1"
+    listing = "memberlist.php?mode=searchuser&username=HistoricMember&submit=1"
+    marker = 'class="plus-account-review"'
+    guest = Browser(base)
+    if marker in guest.fetch(listing) or "login" not in Page(guest.fetch(bookmark)).forms:
+        raise RuntimeError("The administrative member review appeared in the guest list or skipped login")
+    for legacy, rule in (("zero_poster", 0), ("not_login", 1)):
+        link(base, f"delete_users.php?mode={legacy}&days=00240", f"app.php/legacy/account-prune/{rule}/240", {})
+    if "login" not in Page(guest.fetch("delete_users.php?mode=prune_0&days=240")).forms:
+        raise RuntimeError("The historical inactivity report skipped initial login")
+    if marker not in initial_owner.fetch(listing):
+        raise RuntimeError("The signed-in administrator cannot reach the review from the member list")
+    password = os.environ["PLUS_TEST_MODERN_PASSWORD"]
+    owner = login(base, "ModernMember", password)
+    gate = owner.fetch(bookmark)
+    credential = FormFields(gate, "login").values.get("credential")
+    if not credential:
+        raise RuntimeError("A normal administrator login skipped the native ACP reauthentication")
+    submit_form(owner, admin_url(owner), gate, "login",
+                {"username": "ModernMember", "password_" + credential: password, "login": "1"})
+    result = re.findall(r'class="plus-account-review" href="([^"]+)"', owner.fetch(listing))
+    if len(result) != 1:
+        raise RuntimeError("The directory did not identify the ordinary account for review")
+    url = urljoin(base, unescape(result[0]))
+    destination = urlsplit(url)
+    account = parse_qs(destination.query).get("u", ["0"])[0]
+    if (not destination.path.endswith("/adm/index.php") or destination.fragment != "user_delete" or
+            int(account) <= 1 or (historic_id is not None and int(account) != int(historic_id))):
+        raise RuntimeError("The member-list link did not select the correct native account")
+    for path in (url, bookmark):
+        page = owner.fetch(path)
+        if 'HistoricMember' not in page or "user_delete" not in Page(page).forms:
+            raise RuntimeError("The old and new member links must open the native account overview")
+    if marker in owner.fetch(listing.replace("HistoricMember", "ModernMember")):
+        raise RuntimeError("The member list offered review of the founder's own account")
+    owner.fetch("delete_users.php?mode=user_id&del_user=2", expected_status=404)
+    owner.fetch("delete_users.php?mode=user_id&del_user=16777216", expected_status=404)
+    owner.fetch("delete_users.php?mode=prune_0&days=36501", expected_status=404)
+    owner.fetch(bookmark, {"confirm": "1"}, expected_status=405)
+    owner.fetch("delete_users.php?mode=prune_0&days=240", {"confirm": "1"}, expected_status=405)
+    confirm = submit_form(owner, url, owner.fetch(url), "user_delete", {"update": "1", "delete_type": "retain"})
+    final = FormFields(confirm, "confirm")
+    if (final.values.get("u") != account or final.values.get("delete_type") != "retain" or "confirm_uid" not in final.values or
+            "user_delete" not in Page(owner.fetch(url)).forms):
+        raise RuntimeError("The native account review did not retain its separate final confirmation")
+
+
 def browse(base, owner, historic_id):
+    account_review(base, owner, historic_id)
     cases = (
         ("hacks_list.php", "app.php/credits", {}, ""),
         ("staff.php", "memberlist.php", {"mode": "team"}, ""),
@@ -150,6 +202,8 @@ def browse(base, owner, historic_id):
 
 def groups(base, owner, member, pending, native_group):
     guest = Browser(base)
+    member.fetch("delete_users.php?mode=user_id&del_user=1", expected_status=403)
+    member.fetch("delete_users.php?mode=prune_0&days=240", expected_status=403)
     if "login" not in Page(guest.fetch("groupcp.php?g=73")).forms:
         raise RuntimeError("A guest group bookmark did not open the login form")
     for actor in (owner, member):

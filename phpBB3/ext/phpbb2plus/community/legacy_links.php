@@ -4,7 +4,7 @@
 function phpbb2plus_redirect_legacy($entry, array $query)
 {
 	$method = $_SERVER['REQUEST_METHOD'] ?? '';
-	if ($entry === 'modcp' || $entry === 'merge') { header('Cache-Control: private, no-store'); }
+	if (in_array($entry, array('modcp', 'merge', 'delete_users'), true)) { header('Cache-Control: private, no-store'); }
 	$read_form = in_array($entry, array('album_search', 'album_personal_index', 'kb_search', 'arcade_highscore'), true);
 	$sort_redirect = $entry === 'album_personal_index' || $entry === 'arcade_highscore';
 	if ($entry === 'uacp' && $method === 'POST' && !array_diff_key($_POST, array_flip(array('u','mode','order','start','sid','submit'))))
@@ -103,6 +103,9 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 	$base = './app.php/';
 	switch ($entry)
 	{
+		case 'delete_users':
+			$path = phpbb2plus_pruning_bookmark($query);
+			break;
 		case 'birthday_popup':
 			$path = 'birthday';
 			break;
@@ -594,11 +597,31 @@ function phpbb2plus_redirect_legacy($entry, array $query)
 		}
 		if (in_array($query['sort_order'] ?? '', array('ASC','DESC'), true)) { $extra['sort_order'] = $query['sort_order']; }
 	}
-	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history','topic_watch','modcp','merge'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
+	if (!in_array($entry, array('calendar','groupcp','profile','profile_options','change_password','staff','privmsg','ct_login_history','topic_watch','modcp','merge','delete_users'), true) && ($start = $positive('start'))) { $extra['start'] = $start; }
 	$search = $extra ? '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986) : '';
 	// The album and download search handlers accept the original POST bodies.
 	$status = $method === 'POST' ? ($sort_redirect || $entry === 'kb_search' ? 303 : 307) : 302;
 	header('Location: ' . $base . $path . $search . $anchor, true, $status);
+}
+
+function phpbb2plus_pruning_bookmark(array $query)
+{
+	$mode = $query['mode'] ?? '';
+	if (!is_string($mode)) { return ''; }
+	$number = static function ($raw, $max) {
+		if (!is_string($raw) || !ctype_digit($raw)) { return 0; }
+		$value = ltrim($raw, '0');
+		return strlen($value) <= 8 && (int) $value <= $max ? (int) $value : 0;
+	};
+	$days = $number($query['days'] ?? ($mode === 'user_id' ? '1' : ''), 36500);
+	if (!$days) { return ''; }
+	if ($mode === 'user_id')
+	{
+		$user = $number($query['del_user'] ?? '', 16777215);
+		return $user ? 'legacy/account-review/' . $user : '';
+	}
+	$rules = array('prune_0'=>0, 'prune_1'=>1, 'prune_2'=>2, 'prune_3'=>3, 'prune_4'=>4, 'zero_poster'=>0, 'not_login'=>1);
+	return isset($rules[$mode]) ? 'legacy/account-prune/' . $rules[$mode] . '/' . $days : '';
 }
 
 function phpbb2plus_moderation_bookmark($entry, array $query)

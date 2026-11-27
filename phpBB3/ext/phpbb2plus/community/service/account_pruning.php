@@ -63,6 +63,15 @@ class account_pruning
 		return '(' . $valid . ')';
 	}
 
+	public static function ordinary_scope($db, $actor)
+	{
+		return 'u.user_id>' . ANONYMOUS . ' AND u.user_id<>' . (int) $actor . ' AND u.user_perm_from=0 AND u.plus_jr_delegate=0 AND ' .
+			$db->sql_in_set('u.user_type', array(USER_NORMAL, USER_INACTIVE)) .
+			' AND NOT EXISTS (SELECT 1 FROM ' . BOTS_TABLE . ' b WHERE b.user_id=u.user_id)
+			AND NOT EXISTS (SELECT 1 FROM ' . GROUPS_TABLE . ' g WHERE g.group_type=' . GROUP_SPECIAL . " AND g.group_name IN ('ADMINISTRATORS','BOTS')
+				AND (g.group_id=u.group_id OR EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . ' m WHERE m.group_id=g.group_id AND m.user_id=u.user_id AND m.user_pending=0)))';
+	}
+
 	private function query($policy, $extra)
 	{
 		$registered = $policy['at'] - 86400 * $policy['days'];
@@ -79,21 +88,17 @@ class account_pruning
 		// zero counter. An imported account can still own posts in uncounted forums.
 		return 'SELECT u.user_id,u.username,u.username_clean,u.user_type,u.user_regdate,u.user_lastvisit,u.user_last_active,u.user_lastpost_time,
 			u.user_posts,u.user_inactive_reason,u.user_inactive_time,u.user_actkey,u.user_passchg,u.group_id,u.user_lang,u.user_email
-			FROM ' . USERS_TABLE . " u WHERE u.user_id>" . ANONYMOUS . " AND u.user_id<>$actor AND u.user_regdate>0 AND u.user_regdate<$registered
-			AND u.user_perm_from=0 AND u.plus_jr_delegate=0 AND " . $this->db->sql_in_set('u.user_type', array(USER_NORMAL, USER_INACTIVE)) .
-			' AND NOT EXISTS (SELECT 1 FROM ' . BOTS_TABLE . ' b WHERE b.user_id=u.user_id)
-			AND NOT EXISTS (SELECT 1 FROM ' . GROUPS_TABLE . ' g WHERE g.group_type=' . GROUP_SPECIAL . " AND g.group_name IN ('ADMINISTRATORS','BOTS')
-				AND (g.group_id=u.group_id OR EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " m WHERE m.group_id=g.group_id AND m.user_id=u.user_id AND m.user_pending=0)))
+			FROM ' . USERS_TABLE . ' u WHERE ' . self::ordinary_scope($this->db, $actor) . " AND u.user_regdate>0 AND u.user_regdate<$registered
 			AND NOT EXISTS (SELECT 1 FROM " . SESSIONS_TABLE . ' s WHERE s.session_user_id=u.user_id AND ' . $this->active_session() . ')
 			AND (u.user_type<>' . USER_INACTIVE . ' OR u.user_inactive_reason<>' . INACTIVE_REGISTER . ' OR u.user_posts>0 OR NOT EXISTS
 				(SELECT 1 FROM ' . POSTS_TABLE . ' p WHERE p.poster_id=u.user_id))
 			AND ' . $conditions[$policy['rule']] . ' AND ' . $extra . ' ORDER BY u.user_id';
 	}
 
-	private function ordinary($rows)
+	public static function without_admin_grants($auth, $rows)
 	{
 		if (!$rows) { return array(); }
-		$acl = $this->auth->acl_raw_data(array_column($rows, 'user_id'), 'a_%', 0);
+		$acl = $auth->acl_raw_data(array_column($rows, 'user_id'), 'a_%', 0);
 		$eligible = array();
 		foreach ($rows as $row)
 		{
@@ -108,7 +113,7 @@ class account_pruning
 		$rows = $this->rows($this->query($policy, 'u.user_id>' . max(0, (int) $after)), self::PAGE + 1);
 		$more = count($rows) > self::PAGE;
 		if ($more) { array_pop($rows); }
-		return array($this->ordinary($rows), $more ? (int) end($rows)['user_id'] : 0);
+		return array(self::without_admin_grants($this->auth, $rows), $more ? (int) end($rows)['user_id'] : 0);
 	}
 
 	private function stamp($row)
@@ -154,7 +159,7 @@ class account_pruning
 	{
 		$ids = array_values(array_unique($ids));
 		if (!$ids || count($ids) > self::PAGE || array_diff($ids, array_keys($offered))) { throw new \DomainException('PLUS_PRUNE_SELECT'); }
-		$rows = $this->ordinary($this->rows($this->query($policy, $this->db->sql_in_set('u.user_id', $ids))));
+		$rows = self::without_admin_grants($this->auth, $this->rows($this->query($policy, $this->db->sql_in_set('u.user_id', $ids))));
 		foreach ($rows as $id => $row)
 		{
 			if (!hash_equals($offered[$id], $this->stamp($row))) { unset($rows[$id]); }
@@ -204,7 +209,7 @@ class account_pruning
 				$rights = $this->auth->acl_raw_data($actor, array('a_', 'a_userdel'), 0)[$actor][0] ?? array();
 				if ((int) ($rights['a_userdel'] ?? ACL_NO) !== ACL_YES || (int) ($rights['a_'] ?? ACL_NO) === ACL_NEVER) { throw new AccessDeniedHttpException(); }
 			}
-			$eligible = $this->ordinary($this->rows($this->query($policy, 'u.user_id=' . $id)));
+			$eligible = self::without_admin_grants($this->auth, $this->rows($this->query($policy, 'u.user_id=' . $id)));
 			$row = $eligible[$id] ?? null;
 			if ($row && hash_equals($stamp, $this->stamp($row)))
 			{

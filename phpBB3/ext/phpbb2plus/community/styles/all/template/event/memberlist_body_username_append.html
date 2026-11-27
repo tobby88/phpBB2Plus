@@ -1,1 +1,4 @@
 {% if memberrow.PLUS_AWAY_LABEL %} <small>({{ memberrow.PLUS_AWAY_LABEL }})</small>{% endif %}
+{% if memberrow.U_PLUS_ACCOUNT_REVIEW and not S_IN_SEARCH_POPUP and not S_SHOW_GROUP %}
+	<small><a class="plus-account-review" href="{{ memberrow.U_PLUS_ACCOUNT_REVIEW }}">{{ lang('PLUS_ACCOUNT_REVIEW') }}</a></small>
+{% endif %}

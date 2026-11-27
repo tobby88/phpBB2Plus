@@ -3,6 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_DIRECTORY_EMAILS' => 'Member email directory',
 	'ACP_PLUS_DIRECTORY_MEMBERS' => 'Administrative member list',
+	'PLUS_ACCOUNT_REVIEW' => 'Review account removal',
 	'ACP_PLUS_DIRECTORY_BATCH' => 'Manage selected members',
 	'ACL_A_PLUS_LIST_STATUS' => 'Can activate and deactivate ordinary accounts in the member list',
 	'ACL_A_PLUS_LIST_BANS' => 'Can manage simple account bans in the member list',

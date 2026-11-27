@@ -47,6 +47,15 @@ def browse(base, board, target, php):
 
         if 'id="account-prune-review"' in start or "Prune accounts by activity" not in start:
             raise RuntimeError("The initial view must require a filter")
+        for rule in range(5):
+            days = 173 + rule
+            current = actor.fetch(url + f"&rule={rule}&days={days}")
+            legacy = actor.fetch(f"delete_users.php?mode=prune_{rule}&days={days}")
+            scope = r"<h2>(.*?)</h2>\s*<p>(.*?)</p>"
+            if (not re.search(scope, current, re.S) or re.findall(scope, legacy, re.S) != re.findall(scope, current, re.S)
+                    or re.findall(r'name="accounts\[\]" value="(\d+)"', legacy) != re.findall(r'name="accounts\[\]" value="(\d+)"', current)
+                    or "account-prune-delete" in Page(legacy).forms):
+                raise RuntimeError("An old inactivity bookmark failed to open the original rule and age for review")
         if [FormFields(start, f"account-prune-rule-{i}").values.get("days") for i in range(5)] != ["240", "240", "240", "120", "360"]:
             raise RuntimeError("Original pruning defaults missing")
         reports = [listings(i) for i in range(5)]
@@ -80,6 +89,7 @@ def browse(base, board, target, php):
         actor.fetch(url + "&step=delete&confirm_delete=1")
         phase("intact")
         phase("revoke")
+        actor.fetch("delete_users.php?mode=prune_0&days=240", expected_status=403)
         if "Module not accessible" not in submit_form(actor, url, check, "account-prune-delete", {"confirm_delete": "1"}, status=503):
             raise RuntimeError("Revoked user deletion permission was ignored")
         phase("intact")

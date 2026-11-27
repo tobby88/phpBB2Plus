@@ -22,6 +22,16 @@ phpbb2plus_community_member_link:
     defaults: { _controller: phpbb2plus.community.legacy:member_link }
     requirements: { source: '[1-9][0-9]{0,9}', mode: 'viewprofile|email' }
     methods: [GET, HEAD]
+phpbb2plus_community_account_review:
+    path: /legacy/account-review/{source}
+    defaults: { _controller: phpbb2plus.community.legacy:account_review }
+    requirements: { source: '[1-9][0-9]{0,9}' }
+    methods: [GET, HEAD]
+phpbb2plus_community_account_prune:
+    path: /legacy/account-prune/{rule}/{days}
+    defaults: { _controller: phpbb2plus.community.legacy:account_prune }
+    requirements: { rule: '[0-4]', days: '[1-9][0-9]{0,4}' }
+    methods: [GET, HEAD]
 phpbb2plus_community_group_link:
     path: /legacy/group/{source}/{view}/{start}
     defaults: { _controller: phpbb2plus.community.legacy:group_link }

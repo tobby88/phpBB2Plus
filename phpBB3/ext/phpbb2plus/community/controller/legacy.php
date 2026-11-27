@@ -13,8 +13,9 @@ class legacy
 	private $root;
 	private $ext;
 	private $topic_reader;
+	private $member_reviews;
 
-	public function __construct($db, $auth, $user, $root, $ext, $topic_reader)
+	public function __construct($db, $auth, $user, $root, $ext, $topic_reader, $member_reviews)
 	{
 		$this->db = $db;
 		$this->auth = $auth;
@@ -22,6 +23,7 @@ class legacy
 		$this->root = $root;
 		$this->ext = $ext;
 		$this->topic_reader = $topic_reader;
+		$this->member_reviews = $member_reviews;
 	}
 
 	private function destination($script, array $params = array(), $fragment = '')
@@ -149,6 +151,32 @@ class legacy
 		}
 		if ($start) { $params['start'] = $start; }
 		return $this->destination('mcp', $params);
+	}
+
+	public function account_prune($rule, $days)
+	{
+		$rule = (int) $rule;
+		$days = (int) $days;
+		if ($days < 1 || $days > 36500) { throw new NotFoundHttpException(); }
+		if (empty($this->user->data['is_registered']))
+		{
+			return $this->destination('ucp', array('mode' => 'login', 'redirect' => 'delete_users.' . $this->ext . '?mode=prune_' . $rule . '&days=' . $days));
+		}
+		if (!$this->member_reviews->can_prune()) { throw new AccessDeniedHttpException(); }
+		return new RedirectResponse($this->member_reviews->prune_url($rule, $days), 302, array('Cache-Control' => 'private, no-store'));
+	}
+
+	public function account_review($source)
+	{
+		$source = (int) $source;
+		if (empty($this->user->data['is_registered']))
+		{
+			return $this->destination('ucp', array('mode' => 'login', 'redirect' => 'delete_users.' . $this->ext . '?mode=user_id&del_user=' . $source));
+		}
+		if (!$this->member_reviews->allowed()) { throw new AccessDeniedHttpException(); }
+		$id = $this->member_id($source);
+		if (!$id || !$this->member_reviews->targets(array($id))) { throw new NotFoundHttpException(); }
+		return new RedirectResponse($this->member_reviews->url($id, false), 302, array('Cache-Control' => 'private, no-store'));
 	}
 
 	public function member_link($source, $mode)

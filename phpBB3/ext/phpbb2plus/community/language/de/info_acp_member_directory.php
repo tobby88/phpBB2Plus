@@ -3,6 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_DIRECTORY_EMAILS' => 'E-Mail-Verzeichnis der Mitglieder',
 	'ACP_PLUS_DIRECTORY_MEMBERS' => 'Administrative Benutzerliste',
+	'PLUS_ACCOUNT_REVIEW' => 'Kontolöschung prüfen',
 	'ACP_PLUS_DIRECTORY_BATCH' => 'Ausgewählte Mitglieder verwalten',
 	'ACL_A_PLUS_LIST_STATUS' => 'Kann gewöhnliche Konten in der Benutzerliste aktivieren und deaktivieren',
 	'ACL_A_PLUS_LIST_BANS' => 'Kann einfache Kontosperren in der Benutzerliste verwalten',
