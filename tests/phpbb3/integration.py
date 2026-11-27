@@ -178,7 +178,7 @@ def php(*args, cwd=None, capture=False):
             plain = unescape(re.sub(r"<[^>]*>", " ", result.stdout))
             sql = re.search(r"SQL ERROR\s*\[\s*([a-z0-9_]+)\s*\].*?\[([0-9]{3,5})\]", plain, re.S | re.I)
             detail = f" (SQL {sql[1]} {sql[2]})" if sql else ""
-            schema = re.search(r"(?:Unknown column|Duplicate column name|Table) '([A-Za-z0-9_.]+)'", plain)
+            schema = re.search(r"(?:Unknown column|Duplicate column name|Table) '([A-Za-z0-9_.]+)'", plain, re.I)
             if sql and schema:
                 detail += " " + schema[1].split(".")[-1]
             raise RuntimeError(f"{script.name} stopped before completing its checks{detail}")
@@ -275,49 +275,53 @@ def verify_upstream(web, cache):
 def download_checks(base, admin, historical, applicant, fixture, target, web, gallery_run=None):
     downloads.browse(base, admin, historical, applicant)
     php(fixture, "downloaded", target)
-    # Permission edits use their own category tree. Complete them before the
-    # category manager takes a snapshot of destinations and grants.
-    with ThreadPoolExecutor(max_workers=1) as worker:
-        permissions = worker.submit(download_permissions.administration,
-                                    *(actor.separate_client() for actor in (admin, historical, applicant)),
-                                    lambda phase: php(ROOT / "tests/phpbb3/download_permissions.php", target, phase, cwd=web))
-        def verify_licence(phase):
-            php(ROOT / "tests/phpbb3/download_licenses.php", target, phase, cwd=web)
-        download_licenses.agreements(historical, verify_licence)
-        download_licenses.administration(admin, historical, verify_licence)
-        def verify_fields(phase):
-            php(ROOT / "tests/phpbb3/download_fields.php", target, phase, cwd=web)
-        download_fields.runtime(admin, historical, verify_fields)
-        download_fields.administration(admin, historical, verify_fields)
-        download_mirrors.administration(admin, historical, lambda phase: php(
-            ROOT / "tests/phpbb3/download_mirrors.php", target, phase, cwd=web))
-        download_file_actions.administration(admin, historical, lambda phase: php(
-            ROOT / "tests/phpbb3/download_file_actions.php", target, phase, cwd=web))
-        download_file_editor.administration(admin, historical, lambda phase: php(
-            ROOT / "tests/phpbb3/download_file_editor.php", target, phase, cwd=web))
-        # The storage-failure case temporarily switches the board's upload directory.
-        if gallery_run is not None:
-            gallery_run.result()
-        downloads.submissions(base, admin, historical, applicant,
-                              lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
-        permissions.result()
-        download_checker.administration(admin, lambda phase: php(
-            ROOT / "tests/phpbb3/download_checker.php", target, phase, cwd=web))
-        download_moderation.browse(base, admin, historical, applicant, lambda phase: php(
-            ROOT / "tests/phpbb3/download_moderation.php", target, phase, cwd=web))
-        download_comment_drafts.browse(base, admin, historical, lambda phase: php(
-            ROOT / "tests/phpbb3/download_comment_drafts.php", target, phase, cwd=web))
-        download_reports.browse(base, historical, applicant, lambda phase: php(
-            ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
-        download_search.browse(base, historical, applicant, lambda phase: php(
-            ROOT / "tests/phpbb3/download_search.php", target, phase, cwd=web))
-        download_listing.browse(base, historical, applicant, lambda phase: php(
-            ROOT / "tests/phpbb3/download_listing.php", target, phase, cwd=web))
-        # The settings test temporarily closes the download area and restores its global policy.
-        download_settings.administration(admin, historical, lambda phase: php(
-            ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
-        download_mail.browse(base, historical, applicant, lambda phase: php(
-            ROOT / "tests/phpbb3/download_mail.php", target, phase, cwd=web))
+
+    def verify_licence(phase):
+        php(ROOT / "tests/phpbb3/download_licenses.php", target, phase, cwd=web)
+
+    download_licenses.agreements(historical, verify_licence)
+    download_licenses.administration(admin, historical, verify_licence)
+
+    def verify_fields(phase):
+        php(ROOT / "tests/phpbb3/download_fields.php", target, phase, cwd=web)
+
+    download_fields.runtime(admin, historical, verify_fields)
+    download_fields.administration(admin, historical, verify_fields)
+    download_mirrors.administration(admin, historical, lambda phase: php(
+        ROOT / "tests/phpbb3/download_mirrors.php", target, phase, cwd=web))
+    download_file_actions.administration(admin, historical, lambda phase: php(
+        ROOT / "tests/phpbb3/download_file_actions.php", target, phase, cwd=web))
+    download_file_editor.administration(admin, historical, lambda phase: php(
+        ROOT / "tests/phpbb3/download_file_editor.php", target, phase, cwd=web))
+    # The storage-failure case temporarily switches the board's upload directory.
+    if gallery_run is not None:
+        gallery_run.result()
+    downloads.submissions(base, admin, historical, applicant,
+                          lambda phase: php(ROOT / "tests/phpbb3/download_submissions.php", target, phase, cwd=web))
+    download_checker.administration(admin, lambda phase: php(
+        ROOT / "tests/phpbb3/download_checker.php", target, phase, cwd=web))
+    download_moderation.browse(base, admin, historical, applicant, lambda phase: php(
+        ROOT / "tests/phpbb3/download_moderation.php", target, phase, cwd=web))
+    download_comment_drafts.browse(base, admin, historical, lambda phase: php(
+        ROOT / "tests/phpbb3/download_comment_drafts.php", target, phase, cwd=web))
+    download_reports.browse(base, historical, applicant, lambda phase: php(
+        ROOT / "tests/phpbb3/download_reports.php", target, phase, cwd=web))
+    download_search.browse(base, historical, applicant, lambda phase: php(
+        ROOT / "tests/phpbb3/download_search.php", target, phase, cwd=web))
+    download_listing.browse(base, historical, applicant, lambda phase: php(
+        ROOT / "tests/phpbb3/download_listing.php", target, phase, cwd=web))
+    # The settings test temporarily closes the download area and restores its global policy.
+    download_settings.administration(admin, historical, lambda phase: php(
+        ROOT / "tests/phpbb3/download_settings.php", target, phase, cwd=web))
+    download_mail.browse(base, historical, applicant, lambda phase: php(
+        ROOT / "tests/phpbb3/download_mail.php", target, phase, cwd=web))
+
+
+def download_permission_checks(admin, historical, applicant, target, web):
+    # The fixture removes a native group and user. Finish the other catalogue writes first.
+    download_permissions.administration(
+        *(actor.separate_client() for actor in (admin, historical, applicant)),
+        lambda phase: php(ROOT / "tests/phpbb3/download_permissions.php", target, phase, cwd=web))
 
 
 def download_category_checks(admin, target, web):
@@ -473,6 +477,7 @@ def module_administration(base, member, ordinary, pending, fixture, target, web,
         if include_downloads:
             download_run.result()
     if include_downloads:
+        download_permission_checks(member, ordinary, pending, target, web)
         media_administration(base, member, ordinary, pending, target, web)
     print(f"Module administration and gallery workflows: {monotonic()-started:.1f}s", flush=True)
 
@@ -823,6 +828,7 @@ def main():
                         delegation.module_roles(base, file_roles)
                         download_checks(base, member, ordinary, pending, fixture, target, web)
                     if args.part != "files":
+                        download_permission_checks(member, ordinary, pending, target, web)
                         php(ROOT / "tests/phpbb3/guest_profiles.php", target, cwd=web)
                         media_administration(base, member, ordinary, pending, target, web)
                     if args.part != "access":
