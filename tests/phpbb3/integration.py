@@ -134,7 +134,7 @@ def php(*args, cwd=None, capture=False):
     script = Path(args[0])
     fixture_dir = ROOT / "tests/phpbb3"
     fixture = script.parent == fixture_dir
-    command = [os.environ.get("PLUS_TEST_PHP", "php"), "-d", "disable_functions=mail"]
+    command = [os.environ.get("PLUS_TEST_PHP", "php"), "-d", "disable_functions=mail", "-d", "zend.exception_ignore_args=1"]
     if fixture:
         # phpBB can render a fatal error page and exit with status zero. PHP only
         # runs auto_append_file when the fixture reaches a normal end or return.
