@@ -18,7 +18,7 @@ PACKAGES = (
      "3c95828a1d6ad4c86248e0fedb6153f59c57d211adbded1c507b169db54beef0", ""),
 )
 STYLE_IMAGES = ("arrow.gif", "link_folder.gif", "cellpic1.gif", "cellpic3.gif", "cellpic_bkg.jpg", "cellpic_nav.gif",
-                "phpbb2_logo.jpg", "phpbb2_logor.jpg")
+                "phpbb2_logo.jpg", "phpbb2_logor.jpg", "icon_minigender_male.gif", "icon_minigender_female.gif")
 
 
 def digest(path):

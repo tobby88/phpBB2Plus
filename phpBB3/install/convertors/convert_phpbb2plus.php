@@ -359,6 +359,7 @@ if (!$get_info)
 		{
 			$section['execute_first'] = ($section['execute_first'] ?? '') . ' plus_import_flags(); plus_define_custom_profiles();';
 			$section[] = array('pf_plus_country', 'users.user_from_flag', 'plus_country_value');
+			foreach (plus_gender_schema($src_db, $convert->src_table_prefix) as $field) { $section[] = $field; }
 			foreach (plus_custom_profile_fields() as $id=>$custom)
 			{
 				$section[] = array('pf_' . $custom['ident'], array('users.' . $custom['source_column'], $id), 'plus_custom_account_value');

@@ -285,6 +285,11 @@ services:
     phpbb2plus.community.country_flags:
         class: phpbb2plus\community\profile\country_flags
         arguments: ['@dbal.conn', '%core.table_prefix%']
+    phpbb2plus.community.gender:
+        class: phpbb2plus\community\event\gender
+        arguments: ['@dbal.conn', '@config', '@user']
+        tags:
+            - { name: event.listener }
     phpbb2plus.community.country_dropdown:
         parent: profilefields.type.dropdown
         decorates: profilefields.type.dropdown
