@@ -20,6 +20,9 @@ def browse(admin, member, check, source_enabled=True):
         return section.group(1) if section else ""
 
     def words(html):
+        # A native <br> separates the registration totals from the newest member.
+        # Template indentation around that break differs on the two pages.
+        html = re.sub(r"<br\s*/?>", " ", html, flags=re.I)
         return " ".join(unescape(re.sub("<[^>]+>", "", html)).split())
 
     try:
@@ -67,8 +70,10 @@ def browse(admin, member, check, source_enabled=True):
         overview = member.fetch(category)
         counts = stat(overview, "statistics")
         online = stat(overview, "online-list")
-        if (not block(overview) or not counts or words(counts) != words(stat(member.fetch("index.php"), "statistics"))
-                or "ModernMember" not in online or 'Redaktion &amp; Gäste' not in online or 'Hidden palette' in online
+        index_counts = stat(member.fetch("index.php"), "statistics")
+        if not counts or words(counts) != words(index_counts):
+            raise RuntimeError(f"Category and index board statistics differ: {words(counts)!r} / {words(index_counts)!r}")
+        if (not block(overview) or "ModernMember" not in online or 'Redaktion &amp; Gäste' not in online or 'Hidden palette' in online
                 or visible not in stat(overview, "birthday-list")
                 or hidden not in stat(overview, "birthday-list") or block(member.fetch("viewforum.php?f=1"))):
             raise RuntimeError("The category lost board-wide totals, online users from other pages or upcoming birthdays")
