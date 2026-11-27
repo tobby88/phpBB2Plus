@@ -301,7 +301,7 @@ function plus_reset_converted_formatter()
 function plus_convert_message($message)
 {
 	global $convert, $convert_row, $db, $phpbb_container;
-	static $acronyms, $tables, $media;
+	static $acronyms, $tables, $styles;
 	// The upstream converter treats the one-character post "0" as empty.
 	if ($message === '0')
 	{
@@ -309,22 +309,26 @@ function plus_convert_message($message)
 		return '<t>0</t>';
 	}
 	$xml = phpbb_prepare_message((string) $message);
+	if ((isset($convert->row['enable_bbcode']) && !$convert->row['enable_bbcode']) || strpos($xml, '[') === false)
+	{
+		return $xml;
+	}
 	// The standalone installer may build its formatter before extensions are loaded.
-	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) && stripos($xml, '[schild=') !== false &&
+	if (stripos($xml, '[schild=') !== false &&
 		strpos($xml, '<PLUSSMILIESIGN ') === false && strpos($xml, '<SCHILD') === false)
 	{
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/smilie_sign.php';
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/legacy_smilie_signs.php';
 		$xml = \phpbb2plus\community\service\legacy_smilie_signs::upgrade($xml);
 	}
-	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) && stripos($xml, '[acronym=') !== false)
+	if (stripos($xml, '[acronym=') !== false)
 	{
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/explicit_acronym.php';
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/literal_bbcode.php';
 		if (!$acronyms) { $acronyms = new \phpbb2plus\community\service\explicit_acronym($db, $phpbb_container); }
 		$xml = $acronyms->for_display($xml);
 	}
-	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) && stripos($xml, '[table=') !== false)
+	if (stripos($xml, '[table=') !== false)
 	{
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/table_formatting.php';
 		require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/literal_bbcode.php';
@@ -332,12 +336,14 @@ function plus_convert_message($message)
 		if (!$tables) { $tables = new \phpbb2plus\community\service\legacy_tables($db, $phpbb_container); }
 		$xml = $tables->for_display($xml);
 	}
-	if ((!isset($convert->row['enable_bbcode']) || $convert->row['enable_bbcode']) &&
-		preg_match('~(?<!<s>)\[(?:stream\]|ram\]|video width=)~i', $xml))
+	$services = dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/';
+	require_once $services . 'formatting_codes.php';
+	require_once $services . 'media_codes.php';
+	require_once $services . 'legacy_text_styles.php';
+	if (\phpbb2plus\community\service\legacy_text_styles::candidate($xml))
 	{
-		$services = dirname(__DIR__, 2) . '/ext/phpbb2plus/community/service/';
-		foreach (array('literal_bbcode', 'formatting_codes', 'media_codes', 'legacy_text_styles') as $name) { require_once $services . $name . '.php'; }
-		if (!$media)
+		require_once $services . 'literal_bbcode.php';
+		if (!$styles)
 		{
 			// The standalone installer may have cached a parser before the Plus
 			// extension registered its tags. Keep the conversion parser private.
@@ -347,11 +353,13 @@ function plus_convert_message($message)
 				unset($configurator->Censor, $configurator->tags['censor:tag']);
 			}
 			\phpbb2plus\community\service\media_codes::configure($configurator);
+			$config = $phpbb_container->get('config');
+			\phpbb2plus\community\service\formatting_codes::overflow($configurator, (string) ($config['plus_formatting_overflow'] ?? ''));
 			$parser = $configurator->finalize()['parser'];
 			$parser->enablePlugin('BBCodes');
-			$media = new \phpbb2plus\community\service\legacy_text_styles($phpbb_container, $parser);
+			$styles = new \phpbb2plus\community\service\legacy_text_styles($phpbb_container, $parser);
 		}
-		$xml = $media->for_display($xml);
+		$xml = $styles->for_display($xml);
 	}
 	return $xml;
 }

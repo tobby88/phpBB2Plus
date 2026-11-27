@@ -14,6 +14,11 @@ class v172_formatting_codes extends \phpbb\db\migration\migration
 
 	public function install_codes()
 	{
+		$this->install_definitions(formatting_codes::text_styles());
+	}
+
+	protected function install_definitions($definitions)
+	{
 		global $phpbb_container;
 		require_once $this->phpbb_root_path . 'includes/acp/acp_bbcodes.' . $this->php_ext;
 		$native = new \acp_bbcodes();
@@ -30,8 +35,9 @@ class v172_formatting_codes extends \phpbb\db\migration\migration
 				$last = max($last, (int) $row['bbcode_id']);
 			}
 			$this->db->sql_freeresult($result);
-			$overflow = array();
-			foreach (formatting_codes::definitions() as $tag => $values)
+			$previous = explode(',', (string) $this->config['plus_formatting_overflow']);
+			$overflow = array_diff($previous, array(''), array_keys($definitions));
+			foreach ($definitions as $tag => $values)
 			{
 				if (isset($existing[$tag])) { continue; }
 				if ($last >= BBCODE_LIMIT) { $overflow[] = $tag; continue; }

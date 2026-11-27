@@ -15,6 +15,20 @@ module.exports = async function ({command, find, evaluate, until, url}) {
         await command('Input.dispatchMouseEvent', {type:'mousePressed', ...point});
         await command('Input.dispatchMouseEvent', {type:'mouseReleased', ...point});
     }
+    const frame = '#p1 .plus-scroll-up';
+    const state = 'document.querySelector(' + JSON.stringify(frame + ' .plus-scroll-toggle') + ').getAttribute("aria-pressed")';
+    const animation = 'getComputedStyle(document.querySelector(' + JSON.stringify(frame + ' .plus-scroll-text') + ')).animationName';
+    await command('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-motion', value:'reduce'}]});
+    await until(() => evaluate(state + ' === "false" && ' + animation + ' === "none"'), 'static scrolling text with reduced motion');
+    await command('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-motion', value:'no-preference'}]});
+    await until(() => evaluate(state + ' === "true" && ' + animation + ' === "plus-scroll-text"'), 'the original scroll direction and motion');
+    await evaluate('document.querySelector(' + JSON.stringify(frame + ' .plus-scroll-toggle') + ').focus()');
+    for (const type of ['keyDown','keyUp']) {
+        await command('Input.dispatchKeyEvent', {type, key:'Enter', code:'Enter', windowsVirtualKeyCode:13});
+    }
+    if (await evaluate(state) !== 'false' || await evaluate(animation) !== 'none') {
+        throw Error('The keyboard switch did not leave the complete text still');
+    }
     await evaluate('(' + function () {
         const form = document.getElementById('qr_postform');
         const edit = form.elements.message;

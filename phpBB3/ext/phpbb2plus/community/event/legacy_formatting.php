@@ -16,21 +16,35 @@ class legacy_formatting implements EventSubscriberInterface
 	private $config;
 	private $tables;
 	private $text_styles;
+	private $language;
+	private $template;
 
-	public function __construct($db, $container, $config)
+	public function __construct($db, $container, $config, $language, $template)
 	{
 		$this->acronyms = new explicit_acronym($db, $container);
 		$this->tables = new legacy_tables($db, $container);
 		$this->text_styles = new legacy_text_styles($container);
 		$this->config = $config;
+		$this->language = $language;
+		$this->template = $template;
 	}
 
 	public static function getSubscribedEvents()
 	{
 		return array('core.text_formatter_s9e_configure_after' => 'configure',
+			'core.text_formatter_s9e_render_after' => 'scrolling_assets',
 			'core.modify_text_for_display_before' => 'older_content', 'core.viewtopic_post_rowset_data' => 'topic_post',
 			'core.search_modify_post_row' => 'search_post', 'core.ucp_pm_view_message_before' => 'private_message',
 			'core.topic_review_modify_post_list' => 'review');
+	}
+
+	public function scrolling_assets($event)
+	{
+		if (strpos($event['html'], 'class="plus-scroll plus-scroll-') !== false)
+		{
+			$this->language->add_lang('community', 'phpbb2plus/community');
+			$this->template->assign_var('S_PLUS_SCROLLING_TEXT', true);
+		}
 	}
 
 	public function configure($event)

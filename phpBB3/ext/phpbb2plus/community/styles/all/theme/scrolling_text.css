@@ -1,0 +1,21 @@
+.plus-scroll, .plus-scroll-track, .plus-scroll-text { display: block; }
+.plus-scroll-text { overflow-wrap: anywhere; }
+.plus-scroll-toggle { display: none; }
+@media screen {
+	.plus-scroll-toggle { display: inline-block; }
+	.plus-scroll-toggle::before { content: "\25B6\00A0"; }
+	.plus-scroll-toggle[aria-pressed="true"]::before { content: "\2161\00A0"; }
+	.plus-scroll-moving > .plus-scroll-track { overflow: hidden; }
+	.plus-scroll-left  { --plus-scroll-x: 100%;  --plus-scroll-y: 0%; }
+	.plus-scroll-right { --plus-scroll-x: -100%; --plus-scroll-y: 0%; }
+	.plus-scroll-up    { --plus-scroll-x: 0%;    --plus-scroll-y: 100%; }
+	.plus-scroll-down  { --plus-scroll-x: 0%;    --plus-scroll-y: -100%; }
+	.plus-scroll-moving > .plus-scroll-track > .plus-scroll-text {
+		animation: plus-scroll-text 12s linear -6s infinite;
+	}
+	.plus-scroll-moving > .plus-scroll-track:focus-within > .plus-scroll-text { animation: none; }
+	@keyframes plus-scroll-text {
+		from { transform: translate(var(--plus-scroll-x), var(--plus-scroll-y)); }
+		to { transform: translate(calc(0% - var(--plus-scroll-x)), calc(0% - var(--plus-scroll-y))); }
+	}
+}

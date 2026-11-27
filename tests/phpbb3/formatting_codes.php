@@ -18,10 +18,22 @@ if ($argv[2] === 'source')
 		$sample = " [align=right:$uid][s:$uid]Überholt[/s:$uid] [highlight=#ffcc00:$uid]Grün &amp; Gelb[/highlight:$uid][/align:$uid]";
 		$sample .= " [stream:$uid]https://archive.example.test/audio.ogg[/stream:$uid] " .
 			"[video width=320 height=200:$uid]https://archive.example.test/film.webm[/video:$uid]";
+		$sample .= " [scrollup:$uid]Höher[/scrollup:$uid] [marq=right:$uid]Weiter[/marq:$uid]";
 		$q = $old->prepare("UPDATE $table SET $column=CONCAT($column,?) WHERE $where");
 		$q->bind_param('s', $sample);
 		$q->execute();
 		if ($q->affected_rows !== 1) { throw new RuntimeException('Missing source formatting fixture'); }
+	}
+	$disabled = ' [scrollup]Fest[/scrollup] [ram]https://archive.example.test/plain.ogg[/ram]';
+	foreach (array(array('phpbb_posts','enable_bbcode','post_id=40','phpbb_posts_text','post_text','post_id=40'),
+		array('phpbb_privmsgs','privmsgs_enable_bbcode','privmsgs_id=112','phpbb_privmsgs_text','privmsgs_text','privmsgs_text_id=112'))
+		as list($table,$flag,$where,$body_table,$field,$body_where))
+	{
+		$old->query("UPDATE $table SET $flag=0 WHERE $where");
+		$q = $old->prepare("UPDATE $body_table SET $field=CONCAT($field,?) WHERE $body_where");
+		$q->bind_param('s', $disabled);
+		$q->execute();
+		if ($q->affected_rows !== 1) { throw new RuntimeException('Missing disabled-BBCode example'); }
 	}
 	return;
 }
@@ -56,20 +68,41 @@ if ($argv[2] === 'converted')
 		formatting_require($xpath->query('//div[contains(@style,"text-align:right")]/s[text()="Überholt"]')->length === 1 &&
 			$xpath->query('//span[contains(@style,"background-color:#ffcc00") and text()="Grün & Gelb"]')->length === 1,
 			'Native formatted content missing from ' . $column);
+		formatting_require($xpath->query('//span[@class="plus-scroll plus-scroll-up"]//span[text()="Höher"]')->length === 1 &&
+			$xpath->query('//span[@class="plus-scroll plus-scroll-right"]//span[text()="Weiter"]')->length === 1,
+			'Missing scrolling text from ' . $column);
 		formatting_require(strpos(\s9e\TextFormatter\Unparser::unparse($xml), '[align=right][s]Überholt[/s]') !== false,
 			'Editable Plus formatting lost its original tags in ' . $column);
+	}
+	foreach (array(array(POSTS_TABLE,'post_text','post_id=40'),array(PRIVMSGS_TABLE,'message_text','msg_id=112')) as list($table,$column,$where))
+	{
+		$r = $db->sql_query("SELECT $column,enable_bbcode FROM $table WHERE $where");
+		$row = $db->sql_fetchrow($r); $db->sql_freeresult($r);
+		$html = $renderer->render($row[$column]);
+		formatting_require(!$row['enable_bbcode'] && strpos($html,'[scrollup]Fest[/scrollup]') !== false &&
+			strpos($html,'class="plus-scroll') === false && strpos($html,'<audio') === false, 'Disabled source BBCode became active in ' . $column);
 	}
 }
 elseif ($argv[2] === 'native')
 {
 	$sample = "[center][s]Alt[/s][/center] [font=Georgia]Schrift[/font] [poet]A\nB[/poet] [poet=alt]C[/poet] [hr] " .
 		"[glow=red]Licht[/glow] [shadow=blue]Schatten[/shadow] [fliph]Horizontal[/fliph] [flipv]Vertikal[/flipv] [fade]Verlauf[/fade]";
+	foreach (array('left','right','up','down') as $direction)
+	{
+		$sample .= " [scroll$direction]Direct[/scroll$direction] [marq=$direction]Parameter[/marq]";
+	}
+	$sample .= ' [marq=unexpected]Unchanged[/marq] [code][scrollup]Example[/scrollup][/code]';
 	foreach (array(true, false) as $enabled)
 	{
 		$xml = $sample;
 		generate_text_for_storage($xml, $uid, $bits, $flags, $enabled, false, false);
 		formatting_require(\s9e\TextFormatter\Unparser::unparse($xml) === $sample, 'Format examples changed in the editor');
 		$xpath = formatting_xpath($renderer->render($xml));
+		foreach (array('left','right','up','down') as $direction)
+		{
+			formatting_require($xpath->query('//span[@class="plus-scroll plus-scroll-' . $direction . '"]')->length === (int) $enabled * 2,
+				'Scrolling direction or code samples changed');
+		}
 		foreach (array('//div[contains(@style,"text-align:center")]/s','//span[contains(@style,"font-family") and text()="Schrift"]',
 			'//div[@class="bbcode-poem" and contains(.,"B")]','//div[@class="bbcode-poem" and text()="C"]','//hr',
 			'//span[contains(@style,"text-shadow") and text()="Licht"]','//span[contains(@style,"text-shadow") and text()="Schatten"]',
@@ -80,7 +113,7 @@ elseif ($argv[2] === 'native')
 	}
 	// An old preview may have mixed the literal delimiters with other native tags.
 	$older = '<r><B><s>[b]</s>Vorher<e>[/b]</e></B> [align=right][s]Grün <I><s>[i]</s>Öl<e>[/i]</e></I> &#128512;[/s][/align] [hr] ' .
-		'<CODE><s>[code]</s>[s]Beispiel[/s]<e>[/code]</e></CODE> [align=falsch]Wort[/align] [s]offen</r>';
+		'<CODE><s>[code]</s>[s]Beispiel[/s]<e>[/code]</e></CODE> [scrolldown]Süden[/scrolldown] [align=falsch]Wort[/align] [s]offen</r>';
 	$service = $phpbb_container->get('phpbb2plus.community.legacy_formatting');
 	$media_old = '<r><B><s>[b]</s>Ton<e>[/b]</e></B> [ram]<URL url="https://archive.example.test/a.ogg">https://archive.example.test/a.ogg</URL>[/ram] ' .
 		'[video width=699 height=499]https://archive.example.test/f.webm[/video] [video width=700 height=499]https://archive.example.test/v.webm[/video] ' .
@@ -107,6 +140,7 @@ elseif ($argv[2] === 'native')
 			strpos($xml, '[align=falsch]Wort[/align] [s]offen') !== false, 'Earlier markup or its editor source changed');
 		$xpath = formatting_xpath($renderer->render($xml));
 		formatting_require($xpath->query('//div[contains(@style,"text-align:right")]/s/*[text()="Öl"]')->length === (int) $enabled &&
+			$xpath->query('//span[@class="plus-scroll plus-scroll-down"]')->length === (int) $enabled &&
 			$xpath->query('//hr')->length === (int) $enabled && strpos($xml, '<I><s>[i]</s>Öl<e>[/i]</e></I>') !== false,
 			'Earlier text styles ignored BBCode=' . (int) $enabled . ' or lost an italic child: ' . $xml);
 		formatting_require($enabled ? $row['bbcode_bitfield'] === 'QA==' : $row['bbcode_bitfield'] === '',
@@ -129,10 +163,17 @@ elseif ($argv[2] === 'native')
 		$migration->install_codes();
 		$migration->install_codes();
 		formatting_require($config['plus_formatting_overflow'] === 's,fade', 'The migration reused an occupied native ID');
+		$db->sql_query('DELETE FROM ' . BBCODES_TABLE . " WHERE bbcode_tag IN ('scrollup','font=')");
+		$scrolling = new \phpbb2plus\community\migrations\v185_scrolling_text($config, $db,
+			$phpbb_container->get('dbal.tools'), $phpbb_root_path, $phpEx, $table_prefix);
+		$scrolling->install_scrolling();
+		$scrolling->install_scrolling();
+		formatting_require($config['plus_formatting_overflow'] === 's,fade,scrollup', 'Adding scrolling text changed unrelated definitions or exhausted native IDs');
 		$objects = $phpbb_container->get('text_formatter.s9e.factory')->regenerate();
-		$xml = $objects['parser']->parse('[center]Board[/center] [s]Alt[/s] [fade]Ende[/fade]');
+		$xml = $objects['parser']->parse('[center]Board[/center] [s]Alt[/s] [fade]Ende[/fade] [scrollup]Up[/scrollup]');
 		$xpath = formatting_xpath($objects['renderer']->render($xml));
 		formatting_require($xpath->query('//aside[@class="board-center" and text()="Board"]')->length === 1 &&
+			$xpath->query('//span[@class="plus-scroll plus-scroll-up"]')->length === 1 &&
 			$xpath->query('//s[text()="Alt"]')->length === 1 && $xpath->query('//span[contains(@style,"linear-gradient")]')->length === 1,
 			'The native fallback or pre-existing board template was lost');
 	}

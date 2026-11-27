@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge(isset($lang) ? $lang : array(), array(
+	'PLUS_SCROLL_ANIMATE' => 'Animate text',
 	'PLUS_PORTAL' => 'Portal',
 	'PLUS_RANKS' => 'Forum ranks',
 	'PLUS_RANKS_STANDARD' => 'Post-count ranks',
