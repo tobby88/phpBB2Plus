@@ -40,6 +40,7 @@ def source_modules(source, target):
                  "includes/functions_userlist_storage.php", "includes/functions_login_storage.php",
                  "attach_mod/includes/functions_mutation.php", "attach_mod/includes/functions_pm_staging.php",
                  "ctracker/admin/acp_module_settings.php", "ctracker/classes/class_ct_adminfunctions.php",
+                 "ctracker/admin/acp_module_ipblocker.php", "ctracker/engines/ct_ipblocker.php",
                  "ctracker/admin/acp_module_globalmessage.php", "ctracker/classes/class_admin_actions.php",
                  "ctracker/classes/class_ct_database.php", "ctracker/classes/class_settings_storage.php",
                  "ctracker/classes/class_configuration_storage.php", "ctracker/classes/class_acp_storage.php",
@@ -87,6 +88,26 @@ def authenticate_pair(base, first, second):
     # Separate browsers and real login/ACP forms; both tokens can age at the same time.
     with ThreadPoolExecutor(max_workers=2) as workers:
         return tuple(workers.map(lambda name: authenticate(base, name), (first, second)))
+
+
+def request_block_rules(base):
+    operator, home = authenticate(base, "RequestBlockJunior")
+    rules = home + "&i=-phpbb2plus-community-acp-request_blocks_module&mode=rules"
+    page = operator.fetch(rules)
+    entry = "192.0.2.143"
+    if entry in page or "plus-ct-add" not in Page(page).forms:
+        raise RuntimeError("The original rule-list operator did not reach the restricted native ACP")
+    page = submit_form(operator, rules, page, "plus-ct-add", {"entry": entry})
+    row = next((r for r in re.findall(r"<tr\b[^>]*>.*?</tr>", page, re.S) if entry in r), "")
+    forms = [name for name in Page(row).forms if name.startswith("plus-ct-delete-")]
+    if len(forms) != 1:
+        raise RuntimeError("The delegated operator could not create a single documentation-address rule")
+    page = submit_form(operator, rules, page, forms[0], {})
+    if entry in page or "plus-ct-add" not in Page(page).forms:
+        raise RuntimeError("The delegated operator could not remove its own fixture rule")
+    navigation = operator.fetch(home)
+    if "tracker_settings_module" in navigation or re.search(r'href="[^"]*request_blocks_module[^"]*mode=history', navigation):
+        raise RuntimeError("The former rule-list grant also exposed unrelated settings or history")
 
 
 def personal_album_rights(browser, url, page):

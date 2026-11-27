@@ -229,6 +229,11 @@ function plus_jr_registry()
 			'ctracker/admin/acp_module_globalmessage.php' => '57340603caf94dffa1143ef5dce694b4669a44cff9a416482c021d877198ca2f',
 			'ctracker/classes/class_admin_actions.php' => '388eeed5489880bcb464a13cc70dd887bb730773af346ec86bcf6670acba4654',
 		),
+		'admin_cracker_tracker.php?modu=5' => $tracker + array(
+			'ctracker/admin/acp_module_ipblocker.php' => 'f94934e6c89564e84b86e32e9d46ae1a58ffa255b21bca9b59370b5ca1b4f0b9',
+			'ctracker/classes/class_admin_actions.php' => '388eeed5489880bcb464a13cc70dd887bb730773af346ec86bcf6670acba4654',
+			'ctracker/engines/ct_ipblocker.php' => 'b9f4bab31be67281c6cd256ece1beb0ebc1103ec78d76834308b0903e6a6661a',
+		),
 		'admin_cracker_tracker.php?modu=9' => $tracker + array(
 			'ctracker/admin/acp_module_settings.php' => '644f5fffd4e82bda03c2461574577ca1de105d5d1ca18b5a90e9c78ef225bf58',
 			'ctracker/classes/class_settings_storage.php' => '12f33ae9212e04652e8451bb3512c0637ce8f94ccd3e4da644702ecc37f00058',

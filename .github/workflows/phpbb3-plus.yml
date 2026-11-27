@@ -24,6 +24,8 @@ on:
       - 'phpBB2/admin/admin_*.php'
       - 'phpBB2/admin/pagestart.php'
       - 'phpBB2/ctracker/admin/acp_module_settings.php'
+      - 'phpBB2/ctracker/admin/acp_module_ipblocker.php'
+      - 'phpBB2/ctracker/engines/ct_ipblocker.php'
       - 'phpBB2/ctracker/admin/acp_module_globalmessage.php'
       - 'phpBB2/includes/functions_login_storage.php'
       - 'phpBB2/includes/functions_userlist_storage.php'

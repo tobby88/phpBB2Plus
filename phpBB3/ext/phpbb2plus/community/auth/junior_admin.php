@@ -65,6 +65,8 @@ class junior_admin
 			'a_plus_arc_games' => array('phpbb2plus\arcade\acp\games_module', 'manage'))),
 		'admin_cracker_tracker.php?modu=4' => array('ctracker_module_category', 'ctracker_module_4',
 			array('a_plus_ct_notice' => array('phpbb2plus\community\acp\tracker_settings_module', 'notice'))),
+		'admin_cracker_tracker.php?modu=5' => array('ctracker_module_category', 'ctracker_module_5',
+			array('a_plus_ct_blocks' => array('phpbb2plus\community\acp\request_blocks_module', 'rules'))),
 		'admin_cracker_tracker.php?modu=9' => array('ctracker_module_category', 'ctracker_module_9',
 			array('a_plus_ct_settings' => array('phpbb2plus\community\acp\tracker_settings_module', 'manage'))),
 		'admin_hacks_list.php' => array('General', 'Hacks_List', array('a_plus_credits' => array('phpbb2plus\community\acp\credits_module', 'manage'))),
