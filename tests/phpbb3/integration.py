@@ -458,6 +458,7 @@ def seed_source(source, legacy, suite):
     php(tests / "board_statistics.php", "seed", source)
     if forum_suite:
         php(tests / "topic_readers.php", source, "source")
+        php(tests / "guest_post_confirm.php", source, "source")
         php(tests / "recommend.php", source, "source")
         php(tests / "smilie_signs.php", source, "source")
         php(tests / "explicit_acronym.php", source, "source")
@@ -619,6 +620,8 @@ def main():
                 pending = login(base, "DepartingFixture", os.environ["PLUS_TEST_MODERN_PASSWORD"])
                 member_notice.imported(base, ordinary, member, media_only)
                 if forum_suite:
+                    forum_permissions.guest_challenge(base, ordinary, php(
+                        ROOT / "tests/phpbb3/guest_post_confirm.php", target, "converted", cwd=web, capture=True).strip() == "1")
                     explicit_acronym.browse(member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/explicit_acronym.php", target, phase, cwd=web, capture=True))
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "converted", cwd=web)

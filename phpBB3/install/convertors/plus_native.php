@@ -1,6 +1,47 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
+/** Effective Plus setting for the native guest posting challenge. */
+function plus_guest_post_confirmation($tracker_installed, $tracker_setting, $plus_setting)
+{
+	// An installed CrackerTracker defaulted missing or malformed values to on.
+	if ($tracker_installed && (string) $tracker_setting !== '0') { return 1; }
+	if ($plus_setting !== false) { return (int) (bool) $plus_setting; }
+	return $tracker_installed ? 0 : null;
+}
+
+function plus_import_guest_confirmation()
+{
+	global $config, $src_db, $convert, $db;
+	if (!empty($config['plus_guest_confirm_imported'])) { return; }
+	$tools = (new \phpbb\db\tools\factory())->get($src_db);
+	$base = $convert->src_table_prefix;
+	$has_tracker = $tools->sql_table_exists($base . 'ctracker_config');
+	$tracker = $plus = false;
+	if ($has_tracker)
+	{
+		$result = $src_db->sql_query("SELECT ct_config_value FROM {$base}ctracker_config WHERE ct_config_name='vconfirm_guest'");
+		$tracker = $src_db->sql_fetchfield('ct_config_value');
+		$src_db->sql_freeresult($result);
+	}
+	if ($tools->sql_table_exists($base . 'plus'))
+	{
+		$result = $src_db->sql_query("SELECT config_value FROM {$base}plus WHERE config_name='enable_confirm_post'");
+		$plus = $src_db->sql_fetchfield('config_value');
+		$src_db->sql_freeresult($result);
+	}
+	$enabled = plus_guest_post_confirmation($has_tracker, $tracker, $plus);
+	if ($enabled === null) { return; }
+	$db->sql_transaction('begin');
+	try
+	{
+		$config->set('enable_post_confirm', $enabled);
+		$config->set('plus_guest_confirm_imported', 1);
+		$db->sql_transaction('commit');
+	}
+	catch (\Throwable $error) { $db->sql_transaction('rollback'); throw $error; }
+}
+
 function plus_contact_recipient($current, $sender, $founder, $plus_address, $board_address)
 {
 	$valid = static function ($address) {

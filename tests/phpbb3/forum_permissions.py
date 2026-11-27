@@ -67,3 +67,12 @@ def publishing(owner, member, pending):
     page = pending.fetch(urljoin(pending.base, unescape(action)), fields)
     if not re.search(r'<input\b(?=[^>]*\bname="topic_type")(?=[^>]*\bvalue="3")(?=[^>]*\bchecked)[^>]*>', page):
         raise RuntimeError("The eligible group could not preview its native global announcement")
+
+
+def guest_challenge(base, member, enabled):
+    guest = Browser(base)
+    for path in ("posting.php?mode=post&f=1", "posting.php?mode=reply&t=1", "posting.php?mode=quote&p=32"):
+        for actor, expected in ((guest, enabled), (member, False)):
+            page = actor.fetch(path)
+            if 'id="postform"' not in page or ('name="confirm_id"' in page) != expected:
+                raise RuntimeError("The native guest confirmation in the posting form did not match the source policy")

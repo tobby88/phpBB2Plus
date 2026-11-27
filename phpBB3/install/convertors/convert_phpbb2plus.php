@@ -70,6 +70,7 @@ if (!$get_info)
 	$convertor['execute_last'][] = 'plus_jr_finish();';
 	$convertor['execute_last'][] = 'plus_finish_action_log();';
 	$convertor['execute_last'][] = 'plus_login_settings();';
+	$convertor['execute_last'][] = 'plus_import_guest_confirmation();';
 	$convertor['execute_last'][] = 'plus_import_request_blocks();';
 	$convertor['execute_last'][] = 'plus_absence_settings();';
 	$convertor['execute_last'][] = 'plus_inline_edit_settings();';
