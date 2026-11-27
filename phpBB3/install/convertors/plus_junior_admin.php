@@ -33,15 +33,20 @@ function plus_jr_source_directory($root)
 	return plus_media_path($root, rtrim($directory, '/'), true);
 }
 
-function plus_jr_source_matches($contents, $digest)
+function plus_jr_source_digest($contents)
 {
-	return is_string($contents) && hash('sha256', str_replace(array("\r\n", "\r"), "\n", $contents)) === $digest;
+	return is_string($contents) ? hash('sha256', str_replace(array("\r\n", "\r"), "\n", $contents)) : false;
 }
 
-function plus_jr_reviewed_dependencies($root, $directory, array $dependencies)
+function plus_jr_reviewed_dependencies($root, $directory, array $dependencies, array &$digests = array())
 {
 	foreach ($dependencies as $file => $digest)
 	{
+		if (array_key_exists($file, $digests))
+		{
+			if ($digests[$file] !== $digest) { return false; }
+			continue;
+		}
 		// A sibling controller lives in the installation's actual ACP directory.
 		$base = strpos($file, '/') === false ? $directory : $root;
 		try { $path = plus_media_path($base, $file); }
@@ -53,7 +58,8 @@ function plus_jr_reviewed_dependencies($root, $directory, array $dependencies)
 			$contents = preg_replace("~^define\\('JR_ADMIN_DIR', '[A-Za-z0-9_/-]+'\\);(?=\\r?$)~m",
 				"define('JR_ADMIN_DIR', 'admin/');",str_replace(array("\r\n","\r"),"\n",$contents));
 		}
-		if (!plus_jr_source_matches($contents, $digest)) { return false; }
+		$digests[$file] = plus_jr_source_digest($contents);
+		if ($digests[$file] !== $digest) { return false; }
 	}
 	return true;
 }
@@ -303,6 +309,8 @@ function plus_jr_registry()
 		'templates/fisubsilversh/admin/admin_users_list_body.tpl' => '8d9532f1aac528e99d25f405ee06ab8ef353ea3d67033e515d2e0f7082ab834d',
 		'includes/functions_color_groups.php' => 'e6e3cb7405a00b2baa4a916e09bfeb6cc7d5ccd37fb2d32ae2db4dc533c8fe5a');
 	$registry = array();
+	// Several grants share the same helpers. Check each source file once per scan.
+	$dependency_digests = array();
 	foreach ($files as $file)
 	{
 		if (!preg_match('/^admin_[a-z0-9_]+\.php$/iD', $file)) { continue; }
@@ -311,6 +319,7 @@ function plus_jr_registry()
 		$source = @file_get_contents($path);
 		$entries = $source !== false ? jr_admin_file_registrations($source, $file) : false;
 		if ($entries === false) { return false; }
+		$reviewed_file = isset($reviewed[$file]) && plus_jr_source_digest($source) === $reviewed[$file];
 		foreach ($entries as $entry)
 		{
 			list($category, $label, $route) = $entry;
@@ -319,8 +328,8 @@ function plus_jr_registry()
 			$map = junior_admin::MODULES[$route] ?? null;
 			if ($map && $file === explode('?', $route, 2)[0] && $category === $map[0] && $label === $map[1])
 			{
-				if (isset($reviewed[$file]) && plus_jr_source_matches($source, $reviewed[$file])
-					&& plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory, $dependencies[$route] ?? $dependencies[$file] ?? array()))
+				if ($reviewed_file && plus_jr_reviewed_dependencies($convert->options['forum_path'], $directory,
+					$dependencies[$route] ?? $dependencies[$file] ?? array(), $dependency_digests))
 				{
 					$options = array_keys($map[2]);
 					if ($file === 'admin_extensions.php')
@@ -335,7 +344,7 @@ function plus_jr_registry()
 						'attach_mod/includes/functions_mutation.php' => 'e0f82d5f1c7d8460c30515b244d6085fc8c9188c55f19442b6484d963f28e128',
 						'attach_mod/includes/functions_pm_staging.php' => '261b66709267f580b62a2065e45ad61f2481614d5eb0bfb13a53e97c660122bd',
 						'includes/functions_connection_ownership.php' => '1c8277a28b18946baaad0fca9f2f64959fe07d09ede4fd6ec2f37223b153576e',
-					)))
+					), $dependency_digests))
 					{
 						// A locally changed write path cannot establish the original five actions.
 						$options = array('a_plus_user_list');
