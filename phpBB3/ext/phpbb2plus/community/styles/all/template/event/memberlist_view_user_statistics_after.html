@@ -1,3 +1,6 @@
+{% if PLUS_LAST_LOGIN %}
+<dt>{{ lang('PLUS_LAST_LOGIN') }}{{ lang('COLON') }}</dt> <dd class="plus-last-login">{{ PLUS_LAST_LOGIN }}</dd>
+{% endif %}
 {% if S_PLUS_PROFILE_VISITS %}
 <dt>{{ lang('PLUS_VISIT_TOTAL') }}{{ lang('COLON') }}</dt> <dd>{{ PLUS_VISITS_DURATION }}</dd>
 <dt>{{ lang('PLUS_VISIT_LAST') }}{{ lang('COLON') }}</dt> <dd>{{ PLUS_VISITS_LAST_DURATION }}</dd>

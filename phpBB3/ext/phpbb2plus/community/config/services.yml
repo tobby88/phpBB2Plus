@@ -326,6 +326,12 @@ services:
         arguments: ['@dbal.conn', '@config']
         tags:
             - { name: event.listener }
+    phpbb2plus.community.last_login_display:
+        class: phpbb2plus\community\event\last_login_display
+        arguments: ['@config', '@user', '@auth', '@language', '@request']
+        tags:
+            - { name: event.listener }
+
     phpbb2plus.community.profile_visits:
         class: phpbb2plus\community\event\profile_visits
         arguments: ['@dbal.conn', '@config', '@user', '@auth', '@template', '@language']
