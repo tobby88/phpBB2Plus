@@ -1,15 +1,19 @@
 <?php
 if (PHP_SAPI !== 'cli' || getenv('PLUS_TEST_DATABASE') !== '1' || $argc !== 3 || !preg_match('/^plus3_test_[a-f0-9]{24}$/D', $argv[1])) { exit(2); }
-if ($argv[2] === 'source' || $argv[2] === 'source-off')
+if (in_array($argv[2], array('source', 'source-off', 'source-aggregates-absent'), true))
 {
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 	$s = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
-	if ($argv[2] === 'source-off')
+	if ($argv[2] !== 'source')
 	{
-		$s->query('ALTER TABLE phpbb_users DROP COLUMN user_totaltime, DROP COLUMN user_totallogon, DROP COLUMN user_totalpages, DROP COLUMN user_lastlogon');
+		$columns = 'DROP COLUMN user_totaltime, DROP COLUMN user_totallogon, DROP COLUMN user_totalpages';
+		if ($argv[2] === 'source-off') { $columns .= ', DROP COLUMN user_lastlogon'; }
+		$s->query('ALTER TABLE phpbb_users ' . $columns);
 		return;
 	}
-	$s->query('UPDATE phpbb_users SET user_totaltime=32317261,user_totallogon=29,user_totalpages=2147483647,user_session_time=user_lastlogon+3661 WHERE user_id=87');
+	// The visitor-calendar fixture independently owns the legacy session timestamps of accounts 87 and 89.
+	$s->query("UPDATE phpbb_users SET user_totaltime=32317261,user_totallogon=29,user_totalpages=2147483647,
+		user_lastlogon=100000,user_session_time=103661 WHERE user_id=91 AND username='JuniorFixture'");
 	$s->query("UPDATE phpbb_users SET user_level=2 WHERE user_id=89 AND username='ModerationFixture'");
 	$s->query('UPDATE phpbb_users SET user_totaltime=-8,user_totallogon=NULL,user_totalpages=-1 WHERE user_id=1');
 	return;
@@ -34,7 +38,7 @@ switch ($argv[2])
 			' WHERE plus_visit_seconds<>0 OR plus_visit_logins<>0 OR plus_visit_pages<>0'), 'A previous or reduced board acquired invented visit totals');
 		break;
 	case 'converted':
-		$row = $values(87);
+		$row = $values($junior);
 		$expect($row['plus_visit_seconds'] === '32317261' && $row['plus_visit_logins'] === '29' && $row['plus_visit_pages'] === '2147483647' &&
 			(int)$row['plus_last_login'] > 0 && (int)$row['plus_visit_until'] - (int)$row['plus_last_login'] === 3661, 'Existing Plus totals or last visit duration changed');
 		$member = $rows('SELECT plus_visit_seconds,plus_visit_logins,plus_visit_pages FROM ' . USERS_TABLE . " WHERE username='HistoricMember'")[0];
