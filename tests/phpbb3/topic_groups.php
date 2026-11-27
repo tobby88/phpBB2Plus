@@ -22,12 +22,17 @@ if ($phase==='older' || $phase==='upgraded')
 	$state->delete($key);
 	return;
 }
+$categories = $table_prefix . 'plus_news_cats';
+$category = 'Topic group publication fixture';
+$category_filter = "name='" . $db->sql_escape($category) . "'";
 $db->sql_transaction('begin');
 if ($phase==='setup')
 {
 	$topic=$one('SELECT * FROM '.TOPICS_TABLE.' WHERE topic_id=985720'); $post=$one('SELECT * FROM '.POSTS_TABLE.' WHERE post_id=985720');
 	$size=(int) $config['topics_per_page'];
 	if (!$topic || $size < 1 || $size > 100) { throw new RuntimeException('Unexpected fixture or forum pagination'); }
+	if ($one("SELECT category_id FROM $categories WHERE $category_filter")) { throw new RuntimeException('Topic group publication fixture already exists'); }
+	$db->sql_query("INSERT INTO $categories " . $db->sql_build_array('INSERT', array('name'=>$category, 'active'=>1, 'image'=>'')));
 	$formats=array('Global'=>array(POST_GLOBAL,0,ITEM_APPROVED),'Announcement'=>array(POST_ANNOUNCE,0,ITEM_APPROVED),
 		'News'=>array(POST_NORMAL,1,ITEM_APPROVED),'Sticky'=>array(POST_STICKY,0,ITEM_APPROVED),
 		'Pending'=>array(POST_NORMAL,1,ITEM_UNAPPROVED),'Withdrawn'=>array(POST_NORMAL,1,ITEM_DELETED));
@@ -68,9 +73,9 @@ elseif ($phase==='snapshot')
 elseif ($phase==='published' || $phase==='unpublished' || $phase==='unmarked')
 {
 	$id=$phase==='unmarked' ? 985732 : 985738;
-	$row=$one('SELECT plus_list_news,plus_news_cat,topic_type FROM '.TOPICS_TABLE.' WHERE topic_id='.$id);
+	$row=$one('SELECT t.plus_list_news,t.plus_news_cat,t.topic_type,c.name FROM '.TOPICS_TABLE." t LEFT JOIN $categories c ON c.category_id=t.plus_news_cat WHERE t.topic_id=" . $id);
 	if (!$row || (int) $row['topic_type']!==POST_NORMAL || (int) $row['plus_list_news']!==(int) ($phase==='published') ||
-		(int) $row['plus_news_cat']!==($phase==='published' ? 2 : 0))
+		($phase==='published' ? $row['name']!==$category : (int) $row['plus_news_cat']!==0))
 	{ throw new RuntimeException('A native editor or moderation form left stale news presentation: '.$phase.' '.json_encode($row)); }
 }
 elseif ($phase==='clean')
@@ -82,6 +87,7 @@ elseif ($phase==='clean')
 	$db->sql_query('DELETE FROM '.SEARCH_WORDMATCH_TABLE.' WHERE post_id BETWEEN 985730 AND 985840');
 	$db->sql_query('DELETE FROM '.POSTS_TABLE.' WHERE forum_id=29852 AND post_id BETWEEN 985730 AND 985840 AND topic_id=post_id');
 	$db->sql_query('DELETE FROM '.TOPICS_TABLE." WHERE forum_id=29852 AND topic_id BETWEEN 985730 AND 985840 AND topic_title LIKE 'List fixture %'");
+	$db->sql_query("DELETE FROM $categories WHERE $category_filter");
 	$config->set('plus_split_sticky_over',1);
 	$db->sql_query('UPDATE '.USERS_TABLE." SET plus_split_global_announce=1,plus_split_announce=1,plus_split_news=1,plus_split_sticky=0,plus_split_topic_split=0 WHERE username='HistoricMember'");
 }
