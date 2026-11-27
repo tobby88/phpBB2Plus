@@ -9,14 +9,15 @@ if ($argv[2] === 'source')
 	$old = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'), $argv[1],
 		(int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
 	$old->query('ALTER TABLE phpbb_posts MODIFY post_bluecard DECIMAL(20,0) NULL');
-	foreach (array(946210 => 1, 946220 => 7) as $id => $forum)
+	// Source fixtures leave the topic sequence at 806000 for the topology check.
+	foreach (array(746210 => 1, 746220 => 7) as $id => $forum)
 	{
 		$last = $id + (int) ($forum === 1);
 		$old->query("INSERT INTO phpbb_topics (topic_id,forum_id,topic_title,topic_poster,topic_time,topic_replies,topic_first_post_id,topic_last_post_id)
 			VALUES ($id,$forum,'Blue source $id',-1,1010101010," . ($last - $id) . ",$id,$last)");
 		for ($p = $id; $p <= $last; ++$p)
 		{
-			$count = $p === 946210 ? BLUE_BIG : ($p === 946220 ? '4' : '0');
+			$count = $p === 746210 ? BLUE_BIG : ($p === 746220 ? '4' : '0');
 			$old->query("INSERT INTO phpbb_posts (post_id,topic_id,forum_id,poster_id,poster_ip,post_time,post_bluecard)
 				VALUES ($p,$id,$forum,-1,'c0000205',1010101010,'$count')");
 			$old->query("INSERT INTO phpbb_posts_text (post_id,post_subject,post_text) VALUES ($p,'Blue source $p','Current body $p')");
@@ -51,15 +52,15 @@ function blue_batch($rows)
 	$source = array();
 	foreach ($rows as $id => $count)
 	{
-		$source[$id] = array('post_id' => $id, 'topic_id' => $id === 946211 ? 946210 : $id,
-			'forum_id' => $id === 946220 ? 7 : 1, 'post_bluecard' => $count);
+		$source[$id] = array('post_id' => $id, 'topic_id' => $id === 746211 ? 746210 : $id,
+			'forum_id' => $id === 746220 ? 7 : 1, 'post_bluecard' => $count);
 	}
 	plus_store_blue_reports($db, $source);
 }
 function blue_notifications()
 {
 	return blue_rows('SELECT n.notification_id FROM ' . NOTIFICATIONS_TABLE . ' n JOIN ' . NOTIFICATION_TYPES_TABLE . ' t
-		ON t.notification_type_id=n.notification_type_id WHERE n.item_id IN (946210,946211,946220)
+		ON t.notification_type_id=n.notification_type_id WHERE n.item_id IN (746210,746211,746220)
 		AND t.notification_type_name IN (\'notification.type.report_post\',\'notification.type.report_post_closed\') ORDER BY n.notification_id');
 }
 $state = $phpbb_container->get('config_text');
@@ -74,7 +75,7 @@ switch ($argv[2])
 {
 	case 'prepare':
 		blue_require(!$saved, 'Blue Card fixture still active');
-		foreach (array(946210 => BLUE_BIG, 946220 => '4') as $id => $count)
+		foreach (array(746210 => BLUE_BIG, 746220 => '4') as $id => $count)
 		{
 			$cases = blue_cases($id);
 			$r = $cases[0] ?? array();
@@ -87,16 +88,16 @@ switch ($argv[2])
 			blue_require(!in_array(0, array_map('intval', $flags), true), 'Native case markers are missing');
 		}
 		blue_require(!blue_rows('SELECT report_id FROM ' . REPORTS_TABLE .
-			' WHERE post_id IN (31,45,14711,14712,14713,14720,14722,946211)') && !blue_notifications(),
+			' WHERE post_id IN (31,45,14711,14712,14713,14720,14722,746211)') && !blue_notifications(),
 			'Erased, reset, mismatched or missing parents generated reports or notifications');
-		foreach (array(array(POSTS_TABLE, 'post', 946211, ITEM_UNAPPROVED), array(TOPICS_TABLE, 'topic', 946210, ITEM_DELETED)) as $case)
+		foreach (array(array(POSTS_TABLE, 'post', 746211, ITEM_UNAPPROVED), array(TOPICS_TABLE, 'topic', 746210, ITEM_DELETED)) as $case)
 		{
 			list($table, $kind, $id, $visibility) = $case;
 			$db->sql_query("UPDATE $table SET {$kind}_visibility=$visibility WHERE {$kind}_id=$id");
 			try
 			{
-				blue_batch(array(946211 => '13'));
-				blue_require(!blue_cases(946211), 'A hidden native post or topic acquired an open report');
+				blue_batch(array(746211 => '13'));
+				blue_require(!blue_cases(746211), 'A hidden native post or topic acquired an open report');
 			}
 			finally { $db->sql_query("UPDATE $table SET {$kind}_visibility=" . ITEM_APPROVED . " WHERE {$kind}_id=$id"); }
 		}
@@ -110,7 +111,7 @@ switch ($argv[2])
 		}
 		$auth->acl_clear_prefetch($member);
 		$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_lang='de' WHERE user_id=$founder");
-		echo json_encode(array(blue_cases(946210)[0]['report_id'], blue_cases(946220)[0]['report_id']));
+		echo json_encode(array(blue_cases(746210)[0]['report_id'], blue_cases(746220)[0]['report_id']));
 		break;
 	case 'en':
 		$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_lang='en' WHERE user_id=$founder");
@@ -120,37 +121,37 @@ switch ($argv[2])
 		$auth->acl_clear_prefetch($member);
 		break;
 	case 'closed':
-		blue_batch(array(946210 => BLUE_BIG, 946220 => '4'));
-		$cases = blue_cases(946210);
+		blue_batch(array(746210 => BLUE_BIG, 746220 => '4'));
+		$cases = blue_cases(746210);
 		blue_require(count($cases) === 1 && $cases[0]['plus_blue_count'] === BLUE_BIG && (int) $cases[0]['report_closed'] === 1 &&
-			!(int) blue_rows('SELECT post_reported FROM ' . POSTS_TABLE . ' WHERE post_id=946210')[0]['post_reported'] &&
-			!(int) blue_rows('SELECT topic_reported FROM ' . TOPICS_TABLE . ' WHERE topic_id=946210')[0]['topic_reported'],
+			!(int) blue_rows('SELECT post_reported FROM ' . POSTS_TABLE . ' WHERE post_id=746210')[0]['post_reported'] &&
+			!(int) blue_rows('SELECT topic_reported FROM ' . TOPICS_TABLE . ' WHERE topic_id=746210')[0]['topic_reported'],
 			'A closed aggregate was reopened on resume');
 		break;
 	case 'native':
-		$later = blue_cases(946210);
-		$open = blue_cases(946211);
+		$later = blue_cases(746210);
+		$open = blue_cases(746211);
 		blue_require(count($later) === 2 && (int) $later[0]['report_closed'] === 1 && $later[1]['plus_blue_count'] === '' &&
 			(int) $later[1]['user_id'] === $member && count($open) === 1 && (int) $open[0]['user_id'] === $member &&
-			(int) $open[0]['report_time'] > 0 && $open[0]['report_text'] === 'Native report 946211' &&
-			strpos($open[0]['reported_post_text'], 'Current body 946211') !== false,
+			(int) $open[0]['report_time'] > 0 && $open[0]['report_text'] === 'Native report 746211' &&
+			strpos($open[0]['reported_post_text'], 'Current body 746211') !== false,
 			'Expected an ordinary native report with the real reporter, time and snapshot');
 		$notifications = blue_notifications();
 		// An old native target without the source counter cannot supply any historical evidence.
 		$src_db = $db; $convert = (object) array('src_table_prefix' => $table_prefix);
 		plus_import_blue_reports();
-		blue_require(blue_cases(946211) === $open, 'No-source upgrade modified an ordinary native report');
-		blue_batch(array(946210 => BLUE_BIG, 946211 => '13', 946220 => '4'));
-		blue_batch(array(946211 => '13'));
+		blue_require(blue_cases(746211) === $open, 'No-source upgrade modified an ordinary native report');
+		blue_batch(array(746210 => BLUE_BIG, 746211 => '13', 746220 => '4'));
+		blue_batch(array(746211 => '13'));
 		$open[0]['plus_blue_count'] = '13';
-		blue_require(blue_cases(946211) === $open && blue_cases(946210) === $later && blue_notifications() === $notifications,
+		blue_require(blue_cases(746211) === $open && blue_cases(746210) === $later && blue_notifications() === $notifications,
 			'Resuming replaced existing report facts, duplicated a report or created a notification');
 		echo json_encode(array($later[1]['report_id'], $open[0]['report_id']));
 		break;
 	case 'deleted':
-		blue_batch(array(946220 => '4'));
-		blue_require(!blue_cases(946220) && !(int) blue_rows('SELECT topic_reported FROM ' . TOPICS_TABLE .
-			' WHERE topic_id=946220')[0]['topic_reported'], 'A deleted report reappeared on resume');
+		blue_batch(array(746220 => '4'));
+		blue_require(!blue_cases(746220) && !(int) blue_rows('SELECT topic_reported FROM ' . TOPICS_TABLE .
+			' WHERE topic_id=746220')[0]['topic_reported'], 'A deleted report reappeared on resume');
 		break;
 	case 'cleanup':
 		if (!$saved) { break; }
@@ -161,7 +162,7 @@ switch ($argv[2])
 		require_once './includes/functions_admin.php';
 		$user->session_begin();
 		$user->setup();
-		delete_topics('topic_id', array(946210, 946220));
+		delete_topics('topic_id', array(746210, 746220));
 		$state->delete($key);
 		break;
 	default: exit(2);

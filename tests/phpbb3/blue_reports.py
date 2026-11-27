@@ -41,16 +41,16 @@ def browse(admin, member, check):
 
     try:
         for path in ("mcp.php?i=main&mode=front", "mcp.php?i=reports&mode=reports&f=1",
-                     "mcp.php?i=main&mode=post_details&p=946210"):
+                     "mcp.php?i=main&mode=post_details&p=746210"):
             contains(admin.fetch(path), large, "Zeitpunkt unbekannt", "Offene Meldungen im phpBB2-Plus-Altbestand")
         german = admin.fetch(detail(old))
-        contains(german, large, "Zeitpunkt unbekannt", "Eine Kopie des Beitrags", "Current body 946210")
+        contains(german, large, "Zeitpunkt unbekannt", "Eine Kopie des Beitrags", "Current body 746210")
         byline = re.search(r'<div id="report".*?<p class="author">(.*?)</p>', german, re.S)
         if not byline or "Unbekannt" not in byline[1] or re.search(r"1970|Anonymous|\bGast\b", byline[1]):
             raise RuntimeError("The import attributed an unknown report to a guest or an epoch date")
         scoped_list = member.fetch("mcp.php?i=reports&mode=reports")
-        contains(scoped_list, large, "Blue source 946210")
-        if "Blue source 946220" in scoped_list:
+        contains(scoped_list, large, "Blue source 746210")
+        if "Blue source 746220" in scoped_list:
             raise RuntimeError("The report queue included a forum outside the moderator's assignment")
         try:
             with member.opener.open(urljoin(member.base, detail(private)), timeout=30) as response:
@@ -59,7 +59,7 @@ def browse(admin, member, check):
             denied = error.read().decode("utf-8")
             if error.code not in (403, 404):
                 raise RuntimeError("Unexpected private MCP response: " + " ".join(re.sub("<[^>]+>", " ", denied).split())[-800:]) from error
-        if "Blue source 946220" in denied or 'id="mcp_report"' in denied:
+        if "Blue source 746220" in denied or 'id="mcp_report"' in denied:
             raise RuntimeError("Native report details were visible to a member outside the moderator audience")
         check("en")
         page = admin.fetch(detail(old))
@@ -68,18 +68,18 @@ def browse(admin, member, check):
         decide(old, "close", page)
         check("closed")
         contains(admin.fetch("mcp.php?i=reports&mode=reports_closed&f=1"), large, "Time unknown")
-        for post in (946210, 946211):
+        for post in (746210, 746211):
             path = f"app.php/post/{post}/report"
             page = member.fetch(path)
             contains(page, 'id="report"')
             submit_form(member, path, page, "report", {"submit": "1", "notify": "0", "report_text": f"Native report {post}"})
         later, mixed = json.loads(check("native"))
         page = admin.fetch(detail(later))
-        contains(page, "HistoricMember", "Native report 946210", "Current body 946210")
+        contains(page, "HistoricMember", "Native report 746210", "Current body 746210")
         if "Open reports in the phpBB2 Plus source" in page:
             raise RuntimeError("A later native report inherited the historical count")
         page = admin.fetch(detail(mixed))
-        contains(page, "HistoricMember", "Native report 946211", "Open reports in the phpBB2 Plus source: 13", "Current body 946211")
+        contains(page, "HistoricMember", "Native report 746211", "Open reports in the phpBB2 Plus source: 13", "Current body 746211")
         if "Time unknown" in page or "No copy of the post" in page:
             raise RuntimeError("Adding a source count replaced a native report's date or content")
         decide(private, "delete")
