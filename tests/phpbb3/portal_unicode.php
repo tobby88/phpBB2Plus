@@ -6,7 +6,7 @@ $fragment = "<P data-sign='original' title='🪐'>&#x1F600; / 🪐 / &amp;#12851
 if ($phase === 'source')
 {
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-	$source = new mysqli('127.0.0.1',getenv('PLUS_TEST_DB_USER'),getenv('PLUS_TEST_DB_PASSWORD'),$argv[1],(int) getenv('PLUS_TEST_DB_PORT'));
+	$source = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
 	$source->set_charset('utf8mb4');
 	$sql = $source->prepare("UPDATE phpbb_portal SET portal_value=CONCAT(portal_value,?) WHERE portal_name='welcome_text' AND LOCATE(?,portal_value)=0");
 	$sql->bind_param('ss',$fragment,$fragment);

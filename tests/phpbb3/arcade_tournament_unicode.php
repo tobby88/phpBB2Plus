@@ -4,7 +4,7 @@ $phase = $argv[2];
 if ($phase === 'source')
 {
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-	$source = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER'), getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) getenv('PLUS_TEST_DB_PORT'));
+	$source = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
 	$source->set_charset('utf8mb4');
 	$source->query("INSERT INTO phpbb_ina_tour (tour_id,tour_name,tour_desc,start_id,start_date,tour_max_players,tour_player_turns,tour_active,end_date) VALUES
 		(28,'Museum 🏺 &#128512;','Grüße 𠜎 und &#128512;',1,10000,2,1,3,10100)");

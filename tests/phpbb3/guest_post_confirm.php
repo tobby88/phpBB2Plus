@@ -5,7 +5,7 @@ $fallback = PHP_VERSION_ID >= 80000 ? 1 : 0;
 if ($argv[2] === 'source')
 {
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-	$source = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER'), getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) getenv('PLUS_TEST_DB_PORT'));
+	$source = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'), $argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
 	$source->query("UPDATE phpbb_ctracker_config SET ct_config_value='0' WHERE ct_config_name='vconfirm_guest'");
 	$source->query("UPDATE phpbb_plus SET config_value='$fallback' WHERE config_name='enable_confirm_post'");
 	return;
