@@ -2,10 +2,9 @@
 if (!defined('IN_PHPBB')) { exit; }
 require_once dirname(__DIR__, 2) . '/ext/phpbb2plus/community/profile/visits.php';
 
-function plus_profile_visit_fields($tools, $source_table)
+function plus_profile_visit_fields(array $columns)
 {
 	$fields = array();
-	$columns = $tools->sql_list_columns($source_table);
 	foreach (array('user_totaltime'=>'plus_visit_seconds', 'user_totallogon'=>'plus_visit_logins', 'user_totalpages'=>'plus_visit_pages') as $old => $new)
 	{
 		if (isset($columns[$old])) { $fields[] = array($new, 'users.' . $old, 'plus_profile_visit_count'); }

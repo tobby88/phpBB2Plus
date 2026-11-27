@@ -43,6 +43,8 @@ if (!$get_info)
 		$GLOBALS['lang_enc_array'][trim((string) $source_language['user_lang'])] = 'UTF-8';
 	}
 	$src_db->sql_freeresult($result);
+	// Each wizard request rebuilds these mappings. One catalogue covers all optional account columns.
+	$source_user_columns = (new \phpbb\db\tools\factory())->get($src_db)->sql_list_columns($convert->src_table_prefix . 'users');
 	$convertor['test_file'] = $test_file;
 	$convertor['execute_first'] = str_replace(array('import_avatar_gallery();', 'phpbb_insert_forums();'),
 		array('plus_import_avatar_gallery();', 'plus_insert_forums();'), $convertor['execute_first']);
@@ -201,8 +203,7 @@ if (!$get_info)
 			{
 				$field = array('rank_image', array('ranks.rank_id','ranks.rank_image'), 'plus_profile_rank');
 			}
-			if ($section['target'] === USERS_TABLE && $field[0] === 'user_last_active' &&
-				(new \phpbb\db\tools\factory())->get($src_db)->sql_column_exists($convert->src_table_prefix . 'users', 'user_session_time'))
+			if ($section['target'] === USERS_TABLE && $field[0] === 'user_last_active' && isset($source_user_columns['user_session_time']))
 			{
 				$field = array('user_last_active', array('users.user_session_time', 'users.user_lastvisit'), 'plus_daily_last_active');
 			}
@@ -296,59 +297,57 @@ if (!$get_info)
 			$section[] = array('plus_colour_id','users.user_color_group','intval');
 			$section[] = array('plus_no_default_avatar',array('users.user_id','users.user_allowavatar','users.user_avatar_type','users.user_avatar','plus_no_default_avatar'),'plus_profile_avatar_field');
 			$section[] = array('user_ip', 'users.user_reg_ip', 'plus_account_registration_ip');
-			if ((new \phpbb\db\tools\factory())->get($src_db)->sql_column_exists($convert->src_table_prefix . 'users', 'user_reg_host'))
+			if (isset($source_user_columns['user_reg_host']))
 			{
 				$section[] = array('plus_reg_host', array('users.user_id', 'users.user_reg_host'), 'plus_account_registration_host');
 			}
 			$section[] = array('plus_legacy_id', 'users.user_id', 'plus_legacy_account_id');
-			$away_tools=(new \phpbb\db\tools\factory())->get($src_db);
 			foreach (array('user_absence'=>'plus_away','user_absence_mode'=>'plus_away_mode') as $old=>$native)
 			{
-				if ($away_tools->sql_column_exists($convert->src_table_prefix . 'users',$old))
+				if (isset($source_user_columns[$old]))
 				{ $section[]=array($native,'users.' . $old,$old==='user_absence' ? 'plus_tracker_flag' : 'intval'); }
 			}
-			foreach (plus_profile_visit_fields($away_tools, $convert->src_table_prefix . 'users') as $visit_field) { $section[] = $visit_field; }
+			foreach (plus_profile_visit_fields($source_user_columns) as $visit_field) { $section[] = $visit_field; }
 			$section[] = array('plus_next_birthday', 'users.user_next_birthday_greeting', 'plus_birthday_year');
-			$source_columns = (new \phpbb\db\tools\factory())->get($src_db)->sql_list_columns($convert->src_table_prefix . 'users');
 			foreach (\phpbb2plus\community\service\forum_display::DEFAULTS as $name => $unused)
 			{
-				if (isset($source_columns['user_' . $name]))
+				if (isset($source_user_columns['user_' . $name]))
 				{
 					$section[] = array('plus_' . $name, array('users.user_' . $name, $name), 'plus_forum_display_choice');
 				}
 			}
-			if (isset($source_columns['user_display_viewonline']))
+			if (isset($source_user_columns['user_display_viewonline']))
 			{
 				$section[] = array('plus_daily_scope', 'users.user_display_viewonline', 'intval');
 			}
-			if (isset($source_columns['user_setbm']))
+			if (isset($source_user_columns['user_setbm']))
 			{
 				$section[] = array('plus_post_bookmark', 'users.user_setbm', 'plus_tracker_flag');
 			}
 			foreach (array('user_use_ajax_edit' => 'plus_inline_edit', 'user_use_ajax_preview' => 'plus_full_preview') as $field => $option)
 			{
-				if (isset($source_columns[$field]))
+				if (isset($source_user_columns[$field]))
 				{
 					$section[] = array($option, 'users.' . $field, 'intval');
 				}
 			}
-			if (isset($source_columns['ct_global_msg_read']))
+			if (isset($source_user_columns['ct_global_msg_read']))
 			{
 				$section[] = array('plus_notice_pending', 'users.ct_global_msg_read', 'plus_tracker_flag');
 			}
-			if (isset($source_columns['user_passwd_change']))
+			if (isset($source_user_columns['user_passwd_change']))
 			{
 				$section[] = array('user_passchg', 'users.user_passwd_change', 'plus_password_change_time');
 				$section[] = array('plus_pw_native_origin', 'users.user_passwd_change', 'plus_password_change_time');
 				$section[] = array('plus_pw_renewal_seen', 'users.user_passwd_change', 'plus_password_renewal_seen');
 			}
-			if (isset($source_columns['ct_last_pw_change']))
+			if (isset($source_user_columns['ct_last_pw_change']))
 			{
 				$section[] = array('plus_pw_notice_change', 'users.ct_last_pw_change', 'plus_password_change_time');
 			}
 			foreach (array('ct_enable_ip_warn' => 'plus_login_warn', 'ct_last_ip' => 'plus_login_previous', 'ct_last_used_ip' => 'plus_login_current') as $old => $new)
 			{
-				if (isset($source_columns[$old]))
+				if (isset($source_user_columns[$old]))
 				{
 					$section[] = array($new, 'users.' . $old, $old === 'ct_enable_ip_warn' ? 'plus_tracker_flag' : 'plus_login_address');
 				}
@@ -531,7 +530,7 @@ if (!$get_info)
 	else { $convertor['execute_last'][] = '$config->set("plus_topic_readers", 0);'; }
 	$convertor['query_first'][] = array('target', $convert->truncate_statement . $table_prefix . 'plus_account_logins');
 	$convertor['query_first'][] = array('target',$convert->truncate_statement . $table_prefix . 'plus_away_notes');
-	if ((new \phpbb\db\tools\factory())->get($src_db)->sql_column_exists($convert->src_table_prefix . 'users','user_absence_text'))
+	if (isset($source_user_columns['user_absence_text']))
 	{
 		$convertor['schema'][]=array('target'=>$table_prefix . 'plus_away_notes','primary'=>'users.user_id',
 			array('user_id','users.user_id','phpbb_user_id'),array('note_text','users.user_absence_text','plus_absence_text'),
