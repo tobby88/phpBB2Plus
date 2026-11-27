@@ -6,7 +6,7 @@ import re
 import time
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPCookieProcessor, Request
-from arcade import movie
+from arcade import PUZZLE_MOVIE
 from http_board import Browser, Page, FormFields, admin_url
 from legacy_links import link
 
@@ -44,7 +44,7 @@ def browse(base, founder, member):
     private = founder.fetch("viewtopic.php?t=7")
     if "Clubfilm" not in private or 'class="plus-banner-movie"' not in private:
         raise RuntimeError("The topic banner lost its Flash presentation")
-    if founder.fetch("app.php/banners/23/media", raw=True) != movie():
+    if founder.fetch("app.php/banners/23/media", raw=True) != PUZZLE_MOVIE:
         raise RuntimeError("The local banner movie changed during conversion")
     for hidden in ("20/visit", "21/visit", "23/media"):
         guest.fetch("app.php/banners/" + hidden, expected_status=404)

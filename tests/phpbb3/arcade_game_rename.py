@@ -5,7 +5,7 @@ import re
 import tempfile
 from urllib.parse import parse_qs, urljoin, urlsplit
 
-from arcade import movie, next_play
+from arcade import PUZZLE_MOVIE, movie, next_play
 from delegation import authenticate, authenticate_pair
 from http_board import FormFields, submit_form
 
@@ -66,7 +66,7 @@ def browse(base, board, target, php):
         check("renamed")
         if "changed after you opened" not in rename(url, "another-name", original):
             raise RuntimeError("Replaying a stale technical rename altered the game again")
-        if editor.fetch(first, raw=True) != movie(extra_frames=10) or editor.fetch("app.php/arcade/game/60/icon", raw=True) != icon:
+        if editor.fetch(first, raw=True) != PUZZLE_MOVIE or editor.fetch("app.php/arcade/game/60/icon", raw=True) != icon:
             raise RuntimeError("An active player lost the original media or its icon while renaming")
         second = next_play(base, editor)
         if "Game settings saved" not in rename(url, "spiel-neu"):
