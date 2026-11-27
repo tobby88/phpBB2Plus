@@ -52,7 +52,10 @@ def browse(base, member, applicant, leader, check):
 
         check("pending-again")
         stale = confirm(applicant, "Beitrittsantrag")
-        check("approve")
+        roster = leader.fetch("ucp.php?i=ucp_groups&mode=manage&action=list&g=125")
+        if 'name="mark[]" value="87"' not in roster or 'value="approve"' not in roster:
+            raise AssertionError("The actual group leader could not select the pending applicant")
+        send(leader, roster, "ucp", {"mark[]": ["87"], "action": "approve", "update": "1"})
         send(applicant, stale, "confirm", {"confirm": "Ja"}, status=409)
         if room not in applicant.fetch("index.php"):
             raise AssertionError("A stale cancellation removed a newly approved membership")

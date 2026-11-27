@@ -34,10 +34,6 @@ switch ($argv[2])
 		$db->sql_query('UPDATE ' . GROUPS_TABLE . ' SET group_type=' . ($argv[2] === 'close' ? GROUP_CLOSED : GROUP_HIDDEN) . ' WHERE group_id=125');
 		$cache->destroy('sql', GROUPS_TABLE);
 		break;
-	case 'approve':
-		require_once $phpbb_root_path . 'includes/functions_user.php';
-		group_user_attributes('approve', 125, array(87), false, 'Schülerrat');
-		break;
 	case 'direct-never':
 		$option = (int) $scalar('SELECT auth_option_id FROM ' . ACL_OPTIONS_TABLE . " WHERE auth_option='u_hideonline'", 'auth_option_id');
 		$db->sql_query('INSERT INTO ' . ACL_GROUPS_TABLE . " (group_id,forum_id,auth_option_id,auth_role_id,auth_setting) VALUES (125,0,$option,0," . ACL_NEVER . ')');

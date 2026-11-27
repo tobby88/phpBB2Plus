@@ -27,7 +27,7 @@ def browse(base, owner, designated, waiting, check):
     try:
         # This founder also holds a separately appointed leadership. Native permission already opens the full roster.
         roster = owner.fetch("memberlist.php?mode=group&g=71")
-        if 'id="memberlist"' not in roster or "Photo Club" not in roster or "plus-group-roster" in Page(roster).forms:
+        if not re.search(r'<h2 class="group-title"[^>]*>\s*Photo Club\s*</h2>', roster) or "plus-group-roster" in Page(roster).forms:
             raise AssertionError("A group administrator lost the native Photo Club member list")
         # Both forms of leadership existed on the source. Neither was an approved member.
         for actor, url, label in ((designated, bookmark, "Designated leader"), (designated, native, "Designated leader"),
