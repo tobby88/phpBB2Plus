@@ -380,12 +380,16 @@ def account_management(base, admin, moderator, member, target, web):
 
 
 def extension_upgrades(target, web, suite="all"):
-    # The CI groups each run on both PHP versions. Exercise each migration
-    # with its own workflows' data, including all groups on a single-board full run.
+    if suite == "all":
+        # phpBB recursively reverts dependent migrations. Restore the board between
+        # the historical baselines, just as on each individual CI installation.
+        for group in ("management", "downloads", "forum"):
+            extension_upgrades(target, web, group)
+        return
     started = monotonic()
     tests = ROOT / "tests/phpbb3"
     migrations, fixtures, preserved = [], [], []
-    if suite in ("forum", "all"):
+    if suite == "forum":
         migrations.extend(("community/migrations/v137_account_logins", "community/migrations/v150_country_flag_administration",
                            "community/migrations/v151_topic_readers"))
         fixtures.append(tests / "login_lifecycle.php")
@@ -393,15 +397,15 @@ def extension_upgrades(target, web, suite="all"):
         preserved.append(tests / "country_flag_administration.php")
         migrations.append("community/migrations/v161_acronym_dictionary")
         preserved.append(tests / "acronym_dictionary.php")
-    if suite in ("media", "downloads", "all"):
+    if suite in ("media", "downloads"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
         preserved.append(tests / "gallery_rating_policy.php")
-    if suite in ("arcade", "management", "all"):
+    if suite in ("arcade", "management"):
         # The diagnostics and game migrations depend on v113 and roll back with it.
         migrations.append("arcade/migrations/v113_category_administration")
         preserved.extend((tests / "arcade_category_administration.php", tests / "arcade_diagnostics.php"))
-    if suite in ("management", "all"):
+    if suite == "management":
         migrations.append("community/migrations/v166_member_directory")
         fixtures.extend((tests / "member_directory.php", tests / "member_operations.php"))
         migrations.append("community/migrations/v170_attachment_blocks")
