@@ -26,6 +26,11 @@ if ($phase === 'older' || $phase === 'upgraded')
 	return;
 }
 $member = bookmark_rows('SELECT user_id,plus_post_bookmark FROM ' . USERS_TABLE . " WHERE username_clean='historicmember'")[0];
+if ($phase === 'converted-missing')
+{
+	bookmark_expect((int) $member['plus_post_bookmark'] === 0, 'A source without the optional column enabled personal post bookmarks');
+	return;
+}
 $owner = bookmark_rows('SELECT user_id,plus_post_bookmark FROM ' . USERS_TABLE . " WHERE username_clean='modernmember'")[0];
 $text = $phpbb_container->get('config_text');
 $key = 'plus_test_post_bookmarks';

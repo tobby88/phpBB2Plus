@@ -132,6 +132,7 @@ import kb_unicode
 import gallery_unicode
 import arcade_tournament_unicode
 import request_blocks
+import post_bookmarks
 from ruffle_browser import playback
 from http_board import Browser, author_results, convert, former_names, login, native_content, public_pages, profiles, server, source_files
 from shoutbox import exercise as exercise_shoutbox
@@ -352,6 +353,7 @@ def account_management(base, admin, moderator, member, target, web):
     gallery_unicode.browse(admin, Browser(base), fixture("gallery_unicode"))
     kb_unicode.browse(base, web, target, php)
     arcade_tournament_unicode.browse(base, web, target, php)
+    post_bookmarks.browse(admin, moderator, fixture("post_bookmarks"))
     delegation.request_block_rules(base)
     request_blocks.browse(admin, member, fixture("request_blocks"))
     member_attachments.browse(base, admin, moderator)
@@ -405,6 +407,8 @@ def extension_upgrades(target, web, suite="all"):
         fixtures.append(tests / "attachment_blocks.php")
         migrations.append("community/migrations/v171_request_blocks")
         fixtures.append(tests / "request_blocks.php")
+        migrations.append("community/migrations/v175_post_bookmarks")
+        fixtures.append(tests / "post_bookmarks.php")
     for migration in migrations:
         php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + migration, "--no-interaction", cwd=web)
     for fixture in fixtures:
@@ -455,6 +459,7 @@ def seed_source(source, legacy, suite):
     php(tests / "legacy_database.php", "seed-pruning-off" if media_only else "seed", source)
     if media_only:
         php(tests / "quick_reply.php", source, "source-off")
+        php(tests / "post_bookmarks.php", source, "source-missing")
     php(tests / "board_statistics.php", "seed", source)
     if forum_suite:
         php(tests / "topic_readers.php", source, "source")
@@ -468,6 +473,7 @@ def seed_source(source, legacy, suite):
         php(tests / "acronym_dictionary.php", source, "source")
     if account_suite:
         php(tests / "blue_reports.php", source, "source")
+        php(tests / "post_bookmarks.php", source, "source")
         php(tests / "kb_unicode.php", source, "source")
         php(tests / "gallery_unicode.php", source, "source")
         php(tests / "arcade_tournament_unicode.php", source, "source")
@@ -581,6 +587,7 @@ def main():
                 php(fixture, "converted-pruning-off" if media_only else "converted", target)
                 if media_only:
                     php(ROOT / "tests/phpbb3/quick_reply.php", target, "converted-off", cwd=web)
+                    php(ROOT / "tests/phpbb3/post_bookmarks.php", target, "converted-missing", cwd=web)
                 if not media_only:
                     recovery = ("bin/phpbbcli.php", "phpbb2plus:recovery:posts")
                     ids = php(*recovery, cwd=web, capture=True).splitlines()
