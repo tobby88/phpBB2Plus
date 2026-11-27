@@ -308,8 +308,22 @@ function plus_convert_message($message)
 		$convert->row['mp_bbcode_bitfield'] = $convert_row['mp_bbcode_bitfield'] = '';
 		return '<t>0</t>';
 	}
-	$xml = phpbb_prepare_message((string) $message);
-	if ((isset($convert->row['enable_bbcode']) && !$convert->row['enable_bbcode']) || strpos($xml, '[') === false)
+	$message = (string) $message;
+	if (isset($convert->row['enable_bbcode']) && !$convert->row['enable_bbcode']) { return phpbb_prepare_message($message); }
+	// Plus stored a UID on both ends of an accepted aligned image. Keep any
+	// unmarked delimiters literal through phpBB's native parse and the installer fallback.
+	$literal = array();
+	if (preg_match('~\[/?(?:left|right)\]~i', $message))
+	{
+		$prefix = '[%' . bin2hex(random_bytes(16)) . ':';
+		$message = preg_replace_callback('~\[/?(?:left|right)\]~i', static function ($match) use ($prefix, &$literal) {
+			$key = $prefix . count($literal) . '%]';
+			$literal[$key] = $match[0];
+			return $key;
+		}, $message);
+	}
+	$xml = phpbb_prepare_message($message);
+	if (strpos($xml, '[') === false)
 	{
 		return $xml;
 	}
@@ -340,7 +354,7 @@ function plus_convert_message($message)
 	require_once $services . 'formatting_codes.php';
 	require_once $services . 'media_codes.php';
 	require_once $services . 'legacy_text_styles.php';
-	if (\phpbb2plus\community\service\legacy_text_styles::candidate($xml))
+	if (\phpbb2plus\community\service\legacy_text_styles::candidate($xml, true))
 	{
 		require_once $services . 'literal_bbcode.php';
 		if (!$styles)
@@ -357,11 +371,11 @@ function plus_convert_message($message)
 			\phpbb2plus\community\service\formatting_codes::overflow($configurator, (string) ($config['plus_formatting_overflow'] ?? ''));
 			$parser = $configurator->finalize()['parser'];
 			$parser->enablePlugin('BBCodes');
-			$styles = new \phpbb2plus\community\service\legacy_text_styles($phpbb_container, $parser);
+			$styles = new \phpbb2plus\community\service\legacy_text_styles($phpbb_container, $parser, true);
 		}
 		$xml = $styles->for_display($xml);
 	}
-	return $xml;
+	return $literal ? strtr($xml, $literal) : $xml;
 }
 
 function plus_orphan_post_data($subject, $uid, $text)

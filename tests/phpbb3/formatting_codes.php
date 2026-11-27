@@ -20,6 +20,7 @@ if ($argv[2] === 'source')
 			"[video width=320 height=200:$uid]https://archive.example.test/film.webm[/video:$uid]";
 		$sample .= " [scrollup:$uid]Höher[/scrollup:$uid] [marq=right:$uid]Weiter[/marq:$uid]";
 		$sample .= " [right:$uid]https://archive.example.test/bild.jpg[/right:$uid]";
+		$sample .= " [RIGHT]https://archive.example.test/literal.png[/RIGHT]";
 		$q = $old->prepare("UPDATE $table SET $column=CONCAT($column,?) WHERE $where");
 		$q->bind_param('s', $sample);
 		$q->execute();
@@ -62,6 +63,8 @@ if ($argv[2] === 'converted')
 	{
 		$r = $db->sql_query("SELECT $column FROM $table WHERE $where");
 		$xml = $db->sql_fetchfield($column); $db->sql_freeresult($r);
+		formatting_require(strpos(\s9e\TextFormatter\Unparser::unparse($xml), '[RIGHT]https://archive.example.test/literal.png[/RIGHT]') !== false &&
+			strpos($xml, 'src="https://archive.example.test/literal.png"') === false, 'An unmarked source image was promoted to a native IMG in ' . $column);
 		$xpath = formatting_xpath($renderer->render($xml));
 		formatting_require($xpath->query('//audio[@controls and @src="https://archive.example.test/audio.ogg"]/a[@href="https://archive.example.test/audio.ogg"]')->length === 1 &&
 			$xpath->query('//video[@width="320" and @height="200" and @controls]/a[@href="https://archive.example.test/film.webm"]')->length === 1,
@@ -143,6 +146,9 @@ elseif ($argv[2] === 'native')
 	$older = '<r><B><s>[b]</s>Vorher<e>[/b]</e></B> [align=right][s]Grün <I><s>[i]</s>Öl<e>[/i]</e></I> &#128512;[/s][/align] [hr] ' .
 		'<CODE><s>[code]</s>[s]Beispiel[/s]<e>[/code]</e></CODE> [scrolldown]Süden[/scrolldown] [align=falsch]Wort[/align] [s]offen</r>';
 	$service = $phpbb_container->get('phpbb2plus.community.legacy_formatting');
+	$stored = new \ArrayObject(array('text' => $no_images, 'flags' => OPTION_FLAG_BBCODE));
+	$service->older_content($stored);
+	formatting_require($stored['text'] === $no_images, 'Viewing a post re-enabled images disallowed by the posting form');
 	$media_old = '<r><B><s>[b]</s>Ton<e>[/b]</e></B> [ram]<URL url="https://archive.example.test/a.ogg">https://archive.example.test/a.ogg</URL>[/ram] ' .
 		'[left]<URL url="https://archive.example.test/links.gif">https://archive.example.test/links.gif</URL>[/left] ' .
 		'[video width=699 height=499]https://archive.example.test/f.webm[/video] [video width=700 height=499]https://archive.example.test/v.webm[/video] ' .
@@ -154,7 +160,7 @@ elseif ($argv[2] === 'native')
 		$media_xml = $event['text'];
 		$xpath = formatting_xpath($renderer->render($media_xml));
 		formatting_require($xpath->query('//audio[@preload="none"]')->length === (int) $enabled &&
-			$xpath->query('//span[contains(@style,"float:left")]/img[contains(@src,"links.gif")]')->length === (int) $enabled &&
+			$xpath->query('//span[contains(@style,"float:left")]/img[contains(@src,"links.gif")]')->length === 0 &&
 			$xpath->query('//video')->length === (int) $enabled &&
 			\s9e\TextFormatter\Unparser::unparse($media_xml) === \s9e\TextFormatter\Unparser::unparse($media_old),
 			'Historical players changed dimensions, code samples or the editable source');

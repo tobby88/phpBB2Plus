@@ -6,29 +6,35 @@ class legacy_text_styles
 {
 	private $container;
 	private $parser;
+	private $original_source;
 
-	public function __construct($container, $parser = null)
+	public function __construct($container, $parser = null, $original_source = false)
 	{
 		$this->container = $container;
 		$this->parser = $parser;
+		$this->original_source = $original_source;
 	}
 
-	public static function candidate($xml)
+	public static function candidate($xml, $original_source = false)
 	{
 		return strpos($xml, '[') !== false && preg_match('~^<[rt][ >]~D', $xml) &&
-			preg_match('~(?<!<s>)(?<!<HR>)\[(?:' . self::names() . ')(?=[=\] ])~i', $xml);
+			preg_match('~(?<!<s>)(?<!<HR>)\[(?:' . self::names($original_source) . ')(?=[=\] ])~i', $xml);
 	}
 
-	private static function names()
+	private static function names($original_source)
 	{
 		static $names;
-		if ($names === null) { $names = implode('|', array_keys(formatting_codes::definitions() + media_codes::TAGS + media_codes::IMAGES)); }
-		return $names;
+		if (!isset($names[$original_source]))
+		{
+			$media = media_codes::TAGS + ($original_source ? media_codes::IMAGES : array());
+			$names[$original_source] = implode('|', array_keys(formatting_codes::definitions() + $media));
+		}
+		return $names[$original_source];
 	}
 
 	public function for_display($xml)
 	{
-		if (!self::candidate($xml)) { return $xml; }
+		if (!self::candidate($xml, $this->original_source)) { return $xml; }
 		$doc = new \DOMDocument();
 		if (!@$doc->loadXML($xml, LIBXML_NONET)) { return $xml; }
 		if (!$this->parser) { $this->parser = literal_bbcode::parser($this->container); }
@@ -37,7 +43,9 @@ class legacy_text_styles
 		$text = $doc->documentElement->textContent;
 		$parsed = new \DOMDocument();
 		if (!@$parsed->loadXML($this->parser->parse($text), LIBXML_NONET) || $parsed->documentElement->textContent !== $text) { return $xml; }
-		$media = media_codes::TAGS + media_codes::IMAGES;
+		// A native post may contain literal image brackets because that forum
+		// disallowed images when it was written. A page view must keep that choice.
+		$media = media_codes::TAGS + ($this->original_source ? media_codes::IMAGES : array());
 		$names = formatting_codes::definitions() + $media + array_change_key_case(array_flip($media));
 		$xpath = new \DOMXPath($parsed);
 		$offset = 0;
@@ -66,7 +74,7 @@ class legacy_text_styles
 			}
 		}
 		if (!$spans) { return $xml; }
-		$nodes = literal_bbcode::tokens($doc, $wanted, '~\[/?(?:' . self::names() . ')(?:[= ][^\[\]\r\n]*)?\]~i');
+		$nodes = literal_bbcode::tokens($doc, $wanted, '~\[/?(?:' . self::names($this->original_source) . ')(?:[= ][^\[\]\r\n]*)?\]~i');
 		$changed = false;
 		foreach ($spans as list($tag, $start, $end))
 		{
