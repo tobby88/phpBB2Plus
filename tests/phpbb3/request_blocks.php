@@ -148,8 +148,10 @@ elseif (in_array($phase, array('log-reader', 'log-clearer', 'log-done'), true))
 		$result = $db->sql_query('SELECT group_id FROM ' . GROUPS_TABLE . " WHERE group_name='REGISTERED' AND group_type=" . GROUP_SPECIAL);
 		$group = (int) $db->sql_fetchfield('group_id');
 		$db->sql_freeresult($result);
+		$native_password = '';
+		(new \phpbb\request\type_cast_helper())->set_var($native_password, getenv('PLUS_TEST_MODERN_PASSWORD'), 'string', true, false);
 		$id = user_add(array('username' => 'CTLogReviewer', 'group_id' => $group, 'user_type' => USER_NORMAL, 'user_lang' => 'en',
-			'user_email' => 'ct-log-reviewer@example.invalid', 'user_password' => $phpbb_container->get('passwords.manager')->hash(getenv('PLUS_TEST_MODERN_PASSWORD'))));
+			'user_email' => 'ct-log-reviewer@example.invalid', 'user_password' => $phpbb_container->get('passwords.manager')->hash($native_password)));
 		ct_expect($id, 'The synthetic log reader was not created');
 	}
 	(new auth_admin())->acl_set('user', 0, $id, array('a_' => ACL_YES, 'a_viewlogs' => ACL_YES,
