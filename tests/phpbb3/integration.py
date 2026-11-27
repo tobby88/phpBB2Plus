@@ -130,6 +130,7 @@ import gallery_management_bookmarks
 import knowledgebase
 import kb_unicode
 import gallery_unicode
+import arcade_tournament_unicode
 import request_blocks
 from ruffle_browser import playback
 from http_board import Browser, author_results, convert, former_names, login, native_content, public_pages, profiles, server, source_files
@@ -157,7 +158,16 @@ def php(*args, cwd=None, capture=False):
                 print(line, file=sys.stderr)
         result.check_returncode()
         if marker not in lines:
-            raise RuntimeError(f"{script.name} stopped before completing its checks")
+            # phpBB may put a whole SQL query in its HTML error page. Report the
+            # database error code and schema identifier without echoing row values.
+            from html import unescape
+            plain = unescape(re.sub(r"<[^>]*>", " ", result.stdout))
+            sql = re.search(r"SQL ERROR\s*\[\s*([a-z0-9_]+)\s*\].*?\[([0-9]{3,5})\]", plain, re.S | re.I)
+            detail = f" (SQL {sql[1]} {sql[2]})" if sql else ""
+            schema = re.search(r"(?:Unknown column|Duplicate column name|Table) '([A-Za-z0-9_.]+)'", plain)
+            if sql and schema:
+                detail += " " + schema[1].split(".")[-1]
+            raise RuntimeError(f"{script.name} stopped before completing its checks{detail}")
         if not capture and result.stdout:
             print(result.stdout, end="", flush=True)
     else:
@@ -341,6 +351,7 @@ def account_management(base, admin, moderator, member, target, web):
 
     gallery_unicode.browse(admin, Browser(base), fixture("gallery_unicode"))
     kb_unicode.browse(base, web, target, php)
+    arcade_tournament_unicode.browse(base, web, target, php)
     delegation.request_block_rules(base)
     request_blocks.browse(admin, member, fixture("request_blocks"))
     member_attachments.browse(base, admin, moderator)
@@ -458,6 +469,7 @@ def seed_source(source, legacy, suite):
         php(tests / "blue_reports.php", source, "source")
         php(tests / "kb_unicode.php", source, "source")
         php(tests / "gallery_unicode.php", source, "source")
+        php(tests / "arcade_tournament_unicode.php", source, "source")
         php(tests / "request_blocks.php", source, "source")
         php(tests / "attachment_blocks.php", source, "source")
         php(tests / "birthday_greeting.php", source, "source")
@@ -509,24 +521,29 @@ def main():
                 count = verify_upstream(web, args.cache.resolve())
                 built = monotonic()
                 print(f"Assembly and comparison of {count} upstream files: {built-start:.1f}s", flush=True)
-                # One installation starts on the actual earlier KB schema. Withholding
-                # this one extension migration leaves the verified upstream files intact.
-                kb_migration = web / "ext/phpbb2plus/knowledgebase/migrations/v107_unicode_text.php"
-                previous = root / kb_migration.name
-                if args.suite == "management":
-                    kb_migration.rename(previous)
+                # Exercise both earlier extension schemas on the same clean installation.
+                early = {"knowledgebase/migrations/v107_unicode_text": "kb_unicode",
+                         "arcade/migrations/v119_tournament_unicode": "arcade_tournament_unicode"} if args.suite == "management" else {}
+                migrations = [(web / "ext/phpbb2plus" / (name + ".php")) for name in early]
                 try:
+                    for path in migrations:
+                        path.rename(root / path.name)
                     install(web, root, target)
                 finally:
-                    if previous.exists():
-                        previous.rename(kb_migration)
-                if args.suite == "management":
-                    kb_test = ROOT / "tests/phpbb3/kb_unicode.php"
-                    php(kb_test, target, "older", cwd=web)
+                    for path in migrations:
+                        if (root / path.name).exists():
+                            (root / path.name).rename(path)
+                if early:
+                    fixtures = [ROOT / "tests/phpbb3" / (name + ".php") for name in early.values()]
+                    for check in fixtures:
+                        php(check, target, "older", cwd=web)
                     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
-                    php(kb_test, target, "upgraded", cwd=web)
-                    php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/knowledgebase/migrations/v107_unicode_text", "--no-interaction", cwd=web)
-                    php(kb_test, target, "reverted", cwd=web)
+                    for check in fixtures:
+                        php(check, target, "upgraded", cwd=web)
+                    for name in early:
+                        php("bin/phpbbcli.php", "db:revert", "/phpbb2plus/" + name, "--no-interaction", cwd=web)
+                    for check in fixtures:
+                        php(check, target, "reverted", cwd=web)
                     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
                 if forum_suite:
                     # This also exercises conversion after the stock formatter has been cached.
