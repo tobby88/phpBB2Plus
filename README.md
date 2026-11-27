@@ -4,7 +4,7 @@
 
 This branch ports the public Plus distribution to phpBB 3.3.19. The original
 board in `phpBB2/` supplies the conversion reference and the historical style
-assets. Build a separate test installation with Python 3:
+assets. Build a separate test installation with Python 3.
 
 ```sh
 python3 tools/build_phpbb3.py --output build/phpBB3 --offline
@@ -15,14 +15,30 @@ authenticates the official core and the German “Du” translation against thei
 published SHA-256 digests. Plus additions live in `phpBB3/`. The builder
 refuses collisions with upstream files. English and German are included.
 Both unmodified distribution archives are included in `vendor/phpbb/` so the
-build and integration tests work offline. Enable **phpBB2 Plus Community**,
-**phpBB2 Plus Photo Album**, **phpBB2 Plus Knowledge Base**, **phpBB2 Plus Arcade**,
-**phpBB2 Plus Downloads**, **phpBB2 Plus Topic Calendar**, **phpBB2 Plus Forum News**,
-**phpBB2 Plus Member Colours**, **phpBB2 Plus Banners** and **phpBB2 Plus Web Links** on the fresh target. Community installs FI Subsilver
-Shadow as a child of prosilver and selects it for a new board. The installer’s
-Convert tab then offers **phpBB2
-Plus (UTF-8)**. The assembled board includes the self-hosted Ruffle player.
-The Arcade converter imports game files from the separate source board.
+build and integration tests work offline.
+
+### Convert a copy of an existing Plus board
+
+1. Prepare an offline copy of the current UTF-8 phpBB2 Plus database and its
+   matching board directory. Include attachments, album originals, avatars
+   and Arcade games. For an older 1.53a backup, first follow the instructions
+   for [upgrading the phpBB2 copy](#upgrading-an-existing-forum) and
+   [converting it to UTF-8](#encoding-and-database-support).
+2. Install the assembled phpBB3 board in a separate directory with an empty
+   destination database. Enable the ten bundled Plus extensions on this
+   destination. Their names begin with **phpBB2 Plus** and identify **Community**, **Photo Album**, **Knowledge Base**,
+   **Arcade**, **Downloads**, **Topic Calendar**, **Forum News**, **Member Colours**,
+   **Banners** and **Web Links**. Community selects FI Subsilver Shadow, a child
+   of prosilver. The Arcade uses the bundled Ruffle player.
+3. Open the installer's **Convert** tab and choose **phpBB2 Plus (UTF-8)**.
+   Enter the source copy's database settings and table prefix. The board path
+   is a filesystem path relative to the assembled board, for example
+   `../legacy` for a sibling folder named `legacy`.
+   Let the wizard finish its final synchronisation and search indexing.
+4. Remove the install directory from the served board. Check forum visibility
+   as a guest and a member, search for a known post, and open a migrated
+   attachment, photo and game before accepting the copy.
+
 Administrators manage the four portal links and other banner positions under
 **General → Board configuration → Banner and portal links**. To add local banner
 artwork, put the file in the **plus_banner_artwork/** subdirectory of the
