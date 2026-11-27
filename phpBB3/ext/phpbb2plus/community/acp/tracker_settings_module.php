@@ -48,6 +48,7 @@ class tracker_settings_module
 		if (!$this->permitted($mode, false)) { send_status_line(403, 'Forbidden'); trigger_error('NO_AUTH_OPERATION', E_USER_WARNING); }
 		if ($mode === 'notice') { $this->member_notice($language); return; }
 		$language->add_lang('info_ucp_logins', 'phpbb2plus/community');
+		$language->add_lang('info_acp_request_blocks', 'phpbb2plus/community');
 		$return = adm_back_link($this->u_action);
 		if ($request->server('REQUEST_METHOD') === 'POST')
 		{
@@ -90,7 +91,8 @@ class tracker_settings_module
 			'S_HISTORY' => (bool) $current['plus_login_history'], 'LOGIN_LIMIT' => $current['plus_login_limit'],
 			'S_NETWORK' => (bool) $current['plus_login_network_check'], 'S_PW_REMINDER' => (bool) $current['plus_pw_reminder'],
 			'PW_DAYS' => $current['plus_pw_reminder_days'], 'FRIEND_MODE' => $current['plus_friend_protection'],
-			'FRIEND_MINUTES' => $current['plus_friend_minutes']));
+			'FRIEND_MINUTES' => $current['plus_friend_minutes'], 'S_CT_BLOCK' => (bool) $current['plus_ct_block_enabled'],
+			'S_CT_BLOCK_LOG' => (bool) $current['plus_ct_block_logging'], 'CT_BLOCK_LIMIT' => $current['plus_ct_block_limit']));
 	}
 
 	private function member_notice($language)

@@ -1,0 +1,25 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'ACL_A_PLUS_CT_BLOCKS' => 'Kann die Sperrregeln des CrackerTrackers verwalten',
+	'ACP_PLUS_CT_BLOCKS' => 'CrackerTracker-Sperrregeln',
+	'ACP_PLUS_CT_BLOCK_LOG' => 'Vom CrackerTracker gesperrte Zugriffe',
+	'PLUS_CT_BLOCKED' => 'Die Zugriffsregeln dieses Boards sperren diese Anfrage.',
+	'PLUS_CT_RULE_EXPLAIN' => 'Gib eine IP-Adresse, ein IPv4- oder IPv6-Netz in CIDR-Schreibweise, eine Browserkennung oder einen vom Server gelieferten Hostnamen ein. Text muss als Ganzes übereinstimmen. Groß- und Kleinschreibung spielen dabei keine Rolle. Ein Stern steht für beliebig viele Zeichen. Die Regeln gelten auch für Administratoren.',
+	'PLUS_CT_RULE_ADD' => 'Sperrregel hinzufügen', 'PLUS_CT_RULE' => 'Regel', 'PLUS_CT_RULE_NONE' => 'Es gibt keine Sperrregeln.',
+	'PLUS_CT_RULE_INACTIVE' => '(inaktiver Alteintrag)',
+	'PLUS_CT_RULE_INVALID' => 'Gib eine Regel mit höchstens 200 Bytes, bis zu acht Sternen und ohne Steuerzeichen ein.',
+	'PLUS_CT_RULE_STALE' => 'Die Sperrregeln haben sich geändert. Öffne die Liste erneut.',
+	'PLUS_CT_LOG_STALE' => 'Das Protokoll hat sich geändert. Prüfe die aktuellen Einträge vor dem Leeren.',
+	'PLUS_CT_ENABLE' => 'Sperrregeln anwenden', 'PLUS_CT_LOGGING' => 'Gesperrte Zugriffe protokollieren',
+	'PLUS_CT_LIMIT' => 'Einträge bis zur automatischen Protokollrotation (1–400)',
+	'PLUS_CT_ARCHIVED' => 'Bei früheren Leerungen oder Rotationen gezählte Einträge: %s',
+	'PLUS_CT_ROTATED' => 'Letzte automatische Rotation: %s', 'PLUS_CT_CLEARED' => 'Letzte manuelle Leerung: %s',
+	'PLUS_CT_CREATED' => 'Protokoll angelegt am %s', 'PLUS_CT_LEGACY_MARKER' => 'Früherer Protokollvermerk vom %s (Anlass unbekannt).',
+	'PLUS_CT_HOST' => 'Vom Server gelieferter Hostname', 'PLUS_CT_AGENT' => 'Browserkennung',
+	'PLUS_CT_SCRIPT' => 'Aufgerufenes Skript', 'PLUS_CT_ORIGIN' => 'Herkunft des Verweises',
+	'PLUS_CT_CLEAR' => 'Zugriffsprotokoll leeren', 'PLUS_CT_CLEAR_EXPLAIN' => 'Sollen die aufgeführten Einträge entfernt werden? Ihre Anzahl bleibt erhalten.',
+	'LOG_PLUS_CT_RULE_ADD' => '<strong>CrackerTracker-Sperrregel hinzugefügt</strong> (ID %d)',
+	'LOG_PLUS_CT_RULE_DELETE' => '<strong>CrackerTracker-Sperrregel entfernt</strong> (ID %d)',
+	'LOG_PLUS_CT_BLOCK_LOG_CLEARED' => '<strong>Protokoll der vom CrackerTracker gesperrten Zugriffe geleert</strong>',
+));

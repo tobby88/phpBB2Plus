@@ -1,0 +1,40 @@
+{% include 'overall_header.html' %}
+{% if S_CLEAR %}
+<h1>{{ lang('ACP_PLUS_CT_BLOCK_LOG') }}</h1>
+<form id="plus-ct-confirm" method="post" action="{{ U_ACTION }}"><fieldset><legend>{{ lang('CONFIRM') }}</legend>
+	<p>{{ lang('PLUS_CT_CLEAR_EXPLAIN') }}</p>
+	<input type="hidden" name="action" value="clear"><input type="hidden" name="latest" value="{{ LATEST|e('html_attr') }}">
+	{{ S_FORM_TOKEN }} <button class="button1" type="submit" name="confirm_clear" value="1">{{ lang('YES') }}</button>
+	<a href="{{ U_ACTION }}">{{ lang('CANCEL') }}</a>
+</fieldset></form>
+{% elseif S_RULES %}
+<h1>{{ lang('ACP_PLUS_CT_BLOCKS') }}</h1><p>{{ lang('PLUS_CT_RULE_EXPLAIN') }}</p>
+<form id="plus-ct-add" method="post" action="{{ U_ACTION }}"><fieldset><legend>{{ lang('PLUS_CT_RULE_ADD') }}</legend>
+	<label for="ct-entry">{{ lang('PLUS_CT_RULE') }}</label> <input id="ct-entry" name="entry" maxlength="200" size="40" required>
+	<input type="hidden" name="action" value="add"><input type="hidden" name="revision" value="{{ REVISION }}">
+	{{ S_FORM_TOKEN }} <button class="button1" type="submit">{{ lang('ADD') }}</button>
+</fieldset></form>
+{% if loops.rule %}
+<table class="table1 zebra-table"><thead><tr><th>{{ lang('PLUS_CT_RULE') }}</th><th>{{ lang('ACTION') }}</th></tr></thead><tbody>
+{% for rule in loops.rule %}<tr><td>{{ rule.VALUE|e }}{% if not rule.ACTIVE %} <em>{{ lang('PLUS_CT_RULE_INACTIVE') }}</em>{% endif %}</td>
+	<td><form id="plus-ct-delete-{{ rule.ID }}" method="post" action="{{ U_ACTION }}">
+	<input type="hidden" name="action" value="delete"><input type="hidden" name="rule_id" value="{{ rule.ID }}">
+	<input type="hidden" name="revision" value="{{ REVISION }}">{{ S_FORM_TOKEN }}
+	<button class="button2" type="submit">{{ lang('DELETE') }}</button></form></td></tr>{% endfor %}
+</tbody></table>
+{% else %}<p>{{ lang('PLUS_CT_RULE_NONE') }}</p>{% endif %}
+{% if U_PREVIOUS %}<a href="{{ U_PREVIOUS }}">{{ lang('PREVIOUS') }}</a>{% endif %}
+{% if U_NEXT %}<a href="{{ U_NEXT }}">{{ lang('NEXT') }}</a>{% endif %}
+{% else %}
+<h1>{{ lang('ACP_PLUS_CT_BLOCK_LOG') }}</h1><p>{{ lang('PLUS_CT_ARCHIVED', ARCHIVED) }}</p>
+{% if RESET_DATE %}<p>{{ lang(RESET_LABEL, RESET_DATE)|e }}</p>{% endif %}
+{% if loops.record %}
+<table class="table1 zebra-table"><thead><tr><th>{{ lang('TIME') }}</th><th>{{ lang('IP') }}</th><th>{{ lang('PLUS_CT_HOST') }}</th><th>{{ lang('PLUS_CT_AGENT') }}</th><th>{{ lang('PLUS_CT_SCRIPT') }}</th><th>{{ lang('PLUS_CT_ORIGIN') }}</th></tr></thead><tbody>
+{% for entry in loops.record %}<tr><td>{{ entry.DATE|e }}</td><td>{{ entry.IP|e }}</td><td>{{ entry.HOST|e }}</td><td>{{ entry.AGENT|e }}</td><td>{{ entry.SCRIPT|e }}</td><td>{{ entry.ORIGIN|e }}</td></tr>{% endfor %}
+</tbody></table>{% else %}<p>{{ lang('NO_ENTRIES') }}</p>{% endif %}
+{% if S_CAN_CLEAR %}<form id="plus-ct-clear" method="post" action="{{ U_ACTION }}"><fieldset class="submit-buttons">
+	<input type="hidden" name="action" value="clear"><input type="hidden" name="latest" value="{{ LATEST }}">
+	{{ S_FORM_TOKEN }}<button class="button2" type="submit">{{ lang('PLUS_CT_CLEAR') }}</button>
+</fieldset></form>{% endif %}
+{% endif %}
+{% include 'overall_footer.html' %}

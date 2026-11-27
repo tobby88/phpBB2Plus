@@ -27,6 +27,13 @@
 		<dl><dt><label for="plus-friend-minutes">{{ lang('PLUS_TRACKER_FRIEND_MINUTES') }}</label></dt>
 			<dd><input id="plus-friend-minutes" type="number" name="config[plus_friend_minutes]" min="1" max="180" value="{{ FRIEND_MINUTES }}"></dd></dl>
 	</fieldset>
+	<fieldset><legend>{{ lang('ACP_PLUS_CT_BLOCKS') }}</legend>
+		<dl><dt>{{ lang('PLUS_CT_ENABLE') }}</dt><dd><label><input type="radio" name="config[plus_ct_block_enabled]" value="1"{% if S_CT_BLOCK %} checked{% endif %}> {{ lang('YES') }}</label>
+			<label><input type="radio" name="config[plus_ct_block_enabled]" value="0"{% if not S_CT_BLOCK %} checked{% endif %}> {{ lang('NO') }}</label></dd></dl>
+		<dl><dt>{{ lang('PLUS_CT_LOGGING') }}</dt><dd><label><input type="radio" name="config[plus_ct_block_logging]" value="1"{% if S_CT_BLOCK_LOG %} checked{% endif %}> {{ lang('YES') }}</label>
+			<label><input type="radio" name="config[plus_ct_block_logging]" value="0"{% if not S_CT_BLOCK_LOG %} checked{% endif %}> {{ lang('NO') }}</label></dd></dl>
+		<dl><dt><label for="plus-ct-limit">{{ lang('PLUS_CT_LIMIT') }}</label></dt><dd><input type="number" id="plus-ct-limit" name="config[plus_ct_block_limit]" min="1" max="400" value="{{ CT_BLOCK_LIMIT }}"></dd></dl>
+	</fieldset>
 	<fieldset class="submit-buttons"><input type="hidden" name="revision" value="{{ REVISION }}">
 	<input type="submit" class="button1" value="{{ lang('SUBMIT') }}">{{ S_FORM_TOKEN }}</fieldset>
 </form>

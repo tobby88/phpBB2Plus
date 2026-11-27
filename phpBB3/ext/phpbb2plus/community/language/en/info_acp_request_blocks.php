@@ -1,0 +1,25 @@
+<?php
+if (!defined('IN_PHPBB')) { exit; }
+$lang = array_merge($lang ?? array(), array(
+	'ACL_A_PLUS_CT_BLOCKS' => 'Can manage CrackerTracker request blocking rules',
+	'ACP_PLUS_CT_BLOCKS' => 'CrackerTracker blocking rules',
+	'ACP_PLUS_CT_BLOCK_LOG' => 'CrackerTracker blocked requests',
+	'PLUS_CT_BLOCKED' => 'This request was blocked by the board’s access rules.',
+	'PLUS_CT_RULE_EXPLAIN' => 'Enter an IP address, an IPv4 or IPv6 network in CIDR notation, a browser identifier or a hostname supplied by the server. Text matches the entire value without regard to case. An asterisk matches any sequence of characters. Rules also apply to administrators.',
+	'PLUS_CT_RULE_ADD' => 'Add a blocking rule', 'PLUS_CT_RULE' => 'Rule', 'PLUS_CT_RULE_NONE' => 'There are no blocking rules.',
+	'PLUS_CT_RULE_INACTIVE' => '(inactive legacy entry)',
+	'PLUS_CT_RULE_INVALID' => 'Enter a rule of up to 200 bytes with at most eight asterisks and no control characters.',
+	'PLUS_CT_RULE_STALE' => 'The blocking rules have changed. Open the list again.',
+	'PLUS_CT_LOG_STALE' => 'The blocked requests have changed. Review the current log before clearing it.',
+	'PLUS_CT_ENABLE' => 'Apply blocking rules', 'PLUS_CT_LOGGING' => 'Record blocked requests',
+	'PLUS_CT_LIMIT' => 'Entries before automatic log rotation (1–400)',
+	'PLUS_CT_ARCHIVED' => 'Previously cleared or rotated entries: %s',
+	'PLUS_CT_ROTATED' => 'Last automatic rotation: %s', 'PLUS_CT_CLEARED' => 'Last manual clear: %s',
+	'PLUS_CT_CREATED' => 'Log created: %s', 'PLUS_CT_LEGACY_MARKER' => 'Previous log marker: %s (reason unknown).',
+	'PLUS_CT_HOST' => 'Server-supplied hostname', 'PLUS_CT_AGENT' => 'Browser identifier',
+	'PLUS_CT_SCRIPT' => 'Requested script', 'PLUS_CT_ORIGIN' => 'Referring origin',
+	'PLUS_CT_CLEAR' => 'Clear blocked requests', 'PLUS_CT_CLEAR_EXPLAIN' => 'Clear the listed requests? Their total will be retained.',
+	'LOG_PLUS_CT_RULE_ADD' => '<strong>Added CrackerTracker blocking rule</strong> ID %d',
+	'LOG_PLUS_CT_RULE_DELETE' => '<strong>Removed CrackerTracker blocking rule</strong> ID %d',
+	'LOG_PLUS_CT_BLOCK_LOG_CLEARED' => '<strong>Cleared the CrackerTracker blocked-request log</strong>',
+));
