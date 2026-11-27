@@ -1,0 +1,25 @@
+{% if loops.archive_years %}
+<nav class="plus-news-dates" aria-labelledby="plus-news-date-heading">
+	<details class="panel"{% if NEWS_YEAR %} open{% endif %}>
+		<summary id="plus-news-date-heading">{{ lang('PLUS_NEWS_ARCHIVE_DATES') }}</summary>
+		{% if U_NEWS_ALL_DATES %}<a href="{{ U_NEWS_ALL_DATES }}">{{ lang('PLUS_NEWS_ALL_DATES') }}</a>{% endif %}
+		<ul>
+		{% for year in loops.archive_years %}
+			<li><a href="{{ year.URL }}"{% if year.CURRENT %} aria-current="page"{% endif %}>{{ year.LABEL }} ({{ year.COUNT }})</a>
+				{% if year.months %}<ul>
+				{% for month in year.months %}
+					<li><a href="{{ month.URL }}"{% if month.CURRENT %} aria-current="page"{% endif %}>{{ month.LABEL }} ({{ month.COUNT }})</a>
+						{% if month.days %}<ul>
+						{% for day in month.days %}
+							<li><a href="{{ day.URL }}"{% if day.CURRENT %} aria-current="page"{% endif %}>{{ day.LABEL }} ({{ day.COUNT }})</a></li>
+						{% endfor %}
+						</ul>{% endif %}
+					</li>
+				{% endfor %}
+				</ul>{% endif %}
+			</li>
+		{% endfor %}
+		</ul>
+	</details>
+</nav>
+{% endif %}

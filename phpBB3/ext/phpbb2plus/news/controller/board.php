@@ -38,13 +38,16 @@ class board
 		$day = $this->request->variable('day',0);
 		$key = utf8_substr(trim($this->request->variable('q','',true)),0,100);
 		$forums = $this->articles->forums();
-		$scope = $this->articles->scope($forums,$category,$year,$month,$day,$key);
-		$total = $this->articles->count($scope);
-		if ($category && !$total && !$this->articles->count($this->articles->scope($forums,$category))) { throw new NotFoundHttpException(); }
+		$archive = $this->articles->scope($forums, $category, 0, 0, 0, $key);
+		$scope = $archive . $this->articles->archive_period($year, $month, $day);
 		$route = $category ? 'phpbb2plus_news_category' : 'phpbb2plus_news_home';
 		$params = $category ? array('category'=>$category) : array();
 		$action = $this->helper->route($route,$params);
-		$filters = array_filter(array('year'=>$year,'month'=>$month,'day'=>$day,'q'=>$key), static function ($v) { return $v !== 0 && $v !== ''; });
+		// phpBB has escaped the request for HTML. Route parameters require the original text.
+		if ($key !== '') { $params['q'] = htmlspecialchars_decode($key, ENT_QUOTES); }
+		$total = $this->archive_navigation($archive, $route, $params, $year, $month, $day);
+		if ($category && !$total && !$this->articles->count($this->articles->scope($forums,$category))) { throw new NotFoundHttpException(); }
+		$filters = array_filter(array('year'=>$year,'month'=>$month,'day'=>$day));
 		$limit = max(1,min(100,(int) $this->config['plus_news_page_size']));
 		$start = $this->pagination->validate_start(max(0,$this->request->variable('start',0)),$limit,$total);
 		$this->pagination->generate_template_pagination($this->helper->route($route,$params + $filters),'pagination','start',$total,$limit,$start);
@@ -52,6 +55,41 @@ class board
 		$this->template->assign_vars(array('NEWS_ACTION'=>$action, 'NEWS_YEAR'=>$year ?: '', 'NEWS_MONTH'=>$month ?: '',
 			'NEWS_DAY'=>$day ?: '', 'NEWS_QUERY'=>$key));
 		return $this->helper->render('@phpbb2plus_news/list.html',$this->language->lang('PLUS_NEWS_ARCHIVE'));
+	}
+
+	private function archive_navigation($scope, $route, array $params, $year, $month, $day)
+	{
+		$this->template->assign_var('U_NEWS_ALL_DATES', $year ? $this->helper->route($route, $params) : '');
+		$total = 0;
+		foreach ($this->articles->archive_dates($scope) as $item_year => $months)
+		{
+			$year_params = $params + array('year' => $item_year);
+			$this->template->assign_block_vars('archive_years', array('LABEL' => $item_year,
+				'URL' => $this->helper->route($route, $year_params), 'COUNT' => array_sum(array_map('array_sum', $months)),
+				'CURRENT' => $item_year === $year && !$month));
+			if ($year && $item_year !== $year) { continue; }
+			foreach ($months as $item_month => $days)
+			{
+				$count = array_sum($days);
+				// The same published dates supply pagination, without recounting the topic and post joins.
+				if (!$month || $item_month === $month) { $total += $day ? ($days[$day] ?? 0) : $count; }
+				$month_params = $year_params + array('month' => $item_month);
+				$month_name = \DateTimeImmutable::createFromFormat('!n', (string) $item_month)->format('F');
+				$month_name = $this->language->lang(array('datetime', $month_name));
+				$this->template->assign_block_vars('archive_years.months', array('LABEL' => $month_name,
+					'URL' => $this->helper->route($route, $month_params), 'COUNT' => $count,
+					'CURRENT' => $item_year === $year && $item_month === $month && !$day));
+				if ($item_year !== $year || $item_month !== $month) { continue; }
+				foreach ($days as $item_day => $total)
+				{
+					$this->template->assign_block_vars('archive_years.months.days', array(
+						'LABEL' => $this->language->lang('PLUS_NEWS_ARCHIVE_DAY', $item_day, $month_name),
+						'URL' => $this->helper->route($route, $month_params + array('day' => $item_day)),
+						'COUNT' => $total, 'CURRENT' => $item_day === $day));
+				}
+			}
+		}
+		return $total;
 	}
 
 	public function categories()

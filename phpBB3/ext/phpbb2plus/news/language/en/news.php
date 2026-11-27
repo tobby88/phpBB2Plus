@@ -2,6 +2,8 @@
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_NEWS'=>'News', 'PLUS_NEWS_ARCHIVE'=>'News archive', 'PLUS_NEWS_CATEGORIES'=>'News categories',
+	'PLUS_NEWS_ARCHIVE_DATES'=>'Browse by publication date (UTC)', 'PLUS_NEWS_ALL_DATES'=>'All dates',
+	'PLUS_NEWS_ARCHIVE_DAY'=>'%2$s %1$d',
 	'PLUS_NEWS_EMPTY'=>'There are no news items for this selection.', 'PLUS_NEWS_FEED'=>'RSS feed',
 	'PLUS_NEWS_FILTER'=>'Filter news', 'PLUS_NEWS_COMMENTS'=>'Comments',
 	'PLUS_NEWS_PRINT'=>'Print view',

@@ -3,7 +3,7 @@ from html import unescape
 from pathlib import Path
 import re
 import time
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from xml.etree import ElementTree
 
 from http_board import Browser, Page, admin_url
@@ -128,3 +128,74 @@ def administration(base, owner):
     if ('data-news-topic="2"' in guest.fetch("app.php/news") or "Sample News Post in Portal" not in guest.fetch("viewtopic.php?t=2")
             or "Mitteilungen &amp; Grüße" in owner.fetch(panel)):
         raise RuntimeError("Deleting a news category damaged its native topic or kept it published")
+
+
+def archive_dates(base, founder, check):
+    """Follow calendar links across UTC midnight, including category, title and access limits."""
+    guest = Browser(base)
+    home = "app.php/news"
+
+    def dates(html, path):
+        nav = re.search(r'<nav class="plus-news-dates"[^>]*>(.*?)</nav>', html, re.S)
+        if not nav:
+            raise RuntimeError("Missing news archive date navigation")
+        links = {}
+        for href, attrs, label in re.findall(r'<a href="([^"]+)"([^>]*)>([^<]+)</a>', nav[1]):
+            url = urljoin(urljoin(base, path), unescape(href))
+            query = parse_qs(urlsplit(url).query)
+            period = tuple(int(query[field][0]) for field in ("year", "month", "day") if field in query)
+            links[period] = (url, unescape(label), 'aria-current="page"' in attrs)
+        return links
+
+    def topics(html):
+        return set(re.findall(r'data-news-topic="(\d+)"', html))
+
+    check("setup")
+    try:
+        for actor, private in ((guest, False), (founder, True)):
+            initial = actor.fetch("portal.php?news=archives")
+            links = dates(initial, home)
+            if (set(links) != {(2004,), (2004, 2), (2004, 3)}
+                    or links[(2004,)][1] != ("2004 (3)" if private else "2004 (2)")):
+                raise RuntimeError("Unexpected news archive periods: " + repr({p: link[1] for p, link in links.items()}))
+            year, feb, leap = (2004,), (2004, 2), (2004, 2, 29)
+            year_url = links[year][0]
+            year_links = dates(actor.fetch(year_url), year_url)
+            if not year_links[year][2]:
+                raise RuntimeError("The selected news archive year was not marked")
+            month_url = year_links[feb][0]
+            month_links = dates(actor.fetch(month_url), month_url)
+            if (not month_links[feb][2] or month_links[feb][1] != ("February (2)" if private else "Februar (1)")
+                    or month_links[leap][1] != ("February 29 (2)" if private else "29. Februar (1)")):
+                raise RuntimeError("Unexpected archive month or day: " + repr({p: link[1] for p, link in month_links.items()}))
+            day_url = month_links[leap][0]
+            day = actor.fetch(day_url)
+            if not dates(day, day_url)[leap][2] or topics(day) != ({"1", "7"} if private else {"1"}):
+                raise RuntimeError("Wrong articles on the selected UTC date: " + repr(topics(day)))
+            march = actor.fetch("portal.php?news=archives&year=2004&month=3&day=1")
+            if topics(march) != {"2"}:
+                raise RuntimeError("The first UTC second of March did not belong to the original archive link")
+
+        category = "app.php/news/category/1?" + urlencode({"q": "Archiv & Grüße"})
+        path = dates(guest.fetch(category), category)[(2004, 2)][0]
+        result = guest.fetch(path)
+        if (parse_qs(urlsplit(path).query).get("q") != ["Archiv & Grüße"] or "/category/1" not in urlsplit(path).path
+                or topics(result) != {"1"} or (2004, 3) in dates(result, path)):
+            raise RuntimeError("A date link lost its news category or changed the title filter")
+        all_dates = dates(result, path)[()][0]
+        if topics(guest.fetch(all_dates)) != {"1"} or "year" in parse_qs(urlsplit(all_dates).query):
+            raise RuntimeError("Resetting archive dates lost the remaining filters")
+        guest.fetch(home + "?year=2003&month=2&day=29", expected_status=404)
+        for phase in ("locked", "unapproved"):
+            check(phase)
+            html = founder.fetch(home + "?year=2004&month=2")
+            if dates(html, home)[(2004, 2, 29)][1] != "February 29 (1)" or topics(html) != {"1"}:
+                raise RuntimeError("The calendar counted an unpublished article or a password-protected forum")
+        check("paged")
+        listing = guest.fetch(home + "?year=2004")
+        next_page = next((unescape(link) for link in re.findall(r'<a[^>]+href="([^"]+)"', listing)
+                          if parse_qs(urlsplit(unescape(link)).query).get("start") == ["1"]), None)
+        if not next_page or topics(listing) != {"2"} or topics(guest.fetch(urljoin(urljoin(base, home), next_page))) != {"1"}:
+            raise RuntimeError("The native news pagination did not follow the selected archive period")
+    finally:
+        check("restore")

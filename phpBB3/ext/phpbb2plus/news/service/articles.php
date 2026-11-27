@@ -45,18 +45,40 @@ class articles
 			$this->visibility->get_forums_visibility_sql('topic',$forums,'t.') . ' AND ' .
 			$this->visibility->get_forums_visibility_sql('post',$forums,'p.');
 		if ($category) { $sql .= ' AND c.category_id=' . (int) $category; }
-		if ($year || $month || $day)
-		{
-			if ($year < 1970 || $year > 9999 || ($day && !$month) || !checkdate($month ?: 1, $day ?: 1, $year)) { throw new NotFoundHttpException(); }
-			$start = new \DateTimeImmutable(sprintf('%04d-%02d-%02d', $year, $month ?: 1, $day ?: 1), $this->user->create_datetime()->getTimezone());
-			$next = $start->modify($day ? '+1 day' : ($month ? '+1 month' : '+1 year'));
-			$sql .= ' AND t.topic_time>=' . (int) $start->format('U') . ' AND t.topic_time<' . (int) $next->format('U');
-		}
 		if ($keyword !== '')
 		{
 			$sql .= ' AND t.topic_title ' . $this->db->sql_like_expression($this->db->get_any_char() . $keyword . $this->db->get_any_char());
 		}
-		return $sql;
+		return $sql . $this->archive_period($year, $month, $day);
+	}
+
+	public function archive_period($year, $month, $day)
+	{
+		if (!$year && !$month && !$day) { return ''; }
+		if ($year < 1970 || $year > 9999 || ($day && !$month) || !checkdate($month ?: 1, $day ?: 1, $year))
+		{
+			throw new NotFoundHttpException();
+		}
+		// Historical CMX links refer to UTC civil dates independently of the reader's own clock.
+		$start = new \DateTimeImmutable(sprintf('%04d-%02d-%02d', $year, $month ?: 1, $day ?: 1), new \DateTimeZone('UTC'));
+		$next = $start->modify($day ? '+1 day' : ($month ? '+1 month' : '+1 year'));
+		return ' AND t.topic_time>=' . $start->format('U') . ' AND t.topic_time<' . $next->format('U');
+	}
+
+	public function archive_dates($scope)
+	{
+		// Native topic times are unsigned Unix seconds. Use integer arithmetic even in the last second of a day.
+		$midnight = 't.topic_time - (t.topic_time % 86400)';
+		$result = $this->db->sql_query("SELECT $midnight AS utc_midnight, COUNT(*) AS total" . $scope .
+			" GROUP BY $midnight ORDER BY utc_midnight DESC");
+		$dates = array();
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$date = new \DateTimeImmutable('@' . $row['utc_midnight']);
+			$dates[(int) $date->format('Y')][(int) $date->format('n')][(int) $date->format('j')] = (int) $row['total'];
+		}
+		$this->db->sql_freeresult($result);
+		return $dates;
 	}
 
 	public function count($scope)

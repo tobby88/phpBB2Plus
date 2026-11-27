@@ -1,6 +1,8 @@
 <!-- INCLUDE overall_header.html -->
+<!-- INCLUDECSS @phpbb2plus_news/news.css -->
 <h2>{L_PLUS_NEWS_ARCHIVE}</h2>
 <p><a href="{U_NEWS_CATEGORIES}">{L_PLUS_NEWS_CATEGORIES}</a><!-- IF U_NEWS_FEED --> &middot; <a href="{U_NEWS_FEED}">{L_PLUS_NEWS_FEED}</a><!-- ENDIF --></p>
+<!-- INCLUDE @phpbb2plus_news/archive_dates.html -->
 <form class="panel plus-news-filter" method="get" action="{NEWS_ACTION}">
 <label>{L_YEAR} <input class="inputbox autowidth" type="number" min="1970" max="9999" name="year" value="{NEWS_YEAR}"></label>
 <label>{L_MONTH} <input class="inputbox autowidth" type="number" min="1" max="12" name="month" value="{NEWS_MONTH}"></label>

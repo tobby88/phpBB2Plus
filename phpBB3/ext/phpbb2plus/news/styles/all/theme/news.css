@@ -6,3 +6,6 @@
 .plus-news-card .author, .plus-news-comments { margin: .5em .75em; }
 .plus-news-comments { clear: both; }
 .plus-news-filter { display: flex; flex-wrap: wrap; align-items: center; gap: .6em; }
+.plus-news-dates summary { cursor: pointer; font-weight: bold; }
+.plus-news-dates ul { margin: .4em 0 .4em 1.8em; }
+.plus-news-dates [aria-current] { font-weight: bold; }
