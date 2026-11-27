@@ -3,9 +3,9 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'PLUS_ATTACH_RULES_LINK' => 'Allowed file types and sizes',
 	'PLUS_ATTACH_UPLOAD_POLICY' => 'File extensions for new attachments',
-	'PLUS_ATTACH_UPLOAD_POLICY_EXPLAIN' => 'Plus accepts only extensions of up to 16 letters or digits and excludes executable script types. The restriction applies to new post and private-message attachments. Existing files keep their normal download permissions.',
-	'PLUS_ATTACH_ON_IMPORT' => 'Use native groups until a Plus board is imported',
-	'PLUS_ATTACH_GROUPS_ONLY' => 'Use native extension groups only',
+	'PLUS_ATTACH_UPLOAD_POLICY_EXPLAIN' => 'New post and private message attachments use the native extension groups and all imported or manually added blocks. Additional Plus protection allows extensions of up to 16 letters or digits and blocks predefined script types. Existing attachments use the board’s download permissions.',
+	'PLUS_ATTACH_ON_IMPORT' => 'Activate additional Plus protection when importing a Plus board',
+	'PLUS_ATTACH_GROUPS_ONLY' => 'Use native groups and recorded extension blocks',
 	'PLUS_ATTACH_INHERIT_TYPES' => 'Apply the Plus restriction to native extension groups',
 	'PLUS_ATTACH_POST_RULES' => 'Attachment rules for this forum',
 	'PLUS_ATTACH_PM_RULES' => 'Attachment rules for private messages',

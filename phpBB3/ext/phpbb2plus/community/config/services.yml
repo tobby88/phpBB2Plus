@@ -379,6 +379,8 @@ services:
     phpbb2plus.community.attachment_types:
         parent: cache
         class: phpbb2plus\community\attachment\upload_types
+        calls:
+            - [set_blocks, ['@phpbb2plus.community.attachment_blocks']]
     phpbb2plus.community.pm_quota_events:
         class: phpbb2plus\community\event\pm_quotas
         arguments: ['@phpbb2plus.community.attachment_quotas', '@dbal.conn', '@user', '@auth', '@language']

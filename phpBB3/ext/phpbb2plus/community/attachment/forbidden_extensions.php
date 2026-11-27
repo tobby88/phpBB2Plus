@@ -41,15 +41,49 @@ class forbidden_extensions
 
 	public function blocked($extension)
 	{
-		$key = self::key($extension);
-		if ($key === '' || self::fixed($key)) { return true; }
-		if (!isset($this->config['plus_attach_block_rev'])) { return false; }
-		return (bool) $this->rows("SELECT rule_id FROM {$this->table} WHERE extension_key='" . $this->db->sql_escape($key) . "' LIMIT 1");
+		return (bool) $this->blocked_types(array($extension));
 	}
 
-	public function native_extensions()
+	/** Effective blocks, keyed by the supplied native suffix. The complete selection is read in one snapshot. */
+	public function blocked_types(array $extensions)
 	{
-		return $this->rows('SELECT extension_id,extension,group_id FROM ' . EXTENSIONS_TABLE);
+		if (!$extensions) { return array(); }
+		$names = $keys = $explicit = $blocked = array();
+		foreach ($extensions as $extension)
+		{
+			$key = self::key($extension);
+			$keys[$key] = true;
+			$names[$extension] = $key !== '' ? $key : utf8_strtolower(trim($extension));
+		}
+		$plus = (int) ($this->config['plus_attach_upload_types'] ?? -1) === 1;
+		if (isset($this->config['plus_attach_block_rev']))
+		{
+			// Use the current mode and indexed rules, even if another request changed them
+			// after an editor was opened. Historical out-of-format names share the empty index key.
+			$mode = 'SELECT (SELECT config_value FROM ' . CONFIG_TABLE . " WHERE config_name='plus_attach_upload_types') AS plus_mode";
+			$match = $this->db->sql_in_set('f.extension_key', array_map('strval', array_keys($keys)));
+			foreach ($this->rows("SELECT p.plus_mode,f.extension_key,f.extension_name FROM ($mode) p LEFT JOIN {$this->table} f ON $match") as $row)
+			{
+				$plus = (int) $row['plus_mode'] === 1;
+				if ($row['extension_key'] !== null)
+				{
+					$name = $row['extension_key'] !== '' ? $row['extension_key'] : utf8_strtolower(trim($row['extension_name']));
+					$explicit[$name] = true;
+				}
+			}
+		}
+		foreach ($names as $extension => $name)
+		{
+			if (isset($explicit[$name]) || ($plus && (self::key($name) === '' || self::fixed($name)))) { $blocked[$extension] = true; }
+		}
+		return $blocked;
+	}
+
+	public function native_extensions($ids = null)
+	{
+		if ($ids === array()) { return array(); }
+		$where = $ids === null ? '' : ' WHERE ' . $this->db->sql_in_set('extension_id', array_map('intval', $ids));
+		return $this->rows('SELECT extension_id,extension,group_id FROM ' . EXTENSIONS_TABLE . $where);
 	}
 
 	public function enabling_group($id, $posts, $messages)
@@ -61,14 +95,19 @@ class forbidden_extensions
 	public function listing()
 	{
 		$native = array();
-		foreach ($this->native_extensions() as $row) { $native[self::key($row['extension'])] = true; }
-		$fixed = array_fill_keys(self::BUILT_IN, true);
+		foreach ($this->native_extensions() as $row) { $native[utf8_strtolower(trim($row['extension']))] = true; }
+		$plus = (int) ($this->config['plus_attach_upload_types'] ?? -1) === 1;
+		$fixed = $plus ? array_fill_keys(self::BUILT_IN, true) : array();
+		if ($plus)
+		{
+			foreach (array_keys($native) as $name) { if (self::key($name) === '' || self::fixed($name)) { $fixed[$name] = true; } }
+		}
 		$rows = $this->rows("SELECT * FROM {$this->table}");
 		foreach ($rows as &$row)
 		{
-			$key = $row['extension_key'];
-			$row['fixed'] = self::fixed($key);
-			$row['conflict'] = $key !== '' && isset($native[$key]);
+			$key = $row['extension_key'] !== '' ? $row['extension_key'] : utf8_strtolower(trim($row['extension_name']));
+			$row['fixed'] = $plus && self::fixed($key);
+			$row['conflict'] = isset($native[$key]);
 			unset($fixed[$key]);
 		}
 		unset($row);
@@ -125,12 +164,14 @@ class forbidden_extensions
 			}
 			if ($remove)
 			{
+				$mode = $this->rows('SELECT config_value FROM ' . CONFIG_TABLE . " WHERE config_name='plus_attach_upload_types' FOR UPDATE");
+				$plus = (int) ($mode[0]['config_value'] ?? -1) === 1;
 				$where = $this->db->sql_in_set('rule_id', $remove);
 				$rows = $this->rows("SELECT extension_name,extension_key FROM {$this->table} WHERE $where FOR UPDATE");
 				if (count($rows) !== count($remove)) { throw new \DomainException('PLUS_ATTACH_BLOCK_CHANGED'); }
 				foreach ($rows as $row)
 				{
-					if (self::fixed($row['extension_key'])) { throw new \DomainException('PLUS_ATTACH_BLOCK_FIXED'); }
+					if ($plus && self::fixed($row['extension_key'])) { throw new \DomainException('PLUS_ATTACH_BLOCK_FIXED'); }
 				}
 				$this->db->sql_query("DELETE FROM {$this->table} WHERE $where");
 				foreach ($rows as $row) { $log->add('admin', $user->data['user_id'], $user->ip, 'LOG_PLUS_ATTACH_UNBLOCK', false, array(utf8_htmlspecialchars($row['extension_name']))); }

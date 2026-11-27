@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ATTACH_BLOCKS'=>'Forbidden attachment extensions',
 	'ACL_A_PLUS_ATTACH_BLOCK'=>'Can manage forbidden attachment extensions',
-	'PLUS_ATTACH_BLOCK_EXPLAIN'=>'These extensions are blocked for new post and private message attachments. Existing attachments keep their download settings. Built-in rules also cover every numbered PHP extension.',
+	'PLUS_ATTACH_BLOCK_EXPLAIN'=>'Imported and manually added blocks apply to new post and private message attachments in every upload mode. When additional Plus protection is enabled in attachment settings, its built-in rules appear here too. These cover all numbered PHP extensions. Existing attachments keep their download settings.',
 	'PLUS_ATTACH_BLOCK_ADD'=>'Add a forbidden extension',
 	'PLUS_ATTACH_BLOCK_STATUS'=>'Rule',
 	'PLUS_ATTACH_BLOCK_CUSTOM'=>'Custom block',

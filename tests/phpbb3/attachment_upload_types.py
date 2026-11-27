@@ -8,6 +8,13 @@ from attachment_rules import Rules
 from http_board import FormFields, Page, admin_url, submit_form
 
 
+def chooser_types(page):
+    filebox = re.search(r'<input\b[^>]*\bid="fileupload"[^>]*>', page)
+    allowed = set(re.search(r'\baccept="([^"]*)"', filebox[0])[1].split(","))
+    filters = re.search(r'mime_types:\s*(\[.*?\])\s*,\s*mime_types_max_file_size:', page, re.S)
+    return allowed, {entry["title"]: entry for entry in json.loads(filters[1])}
+
+
 def browse(admin, moderator, member, phase):
     post = "posting.php?mode=reply&t=1"
     pm = "ucp.php?i=pm&mode=compose"
@@ -16,14 +23,11 @@ def browse(admin, moderator, member, phase):
 
     def check_chooser(actor, address, forum, permitted, maximum):
         page = actor.fetch(address)
-        filebox = re.search(r'<input\b[^>]*\bid="fileupload"[^>]*>', page)
-        file_types = re.search(r'\baccept="([^"]*)"', filebox[0])[1].split(",")
-        filters = re.search(r'mime_types:\s*(\[.*?\])\s*,\s*mime_types_max_file_size:', page, re.S)
-        groups = {entry["title"]: entry for entry in json.loads(filters[1])}
+        file_types, groups = chooser_types(page)
         expected = {".rnote", ".py"} if permitted else {".rnote"}
         notes = groups["Classroom notes"]
         rules = Rules(actor.fetch("attach_rules.php?f=" + str(forum))).groups["Classroom notes"][0]
-        if (rules != expected or set(file_types).intersection({".py", ".rnote"}) != expected or
+        if (rules != expected or file_types.intersection({".py", ".rnote"}) != expected or
                 {"." + ext for ext in notes["extensions"].split(",")} != expected or notes["max_file_size"] != maximum):
             raise RuntimeError("The editor, JavaScript limits and attachment rules disagreed")
         return page

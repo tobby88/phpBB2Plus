@@ -67,12 +67,13 @@ class attachment_blocks implements EventSubscriberInterface
 				$selected = array_fill_keys($this->request->variable('extensions', array(0)), $group);
 				$enabling = $group > 0 && $this->rules->enabling_group($group, $this->request->is_set_post('allow_group'), $this->request->is_set_post('allow_in_pm'));
 			}
-			foreach ($this->rules->native_extensions() as $row)
+			$changed = array();
+			foreach ($this->rules->native_extensions(array_keys($selected)) as $row)
 			{
 				$target = $selected[$row['extension_id']] ?? 0;
-				if ($target && ($enabling || (int) $row['group_id'] !== $target) && $this->rules->blocked($row['extension']))
-				{ throw new \DomainException('PLUS_ATTACH_BLOCK_REFUSED'); }
+				if ($target && ($enabling || (int) $row['group_id'] !== $target)) { $changed[] = $row['extension']; }
 			}
+			if ($this->rules->blocked_types($changed)) { throw new \DomainException('PLUS_ATTACH_BLOCK_REFUSED'); }
 		}
 		catch (\DomainException $e)
 		{

@@ -10,8 +10,8 @@ if ($phase === 'source')
 	$source->set_charset('utf8mb4');
 	// Keep the older source collation covered alongside a full-width utf8mb4 label in the CI matrix.
 	if (PHP_VERSION_ID < 80000) { $source->query('ALTER TABLE phpbb_forbidden_extensions MODIFY extension VARCHAR(100) CHARACTER SET latin1 NOT NULL'); }
-	else { $source->query("INSERT INTO phpbb_forbidden_extensions (ext_id,extension) VALUES (255,'" . str_repeat('🧭', 100) . "')"); }
-	$source->query("INSERT INTO phpbb_forbidden_extensions (ext_id,extension) VALUES (251,' QcArt '),(252,'qcart'),(253,'früh.test'),(254,'blocknote')");
+	else { $source->query("INSERT INTO phpbb_forbidden_extensions (ext_id,extension) VALUES (256,'" . str_repeat('🧭', 100) . "')"); }
+	$source->query("INSERT INTO phpbb_forbidden_extensions (ext_id,extension) VALUES (251,' QcArt '),(252,'qcart'),(253,'früh.test'),(254,'blocknote'),(255,' Kurs-Notiz ')");
 	$source->query("INSERT INTO phpbb_extensions (ext_id,group_id,extension) SELECT 251,group_id,'qcart' FROM phpbb_extensions WHERE extension='zip'");
 	return;
 }
@@ -36,7 +36,8 @@ if ($phase === 'older' || $phase === 'upgraded')
 	if ($installed)
 	{
 		$rules = $phpbb_container->get('phpbb2plus.community.attachment_blocks');
-		$expect(!$rows("SELECT rule_id FROM $table") && $rules->blocked('php4') && !$rules->blocked('blocknote'), 'Upgrade guessed historic custom rules or lost fixed defaults');
+		$plus = (int) ($config['plus_attach_upload_types'] ?? -1) === 1;
+		$expect(!$rows("SELECT rule_id FROM $table") && $rules->blocked('php4') === $plus && !$rules->blocked('blocknote'), 'Upgrade guessed historic custom rules or changed the configured Plus mode');
 		$wide = str_repeat('🧭', 100);
 		$db->sql_query("INSERT INTO $table " . $db->sql_build_array('INSERT', array('extension_name'=>$wide)));
 		$id = (int) $db->sql_nextid();
@@ -51,13 +52,31 @@ $state = json_decode((string) $text->get($key), true);
 if ($phase === 'prepare')
 {
 	$expect(!$state, 'Attachment block fixture already active');
+	// Compare a whole group in one statement and check a later policy change on the same instance.
+	$policy = $phpbb_container->get('phpbb2plus.community.attachment_blocks');
+	$types = array_merge(array('qcart','BLOCKNOTE','Kurs-Notiz','php4','py','native-note'), array_map(static function ($n) { return 'note' . $n; }, range(1, 100)));
+	$db->sql_transaction('begin');
+	try
+	{
+		foreach (array(1, 0) as $mode)
+		{
+			$db->sql_query('UPDATE ' . CONFIG_TABLE . " SET config_value='$mode' WHERE config_name='plus_attach_upload_types'");
+			$before = $db->sql_num_queries();
+			$hits = $policy->blocked_types($types);
+			$expected = array('qcart','BLOCKNOTE','Kurs-Notiz','php4');
+			if ($mode) { $expected[] = 'py'; $expected[] = 'native-note'; }
+			$expect($db->sql_num_queries() === $before + 1 && array_keys($hits) === $expected,
+				'The rules did not read the current mode and the group in one indexed lookup');
+		}
+	}
+	finally { $db->sql_transaction('rollback'); }
 	$rules = array_column($rows("SELECT * FROM $table WHERE source_id BETWEEN 251 AND 254 ORDER BY source_id"), null, 'source_id');
 	$expect(count($rules) === 4 && $rules[251]['extension_name'] === ' QcArt ' && $rules[251]['extension_key'] === 'qcart' &&
 		$rules[252]['extension_key'] === 'qcart' && $rules[253]['extension_name'] === 'früh.test' && $rules[253]['extension_key'] === '',
 		'Source rule IDs, spelling, conflicts or duplicate keys changed');
 	if (PHP_VERSION_ID >= 80000)
 	{
-		$wide = $rows("SELECT extension_name,extension_key FROM $table WHERE source_id=255")[0] ?? array();
+		$wide = $rows("SELECT extension_name,extension_key FROM $table WHERE source_id=256")[0] ?? array();
 		$expect(($wide['extension_name'] ?? '') === str_repeat('🧭', 100) && $wide['extension_key'] === '',
 			'An archived four-byte source spelling was lost or admitted as an actual file type');
 	}
@@ -75,7 +94,8 @@ if ($phase === 'prepare')
 	unset($file['attach_id']);
 	$db->sql_query('INSERT INTO ' . ATTACHMENTS_TABLE . ' ' . $db->sql_build_array('INSERT', $file));
 	$state = array('attachment'=>(int) $db->sql_nextid(), 'user'=>(int) $junior['user_id'], 'extension'=>(int) $native['extension_id'],
-		'group'=>(int) $native['group_id'], 'rules'=>array_column($rules, 'rule_id', 'source_id'), 'conflicts'=>array($rules[251], $rules[252]));
+		'group'=>(int) $native['group_id'], 'rules'=>array_column($rules, 'rule_id', 'source_id'), 'conflicts'=>array($rules[251], $rules[252]),
+		'mode'=>(int) $config['plus_attach_upload_types']);
 	$text->set($key, json_encode($state)); echo json_encode($state);
 }
 elseif ($phase === 'revoke') { (new auth_admin())->acl_set('user', 0, $state['user'], array($right=>ACL_NEVER)); }
@@ -88,6 +108,7 @@ elseif ($phase === 'state')
 }
 elseif ($phase === 'clean' && $state)
 {
+	$config->set('plus_attach_upload_types', $state['mode']);
 	(new auth_admin())->acl_set('user', 0, $state['user'], array($right=>ACL_NO));
 	$db->sql_query('DELETE FROM ' . ATTACHMENTS_TABLE . ' WHERE attach_id=' . (int) $state['attachment'] . " AND real_filename='Archived.qcart'");
 	$db->sql_query("DELETE FROM $table WHERE source_id=0 AND extension_name IN ('pencase','othercase','nevercase')");

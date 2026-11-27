@@ -6,6 +6,8 @@ import time
 from urllib.parse import urljoin
 
 from attachments import GIF
+from attachment_rules import Rules
+from attachment_upload_types import chooser_types
 from delegation import authenticate
 from http_board import Page, submit_form
 
@@ -31,8 +33,28 @@ def browse(base, board, target, php):
             raise RuntimeError("The converted forbidden-list operator acquired the wider native attachment ACP")
         owner, home = authenticate(base, "ModernMember")
         native = home + "&i=acp_attachments&mode=extensions"
+        posting = "posting.php?mode=reply&t=1"
+        private = "ucp.php?i=pm&mode=compose&u=2"
+
+        def chooser(path, expected):
+            page = owner.fetch(path)
+            accept, groups = chooser_types(page)
+            rules = Rules(owner.fetch("attach_rules.php?f=" + ("1" if path == posting else "0"))).groups
+            shown = (".qcart" in accept, any("qcart" in group["extensions"].split(",") for group in groups.values()),
+                     any(".qcart" in extensions for extensions, _ in rules.values()))
+            if shown != (expected, expected, expected):
+                raise RuntimeError("The file chooser, JavaScript and rules page disagreed on the imported extension")
+            return page
+
         if "Verbotene Dateiendungen für Anhänge" not in owner.fetch(native) or "Fester Schutz" not in owner.fetch(home + panel):
             raise RuntimeError("The German native ACP did not link to the forbidden extensions")
+        chooser(posting, False)
+        settings = home + "&i=acp_attachments&mode=attach"
+        submit_form(owner, settings, owner.fetch(settings), "attachsettings", {"config[plus_attach_upload_types]":"0", "submit":"1"})
+        native_mode = junior.fetch(url)
+        stored_php = re.search(r"<td>php4</td>(.*?)</tr>", native_mode, re.S)
+        if re.search(r"<td>py</td>", native_mode) or "qcart" not in native_mode or not stored_php or "Custom block" not in stored_php[1]:
+            raise RuntimeError("The ACP did not distinguish optional built-ins from persistent imported blocks")
         review = home + "&i=-phpbb2plus-community-acp-delegations_module&mode=manage&account=" + str(fixture["user"])
         if "Zugewiesen wurde die Sperrliste" not in owner.fetch(review):
             raise RuntimeError("The original additional allow-list and group powers were missing from the manual-review note")
@@ -59,13 +81,13 @@ def browse(base, board, target, php):
             raise RuntimeError("The native group editor reassigned a forbidden extension")
         if owner.fetch("download/file.php?id=" + str(fixture["attachment"]), raw=True) != GIF:
             raise RuntimeError("The historical conflict changed the download of an existing attachment")
-        def upload(path):
-            page = owner.fetch(path)
+        def upload(path, expected=False):
+            page = chooser(path, expected)
             action, fields = Page(page).forms["postform"]
             fields.update(subject="Fixture", message="Attachment block fixture", add_file="1")
             time.sleep(max(0, int(fields["creation_time"]) + 1.05 - time.time()))
             return owner.fetch(urljoin(urljoin(base, path), action), fields, files=[("fileupload", "Fixture.qcart", "text/plain", b"Local fixture")])
-        for path in ("posting.php?mode=reply&t=1", "ucp.php?i=pm&mode=compose&u=2"):
+        for path in (posting, private):
             body = upload(path)
             if "qcart" not in body or "nicht erlaubt" not in body or re.search(r'data-attach-id="[1-9]', body) or state()["uploads"]:
                 raise RuntimeError("A forbidden type reached a new post or PM attachment")
@@ -77,11 +99,12 @@ def browse(base, board, target, php):
         if "pencase" in state()["custom"]:
             raise RuntimeError("The block editor kept the selected rule")
         submit_form(junior, url, junior.fetch(url), form, {"remove[]":[fixture["rules"]["251"]], "save":1})
-        path = "posting.php?mode=reply&t=1"
+        path = posting
         if "nicht erlaubt" not in upload(path):
             raise RuntimeError("Removing one duplicate also disabled the remaining historical block")
         submit_form(junior, url, junior.fetch(url), form, {"remove[]":[fixture["rules"]["252"]], "save":1})
-        accepted = upload(path)
+        chooser(private, True)
+        accepted = upload(path, True)
         if not re.search(r'data-attach-id="[1-9]', accepted) or state()["uploads"] != 1:
             raise RuntimeError("Removing the final custom block did not restore the native upload rule")
         action, fields = Page(accepted).forms["postform"]

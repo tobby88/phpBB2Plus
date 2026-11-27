@@ -3,7 +3,7 @@ if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang ?? array(), array(
 	'ACP_PLUS_ATTACH_BLOCKS'=>'Verbotene Dateiendungen für Anhänge',
 	'ACL_A_PLUS_ATTACH_BLOCK'=>'Kann verbotene Dateiendungen für Anhänge verwalten',
-	'PLUS_ATTACH_BLOCK_EXPLAIN'=>'Diese Dateiendungen sind für neue Anhänge in Beiträgen und privaten Nachrichten gesperrt. Vorhandene Anhänge behalten ihre Download-Einstellungen. Der feste Schutz erfasst auch alle nummerierten PHP-Endungen.',
+	'PLUS_ATTACH_BLOCK_EXPLAIN'=>'Importierte und hier eingetragene Sperren gelten in allen Upload-Modi für neue Anhänge in Beiträgen und privaten Nachrichten. Ist der zusätzliche Plus-Schutz in den Anhang-Einstellungen aktiv, erscheinen auch seine festen Sperren. Sie erfassen unter anderem alle nummerierten PHP-Endungen. Vorhandene Anhänge behalten ihre Download-Einstellungen.',
 	'PLUS_ATTACH_BLOCK_ADD'=>'Eine Dateiendung sperren',
 	'PLUS_ATTACH_BLOCK_STATUS'=>'Regel',
 	'PLUS_ATTACH_BLOCK_CUSTOM'=>'Benutzerdefinierte Sperre',
