@@ -8,7 +8,9 @@ if ($phase === 'source')
 	$source = new mysqli('127.0.0.1', getenv('PLUS_TEST_DB_USER') ?: 'root', getenv('PLUS_TEST_DB_PASSWORD'),
 		$argv[1], (int) (getenv('PLUS_TEST_DB_PORT') ?: 3306));
 	$source->set_charset('utf8mb4');
-	$source->query('ALTER TABLE phpbb_forbidden_extensions MODIFY extension VARCHAR(100) CHARACTER SET latin1 NOT NULL');
+	// Keep the older source collation covered alongside a full-width utf8mb4 label in the CI matrix.
+	if (PHP_VERSION_ID < 80000) { $source->query('ALTER TABLE phpbb_forbidden_extensions MODIFY extension VARCHAR(100) CHARACTER SET latin1 NOT NULL'); }
+	else { $source->query("INSERT INTO phpbb_forbidden_extensions (ext_id,extension) VALUES (255,'" . str_repeat('🧭', 100) . "')"); }
 	$source->query("INSERT INTO phpbb_forbidden_extensions (ext_id,extension) VALUES (251,' QcArt '),(252,'qcart'),(253,'früh.test'),(254,'blocknote')");
 	$source->query("INSERT INTO phpbb_extensions (ext_id,group_id,extension) SELECT 251,group_id,'qcart' FROM phpbb_extensions WHERE extension='zip'");
 	return;
@@ -35,6 +37,11 @@ if ($phase === 'older' || $phase === 'upgraded')
 	{
 		$rules = $phpbb_container->get('phpbb2plus.community.attachment_blocks');
 		$expect(!$rows("SELECT rule_id FROM $table") && $rules->blocked('php4') && !$rules->blocked('blocknote'), 'Upgrade guessed historic custom rules or lost fixed defaults');
+		$wide = str_repeat('🧭', 100);
+		$db->sql_query("INSERT INTO $table " . $db->sql_build_array('INSERT', array('extension_name'=>$wide)));
+		$id = (int) $db->sql_nextid();
+		$expect($rows("SELECT extension_name FROM $table WHERE rule_id=$id")[0]['extension_name'] === $wide, 'The upgraded native connection lost the original 100-character extension spelling');
+		$db->sql_query("DELETE FROM $table WHERE rule_id=$id");
 	}
 	return;
 }
@@ -48,6 +55,12 @@ if ($phase === 'prepare')
 	$expect(count($rules) === 4 && $rules[251]['extension_name'] === ' QcArt ' && $rules[251]['extension_key'] === 'qcart' &&
 		$rules[252]['extension_key'] === 'qcart' && $rules[253]['extension_name'] === 'früh.test' && $rules[253]['extension_key'] === '',
 		'Source rule IDs, spelling, conflicts or duplicate keys changed');
+	if (PHP_VERSION_ID >= 80000)
+	{
+		$wide = $rows("SELECT extension_name,extension_key FROM $table WHERE source_id=255")[0] ?? array();
+		$expect(($wide['extension_name'] ?? '') === str_repeat('🧭', 100) && $wide['extension_key'] === '',
+			'An archived four-byte source spelling was lost or admitted as an actual file type');
+	}
 	$junior = $rows('SELECT u.user_id,u.username,j.rights_json FROM ' . USERS_TABLE . ' u JOIN ' . $table_prefix .
 		"plus_jr_records j ON j.user_id=u.user_id WHERE j.source_user=279")[0] ?? array();
 	$expect(($junior['username'] ?? '') === 'AttachmentBlockJunior' && json_decode($junior['rights_json'], true) === array($right),
