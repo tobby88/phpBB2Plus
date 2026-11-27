@@ -39,6 +39,7 @@ import forum_recovery
 import news
 import portal
 import portal_unicode
+import gender_profile
 import recent_topics
 import custom_profiles
 import colours
@@ -465,10 +466,12 @@ def seed_source(source, legacy, suite):
     if media_only:
         php(tests / "quick_reply.php", source, "source-off")
         php(tests / "post_bookmarks.php", source, "source-missing")
+        php(tests / "gender_profile.php", source, "source-off")
     php(tests / "board_statistics.php", "seed", source)
     if forum_suite:
         php(tests / "topic_readers.php", source, "source")
         php(tests / "portal_unicode.php", source, "source")
+        php(tests / "gender_profile.php", source, "source")
         php(tests / "guest_post_confirm.php", source, "source")
         php(tests / "recommend.php", source, "source")
         php(tests / "smilie_signs.php", source, "source")
@@ -560,6 +563,7 @@ def main():
                     php("bin/phpbbcli.php", "db:migrate", "--no-interaction", cwd=web)
                 if forum_suite:
                     # This also exercises conversion after the stock formatter has been cached.
+                    php(ROOT / "tests/phpbb3/gender_profile.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/explicit_acronym.php", target, "fresh", cwd=web)
                     php(ROOT / "tests/phpbb3/formatting_codes.php", target, "native", cwd=web)
                     php(ROOT / "tests/phpbb3/table_formatting.php", target, "fresh", cwd=web)
@@ -594,6 +598,7 @@ def main():
                 if media_only:
                     php(ROOT / "tests/phpbb3/quick_reply.php", target, "converted-off", cwd=web)
                     php(ROOT / "tests/phpbb3/post_bookmarks.php", target, "converted-missing", cwd=web)
+                    php(ROOT / "tests/phpbb3/gender_profile.php", target, "missing", cwd=web)
                 if not media_only:
                     recovery = ("bin/phpbbcli.php", "phpbb2plus:recovery:posts")
                     ids = php(*recovery, cwd=web, capture=True).splitlines()
@@ -723,6 +728,8 @@ def main():
                     # The portal checks the five most recent sign-ins, including a hidden member.
                     portal.administration(base, member)
                     portal_unicode.browse(base, web, target, php, member)
+                    gender_profile.browse(member, ordinary, Browser(base), lambda phase: php(
+                        ROOT / "tests/phpbb3/gender_profile.php", target, phase, cwd=web, capture=True))
                     flag_run = worker.submit(country_flag_administration.exercise, base, member.separate_client(), lambda phase: php(
                         ROOT / "tests/phpbb3/country_flag_administration.php", target, phase, cwd=web, capture=True))
                     statistics_run = worker.submit(statistics_administration.exercise, base, lambda phase: php(
