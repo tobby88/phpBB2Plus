@@ -101,6 +101,16 @@ class daily_visitors implements EventSubscriberInterface
 	public function portal() { $this->display(true); }
 	private function display($portal)
 	{
+		if (!$portal && !empty($this->config['plus_registration_counts']))
+		{
+			$this->language->add_lang('daily_visitors', 'phpbb2plus/community');
+			$counts = $this->visitors->registrations(time(), $this->user->timezone);
+			$this->template->assign_vars(array(
+				'S_PLUS_REGISTRATION_COUNTS' => true,
+				'PLUS_REGISTERED_TODAY' => $counts['today'],
+				'PLUS_REGISTERED_YESTERDAY' => $counts['yesterday'],
+			));
+		}
 		$mode = $this->visitors->mode();
 		if (!$mode || !$this->scope()) { return; }
 		$this->language->add_lang('daily_visitors', 'phpbb2plus/community');
@@ -131,6 +141,10 @@ class daily_visitors implements EventSubscriberInterface
 				'function' => 'build_select', 'params' => array($options, '{CONFIG_VALUE}'), 'explain' => true);
 		}
 		$fields['plus_daily_force'] = array('lang' => 'PLUS_DAILY_FORCE', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => false);
+		if (isset($this->config['plus_registration_counts']))
+		{
+			$fields['plus_registration_counts'] = array('lang' => 'PLUS_REGISTRATION_COUNTS', 'validate' => 'bool', 'type' => 'radio:yes_no', 'explain' => true);
+		}
 		$display['vars'] = phpbb_insert_config_array($display['vars'], $fields, array('after' => 'load_online_guests'));
 		$event['display_vars'] = $display;
 	}

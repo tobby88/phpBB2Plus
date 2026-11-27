@@ -1,6 +1,10 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 $lang = array_merge($lang, array(
+	'PLUS_REGISTERED_TODAY' => 'Heute registriert: %d',
+	'PLUS_REGISTERED_YESTERDAY' => 'Gestern registriert: %d',
+	'PLUS_REGISTRATION_COUNTS' => 'Registrierungen von heute und gestern anzeigen',
+	'PLUS_REGISTRATION_COUNTS_EXPLAIN' => 'Die Tagesgrenzen richten sich nach der Zeitzone des Besuchers.',
 	'PLUS_DAILY_HEADING' => 'Heute im Forum',
 	'PLUS_DAILY_TOTAL' => array(1 => 'Heute hat %d Person das Forum besucht.', 2 => 'Heute haben %d Personen das Forum besucht.'),
 	'PLUS_DAILY_MEMBERS' => array(1 => 'Heute war %d Mitglied im Forum.', 2 => 'Heute waren %d Mitglieder im Forum.'),

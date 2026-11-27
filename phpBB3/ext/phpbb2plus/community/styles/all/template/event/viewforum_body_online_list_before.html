@@ -8,7 +8,7 @@
 {% if S_PLUS_CATEGORY_STATS %}
 <div class="stat-block statistics">
 	<h3>{{ lang('STATISTICS') }}</h3>
-	<p>{{ PLUS_BOARD_POSTS }} &bull; {{ PLUS_BOARD_TOPICS }} &bull; {{ PLUS_BOARD_MEMBERS }} &bull; {{ PLUS_BOARD_NEWEST }}</p>
+	<p>{{ PLUS_BOARD_POSTS }} &bull; {{ PLUS_BOARD_TOPICS }} &bull; {{ PLUS_BOARD_MEMBERS }} &bull; {{ PLUS_BOARD_NEWEST }}{% include '@phpbb2plus_community/daily_registrations.html' %}</p>
 </div>
 {% endif %}
 {% include '@phpbb2plus_community/daily_visitors.html' %}

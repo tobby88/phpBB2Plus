@@ -23,6 +23,20 @@ class daily_visitors
 		return (new \DateTimeImmutable('@' . $now))->setTimezone(new \DateTimeZone($this->config['board_timezone'] ?: 'UTC'))->setTime(0, 0)->getTimestamp();
 	}
 
+	public function registrations(int $now, \DateTimeZone $zone)
+	{
+		$midnight = (new \DateTimeImmutable('@' . $now))->setTimezone($zone)->setTime(0, 0);
+		$today = $midnight->getTimestamp();
+		$yesterday = $midnight->modify('-1 day')->getTimestamp();
+		$result = $this->db->sql_query("SELECT COUNT(CASE WHEN user_regdate >= $today THEN 1 END) AS today,
+			COUNT(CASE WHEN user_regdate < $today THEN 1 END) AS yesterday FROM " . USERS_TABLE . "
+			WHERE user_regdate BETWEEN $yesterday AND $now AND user_id <> " . ANONYMOUS . '
+				AND user_type IN (' . USER_NORMAL . ',' . USER_INACTIVE . ',' . USER_FOUNDER . ')');
+		$row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+		return array('today' => (int) $row['today'], 'yesterday' => (int) $row['yesterday']);
+	}
+
 	private function cleanup_mark()
 	{
 		$mode = $this->mode();

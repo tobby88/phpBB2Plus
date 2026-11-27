@@ -75,6 +75,10 @@ function plus_portal_settings()
 	}
 	$src_db->sql_freeresult($result);
 	$config->set('plus_wl_index_logos',(int) $index_logos);
+	$result = $src_db->sql_query("SELECT config_value FROM {$p}plus WHERE config_name='index_layout'");
+	$layout = $src_db->sql_fetchfield('config_value');
+	$src_db->sql_freeresult($result);
+	if ($layout !== false) { $config->set('plus_registration_counts', (int) ($layout === 'index_body_plus.tpl')); }
 	$result = $src_db->sql_query("SELECT config_name,config_value FROM {$p}config WHERE config_name IN ('display_viewonline','display_viewonline_over')");
 	while ($r = $src_db->sql_fetchrow($result))
 	{
