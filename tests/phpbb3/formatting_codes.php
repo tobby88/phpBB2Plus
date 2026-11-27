@@ -19,6 +19,7 @@ if ($argv[2] === 'source')
 		$sample .= " [stream:$uid]https://archive.example.test/audio.ogg[/stream:$uid] " .
 			"[video width=320 height=200:$uid]https://archive.example.test/film.webm[/video:$uid]";
 		$sample .= " [scrollup:$uid]Höher[/scrollup:$uid] [marq=right:$uid]Weiter[/marq:$uid]";
+		$sample .= " [right:$uid]https://archive.example.test/bild.jpg[/right:$uid]";
 		$q = $old->prepare("UPDATE $table SET $column=CONCAT($column,?) WHERE $where");
 		$q->bind_param('s', $sample);
 		$q->execute();
@@ -73,6 +74,14 @@ if ($argv[2] === 'converted')
 			'Missing scrolling text from ' . $column);
 		formatting_require(strpos(\s9e\TextFormatter\Unparser::unparse($xml), '[align=right][s]Überholt[/s]') !== false,
 			'Editable Plus formatting lost its original tags in ' . $column);
+		foreach (array(true, false) as $images)
+		{
+			$renderer->set_viewimg($images);
+			$view = formatting_xpath($renderer->render($xml));
+			formatting_require($view->query('//span[contains(@style,"float:right")]/img[@src="https://archive.example.test/bild.jpg" and @class="postimage"]')->length === (int) $images,
+				'An imported aligned picture lost its native image settings in ' . $column);
+		}
+		$renderer->set_viewimg(true);
 	}
 	foreach (array(array(POSTS_TABLE,'post_text','post_id=40'),array(PRIVMSGS_TABLE,'message_text','msg_id=112')) as list($table,$column,$where))
 	{
@@ -85,6 +94,25 @@ if ($argv[2] === 'converted')
 }
 elseif ($argv[2] === 'native')
 {
+	$parser = $phpbb_container->get('text_formatter.parser');
+	$image_code = '[LEFT]https://archive.example.test/links.png[/LEFT] [right]https://archive.example.test/rechts.jpeg[/right] ' .
+		'[img]https://archive.example.test/normal.jpg[/img] [right]https://archive.example.test/unmatched.txt[/right] [code][left]https://archive.example.test/beispiel.png[/left][/code]';
+	$parser->enable_bbcodes();
+	$parser->enable_bbcode('img');
+	$image_xml = $parser->parse($image_code);
+	$renderer->set_viewimg(true);
+	$view = formatting_xpath($renderer->render($image_xml));
+	formatting_require($view->query('//span[contains(@style,"float:left")]/img[contains(@src,"links.png")]')->length === 1 &&
+		$view->query('//span[contains(@style,"float:right")]/img[contains(@src,"rechts.jpeg")]')->length === 1 && $view->query('//img')->length === 3 &&
+		\s9e\TextFormatter\Unparser::unparse($image_xml) === $image_code, 'Aligned and ordinary images did not share their native rendering or editable source');
+	$renderer->set_viewimg(false);
+	formatting_require(formatting_xpath($renderer->render($image_xml))->query('//img')->length === 0, 'A reader who disabled images still received image markup');
+	$renderer->set_viewimg(true);
+	$parser->disable_bbcode('img');
+	$no_images = $parser->parse($image_code);
+	$parser->enable_bbcode('img');
+	formatting_require(strpos($no_images, '<IMG ') === false && \s9e\TextFormatter\Unparser::unparse($no_images) === $image_code,
+		'An aligned picture escaped the normal native image posting switch');
 	$sample = "[center][s]Alt[/s][/center] [font=Georgia]Schrift[/font] [poet]A\nB[/poet] [poet=alt]C[/poet] [hr] " .
 		"[glow=red]Licht[/glow] [shadow=blue]Schatten[/shadow] [fliph]Horizontal[/fliph] [flipv]Vertikal[/flipv] [fade]Verlauf[/fade]";
 	foreach (array('left','right','up','down') as $direction)
@@ -116,6 +144,7 @@ elseif ($argv[2] === 'native')
 		'<CODE><s>[code]</s>[s]Beispiel[/s]<e>[/code]</e></CODE> [scrolldown]Süden[/scrolldown] [align=falsch]Wort[/align] [s]offen</r>';
 	$service = $phpbb_container->get('phpbb2plus.community.legacy_formatting');
 	$media_old = '<r><B><s>[b]</s>Ton<e>[/b]</e></B> [ram]<URL url="https://archive.example.test/a.ogg">https://archive.example.test/a.ogg</URL>[/ram] ' .
+		'[left]<URL url="https://archive.example.test/links.gif">https://archive.example.test/links.gif</URL>[/left] ' .
 		'[video width=699 height=499]https://archive.example.test/f.webm[/video] [video width=700 height=499]https://archive.example.test/v.webm[/video] ' .
 		'<CODE><s>[code]</s>[ram]https://archive.example.test/example[/ram]<e>[/code]</e></CODE></r>';
 	foreach (array(true, false) as $enabled)
@@ -125,6 +154,7 @@ elseif ($argv[2] === 'native')
 		$media_xml = $event['text'];
 		$xpath = formatting_xpath($renderer->render($media_xml));
 		formatting_require($xpath->query('//audio[@preload="none"]')->length === (int) $enabled &&
+			$xpath->query('//span[contains(@style,"float:left")]/img[contains(@src,"links.gif")]')->length === (int) $enabled &&
 			$xpath->query('//video')->length === (int) $enabled &&
 			\s9e\TextFormatter\Unparser::unparse($media_xml) === \s9e\TextFormatter\Unparser::unparse($media_old),
 			'Historical players changed dimensions, code samples or the editable source');

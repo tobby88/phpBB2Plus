@@ -22,7 +22,7 @@ class legacy_text_styles
 	private static function names()
 	{
 		static $names;
-		if ($names === null) { $names = implode('|', array_keys(formatting_codes::definitions() + media_codes::TAGS)); }
+		if ($names === null) { $names = implode('|', array_keys(formatting_codes::definitions() + media_codes::TAGS + media_codes::IMAGES)); }
 		return $names;
 	}
 
@@ -37,7 +37,8 @@ class legacy_text_styles
 		$text = $doc->documentElement->textContent;
 		$parsed = new \DOMDocument();
 		if (!@$parsed->loadXML($this->parser->parse($text), LIBXML_NONET) || $parsed->documentElement->textContent !== $text) { return $xml; }
-		$names = formatting_codes::definitions() + media_codes::TAGS + array_change_key_case(array_flip(media_codes::TAGS));
+		$media = media_codes::TAGS + media_codes::IMAGES;
+		$names = formatting_codes::definitions() + $media + array_change_key_case(array_flip($media));
 		$xpath = new \DOMXPath($parsed);
 		$offset = 0;
 		$open = $wanted = $spans = array();
