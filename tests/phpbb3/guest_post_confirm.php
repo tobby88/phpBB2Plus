@@ -8,6 +8,8 @@ if ($argv[2] === 'source')
 	$source = plus_fixture_database($argv[1]);
 	$source->query("UPDATE phpbb_ctracker_config SET ct_config_value='0' WHERE ct_config_name='vconfirm_guest'");
 	$source->query("UPDATE phpbb_plus SET config_value='$fallback' WHERE config_name='enable_confirm_post'");
+	$source->query("UPDATE phpbb_config SET config_value='0' WHERE config_name='enable_confirm'");
+	$source->query("UPDATE phpbb_plus SET config_value='1' WHERE config_name='enable_antirobot'");
 	return;
 }
 if ($argv[2] !== 'converted') { exit(2); }
@@ -24,6 +26,8 @@ foreach (array(array(true,'1','0',1), array(true,'1','1',1), array(true,'0','1',
 }
 if (empty($config['plus_guest_confirm_imported']) || (int) $config['enable_post_confirm'] !== $fallback)
 { throw new RuntimeException('The native guest-post setting did not match the old fallback'); }
+if ((int) $config['enable_confirm'] !== 1)
+{ throw new RuntimeException('The native registration challenge did not retain the Plus anti-robot choice'); }
 try
 {
 	$config->set('enable_post_confirm', 1 - $fallback);

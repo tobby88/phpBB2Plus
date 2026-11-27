@@ -106,6 +106,8 @@ if (!$get_info)
 		plus_apply_converted_colours();
 	}
 	$config_schema['settings']['default_lang'] = 'plus_convert_locale(default_lang)';
+	$config_schema['settings']['enable_confirm'] = 'plus_registration_confirmation(enable_confirm)';
+	$config_schema['settings']['require_activation'] = 'plus_registration_activation(require_activation)';
 	$config_schema['settings']['cookie_notice'] = 'cookie_consent_enable';
 	$config_schema['settings']['plus_sfs_enable'] = 'sfs_enable';
 	$config_schema['settings']['plus_sfs_fail_closed'] = 'sfs_fail_closed';

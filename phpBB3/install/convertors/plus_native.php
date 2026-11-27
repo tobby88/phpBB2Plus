@@ -1,6 +1,24 @@
 <?php
 if (!defined('IN_PHPBB')) { exit; }
 
+function plus_registration_confirmation($native)
+{
+	global $src_db, $convert;
+	$result = $src_db->sql_query('SELECT config_value FROM ' . $convert->src_table_prefix . "plus WHERE config_name='enable_antirobot'");
+	$anti_robot = $src_db->sql_fetchfield('config_value');
+	$src_db->sql_freeresult($result);
+	if ($native || $anti_robot) { return 1; }
+	// The native mapper passes an empty string for both zero and a missing source setting.
+	return $anti_robot === false && get_config_value('enable_confirm') === false ? '' : 0;
+}
+
+function plus_registration_activation($mode)
+{
+	if (get_config_value('registration_status')) { return USER_ACTIVATION_DISABLE; }
+	if ($mode !== '') { return $mode; }
+	return get_config_value('require_activation') === false ? '' : USER_ACTIVATION_NONE;
+}
+
 /** Effective Plus setting for the native guest posting challenge. */
 function plus_guest_post_confirmation($tracker_installed, $tracker_setting, $plus_setting)
 {
