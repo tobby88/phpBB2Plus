@@ -64,6 +64,7 @@ import removed_shadow_links
 import age_pruning
 import print_topics
 import announcement_duration
+import announcement_list
 import locked_polls
 import poll_administration
 import legacy_links
@@ -425,6 +426,7 @@ def extension_upgrades(target, web, suite="all"):
         preserved.append(tests / "acronym_dictionary.php")
         migrations.append("community/migrations/v184_news_topics")
         fixtures.append(tests / "topic_groups.php")
+        fixtures.append(tests / "announcement_list.php")
     if suite in ("media", "downloads"):
         migrations.extend(("downloads/migrations/v111_reports", "gallery/migrations/v114_rating_settings"))
         fixtures.extend(tests / name for name in ("download_reports.php", "download_search.php", "download_mail.php", "download_checker.php"))
@@ -588,6 +590,7 @@ def seed_source(source, legacy, suite):
         php(tests / "profile_visits.php", source, "source")
         php(tests / "last_login_display.php", source, "source")
         php(tests / "forum_display.php", source, "source")
+        php(tests / "announcement_list.php", source, "source")
         php(tests / "topic_avatar.php", source, "source")
         php(tests / "guest_post_confirm.php", source, "source")
         php(tests / "recommend.php", source, "source")
@@ -908,6 +911,8 @@ def main():
                     credit_run = worker.submit(credits.administration, member.separate_client())
                     poll_run = worker.submit(poll_administration.browse, member.separate_client())
                     structure_run = worker.submit(forum_recovery.administration, member.separate_client())
+                    news.archive_dates(base, member, lambda phase: php(
+                        ROOT / "tests/phpbb3/news_archive_dates.php", target, phase, cwd=web))
                     news.administration(base, member)
                     credit_run.result()
                     poll_run.result()
@@ -919,6 +924,8 @@ def main():
                     portal.administration(base, member)
                     cookie_notice.browse(member)
                     forum_display.browse(base, web, target, php, member)
+                    announcement_list.browse(base, member, ordinary, lambda phase: php(
+                        ROOT / "tests/phpbb3/announcement_list.php", target, phase, cwd=web, capture=True))
                     profile_visits.browse(base, member, ordinary, lambda phase: php(
                         ROOT / "tests/phpbb3/profile_visits.php", target, phase, cwd=web, capture=True))
                     last_login_display.browse(member, ordinary, lambda phase: php(
