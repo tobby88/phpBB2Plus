@@ -47,6 +47,18 @@ class search
 		return $this->db->sql_like_expression($any . $term . $any);
 	}
 
+	private function plain_text_match($column, $term)
+	{
+		if ($this->db->get_sql_layer() === 'mysqli')
+		{
+			// Decode the stored bytes and the pattern as Unicode. LOWER and LIKE's "_"
+			// must operate on characters; a quoted literal uses the driver's three-byte charset.
+			$pattern = '0x' . bin2hex('%' . $term . '%');
+			return "LOWER(CONVERT($column USING utf8mb4)) COLLATE utf8mb4_bin LIKE CONVERT($pattern USING utf8mb4)";
+		}
+		return "LOWER($column) " . $this->contains($term);
+	}
+
 	public function find()
 	{
 		$this->language->add_lang('gallery', 'phpbb2plus/gallery');
@@ -73,13 +85,13 @@ class search
 		$categories = $this->access->portal_categories(true, array());
 		$where = $this->access->picture_filter($categories, true);
 		$needle = utf8_strtolower(utf8_normalize_nfc($term));
-		$like = $this->contains($needle);
 		$accounts = ' LEFT JOIN ' . USERS_TABLE . ' u ON u.user_id=p.author_id AND p.author_id>' . ANONYMOUS;
 		if ($mode === 'user')
 		{
-			$where .= ' AND ' . $this->byline->search_condition($this->contains(utf8_encode_ucr(utf8_htmlspecialchars($needle))), $like);
+			$where .= ' AND ' . $this->byline->search_condition($this->contains(utf8_encode_ucr(utf8_htmlspecialchars($needle))),
+				$this->plain_text_match('p.author_name', $needle));
 		}
-		else { $where .= ($mode === 'name' ? ' AND LOWER(p.title) ' : ' AND LOWER(p.description) ') . $like; }
+		else { $where .= ' AND ' . $this->plain_text_match($mode === 'name' ? 'p.title' : 'p.description', $needle); }
 		$order = ' ORDER BY p.created_at DESC,p.pic_id DESC';
 		// Count only visible results, up to the original ceiling. Fetch descriptions only as a SQL predicate.
 		$result = $this->db->sql_query_limit('SELECT p.pic_id FROM ' . $this->pictures . ' p' . ($mode === 'user' ? $accounts : '') .
