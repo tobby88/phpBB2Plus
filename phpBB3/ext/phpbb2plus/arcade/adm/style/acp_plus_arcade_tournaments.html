@@ -12,7 +12,7 @@
 {% if S_FINISHED %}<h2>{{ EVENT.name|e }}</h2><p>{{ lang('PLUS_ARC_TOUR_FINISHED') }}</p><p>{{ EVENT.description|e|nl2br }}</p>
 {% else %}
 <form id="arc-event-edit" action="{{ U_EDIT }}" method="post"><fieldset><legend>{{ lang('PLUS_ARC_TOUR') }}</legend>
-<dl><dt><label for="event-name">{{ lang('PLUS_ARC_TOUR_NAME') }}</label></dt><dd><input id="event-name" name="name" maxlength="25" value="{{ EVENT.name|e }}" required></dd></dl>
+<dl><dt><label for="event-name">{{ lang('PLUS_ARC_TOUR_NAME') }}</label></dt><dd><input id="event-name" name="name" maxlength="50" pattern="[\s\S]{1,25}" value="{{ EVENT.name|e }}" required></dd></dl>
 <dl><dt><label for="event-desc">{{ lang('PLUS_ARC_TOUR_DESCRIPTION') }}</label></dt><dd><textarea id="event-desc" name="description" rows="3" cols="48">{{ EVENT.description|e }}</textarea></dd></dl>
 <dl><dt><label for="event-state">{{ lang('PLUS_ARC_TOUR_STATE') }}</label></dt><dd><select id="event-state" name="state">
 {% for state in loops.states %}<option value="{{ state.VALUE }}"{% if state.SELECTED %} selected{% endif %}>{{ state.LABEL }}</option>{% endfor %}</select></dd></dl>

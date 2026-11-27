@@ -2,8 +2,8 @@
 <h2>{{ ARC_TITLE }}</h2>
 {% if ARC_ERROR %}<p class="error">{{ ARC_ERROR }}</p>{% endif %}
 <form id="arc-proposal" method="post" action="{{ U_PROPOSE }}"><div class="panel"><div class="inner"><fieldset class="fields2">
-<dl><dt><label for="arc-name">{{ lang('PLUS_ARC_TOUR_NAME') }}</label></dt><dd><input id="arc-name" name="name" class="inputbox" maxlength="25" required value="{{ PROPOSAL.name|e }}"></dd></dl>
-<dl><dt><label for="arc-description">{{ lang('PLUS_ARC_TOUR_DESCRIPTION') }}</label></dt><dd><textarea id="arc-description" name="description" class="inputbox" rows="3" minlength="3" maxlength="255" required>{{ PROPOSAL.description|e }}</textarea></dd></dl>
+<dl><dt><label for="arc-name">{{ lang('PLUS_ARC_TOUR_NAME') }}</label></dt><dd><input id="arc-name" name="name" class="inputbox" maxlength="50" pattern="[\s\S]{1,25}" required value="{{ PROPOSAL.name|e }}"></dd></dl>
+<dl><dt><label for="arc-description">{{ lang('PLUS_ARC_TOUR_DESCRIPTION') }}</label></dt><dd><textarea id="arc-description" name="description" class="inputbox" rows="3" minlength="3" maxlength="510" required>{{ PROPOSAL.description|e }}</textarea></dd></dl>
 <dl><dt><label for="arc-players">{{ lang('PLUS_ARC_TOUR_CAPACITY') }}</label></dt><dd><input id="arc-players" name="players" type="number" min="2" max="{{ MAX_PLAYERS }}" value="{{ PROPOSAL.players|e }}" required></dd></dl>
 <dl><dt><label for="arc-turns">{{ lang('PLUS_ARC_TOUR_ALLOWANCE') }}</label></dt><dd><input id="arc-turns" name="turns" type="number" min="1" max="10000" value="{{ PROPOSAL.turns|e }}" required></dd></dl>
 <dl><dt><label for="arc-reserve">{{ lang('PLUS_ARC_TOUR_RESERVE') }}</label></dt><dd><input id="arc-reserve" name="reserve" type="checkbox" value="1"{% if PROPOSAL.reserve %} checked{% endif %}></dd></dl>
